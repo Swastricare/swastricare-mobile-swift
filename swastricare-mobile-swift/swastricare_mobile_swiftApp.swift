@@ -11,20 +11,45 @@ import Supabase
 @main
 struct swastricare_mobile_swiftApp: App {
     @StateObject private var authManager = AuthManager.shared
+    @StateObject private var biometricAuth = BiometricAuthManager.shared
+    @Environment(\.scenePhase) private var scenePhase
+    
+    @State private var showMainApp = false
     
     var body: some Scene {
         WindowGroup {
-            Group {
-                if authManager.isAuthenticated {
-                    ContentView()
+            ZStack {
+                if showMainApp {
+                    ZStack {
+                        // Main Content
+                        Group {
+                            if authManager.isAuthenticated {
+                                ContentView()
+                            } else {
+                                AuthView()
+                            }
+                        }
+                        
+                        // Biometric Lock Screen Overlay
+                        if biometricAuth.isLocked && authManager.isAuthenticated {
+                            LockScreenView()
+                                .transition(.opacity)
+                                .zIndex(999)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.3), value: biometricAuth.isLocked)
+                    .transition(.opacity)
                 } else {
-                    AuthView()
+                    SplashView(isActive: $showMainApp)
                 }
             }
             .onOpenURL { url in
                 Task {
                     await handleOAuthCallback(url: url)
                 }
+            }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
             }
         }
     }
@@ -35,6 +60,28 @@ struct swastricare_mobile_swiftApp: App {
             await authManager.checkAuthStatus()
         } catch {
             print("OAuth callback error: \(error)")
+        }
+    }
+    
+    private func handleScenePhaseChange(oldPhase: ScenePhase, newPhase: ScenePhase) {
+        switch newPhase {
+        case .background:
+            // Lock the app when going to background
+            if authManager.isAuthenticated {
+                biometricAuth.lock()
+            }
+            
+        case .active:
+            // App became active (from background or initial launch)
+            // If user is authenticated and app is locked, authentication will auto-trigger in LockScreenView
+            break
+            
+        case .inactive:
+            // App is temporarily inactive (e.g., during phone call, notification center)
+            break
+            
+        @unknown default:
+            break
         }
     }
 }

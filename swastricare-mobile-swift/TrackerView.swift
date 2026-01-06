@@ -8,36 +8,71 @@
 import SwiftUI
 
 struct TrackerView: View {
-    // Mock Data
-    private let weeklySteps: [Double] = [6500, 8000, 10200, 7500, 9000, 11000, 8432]
-    private let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    @StateObject private var healthManager = HealthManager.shared
+    @StateObject private var activityLogger = ActivityLogger.shared
+    @State private var selectedDate = Date()
+    @State private var showActivityModal = false
+    @State private var isRefreshing = false
+    @State private var isSyncing = false
+    @State private var syncMessage: String?
+    @State private var showSyncAlert = false
+    
+    private let calendar = Calendar.current
     
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Header
-                HeroHeader(
-                    title: "Tracker",
-                    subtitle: "Health Trends",
-                    icon: "chart.xyaxis.line"
-                )
+                // Header with Sync Button
+                HStack {
+                    HeroHeader(
+                        title: "Tracker",
+                        subtitle: "Health Trends",
+                        icon: "chart.xyaxis.line"
+                    )
+                    
+                    Spacer()
+                    
+                    // Sync Button
+                    Button(action: {
+                        Task { await syncData() }
+                    }) {
+                        HStack(spacing: 4) {
+                            if isSyncing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.title3)
+                            }
+                        }
+                        .foregroundColor(.blue)
+                        .padding(10)
+                        .glass(cornerRadius: 12)
+                    }
+                    .disabled(isSyncing || !healthManager.isAuthorized)
+                }
+                .padding(.horizontal)
                 
-                // Calendar Strip (Premium)
+                // Date Navigation Strip
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 15) {
                         ForEach(0..<14) { i in
+                            let date = calendar.date(byAdding: .day, value: -i, to: Date()) ?? Date()
+                            let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
+                            
                             VStack(spacing: 8) {
-                                Text("Jan")
+                                Text(monthName(for: date))
                                     .font(.caption2)
-                                    .foregroundColor(i == 6 ? .white.opacity(0.8) : .secondary)
-                                Text("\(i + 1)")
+                                    .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                                Text("\(calendar.component(.day, from: date))")
                                     .font(.headline)
                                     .fontWeight(.bold)
-                                    .foregroundColor(i == 6 ? .white : .primary)
+                                    .foregroundColor(isSelected ? .white : .primary)
                             }
                             .frame(width: 50, height: 75)
                             .background(
-                                i == 6 ?
+                                isSelected ?
                                 AnyView(PremiumColor.royalBlue) :
                                 AnyView(Color.clear)
                             )
@@ -46,13 +81,19 @@ struct TrackerView: View {
                                 RoundedRectangle(cornerRadius: 25)
                                     .stroke(Color.primary.opacity(0.05), lineWidth: 1)
                             )
-                            .glass(cornerRadius: 25) // Apply glass to all, but selected overrides bg
+                            .glass(cornerRadius: 25)
+                            .onTapGesture {
+                                selectedDate = date
+                                Task {
+                                    await refreshDataForSelectedDate()
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal)
                 }
                 
-                // Weekly Overview Chart (Glass Card)
+                // Weekly Overview Chart
                 VStack(alignment: .leading, spacing: 20) {
                     HStack {
                         Text("Weekly Steps")
@@ -60,58 +101,149 @@ struct TrackerView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                         Spacer()
-                        Text("Avg: 8,661")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(6)
-                            .background(Color.primary.opacity(0.05))
-                            .clipShape(Capsule())
-                    }
-                    
-                    HStack(alignment: .bottom, spacing: 12) {
-                        ForEach(0..<weeklySteps.count, id: \.self) { index in
-                            VStack {
-                                Spacer()
-                                Capsule()
-                                    .fill(
-                                        index == 6 ?
-                                        PremiumColor.neonGreen :
-                                        LinearGradient(colors: [.gray.opacity(0.3), .gray.opacity(0.1)], startPoint: .top, endPoint: .bottom)
-                                    )
-                                    .frame(height: CGFloat(weeklySteps[index] / 12000.0 * 150))
-                                    .shadow(color: index == 6 ? Color.green.opacity(0.4) : .clear, radius: 8)
-                                
-                                Text(days[index])
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
+                        if !healthManager.weeklySteps.isEmpty {
+                            let avgSteps = healthManager.weeklySteps.reduce(0) { $0 + $1.steps } / healthManager.weeklySteps.count
+                            Text("Avg: \(avgSteps)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(6)
+                                .background(Color.primary.opacity(0.05))
+                                .clipShape(Capsule())
                         }
                     }
-                    .frame(height: 180)
+                    
+                    if healthManager.weeklySteps.isEmpty {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                        .frame(height: 180)
+                    } else {
+                        HStack(alignment: .bottom, spacing: 12) {
+                            ForEach(healthManager.weeklySteps) { metric in
+                                let isToday = calendar.isDate(metric.date, inSameDayAs: Date())
+                                VStack {
+                                    Spacer()
+                                    Capsule()
+                                        .fill(
+                                            isToday ?
+                                            PremiumColor.neonGreen :
+                                            LinearGradient(colors: [.gray.opacity(0.3), .gray.opacity(0.1)], startPoint: .top, endPoint: .bottom)
+                                        )
+                                        .frame(height: max(CGFloat(metric.steps) / 12000.0 * 150, 10))
+                                        .shadow(color: isToday ? Color.green.opacity(0.4) : .clear, radius: 8)
+                                    
+                                    Text(metric.dayName)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .frame(height: 180)
+                    }
                 }
                 .padding(20)
                 .glass(cornerRadius: 24)
                 .padding(.horizontal)
                 
-                // Detailed Metrics
+                // Today's Details
                 VStack(alignment: .leading, spacing: 15) {
-                    Text("Today's Details")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                        .padding(.horizontal)
+                    HStack {
+                        Text(calendar.isDateInToday(selectedDate) ? "Today's Details" : "Daily Details")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        if !calendar.isDateInToday(selectedDate) {
+                            Text(formatDate(selectedDate))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal)
                     
                     VStack(spacing: 12) {
-                        TrackerMetricRow(title: "Active Calories", value: "650 kcal", icon: "flame.fill", color: .orange)
-                        TrackerMetricRow(title: "Exercise", value: "45 mins", icon: "figure.run", color: .green)
-                        TrackerMetricRow(title: "Stand Hours", value: "8/12 hr", icon: "figure.stand", color: .blue)
-                        TrackerMetricRow(title: "Distance", value: "5.2 km", icon: "map.fill", color: .cyan)
+                        TrackerMetricRow(
+                            title: "Active Calories",
+                            value: "\(healthManager.activeCalories) kcal",
+                            icon: "flame.fill",
+                            color: .orange
+                        )
+                        TrackerMetricRow(
+                            title: "Exercise",
+                            value: "\(healthManager.exerciseMinutes) mins",
+                            icon: "figure.run",
+                            color: .green
+                        )
+                        TrackerMetricRow(
+                            title: "Stand Hours",
+                            value: "\(healthManager.standHours)/12 hr",
+                            icon: "figure.stand",
+                            color: .blue
+                        )
+                        TrackerMetricRow(
+                            title: "Distance",
+                            value: String(format: "%.1f km", healthManager.distance),
+                            icon: "map.fill",
+                            color: .cyan
+                        )
                     }
                     .padding(.horizontal)
                 }
                 
-                // Add Button (Floating Style)
-                Button(action: {}) {
+                // Manual Activities Section
+                if !activityLogger.todayActivities.isEmpty && calendar.isDateInToday(selectedDate) {
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text("Logged Activities")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal)
+                        
+                        VStack(spacing: 12) {
+                            ForEach(activityLogger.todayActivities) { activity in
+                                HStack {
+                                    Image(systemName: activity.icon)
+                                        .font(.title3)
+                                        .foregroundColor(activity.color)
+                                        .padding(10)
+                                        .background(activity.color.opacity(0.1))
+                                        .clipShape(Circle())
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(activity.type.displayName)
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.primary)
+                                        
+                                        if let notes = activity.notes, !notes.isEmpty {
+                                            Text(notes)
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Text(activity.displayValue)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding()
+                                .glass(cornerRadius: 16)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+                
+                // Log Activity Button
+                Button(action: {
+                    showActivityModal = true
+                }) {
                     HStack {
                         Image(systemName: "plus")
                         Text("Log Activity")
@@ -132,6 +264,92 @@ struct TrackerView: View {
             }
             .padding(.top)
         }
+        .refreshable {
+            await refreshData()
+        }
+        .sheet(isPresented: $showActivityModal) {
+            ActivityLoggingModal()
+        }
+        .alert("Sync Status", isPresented: $showSyncAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(syncMessage ?? "")
+        }
+        .onAppear {
+            if healthManager.isAuthorized {
+                Task {
+                    await loadInitialData()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func monthName(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM"
+        return formatter.string(from: date)
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
+    }
+    
+    private func loadInitialData() async {
+        await healthManager.fetchAllHealthData()
+        await healthManager.fetchWeeklySteps()
+    }
+    
+    private func refreshData() async {
+        isRefreshing = true
+        await healthManager.fetchAllHealthDataForDate(selectedDate)
+        await healthManager.fetchWeeklySteps()
+        isRefreshing = false
+    }
+    
+    private func refreshDataForSelectedDate() async {
+        await healthManager.fetchAllHealthDataForDate(selectedDate)
+    }
+    
+    private func syncData() async {
+        isSyncing = true
+        
+        // Sync health data
+        do {
+            let _ = try await SupabaseManager.shared.syncHealthData(
+                steps: healthManager.stepCount,
+                heartRate: healthManager.heartRate,
+                sleepDuration: healthManager.sleepHours,
+                activeCalories: healthManager.activeCalories,
+                exerciseMinutes: healthManager.exerciseMinutes,
+                standHours: healthManager.standHours,
+                distance: healthManager.distance,
+                date: selectedDate
+            )
+            
+            // Sync manual activities
+            for activity in activityLogger.todayActivities {
+                let record = ManualActivityRecord(
+                    userId: UUID(), // Will be set by SupabaseManager
+                    activityType: activity.type.rawValue,
+                    value: activity.value,
+                    unit: activity.unit,
+                    notes: activity.notes,
+                    loggedAt: activity.loggedAt
+                )
+                _ = try await SupabaseManager.shared.syncManualActivity(record)
+            }
+            
+            syncMessage = "Data synced successfully!"
+        } catch {
+            syncMessage = "Sync failed: \(error.localizedDescription)"
+        }
+        
+        isSyncing = false
+        showSyncAlert = true
     }
 }
 

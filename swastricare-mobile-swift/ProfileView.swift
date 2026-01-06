@@ -27,14 +27,46 @@ struct ProfileView: View {
                         
                     VStack(spacing: 16) {
                         ZStack {
-                            Circle()
-                                .fill(PremiumColor.deepPurple)
-                                .frame(width: 100, height: 100)
-                                .shadow(color: .purple.opacity(0.4), radius: 15)
-                            
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 45))
-                                .foregroundColor(.white)
+                            if let photoURL = authManager.userPhotoURL {
+                                AsyncImage(url: photoURL) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        Circle()
+                                            .fill(PremiumColor.deepPurple.opacity(0.5))
+                                            .frame(width: 100, height: 100)
+                                            .overlay(ProgressView().tint(.white))
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 100, height: 100)
+                                            .clipShape(Circle())
+                                            .shadow(color: .purple.opacity(0.4), radius: 15)
+                                            .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 2))
+                                    case .failure:
+                                        ZStack {
+                                            Circle()
+                                                .fill(PremiumColor.deepPurple)
+                                                .frame(width: 100, height: 100)
+                                            Image(systemName: "person.fill")
+                                                .font(.system(size: 45))
+                                                .foregroundColor(.white)
+                                        }
+                                        .shadow(color: .purple.opacity(0.4), radius: 15)
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                            } else {
+                                Circle()
+                                    .fill(PremiumColor.deepPurple)
+                                    .frame(width: 100, height: 100)
+                                    .shadow(color: .purple.opacity(0.4), radius: 15)
+                                
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 45))
+                                    .foregroundColor(.white)
+                            }
                         }
                         .padding(.top, 10)
                         

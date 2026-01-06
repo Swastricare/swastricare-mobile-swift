@@ -6,5 +6,7 @@
     <string>We need speech recognition to convert your voice messages to text in the AI Assistant.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>We need microphone access to record your voice for speech-to-text conversion in the AI Assistant.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>We use Face ID to securely protect your sensitive health data and ensure only you can access your medical records.</string>
 </dict>
 </plist>

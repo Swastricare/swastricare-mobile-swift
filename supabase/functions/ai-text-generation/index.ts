@@ -35,26 +35,27 @@ serve(async (req) => {
     // Generate different types of content based on request
     switch (contentType) {
       case 'daily_summary':
-        prompt = `Create a friendly daily health summary based on this data:
+        prompt = `Hi! I'm Swastrica 💚 Create a daily health summary based on this data:
 ${JSON.stringify(data, null, 2)}
 
-Write a warm, encouraging 3-4 sentence summary highlighting key achievements and suggesting one improvement for tomorrow.`
+Use short sentences. Add emojis. Write 3-4 encouraging sentences highlighting achievements and one tip for tomorrow. Keep it warm and friendly!`
         break
         
       case 'weekly_report':
-        prompt = `Create a weekly health report based on this data:
+        prompt = `Hi! I'm Swastrica 💚 Create a weekly health report based on this data:
 ${JSON.stringify(data, null, 2)}
 
-Write a comprehensive but friendly 2-paragraph report covering:
-1. Overall progress and trends
-2. Areas of improvement and encouragement for next week`
+Use short sentences and emojis. Write a friendly report covering:
+1. Progress and trends ✨
+2. Areas to improve 💪
+Keep it encouraging!`
         break
         
       case 'goal_suggestions':
-        prompt = `Based on this health data, suggest 3 achievable goals:
+        prompt = `Hi! I'm Swastrica 💚 Based on this health data, suggest 3 achievable goals:
 ${JSON.stringify(data, null, 2)}
 
-Format as a JSON array of objects with "title" and "description" fields. Make goals SMART (Specific, Measurable, Achievable, Relevant, Time-bound).`
+Format as JSON array with "title" and "description". Use short sentences and emojis. Make goals SMART and encouraging!`
         break
         
       default:

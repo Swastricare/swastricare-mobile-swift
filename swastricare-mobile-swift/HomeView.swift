@@ -6,21 +6,59 @@
 //
 
 import SwiftUI
+import Auth
 
 struct HomeView: View {
     @StateObject private var healthManager = HealthManager.shared
+    @StateObject private var authManager = AuthManager.shared
     @State private var isSyncing = false
     @State private var syncMessage: String?
     @State private var showSyncAlert = false
     @State private var lastSyncTime: Date?
+    
+    // MARK: - Computed Properties
+    
+    /// Get user's display name from auth metadata or email
+    private var userName: String {
+        // Try to get full name from user metadata (works for both email signup and Google)
+        if let metadata = authManager.currentUser?.userMetadata {
+            // Check for full_name (email signup) or name (Google OAuth)
+            if let fullName = metadata["full_name"], let name = fullName.stringValue, !name.isEmpty {
+                return name.components(separatedBy: " ").first ?? name
+            }
+            if let nameVal = metadata["name"], let nameStr = nameVal.stringValue, !nameStr.isEmpty {
+                return nameStr.components(separatedBy: " ").first ?? nameStr
+            }
+        }
+        // Fallback to email prefix
+        if let email = authManager.userEmail {
+            return email.components(separatedBy: "@").first?.capitalized ?? "User"
+        }
+        return "User"
+    }
+    
+    /// Dynamic greeting based on time of day
+    private var timeBasedGreeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12:
+            return "Good Morning,"
+        case 12..<17:
+            return "Good Afternoon,"
+        case 17..<21:
+            return "Good Evening,"
+        default:
+            return "Good Night,"
+        }
+    }
     
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Premium Header
                 HeroHeader(
-                    title: "Nikhil",
-                    subtitle: "Good Morning,",
+                    title: userName,
+                    subtitle: timeBasedGreeting,
                     icon: "person.circle.fill"
                 )
                 
@@ -122,7 +160,7 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Image(systemName: "flame.fill")
-                                Text("1,240 kcal")
+                                Text("\(healthManager.activeCalories) kcal")
                             }
                             HStack {
                                 Image(systemName: "figure.walk")
@@ -130,7 +168,7 @@ struct HomeView: View {
                             }
                             HStack {
                                 Image(systemName: "clock.fill")
-                                Text("45 mins")
+                                Text("\(healthManager.exerciseMinutes) mins")
                             }
                         }
                         .foregroundColor(.white)
@@ -241,7 +279,11 @@ struct HomeView: View {
             let _ = try await SupabaseManager.shared.syncHealthData(
                 steps: healthManager.stepCount,
                 heartRate: healthManager.heartRate,
-                sleepDuration: healthManager.sleepHours
+                sleepDuration: healthManager.sleepHours,
+                activeCalories: healthManager.activeCalories,
+                exerciseMinutes: healthManager.exerciseMinutes,
+                standHours: healthManager.standHours,
+                distance: healthManager.distance
             )
             lastSyncTime = Date()
             syncMessage = "Health data synced successfully!"

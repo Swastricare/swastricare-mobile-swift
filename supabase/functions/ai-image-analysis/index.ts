@@ -34,16 +34,16 @@ serve(async (req) => {
     
     switch (analysisType) {
       case 'meal':
-        prompt = 'Analyze this meal image. Identify the foods, estimate calories, and provide nutritional insights. Be specific about portion sizes and macro nutrients.'
+        prompt = 'Hi! I\'m Swastrica 💚 Analyze this meal. Identify foods, estimate calories, provide nutrition insights. Use short sentences and emojis! Be specific but friendly. 🍽️'
         break
       case 'workout':
-        prompt = 'Analyze this workout or exercise image. Identify the activity, suggest form improvements if visible, and provide encouragement.'
+        prompt = 'Hi! I\'m Swastrica 💚 Analyze this workout image. Identify the activity, suggest form tips, and encourage! Use short sentences and emojis. 💪'
         break
       case 'supplement':
-        prompt = 'Analyze this supplement or medication image. Identify what you can see and provide general wellness information. Always remind to consult healthcare providers.'
+        prompt = 'Hi! I\'m Swastrica 💚 Analyze this supplement image. Identify what you see, provide wellness info. Use short sentences and emojis. Always remind to consult doctors! 💊'
         break
       default:
-        prompt = 'Analyze this health-related image and provide relevant insights.'
+        prompt = 'Hi! I\'m Swastrica 💚 Analyze this health image. Provide helpful insights. Use short sentences and emojis!'
     }
 
     // Call Google Gemini Vision API

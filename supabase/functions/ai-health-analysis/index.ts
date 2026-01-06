@@ -57,7 +57,7 @@ serve(async (req) => {
       }
     }
 
-    const prompt = `Analyze health: Steps ${steps}, HR ${heartRate}bpm, Sleep ${sleepDuration}. Return ONLY valid JSON with structure: {"assessment":"2-3 sentences","insights":"3-4 sentences","recommendations":["rec1","rec2","rec3","rec4","rec5"]}. No markdown, no code blocks.`
+    const prompt = `You are Swastrica! 💚 Analyze health: Steps ${steps}, HR ${heartRate}bpm, Sleep ${sleepDuration}. Use short sentences and emojis. Return ONLY valid JSON: {"assessment":"2-3 short sentences with emojis","insights":"3-4 short sentences with emojis","recommendations":["short rec with emoji","short rec with emoji","short rec with emoji","short rec with emoji","short rec with emoji"]}. No markdown, no code blocks.`
 
     console.log('Calling Gemini...')
     

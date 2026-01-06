@@ -9,14 +9,61 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
-// MARK: - Document Picker for PDFs
+// MARK: - File Validation
+struct FileValidator {
+    static let maxFileSize: Int64 = 10 * 1024 * 1024 // 10MB
+    
+    static let allowedFormats: [UTType] = [
+        .pdf,           // PDF documents
+        .jpeg, .png, .heic,  // Images
+        .plainText,     // Text files
+        .rtf,           // Rich text
+        .commaSeparatedText, // CSV
+        UTType(filenameExtension: "doc")!,  // Word doc (legacy)
+        UTType(filenameExtension: "docx")!  // Word doc (modern)
+    ]
+    
+    static func validate(data: Data, fileName: String) -> (isValid: Bool, error: String?) {
+        // Check file size
+        if Int64(data.count) > maxFileSize {
+            return (false, "File too large. Max size is 10MB")
+        }
+        
+        // Check if empty
+        if data.isEmpty {
+            return (false, "File is empty")
+        }
+        
+        // Get file extension
+        let fileExtension = (fileName as NSString).pathExtension.lowercased()
+        
+        // Allowed extensions
+        let allowedExtensions = ["pdf", "jpg", "jpeg", "png", "heic", "txt", "rtf", "doc", "docx", "csv"]
+        
+        if !allowedExtensions.contains(fileExtension) {
+            return (false, "Unsupported format. Allowed: PDF, Images, DOC, DOCX, TXT, RTF, CSV")
+        }
+        
+        return (true, nil)
+    }
+    
+    static func getFileType(from fileName: String) -> String {
+        let ext = (fileName as NSString).pathExtension.uppercased()
+        return ext.isEmpty ? "UNKNOWN" : ext
+    }
+}
+
+// MARK: - Document Picker for PDFs and Documents
 struct DocumentPicker: UIViewControllerRepresentable {
     @Binding var selectedFileData: Data?
     @Binding var selectedFileName: String?
     @Environment(\.presentationMode) var presentationMode
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf], asCopy: true)
+        let picker = UIDocumentPickerViewController(
+            forOpeningContentTypes: FileValidator.allowedFormats,
+            asCopy: true
+        )
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         return picker
@@ -158,9 +205,9 @@ struct FilePicker: View {
                                 .foregroundColor(.red)
                                 .font(.title2)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Choose PDF")
+                                Text("Choose Document")
                                     .font(.headline)
-                                Text("Select a PDF document")
+                                Text("PDF, Word, Text files")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }

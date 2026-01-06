@@ -205,6 +205,37 @@ class SupabaseManager {
         return records
     }
     
+    // MARK: - Vault/Document Management (Stubs for VaultManager)
+    
+    /// Fetches user's medical documents
+    func fetchUserDocuments() async throws -> [MedicalDocument] {
+        // TODO: Implement when vault database schema is ready
+        return []
+    }
+    
+    /// Uploads a medical document
+    func uploadDocument(fileData: Data, fileName: String, category: String, notes: String?) async throws -> MedicalDocument {
+        // TODO: Implement when vault storage is configured
+        throw SupabaseError.invalidData
+    }
+    
+    /// Deletes a medical document
+    func deleteDocument(document: MedicalDocument) async throws {
+        // TODO: Implement when vault database schema is ready
+    }
+    
+    /// Downloads a medical document
+    func downloadDocument(storagePath: String) async throws -> Data {
+        // TODO: Implement when vault storage is configured
+        throw SupabaseError.invalidData
+    }
+    
+    /// Searches medical documents
+    func searchDocuments(query: String) async throws -> [MedicalDocument] {
+        // TODO: Implement when vault database schema is ready
+        return []
+    }
+    
     /// Fetches health history for the current user
     func fetchHealthHistory(limit: Int = 30) async throws -> [HealthMetricRecord] {
         guard let userId = try? await client.auth.session.user.id else {

@@ -194,6 +194,12 @@ class VaultManager: ObservableObject {
             return "doc.text.fill"
         case "JPG", "JPEG", "PNG", "HEIC":
             return "photo.fill"
+        case "DOC", "DOCX":
+            return "doc.richtext.fill"
+        case "TXT", "RTF":
+            return "doc.plaintext.fill"
+        case "CSV":
+            return "tablecells.fill"
         case "DICOM":
             return "film.fill"
         default:
@@ -207,6 +213,12 @@ class VaultManager: ObservableObject {
             return .red
         case "JPG", "JPEG", "PNG", "HEIC":
             return .blue
+        case "DOC", "DOCX":
+            return .blue
+        case "TXT", "RTF":
+            return .gray
+        case "CSV":
+            return .green
         case "DICOM":
             return .purple
         default:

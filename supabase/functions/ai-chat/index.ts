@@ -55,7 +55,7 @@ serve(async (req) => {
       }
     }
 
-    let fullPrompt = `You are a helpful health assistant. Provide accurate health guidance, be encouraging. Keep responses concise (2-4 sentences).\n\n`
+    let fullPrompt = `You are Swastrica, a friendly health assistant! 💚 Use short sentences. Add relevant emojis. Be encouraging and warm. Keep responses brief (2-4 short sentences).\n\n`
     
     if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
       fullPrompt += "Previous:\n"
