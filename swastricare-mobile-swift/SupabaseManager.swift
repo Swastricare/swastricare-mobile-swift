@@ -205,35 +205,144 @@ class SupabaseManager {
         return records
     }
     
-    // MARK: - Vault/Document Management (Stubs for VaultManager)
+    // MARK: - Vault/Document Management
     
     /// Fetches user's medical documents
     func fetchUserDocuments() async throws -> [MedicalDocument] {
-        // TODO: Implement when vault database schema is ready
-        return []
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let documents: [MedicalDocument] = try await client
+            .from("medical_documents")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .order("uploaded_at", ascending: false)
+            .execute()
+            .value
+        
+        return documents
     }
     
     /// Uploads a medical document
     func uploadDocument(fileData: Data, fileName: String, category: String, notes: String?) async throws -> MedicalDocument {
-        // TODO: Implement when vault storage is configured
-        throw SupabaseError.invalidData
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        // Generate unique file path
+        let fileExtension = (fileName as NSString).pathExtension.lowercased()
+        let uniqueFileName = "\(UUID().uuidString).\(fileExtension)"
+        let storagePath = "\(userId.uuidString)/\(uniqueFileName)"
+        
+        // Upload to storage
+        try await client.storage
+            .from("medical-vault")
+            .upload(
+                path: storagePath,
+                file: fileData,
+                options: FileOptions(contentType: mimeType(for: fileExtension))
+            )
+        
+        // Create document record
+        let document = MedicalDocument(
+            userId: userId,
+            title: fileName,
+            category: category,
+            fileType: fileExtension.uppercased(),
+            fileUrl: storagePath,
+            fileSize: Int64(fileData.count),
+            uploadedAt: Date(),
+            notes: notes,
+            createdAt: Date()
+        )
+        
+        let inserted: MedicalDocument = try await client
+            .from("medical_documents")
+            .insert(document)
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        return inserted
     }
     
     /// Deletes a medical document
     func deleteDocument(document: MedicalDocument) async throws {
-        // TODO: Implement when vault database schema is ready
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        guard let docId = document.id else {
+            throw SupabaseError.invalidData
+        }
+        
+        // Delete from storage
+        try await client.storage
+            .from("medical-vault")
+            .remove(paths: [document.fileUrl])
+        
+        // Delete from database
+        try await client
+            .from("medical_documents")
+            .delete()
+            .eq("id", value: docId.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
     }
     
     /// Downloads a medical document
     func downloadDocument(storagePath: String) async throws -> Data {
-        // TODO: Implement when vault storage is configured
-        throw SupabaseError.invalidData
+        let data = try await client.storage
+            .from("medical-vault")
+            .download(path: storagePath)
+        
+        return data
     }
     
     /// Searches medical documents
     func searchDocuments(query: String) async throws -> [MedicalDocument] {
-        // TODO: Implement when vault database schema is ready
-        return []
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let documents: [MedicalDocument] = try await client
+            .from("medical_documents")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .or("title.ilike.%\(query)%,notes.ilike.%\(query)%")
+            .order("uploaded_at", ascending: false)
+            .execute()
+            .value
+        
+        return documents
+    }
+    
+    /// Helper to get MIME type from extension
+    private func mimeType(for fileExtension: String) -> String {
+        switch fileExtension.lowercased() {
+        case "pdf":
+            return "application/pdf"
+        case "jpg", "jpeg":
+            return "image/jpeg"
+        case "png":
+            return "image/png"
+        case "heic":
+            return "image/heic"
+        case "doc":
+            return "application/msword"
+        case "docx":
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        case "txt":
+            return "text/plain"
+        case "rtf":
+            return "application/rtf"
+        case "csv":
+            return "text/csv"
+        default:
+            return "application/octet-stream"
+        }
     }
     
     /// Fetches health history for the current user

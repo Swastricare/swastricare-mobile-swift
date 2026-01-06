@@ -271,6 +271,8 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Swastricare needs access to your health data to track your daily activity, heart rate, and sleep patterns for personalized health insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Swastricare would like to update your health data to keep your records synchronized.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Swastricare needs microphone access to record your voice for the AI assistant.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Swastricare uses speech recognition to convert your voice to text in the AI assistant.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -315,6 +317,8 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Swastricare needs access to your health data to track your daily activity, heart rate, and sleep patterns for personalized health insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Swastricare would like to update your health data to keep your records synchronized.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Swastricare needs microphone access to record your voice for the AI assistant.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Swastricare uses speech recognition to convert your voice to text in the AI assistant.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

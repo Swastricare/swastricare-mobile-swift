@@ -10,6 +10,8 @@ import SwiftUI
 struct ProfileView: View {
     @StateObject private var authManager = AuthManager.shared
     
+    @StateObject private var healthManager = HealthManager.shared
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -76,7 +78,9 @@ struct ProfileView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
                             
-                            Text("Member since \(formattedDate())")
+                                .foregroundColor(.primary)
+                            
+                            Text("Member since \(Date().formatted(date: .abbreviated, time: .omitted))")
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
@@ -88,11 +92,12 @@ struct ProfileView: View {
                         
                         // Stats Row
                         HStack(spacing: 20) {
-                            ProfileStat(value: "12", label: "Workouts")
+                            ProfileStat(value: "\(healthManager.exerciseMinutes)m", label: "Today's Activity")
                             Divider().frame(height: 30)
-                            ProfileStat(value: "85%", label: "Health Score")
+                            let score = min(Int((Double(healthManager.stepCount) / 10000.0) * 100), 100)
+                            ProfileStat(value: "\(score)%", label: "Daily Goal")
                             Divider().frame(height: 30)
-                            ProfileStat(value: "68kg", label: "Weight")
+                            ProfileStat(value: "\(healthManager.weight) kg", label: "Weight")
                         }
                         .padding(.top, 10)
                     }
@@ -173,10 +178,6 @@ struct ProfileView: View {
             }
             .padding(.top)
         }
-    }
-    
-    private func formattedDate() -> String {
-        return "Member since \(Date().formatted(date: .abbreviated, time: .omitted))"
     }
 }
 

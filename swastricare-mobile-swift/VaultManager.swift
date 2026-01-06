@@ -13,17 +13,14 @@ import Combine
 class VaultManager: ObservableObject {
     static let shared = VaultManager()
     
+    // MARK: - Published Properties
     @Published var documents: [MedicalDocument] = []
     @Published var filteredDocuments: [MedicalDocument] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var uploadProgress: Double = 0.0
-    @Published var selectedCategory: String? = nil
-    @Published var searchQuery: String = "" {
-        didSet {
-            applyFilters()
-        }
-    }
+    @Published var selectedCategory: String?
+    @Published var searchQuery: String = ""
     
     private let supabase = SupabaseManager.shared
     
@@ -32,14 +29,17 @@ class VaultManager: ObservableObject {
     // MARK: - Fetch Documents
     
     func fetchDocuments(forceRefresh: Bool = false) async {
+        guard !isLoading else { return }
+        
         isLoading = true
         errorMessage = nil
         
         do {
             documents = try await supabase.fetchUserDocuments()
-            applyFilters()
+            updateFilteredDocuments()
         } catch {
-            errorMessage = "Failed to load documents: \(error.localizedDescription)"
+            errorMessage = error.localizedDescription
+            print("VaultManager: Fetch error - \(error)")
         }
         
         isLoading = false
@@ -47,13 +47,17 @@ class VaultManager: ObservableObject {
     
     // MARK: - Upload Document
     
-    func uploadDocument(fileData: Data, fileName: String, category: String, notes: String? = nil) async {
+    func uploadDocument(fileData: Data, fileName: String, category: String, notes: String?) async -> Bool {
+        guard !fileData.isEmpty else {
+            errorMessage = "File is empty"
+            return false
+        }
+        
         isLoading = true
         errorMessage = nil
-        uploadProgress = 0.0
+        uploadProgress = 0.1
         
         do {
-            // Simulate progress (in real app, you'd track actual upload progress)
             uploadProgress = 0.3
             
             let document = try await supabase.uploadDocument(
@@ -63,114 +67,102 @@ class VaultManager: ObservableObject {
                 notes: notes
             )
             
+            uploadProgress = 0.9
+            
+            // Add to beginning of list
+            documents.insert(document, at: 0)
+            updateFilteredDocuments()
+            
             uploadProgress = 1.0
             
-            // Add to local list
-            documents.insert(document, at: 0)
-            applyFilters()
-            
-            // Reset progress after a short delay
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            // Small delay before resetting progress
+            try? await Task.sleep(nanoseconds: 300_000_000)
             uploadProgress = 0.0
+            isLoading = false
+            
+            return true
         } catch {
             errorMessage = "Upload failed: \(error.localizedDescription)"
+            print("VaultManager: Upload error - \(error)")
             uploadProgress = 0.0
+            isLoading = false
+            return false
         }
-        
-        isLoading = false
     }
     
     // MARK: - Delete Document
     
-    func deleteDocument(_ document: MedicalDocument) async {
+    func deleteDocument(_ document: MedicalDocument) async -> Bool {
         isLoading = true
         errorMessage = nil
         
         do {
             try await supabase.deleteDocument(document: document)
             
-            // Remove from local list
-            if let index = documents.firstIndex(where: { $0.id == document.id }) {
-                documents.remove(at: index)
-            }
-            applyFilters()
+            // Remove from local array
+            documents.removeAll { $0.id == document.id }
+            updateFilteredDocuments()
+            
+            isLoading = false
+            return true
         } catch {
             errorMessage = "Delete failed: \(error.localizedDescription)"
+            print("VaultManager: Delete error - \(error)")
+            isLoading = false
+            return false
         }
-        
-        isLoading = false
     }
     
     // MARK: - Download Document
     
     func downloadDocument(_ document: MedicalDocument) async -> Data? {
         do {
-            let data = try await supabase.downloadDocument(storagePath: document.fileUrl)
-            return data
+            return try await supabase.downloadDocument(storagePath: document.fileUrl)
         } catch {
             errorMessage = "Download failed: \(error.localizedDescription)"
+            print("VaultManager: Download error - \(error)")
             return nil
         }
-    }
-    
-    // MARK: - Search
-    
-    func searchDocuments(_ query: String) async {
-        guard !query.isEmpty else {
-            searchQuery = ""
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            documents = try await supabase.searchDocuments(query: query)
-            applyFilters()
-        } catch {
-            errorMessage = "Search failed: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
     }
     
     // MARK: - Filtering
     
     func setCategory(_ category: String?) {
         selectedCategory = category
-        applyFilters()
+        updateFilteredDocuments()
     }
     
-    private func applyFilters() {
-        var filtered = documents
+    func setSearchQuery(_ query: String) {
+        searchQuery = query
+        updateFilteredDocuments()
+    }
+    
+    private func updateFilteredDocuments() {
+        var result = documents
         
-        // Apply category filter
-        if let category = selectedCategory {
-            filtered = filtered.filter { $0.category == category }
+        // Filter by category
+        if let category = selectedCategory, !category.isEmpty {
+            result = result.filter { $0.category == category }
         }
         
-        // Apply search filter
+        // Filter by search query
         if !searchQuery.isEmpty {
-            filtered = filtered.filter {
-                $0.title.localizedCaseInsensitiveContains(searchQuery) ||
-                ($0.notes?.localizedCaseInsensitiveContains(searchQuery) ?? false)
+            let query = searchQuery.lowercased()
+            result = result.filter {
+                $0.title.lowercased().contains(query) ||
+                ($0.notes?.lowercased().contains(query) ?? false) ||
+                $0.category.lowercased().contains(query)
             }
         }
         
-        filteredDocuments = filtered
-    }
-    
-    // MARK: - Category Counts
-    
-    func documentCount(for category: String) -> Int {
-        return documents.filter { $0.category == category }.count
-    }
-    
-    func totalDocumentCount() -> Int {
-        return documents.count
+        filteredDocuments = result
     }
     
     // MARK: - Helper Methods
+    
+    func documentCount(for category: String) -> Int {
+        documents.filter { $0.category == category }.count
+    }
     
     func formatFileSize(_ bytes: Int64) -> String {
         let formatter = ByteCountFormatter()
@@ -181,7 +173,6 @@ class VaultManager: ObservableObject {
     
     func formatDate(_ date: Date?) -> String {
         guard let date = date else { return "Unknown" }
-        
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
@@ -200,8 +191,6 @@ class VaultManager: ObservableObject {
             return "doc.plaintext.fill"
         case "CSV":
             return "tablecells.fill"
-        case "DICOM":
-            return "film.fill"
         default:
             return "doc.fill"
         }
@@ -214,15 +203,17 @@ class VaultManager: ObservableObject {
         case "JPG", "JPEG", "PNG", "HEIC":
             return .blue
         case "DOC", "DOCX":
-            return .blue
+            return .indigo
         case "TXT", "RTF":
             return .gray
         case "CSV":
             return .green
-        case "DICOM":
-            return .purple
         default:
             return .gray
         }
+    }
+    
+    func clearError() {
+        errorMessage = nil
     }
 }

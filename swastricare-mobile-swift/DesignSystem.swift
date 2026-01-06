@@ -106,6 +106,7 @@ struct HeroHeader: View {
     let title: String
     let subtitle: String?
     let icon: String?
+    var imageURL: URL? = nil // Optional image URL
     
     var body: some View {
         HStack {
@@ -131,17 +132,46 @@ struct HeroHeader: View {
             
             Spacer()
             
-            if let icon = icon {
-                Image(systemName: icon)
-                    .font(.title)
-                    .foregroundStyle(PremiumColor.royalBlue)
-                    .padding(12)
-                    .background(
+            // Profile Image Logic
+            Group {
+                if let imageURL = imageURL {
+                    AsyncImage(url: imageURL) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(PremiumColor.royalBlue, lineWidth: 2))
+                    } placeholder: {
+                        ZStack {
+                            Circle()
+                                .fill(PremiumColor.royalBlue.opacity(0.1))
+                                .frame(width: 60, height: 60)
+                            
+                            if let icon = icon {
+                                Image(systemName: icon)
+                                    .font(.title2)
+                                    .foregroundStyle(PremiumColor.royalBlue)
+                            } else {
+                                ProgressView()
+                            }
+                        }
+                        .overlay(Circle().stroke(PremiumColor.royalBlue.opacity(0.3), lineWidth: 1))
+                    }
+                } else if let icon = icon {
+                    ZStack {
                         Circle()
-                            .fill(Material.ultraThin)
-                            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
-                    )
+                            .fill(PremiumColor.royalBlue.opacity(0.1))
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: icon)
+                            .font(.title2)
+                            .foregroundStyle(PremiumColor.royalBlue)
+                    }
+                    .overlay(Circle().stroke(PremiumColor.royalBlue.opacity(0.3), lineWidth: 1))
+                }
             }
+            .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 8, x: 0, y: 4)
         }
         .padding(.horizontal)
         .padding(.top, 10)

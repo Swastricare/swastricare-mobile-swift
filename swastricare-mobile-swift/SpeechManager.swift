@@ -59,6 +59,17 @@ class SpeechManager: NSObject, ObservableObject {
     // MARK: - Speech-to-Text
     
     func startRecording() async throws {
+        // Check if already recording
+        if isRecording {
+            stopRecording()
+            return
+        }
+        
+        // Check speech recognizer availability
+        guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
+            throw SpeechError.recognitionFailed
+        }
+        
         // Check authorization
         if authorizationStatus != .authorized {
             let authorized = await requestSpeechAuthorization()
@@ -76,10 +87,21 @@ class SpeechManager: NSObject, ObservableObject {
         recognitionTask?.cancel()
         recognitionTask = nil
         
+        // Stop audio engine if running
+        if audioEngine.isRunning {
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+        }
+        
         // Configure audio session
         let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        do {
+            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("⚠️ Audio session setup failed: \(error)")
+            throw SpeechError.unableToCreateRequest
+        }
         
         // Create recognition request
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
@@ -89,12 +111,25 @@ class SpeechManager: NSObject, ObservableObject {
         }
         
         recognitionRequest.shouldReportPartialResults = true
+        recognitionRequest.requiresOnDeviceRecognition = false
         
         // Get audio input node
         let inputNode = audioEngine.inputNode
         
+        // Get the recording format - use a safe format
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        
+        // Validate format (sample rate must be > 0)
+        guard recordingFormat.sampleRate > 0 else {
+            print("⚠️ Invalid audio format: sample rate is 0")
+            throw SpeechError.unableToCreateRequest
+        }
+        
+        // Remove any existing tap
+        inputNode.removeTap(onBus: 0)
+        
         // Start recognition task
-        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
             guard let self = self else { return }
             
             Task { @MainActor in
@@ -103,24 +138,26 @@ class SpeechManager: NSObject, ObservableObject {
                 }
                 
                 if error != nil || result?.isFinal == true {
-                    self.audioEngine.stop()
-                    inputNode.removeTap(onBus: 0)
-                    self.recognitionRequest = nil
-                    self.recognitionTask = nil
-                    self.isRecording = false
+                    self.cleanupRecording()
                 }
             }
         }
         
         // Configure audio tap
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            self.recognitionRequest?.append(buffer)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+            self?.recognitionRequest?.append(buffer)
         }
         
         // Start audio engine
         audioEngine.prepare()
-        try audioEngine.start()
+        
+        do {
+            try audioEngine.start()
+        } catch {
+            print("⚠️ Audio engine failed to start: \(error)")
+            cleanupRecording()
+            throw SpeechError.recognitionFailed
+        }
         
         isRecording = true
         recognizedText = ""
@@ -129,12 +166,15 @@ class SpeechManager: NSObject, ObservableObject {
         print("🎤 Started recording")
     }
     
-    func stopRecording() {
-        guard isRecording else { return }
-        
-        audioEngine.stop()
+    private func cleanupRecording() {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
         audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask = nil
+        isRecording = false
         
         // Deactivate audio session
         do {
@@ -142,8 +182,11 @@ class SpeechManager: NSObject, ObservableObject {
         } catch {
             print("⚠️ Failed to deactivate audio session: \(error)")
         }
-        
-        isRecording = false
+    }
+    
+    func stopRecording() {
+        guard isRecording else { return }
+        cleanupRecording()
         print("🎤 Stopped recording")
     }
     

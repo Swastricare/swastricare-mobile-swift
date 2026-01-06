@@ -12,6 +12,7 @@ struct HomeView: View {
     @StateObject private var healthManager = HealthManager.shared
     @StateObject private var authManager = AuthManager.shared
     @State private var isSyncing = false
+    @State private var isInitialLoad = true
     @State private var syncMessage: String?
     @State private var showSyncAlert = false
     @State private var lastSyncTime: Date?
@@ -59,11 +60,12 @@ struct HomeView: View {
                 HeroHeader(
                     title: userName,
                     subtitle: timeBasedGreeting,
-                    icon: "person.circle.fill"
+                    icon: "person.circle.fill",
+                    imageURL: authManager.userPhotoURL
                 )
                 
                 // Health Authorization Banner
-                if !healthManager.isAuthorized {
+                if !healthManager.isAuthorized && !healthManager.hasRequestedAuthorization {
                     VStack(spacing: 12) {
                         Image(systemName: "heart.text.square.fill")
                             .font(.largeTitle)
@@ -158,17 +160,56 @@ struct HomeView: View {
                         .frame(width: 80, height: 80)
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "flame.fill")
-                                Text("\(healthManager.activeCalories) kcal")
-                            }
-                            HStack {
-                                Image(systemName: "figure.walk")
-                                Text("\(healthManager.stepCount) steps")
-                            }
-                            HStack {
-                                Image(systemName: "clock.fill")
-                                Text("\(healthManager.exerciseMinutes) mins")
+                            if isInitialLoad && healthManager.stepCount == 0 {
+                                // Loading state
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(0.8)
+                                        Text("Loading health data...")
+                                            .font(.caption)
+                                    }
+                                }
+                                .foregroundColor(.white.opacity(0.8))
+                            } else {
+                                // Data display
+                                HStack {
+                                    Image(systemName: "flame.fill")
+                                        .foregroundColor(.orange.opacity(0.9))
+                                    Text("\(healthManager.activeCalories)")
+                                        .fontWeight(.bold)
+                                    Text("kcal")
+                                        .font(.caption)
+                                        .opacity(0.8)
+                                }
+                                HStack {
+                                    Image(systemName: "figure.walk")
+                                        .foregroundColor(.green.opacity(0.9))
+                                    Text("\(healthManager.stepCount)")
+                                        .fontWeight(.bold)
+                                    Text("steps")
+                                        .font(.caption)
+                                        .opacity(0.8)
+                                }
+                                HStack {
+                                    Image(systemName: "clock.fill")
+                                        .foregroundColor(.blue.opacity(0.9))
+                                    Text("\(healthManager.exerciseMinutes)")
+                                        .fontWeight(.bold)
+                                    Text("mins")
+                                        .font(.caption)
+                                        .opacity(0.8)
+                                }
+                                HStack {
+                                    Image(systemName: "figure.stand")
+                                        .foregroundColor(.purple.opacity(0.9))
+                                    Text("\(healthManager.standHours)")
+                                        .fontWeight(.bold)
+                                    Text("/ 12 hrs")
+                                        .font(.caption)
+                                        .opacity(0.8)
+                                }
                             }
                         }
                         .foregroundColor(.white)
@@ -193,10 +234,25 @@ struct HomeView: View {
                 
                 // Health Vitals Grid
                 VStack(alignment: .leading, spacing: 15) {
-                    Text("Health Vitals")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .padding(.horizontal)
+                    HStack {
+                        Text("Health Vitals")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 6, height: 6)
+                            Text("Live from Apple Health")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                    .padding(.horizontal)
                     
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
                         HealthMetricCard(
@@ -204,31 +260,35 @@ struct HomeView: View {
                             value: healthManager.heartRate > 0 ? "\(healthManager.heartRate)" : "--",
                             unit: "bpm",
                             icon: "heart.fill",
-                            color: .red
+                            color: .red,
+                            subtitle: "Current"
                         )
                         
                         HealthMetricCard(
                             title: "Sleep",
-                            value: healthManager.sleepHours,
-                            unit: "hrs",
+                            value: healthManager.sleepHours != "0h 0m" ? healthManager.sleepHours : "--",
+                            unit: "",
                             icon: "bed.double.fill",
-                            color: .indigo
+                            color: .indigo,
+                            subtitle: "Last night"
                         )
                         
                         HealthMetricCard(
-                            title: "Blood Pressure",
-                            value: "120/80",
-                            unit: "mmHg",
-                            icon: "drop.fill",
-                            color: .pink
+                            title: "Distance",
+                            value: healthManager.distance > 0 ? String(format: "%.1f", healthManager.distance) : "--",
+                            unit: "km",
+                            icon: "map.fill",
+                            color: .cyan,
+                            subtitle: "Today"
                         )
                         
                         HealthMetricCard(
                             title: "Weight",
-                            value: "68.5",
+                            value: healthManager.weight != "--" ? healthManager.weight : "--",
                             unit: "kg",
                             icon: "scalemass.fill",
-                            color: .green
+                            color: .green,
+                            subtitle: "Latest"
                         )
                     }
                     .padding(.horizontal)
@@ -266,7 +326,17 @@ struct HomeView: View {
             if healthManager.isAuthorized {
                 Task {
                     await healthManager.fetchAllHealthData()
+                    isInitialLoad = false
+                    lastSyncTime = Date()
                 }
+            } else {
+                isInitialLoad = false
+            }
+        }
+        .refreshable {
+            if healthManager.isAuthorized {
+                await healthManager.fetchAllHealthData()
+                lastSyncTime = Date()
             }
         }
     }
@@ -310,6 +380,16 @@ struct HealthMetricCard: View {
     let unit: String
     let icon: String
     let color: Color
+    let subtitle: String?
+    
+    init(title: String, value: String, unit: String, icon: String, color: Color, subtitle: String? = nil) {
+        self.title = title
+        self.value = value
+        self.unit = unit
+        self.icon = icon
+        self.color = color
+        self.subtitle = subtitle
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -321,18 +401,30 @@ struct HealthMetricCard: View {
                     .background(color.opacity(0.1))
                     .clipShape(Circle())
                 Spacer()
-                Text(unit)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.title2)
-                    .fontWeight(.bold)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                    Text(value)
+                        .font(.title)
+                        .fontWeight(.bold)
+                    if !unit.isEmpty {
+                        Text(unit)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
                 Text(title)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .fontWeight(.medium)
+                
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .padding()

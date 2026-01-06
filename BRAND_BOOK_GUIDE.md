@@ -79,7 +79,8 @@
 
 ### Overall style
 
-**Premium dark, clinical-tech.** Rounded cards, soft borders, minimal glow.
+**Premium Glassmorphism & Vibrant Gradients.**
+A high-end, futuristic medical interface. It combines deep, rich backgrounds with frosted glass elements (glassmorphism), vibrant animated gradients, and fluid motion. It feels alive, breathing, and technologically advanced while maintaining clinical trust.
 
 ### Logo system
 
@@ -89,198 +90,148 @@
 **Clear space:** Keep at least the icon width around the mark.
 
 **Do not:**
-
 * Stretch or skew
-* Add gradients to the logo
 * Put the logo on noisy backgrounds
 
 ---
 
 ## 5) Color system
 
-### Core palette (dark-first)
+### Premium Gradients (Core)
 
-**Primary Teal:** `#2ECDB9`
+We moved away from single flat colors to rich, meaningful gradients.
 
-**Alert Orange (alerts only):** `#D56F3F`
+* **Royal Blue (Primary Action/Brand):**
+  `#2E3192` → `#1BFFFF` (TopLeading → BottomTrailing)
+  *Used for: Primary buttons, active tabs, hero icons.*
 
-**Neutrals:**
+* **Sunset (Alert/Warmth):**
+  `#FF512F` → `#DD2476` (TopLeading → BottomTrailing)
+  *Used for: Alerts, health warnings, warm highlights.*
 
-* **BG 0:** `#0D0E10`
-* **BG 1:** `#17191B`
-* **Surface 2:** `#1F2226`
-* **Border:** `#343839`
-* **Text Primary:** `#F1F2F3`
-* **Text Secondary:** `#A3A7AE`
-* **Text Tertiary:** `#6A6F77`
+* **Neon Green (Success/Safe):**
+  `#11998e` → `#38ef7d` (TopLeading → BottomTrailing)
+  *Used for: Vitals good, success states, positive trends.*
 
-### Gradient (hero only)
+* **Deep Purple (Subtle/Secondary):**
+  `#654ea3` → `#eaafc8` (TopLeading → BottomTrailing)
+  *Used for: Subtitles, secondary accents, premium headers.*
 
-Use only on landing hero headings, not inside product UI.
+* **Midnight (Background Depth):**
+  `#232526` → `#414345` (Top → Bottom)
+  *Used for: Deep card backgrounds, dark mode depth.*
 
-* `#6A7EC4` → `#7F7BAC` → `#4F5B85`
+### Usage rules
 
-### Usage rules (strict)
-
-* **All primary CTAs are Teal.**
-* **Orange is only for urgent states:** SOS, Overdue, Critical.
-* Avoid adding new accent colors inside core product screens.
+* **Glass over Solid:** Prefer glass layers over solid opaque backgrounds.
+* **Gradients for Emphasis:** Use gradients for interactive elements and key indicators.
+* **Text:** Keep primary text white/light (`#F1F2F3`) for readability against dark/glass backgrounds.
 
 ---
 
-## 6) Typography
+## 6) Glassmorphism & Depth
+
+### The Glass Standard (`GlassModifier`)
+
+All floating panels, cards, and docks use a consistent glass effect to create depth and hierarchy.
+
+* **Blur Style:** `systemUltraThinMaterial`
+* **Opacity:** White @ 10% (adjust based on depth)
+* **Stroke/Border:**
+  * Linear Gradient: `White (40%)` → `White (10%)` → `Clear`
+  * Width: `1px`
+  * *Purpose: Simulates a light edge reflection.*
+* **Shadow:** `Black @ 10%`, Radius 10, Y: 5
+
+### Premium Background (Animated)
+
+The app background is not static. It features slowly moving, blurred "Orbs" to make the app feel alive.
+
+* **Orb 1 (Blue):** Moves TL ↔ BR
+* **Orb 2 (Purple):** Moves Top ↔ Bottom
+* **Orb 3 (Cyan):** Moves Left ↔ Right
+* **Blur Radius:** 60-80px (Creates a soft, ambient glow)
+
+---
+
+## 7) Typography
 
 ### Fonts
 
-* **Primary:** Inter (web + Android)
-* **iOS:** SF Pro (native)
+* **Primary:** Inter (Web) / SF Pro (iOS Native)
 
-### Type scale
+### Hierarchy
 
-* **H1:** 32
-* **H2:** 24
-* **H3:** 20
-* **Body:** 16
-* **Small:** 14
-* **Micro:** 12
-
-**Line height:** 1.4 to 1.6
-
-**Weights:** 400, 500, 600
+* **Hero Titles:** 34pt Bold, Gradient Fill (Primary → Primary 70%)
+* **Headers:** 24pt Bold
+* **Subtitles:** 12-14pt, Uppercase, Tracking 1.5, Deep Purple Gradient
+* **Body:** 16pt, Regular, White/Light Gray
 
 ---
 
-## 7) Layout tokens
+## 8) UI Components
 
-### Spacing
+### Glass Dock (Navigation)
 
-Use a consistent 8pt grid.
+A floating, glass-morphic bottom navigation bar.
 
-* 4, 8, 12, 16, 24, 32
-
-### Radius
-
-* **Card L:** 16
-* **Card:** 12
-* **Input:** 10
-
-### Elevation
-
-* Prefer borders over heavy shadows.
-* Shadow only for primary surfaces (very subtle).
-
----
-
-## 8) UI components
+* **Background:** Adaptive Glass (`systemChromeMaterial`) + White Tint Gradient (10% → 0%)
+* **Active Tab:**
+  * Icon: Filled, Blue Gradient text, Scaled 1.1x
+  * Text: Semibold, Primary Color
+* **Inactive Tab:**
+  * Icon: Outline, Secondary Color (60% opacity)
+  * Text: Medium, Secondary Color
 
 ### Buttons
 
-**Primary**
+* **Scale Button:**
+  * Interactive spring animation on press (Scale 0.95).
+  * Spring: Response 0.3, Damping 0.6.
 
-* Fill: `#2ECDB9`
-* Text: `#0D0E10`
-* Height: 52
-* Radius: 16
+* **Hero Icons:**
+  * Surrounded by a circular glass layer (`Material.ultraThin`).
+  * Drop shadow for lift.
 
-**Secondary**
+### Cards & Lists
 
-* Background: transparent
-* Border: `#343839`
-* Text: `#F1F2F3`
-
-**Ghost**
-
-* No border
-* Text: `#A3A7AE`
-
-**Destructive**
-
-* Use red only for irreversible actions (delete, remove member)
-
-### Cards
-
-* Background: `#17191B`
-* Border: `#343839` at low opacity
-* Padding: 16
-
-### Lists
-
-* Row: icon + title + subtitle + trailing time or chevron
-
-### Chips and badges
-
-* Use for tech/compliance labels: ABDM, HIPAA, FHIR
-
-### Navigation
-
-* Bottom nav for patient app: 4–5 tabs
-  Suggested tabs: **Home, Vault, Track, AI, SOS**
+* **Glass Cards:** Rounded corners (20px default), glass background, subtle white border gradient.
+* **Lists:** Clear separation with adequate padding, often housed within glass containers.
 
 ---
 
-## 9) Accessibility and readability
+## 9) Motion & Interaction
 
-* Minimum body text size: 14
-* Keep secondary text contrast readable on BG 1
-* Touch targets: 44px minimum
-* Avoid teal on dark for long paragraphs; use teal for highlights
+### Animation Principles
 
----
-
-## 10) Product mockup style guide
-
-### Device renders
-
-* Prefer iPhone frames for premium feel
-* Use subtle teal rim glow
-* Background: dark grid or soft vignette
-
-### Screens to showcase (MVP)
-
-* Home (health overview)
-* Vault (reports, categories)
-* Add report (scan/upload)
-* Ask AI (summary, Q&A)
-* SOS (emergency contacts)
+* **Fluidity:** Use `spring` animations for interactions (buttons, tabs).
+  * *Standard Spring:* Response 0.3, Damping 0.7
+* **Aliveness:** Background orbs move continuously (loops of 8-12 seconds).
+* **Transitions:** Smooth fades and scales. No harsh cuts.
 
 ---
 
-## 11) Developer handoff tokens
+## 10) Developer Handoff Tokens
 
-```json
-{
-  "colors": {
-    "primary": "#2ECDB9",
-    "alert": "#D56F3F",
-    "bg0": "#0D0E10",
-    "bg1": "#17191B",
-    "surface2": "#1F2226",
-    "border": "#343839",
-    "textPrimary": "#F1F2F3",
-    "textSecondary": "#A3A7AE",
-    "textTertiary": "#6A6F77",
-    "heroGradient": ["#6A7EC4", "#7F7BAC", "#4F5B85"]
-  },
-  "radius": { "cardLg": 16, "card": 12, "input": 10 },
-  "spacing": [4, 8, 12, 16, 24, 32],
-  "button": { "height": 52, "radius": 16 },
-  "type": {
-    "h1": 32,
-    "h2": 24,
-    "h3": 20,
-    "body": 16,
-    "small": 14,
-    "micro": 12,
-    "lineHeight": 1.5
-  }
-}
+```swift
+// Premium Colors
+static let royalBlue = LinearGradient(colors: [Color(hex: "2E3192"), Color(hex: "1BFFFF")], ...)
+static let sunset = LinearGradient(colors: [Color(hex: "FF512F"), Color(hex: "DD2476")], ...)
+static let neonGreen = LinearGradient(colors: [Color(hex: "11998e"), Color(hex: "38ef7d")], ...)
+
+// Glass Modifier
+.background(VisualEffectBlur(blurStyle: .systemUltraThinMaterial))
+.overlay(
+    RoundedRectangle(cornerRadius: cornerRadius)
+        .stroke(LinearGradient(colors: [.white.opacity(0.4), ...]), lineWidth: 1)
+)
 ```
 
 ---
 
-## 12) Non-negotiables
+## 11) Non-negotiables
 
-1. Teal is the only primary CTA color.
-2. Orange only for urgent states.
-3. Keep screens uncluttered: one primary action per view.
-4. Make the AI experience feel safe and medical-grade, not chatbot-y.
+1. **Wow Factor:** Every screen must have depth (glass) and life (animation).
+2. **Readability:** Despite the fancy backgrounds, text contrast must remain high (White text on dark glass).
+3. **Consistency:** Use the `GlassModifier` and `PremiumColor` structs. Do not hardcode hexes or custom blur styles.
+4. **Performance:** Ensure animations (like the background orbs) are efficient and don't drain battery excessively.

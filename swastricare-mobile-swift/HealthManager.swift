@@ -20,18 +20,23 @@ class HealthManager: ObservableObject {
     @Published var sleepHours: String = "0h 0m"
     @Published var isAuthorized: Bool = false
     @Published var authorizationError: String?
+    @Published var hasRequestedAuthorization: Bool = false
     
     // Additional metrics
     @Published var activeCalories: Int = 0
     @Published var exerciseMinutes: Int = 0
     @Published var standHours: Int = 0
     @Published var distance: Double = 0.0 // in kilometers
+    @Published var bloodPressure: String = "--/--"
+    @Published var weight: String = "--"
     
     // Historical data
     @Published var weeklySteps: [DailyMetric] = []
     @Published var selectedDate: Date = Date()
     
     private init() {
+        // Load persisted authorization request status
+        hasRequestedAuthorization = UserDefaults.standard.bool(forKey: "hasRequestedHealthAuthorization")
         checkAuthorizationStatus()
     }
     
@@ -50,11 +55,20 @@ class HealthManager: ObservableObject {
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,
             HKObjectType.quantityType(forIdentifier: .appleStandTime)!,
-            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!
+            HKObjectType.quantityType(forIdentifier: .appleStandTime)!,
+            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!,
+            HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
+            HKObjectType.quantityType(forIdentifier: .bodyMass)!
         ]
         
         do {
             try await healthStore.requestAuthorization(toShare: [], read: typesToRead)
+            
+            // Mark that we've requested authorization
+            hasRequestedAuthorization = true
+            UserDefaults.standard.set(true, forKey: "hasRequestedHealthAuthorization")
+            
             isAuthorized = true
             authorizationError = nil
             
@@ -63,6 +77,10 @@ class HealthManager: ObservableObject {
         } catch {
             authorizationError = "Failed to authorize HealthKit: \(error.localizedDescription)"
             isAuthorized = false
+            
+            // Still mark as requested even if there was an error
+            hasRequestedAuthorization = true
+            UserDefaults.standard.set(true, forKey: "hasRequestedHealthAuthorization")
         }
     }
     
@@ -88,7 +106,10 @@ class HealthManager: ObservableObject {
             group.addTask { await self.fetchActiveCalories() }
             group.addTask { await self.fetchExerciseMinutes() }
             group.addTask { await self.fetchStandHours() }
+            group.addTask { await self.fetchStandHours() }
             group.addTask { await self.fetchDistance() }
+            group.addTask { await self.fetchBloodPressure() }
+            group.addTask { await self.fetchWeight() }
         }
     }
     
@@ -100,7 +121,12 @@ class HealthManager: ObservableObject {
             group.addTask { await self.fetchActiveCalories(for: date) }
             group.addTask { await self.fetchExerciseMinutes(for: date) }
             group.addTask { await self.fetchStandHours(for: date) }
+            group.addTask { await self.fetchStandHours(for: date) }
             group.addTask { await self.fetchDistance(for: date) }
+            // BP and Weight are usually sparse, so we fetch latest generally, or could be specific
+            // keeping simple for now by just refreshing latest
+            group.addTask { await self.fetchBloodPressure() }
+            group.addTask { await self.fetchWeight() }
         }
     }
     
@@ -469,6 +495,59 @@ class HealthManager: ObservableObject {
         }
         
         healthStore.execute(query)
+    }
+    
+    // MARK: - Blood Pressure
+    
+    func fetchBloodPressure() async {
+        guard let systolicType = HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic),
+              let diastolicType = HKQuantityType.quantityType(forIdentifier: .bloodPressureDiastolic) else {
+            return
+        }
+        
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        let predicate = HKQuery.predicateForSamples(withStart: Date.distantPast, end: Date(), options: .strictEndDate)
+        
+        // We need both, so let's try to get them correlatively or just latest of each
+        // For simplicity in this demo, fetching latest single samples
+        
+        async let systolic = fetchLatestSample(for: systolicType)
+        async let diastolic = fetchLatestSample(for: diastolicType)
+        
+        let (sys, dia) = await (systolic, diastolic)
+        
+        Task { @MainActor in
+            if let sysVal = sys, let diaVal = dia {
+                let s = Int(sysVal.quantity.doubleValue(for: HKUnit.millimeterOfMercury()))
+                let d = Int(diaVal.quantity.doubleValue(for: HKUnit.millimeterOfMercury()))
+                self.bloodPressure = "\(s)/\(d)"
+            } else {
+                self.bloodPressure = "--/--"
+            }
+        }
+    }
+    
+    // MARK: - Weight
+    
+    func fetchWeight() async {
+        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else { return }
+        
+        if let sample = await fetchLatestSample(for: weightType) {
+            let kg = sample.quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
+            Task { @MainActor in
+                self.weight = String(format: "%.1f", kg)
+            }
+        }
+    }
+    
+    private func fetchLatestSample(for sampleType: HKSampleType) async -> HKQuantitySample? {
+        return await withCheckedContinuation { continuation in
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+            let query = HKSampleQuery(sampleType: sampleType, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                continuation.resume(returning: samples?.first as? HKQuantitySample)
+            }
+            healthStore.execute(query)
+        }
     }
     
     // MARK: - Helper Methods

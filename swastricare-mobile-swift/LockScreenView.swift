@@ -7,45 +7,11 @@
 
 import SwiftUI
 
-// #region agent log helper
-func logDebugView(_ location: String, _ message: String, _ data: [String: Any] = [:], hypothesisId: String = "") {
-    let logPath = "/Users/onwords/i do coding/swastricare-mobile-swift/.cursor/debug.log"
-    var logData: [String: Any] = [
-        "timestamp": Date().timeIntervalSince1970 * 1000,
-        "location": location,
-        "message": message,
-        "sessionId": "debug-session",
-        "data": data
-    ]
-    if !hypothesisId.isEmpty {
-        logData["hypothesisId"] = hypothesisId
-    }
-    if let jsonData = try? JSONSerialization.data(withJSONObject: logData),
-       let jsonString = String(data: jsonData, encoding: .utf8) {
-        if let fileHandle = FileHandle(forWritingAtPath: logPath) {
-            fileHandle.seekToEndOfFile()
-            if let data = (jsonString + "\n").data(using: .utf8) {
-                fileHandle.write(data)
-            }
-            fileHandle.closeFile()
-        } else {
-            try? (jsonString + "\n").write(toFile: logPath, atomically: true, encoding: .utf8)
-        }
-    }
-}
-// #endregion
-
 struct LockScreenView: View {
     @ObservedObject var biometricAuth = BiometricAuthManager.shared
     @State private var isAuthenticating = false
     
     var body: some View {
-        let _ = {
-            // #region agent log
-            logDebugView("LockScreenView:body", "View rendering", ["isLocked": biometricAuth.isLocked, "isAuthenticating": isAuthenticating, "errorMessage": biometricAuth.errorMessage ?? "none"], hypothesisId: "B")
-            // #endregion
-        }()
-        
         ZStack {
             // Premium Background
             LinearGradient(
@@ -151,37 +117,12 @@ struct LockScreenView: View {
             }
         }
         .task {
-            // #region agent log
-            logDebugView("LockScreenView:task:entry", "Task started", ["isLocked": biometricAuth.isLocked, "isAuthenticating": isAuthenticating], hypothesisId: "E")
-            // #endregion
-            
             // Auto-trigger authentication when lock screen appears
-            print("🔐 LockScreenView: Appearing, will trigger auth immediately")
             isAuthenticating = true
-            
-            // #region agent log
-            logDebugView("LockScreenView:task:beforeSleep", "Before sleep", [:], hypothesisId: "E")
-            // #endregion
-            
             // Very small delay to show the UI first
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            
-            // #region agent log
-            logDebugView("LockScreenView:task:beforeAuth", "About to call authenticate", ["isLocked": biometricAuth.isLocked], hypothesisId: "E,B")
-            // #endregion
-            
             await biometricAuth.authenticate()
-            
-            // #region agent log
-            logDebugView("LockScreenView:task:afterAuth", "After authenticate call", ["isLocked": biometricAuth.isLocked, "errorMessage": biometricAuth.errorMessage ?? "none"], hypothesisId: "E,B")
-            // #endregion
-            
             isAuthenticating = false
-            print("🔐 LockScreenView: Auth completed")
-            
-            // #region agent log
-            logDebugView("LockScreenView:task:exit", "Task completed", ["isLocked": biometricAuth.isLocked], hypothesisId: "E,B")
-            // #endregion
         }
     }
 }

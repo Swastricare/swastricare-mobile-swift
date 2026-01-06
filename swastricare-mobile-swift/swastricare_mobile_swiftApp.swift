@@ -11,6 +11,7 @@ import Supabase
 @main
 struct swastricare_mobile_swiftApp: App {
     @StateObject private var authManager = AuthManager.shared
+    @StateObject private var healthManager = HealthManager.shared
     @StateObject private var biometricAuth = BiometricAuthManager.shared
     @Environment(\.scenePhase) private var scenePhase
     
@@ -74,7 +75,14 @@ struct swastricare_mobile_swiftApp: App {
         case .active:
             // App became active (from background or initial launch)
             // If user is authenticated and app is locked, authentication will auto-trigger in LockScreenView
-            break
+            
+            // Load fresh health data when app becomes active
+            if authManager.isAuthenticated && healthManager.isAuthorized {
+                Task {
+                    await healthManager.fetchAllHealthData()
+                    print("✅ Health data refreshed on app activation")
+                }
+            }
             
         case .inactive:
             // App is temporarily inactive (e.g., during phone call, notification center)
