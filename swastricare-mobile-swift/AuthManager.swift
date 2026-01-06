@@ -23,6 +23,18 @@ class AuthManager: ObservableObject {
         currentUser?.email
     }
     
+    var userPhotoURL: URL? {
+        guard let metadata = currentUser?.userMetadata else { return nil }
+        // Supabase typically returns JSON enum, access safely
+        if let avatar = metadata["avatar_url"], case .string(let urlString) = avatar {
+            return URL(string: urlString)
+        }
+        if let picture = metadata["picture"], case .string(let urlString) = picture {
+            return URL(string: urlString)
+        }
+        return nil
+    }
+    
     private let client = SupabaseManager.shared.client
     
     private init() {

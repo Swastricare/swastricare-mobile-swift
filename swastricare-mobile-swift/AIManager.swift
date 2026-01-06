@@ -18,6 +18,9 @@ class AIManager: ObservableObject {
     @Published var lastAnalysis: HealthAnalysis?
     @Published var chatHistory: [ChatMessage] = []
     
+    // Maximum chat history to prevent memory issues
+    private let maxChatHistory = 50
+    
     private init() {}
     
     // MARK: - Health Analysis
@@ -108,6 +111,11 @@ class AIManager: ObservableObject {
             
             chatHistory.append(ChatMessage(role: "user", content: message))
             chatHistory.append(ChatMessage(role: "assistant", content: aiResponse))
+            
+            // Trim history if it exceeds maximum
+            if chatHistory.count > maxChatHistory {
+                chatHistory.removeFirst(chatHistory.count - maxChatHistory)
+            }
             
             return aiResponse
         } catch {

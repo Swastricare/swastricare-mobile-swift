@@ -130,8 +130,19 @@ class SpeechManager: NSObject, ObservableObject {
     }
     
     func stopRecording() {
+        guard isRecording else { return }
+        
         audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
+        
+        // Deactivate audio session
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("⚠️ Failed to deactivate audio session: \(error)")
+        }
+        
         isRecording = false
         print("🎤 Stopped recording")
     }
