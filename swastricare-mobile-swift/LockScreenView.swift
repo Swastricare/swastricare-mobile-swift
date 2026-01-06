@@ -7,10 +7,45 @@
 
 import SwiftUI
 
+// #region agent log helper
+func logDebugView(_ location: String, _ message: String, _ data: [String: Any] = [:], hypothesisId: String = "") {
+    let logPath = "/Users/onwords/i do coding/swastricare-mobile-swift/.cursor/debug.log"
+    var logData: [String: Any] = [
+        "timestamp": Date().timeIntervalSince1970 * 1000,
+        "location": location,
+        "message": message,
+        "sessionId": "debug-session",
+        "data": data
+    ]
+    if !hypothesisId.isEmpty {
+        logData["hypothesisId"] = hypothesisId
+    }
+    if let jsonData = try? JSONSerialization.data(withJSONObject: logData),
+       let jsonString = String(data: jsonData, encoding: .utf8) {
+        if let fileHandle = FileHandle(forWritingAtPath: logPath) {
+            fileHandle.seekToEndOfFile()
+            if let data = (jsonString + "\n").data(using: .utf8) {
+                fileHandle.write(data)
+            }
+            fileHandle.closeFile()
+        } else {
+            try? (jsonString + "\n").write(toFile: logPath, atomically: true, encoding: .utf8)
+        }
+    }
+}
+// #endregion
+
 struct LockScreenView: View {
-    @StateObject private var biometricAuth = BiometricAuthManager.shared
+    @ObservedObject var biometricAuth = BiometricAuthManager.shared
+    @State private var isAuthenticating = false
     
     var body: some View {
+        let _ = {
+            // #region agent log
+            logDebugView("LockScreenView:body", "View rendering", ["isLocked": biometricAuth.isLocked, "isAuthenticating": isAuthenticating, "errorMessage": biometricAuth.errorMessage ?? "none"], hypothesisId: "B")
+            // #endregion
+        }()
+        
         ZStack {
             // Premium Background
             LinearGradient(
@@ -55,8 +90,11 @@ struct LockScreenView: View {
                 VStack(spacing: 24) {
                     // Biometric Icon
                     Button(action: {
+                        guard !isAuthenticating else { return }
+                        isAuthenticating = true
                         Task {
                             await biometricAuth.authenticate()
+                            isAuthenticating = false
                         }
                     }) {
                         ZStack {
@@ -65,28 +103,37 @@ struct LockScreenView: View {
                                 .frame(width: 100, height: 100)
                                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                             
-                            Image(systemName: biometricAuth.biometricIconName)
-                                .font(.system(size: 44))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [.blue, .purple],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
+                            if isAuthenticating {
+                                ProgressView()
+                                    .tint(.blue)
+                                    .scaleEffect(1.5)
+                            } else {
+                                Image(systemName: biometricAuth.biometricIconName)
+                                    .font(.system(size: 44))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [.blue, .purple],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
                                     )
-                                )
+                            }
                         }
                     }
                     .buttonStyle(ScaleButtonStyle())
+                    .disabled(isAuthenticating)
                     
                     // Instructions
                     VStack(spacing: 8) {
-                        Text("Unlock with \(biometricAuth.biometricDisplayName)")
+                        Text(isAuthenticating ? "Authenticating..." : "Unlock with \(biometricAuth.biometricDisplayName)")
                             .font(.headline)
                             .foregroundColor(.primary)
                         
-                        Text("Tap to authenticate")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        if !isAuthenticating {
+                            Text("Tap to authenticate")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
                     // Error Message
@@ -103,23 +150,39 @@ struct LockScreenView: View {
                 Spacer()
             }
         }
-        .onAppear {
+        .task {
+            // #region agent log
+            logDebugView("LockScreenView:task:entry", "Task started", ["isLocked": biometricAuth.isLocked, "isAuthenticating": isAuthenticating], hypothesisId: "E")
+            // #endregion
+            
             // Auto-trigger authentication when lock screen appears
-            Task {
-                // Small delay for better UX
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                await biometricAuth.authenticate()
-            }
+            print("🔐 LockScreenView: Appearing, will trigger auth immediately")
+            isAuthenticating = true
+            
+            // #region agent log
+            logDebugView("LockScreenView:task:beforeSleep", "Before sleep", [:], hypothesisId: "E")
+            // #endregion
+            
+            // Very small delay to show the UI first
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            
+            // #region agent log
+            logDebugView("LockScreenView:task:beforeAuth", "About to call authenticate", ["isLocked": biometricAuth.isLocked], hypothesisId: "E,B")
+            // #endregion
+            
+            await biometricAuth.authenticate()
+            
+            // #region agent log
+            logDebugView("LockScreenView:task:afterAuth", "After authenticate call", ["isLocked": biometricAuth.isLocked, "errorMessage": biometricAuth.errorMessage ?? "none"], hypothesisId: "E,B")
+            // #endregion
+            
+            isAuthenticating = false
+            print("🔐 LockScreenView: Auth completed")
+            
+            // #region agent log
+            logDebugView("LockScreenView:task:exit", "Task completed", ["isLocked": biometricAuth.isLocked], hypothesisId: "E,B")
+            // #endregion
         }
-    }
-}
-
-// MARK: - Scale Button Style
-struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
     }
 }
 

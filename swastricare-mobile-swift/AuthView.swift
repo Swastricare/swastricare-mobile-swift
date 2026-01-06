@@ -27,6 +27,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showResetPassword = false
+    @State private var appear = false // Animation state
     
     var body: some View {
         NavigationView {
@@ -54,6 +55,9 @@ struct LoginView: View {
                                 .foregroundColor(.white.opacity(0.9))
                         }
                         .padding(.top, 60)
+                        .offset(y: appear ? 0 : -50)
+                        .opacity(appear ? 1 : 0)
+                        .animation(.easeOut(duration: 0.8).delay(0.2), value: appear)
                         
                         // Login Form
                         VStack(spacing: 20) {
@@ -61,9 +65,15 @@ struct LoginView: View {
                             GlassInput(icon: "envelope.fill", placeholder: "Email", text: $email)
                                 .textContentType(.emailAddress)
                                 .keyboardType(.emailAddress)
+                                .offset(y: appear ? 0 : 50)
+                                .opacity(appear ? 1 : 0)
+                                .animation(.easeOut(duration: 0.6).delay(0.4), value: appear)
                             
                             // Password Field
                             GlassSecureInput(icon: "lock.fill", placeholder: "Password", text: $password)
+                                .offset(y: appear ? 0 : 50)
+                                .opacity(appear ? 1 : 0)
+                                .animation(.easeOut(duration: 0.6).delay(0.5), value: appear)
                             
                             // Forgot Password
                             HStack {
@@ -76,6 +86,9 @@ struct LoginView: View {
                                         .foregroundColor(.white.opacity(0.9))
                                 }
                             }
+                            .offset(y: appear ? 0 : 50)
+                            .opacity(appear ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.6), value: appear)
                             
                             // Error Message
                             if let error = authManager.errorMessage {
@@ -87,6 +100,7 @@ struct LoginView: View {
                                     .padding(.horizontal)
                                     .background(Color.black.opacity(0.3))
                                     .cornerRadius(8)
+                                    .transition(.scale.combined(with: .opacity))
                             }
                             
                             // Login Button
@@ -113,6 +127,10 @@ struct LoginView: View {
                             }
                             .disabled(authManager.isLoading || email.isEmpty || password.isEmpty)
                             .padding(.top, 10)
+                            .buttonStyle(ScaleButtonStyle()) // Interactive scale effect
+                            .offset(y: appear ? 0 : 50)
+                            .opacity(appear ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.7), value: appear)
                             
                             // Divider
                             HStack {
@@ -127,6 +145,8 @@ struct LoginView: View {
                                     .foregroundColor(.white.opacity(0.2))
                             }
                             .padding(.vertical, 10)
+                            .opacity(appear ? 1 : 0)
+                            .animation(.easeIn(duration: 0.5).delay(0.8), value: appear)
                             
                             // Google Sign In Button
                             Button(action: {
@@ -146,13 +166,19 @@ struct LoginView: View {
                                 .glass(cornerRadius: 16)
                             }
                             .disabled(authManager.isLoading)
+                            .buttonStyle(ScaleButtonStyle())
+                            .offset(y: appear ? 0 : 50)
+                            .opacity(appear ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.9), value: appear)
                             
                             // Sign Up Link
                             HStack {
                                 Text("Don't have an account?")
                                     .foregroundColor(.white.opacity(0.8))
                                 Button(action: {
-                                    showSignUp = true
+                                    withAnimation {
+                                        showSignUp = true
+                                    }
                                 }) {
                                     Text("Sign Up")
                                         .fontWeight(.bold)
@@ -162,6 +188,8 @@ struct LoginView: View {
                             }
                             .font(.subheadline)
                             .padding(.top, 5)
+                            .opacity(appear ? 1 : 0)
+                            .animation(.easeIn(duration: 0.5).delay(1.0), value: appear)
                         }
                         .padding(.horizontal, 30)
                         .padding(.top, 20)
@@ -173,6 +201,9 @@ struct LoginView: View {
             .sheet(isPresented: $showResetPassword) {
                 ResetPasswordView()
             }
+        }
+        .onAppear {
+            appear = true
         }
     }
 }
@@ -187,6 +218,7 @@ struct SignUpView: View {
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var localErrorMessage: String?
+    @State private var appear = false
     
     var body: some View {
         NavigationView {
@@ -210,18 +242,33 @@ struct SignUpView: View {
                                 .foregroundColor(.white)
                         }
                         .padding(.top, 40)
+                        .offset(y: appear ? 0 : -50)
+                        .opacity(appear ? 1 : 0)
+                        .animation(.easeOut(duration: 0.8).delay(0.2), value: appear)
                         
                         // Sign Up Form
                         VStack(spacing: 20) {
                             GlassInput(icon: "person.fill", placeholder: "Full Name", text: $fullName)
+                                .offset(y: appear ? 0 : 50)
+                                .opacity(appear ? 1 : 0)
+                                .animation(.easeOut(duration: 0.6).delay(0.4), value: appear)
                             
                             GlassInput(icon: "envelope.fill", placeholder: "Email", text: $email)
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
+                                .offset(y: appear ? 0 : 50)
+                                .opacity(appear ? 1 : 0)
+                                .animation(.easeOut(duration: 0.6).delay(0.5), value: appear)
                             
                             GlassSecureInput(icon: "lock.fill", placeholder: "Password", text: $password)
+                                .offset(y: appear ? 0 : 50)
+                                .opacity(appear ? 1 : 0)
+                                .animation(.easeOut(duration: 0.6).delay(0.6), value: appear)
                             
                             GlassSecureInput(icon: "lock.shield.fill", placeholder: "Confirm Password", text: $confirmPassword)
+                                .offset(y: appear ? 0 : 50)
+                                .opacity(appear ? 1 : 0)
+                                .animation(.easeOut(duration: 0.6).delay(0.7), value: appear)
                             
                             // Error Message
                             if let error = localErrorMessage ?? authManager.errorMessage {
@@ -233,6 +280,7 @@ struct SignUpView: View {
                                     .padding(.horizontal)
                                     .background(Color.black.opacity(0.3))
                                     .cornerRadius(8)
+                                    .transition(.scale.combined(with: .opacity))
                             }
                             
                             // Sign Up Button
@@ -257,13 +305,19 @@ struct SignUpView: View {
                             }
                             .disabled(authManager.isLoading || !isFormValid())
                             .padding(.top, 10)
+                            .buttonStyle(ScaleButtonStyle())
+                            .offset(y: appear ? 0 : 50)
+                            .opacity(appear ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.8), value: appear)
                             
                             // Back to Login
                             HStack {
                                 Text("Already have an account?")
                                     .foregroundColor(.white.opacity(0.8))
                                 Button(action: {
-                                    showSignUp = false
+                                    withAnimation {
+                                        showSignUp = false
+                                    }
                                 }) {
                                     Text("Sign In")
                                         .fontWeight(.bold)
@@ -273,12 +327,17 @@ struct SignUpView: View {
                             }
                             .font(.subheadline)
                             .padding(.top, 5)
+                            .opacity(appear ? 1 : 0)
+                            .animation(.easeIn(duration: 0.5).delay(0.9), value: appear)
                         }
                         .padding(.horizontal, 30)
                         
                         Spacer()
                     }
                 }
+            }
+            .onAppear {
+                appear = true
             }
         }
     }
