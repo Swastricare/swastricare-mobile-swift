@@ -323,20 +323,46 @@ struct HomeView: View {
             Text(syncMessage ?? "")
         }
         .onAppear {
+            print("🏠 HomeView appeared")
+            print("🏠 Auth Status: \(authManager.isAuthenticated)")
+            print("🏠 Health Authorized: \(healthManager.isAuthorized)")
+            print("🏠 Current Steps: \(healthManager.stepCount)")
+            
+            // Check authorization status first
+            healthManager.checkAuthorizationStatus()
+            
+            // Load data if authorized
             if healthManager.isAuthorized {
+                print("🏠 Starting data fetch...")
                 Task {
                     await healthManager.fetchAllHealthData()
+                    await healthManager.fetchWeeklySteps()
                     isInitialLoad = false
                     lastSyncTime = Date()
+                    print("🏠 ✅ Data loaded - Steps: \(healthManager.stepCount), Heart: \(healthManager.heartRate)")
                 }
             } else {
+                print("🏠 ❌ Not authorized - showing banner")
                 isInitialLoad = false
             }
         }
+        .task {
+            // Use .task for better lifecycle management
+            if healthManager.isAuthorized {
+                print("🏠 Task lifecycle - loading data")
+                await healthManager.fetchAllHealthData()
+                await healthManager.fetchWeeklySteps()
+                isInitialLoad = false
+                lastSyncTime = Date()
+            }
+        }
         .refreshable {
+            print("🏠 Pull to refresh triggered")
             if healthManager.isAuthorized {
                 await healthManager.fetchAllHealthData()
+                await healthManager.fetchWeeklySteps()
                 lastSyncTime = Date()
+                print("🏠 ✅ Refresh complete")
             }
         }
     }
@@ -391,12 +417,19 @@ struct HealthMetricCard: View {
         self.subtitle = subtitle
     }
     
+    @State private var isAnimating = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: icon)
                     .foregroundColor(color)
                     .font(.title3)
+                    .scaleEffect(isAnimating ? 1.15 : 1.0)
+                    .animation(
+                        icon == "heart.fill" ? .easeInOut(duration: 0.8).repeatForever(autoreverses: true) : .default,
+                        value: isAnimating
+                    )
                     .padding(8)
                     .background(color.opacity(0.1))
                     .clipShape(Circle())
@@ -429,6 +462,11 @@ struct HealthMetricCard: View {
         }
         .padding()
         .glass(cornerRadius: 20)
+        .onAppear {
+            if icon == "heart.fill" {
+                isAnimating = true
+            }
+        }
     }
 }
 

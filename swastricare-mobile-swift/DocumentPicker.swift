@@ -10,35 +10,42 @@ import PhotosUI
 import UniformTypeIdentifiers
 
 // MARK: - File Validation
+
 struct FileValidator {
     static let maxFileSize: Int64 = 10 * 1024 * 1024 // 10MB
     
-    static let allowedFormats: [UTType] = [
-        .pdf,           // PDF documents
-        .jpeg, .png, .heic,  // Images
-        .plainText,     // Text files
-        .rtf,           // Rich text
-        .commaSeparatedText, // CSV
-        UTType(filenameExtension: "doc")!,  // Word doc (legacy)
-        UTType(filenameExtension: "docx")!  // Word doc (modern)
+    static let allowedExtensions = ["pdf", "jpg", "jpeg", "png", "heic", "txt", "rtf", "doc", "docx", "csv"]
+    
+    static let allowedUTTypes: [UTType] = [
+        .pdf,
+        .jpeg,
+        .png,
+        .heic,
+        .plainText,
+        .rtf,
+        .commaSeparatedText,
+        UTType(filenameExtension: "doc") ?? .data,
+        UTType(filenameExtension: "docx") ?? .data
     ]
     
     static func validate(data: Data, fileName: String) -> (isValid: Bool, error: String?) {
-        // Check file size
-        if Int64(data.count) > maxFileSize {
-            return (false, "File too large. Max size is 10MB")
-        }
-        
         // Check if empty
         if data.isEmpty {
             return (false, "File is empty")
         }
         
-        // Get file extension
+        // Check file size
+        if Int64(data.count) > maxFileSize {
+            let maxMB = maxFileSize / (1024 * 1024)
+            return (false, "File too large. Maximum size is \(maxMB)MB")
+        }
+        
+        // Check file extension
         let fileExtension = (fileName as NSString).pathExtension.lowercased()
         
-        // Allowed extensions
-        let allowedExtensions = ["pdf", "jpg", "jpeg", "png", "heic", "txt", "rtf", "doc", "docx", "csv"]
+        if fileExtension.isEmpty {
+            return (false, "Unknown file type")
+        }
         
         if !allowedExtensions.contains(fileExtension) {
             return (false, "Unsupported format. Allowed: PDF, Images, DOC, DOCX, TXT, RTF, CSV")
@@ -53,15 +60,15 @@ struct FileValidator {
     }
 }
 
-// MARK: - Document Picker for PDFs and Documents
+// MARK: - Document Picker (Files App)
+
 struct DocumentPicker: UIViewControllerRepresentable {
-    @Binding var selectedFileData: Data?
-    @Binding var selectedFileName: String?
-    @Environment(\.presentationMode) var presentationMode
+    let onDocumentPicked: (Data, String) -> Void
+    let onCancel: () -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(
-            forOpeningContentTypes: FileValidator.allowedFormats,
+            forOpeningContentTypes: FileValidator.allowedUTTypes,
             asCopy: true
         )
         picker.delegate = context.coordinator
@@ -72,21 +79,28 @@ struct DocumentPicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        Coordinator(onDocumentPicked: onDocumentPicked, onCancel: onCancel)
     }
     
     class Coordinator: NSObject, UIDocumentPickerDelegate {
-        let parent: DocumentPicker
+        let onDocumentPicked: (Data, String) -> Void
+        let onCancel: () -> Void
         
-        init(_ parent: DocumentPicker) {
-            self.parent = parent
+        init(onDocumentPicked: @escaping (Data, String) -> Void, onCancel: @escaping () -> Void) {
+            self.onDocumentPicked = onDocumentPicked
+            self.onCancel = onCancel
         }
         
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let url = urls.first else { return }
+            guard let url = urls.first else {
+                onCancel()
+                return
+            }
             
             // Start accessing security-scoped resource
             guard url.startAccessingSecurityScopedResource() else {
+                print("DocumentPicker: Failed to access security-scoped resource")
+                onCancel()
                 return
             }
             
@@ -96,24 +110,25 @@ struct DocumentPicker: UIViewControllerRepresentable {
             
             do {
                 let data = try Data(contentsOf: url)
-                parent.selectedFileData = data
-                parent.selectedFileName = url.lastPathComponent
+                let fileName = url.lastPathComponent
+                onDocumentPicked(data, fileName)
             } catch {
-                print("Error loading document: \(error)")
+                print("DocumentPicker: Error loading document - \(error)")
+                onCancel()
             }
         }
         
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            parent.presentationMode.wrappedValue.dismiss()
+            onCancel()
         }
     }
 }
 
-// MARK: - Image Picker using PhotosUI
+// MARK: - Image Picker (Photos Library)
+
 struct ImagePicker: UIViewControllerRepresentable {
-    @Binding var selectedImageData: Data?
-    @Binding var selectedFileName: String?
-    @Environment(\.presentationMode) var presentationMode
+    let onImagePicked: (Data, String) -> Void
+    let onCancel: () -> Void
     
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -128,49 +143,72 @@ struct ImagePicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        Coordinator(onImagePicked: onImagePicked, onCancel: onCancel)
     }
     
     class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let parent: ImagePicker
+        let onImagePicked: (Data, String) -> Void
+        let onCancel: () -> Void
         
-        init(_ parent: ImagePicker) {
-            self.parent = parent
+        init(onImagePicked: @escaping (Data, String) -> Void, onCancel: @escaping () -> Void) {
+            self.onImagePicked = onImagePicked
+            self.onCancel = onCancel
         }
         
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            parent.presentationMode.wrappedValue.dismiss()
+            guard let provider = results.first?.itemProvider else {
+                onCancel()
+                return
+            }
             
-            guard let provider = results.first?.itemProvider else { return }
-            
-            // Handle different image formats
             if provider.canLoadObject(ofClass: UIImage.self) {
                 provider.loadObject(ofClass: UIImage.self) { [weak self] image, error in
-                    guard let self = self, let image = image as? UIImage else { return }
+                    guard let self = self else { return }
+                    
+                    if let error = error {
+                        print("ImagePicker: Error loading image - \(error)")
+                        DispatchQueue.main.async {
+                            self.onCancel()
+                        }
+                        return
+                    }
+                    
+                    guard let uiImage = image as? UIImage else {
+                        DispatchQueue.main.async {
+                            self.onCancel()
+                        }
+                        return
+                    }
+                    
+                    // Convert to JPEG with good quality
+                    guard let imageData = uiImage.jpegData(compressionQuality: 0.85) else {
+                        DispatchQueue.main.async {
+                            self.onCancel()
+                        }
+                        return
+                    }
+                    
+                    // Generate unique filename
+                    let timestamp = Int(Date().timeIntervalSince1970)
+                    let fileName = "photo_\(timestamp).jpg"
                     
                     DispatchQueue.main.async {
-                        // Convert to JPEG data
-                        if let imageData = image.jpegData(compressionQuality: 0.8) {
-                            self.parent.selectedImageData = imageData
-                            
-                            // Generate filename with timestamp
-                            let timestamp = Date().timeIntervalSince1970
-                            self.parent.selectedFileName = "image_\(Int(timestamp)).jpg"
-                        }
+                        self.onImagePicked(imageData, fileName)
                     }
                 }
+            } else {
+                onCancel()
             }
         }
     }
 }
 
 // MARK: - Unified File Picker Sheet
+
 struct FilePicker: View {
     @Binding var isPresented: Bool
     let onFilePicked: (Data, String) -> Void
     
-    @State private var selectedFileData: Data?
-    @State private var selectedFileName: String?
     @State private var showDocumentPicker = false
     @State private var showImagePicker = false
     
@@ -178,43 +216,66 @@ struct FilePicker: View {
         NavigationView {
             List {
                 Section {
-                    Button(action: {
+                    // Photos option
+                    Button {
                         showImagePicker = true
-                    }) {
-                        HStack {
-                            Image(systemName: "photo.on.rectangle")
-                                .foregroundColor(.blue)
+                    } label: {
+                        HStack(spacing: 16) {
+                            Image(systemName: "photo.on.rectangle.angled")
                                 .font(.title2)
-                            VStack(alignment: .leading, spacing: 4) {
+                                .foregroundColor(.blue)
+                                .frame(width: 40)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text("Choose from Photos")
                                     .font(.headline)
+                                    .foregroundColor(.primary)
                                 Text("Select an image from your library")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.leading, 8)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary.opacity(0.6))
                         }
                         .padding(.vertical, 8)
                     }
                     
-                    Button(action: {
+                    // Documents option
+                    Button {
                         showDocumentPicker = true
-                    }) {
-                        HStack {
-                            Image(systemName: "doc.on.doc")
-                                .foregroundColor(.red)
+                    } label: {
+                        HStack(spacing: 16) {
+                            Image(systemName: "doc.on.doc.fill")
                                 .font(.title2)
-                            VStack(alignment: .leading, spacing: 4) {
+                                .foregroundColor(.red)
+                                .frame(width: 40)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text("Choose Document")
                                     .font(.headline)
-                                Text("PDF, Word, Text files")
+                                    .foregroundColor(.primary)
+                                Text("PDF, Word, Text, and more")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.leading, 8)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary.opacity(0.6))
                         }
                         .padding(.vertical, 8)
                     }
+                } header: {
+                    Text("Select Source")
+                } footer: {
+                    Text("Supported formats: PDF, JPG, PNG, HEIC, DOC, DOCX, TXT, RTF, CSV\nMaximum file size: 10MB")
+                        .font(.caption2)
                 }
             }
             .navigationTitle("Upload Document")
@@ -227,16 +288,28 @@ struct FilePicker: View {
                 }
             }
             .sheet(isPresented: $showDocumentPicker) {
-                DocumentPicker(selectedFileData: $selectedFileData, selectedFileName: $selectedFileName)
+                DocumentPicker(
+                    onDocumentPicked: { data, fileName in
+                        showDocumentPicker = false
+                        isPresented = false
+                        onFilePicked(data, fileName)
+                    },
+                    onCancel: {
+                        showDocumentPicker = false
+                    }
+                )
             }
             .sheet(isPresented: $showImagePicker) {
-                ImagePicker(selectedImageData: $selectedFileData, selectedFileName: $selectedFileName)
-            }
-            .onChange(of: selectedFileData) { newValue in
-                if let data = newValue, let name = selectedFileName {
-                    onFilePicked(data, name)
-                    isPresented = false
-                }
+                ImagePicker(
+                    onImagePicked: { data, fileName in
+                        showImagePicker = false
+                        isPresented = false
+                        onFilePicked(data, fileName)
+                    },
+                    onCancel: {
+                        showImagePicker = false
+                    }
+                )
             }
         }
     }

@@ -11,10 +11,8 @@ struct VaultView: View {
     @StateObject private var vaultManager = VaultManager.shared
     
     @State private var showFilePicker = false
-    @State private var showCategoryPicker = false
     @State private var showUploadSheet = false
     @State private var selectedDocument: MedicalDocument?
-    @State private var showDocumentViewer = false
     @State private var searchText = ""
     
     // Upload state
@@ -22,8 +20,8 @@ struct VaultView: View {
     @State private var pendingFileName: String?
     @State private var selectedUploadCategory = "Lab Reports"
     @State private var uploadNotes = ""
-    @State private var validationError: String?
-    @State private var showValidationAlert = false
+    @State private var showError = false
+    @State private var errorText = ""
     
     private let categories = [
         VaultCategory(name: "Lab Reports", icon: "testtube.2", color: .blue),
@@ -44,112 +42,13 @@ struct VaultView: View {
                     )
                     
                     // Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
-                        TextField("Search records...", text: $searchText)
-                            .foregroundColor(.primary)
-                            .onChange(of: searchText) { newValue in
-                                vaultManager.searchQuery = newValue
-                            }
-                        
-                        if !searchText.isEmpty {
-                            Button(action: {
-                                searchText = ""
-                                vaultManager.searchQuery = ""
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .padding()
-                    .glass(cornerRadius: 16)
-                    .padding(.horizontal)
+                    searchBar
                     
                     // Categories Grid
-                    VStack(alignment: .leading, spacing: 15) {
-                        HStack {
-                            Text("Categories")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            if vaultManager.selectedCategory != nil {
-                                Button(action: {
-                                    vaultManager.setCategory(nil)
-                                }) {
-                                    Text("Show All")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                        
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
-                            ForEach(categories) { category in
-                                VaultCategoryCard(
-                                    category: category,
-                                    count: vaultManager.documentCount(for: category.name),
-                                    isSelected: vaultManager.selectedCategory == category.name
-                                )
-                                .onTapGesture {
-                                    if vaultManager.selectedCategory == category.name {
-                                        vaultManager.setCategory(nil)
-                                    } else {
-                                        vaultManager.setCategory(category.name)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
+                    categoriesSection
                     
                     // Documents List
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text(vaultManager.selectedCategory != nil ? vaultManager.selectedCategory! : "All Documents")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal)
-                        
-                        if vaultManager.isLoading {
-                            ProgressView()
-                                .padding()
-                        } else if vaultManager.filteredDocuments.isEmpty {
-                            EmptyStateView(
-                                icon: "folder",
-                                title: "No documents yet",
-                                message: "Upload your first medical document to get started"
-                            )
-                        } else {
-                            VStack(spacing: 12) {
-                                ForEach(vaultManager.filteredDocuments) { document in
-                                    VaultDocumentRow(
-                                        document: document,
-                                        vaultManager: vaultManager
-                                    )
-                                    .onTapGesture {
-                                        selectedDocument = document
-                                        showDocumentViewer = true
-                                    }
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        Button(role: .destructive) {
-                                            Task {
-                                                await vaultManager.deleteDocument(document)
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                    }
+                    documentsSection
                     
                     // Bottom Padding for Dock and FAB
                     Color.clear.frame(height: 120)
@@ -162,102 +61,24 @@ struct VaultView: View {
             
             // Upload Progress Overlay
             if vaultManager.uploadProgress > 0 && vaultManager.uploadProgress < 1 {
-                VStack {
-                    ProgressView("Uploading...", value: vaultManager.uploadProgress, total: 1.0)
-                        .padding()
-                        .background(Color(UIColor.systemBackground))
-                        .cornerRadius(12)
-                        .shadow(radius: 10)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black.opacity(0.3))
+                uploadProgressOverlay
             }
             
             // Floating Action Button
-            Button(action: {
-                showFilePicker = true
-            }) {
-                Image(systemName: "plus")
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .frame(width: 60, height: 60)
-                    .background(
-                        LinearGradient(
-                            colors: [.blue, .purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .clipShape(Circle())
-                    .shadow(color: .blue.opacity(0.4), radius: 10, x: 0, y: 5)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 100) // Above the dock
+            floatingActionButton
         }
-        .alert("Error", isPresented: .constant(vaultManager.errorMessage != nil)) {
-            Button("OK") {
-                vaultManager.errorMessage = nil
-            }
+        .alert("Error", isPresented: $showError) {
+            Button("OK") { }
         } message: {
-            if let error = vaultManager.errorMessage {
-                Text(error)
-            }
-        }
-        .alert("Invalid File", isPresented: $showValidationAlert) {
-            Button("OK") {
-                validationError = nil
-            }
-        } message: {
-            if let error = validationError {
-                Text(error)
-            }
+            Text(errorText)
         }
         .sheet(isPresented: $showFilePicker) {
             FilePicker(isPresented: $showFilePicker) { data, fileName in
-                // Validate file first
-                let validation = FileValidator.validate(data: data, fileName: fileName)
-                
-                if validation.isValid {
-                    // File is valid, proceed to tagging
-                    pendingFileData = data
-                    pendingFileName = fileName
-                    showUploadSheet = true
-                } else {
-                    // Show validation error
-                    validationError = validation.error
-                    showValidationAlert = true
-                }
+                handleFilePicked(data: data, fileName: fileName)
             }
         }
         .sheet(isPresented: $showUploadSheet) {
-            if let data = pendingFileData, let fileName = pendingFileName {
-                UploadDocumentSheet(
-                    fileData: data,
-                    fileName: fileName,
-                    selectedCategory: $selectedUploadCategory,
-                    notes: $uploadNotes,
-                    onUpload: {
-                        Task {
-                            await vaultManager.uploadDocument(
-                                fileData: data,
-                                fileName: fileName,
-                                category: selectedUploadCategory,
-                                notes: uploadNotes.isEmpty ? nil : uploadNotes
-                            )
-                            // Reset
-                            uploadNotes = ""
-                            pendingFileData = nil
-                            pendingFileName = nil
-                        }
-                    },
-                    onCancel: {
-                        showUploadSheet = false
-                        uploadNotes = ""
-                        pendingFileData = nil
-                        pendingFileName = nil
-                    }
-                )
-            }
+            uploadSheet
         }
         .fullScreenCover(item: $selectedDocument) { document in
             DocumentViewer(document: document)
@@ -265,10 +86,233 @@ struct VaultView: View {
         .task {
             await vaultManager.fetchDocuments()
         }
+        .onChange(of: vaultManager.errorMessage) { _, newValue in
+            if let error = newValue {
+                errorText = error
+                showError = true
+                vaultManager.clearError()
+            }
+        }
+    }
+    
+    // MARK: - Subviews
+    
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+            
+            TextField("Search records...", text: $searchText)
+                .foregroundColor(.primary)
+                .autocorrectionDisabled()
+                .onChange(of: searchText) { _, newValue in
+                    vaultManager.setSearchQuery(newValue)
+                }
+            
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                    vaultManager.setSearchQuery("")
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding()
+        .glass(cornerRadius: 16)
+        .padding(.horizontal)
+    }
+    
+    private var categoriesSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack {
+                Text("Categories")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                if vaultManager.selectedCategory != nil {
+                    Button {
+                        vaultManager.setCategory(nil)
+                    } label: {
+                        Text("Show All")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+            .padding(.horizontal)
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
+                ForEach(categories) { category in
+                    VaultCategoryCard(
+                        category: category,
+                        count: vaultManager.documentCount(for: category.name),
+                        isSelected: vaultManager.selectedCategory == category.name
+                    )
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if vaultManager.selectedCategory == category.name {
+                                vaultManager.setCategory(nil)
+                            } else {
+                                vaultManager.setCategory(category.name)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    private var documentsSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text(vaultManager.selectedCategory ?? "All Documents")
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
+                .padding(.horizontal)
+            
+            if vaultManager.isLoading && vaultManager.documents.isEmpty {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            } else if vaultManager.filteredDocuments.isEmpty {
+                EmptyStateView(
+                    icon: "folder",
+                    title: "No documents yet",
+                    message: "Upload your first medical document to get started"
+                )
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(vaultManager.filteredDocuments) { document in
+                        VaultDocumentRow(document: document)
+                            .onTapGesture {
+                                selectedDocument = document
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    Task {
+                                        await vaultManager.deleteDocument(document)
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    private var uploadProgressOverlay: some View {
+        VStack {
+            Spacer()
+            VStack(spacing: 12) {
+                ProgressView(value: vaultManager.uploadProgress)
+                    .progressViewStyle(.linear)
+                Text("Uploading...")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding(24)
+            .background(.ultraThinMaterial)
+            .cornerRadius(16)
+            .padding(40)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.3))
+    }
+    
+    private var floatingActionButton: some View {
+        Button {
+            showFilePicker = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.title2.weight(.semibold))
+                .foregroundColor(.white)
+                .frame(width: 60, height: 60)
+                .background(
+                    LinearGradient(
+                        colors: [.blue, .purple],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(Circle())
+                .shadow(color: .blue.opacity(0.4), radius: 10, x: 0, y: 5)
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 100)
+    }
+    
+    @ViewBuilder
+    private var uploadSheet: some View {
+        if let data = pendingFileData, let fileName = pendingFileName {
+            UploadDocumentSheet(
+                fileData: data,
+                fileName: fileName,
+                selectedCategory: $selectedUploadCategory,
+                notes: $uploadNotes,
+                onUpload: { category, notes in
+                    Task {
+                        let success = await vaultManager.uploadDocument(
+                            fileData: data,
+                            fileName: fileName,
+                            category: category,
+                            notes: notes.isEmpty ? nil : notes
+                        )
+                        
+                        if success {
+                            resetUploadState()
+                            showUploadSheet = false
+                        }
+                    }
+                },
+                onCancel: {
+                    resetUploadState()
+                    showUploadSheet = false
+                }
+            )
+        }
+    }
+    
+    // MARK: - Methods
+    
+    private func handleFilePicked(data: Data, fileName: String) {
+        // Validate file
+        let validation = FileValidator.validate(data: data, fileName: fileName)
+        
+        if validation.isValid {
+            pendingFileData = data
+            pendingFileName = fileName
+            selectedUploadCategory = "Lab Reports"
+            uploadNotes = ""
+            
+            // Small delay to ensure file picker sheet is dismissed first
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                showUploadSheet = true
+            }
+        } else {
+            errorText = validation.error ?? "Invalid file"
+            showError = true
+        }
+    }
+    
+    private func resetUploadState() {
+        pendingFileData = nil
+        pendingFileName = nil
+        uploadNotes = ""
+        selectedUploadCategory = "Lab Reports"
     }
 }
 
-// MARK: - Vault Helpers
+// MARK: - Supporting Views
 
 struct VaultCategory: Identifiable {
     let id = UUID()
@@ -287,7 +331,11 @@ struct VaultCategoryCard: View {
             HStack {
                 Circle()
                     .fill(
-                        LinearGradient(colors: [category.color.opacity(0.2), category.color.opacity(0.1)], startPoint: .top, endPoint: .bottom)
+                        LinearGradient(
+                            colors: [category.color.opacity(0.2), category.color.opacity(0.1)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
                     .frame(width: 50, height: 50)
                     .overlay(
@@ -300,8 +348,7 @@ struct VaultCategoryCard: View {
                 
                 if count > 0 {
                     Text("\(count)")
-                        .font(.caption)
-                        .fontWeight(.bold)
+                        .font(.caption.weight(.bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -326,30 +373,28 @@ struct VaultCategoryCard: View {
 
 struct VaultDocumentRow: View {
     let document: MedicalDocument
-    @ObservedObject var vaultManager: VaultManager
     
     var body: some View {
         HStack(spacing: 15) {
-            Image(systemName: vaultManager.iconForFileType(document.fileType))
+            Image(systemName: iconForType)
                 .font(.title2)
-                .foregroundColor(vaultManager.colorForFileType(document.fileType))
+                .foregroundColor(colorForType)
                 .padding(10)
-                .background(vaultManager.colorForFileType(document.fileType).opacity(0.1))
+                .background(colorForType.opacity(0.1))
                 .cornerRadius(10)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(document.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
                 
                 HStack(spacing: 4) {
-                    Text(vaultManager.formatDate(document.uploadedAt))
+                    Text(formattedDate)
                     Text("•")
                     Text(document.fileType)
                     Text("•")
-                    Text(vaultManager.formatFileSize(document.fileSize))
+                    Text(formattedSize)
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -363,6 +408,38 @@ struct VaultDocumentRow: View {
         }
         .padding()
         .glass(cornerRadius: 16)
+    }
+    
+    private var iconForType: String {
+        switch document.fileType.uppercased() {
+        case "PDF": return "doc.text.fill"
+        case "JPG", "JPEG", "PNG", "HEIC": return "photo.fill"
+        case "DOC", "DOCX": return "doc.richtext.fill"
+        default: return "doc.fill"
+        }
+    }
+    
+    private var colorForType: Color {
+        switch document.fileType.uppercased() {
+        case "PDF": return .red
+        case "JPG", "JPEG", "PNG", "HEIC": return .blue
+        case "DOC", "DOCX": return .indigo
+        default: return .gray
+        }
+    }
+    
+    private var formattedDate: String {
+        guard let date = document.uploadedAt else { return "Unknown" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
+    }
+    
+    private var formattedSize: String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: document.fileSize)
     }
 }
 
@@ -396,27 +473,23 @@ struct UploadDocumentSheet: View {
     let fileName: String
     @Binding var selectedCategory: String
     @Binding var notes: String
-    let onUpload: () -> Void
+    let onUpload: (String, String) -> Void
     let onCancel: () -> Void
     
-    @Environment(\.presentationMode) var presentationMode
+    @State private var localCategory: String = "Lab Reports"
+    @State private var localNotes: String = ""
     
-    private let categories = ["Lab Reports", "Prescriptions", "Insurance", "Imaging"]
+    private let categoryOptions = ["Lab Reports", "Prescriptions", "Insurance", "Imaging"]
     
-    private var fileSize: String {
-        let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB]
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: Int64(fileData.count))
-    }
-    
-    private var fileType: String {
-        FileValidator.getFileType(from: fileName)
-    }
-    
-    private var previewImage: UIImage? {
-        // Try to create image from data
-        UIImage(data: fileData)
+    init(fileData: Data, fileName: String, selectedCategory: Binding<String>, notes: Binding<String>, onUpload: @escaping (String, String) -> Void, onCancel: @escaping () -> Void) {
+        self.fileData = fileData
+        self.fileName = fileName
+        self._selectedCategory = selectedCategory
+        self._notes = notes
+        self.onUpload = onUpload
+        self.onCancel = onCancel
+        self._localCategory = State(initialValue: selectedCategory.wrappedValue)
+        self._localNotes = State(initialValue: notes.wrappedValue)
     }
     
     var body: some View {
@@ -425,32 +498,11 @@ struct UploadDocumentSheet: View {
                 // File Preview Section
                 Section("Preview") {
                     VStack(spacing: 12) {
-                        // Icon or Image Preview
-                        if let image = previewImage {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 200)
-                                .cornerRadius(12)
-                        } else {
-                            // Show icon for non-image files
-                            VStack(spacing: 8) {
-                                Image(systemName: iconForFileType(fileType))
-                                    .font(.system(size: 60))
-                                    .foregroundColor(colorForFileType(fileType))
-                                
-                                Text(fileType)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(height: 120)
-                        }
+                        filePreview
                         
-                        // File Info
                         VStack(spacing: 4) {
                             Text(fileName)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                                .font(.subheadline.weight(.medium))
                                 .lineLimit(2)
                                 .multilineTextAlignment(.center)
                             
@@ -464,8 +516,8 @@ struct UploadDocumentSheet: View {
                 }
                 
                 Section("Category") {
-                    Picker("Select Category", selection: $selectedCategory) {
-                        ForEach(categories, id: \.self) { category in
+                    Picker("Select Category", selection: $localCategory) {
+                        ForEach(categoryOptions, id: \.self) { category in
                             HStack {
                                 Image(systemName: iconForCategory(category))
                                     .foregroundColor(colorForCategory(category))
@@ -478,8 +530,8 @@ struct UploadDocumentSheet: View {
                 }
                 
                 Section("Notes (Optional)") {
-                    TextEditor(text: $notes)
-                        .frame(height: 100)
+                    TextEditor(text: $localNotes)
+                        .frame(minHeight: 80)
                 }
             }
             .navigationTitle("Add Document")
@@ -488,14 +540,12 @@ struct UploadDocumentSheet: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         onCancel()
-                        presentationMode.wrappedValue.dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Upload") {
-                        onUpload()
-                        presentationMode.wrappedValue.dismiss()
+                        onUpload(localCategory, localNotes)
                     }
                     .fontWeight(.semibold)
                 }
@@ -503,69 +553,74 @@ struct UploadDocumentSheet: View {
         }
     }
     
-    // Helper functions
-    private func iconForFileType(_ fileType: String) -> String {
-        switch fileType.uppercased() {
-        case "PDF":
-            return "doc.text.fill"
-        case "JPG", "JPEG", "PNG", "HEIC":
-            return "photo.fill"
-        case "DOC", "DOCX":
-            return "doc.richtext.fill"
-        case "TXT", "RTF":
-            return "doc.plaintext.fill"
-        case "CSV":
-            return "tablecells.fill"
-        default:
-            return "doc.fill"
+    @ViewBuilder
+    private var filePreview: some View {
+        if let image = UIImage(data: fileData) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 180)
+                .cornerRadius(12)
+        } else {
+            VStack(spacing: 8) {
+                Image(systemName: iconForFileType(fileType))
+                    .font(.system(size: 50))
+                    .foregroundColor(colorForFileType(fileType))
+                
+                Text(fileType)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(height: 100)
         }
     }
     
-    private func colorForFileType(_ fileType: String) -> Color {
-        switch fileType.uppercased() {
-        case "PDF":
-            return .red
-        case "JPG", "JPEG", "PNG", "HEIC":
-            return .blue
-        case "DOC", "DOCX":
-            return .blue
-        case "TXT", "RTF":
-            return .gray
-        case "CSV":
-            return .green
-        default:
-            return .gray
+    private var fileSize: String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(fileData.count))
+    }
+    
+    private var fileType: String {
+        FileValidator.getFileType(from: fileName)
+    }
+    
+    private func iconForFileType(_ type: String) -> String {
+        switch type.uppercased() {
+        case "PDF": return "doc.text.fill"
+        case "JPG", "JPEG", "PNG", "HEIC": return "photo.fill"
+        case "DOC", "DOCX": return "doc.richtext.fill"
+        default: return "doc.fill"
+        }
+    }
+    
+    private func colorForFileType(_ type: String) -> Color {
+        switch type.uppercased() {
+        case "PDF": return .red
+        case "JPG", "JPEG", "PNG", "HEIC": return .blue
+        case "DOC", "DOCX": return .indigo
+        default: return .gray
         }
     }
     
     private func iconForCategory(_ category: String) -> String {
         switch category {
-        case "Lab Reports":
-            return "testtube.2"
-        case "Prescriptions":
-            return "pills.fill"
-        case "Insurance":
-            return "shield.fill"
-        case "Imaging":
-            return "waveform.path.ecg"
-        default:
-            return "doc.fill"
+        case "Lab Reports": return "testtube.2"
+        case "Prescriptions": return "pills.fill"
+        case "Insurance": return "shield.fill"
+        case "Imaging": return "waveform.path.ecg"
+        default: return "doc.fill"
         }
     }
     
     private func colorForCategory(_ category: String) -> Color {
         switch category {
-        case "Lab Reports":
-            return .blue
-        case "Prescriptions":
-            return .green
-        case "Insurance":
-            return .orange
-        case "Imaging":
-            return .purple
-        default:
-            return .gray
+        case "Lab Reports": return .blue
+        case "Prescriptions": return .green
+        case "Insurance": return .orange
+        case "Imaging": return .purple
+        default: return .gray
         }
     }
 }
-

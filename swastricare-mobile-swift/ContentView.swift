@@ -10,6 +10,7 @@ import Auth
 
 struct ContentView: View {
     @State private var currentTab: Tab = .home
+    @StateObject private var healthManager = HealthManager.shared
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -21,14 +22,19 @@ struct ContentView: View {
                 switch currentTab {
                 case .home:
                     HomeView()
+                        .id("home")
                 case .tracker:
                     TrackerView()
+                        .id("tracker")
                 case .ai:
                     FunctionalAIView()
+                        .id("ai")
                 case .vault:
                     VaultView()
+                        .id("vault")
                 case .profile:
                     ProfileView()
+                        .id("profile")
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -37,6 +43,16 @@ struct ContentView: View {
             GlassDock(currentTab: $currentTab)
         }
         .ignoresSafeArea(.keyboard)
+        .onChange(of: currentTab) { oldTab, newTab in
+            // Refresh health data when returning to home
+            if newTab == .home && healthManager.isAuthorized {
+                print("🔄 Tab changed to home - refreshing data")
+                Task {
+                    await healthManager.fetchAllHealthData()
+                    await healthManager.fetchWeeklySteps()
+                }
+            }
+        }
     }
 }
 

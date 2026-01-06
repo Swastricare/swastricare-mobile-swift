@@ -84,7 +84,7 @@ class HealthManager: ObservableObject {
         }
     }
     
-    private func checkAuthorizationStatus() {
+    func checkAuthorizationStatus() {
         guard HKHealthStore.isHealthDataAvailable() else {
             isAuthorized = false
             return
@@ -94,6 +94,8 @@ class HealthManager: ObservableObject {
         let stepType = HKObjectType.quantityType(forIdentifier: .stepCount)!
         let status = healthStore.authorizationStatus(for: stepType)
         isAuthorized = (status == .sharingAuthorized)
+        
+        print("🔐 Authorization Status Check: \(status == .sharingAuthorized ? "Authorized" : "Not Authorized")")
     }
     
     // MARK: - Fetch Health Data

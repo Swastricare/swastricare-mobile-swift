@@ -9,47 +9,31 @@ import SwiftUI
 import PDFKit
 
 // MARK: - Document Viewer
+
 struct DocumentViewer: View {
     let document: MedicalDocument
+    
     @StateObject private var vaultManager = VaultManager.shared
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
     
     @State private var documentData: Data?
     @State private var isLoading = true
+    @State private var loadError: String?
     @State private var showShareSheet = false
     @State private var showDeleteAlert = false
+    @State private var showInfoSheet = false
     
     var body: some View {
         NavigationView {
             Group {
                 if isLoading {
-                    ProgressView("Loading document...")
+                    loadingView
+                } else if let error = loadError {
+                    errorView(error)
                 } else if let data = documentData {
-                    if document.fileType.uppercased() == "PDF" {
-                        PDFViewerRepresentable(data: data)
-                    } else {
-                        // Image viewer
-                        if let uiImage = UIImage(data: data) {
-                            ImageViewerContent(image: uiImage)
-                        } else {
-                            Text("Unable to load image")
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                    contentView(data: data)
                 } else {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 50))
-                            .foregroundColor(.orange)
-                        Text("Failed to load document")
-                            .font(.headline)
-                        Button("Try Again") {
-                            Task {
-                                await loadDocument()
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                    }
+                    errorView("Document data not available")
                 }
             }
             .navigationTitle(document.title)
@@ -57,21 +41,31 @@ struct DocumentViewer: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Close") {
-                        presentationMode.wrappedValue.dismiss()
+                        dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Button(action: {
-                            showShareSheet = true
-                        }) {
-                            Label("Share", systemImage: "square.and.arrow.up")
+                        Button {
+                            showInfoSheet = true
+                        } label: {
+                            Label("Info", systemImage: "info.circle")
                         }
                         
-                        Button(role: .destructive, action: {
+                        if documentData != nil {
+                            Button {
+                                showShareSheet = true
+                            } label: {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                        }
+                        
+                        Divider()
+                        
+                        Button(role: .destructive) {
                             showDeleteAlert = true
-                        }) {
+                        } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     } label: {
@@ -81,8 +75,11 @@ struct DocumentViewer: View {
             }
             .sheet(isPresented: $showShareSheet) {
                 if let data = documentData {
-                    ShareSheet(items: [data])
+                    ShareSheet(items: [data], fileName: document.title)
                 }
+            }
+            .sheet(isPresented: $showInfoSheet) {
+                DocumentInfoSheet(document: document)
             }
             .alert("Delete Document", isPresented: $showDeleteAlert) {
                 Button("Cancel", role: .cancel) {}
@@ -100,19 +97,102 @@ struct DocumentViewer: View {
         }
     }
     
+    // MARK: - Subviews
+    
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+            Text("Loading document...")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 50))
+                .foregroundColor(.orange)
+            
+            Text("Failed to Load")
+                .font(.headline)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            
+            Button {
+                Task {
+                    await loadDocument()
+                }
+            } label: {
+                Text("Try Again")
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+    
+    @ViewBuilder
+    private func contentView(data: Data) -> some View {
+        let fileType = document.fileType.uppercased()
+        
+        if fileType == "PDF" {
+            PDFViewerRepresentable(data: data)
+        } else if ["JPG", "JPEG", "PNG", "HEIC"].contains(fileType) {
+            if let image = UIImage(data: data) {
+                ZoomableImageView(image: image)
+            } else {
+                errorView("Unable to load image")
+            }
+        } else {
+            // Text-based files
+            if let text = String(data: data, encoding: .utf8) {
+                TextDocumentView(text: text)
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "doc.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.secondary)
+                    Text("Preview not available for this file type")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
     private func loadDocument() async {
         isLoading = true
-        documentData = await vaultManager.downloadDocument(document)
+        loadError = nil
+        
+        let data = await vaultManager.downloadDocument(document)
+        
+        if let data = data {
+            documentData = data
+        } else {
+            loadError = vaultManager.errorMessage ?? "Failed to download document"
+        }
+        
         isLoading = false
     }
     
     private func deleteDocument() async {
-        await vaultManager.deleteDocument(document)
-        presentationMode.wrappedValue.dismiss()
+        let success = await vaultManager.deleteDocument(document)
+        if success {
+            dismiss()
+        }
     }
 }
 
 // MARK: - PDF Viewer
+
 struct PDFViewerRepresentable: UIViewRepresentable {
     let data: Data
     
@@ -121,19 +201,22 @@ struct PDFViewerRepresentable: UIViewRepresentable {
         pdfView.autoScales = true
         pdfView.displayMode = .singlePageContinuous
         pdfView.displayDirection = .vertical
+        pdfView.backgroundColor = .systemBackground
         return pdfView
     }
     
     func updateUIView(_ pdfView: PDFView, context: Context) {
-        if let pdfDocument = PDFDocument(data: data) {
-            pdfView.document = pdfDocument
+        if pdfView.document == nil, let document = PDFDocument(data: data) {
+            pdfView.document = document
         }
     }
 }
 
-// MARK: - Image Viewer
-struct ImageViewerContent: View {
+// MARK: - Zoomable Image View
+
+struct ZoomableImageView: View {
     let image: UIImage
+    
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
@@ -141,36 +224,36 @@ struct ImageViewerContent: View {
     
     var body: some View {
         GeometryReader { geometry in
-            ScrollView([.horizontal, .vertical], showsIndicators: false) {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: geometry.size.width * scale, height: geometry.size.height * scale)
+                    .scaleEffect(scale)
                     .offset(offset)
                     .gesture(
                         MagnificationGesture()
                             .onChanged { value in
                                 let delta = value / lastScale
                                 lastScale = value
-                                scale = scale * delta
+                                scale = min(max(scale * delta, 1.0), 5.0)
                             }
                             .onEnded { _ in
                                 lastScale = 1.0
                                 if scale < 1.0 {
-                                    withAnimation {
+                                    withAnimation(.easeOut(duration: 0.2)) {
                                         scale = 1.0
                                         offset = .zero
-                                    }
-                                } else if scale > 4.0 {
-                                    withAnimation {
-                                        scale = 4.0
+                                        lastOffset = .zero
                                     }
                                 }
                             }
                     )
-                    .gesture(
+                    .simultaneousGesture(
                         DragGesture()
                             .onChanged { value in
+                                guard scale > 1.0 else { return }
                                 offset = CGSize(
                                     width: lastOffset.width + value.translation.width,
                                     height: lastOffset.height + value.translation.height
@@ -180,57 +263,116 @@ struct ImageViewerContent: View {
                                 lastOffset = offset
                             }
                     )
-            }
-        }
-        .background(Color.black.ignoresSafeArea())
-        .onTapGesture(count: 2) {
-            withAnimation {
-                if scale > 1.0 {
-                    scale = 1.0
-                    offset = .zero
-                    lastOffset = .zero
-                } else {
-                    scale = 2.0
-                }
+                    .onTapGesture(count: 2) {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            if scale > 1.0 {
+                                scale = 1.0
+                                offset = .zero
+                                lastOffset = .zero
+                            } else {
+                                scale = 2.5
+                            }
+                        }
+                    }
             }
         }
     }
 }
 
+// MARK: - Text Document View
+
+struct TextDocumentView: View {
+    let text: String
+    
+    var body: some View {
+        ScrollView {
+            Text(text)
+                .font(.system(.body, design: .monospaced))
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color(.systemBackground))
+    }
+}
+
 // MARK: - Share Sheet
+
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
+    var fileName: String?
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        // If we have a fileName, try to create a temporary file for better sharing
+        var shareItems: [Any] = []
+        
+        if let data = items.first as? Data, let name = fileName {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+            do {
+                try data.write(to: tempURL)
+                shareItems = [tempURL]
+            } catch {
+                shareItems = items
+            }
+        } else {
+            shareItems = items
+        }
+        
+        let controller = UIActivityViewController(activityItems: shareItems, applicationActivities: nil)
         return controller
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
-// MARK: - Document Info View
-struct DocumentInfoView: View {
+// MARK: - Document Info Sheet
+
+struct DocumentInfoSheet: View {
     let document: MedicalDocument
-    @StateObject private var vaultManager = VaultManager.shared
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        List {
-            Section("Document Details") {
-                InfoRow(label: "Title", value: document.title)
-                InfoRow(label: "Category", value: document.category)
-                InfoRow(label: "File Type", value: document.fileType)
-                InfoRow(label: "Size", value: vaultManager.formatFileSize(document.fileSize))
-                InfoRow(label: "Uploaded", value: vaultManager.formatDate(document.uploadedAt))
+        NavigationView {
+            List {
+                Section("Document Details") {
+                    InfoRow(label: "Title", value: document.title)
+                    InfoRow(label: "Category", value: document.category)
+                    InfoRow(label: "File Type", value: document.fileType)
+                    InfoRow(label: "Size", value: formattedSize)
+                    InfoRow(label: "Uploaded", value: formattedDate)
+                }
+                
+                if let notes = document.notes, !notes.isEmpty {
+                    Section("Notes") {
+                        Text(notes)
+                            .font(.body)
+                    }
+                }
             }
-            
-            if let notes = document.notes, !notes.isEmpty {
-                Section("Notes") {
-                    Text(notes)
-                        .font(.body)
+            .navigationTitle("Document Info")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
                 }
             }
         }
+    }
+    
+    private var formattedSize: String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: document.fileSize)
+    }
+    
+    private var formattedDate: String {
+        guard let date = document.uploadedAt else { return "Unknown" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
@@ -245,6 +387,7 @@ struct InfoRow: View {
             Spacer()
             Text(value)
                 .fontWeight(.medium)
+                .multilineTextAlignment(.trailing)
         }
     }
 }
