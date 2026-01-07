@@ -55,16 +55,18 @@ final class AIService: AIServiceProtocol {
     
     func analyzeHealth(_ metrics: HealthMetrics) async throws -> HealthAnalysisResponse {
         let sleepHours = parseSleepHours(metrics.sleep)
-        let weight = Double(metrics.weight) ?? 0
+        let weight = Double(metrics.weight.replacingOccurrences(of: "--", with: "0")) ?? 0
         
         let payload: [String: Any] = [
             "steps": metrics.steps,
             "heartRate": metrics.heartRate,
-            "sleepHours": sleepHours,
+            "sleepDuration": metrics.sleep,
             "activeCalories": metrics.activeCalories,
             "exerciseMinutes": metrics.exerciseMinutes,
-            "weight": weight,
-            "bloodPressure": metrics.bloodPressure
+            "standHours": metrics.standHours,
+            "distance": metrics.distance,
+            "bloodPressure": metrics.bloodPressure,
+            "weight": weight
         ]
         
         let response = try await supabase.invokeFunction(
@@ -72,22 +74,17 @@ final class AIService: AIServiceProtocol {
             payload: payload
         )
         
-        // Parse response
-        guard let summary = response["summary"] as? String else {
+        // Parse response matching new format
+        guard let assessment = response["assessment"] as? String,
+              let insights = response["insights"] as? String,
+              let recommendations = response["recommendations"] as? [String] else {
             throw AIError.invalidResponse
         }
         
-        let insights = response["insights"] as? [String] ?? []
-        let recommendations = response["recommendations"] as? [String] ?? []
-        let riskFactors = response["riskFactors"] as? [String] ?? []
-        let overallScore = response["overallScore"] as? Int ?? 0
-        
         return HealthAnalysisResponse(
-            summary: summary,
+            assessment: assessment,
             insights: insights,
-            recommendations: recommendations,
-            riskFactors: riskFactors,
-            overallScore: overallScore
+            recommendations: recommendations
         )
     }
     

@@ -563,19 +563,3 @@ class HealthManager: ObservableObject {
         )
     }
 }
-
-// MARK: - Data Models
-
-struct HealthMetrics: Codable {
-    let steps: Int
-    let heartRate: Int
-    let sleep: String
-    let timestamp: Date
-}
-
-struct DailyMetric: Identifiable {
-    let id = UUID()
-    let date: Date
-    let dayName: String
-    let steps: Int
-}

@@ -157,10 +157,10 @@ struct QuickAction: Identifiable, Equatable {
     let prompt: String
     
     static let suggestions: [QuickAction] = [
+        QuickAction(title: "Analyze My Health", icon: "waveform.path.ecg", prompt: "Analyze my current health metrics and give me insights"),
         QuickAction(title: "Sleep Tips", icon: "moon.fill", prompt: "How can I improve my sleep quality?"),
         QuickAction(title: "Exercise Ideas", icon: "figure.run", prompt: "What exercises are good for beginners?"),
-        QuickAction(title: "Nutrition", icon: "leaf.fill", prompt: "What should I eat for better heart health?"),
-        QuickAction(title: "Stress Relief", icon: "brain.head.profile", prompt: "How can I reduce stress naturally?")
+        QuickAction(title: "Nutrition", icon: "leaf.fill", prompt: "What should I eat for better heart health?")
     ]
 }
 

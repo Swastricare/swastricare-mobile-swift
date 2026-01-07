@@ -241,6 +241,7 @@ struct HomeView: View {
     }
     
     @State private var showMedications = false
+    @State private var showHydration = false
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -259,13 +260,16 @@ struct HomeView: View {
                 }
                 
                 QuickActionButton(icon: "drop.fill", title: "Hydration", color: .cyan) {
-                    // Action
+                    showHydration = true
                 }
             }
             .padding(.horizontal)
         }
         .sheet(isPresented: $showMedications) {
             MedicationsView()
+        }
+        .sheet(isPresented: $showHydration) {
+            HydrationView()
         }
     }
     

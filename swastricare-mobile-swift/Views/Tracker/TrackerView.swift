@@ -16,22 +16,58 @@ struct TrackerView: View {
     // MARK: - Body
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                
-                // Date Selector
-                dateSelector
-                
-                // Stats Overview
-                statsOverview
-                
-                // Weekly Chart
-                weeklyChart
-                
-                // Detailed Metrics
-                detailedMetrics
+        ZStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    
+                    // Date Selector
+                    dateSelector
+                    
+                    // Stats Overview
+                    statsOverview
+                    
+                    // Weekly Chart
+                    weeklyChart
+                    
+                    // Detailed Metrics
+                    detailedMetrics
+                }
+                .padding(.top)
+                .padding(.bottom, 80) // Space for FAB
             }
-            .padding(.top)
+            
+            // Floating Action Button for AI Analysis
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        Task { await viewModel.requestAIAnalysis() }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(.title3)
+                            Text("Analyze with AI")
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(25)
+                        .shadow(color: Color(hex: "2E3192").opacity(0.4), radius: 10, x: 0, y: 5)
+                    }
+                    .disabled(viewModel.healthMetrics.isEmpty || viewModel.analysisState.isAnalyzing)
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 20)
+                }
+            }
         }
         .navigationTitle("Health Tracker")
         .navigationBarTitleDisplayMode(.large)
@@ -50,6 +86,12 @@ struct TrackerView: View {
         }
         .refreshable {
             await viewModel.refresh()
+        }
+        .sheet(isPresented: $viewModel.showAnalysisSheet) {
+            AnalysisResultView(
+                state: viewModel.analysisState,
+                onDismiss: { viewModel.dismissAnalysis() }
+            )
         }
     }
     
@@ -238,6 +280,159 @@ private struct MetricRow: View {
                 .fontWeight(.semibold)
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Analysis Result View
+
+private struct AnalysisResultView: View {
+    let state: AnalysisState
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 20) {
+                        if state.isAnalyzing {
+                            analyzingView
+                        } else if let result = state.result {
+                            analysisContent(result)
+                        } else if case .error(let message) = state {
+                            errorView(message)
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("AI Health Analysis")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        onDismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private var analyzingView: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .padding()
+            
+            Text("Swastrica is analyzing your health data...")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            
+            Text("This may take a few moments")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func analysisContent(_ result: HealthAnalysisResult) -> some View {
+        VStack(spacing: 20) {
+            // Sparkle Icon
+            Image(systemName: "sparkles")
+                .font(.system(size: 50))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .padding(.top)
+            
+            // Assessment Section
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Overall Assessment", systemImage: "heart.text.square.fill")
+                    .font(.headline)
+                    .foregroundColor(Color(hex: "2E3192"))
+                
+                Text(result.analysis.assessment)
+                    .font(.body)
+                    .lineSpacing(4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .glass(cornerRadius: 16)
+            
+            // Insights Section
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Key Insights", systemImage: "lightbulb.fill")
+                    .font(.headline)
+                    .foregroundColor(Color(hex: "2E3192"))
+                
+                Text(result.analysis.insights)
+                    .font(.body)
+                    .lineSpacing(4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .glass(cornerRadius: 16)
+            
+            // Recommendations Section
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Recommendations", systemImage: "star.fill")
+                    .font(.headline)
+                    .foregroundColor(Color(hex: "2E3192"))
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("\(index + 1).")
+                                .fontWeight(.semibold)
+                                .foregroundColor(Color(hex: "2E3192"))
+                            Text(rec)
+                                .font(.body)
+                                .lineSpacing(4)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .glass(cornerRadius: 16)
+            
+            // Timestamp
+            Text("Analysis generated on \(result.timestamp.formatted(date: .abbreviated, time: .shortened))")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.bottom)
+        }
+    }
+    
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 50))
+                .foregroundColor(.orange)
+            
+            Text("Analysis Error")
+                .font(.headline)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            Button("Try Again") {
+                onDismiss()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(hex: "2E3192"))
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
