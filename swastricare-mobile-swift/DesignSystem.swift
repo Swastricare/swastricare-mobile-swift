@@ -3,6 +3,7 @@
 //  swastricare-mobile-swift
 //
 //  Created by SwastriCare Premium on 06/01/26.
+//  Updated for Liquid Glass effect using standard SwiftUI materials
 //
 
 import SwiftUI
@@ -24,40 +25,41 @@ struct PremiumColor {
     }
 }
 
-// MARK: - Glassmorphism
+// MARK: - Liquid Glass View Modifiers
 
 struct GlassModifier: ViewModifier {
     var cornerRadius: CGFloat
     var opacity: CGFloat = 0.1
-    var shadowRadius: CGFloat = 10
     
     func body(content: Content) -> some View {
         content
-            .background(
-                ZStack {
-                    VisualEffectBlur(blurStyle: .systemUltraThinMaterial)
-                    Color.white.opacity(opacity)
-                }
-            )
+            .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.white.opacity(0.4), .white.opacity(0.1), .clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
+                    .stroke(.white.opacity(0.2), lineWidth: 0.5)
             )
-            .shadow(color: Color.black.opacity(0.1), radius: shadowRadius, x: 0, y: 5)
     }
 }
 
 extension View {
+    /// Liquid Glass effect
     func glass(cornerRadius: CGFloat = 20) -> some View {
         self.modifier(GlassModifier(cornerRadius: cornerRadius))
+    }
+    
+    /// Liquid Glass with custom shape - Capsule
+    func liquidGlassCapsule() -> some View {
+        self.background(.ultraThinMaterial)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 0.5))
+    }
+    
+    /// Liquid Glass with custom shape - Circle
+    func liquidGlassCircle() -> some View {
+        self.background(.ultraThinMaterial)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(.white.opacity(0.2), lineWidth: 0.5))
     }
 }
 
@@ -73,23 +75,23 @@ struct PremiumBackground: View {
             
             // Animated Orbs
             Circle()
-                .fill(Color.blue.opacity(0.2))
+                .fill(Color.blue.opacity(0.15))
                 .frame(width: 350, height: 350)
-                .blur(radius: 80)
+                .blur(radius: 100)
                 .offset(x: animate ? -100 : 100, y: animate ? -150 : -50)
                 .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animate)
             
             Circle()
-                .fill(Color.purple.opacity(0.2))
+                .fill(Color.purple.opacity(0.15))
                 .frame(width: 300, height: 300)
-                .blur(radius: 80)
+                .blur(radius: 100)
                 .offset(x: animate ? 150 : -50, y: animate ? 200 : 300)
                 .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animate)
             
             Circle()
-                .fill(Color.cyan.opacity(0.15))
+                .fill(Color.cyan.opacity(0.1))
                 .frame(width: 200, height: 200)
-                .blur(radius: 60)
+                .blur(radius: 80)
                 .offset(x: animate ? -100 : 150, y: animate ? 100 : -200)
                 .animation(.easeInOut(duration: 12).repeatForever(autoreverses: true), value: animate)
         }
@@ -106,7 +108,7 @@ struct HeroHeader: View {
     let title: String
     let subtitle: String?
     let icon: String?
-    var imageURL: URL? = nil // Optional image URL
+    var imageURL: URL? = nil
     
     var body: some View {
         HStack {
@@ -132,7 +134,7 @@ struct HeroHeader: View {
             
             Spacer()
             
-            // Profile Image Logic
+            // Profile Image
             Group {
                 if let imageURL = imageURL {
                     AsyncImage(url: imageURL) { image in
@@ -145,8 +147,9 @@ struct HeroHeader: View {
                     } placeholder: {
                         ZStack {
                             Circle()
-                                .fill(PremiumColor.royalBlue.opacity(0.1))
+                                .fill(.clear)
                                 .frame(width: 60, height: 60)
+                                .liquidGlassCircle()
                             
                             if let icon = icon {
                                 Image(systemName: icon)
@@ -156,19 +159,18 @@ struct HeroHeader: View {
                                 ProgressView()
                             }
                         }
-                        .overlay(Circle().stroke(PremiumColor.royalBlue.opacity(0.3), lineWidth: 1))
                     }
                 } else if let icon = icon {
                     ZStack {
                         Circle()
-                            .fill(PremiumColor.royalBlue.opacity(0.1))
+                            .fill(.clear)
                             .frame(width: 60, height: 60)
+                            .liquidGlassCircle()
                         
                         Image(systemName: icon)
                             .font(.title2)
                             .foregroundStyle(PremiumColor.royalBlue)
                     }
-                    .overlay(Circle().stroke(PremiumColor.royalBlue.opacity(0.3), lineWidth: 1))
                 }
             }
             .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 8, x: 0, y: 4)
@@ -178,9 +180,8 @@ struct HeroHeader: View {
     }
 }
 
-// MARK: - Helper Components
+// MARK: - Color Hex Extension
 
-// Color hex extension
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -208,7 +209,6 @@ extension Color {
     }
 }
 
-// Ensure Color hex extension is available globally if not already
 extension Color {
     static var theme: PremiumColor.Type { PremiumColor.self }
 }
@@ -220,5 +220,31 @@ struct ScaleButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.95 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+struct LiquidGlassButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding()
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 0.5))
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Visual Effect Blur
+
+struct VisualEffectBlur: UIViewRepresentable {
+    var blurStyle: UIBlurEffect.Style
+    
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        return UIVisualEffectView(effect: UIBlurEffect(style: blurStyle))
+    }
+    
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: blurStyle)
     }
 }

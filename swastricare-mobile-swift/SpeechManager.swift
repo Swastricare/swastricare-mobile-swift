@@ -21,18 +21,24 @@ class SpeechManager: NSObject, ObservableObject {
     @Published var errorMessage: String?
     @Published var authorizationStatus: SFSpeechRecognizerAuthorizationStatus = .notDetermined
     
-    // MARK: - Speech Recognition Properties
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    // MARK: - Speech Recognition Properties (Lazy)
+    private lazy var speechRecognizer: SFSpeechRecognizer? = {
+        SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    }()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
-    private let audioEngine = AVAudioEngine()
+    private lazy var audioEngine: AVAudioEngine = AVAudioEngine()
     
-    // MARK: - Text-to-Speech Properties
-    private let synthesizer = AVSpeechSynthesizer()
+    // MARK: - Text-to-Speech Properties (Lazy)
+    private lazy var synthesizer: AVSpeechSynthesizer = {
+        let synth = AVSpeechSynthesizer()
+        synth.delegate = self
+        return synth
+    }()
     
     private override init() {
         super.init()
-        synthesizer.delegate = self
+        // Don't initialize speech services until needed
     }
     
     // MARK: - Authorization

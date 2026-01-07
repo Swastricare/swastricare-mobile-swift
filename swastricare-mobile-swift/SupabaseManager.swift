@@ -25,8 +25,36 @@ class SupabaseManager {
         )
     }
     
-    // MARK: - Database Methods
-    // Add your database query methods here as needed
+    // MARK: - Edge Functions
+    
+    /// Invokes a Supabase Edge Function
+    func invokeFunction(name: String, payload: [String: Any]) async throws -> [String: Any] {
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        
+        // Call the edge function - returns Void, response comes via different method
+        // For now, we'll use a simpler approach with URLSession
+        guard let functionURL = URL(string: "\(SupabaseConfig.projectURL)/functions/v1/\(name)") else {
+            throw SupabaseError.invalidData
+        }
+        
+        var request = URLRequest(url: functionURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(SupabaseConfig.anonKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = jsonData
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw SupabaseError.networkError("Function call failed")
+        }
+        
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw SupabaseError.invalidData
+        }
+        
+        return json
+    }
     
     // MARK: - Health Data Sync
     
@@ -493,14 +521,7 @@ struct ManualActivityRecord: Codable {
 
 // MARK: - Medical Documents
 
-enum DocumentCategory: String, Codable, CaseIterable {
-    case labReports = "Lab Reports"
-    case prescriptions = "Prescriptions"
-    case insurance = "Insurance"
-    case imaging = "Imaging"
-}
-
-struct MedicalDocument: Codable, Identifiable {
+struct MedicalDocument: Codable, Identifiable, Equatable {
     let id: UUID?
     let userId: UUID
     let title: String

@@ -8,6 +8,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import UIKit
 
 // MARK: - File Validation
 

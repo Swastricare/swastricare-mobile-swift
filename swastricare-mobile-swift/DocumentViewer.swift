@@ -7,13 +7,14 @@
 
 import SwiftUI
 import PDFKit
+import UIKit
 
 // MARK: - Document Viewer
 
 struct DocumentViewer: View {
     let document: MedicalDocument
     
-    @StateObject private var vaultManager = VaultManager.shared
+    @StateObject private var viewModel = DependencyContainer.shared.vaultViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var documentData: Data?
@@ -172,19 +173,19 @@ struct DocumentViewer: View {
         isLoading = true
         loadError = nil
         
-        let data = await vaultManager.downloadDocument(document)
+        let data = await viewModel.downloadDocument(document)
         
         if let data = data {
             documentData = data
         } else {
-            loadError = vaultManager.errorMessage ?? "Failed to download document"
+            loadError = viewModel.errorMessage ?? "Failed to download document"
         }
         
         isLoading = false
     }
     
     private func deleteDocument() async {
-        let success = await vaultManager.deleteDocument(document)
+        let success = await viewModel.deleteDocument(document)
         if success {
             dismiss()
         }

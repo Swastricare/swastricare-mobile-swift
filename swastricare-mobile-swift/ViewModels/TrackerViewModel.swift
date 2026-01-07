@@ -1,0 +1,108 @@
+//
+//  TrackerViewModel.swift
+//  swastricare-mobile-swift
+//
+//  MVVM Architecture - ViewModel Layer
+//
+
+import Foundation
+import Combine
+
+@MainActor
+final class TrackerViewModel: ObservableObject {
+    
+    // MARK: - Published State
+    
+    @Published var selectedDate: Date = Date()
+    @Published private(set) var healthMetrics = HealthMetrics()
+    @Published private(set) var weeklySteps: [DailyMetric] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var isAuthorized = false
+    @Published private(set) var errorMessage: String?
+    
+    // MARK: - Computed Properties
+    
+    var stepCount: Int { healthMetrics.steps }
+    var heartRate: Int { healthMetrics.heartRate }
+    var activeCalories: Int { healthMetrics.activeCalories }
+    var exerciseMinutes: Int { healthMetrics.exerciseMinutes }
+    var standHours: Int { healthMetrics.standHours }
+    var sleepHours: String { healthMetrics.sleep }
+    var distance: Double { healthMetrics.distance }
+    var bloodPressure: String { healthMetrics.bloodPressure }
+    var weight: String { healthMetrics.weight }
+    
+    var weekDates: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (0..<7).reversed().compactMap {
+            calendar.date(byAdding: .day, value: -$0, to: today)
+        }
+    }
+    
+    var isSelectedDateToday: Bool {
+        Calendar.current.isDateInToday(selectedDate)
+    }
+    
+    var maxWeeklySteps: Int {
+        weeklySteps.map { $0.steps }.max() ?? 1
+    }
+    
+    // MARK: - Dependencies
+    
+    private let healthService: HealthKitServiceProtocol
+    private let userDefaultsKey = "hasRequestedHealthAuthorization"
+    
+    // MARK: - Init
+    
+    init(healthService: HealthKitServiceProtocol = HealthKitService.shared) {
+        self.healthService = healthService
+        self.isAuthorized = UserDefaults.standard.bool(forKey: userDefaultsKey)
+    }
+    
+    // MARK: - Actions
+    
+    func loadData() async {
+        guard isAuthorized else { return }
+        
+        isLoading = true
+        
+        healthMetrics = await healthService.fetchHealthMetrics(for: selectedDate)
+        weeklySteps = await healthService.fetchWeeklySteps()
+        
+        isLoading = false
+    }
+    
+    func selectDate(_ date: Date) async {
+        selectedDate = date
+        await loadDataForSelectedDate()
+    }
+    
+    func loadDataForSelectedDate() async {
+        guard isAuthorized else { return }
+        
+        isLoading = true
+        healthMetrics = await healthService.fetchHealthMetrics(for: selectedDate)
+        isLoading = false
+    }
+    
+    func refresh() async {
+        await loadData()
+    }
+    
+    // MARK: - Helpers
+    
+    func dayName(for date: Date) -> String {
+        let calendar = Calendar.current
+        return calendar.shortWeekdaySymbols[calendar.component(.weekday, from: date) - 1]
+    }
+    
+    func isSelected(_ date: Date) -> Bool {
+        Calendar.current.isDate(date, inSameDayAs: selectedDate)
+    }
+    
+    func clearError() {
+        errorMessage = nil
+    }
+}
+
