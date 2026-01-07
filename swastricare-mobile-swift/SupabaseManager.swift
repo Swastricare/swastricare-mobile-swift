@@ -253,36 +253,62 @@ class SupabaseManager {
     }
     
     /// Uploads a medical document
-    func uploadDocument(fileData: Data, fileName: String, category: String, notes: String?) async throws -> MedicalDocument {
+    func uploadDocument(
+        fileData: Data,
+        fileName: String,
+        category: String,
+        metadata: DocumentMetadata
+    ) async throws -> MedicalDocument {
         guard let userId = try? await client.auth.session.user.id else {
             throw SupabaseError.notAuthenticated
         }
         
-        // Generate unique file path
+        // Generate unique file path with sanitized filename
         let fileExtension = (fileName as NSString).pathExtension.lowercased()
-        let uniqueFileName = "\(UUID().uuidString).\(fileExtension)"
-        let storagePath = "\(userId.uuidString)/\(uniqueFileName)"
+        let baseName = sanitizeFileName((fileName as NSString).deletingPathExtension)
+        let uniqueFileName = "\(baseName)_\(UUID().uuidString.lowercased()).\(fileExtension)"
+        let storagePath = "\(userId.uuidString.lowercased())/\(uniqueFileName)"
         
         // Upload to storage
-        try await client.storage
-            .from("medical-vault")
-            .upload(
-                path: storagePath,
-                file: fileData,
-                options: FileOptions(contentType: mimeType(for: fileExtension))
-            )
+        let options = FileOptions(
+            cacheControl: "3600",
+            contentType: mimeType(for: fileExtension),
+            upsert: true
+        )
         
-        // Create document record
+        do {
+            try await client.storage
+                .from("medical-vault")
+                .upload(
+                    path: storagePath,
+                    file: fileData,
+                    options: options
+                )
+        } catch {
+            print("📦 Storage upload failed for path: \(storagePath), error: \(error)")
+            throw SupabaseError.storageError("Unable to upload to bucket medical-vault")
+        }
+        
+        // Create document record with metadata
         let document = MedicalDocument(
             userId: userId,
-            title: fileName,
+            title: metadata.name.isEmpty ? fileName : metadata.name,
             category: category,
             fileType: fileExtension.uppercased(),
             fileUrl: storagePath,
             fileSize: Int64(fileData.count),
             uploadedAt: Date(),
-            notes: notes,
-            createdAt: Date()
+            notes: metadata.description,
+            createdAt: Date(),
+            description: metadata.description,
+            folderName: metadata.folderName,
+            documentDate: metadata.documentDate,
+            reminderDate: metadata.reminderDate,
+            appointmentDate: metadata.appointmentDate,
+            doctorName: metadata.doctorName,
+            location: metadata.location,
+            tags: metadata.tags.isEmpty ? nil : metadata.tags,
+            updatedAt: Date()
         )
         
         let inserted: MedicalDocument = try await client
@@ -294,6 +320,74 @@ class SupabaseManager {
             .value
         
         return inserted
+    }
+    
+    /// Updates a medical document's metadata
+    func updateDocument(_ document: MedicalDocument, metadata: DocumentMetadata) async throws -> MedicalDocument {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        guard let docId = document.id else {
+            throw SupabaseError.invalidData
+        }
+        
+        // Create update struct with only changed fields
+        // Note: documentDate uses String for PostgreSQL date type (YYYY-MM-DD format)
+        struct DocumentUpdate: Codable {
+            var title: String?
+            var description: String?
+            var folderName: String?
+            var documentDate: String?  // Date-only format for PostgreSQL date type
+            var reminderDate: Date?
+            var appointmentDate: Date?
+            var doctorName: String?
+            var location: String?
+            var tags: [String]?
+            
+            enum CodingKeys: String, CodingKey {
+                case title
+                case description
+                case folderName = "folder_name"
+                case documentDate = "document_date"
+                case reminderDate = "reminder_date"
+                case appointmentDate = "appointment_date"
+                case doctorName = "doctor_name"
+                case location
+                case tags
+            }
+        }
+        
+        // Format document_date as date-only string
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        
+        var update = DocumentUpdate()
+        if !metadata.name.isEmpty {
+            update.title = metadata.name
+        }
+        update.description = metadata.description
+        update.folderName = metadata.folderName
+        update.documentDate = metadata.documentDate.map { dateFormatter.string(from: $0) }
+        update.reminderDate = metadata.reminderDate
+        update.appointmentDate = metadata.appointmentDate
+        update.doctorName = metadata.doctorName
+        update.location = metadata.location
+        update.tags = metadata.tags.isEmpty ? nil : metadata.tags
+        
+        // Update document
+        let updated: MedicalDocument = try await client
+            .from("medical_documents")
+            .update(update)
+            .eq("id", value: docId.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        return updated
     }
     
     /// Deletes a medical document
@@ -322,11 +416,32 @@ class SupabaseManager {
     
     /// Downloads a medical document
     func downloadDocument(storagePath: String) async throws -> Data {
-        let data = try await client.storage
+        do {
+            let data = try await client.storage
+                .from("medical-vault")
+                .download(path: storagePath)
+            
+            guard !data.isEmpty else {
+                throw SupabaseError.storageError("Downloaded file is empty")
+            }
+            
+            return data
+        } catch {
+            // Provide more specific error messages
+            if let supabaseError = error as? StorageError {
+                throw SupabaseError.storageError("Failed to download: \(supabaseError.message ?? supabaseError.localizedDescription)")
+            }
+            throw error
+        }
+    }
+    
+    /// Gets a signed URL for a document (valid for specified seconds)
+    func getSignedURL(storagePath: String, expiresIn: Int = 3600) async throws -> URL {
+        let signedURL = try await client.storage
             .from("medical-vault")
-            .download(path: storagePath)
+            .createSignedURL(path: storagePath, expiresIn: expiresIn)
         
-        return data
+        return signedURL
     }
     
     /// Searches medical documents
@@ -345,6 +460,45 @@ class SupabaseManager {
             .value
         
         return documents
+    }
+    
+    /// Sanitizes filename for storage - removes invalid characters
+    private func sanitizeFileName(_ fileName: String) -> String {
+        // Remove or replace invalid characters for storage keys
+        var sanitized = fileName
+        
+        // Replace spaces with underscores
+        sanitized = sanitized.replacingOccurrences(of: " ", with: "_")
+        
+        // Remove or replace invalid characters: : / \ ? * | " < >
+        let invalidChars = [":", "/", "\\", "?", "*", "|", "\"", "<", ">"]
+        for char in invalidChars {
+            sanitized = sanitized.replacingOccurrences(of: char, with: "_")
+        }
+        
+        // Remove any remaining non-alphanumeric characters except dots, dashes, and underscores
+        sanitized = sanitized.components(separatedBy: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-")).inverted)
+            .joined(separator: "_")
+        
+        // Remove consecutive underscores
+        while sanitized.contains("__") {
+            sanitized = sanitized.replacingOccurrences(of: "__", with: "_")
+        }
+        
+        // Remove leading/trailing underscores
+        sanitized = sanitized.trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+        
+        // Ensure it's not empty
+        if sanitized.isEmpty {
+            sanitized = "file"
+        }
+        
+        // Limit length to 200 characters (storage key limit)
+        if sanitized.count > 200 {
+            sanitized = String(sanitized.prefix(200))
+        }
+        
+        return sanitized
     }
     
     /// Helper to get MIME type from extension
@@ -533,6 +687,17 @@ struct MedicalDocument: Codable, Identifiable, Equatable {
     let notes: String?
     let createdAt: Date?
     
+    // New metadata fields
+    let description: String?
+    let folderName: String?
+    let documentDate: Date?
+    let reminderDate: Date?
+    let appointmentDate: Date?
+    let doctorName: String?
+    let location: String?
+    let tags: [String]?
+    let updatedAt: Date?
+    
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -544,9 +709,38 @@ struct MedicalDocument: Codable, Identifiable, Equatable {
         case uploadedAt = "uploaded_at"
         case notes
         case createdAt = "created_at"
+        case description
+        case folderName = "folder_name"
+        case documentDate = "document_date"
+        case reminderDate = "reminder_date"
+        case appointmentDate = "appointment_date"
+        case doctorName = "doctor_name"
+        case location
+        case tags
+        case updatedAt = "updated_at"
     }
     
-    init(id: UUID? = nil, userId: UUID, title: String, category: String, fileType: String, fileUrl: String, fileSize: Int64, uploadedAt: Date? = Date(), notes: String? = nil, createdAt: Date? = Date()) {
+    init(
+        id: UUID? = nil,
+        userId: UUID,
+        title: String,
+        category: String,
+        fileType: String,
+        fileUrl: String,
+        fileSize: Int64,
+        uploadedAt: Date? = Date(),
+        notes: String? = nil,
+        createdAt: Date? = Date(),
+        description: String? = nil,
+        folderName: String? = nil,
+        documentDate: Date? = nil,
+        reminderDate: Date? = nil,
+        appointmentDate: Date? = nil,
+        doctorName: String? = nil,
+        location: String? = nil,
+        tags: [String]? = nil,
+        updatedAt: Date? = nil
+    ) {
         self.id = id
         self.userId = userId
         self.title = title
@@ -557,6 +751,113 @@ struct MedicalDocument: Codable, Identifiable, Equatable {
         self.uploadedAt = uploadedAt
         self.notes = notes
         self.createdAt = createdAt
+        self.description = description
+        self.folderName = folderName
+        self.documentDate = documentDate
+        self.reminderDate = reminderDate
+        self.appointmentDate = appointmentDate
+        self.doctorName = doctorName
+        self.location = location
+        self.tags = tags
+        self.updatedAt = updatedAt
+    }
+    
+    // Custom decoder to handle both date-only and datetime formats
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decodeIfPresent(UUID.self, forKey: .id)
+        userId = try container.decode(UUID.self, forKey: .userId)
+        title = try container.decode(String.self, forKey: .title)
+        category = try container.decode(String.self, forKey: .category)
+        fileType = try container.decode(String.self, forKey: .fileType)
+        fileUrl = try container.decode(String.self, forKey: .fileUrl)
+        fileSize = try container.decode(Int64.self, forKey: .fileSize)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        folderName = try container.decodeIfPresent(String.self, forKey: .folderName)
+        doctorName = try container.decodeIfPresent(String.self, forKey: .doctorName)
+        location = try container.decodeIfPresent(String.self, forKey: .location)
+        tags = try container.decodeIfPresent([String].self, forKey: .tags)
+        
+        // Decode dates with flexible format handling
+        uploadedAt = Self.decodeFlexibleDate(from: container, forKey: .uploadedAt)
+        createdAt = Self.decodeFlexibleDate(from: container, forKey: .createdAt)
+        documentDate = Self.decodeFlexibleDate(from: container, forKey: .documentDate)
+        reminderDate = Self.decodeFlexibleDate(from: container, forKey: .reminderDate)
+        appointmentDate = Self.decodeFlexibleDate(from: container, forKey: .appointmentDate)
+        updatedAt = Self.decodeFlexibleDate(from: container, forKey: .updatedAt)
+    }
+    
+    private static func decodeFlexibleDate(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) -> Date? {
+        // Try decoding as Date first (ISO8601 full format)
+        if let date = try? container.decodeIfPresent(Date.self, forKey: key) {
+            return date
+        }
+        
+        // Try decoding as string and parse manually
+        guard let dateString = try? container.decodeIfPresent(String.self, forKey: key), !dateString.isEmpty else {
+            return nil
+        }
+        
+        // Try ISO8601 with fractional seconds
+        let iso8601Formatter = ISO8601DateFormatter()
+        iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso8601Formatter.date(from: dateString) {
+            return date
+        }
+        
+        // Try ISO8601 without fractional seconds
+        iso8601Formatter.formatOptions = [.withInternetDateTime]
+        if let date = iso8601Formatter.date(from: dateString) {
+            return date
+        }
+        
+        // Try date-only format (YYYY-MM-DD)
+        let dateOnlyFormatter = DateFormatter()
+        dateOnlyFormatter.dateFormat = "yyyy-MM-dd"
+        dateOnlyFormatter.timeZone = TimeZone(identifier: "UTC")
+        if let date = dateOnlyFormatter.date(from: dateString) {
+            return date
+        }
+        
+        return nil
+    }
+    
+    // Custom encoder to handle date-only fields
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encodeIfPresent(id, forKey: .id)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(title, forKey: .title)
+        try container.encode(category, forKey: .category)
+        try container.encode(fileType, forKey: .fileType)
+        try container.encode(fileUrl, forKey: .fileUrl)
+        try container.encode(fileSize, forKey: .fileSize)
+        try container.encodeIfPresent(notes, forKey: .notes)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encodeIfPresent(folderName, forKey: .folderName)
+        try container.encodeIfPresent(doctorName, forKey: .doctorName)
+        try container.encodeIfPresent(location, forKey: .location)
+        try container.encodeIfPresent(tags, forKey: .tags)
+        
+        // Encode timestamps normally
+        try container.encodeIfPresent(uploadedAt, forKey: .uploadedAt)
+        try container.encodeIfPresent(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(reminderDate, forKey: .reminderDate)
+        try container.encodeIfPresent(appointmentDate, forKey: .appointmentDate)
+        try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
+        
+        // Encode document_date as date-only string (PostgreSQL date type)
+        if let docDate = documentDate {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            formatter.timeZone = TimeZone(identifier: "UTC")
+            try container.encode(formatter.string(from: docDate), forKey: .documentDate)
+        } else {
+            try container.encodeNil(forKey: .documentDate)
+        }
     }
 }
 

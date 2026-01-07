@@ -12,9 +12,16 @@ import Foundation
 
 protocol VaultServiceProtocol {
     func fetchDocuments() async throws -> [MedicalDocument]
-    func uploadDocument(fileData: Data, fileName: String, category: String, notes: String?) async throws -> MedicalDocument
+    func uploadDocument(
+        fileData: Data,
+        fileName: String,
+        category: String,
+        metadata: DocumentMetadata
+    ) async throws -> MedicalDocument
+    func updateDocument(_ document: MedicalDocument, metadata: DocumentMetadata) async throws -> MedicalDocument
     func deleteDocument(_ document: MedicalDocument) async throws
     func downloadDocument(storagePath: String) async throws -> Data
+    func getSignedURL(storagePath: String, expiresIn: Int) async throws -> URL
 }
 
 // MARK: - Vault Service Implementation
@@ -35,7 +42,12 @@ final class VaultService: VaultServiceProtocol {
     
     // MARK: - Upload Document
     
-    func uploadDocument(fileData: Data, fileName: String, category: String, notes: String?) async throws -> MedicalDocument {
+    func uploadDocument(
+        fileData: Data,
+        fileName: String,
+        category: String,
+        metadata: DocumentMetadata
+    ) async throws -> MedicalDocument {
         guard !fileData.isEmpty else {
             throw VaultError.emptyFile
         }
@@ -44,8 +56,14 @@ final class VaultService: VaultServiceProtocol {
             fileData: fileData,
             fileName: fileName,
             category: category,
-            notes: notes
+            metadata: metadata
         )
+    }
+    
+    // MARK: - Update Document
+    
+    func updateDocument(_ document: MedicalDocument, metadata: DocumentMetadata) async throws -> MedicalDocument {
+        return try await supabase.updateDocument(document, metadata: metadata)
     }
     
     // MARK: - Delete Document
@@ -58,6 +76,12 @@ final class VaultService: VaultServiceProtocol {
     
     func downloadDocument(storagePath: String) async throws -> Data {
         try await supabase.downloadDocument(storagePath: storagePath)
+    }
+    
+    // MARK: - Get Signed URL
+    
+    func getSignedURL(storagePath: String, expiresIn: Int = 3600) async throws -> URL {
+        try await supabase.getSignedURL(storagePath: storagePath, expiresIn: expiresIn)
     }
 }
 

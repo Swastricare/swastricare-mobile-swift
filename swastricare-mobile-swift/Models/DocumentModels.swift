@@ -30,11 +30,47 @@ enum VaultCategory: String, CaseIterable, Identifiable {
     
     var color: Color {
         switch self {
-        case .prescriptions: return .blue
-        case .labReports: return .purple
-        case .imaging: return .orange
-        case .insurance: return .green
+        case .prescriptions: return Color(hex: "2E3192") // Royal Blue
+        case .labReports: return Color(hex: "1BBBCE") // Teal
+        case .imaging: return Color(hex: "2E3192") // Royal Blue
+        case .insurance: return Color(hex: "1BBBCE") // Teal
         }
+    }
+}
+
+// MARK: - Document Metadata
+
+struct DocumentMetadata: Equatable {
+    var name: String
+    var folderName: String?  // Name for the folder/visit
+    var description: String?
+    var documentDate: Date?
+    var reminderDate: Date?
+    var appointmentDate: Date?
+    var doctorName: String?
+    var location: String?
+    var tags: [String]
+    
+    init(
+        name: String = "",
+        folderName: String? = nil,
+        description: String? = nil,
+        documentDate: Date? = nil,
+        reminderDate: Date? = nil,
+        appointmentDate: Date? = nil,
+        doctorName: String? = nil,
+        location: String? = nil,
+        tags: [String] = []
+    ) {
+        self.name = name
+        self.folderName = folderName
+        self.description = description
+        self.documentDate = documentDate
+        self.reminderDate = reminderDate
+        self.appointmentDate = appointmentDate
+        self.doctorName = doctorName
+        self.location = location
+        self.tags = tags
     }
 }
 

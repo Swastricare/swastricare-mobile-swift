@@ -93,7 +93,7 @@ struct DocumentViewer: View {
                 Text("Are you sure you want to delete \"\(document.title)\"? This action cannot be undone.")
             }
         }
-        .task {
+        .task(id: document.id) {
             await loadDocument()
         }
     }
@@ -130,13 +130,14 @@ struct DocumentViewer: View {
                     await loadDocument()
                 }
             } label: {
-                Text("Try Again")
+                Text("Retry")
                     .fontWeight(.medium)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     @ViewBuilder
@@ -173,15 +174,41 @@ struct DocumentViewer: View {
         isLoading = true
         loadError = nil
         
-        let data = await viewModel.downloadDocument(document)
-        
-        if let data = data {
-            documentData = data
-        } else {
-            loadError = viewModel.errorMessage ?? "Failed to download document"
+        do {
+            let data = try await viewModel.downloadDocument(document)
+            await MainActor.run {
+                documentData = data
+                isLoading = false
+            }
+        } catch {
+            // Handle cancellation gracefully
+            if error is CancellationError {
+                await MainActor.run {
+                    isLoading = false
+                }
+                return
+            }
+            
+            // Provide user-friendly error messages
+            let errorMessage: String
+            if let urlError = error as? URLError {
+                switch urlError.code {
+                case .notConnectedToInternet, .networkConnectionLost:
+                    errorMessage = "No internet connection. Please check your network and try again."
+                case .timedOut:
+                    errorMessage = "Request timed out. Please try again."
+                default:
+                    errorMessage = "Network error: \(urlError.localizedDescription)"
+                }
+            } else {
+                errorMessage = error.localizedDescription
+            }
+            
+            await MainActor.run {
+                loadError = errorMessage
+                isLoading = false
+            }
         }
-        
-        isLoading = false
     }
     
     private func deleteDocument() async {
