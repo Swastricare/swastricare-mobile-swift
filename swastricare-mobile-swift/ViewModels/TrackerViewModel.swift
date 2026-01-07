@@ -19,6 +19,8 @@ final class TrackerViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var isAuthorized = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var analysisState: AnalysisState = .idle
+    @Published var showAnalysisSheet = false
     
     // MARK: - Computed Properties
     
@@ -51,12 +53,15 @@ final class TrackerViewModel: ObservableObject {
     // MARK: - Dependencies
     
     private let healthService: HealthKitServiceProtocol
+    private let aiService: AIServiceProtocol
     private let userDefaultsKey = "hasRequestedHealthAuthorization"
     
     // MARK: - Init
     
-    init(healthService: HealthKitServiceProtocol = HealthKitService.shared) {
+    init(healthService: HealthKitServiceProtocol = HealthKitService.shared,
+         aiService: AIServiceProtocol = AIService.shared) {
         self.healthService = healthService
+        self.aiService = aiService
         self.isAuthorized = UserDefaults.standard.bool(forKey: userDefaultsKey)
     }
     
@@ -88,6 +93,35 @@ final class TrackerViewModel: ObservableObject {
     
     func refresh() async {
         await loadData()
+    }
+    
+    // MARK: - AI Analysis
+    
+    func requestAIAnalysis() async {
+        guard !healthMetrics.isEmpty else {
+            errorMessage = "No health data available to analyze"
+            return
+        }
+        
+        analysisState = .analyzing
+        showAnalysisSheet = true
+        
+        do {
+            let analysis = try await aiService.analyzeHealth(healthMetrics)
+            let result = HealthAnalysisResult(
+                metrics: healthMetrics,
+                analysis: analysis
+            )
+            analysisState = .completed(result)
+        } catch {
+            analysisState = .error(error.localizedDescription)
+            errorMessage = "Failed to analyze health data: \(error.localizedDescription)"
+        }
+    }
+    
+    func dismissAnalysis() {
+        showAnalysisSheet = false
+        analysisState = .idle
     }
     
     // MARK: - Helpers

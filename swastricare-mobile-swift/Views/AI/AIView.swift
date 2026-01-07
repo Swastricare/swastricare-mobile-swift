@@ -18,6 +18,7 @@ struct AIView: View {
     @FocusState private var isInputFocused: Bool
     @State private var showEmptyState = false
     @State private var sendButtonScale: CGFloat = 1.0
+    @StateObject private var speechManager = SpeechManager.shared
     
     // MARK: - Body
     
@@ -141,54 +142,115 @@ struct AIView: View {
     }
     
     private var chatInputBar: some View {
-        HStack(spacing: 12) {
-            TextField("Type a message...", text: $viewModel.inputText, axis: .vertical)
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Material.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(
-                                    isInputFocused ? Color(hex: "2E3192").opacity(0.5) : Color.clear,
-                                    lineWidth: 2
-                                )
+        VStack(spacing: 0) {
+            Divider()
+                .opacity(0.3)
+            
+            HStack(alignment: .bottom, spacing: 10) {
+                // Text Field Container
+                HStack(alignment: .bottom, spacing: 8) {
+                    TextField("Ask Swastrica...", text: $viewModel.inputText, axis: .vertical)
+                        .font(.body)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .focused($isInputFocused)
+                        .lineLimit(1...5)
+                        .onChange(of: speechManager.recognizedText) { _, newValue in
+                            if speechManager.isRecording {
+                                viewModel.inputText = newValue
+                            }
+                        }
+                }
+                .glass(cornerRadius: 24)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(
+                            isInputFocused 
+                                ? Color(hex: "2E3192").opacity(0.3) 
+                                : Color.white.opacity(0.1), 
+                            lineWidth: 1
                         )
                 )
-                .focused($isInputFocused)
-                .lineLimit(1...5)
-                .animation(.easeInOut(duration: 0.2), value: isInputFocused)
-            
-            Button(action: {
-                // Animate button press
-                withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
-                    sendButtonScale = 0.8
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                        sendButtonScale = 1.0
-                    }
-                }
                 
-                Task { await viewModel.sendMessage() }
-                isInputFocused = false
-            }) {
-                Image(systemName: viewModel.chatState.isBusy ? "stop.fill" : "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(
-                        viewModel.canSend
-                            ? PremiumColor.royalBlue
-                            : LinearGradient(colors: [.gray], startPoint: .top, endPoint: .bottom)
-                    )
-                    .scaleEffect(sendButtonScale)
-                    .symbolEffect(.bounce, value: viewModel.chatState.isBusy)
+                // Action Buttons (WhatsApp style - on the right)
+                HStack(alignment: .center, spacing: 8) {
+                    // Voice input button
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        Task {
+                            if speechManager.isRecording {
+                                speechManager.stopRecording()
+                            } else {
+                                do {
+                                    try await speechManager.startRecording()
+                                } catch {
+                                    print("Voice input error: \(error)")
+                                }
+                            }
+                        }
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(speechManager.isRecording ? .red : Color.clear)
+                                .frame(width: 44, height: 44)
+                                .liquidGlassCircle()
+                            
+                            Image(systemName: speechManager.isRecording ? "stop.fill" : "mic.fill")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(speechManager.isRecording ? 
+                                    LinearGradient(colors: [.white], startPoint: .top, endPoint: .bottom) as LinearGradient : 
+                                    PremiumColor.royalBlue as LinearGradient)
+                                .symbolEffect(.bounce, value: speechManager.isRecording)
+                        }
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    
+                    // Send button
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        // Animate button press
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+                            sendButtonScale = 0.8
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                                sendButtonScale = 1.0
+                            }
+                        }
+                        
+                        Task { await viewModel.sendMessage() }
+                        isInputFocused = false
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(viewModel.canSend ? AnyShapeStyle(PremiumColor.royalBlue) : AnyShapeStyle(Color.gray.opacity(0.2)))
+                                .frame(width: 44, height: 44)
+                                .shadow(color: viewModel.canSend ? Color(hex: "2E3192").opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
+                            
+                            Image(systemName: viewModel.chatState.isBusy ? "stop.fill" : "paperplane.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(viewModel.canSend ? .white : .secondary)
+                                .scaleEffect(sendButtonScale)
+                                .symbolEffect(.bounce, value: viewModel.chatState.isBusy)
+                        }
+                    }
+                    .disabled(!viewModel.canSend && !viewModel.chatState.isBusy)
+                    .buttonStyle(ScaleButtonStyle())
+                }
             }
-            .disabled(!viewModel.canSend)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .ignoresSafeArea()
+            )
         }
-        .padding()
-        .background(Material.bar)
+        .onChange(of: speechManager.isRecording) { _, isRecording in
+            if !isRecording && !speechManager.recognizedText.isEmpty {
+                viewModel.inputText = speechManager.recognizedText
+            }
+        }
     }
     
 }

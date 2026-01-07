@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		636C031B2F0E7E0A005CE638 /* GLTFKit2 in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF112F0D500000FAB1B5 /* GLTFKit2 */; };
 		636CFDA92F0D3FC8005CE638 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF0F2F0D400000FAB1B5 /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -27,6 +28,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				636C031B2F0E7E0A005CE638 /* GLTFKit2 in Frameworks */,
 				636CFDA92F0D3FC8005CE638 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,6 +73,7 @@
 			name = "swastricare-mobile-swift";
 			packageProductDependencies = (
 				63D3AF0F2F0D400000FAB1B5 /* Supabase */,
+				63D3AF112F0D500000FAB1B5 /* GLTFKit2 */,
 			);
 			productName = "swastricare-mobile-swift";
 			productReference = 63D3AEF22F0D386F00FAB1B5 /* swastricare-mobile-swift.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				63D3AF0E2F0D400000FAB1B5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				63D3AF102F0D500000FAB1B5 /* XCRemoteSwiftPackageReference "GLTFKit2" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 63D3AEF32F0D386F00FAB1B5 /* Products */;
@@ -173,6 +177,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -237,6 +242,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -266,6 +272,7 @@
 				DEVELOPMENT_TEAM = 9TF7Y389MX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Swastricare;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLName = \"com.swastricare.auth\";\n    CFBundleURLSchemes =     (\n        swastricareapp\n    );\n}";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "for security ";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Swastricare needs access to your health data to track your daily activity, heart rate, and sleep patterns for personalized health insights.";
@@ -312,6 +319,7 @@
 				DEVELOPMENT_TEAM = 9TF7Y389MX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Swastricare;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLName = \"com.swastricare.auth\";\n    CFBundleURLSchemes =     (\n        swastricareapp\n    );\n}";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "for security ";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Swastricare needs access to your health data to track your daily activity, heart rate, and sleep patterns for personalized health insights.";
@@ -379,6 +387,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		63D3AF102F0D500000FAB1B5 /* XCRemoteSwiftPackageReference "GLTFKit2" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/warrenm/GLTFKit2";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -386,6 +402,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 63D3AF0E2F0D400000FAB1B5 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		63D3AF112F0D500000FAB1B5 /* GLTFKit2 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63D3AF102F0D500000FAB1B5 /* XCRemoteSwiftPackageReference "GLTFKit2" */;
+			productName = GLTFKit2;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

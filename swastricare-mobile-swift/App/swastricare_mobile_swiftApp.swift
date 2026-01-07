@@ -15,7 +15,17 @@ struct swastricare_mobile_swiftApp: App {
     
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @StateObject private var lockViewModel = DependencyContainer.shared.lockScreenViewModel
+    @State private var hasCompletedOnboarding: Bool = {
+        if AppConfig.isTestingMode {
+            return false
+        }
+        return UserDefaults.standard.bool(forKey: AppConfig.hasSeenOnboardingKey)
+    }()
+    
     @Environment(\.scenePhase) private var scenePhase
+    
+    // Notification delegate
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     // MARK: - Init
     
@@ -28,7 +38,9 @@ struct swastricare_mobile_swiftApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if authViewModel.authState == .unknown {
+                if !hasCompletedOnboarding {
+                    OnboardingView(isOnboardingComplete: $hasCompletedOnboarding)
+                } else if authViewModel.authState == .unknown {
                     // Loading state
                     SplashView()
                 } else if authViewModel.isAuthenticated {
@@ -44,6 +56,7 @@ struct swastricare_mobile_swiftApp: App {
                 }
             }
             .animation(.easeInOut, value: authViewModel.authState)
+            .animation(.easeInOut, value: hasCompletedOnboarding)
             .withDependencies()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
@@ -70,6 +83,11 @@ struct swastricare_mobile_swiftApp: App {
                         await homeVM.loadTodaysData()
                     }
                 }
+            }
+            
+            // Clear notification badge
+            Task { @MainActor in
+                UIApplication.shared.applicationIconBadgeNumber = 0
             }
             
         case .inactive:
@@ -102,3 +120,36 @@ struct swastricare_mobile_swiftApp: App {
     }
 }
 
+// MARK: - App Delegate
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
+    ) -> Bool {
+        // Initialize notification service (sets up delegate)
+        _ = NotificationService.shared
+        print("🔔 NotificationService initialized")
+        
+        // Register for remote notifications
+        NotificationService.shared.registerForRemoteNotifications()
+        return true
+    }
+    
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Task {
+            await NotificationService.shared.handleDeviceToken(deviceToken)
+        }
+    }
+    
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        NotificationService.shared.handleRemoteNotificationError(error)
+    }
+}

@@ -44,6 +44,10 @@ struct HealthMetrics: Codable, Equatable {
         self.weight = weight
         self.timestamp = timestamp
     }
+    
+    var isEmpty: Bool {
+        steps == 0 && heartRate == 0 && sleep == "0h 0m"
+    }
 }
 
 // MARK: - Daily Metric (for charts/history)

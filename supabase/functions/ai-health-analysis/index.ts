@@ -15,7 +15,17 @@ serve(async (req) => {
       })
     }
 
-    const { steps, heartRate, sleepDuration } = await req.json()
+    const { 
+      steps, 
+      heartRate, 
+      sleepDuration, 
+      activeCalories = 0,
+      exerciseMinutes = 0,
+      standHours = 0,
+      distance = 0,
+      bloodPressure = '--/--',
+      weight = '--'
+    } = await req.json()
     
     // Input validation
     if (typeof steps !== 'number' || steps < 0 || steps > 100000) {
@@ -57,7 +67,21 @@ serve(async (req) => {
       }
     }
 
-    const prompt = `You are Swastrica! 💚 Analyze health: Steps ${steps}, HR ${heartRate}bpm, Sleep ${sleepDuration}. Use short sentences and emojis. Return ONLY valid JSON: {"assessment":"2-3 short sentences with emojis","insights":"3-4 short sentences with emojis","recommendations":["short rec with emoji","short rec with emoji","short rec with emoji","short rec with emoji","short rec with emoji"]}. No markdown, no code blocks.`
+    const prompt = `You are Swastrica! 💚 Analyze comprehensive health data:
+
+Activity: ${steps} steps, ${distance.toFixed(1)}km walked/run, ${exerciseMinutes} min exercise, ${standHours} stand hours
+Vitals: Heart Rate ${heartRate}bpm, Sleep ${sleepDuration}
+Energy: ${activeCalories} cal burned
+Body: Weight ${weight}kg, BP ${bloodPressure}
+
+Provide a warm, encouraging health analysis. Use short sentences and emojis. Return ONLY valid JSON:
+{
+  "assessment": "2-3 short sentences with emojis about overall health status",
+  "insights": "3-4 short sentences with emojis highlighting key patterns and what's going well or needs attention",
+  "recommendations": ["actionable tip with emoji", "actionable tip with emoji", "actionable tip with emoji", "actionable tip with emoji", "actionable tip with emoji"]
+}
+
+No markdown, no code blocks, just pure JSON.`
 
     console.log('Calling Gemini...')
     
@@ -113,7 +137,17 @@ serve(async (req) => {
           await supabase.from('ai_insights').insert({
             user_id: userId,
             insight_type: 'health_analysis',
-            metrics_analyzed: { steps, heartRate, sleepDuration },
+            metrics_analyzed: { 
+              steps, 
+              heartRate, 
+              sleepDuration,
+              activeCalories,
+              exerciseMinutes,
+              standHours,
+              distance,
+              bloodPressure,
+              weight
+            },
             insights: analysis.insights,
             recommendations: analysis.recommendations
           })

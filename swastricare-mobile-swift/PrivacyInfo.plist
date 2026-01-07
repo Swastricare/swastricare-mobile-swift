@@ -8,5 +8,7 @@
     <string>We need microphone access to record your voice for speech-to-text conversion in the AI Assistant.</string>
     <key>NSFaceIDUsageDescription</key>
     <string>We use Face ID to securely protect your sensitive health data and ensure only you can access your medical records.</string>
+    <key>NSUserNotificationsUsageDescription</key>
+    <string>We send you friendly reminders to stay hydrated throughout the day and help you reach your daily water intake goals.</string>
 </dict>
 </plist>

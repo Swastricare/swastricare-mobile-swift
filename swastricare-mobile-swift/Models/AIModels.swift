@@ -97,19 +97,55 @@ struct HealthAnalysisRequest: Codable {
 // MARK: - Health Analysis Response
 
 struct HealthAnalysisResponse: Codable, Equatable {
-    let summary: String
-    let insights: [String]
+    let assessment: String
+    let insights: String
     let recommendations: [String]
-    let riskFactors: [String]
-    let overallScore: Int // 0-100
     
     static let empty = HealthAnalysisResponse(
-        summary: "",
-        insights: [],
-        recommendations: [],
-        riskFactors: [],
-        overallScore: 0
+        assessment: "",
+        insights: "",
+        recommendations: []
     )
+}
+
+// MARK: - Health Analysis Result
+
+struct HealthAnalysisResult: Identifiable, Equatable {
+    let id: UUID
+    let metrics: HealthMetrics
+    let analysis: HealthAnalysisResponse
+    let timestamp: Date
+    
+    init(
+        id: UUID = UUID(),
+        metrics: HealthMetrics,
+        analysis: HealthAnalysisResponse,
+        timestamp: Date = Date()
+    ) {
+        self.id = id
+        self.metrics = metrics
+        self.analysis = analysis
+        self.timestamp = timestamp
+    }
+}
+
+// MARK: - Analysis State
+
+enum AnalysisState: Equatable {
+    case idle
+    case analyzing
+    case completed(HealthAnalysisResult)
+    case error(String)
+    
+    var isAnalyzing: Bool {
+        if case .analyzing = self { return true }
+        return false
+    }
+    
+    var result: HealthAnalysisResult? {
+        if case .completed(let result) = self { return result }
+        return nil
+    }
 }
 
 // MARK: - Quick Action
@@ -121,10 +157,10 @@ struct QuickAction: Identifiable, Equatable {
     let prompt: String
     
     static let suggestions: [QuickAction] = [
+        QuickAction(title: "Analyze My Health", icon: "waveform.path.ecg", prompt: "Analyze my current health metrics and give me insights"),
         QuickAction(title: "Sleep Tips", icon: "moon.fill", prompt: "How can I improve my sleep quality?"),
         QuickAction(title: "Exercise Ideas", icon: "figure.run", prompt: "What exercises are good for beginners?"),
-        QuickAction(title: "Nutrition", icon: "leaf.fill", prompt: "What should I eat for better heart health?"),
-        QuickAction(title: "Stress Relief", icon: "brain.head.profile", prompt: "How can I reduce stress naturally?")
+        QuickAction(title: "Nutrition", icon: "leaf.fill", prompt: "What should I eat for better heart health?")
     ]
 }
 
