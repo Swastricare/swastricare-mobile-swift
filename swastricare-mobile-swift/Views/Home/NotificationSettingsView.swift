@@ -287,7 +287,7 @@ struct NotificationSettingsView: View {
                         .foregroundColor(.cyan)
                     
                     if isTestingNotification {
-                        Text("Sending...")
+                        Text("Sending in 3 seconds...")
                             .foregroundColor(.secondary)
                         Spacer()
                         ProgressView()
@@ -304,7 +304,12 @@ struct NotificationSettingsView: View {
         } header: {
             Text("Test")
         } footer: {
-            Text("Preview what your notifications will look like.")
+            if permissionStatus.canSchedule {
+                Text("Tap to send a test notification. It will appear in 3 seconds. Minimize the app to see the banner.")
+            } else {
+                Text("Enable notifications first by tapping 'Enable' above.")
+                    .foregroundColor(.orange)
+            }
         }
     }
     
@@ -374,9 +379,26 @@ struct NotificationSettingsView: View {
         isTestingNotification = true
         
         Task {
+            // First check/request permission
+            let status = await notificationService.checkPermissionStatus()
+            
+            if !status.canSchedule {
+                // Request permission first
+                let granted = await notificationService.requestPermission()
+                if !granted {
+                    print("🔔 Permission denied - cannot send test notification")
+                    await MainActor.run {
+                        isTestingNotification = false
+                        showPermissionAlert = true
+                    }
+                    return
+                }
+                await checkPermissionStatus()
+            }
+            
             let streak = viewModel.insights?.currentStreak ?? 0
             
-            // Schedule a test notification for 5 seconds from now
+            // Schedule a test notification for 3 seconds from now
             let content = UNMutableNotificationContent()
             let message = NotificationMessageGenerator.generateMessage(
                 progress: viewModel.progress,
@@ -392,12 +414,15 @@ struct NotificationSettingsView: View {
             content.sound = .default
             content.categoryIdentifier = NotificationCategory.hydrationReminder.identifier
             
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
-            let request = UNNotificationRequest(identifier: "test_notification", content: content, trigger: trigger)
+            // Use 3 second delay for faster testing
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
+            let request = UNNotificationRequest(identifier: "test_notification_\(Date().timeIntervalSince1970)", content: content, trigger: trigger)
             
             do {
                 try await UNUserNotificationCenter.current().add(request)
-                print("🔔 Test notification scheduled")
+                print("🔔 Test notification scheduled - will appear in 3 seconds")
+                print("🔔 Title: \(message.title)")
+                print("🔔 Body: \(message.body)")
             } catch {
                 print("🔔 Failed to schedule test notification: \(error)")
             }

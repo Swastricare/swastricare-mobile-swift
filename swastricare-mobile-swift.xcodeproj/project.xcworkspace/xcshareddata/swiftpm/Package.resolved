@@ -1,6 +1,15 @@
 {
-  "originHash" : "a2b47b975283c007063016d75469b395d89f8763da1d376160fb8c6dcfdb6109",
+  "originHash" : "d006c3d3e12fe4dc4443b7fcf2a4d505531ec11ddbb23ccdbbb65efa6a98ca4f",
   "pins" : [
+    {
+      "identity" : "gltfkit2",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/warrenm/GLTFKit2",
+      "state" : {
+        "revision" : "287ca203e23d32bc69cb1ae771eaaa9f70ca741a",
+        "version" : "0.5.15"
+      }
+    },
     {
       "identity" : "supabase-swift",
       "kind" : "remoteSourceControl",

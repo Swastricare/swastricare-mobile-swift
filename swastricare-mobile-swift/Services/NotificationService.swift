@@ -19,6 +19,7 @@ protocol NotificationServiceProtocol {
     func cancelAllReminders()
     func registerForRemoteNotifications()
     func handleNotificationResponse(response: UNNotificationResponse) async
+    func handleMedicationNotificationResponse(response: UNNotificationResponse) async
 }
 
 // MARK: - Notification Service Implementation
@@ -41,6 +42,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     }
     
     weak var hydrationViewModel: HydrationViewModel?
+    weak var medicationViewModel: MedicationViewModel?
     
     // MARK: - Init
     
@@ -337,7 +339,17 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     /// Handle user interaction with notification
     func handleNotificationResponse(response: UNNotificationResponse) async {
         let actionIdentifier = response.actionIdentifier
+        let userInfo = response.notification.request.content.userInfo
         
+        // Check notification type
+        if let type = userInfo["type"] as? String {
+            if type == "medication_reminder" {
+                await handleMedicationNotificationResponse(response: response)
+                return
+            }
+        }
+        
+        // Handle hydration notifications
         switch actionIdentifier {
         case NotificationAction.log250ml.rawValue:
             await logWaterFromNotification(amount: 250)
@@ -358,6 +370,102 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             
         default:
             break
+        }
+    }
+    
+    /// Handle medication notification response
+    func handleMedicationNotificationResponse(response: UNNotificationResponse) async {
+        let actionIdentifier = response.actionIdentifier
+        let userInfo = response.notification.request.content.userInfo
+        
+        guard let medicationIdString = userInfo["medication_id"] as? String,
+              let medicationId = UUID(uuidString: medicationIdString),
+              let scheduledTimeInterval = userInfo["scheduled_time"] as? TimeInterval else {
+            print("🔔 NotificationService: Invalid medication notification data")
+            return
+        }
+        
+        let scheduledTime = Date(timeIntervalSince1970: scheduledTimeInterval)
+        
+        switch actionIdentifier {
+        case NotificationAction.medicationTaken.rawValue:
+            await markMedicationAsTaken(medicationId: medicationId, scheduledTime: scheduledTime)
+            
+        case NotificationAction.medicationSkip.rawValue:
+            await markMedicationAsSkipped(medicationId: medicationId, scheduledTime: scheduledTime)
+            
+        case NotificationAction.medicationSnooze.rawValue:
+            await snoozeMedicationReminder(medicationId: medicationId, scheduledTime: scheduledTime, minutes: 15)
+            
+        case UNNotificationDefaultActionIdentifier:
+            // User tapped the notification - open app
+            print("🔔 NotificationService: User opened app from medication notification")
+            
+        default:
+            break
+        }
+        
+        // Clear badge
+        await MainActor.run {
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
+    }
+    
+    private func markMedicationAsTaken(medicationId: UUID, scheduledTime: Date) async {
+        guard let viewModel = medicationViewModel else {
+            print("🔔 NotificationService: No medication view model available")
+            return
+        }
+        
+        do {
+            try await viewModel.markAsTaken(medicationId: medicationId, scheduledTime: scheduledTime)
+            print("🔔 NotificationService: Marked medication as taken from notification")
+        } catch {
+            print("🔔 NotificationService: Failed to mark as taken - \(error.localizedDescription)")
+        }
+    }
+    
+    private func markMedicationAsSkipped(medicationId: UUID, scheduledTime: Date) async {
+        guard let viewModel = medicationViewModel else {
+            print("🔔 NotificationService: No medication view model available")
+            return
+        }
+        
+        do {
+            try await viewModel.markAsSkipped(medicationId: medicationId, scheduledTime: scheduledTime, notes: "Skipped from notification")
+            print("🔔 NotificationService: Marked medication as skipped from notification")
+        } catch {
+            print("🔔 NotificationService: Failed to mark as skipped - \(error.localizedDescription)")
+        }
+    }
+    
+    private func snoozeMedicationReminder(medicationId: UUID, scheduledTime: Date, minutes: Int) async {
+        // Schedule a new notification after the snooze period
+        let snoozeTime = Date().addingTimeInterval(TimeInterval(minutes * 60))
+        
+        // Get medication name from user info would be ideal, but we'll use a generic message
+        let content = UNMutableNotificationContent()
+        content.title = "💊 Medication Reminder"
+        content.body = "Time for your medication"
+        content.sound = .default
+        content.categoryIdentifier = NotificationCategory.medicationReminder.identifier
+        content.badge = 1
+        
+        content.userInfo = [
+            "type": "medication_reminder",
+            "medication_id": medicationId.uuidString,
+            "scheduled_time": scheduledTime.timeIntervalSince1970
+        ]
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(minutes * 60), repeats: false)
+        let identifier = "medication_snooze_\(medicationId.uuidString)_\(Date().timeIntervalSince1970)"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        
+        do {
+            try await notificationCenter.add(request)
+            print("🔔 NotificationService: Snoozed medication reminder for \(minutes) minutes")
+        } catch {
+            print("🔔 NotificationService: Failed to snooze medication reminder - \(error.localizedDescription)")
         }
     }
     
@@ -434,6 +542,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     // MARK: - Setup Notification Categories
     
     private func setupNotificationCategories() {
+        // Hydration category
         let log250Action = UNNotificationAction(
             identifier: NotificationAction.log250ml.rawValue,
             title: NotificationAction.log250ml.title,
@@ -458,15 +567,41 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             options: [.destructive]
         )
         
-        let category = UNNotificationCategory(
+        let hydrationCategory = UNNotificationCategory(
             identifier: NotificationCategory.hydrationReminder.identifier,
             actions: [log250Action, log500Action, remindLaterAction, dismissAction],
             intentIdentifiers: [],
             options: [.customDismissAction]
         )
         
-        notificationCenter.setNotificationCategories([category])
-        print("🔔 NotificationService: Notification categories configured")
+        // Medication category
+        let medicationTakenAction = UNNotificationAction(
+            identifier: NotificationAction.medicationTaken.rawValue,
+            title: NotificationAction.medicationTaken.title,
+            options: []
+        )
+        
+        let medicationSkipAction = UNNotificationAction(
+            identifier: NotificationAction.medicationSkip.rawValue,
+            title: NotificationAction.medicationSkip.title,
+            options: []
+        )
+        
+        let medicationSnoozeAction = UNNotificationAction(
+            identifier: NotificationAction.medicationSnooze.rawValue,
+            title: NotificationAction.medicationSnooze.title,
+            options: []
+        )
+        
+        let medicationCategory = UNNotificationCategory(
+            identifier: NotificationCategory.medicationReminder.identifier,
+            actions: [medicationTakenAction, medicationSnoozeAction, medicationSkipAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        
+        notificationCenter.setNotificationCategories([hydrationCategory, medicationCategory])
+        print("🔔 NotificationService: Notification categories configured (Hydration + Medication)")
     }
 }
 

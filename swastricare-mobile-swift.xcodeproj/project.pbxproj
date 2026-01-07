@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		636C031B2F0E7E0A005CE638 /* GLTFKit2 in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF112F0D500000FAB1B5 /* GLTFKit2 */; };
 		636CFDA92F0D3FC8005CE638 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF0F2F0D400000FAB1B5 /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -27,6 +28,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				636C031B2F0E7E0A005CE638 /* GLTFKit2 in Frameworks */,
 				636CFDA92F0D3FC8005CE638 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,6 +73,7 @@
 			name = "swastricare-mobile-swift";
 			packageProductDependencies = (
 				63D3AF0F2F0D400000FAB1B5 /* Supabase */,
+				63D3AF112F0D500000FAB1B5 /* GLTFKit2 */,
 			);
 			productName = "swastricare-mobile-swift";
 			productReference = 63D3AEF22F0D386F00FAB1B5 /* swastricare-mobile-swift.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				63D3AF0E2F0D400000FAB1B5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				63D3AF102F0D500000FAB1B5 /* XCRemoteSwiftPackageReference "GLTFKit2" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 63D3AEF32F0D386F00FAB1B5 /* Products */;
@@ -383,6 +387,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		63D3AF102F0D500000FAB1B5 /* XCRemoteSwiftPackageReference "GLTFKit2" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/warrenm/GLTFKit2";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -390,6 +402,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 63D3AF0E2F0D400000FAB1B5 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		63D3AF112F0D500000FAB1B5 /* GLTFKit2 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63D3AF102F0D500000FAB1B5 /* XCRemoteSwiftPackageReference "GLTFKit2" */;
+			productName = GLTFKit2;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

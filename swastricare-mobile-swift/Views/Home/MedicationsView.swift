@@ -3,28 +3,11 @@ import SwiftUI
 
 struct MedicationsView: View {
     @Environment(\.dismiss) var dismiss
-    
-    // MARK: - Mock Data Models
-    struct Medication: Identifiable {
-        let id = UUID()
-        let name: String
-        let dosage: String
-        let time: String
-        let type: MedType
-        var isTaken: Bool
-        
-        enum MedType {
-            case pill, liquid, injection
-        }
-    }
-    
-    @State private var medications: [Medication] = [
-        Medication(name: "Vitamin D3", dosage: "1 Tablet (2000 IU)", time: "08:00 AM", type: .pill, isTaken: true),
-        Medication(name: "Amoxicillin", dosage: "500 mg", time: "02:00 PM", type: .pill, isTaken: false),
-        Medication(name: "Ibuprofen", dosage: "400 mg", time: "08:00 PM", type: .pill, isTaken: false)
-    ]
+    @StateObject private var viewModel = MedicationViewModel()
     
     @State private var selectedDate = Date()
+    @State private var showAddMedication = false
+    @State private var selectedMedication: MedicationWithAdherence?
     
     // MARK: - Body
     var body: some View {
@@ -33,21 +16,38 @@ struct MedicationsView: View {
                 // Background
                 Color.black.ignoresSafeArea()
                 
-                VStack(spacing: 20) {
-                    // Custom Calendar Strip
-                    calendarStrip
-                    
-                    // Progress Header
-                    progressSection
-                    
-                    // Medication List
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            ForEach($medications) { $med in
-                                MedicationCard(medication: $med)
+                if viewModel.isLoading {
+                    ProgressView()
+                        .tint(.white)
+                } else if viewModel.todaysMedications.isEmpty {
+                    emptyStateView
+                } else {
+                    VStack(spacing: 20) {
+                        // Custom Calendar Strip
+                        calendarStrip
+                        
+                        // Progress Header
+                        progressSection
+                        
+                        // Medication List
+                        ScrollView {
+                            VStack(spacing: 16) {
+                                ForEach(viewModel.todaysMedications) { medWithAdherence in
+                                    MedicationCard(
+                                        medicationWithAdherence: medWithAdherence,
+                                        onTaken: {
+                                            Task {
+                                                try? await viewModel.quickMarkAsTaken(medicationWithAdherence: medWithAdherence)
+                                            }
+                                        },
+                                        onTap: {
+                                            selectedMedication = medWithAdherence
+                                        }
+                                    )
+                                }
                             }
+                            .padding()
                         }
-                        .padding()
                     }
                 }
             }
@@ -56,7 +56,7 @@ struct MedicationsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
-                        // Add medication action
+                        showAddMedication = true
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
@@ -71,8 +71,58 @@ struct MedicationsView: View {
                     .foregroundColor(.white)
                 }
             }
+            .sheet(isPresented: $showAddMedication) {
+                AddMedicationView(viewModel: viewModel)
+            }
+            .sheet(item: $selectedMedication) { medWithAdherence in
+                MedicationDetailView(
+                    medication: medWithAdherence.medication,
+                    viewModel: viewModel
+                )
+            }
+            .refreshable {
+                await viewModel.refresh()
+            }
         }
         .preferredColorScheme(.dark)
+        .task {
+            await viewModel.loadMedications()
+        }
+    }
+    
+    // MARK: - Empty State
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "pills.circle")
+                .font(.system(size: 80))
+                .foregroundStyle(PremiumColor.royalBlue)
+            
+            Text("No Medications Yet")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text("Add your first medication to get started with reminders")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Button(action: {
+                showAddMedication = true
+            }) {
+                HStack {
+                    Image(systemName: "plus")
+                    Text("Add Medication")
+                }
+                .padding()
+                .background(PremiumColor.royalBlue)
+                .cornerRadius(12)
+                .foregroundColor(.white)
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
     }
     
     // MARK: - Subviews
@@ -123,11 +173,16 @@ struct MedicationsView: View {
                     .font(.headline)
                     .foregroundColor(.secondary)
                 
-                let takenCount = medications.filter { $0.isTaken }.count
-                Text("\(takenCount) of \(medications.count) taken")
+                Text("\(viewModel.takenCount) of \(viewModel.totalCount) taken")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
+                
+                if let stats = viewModel.adherenceStatistics {
+                    Text("\(stats.adherenceRate) adherence")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Spacer()
@@ -136,16 +191,21 @@ struct MedicationsView: View {
             ZStack {
                 Circle()
                     .stroke(Color.white.opacity(0.1), lineWidth: 6)
-                    .frame(width: 50, height: 50)
+                    .frame(width: 60, height: 60)
                 
-                let progress = Double(medications.filter { $0.isTaken }.count) / Double(medications.count)
+                let progress = viewModel.todayAdherencePercentage / 100
                 
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(PremiumColor.neonGreen, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .frame(width: 50, height: 50)
+                    .frame(width: 60, height: 60)
                     .rotationEffect(.degrees(-90))
                     .animation(.spring(), value: progress)
+                
+                Text("\(Int(viewModel.todayAdherencePercentage))%")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
             }
         }
         .padding()
@@ -155,47 +215,103 @@ struct MedicationsView: View {
 }
 
 struct MedicationCard: View {
-    @Binding var medication: MedicationsView.Medication
+    let medicationWithAdherence: MedicationWithAdherence
+    let onTaken: () -> Void
+    let onTap: () -> Void
     
     var body: some View {
-        HStack(spacing: 16) {
-            // Icon Container
-            ZStack {
-                Circle()
-                    .fill(LinearGradient(colors: [Color.blue.opacity(0.2), Color.purple.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 50, height: 50)
-                
-                Image(systemName: "pills.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.white)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(medication.name)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Text("\(medication.dosage) • \(medication.time)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Checkbox
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    medication.isTaken.toggle()
+        Button(action: onTap) {
+            HStack(spacing: 16) {
+                // Icon Container
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(colors: [Color.blue.opacity(0.2), Color.purple.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 50, height: 50)
+                    
+                    Image(systemName: medicationWithAdherence.medication.type.icon)
+                        .font(.title2)
+                        .foregroundStyle(Color.white)
                 }
-            }) {
-                Image(systemName: medication.isTaken ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 28))
-                    .foregroundStyle(medication.isTaken ? PremiumColor.neonGreen : LinearGradient(colors: [.secondary], startPoint: .top, endPoint: .bottom))
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(medicationWithAdherence.medication.name)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    
+                    Text(medicationWithAdherence.medication.dosage)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    // Show next dose or overdue indicator
+                    if let overdue = medicationWithAdherence.overdueDose {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundColor(.red)
+                            Text("Overdue • \(formatTime(overdue.scheduledTime))")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    } else if let next = medicationWithAdherence.nextDose {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .foregroundColor(.secondary)
+                            Text("Next • \(formatTime(next.scheduledTime))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                // Progress indicator
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.1), lineWidth: 3)
+                            .frame(width: 40, height: 40)
+                        
+                        Circle()
+                            .trim(from: 0, to: medicationWithAdherence.adherencePercentage)
+                            .stroke(PremiumColor.neonGreen, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .frame(width: 40, height: 40)
+                            .rotationEffect(.degrees(-90))
+                        
+                        Text("\(medicationWithAdherence.takenCount)")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                    }
+                    
+                    Text("\(medicationWithAdherence.takenCount)/\(medicationWithAdherence.totalDoses)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                
+                // Quick action button
+                if medicationWithAdherence.overdueDose != nil || medicationWithAdherence.nextDose != nil {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            onTaken()
+                        }
+                    }) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(PremiumColor.neonGreen)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
             }
+            .padding()
+            .glass(cornerRadius: 20)
         }
-        .padding()
-        .glass(cornerRadius: 20)
-        .opacity(medication.isTaken ? 0.6 : 1.0) // Dim if taken
+        .buttonStyle(ScaleButtonStyle())
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 

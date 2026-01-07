@@ -128,6 +128,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
+        // Initialize notification service (sets up delegate)
+        _ = NotificationService.shared
+        print("🔔 NotificationService initialized")
+        
         // Register for remote notifications
         NotificationService.shared.registerForRemoteNotifications()
         return true

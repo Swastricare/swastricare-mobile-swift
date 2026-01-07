@@ -796,3 +796,209 @@ extension SupabaseManager {
     }
 }
 
+// MARK: - Medication Sync
+
+extension SupabaseManager {
+    
+    /// Sync a medication to Supabase
+    func syncMedication(_ medication: Medication) async throws -> MedicationRecord {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        var medicationToSync = medication
+        medicationToSync.userId = userId
+        medicationToSync.updatedAt = Date()
+        
+        let record = MedicationRecord(from: medicationToSync)
+        
+        let inserted: MedicationRecord = try await client
+            .from("medications")
+            .upsert(record, onConflict: "id")
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        print("💊 SupabaseManager: Synced medication '\(medication.name)'")
+        return inserted
+    }
+    
+    /// Sync multiple medications
+    func syncMedications(_ medications: [Medication]) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let records = medications.map { medication -> MedicationRecord in
+            var med = medication
+            med.userId = userId
+            med.updatedAt = Date()
+            return MedicationRecord(from: med)
+        }
+        
+        try await client
+            .from("medications")
+            .upsert(records, onConflict: "id")
+            .execute()
+        
+        print("💊 SupabaseManager: Synced \(medications.count) medications")
+    }
+    
+    /// Fetch user's medications from Supabase
+    func fetchUserMedications() async throws -> [Medication] {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let records: [MedicationRecord] = try await client
+            .from("medications")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        
+        print("💊 SupabaseManager: Fetched \(records.count) medications")
+        return records.map { $0.toMedication() }
+    }
+    
+    /// Delete a medication from Supabase
+    func deleteMedicationRecord(id: UUID) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        try await client
+            .from("medications")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+        
+        print("💊 SupabaseManager: Deleted medication record")
+    }
+    
+    /// Sync medication adherence record
+    func syncMedicationAdherence(_ adherence: MedicationAdherence) async throws -> MedicationAdherenceRecord {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let record = MedicationAdherenceRecord(from: adherence, userId: userId)
+        
+        let inserted: MedicationAdherenceRecord = try await client
+            .from("medication_adherence")
+            .upsert(record, onConflict: "id")
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        print("💊 SupabaseManager: Synced adherence record")
+        return inserted
+    }
+    
+    /// Sync multiple adherence records
+    func syncMedicationAdherences(_ adherences: [MedicationAdherence]) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let records = adherences.map { MedicationAdherenceRecord(from: $0, userId: userId) }
+        
+        try await client
+            .from("medication_adherence")
+            .upsert(records, onConflict: "id")
+            .execute()
+        
+        print("💊 SupabaseManager: Synced \(adherences.count) adherence records")
+    }
+    
+    /// Fetch adherence records for a date range
+    func fetchMedicationAdherence(from startDate: Date, to endDate: Date) async throws -> [MedicationAdherence] {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let dateFormatter = ISO8601DateFormatter()
+        let fromString = dateFormatter.string(from: startDate)
+        let toString = dateFormatter.string(from: endDate)
+        
+        let records: [MedicationAdherenceRecord] = try await client
+            .from("medication_adherence")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .gte("scheduled_time", value: fromString)
+            .lte("scheduled_time", value: toString)
+            .order("scheduled_time", ascending: false)
+            .execute()
+            .value
+        
+        print("💊 SupabaseManager: Fetched \(records.count) adherence records")
+        return records.map { $0.toMedicationAdherence() }
+    }
+    
+    /// Fetch today's adherence records
+    func fetchTodayMedicationAdherence() async throws -> [MedicationAdherence] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? Date()
+        
+        return try await fetchMedicationAdherence(from: startOfDay, to: endOfDay)
+    }
+    
+    /// Get medication adherence statistics for a period
+    func getMedicationAdherenceStats(days: Int = 7) async throws -> [(date: Date, adherenceRate: Double)] {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let startDate = calendar.date(byAdding: .day, value: -(days - 1), to: today) else {
+            return []
+        }
+        
+        let dateFormatter = ISO8601DateFormatter()
+        let fromString = dateFormatter.string(from: startDate)
+        
+        let records: [MedicationAdherenceRecord] = try await client
+            .from("medication_adherence")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .gte("scheduled_time", value: fromString)
+            .order("scheduled_time", ascending: true)
+            .execute()
+            .value
+        
+        // Group by date and calculate adherence
+        var dailyStats: [Date: (taken: Int, total: Int)] = [:]
+        for record in records {
+            let day = calendar.startOfDay(for: record.scheduledTime)
+            let stats = dailyStats[day] ?? (taken: 0, total: 0)
+            dailyStats[day] = (
+                taken: stats.taken + (record.status == "Taken" ? 1 : 0),
+                total: stats.total + 1
+            )
+        }
+        
+        // Fill in missing days with 0
+        var result: [(date: Date, adherenceRate: Double)] = []
+        for dayOffset in 0..<days {
+            if let date = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
+                let day = calendar.startOfDay(for: date)
+                if let stats = dailyStats[day], stats.total > 0 {
+                    let rate = Double(stats.taken) / Double(stats.total)
+                    result.append((day, rate))
+                } else {
+                    result.append((day, 0.0))
+                }
+            }
+        }
+        
+        return result
+    }
+}
+
+

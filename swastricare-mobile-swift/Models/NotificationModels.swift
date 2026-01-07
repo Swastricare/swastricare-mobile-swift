@@ -301,12 +301,20 @@ enum NotificationAction: String {
     case remindLater = "REMIND_LATER"
     case dismiss = "DISMISS"
     
+    // Medication actions
+    case medicationTaken = "MEDICATION_TAKEN"
+    case medicationSkip = "MEDICATION_SKIP"
+    case medicationSnooze = "MEDICATION_SNOOZE"
+    
     var title: String {
         switch self {
         case .log250ml: return "Log 250ml"
         case .log500ml: return "Log 500ml"
         case .remindLater: return "Remind Later"
         case .dismiss: return "Dismiss"
+        case .medicationTaken: return "✓ Taken"
+        case .medicationSkip: return "Skip"
+        case .medicationSnooze: return "Snooze 15m"
         }
     }
     
@@ -316,6 +324,9 @@ enum NotificationAction: String {
         case .log500ml: return "drop.fill"
         case .remindLater: return "clock"
         case .dismiss: return "xmark"
+        case .medicationTaken: return "checkmark.circle.fill"
+        case .medicationSkip: return "xmark.circle"
+        case .medicationSnooze: return "clock.fill"
         }
     }
 }
@@ -324,6 +335,7 @@ enum NotificationAction: String {
 
 enum NotificationCategory: String {
     case hydrationReminder = "HYDRATION_REMINDER"
+    case medicationReminder = "MEDICATION_REMINDER"
     
     var identifier: String { rawValue }
 }

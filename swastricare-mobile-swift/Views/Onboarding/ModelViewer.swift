@@ -8,6 +8,7 @@
 import SwiftUI
 import SceneKit
 import Foundation
+import GLTFKit2
 
 struct ModelViewer: UIViewRepresentable {
     let modelName: String
@@ -18,40 +19,54 @@ struct ModelViewer: UIViewRepresentable {
         scnView.allowsCameraControl = true
         scnView.autoenablesDefaultLighting = true
         
-        // Try supported formats in order of preference
-        let supportedExtensions = ["usdz", "scn", "dae"]
-        var scene: SCNScene? = nil
+        // Start with placeholder, then load async
+        let placeholderScene = createThemedPlaceholder(for: modelName)
+        addLighting(to: placeholderScene)
+        addRotation(to: placeholderScene)
+        scnView.scene = placeholderScene
         
-        // First try supported 3D formats
-        for ext in supportedExtensions {
-            if let url = Bundle.main.url(forResource: modelName, withExtension: ext) {
-                do {
-                    scene = try SCNScene(url: url, options: nil)
-                    break
-                } catch {
-                    print("Failed to load \(modelName).\(ext): \(error.localizedDescription)")
+        // Try to load .glb file asynchronously using GLTFKit2
+        if let glbUrl = Bundle.main.url(forResource: modelName, withExtension: "glb") {
+            GLTFAsset.load(with: glbUrl, options: [:]) { progress, status, maybeAsset, maybeError, _ in
+                DispatchQueue.main.async {
+                    if status == .complete, let asset = maybeAsset {
+                        let loadedScene = SCNScene(gltfAsset: asset)
+                        self.addLighting(to: loadedScene)
+                        self.addRotation(to: loadedScene)
+                        scnView.scene = loadedScene
+                        print("✅ Successfully loaded \(modelName).glb using GLTFKit2")
+                    } else if let error = maybeError {
+                        print("❌ Failed to load \(modelName).glb: \(error.localizedDescription)")
+                        // Keep placeholder
+                    }
+                }
+            }
+        } else {
+            // Try native SceneKit formats
+            let supportedExtensions = ["usdz", "scn", "dae"]
+            for ext in supportedExtensions {
+                if let url = Bundle.main.url(forResource: modelName, withExtension: ext) {
+                    do {
+                        let nativeScene = try SCNScene(url: url, options: nil)
+                        addLighting(to: nativeScene)
+                        addRotation(to: nativeScene)
+                        scnView.scene = nativeScene
+                        print("✅ Loaded \(modelName).\(ext)")
+                        break
+                    } catch {
+                        print("Failed to load \(modelName).\(ext): \(error.localizedDescription)")
+                    }
                 }
             }
         }
         
-        // If no supported format found, create themed 3D placeholder
-        if scene == nil {
-            scene = createThemedPlaceholder(for: modelName)
-        }
-        
-        if let loadedScene = scene {
-            // Add professional lighting
-            addLighting(to: loadedScene)
-            
-            // Add rotation animation
-            let rotation = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 8)
-            let repeatRotation = SCNAction.repeatForever(rotation)
-            loadedScene.rootNode.runAction(repeatRotation)
-            
-            scnView.scene = loadedScene
-        }
-        
         return scnView
+    }
+    
+    private func addRotation(to scene: SCNScene) {
+        let rotation = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 8)
+        let repeatRotation = SCNAction.repeatForever(rotation)
+        scene.rootNode.runAction(repeatRotation)
     }
     
     func updateUIView(_ uiView: SCNView, context: Context) {
