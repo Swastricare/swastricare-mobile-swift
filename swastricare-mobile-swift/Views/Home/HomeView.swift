@@ -75,6 +75,8 @@ struct HomeView: View {
         .refreshable {
             await viewModel.refresh()
         }
+        .background(Color.black)
+        .preferredColorScheme(.dark)
     }
     
     // MARK: - Subviews
@@ -238,6 +240,8 @@ struct HomeView: View {
         }
     }
     
+    @State private var showMedications = false
+
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Quick Actions")
@@ -251,14 +255,17 @@ struct HomeView: View {
                 }
                 
                 QuickActionButton(icon: "pills.fill", title: "Medications", color: .blue) {
-                    // Action
+                    showMedications = true
                 }
                 
-                QuickActionButton(icon: "calendar.badge.plus", title: "Schedule", color: .green) {
+                QuickActionButton(icon: "drop.fill", title: "Hydration", color: .cyan) {
                     // Action
                 }
             }
             .padding(.horizontal)
+        }
+        .sheet(isPresented: $showMedications) {
+            MedicationsView()
         }
     }
     

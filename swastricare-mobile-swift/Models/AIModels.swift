@@ -97,19 +97,55 @@ struct HealthAnalysisRequest: Codable {
 // MARK: - Health Analysis Response
 
 struct HealthAnalysisResponse: Codable, Equatable {
-    let summary: String
-    let insights: [String]
+    let assessment: String
+    let insights: String
     let recommendations: [String]
-    let riskFactors: [String]
-    let overallScore: Int // 0-100
     
     static let empty = HealthAnalysisResponse(
-        summary: "",
-        insights: [],
-        recommendations: [],
-        riskFactors: [],
-        overallScore: 0
+        assessment: "",
+        insights: "",
+        recommendations: []
     )
+}
+
+// MARK: - Health Analysis Result
+
+struct HealthAnalysisResult: Identifiable, Equatable {
+    let id: UUID
+    let metrics: HealthMetrics
+    let analysis: HealthAnalysisResponse
+    let timestamp: Date
+    
+    init(
+        id: UUID = UUID(),
+        metrics: HealthMetrics,
+        analysis: HealthAnalysisResponse,
+        timestamp: Date = Date()
+    ) {
+        self.id = id
+        self.metrics = metrics
+        self.analysis = analysis
+        self.timestamp = timestamp
+    }
+}
+
+// MARK: - Analysis State
+
+enum AnalysisState: Equatable {
+    case idle
+    case analyzing
+    case completed(HealthAnalysisResult)
+    case error(String)
+    
+    var isAnalyzing: Bool {
+        if case .analyzing = self { return true }
+        return false
+    }
+    
+    var result: HealthAnalysisResult? {
+        if case .completed(let result) = self { return result }
+        return nil
+    }
 }
 
 // MARK: - Quick Action
