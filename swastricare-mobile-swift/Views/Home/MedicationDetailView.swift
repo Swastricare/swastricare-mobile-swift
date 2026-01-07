@@ -300,9 +300,9 @@ struct MedicationDetailView: View {
             let stats = AdherenceStatistics(adherenceRecords: adherence)
             
             HStack(spacing: 20) {
-                StatCard(title: "Taken", value: "\(stats.takenDoses)", color: .green)
-                StatCard(title: "Missed", value: "\(stats.missedDoses)", color: .red)
-                StatCard(title: "Skipped", value: "\(stats.skippedDoses)", color: .orange)
+                MedicationStatCard(title: "Taken", value: "\(stats.takenDoses)", color: .green)
+                MedicationStatCard(title: "Missed", value: "\(stats.missedDoses)", color: .red)
+                MedicationStatCard(title: "Skipped", value: "\(stats.skippedDoses)", color: .orange)
             }
             .padding()
             .glass(cornerRadius: 12)
@@ -497,9 +497,9 @@ struct DetailRow: View {
     }
 }
 
-// MARK: - Stat Card
+// MARK: - Medication Stat Card
 
-struct StatCard: View {
+struct MedicationStatCard: View {
     let title: String
     let value: String
     let color: Color

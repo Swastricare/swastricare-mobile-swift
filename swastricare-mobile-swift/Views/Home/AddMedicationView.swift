@@ -86,7 +86,7 @@ struct AddMedicationView: View {
         HStack(spacing: 8) {
             ForEach(1...3, id: \.self) { step in
                 Rectangle()
-                    .fill(step <= currentStep ? PremiumColor.royalBlue : Color.white.opacity(0.2))
+                    .fill(step <= currentStep ? Color(hex: "2E3192") : Color.white.opacity(0.2))
                     .frame(height: 4)
                     .animation(.spring(), value: currentStep)
             }
@@ -208,7 +208,7 @@ struct AddMedicationView: View {
                     
                     Text(formatTime(times[index]))
                         .font(.headline)
-                        .foregroundColor(PremiumColor.royalBlue)
+                        .foregroundColor(Color(hex: "2E3192"))
                 }
                 .padding()
                 .glass(cornerRadius: 12)
@@ -243,7 +243,7 @@ struct AddMedicationView: View {
                 DatePicker("", selection: $startDate, displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .labelsHidden()
-                    .tint(PremiumColor.royalBlue)
+                    .tint(Color(hex: "2E3192"))
                     .padding()
                     .glass(cornerRadius: 12)
             }
@@ -254,16 +254,16 @@ struct AddMedicationView: View {
                     .font(.headline)
                     .foregroundColor(.secondary)
                 
-                Toggle(isOn: $isOngoing) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Ongoing medication")
-                            .foregroundColor(.white)
-                        Text("No end date")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+            Toggle(isOn: $isOngoing) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ongoing medication")
+                        .foregroundColor(.white)
+                    Text("No end date")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                .tint(PremiumColor.neonGreen)
+            }
+            .tint(Color(hex: "11998e"))
                 .padding()
                 .glass(cornerRadius: 12)
                 
@@ -276,7 +276,7 @@ struct AddMedicationView: View {
                         DatePicker("", selection: $endDate, in: startDate..., displayedComponents: .date)
                             .datePickerStyle(.compact)
                             .labelsHidden()
-                            .tint(PremiumColor.royalBlue)
+                            .tint(Color(hex: "2E3192"))
                             .padding()
                             .glass(cornerRadius: 12)
                     }
@@ -335,7 +335,7 @@ struct AddMedicationView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(canProceed ? PremiumColor.royalBlue : LinearGradient(colors: [Color.gray.opacity(0.3)], startPoint: .leading, endPoint: .trailing))
+                .background(canProceed ? Color(hex: "2E3192") : Color.gray.opacity(0.3))
                 .cornerRadius(12)
                 .foregroundColor(.white)
             }
@@ -450,8 +450,8 @@ struct TypeCard: View {
             .padding()
             .background(
                 isSelected ?
-                PremiumColor.royalBlue :
-                LinearGradient(colors: [Color.white.opacity(0.05)], startPoint: .top, endPoint: .bottom)
+                Color(hex: "2E3192") :
+                Color.white.opacity(0.05)
             )
             .cornerRadius(12)
             .overlay(
@@ -486,7 +486,7 @@ struct ScheduleTemplateCard: View {
                 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(PremiumColor.neonGreen)
+                        .foregroundColor(Color(hex: "11998e"))
                         .font(.title3)
                 }
             }
@@ -494,7 +494,7 @@ struct ScheduleTemplateCard: View {
             .glass(cornerRadius: 12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? PremiumColor.royalBlue : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? Color(hex: "2E3192") : Color.clear, lineWidth: 2)
             )
         }
     }
