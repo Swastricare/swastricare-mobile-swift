@@ -200,13 +200,13 @@ struct DocumentViewer: View {
                 default:
                     errorMessage = "Network error: \(urlError.localizedDescription)"
                 }
-            } else {
+        } else {
                 errorMessage = error.localizedDescription
-            }
-            
+        }
+        
             await MainActor.run {
                 loadError = errorMessage
-                isLoading = false
+        isLoading = false
             }
         }
     }

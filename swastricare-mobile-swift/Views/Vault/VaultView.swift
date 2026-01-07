@@ -2011,7 +2011,25 @@ private struct MultiDocumentPickerView: UIViewControllerRepresentable {
     let onPick: ([(String, Data)]) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf, .image, .data, .jpeg, .png, .heic])
+        // Support all common document types
+        let contentTypes: [UTType] = [
+            .pdf,
+            .image,
+            .jpeg,
+            .png,
+            .heic,
+            .gif,
+            .tiff,
+            .bmp,
+            .text,
+            .plainText,
+            .rtf,
+            .data,
+            .item,
+            .content
+        ]
+        
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = true
         return picker
@@ -2032,18 +2050,34 @@ private struct MultiDocumentPickerView: UIViewControllerRepresentable {
         
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             var files: [(String, Data)] = []
+            var errors: [String] = []
             
             for url in urls {
                 let shouldAccess = url.startAccessingSecurityScopedResource()
                 defer { if shouldAccess { url.stopAccessingSecurityScopedResource() } }
                 
-                if let data = try? Data(contentsOf: url) {
+                do {
+                    let data = try Data(contentsOf: url)
+                    guard !data.isEmpty else {
+                        errors.append("\(url.lastPathComponent) is empty")
+                        continue
+                    }
                     files.append((url.lastPathComponent, data))
+                    print("✅ Loaded file: \(url.lastPathComponent) (\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)))")
+                } catch {
+                    let errorMsg = "Failed to read \(url.lastPathComponent): \(error.localizedDescription)"
+                    errors.append(errorMsg)
+                    print("❌ \(errorMsg)")
                 }
             }
             
             if !files.isEmpty {
                 onPick(files)
+                if !errors.isEmpty {
+                    print("⚠️ Some files could not be loaded: \(errors.joined(separator: ", "))")
+                }
+            } else if !errors.isEmpty {
+                print("❌ No files could be loaded. Errors: \(errors.joined(separator: ", "))")
             }
         }
     }

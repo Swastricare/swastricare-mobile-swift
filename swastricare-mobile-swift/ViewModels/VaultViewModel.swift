@@ -386,18 +386,23 @@ final class VaultViewModel: ObservableObject {
         
         do {
             // Fetch documents
-            documents = try await vaultService.fetchDocuments()
+            let fetched = try await vaultService.fetchDocuments()
+            documents = fetched
             isLoading = false
+            print("✅ Loaded \(fetched.count) documents")
         } catch {
             // Handle cancellation gracefully (don't show error for cancelled refreshes)
             if error is CancellationError {
                 isLoading = false
+                print("ℹ️ Document fetch was cancelled")
                 return
             }
             
             // Handle other errors
-            errorMessage = error.localizedDescription
+            let errorMsg = error.localizedDescription
+            errorMessage = errorMsg
             isLoading = false
+            print("❌ Failed to load documents: \(errorMsg)")
         }
     }
     
@@ -464,12 +469,18 @@ final class VaultViewModel: ObservableObject {
             uploadState.progress = Double(index) / Double(totalFiles)
             
             do {
+                print("📤 Uploading file \(index + 1)/\(totalFiles): \(upload.fileName)")
+                print("   Size: \(ByteCountFormatter.string(fromByteCount: Int64(upload.fileData.count), countStyle: .file))")
+                print("   Category: \(upload.category.rawValue)")
+                
                 let document = try await vaultService.uploadDocument(
                     fileData: upload.fileData,
                     fileName: upload.fileName,
                     category: upload.category.rawValue,
                     metadata: upload.metadata
                 )
+                
+                print("✅ Successfully uploaded: \(upload.fileName)")
                 
                 // Add to beginning of list
                 documents.insert(document, at: 0)
@@ -478,14 +489,36 @@ final class VaultViewModel: ObservableObject {
                 // Update progress AFTER successful upload
                 uploadState.progress = Double(index + 1) / Double(totalFiles)
             } catch {
-                print("Failed to upload \(upload.fileName): \(error)")
+                let errorDesc = error.localizedDescription
+                print("❌ Failed to upload \(upload.fileName): \(errorDesc)")
+                print("   Error type: \(type(of: error))")
+                
                 // Continue with other files, but still update progress
                 uploadState.progress = Double(index + 1) / Double(totalFiles)
+                
+                // Store error for this file (append if multiple errors)
+                let fileError = "\(upload.fileName): \(errorDesc)"
+                if errorMessage == nil {
+                    errorMessage = fileError
+                } else {
+                    errorMessage = "\(errorMessage ?? "")\n\(fileError)"
+                }
             }
         }
         
         // Final cleanup
         uploadState.progress = 1.0
+        
+        // Refresh documents list to ensure consistency
+        if successCount > 0 {
+            do {
+                let refreshed = try await vaultService.fetchDocuments()
+                documents = refreshed
+            } catch {
+                print("⚠️ Failed to refresh documents after upload: \(error)")
+                // Don't fail the entire upload if refresh fails
+            }
+        }
         
         // Clean up after a short delay to show completion
         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
@@ -496,7 +529,12 @@ final class VaultViewModel: ObservableObject {
         showUploadSheet = false
         
         if successCount < totalFiles {
-            errorMessage = "Uploaded \(successCount) of \(totalFiles) files. Some files failed."
+            let message = "Uploaded \(successCount) of \(totalFiles) files. Some files failed."
+            if errorMessage == nil {
+                errorMessage = message
+            } else {
+                errorMessage = "\(message) \(errorMessage ?? "")"
+            }
         }
     }
     

@@ -241,15 +241,21 @@ class SupabaseManager {
             throw SupabaseError.notAuthenticated
         }
         
-        let documents: [MedicalDocument] = try await client
-            .from("medical_documents")
-            .select()
-            .eq("user_id", value: userId.uuidString)
-            .order("uploaded_at", ascending: false)
-            .execute()
-            .value
-        
-        return documents
+        do {
+            let documents: [MedicalDocument] = try await client
+                .from("medical_documents")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .order("uploaded_at", ascending: false)
+                .execute()
+                .value
+            
+            print("✅ Fetched \(documents.count) documents for user")
+            return documents
+        } catch {
+            print("❌ Failed to fetch documents: \(error)")
+            throw SupabaseError.databaseError("Failed to fetch documents: \(error.localizedDescription)")
+        }
     }
     
     /// Uploads a medical document
@@ -264,10 +270,23 @@ class SupabaseManager {
         }
         
         // Generate unique file path with sanitized filename
-        let fileExtension = (fileName as NSString).pathExtension.lowercased()
+        var fileExtension = (fileName as NSString).pathExtension.lowercased()
+        
+        // Handle files without extension
+        if fileExtension.isEmpty {
+            // Try to detect from content or use default
+            fileExtension = "dat"
+        }
+        
         let baseName = sanitizeFileName((fileName as NSString).deletingPathExtension)
         let uniqueFileName = "\(baseName)_\(UUID().uuidString.lowercased()).\(fileExtension)"
         let storagePath = "\(userId.uuidString.lowercased())/\(uniqueFileName)"
+        
+        print("📦 Uploading file:")
+        print("   Original name: \(fileName)")
+        print("   Extension: \(fileExtension)")
+        print("   Storage path: \(storagePath)")
+        print("   File size: \(ByteCountFormatter.string(fromByteCount: Int64(fileData.count), countStyle: .file))")
         
         // Upload to storage
         let options = FileOptions(
@@ -280,19 +299,31 @@ class SupabaseManager {
             try await client.storage
                 .from("medical-vault")
                 .upload(
-                    path: storagePath,
-                    file: fileData,
+                    storagePath,
+                    data: fileData,
                     options: options
                 )
         } catch {
             print("📦 Storage upload failed for path: \(storagePath), error: \(error)")
-            throw SupabaseError.storageError("Unable to upload to bucket medical-vault")
+            throw SupabaseError.storageError("Unable to upload to bucket medical-vault: \(error.localizedDescription)")
         }
+        
+        // Ensure title is never empty - use folderName, metadata.name, or fileName
+        let documentTitle: String = {
+            if let folderName = metadata.folderName, !folderName.isEmpty {
+                return folderName
+            } else if !metadata.name.isEmpty {
+                return metadata.name
+            } else {
+                // Use fileName without extension as fallback
+                return (fileName as NSString).deletingPathExtension
+            }
+        }()
         
         // Create document record with metadata
         let document = MedicalDocument(
             userId: userId,
-            title: metadata.name.isEmpty ? fileName : metadata.name,
+            title: documentTitle,
             category: category,
             fileType: fileExtension.uppercased(),
             fileUrl: storagePath,
@@ -311,15 +342,37 @@ class SupabaseManager {
             updatedAt: Date()
         )
         
-        let inserted: MedicalDocument = try await client
-            .from("medical_documents")
-            .insert(document)
-            .select()
-            .single()
-            .execute()
-            .value
+        print("📄 Creating document record:")
+        print("   Title: \(documentTitle)")
+        print("   Category: \(category)")
+        print("   File Type: \(fileExtension.uppercased())")
+        print("   Folder Name: \(metadata.folderName ?? "nil")")
+        print("   Description: \(metadata.description ?? "nil")")
+        print("   Doctor: \(metadata.doctorName ?? "nil")")
+        print("   Location: \(metadata.location ?? "nil")")
+        print("   Document Date: \(metadata.documentDate?.description ?? "nil")")
+        print("   Tags: \(metadata.tags)")
         
-        return inserted
+        do {
+            let inserted: MedicalDocument = try await client
+                .from("medical_documents")
+                .insert(document)
+                .select()
+                .single()
+                .execute()
+                .value
+            
+            print("✅ Document uploaded successfully: \(inserted.id?.uuidString ?? "unknown")")
+            return inserted
+        } catch {
+            print("❌ Database insert failed for document: \(error)")
+            // Try to clean up the uploaded file if database insert fails
+            try? await client.storage
+                .from("medical-vault")
+                .remove(paths: [storagePath])
+            
+            throw SupabaseError.databaseError("Failed to create document record: \(error.localizedDescription)")
+        }
     }
     
     /// Updates a medical document's metadata
@@ -504,24 +557,69 @@ class SupabaseManager {
     /// Helper to get MIME type from extension
     private func mimeType(for fileExtension: String) -> String {
         switch fileExtension.lowercased() {
+        // Documents
         case "pdf":
             return "application/pdf"
-        case "jpg", "jpeg":
-            return "image/jpeg"
-        case "png":
-            return "image/png"
-        case "heic":
-            return "image/heic"
         case "doc":
             return "application/msword"
         case "docx":
             return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        case "xls":
+            return "application/vnd.ms-excel"
+        case "xlsx":
+            return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        case "ppt":
+            return "application/vnd.ms-powerpoint"
+        case "pptx":
+            return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
         case "txt":
             return "text/plain"
         case "rtf":
             return "application/rtf"
         case "csv":
             return "text/csv"
+        case "xml":
+            return "application/xml"
+        case "json":
+            return "application/json"
+        case "html", "htm":
+            return "text/html"
+        // Images
+        case "jpg", "jpeg":
+            return "image/jpeg"
+        case "png":
+            return "image/png"
+        case "gif":
+            return "image/gif"
+        case "heic":
+            return "image/heic"
+        case "heif":
+            return "image/heif"
+        case "webp":
+            return "image/webp"
+        case "bmp":
+            return "image/bmp"
+        case "tiff", "tif":
+            return "image/tiff"
+        case "svg":
+            return "image/svg+xml"
+        // Archives
+        case "zip":
+            return "application/zip"
+        case "rar":
+            return "application/x-rar-compressed"
+        case "7z":
+            return "application/x-7z-compressed"
+        case "tar":
+            return "application/x-tar"
+        case "gz":
+            return "application/gzip"
+        // Medical/Health specific
+        case "dcm", "dicom":
+            return "application/dicom"
+        case "hl7":
+            return "application/hl7"
+        // Default
         default:
             return "application/octet-stream"
         }
@@ -1026,6 +1124,7 @@ enum SupabaseError: Error, LocalizedError {
     case networkError(String)
     case storageError(String)
     case uploadFailed(String)
+    case databaseError(String)
     
     var errorDescription: String? {
         switch self {
@@ -1039,6 +1138,8 @@ enum SupabaseError: Error, LocalizedError {
             return "Storage error: \(message)"
         case .uploadFailed(let message):
             return "Upload failed: \(message)"
+        case .databaseError(let message):
+            return "Database error: \(message)"
         }
     }
 }

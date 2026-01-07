@@ -60,11 +60,16 @@ class VaultManager: ObservableObject {
         do {
             uploadProgress = 0.3
             
+            let metadata = DocumentMetadata(
+                name: fileName,
+                description: notes
+            )
+            
             let document = try await supabase.uploadDocument(
                 fileData: fileData,
                 fileName: fileName,
                 category: category,
-                notes: notes
+                metadata: metadata
             )
             
             uploadProgress = 0.9
