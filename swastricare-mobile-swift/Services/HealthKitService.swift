@@ -17,6 +17,12 @@ protocol HealthKitServiceProtocol {
     func fetchHealthMetrics(for date: Date) async -> HealthMetrics
     func fetchWeeklySteps() async -> [DailyMetric]
     func fetchStepCount(for date: Date) async -> Int
+    
+    // Hydration-related methods
+    func fetchUserWeight() async -> Double?
+    func fetchDailyWaterIntake(for date: Date) async -> Double
+    func writeWaterIntake(amountMl: Double, date: Date) async throws
+    func fetchExerciseMinutesValue(for date: Date) async -> Int
 }
 
 // MARK: - HealthKit Service Implementation
@@ -37,7 +43,12 @@ final class HealthKitService: HealthKitServiceProtocol {
         HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
         HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!,
         HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
-        HKObjectType.quantityType(forIdentifier: .bodyMass)!
+        HKObjectType.quantityType(forIdentifier: .bodyMass)!,
+        HKObjectType.quantityType(forIdentifier: .dietaryWater)!
+    ]
+    
+    private let typesToShare: Set<HKSampleType> = [
+        HKObjectType.quantityType(forIdentifier: .dietaryWater)!
     ]
     
     private init() {}
@@ -55,7 +66,7 @@ final class HealthKitService: HealthKitServiceProtocol {
             throw HealthKitError.notAvailable
         }
         
-        try await healthStore.requestAuthorization(toShare: [], read: typesToRead)
+        try await healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead)
     }
     
     // MARK: - Fetch All Metrics
@@ -308,6 +319,62 @@ final class HealthKitService: HealthKitServiceProtocol {
         return "--"
     }
     
+    // MARK: - Hydration Methods
+    
+    /// Fetches the user's latest weight in kg from HealthKit
+    func fetchUserWeight() async -> Double? {
+        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
+            return nil
+        }
+        
+        if let sample = await fetchLatestSample(for: weightType) {
+            return sample.quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
+        }
+        return nil
+    }
+    
+    /// Fetches total water intake for a specific date in ml
+    func fetchDailyWaterIntake(for date: Date) async -> Double {
+        guard let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
+            return 0
+        }
+        
+        let (start, end) = dayBounds(for: date)
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        
+        return await withCheckedContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: waterType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, result, _ in
+                // HealthKit stores water in liters, convert to ml
+                let liters = result?.sumQuantity()?.doubleValue(for: .liter()) ?? 0
+                continuation.resume(returning: liters * 1000)
+            }
+            healthStore.execute(query)
+        }
+    }
+    
+    /// Writes water intake to HealthKit
+    func writeWaterIntake(amountMl: Double, date: Date) async throws {
+        guard let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
+            throw HealthKitError.fetchFailed
+        }
+        
+        // Convert ml to liters for HealthKit
+        let liters = amountMl / 1000.0
+        let quantity = HKQuantity(unit: .liter(), doubleValue: liters)
+        let sample = HKQuantitySample(type: waterType, quantity: quantity, start: date, end: date)
+        
+        try await healthStore.save(sample)
+    }
+    
+    /// Fetches exercise minutes for a specific date (public method for hydration adjustments)
+    func fetchExerciseMinutesValue(for date: Date) async -> Int {
+        return await fetchExerciseMinutes(for: date)
+    }
+    
     // MARK: - Helpers
     
     private func dayBounds(for date: Date) -> (start: Date, end: Date) {
@@ -339,12 +406,14 @@ enum HealthKitError: LocalizedError {
     case notAvailable
     case authorizationFailed
     case fetchFailed
+    case writeFailed
     
     var errorDescription: String? {
         switch self {
         case .notAvailable: return "Health data is not available on this device"
         case .authorizationFailed: return "Failed to authorize HealthKit access"
         case .fetchFailed: return "Failed to fetch health data"
+        case .writeFailed: return "Failed to write health data"
         }
     }
 }

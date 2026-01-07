@@ -25,6 +25,8 @@ final class DependencyContainer: ObservableObject {
     let vaultService: VaultServiceProtocol
     let aiService: AIServiceProtocol
     let biometricService: BiometricServiceProtocol
+    let hydrationService: HydrationServiceProtocol
+    let weatherService: WeatherServiceProtocol
     
     // MARK: - ViewModels (Lazy initialized)
     
@@ -56,6 +58,14 @@ final class DependencyContainer: ObservableObject {
         LockScreenViewModel(biometricService: biometricService)
     }()
     
+    lazy var hydrationViewModel: HydrationViewModel = {
+        HydrationViewModel(
+            hydrationService: hydrationService,
+            healthKitService: healthService,
+            weatherService: weatherService
+        )
+    }()
+    
     // MARK: - Init
     
     private init() {
@@ -65,6 +75,8 @@ final class DependencyContainer: ObservableObject {
         self.vaultService = VaultService.shared
         self.aiService = AIService.shared
         self.biometricService = BiometricService.shared
+        self.hydrationService = HydrationService.shared
+        self.weatherService = WeatherService.shared
     }
     
     // MARK: - Factory Methods (for creating new instances if needed)
@@ -83,6 +95,14 @@ final class DependencyContainer: ObservableObject {
     
     func makeAIViewModel() -> AIViewModel {
         AIViewModel(aiService: aiService)
+    }
+    
+    func makeHydrationViewModel() -> HydrationViewModel {
+        HydrationViewModel(
+            hydrationService: hydrationService,
+            healthKitService: healthService,
+            weatherService: weatherService
+        )
     }
 }
 

@@ -12,6 +12,11 @@ struct ProfileView: View {
     // MARK: - ViewModel
     
     @StateObject private var viewModel = DependencyContainer.shared.profileViewModel
+    @StateObject private var hydrationViewModel = HydrationViewModel()
+    
+    // MARK: - State
+    
+    @State private var showHydrationSettings = false
     
     // MARK: - Body
     
@@ -22,6 +27,9 @@ struct ProfileView: View {
             
             // Account Section
             accountSection
+            
+            // Health Profile Section
+            healthProfileSection
             
             // Settings Section
             settingsSection
@@ -127,6 +135,58 @@ struct ProfileView: View {
             NavigationLink(destination: Text("Connected Apps")) {
                 Label("Connected Apps", systemImage: "app.connected.to.app.below.fill")
             }
+        }
+    }
+    
+    private var healthProfileSection: some View {
+        Section("Health Profile") {
+            // Weight display
+            HStack {
+                Label("Weight", systemImage: "scalemass.fill")
+                Spacer()
+                if let weight = hydrationViewModel.preferences.weightKg {
+                    Text(String(format: "%.1f kg", weight))
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("Not set")
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Activity Level
+            HStack {
+                Label("Activity Level", systemImage: hydrationViewModel.preferences.activityLevel.icon)
+                Spacer()
+                Text(hydrationViewModel.preferences.activityLevel.displayName)
+                    .foregroundColor(.secondary)
+            }
+            
+            // Hydration Goal
+            HStack {
+                Label("Daily Hydration Goal", systemImage: "drop.fill")
+                    .foregroundColor(.cyan)
+                Spacer()
+                Text("\(hydrationViewModel.dailyGoal) ml")
+                    .foregroundColor(.secondary)
+            }
+            
+            // Hydration Settings
+            Button(action: { showHydrationSettings = true }) {
+                HStack {
+                    Label("Hydration Preferences", systemImage: "gearshape.fill")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .foregroundColor(.primary)
+        }
+        .task {
+            await hydrationViewModel.loadData()
+        }
+        .sheet(isPresented: $showHydrationSettings) {
+            HydrationSettingsView(viewModel: hydrationViewModel)
         }
     }
     

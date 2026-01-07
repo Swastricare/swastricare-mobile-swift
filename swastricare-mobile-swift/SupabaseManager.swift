@@ -416,6 +416,163 @@ class SupabaseManager {
         return records.first
     }
     
+    // MARK: - Hydration Sync
+    
+    /// Syncs a hydration entry to Supabase
+    func syncHydrationEntry(_ entry: HydrationEntry) async throws -> HydrationEntryRecord {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let record = HydrationEntryRecord(from: entry, userId: userId)
+        
+        let inserted: HydrationEntryRecord = try await client
+            .from("hydration_entries")
+            .upsert(record, onConflict: "id")
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        return inserted
+    }
+    
+    /// Syncs multiple hydration entries to Supabase
+    func syncHydrationEntries(_ entries: [HydrationEntry]) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let records = entries.map { HydrationEntryRecord(from: $0, userId: userId) }
+        
+        try await client
+            .from("hydration_entries")
+            .upsert(records, onConflict: "id")
+            .execute()
+    }
+    
+    /// Fetches hydration entries for a date range
+    func fetchHydrationEntries(from startDate: Date, to endDate: Date) async throws -> [HydrationEntry] {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let dateFormatter = ISO8601DateFormatter()
+        let fromString = dateFormatter.string(from: startDate)
+        let toString = dateFormatter.string(from: endDate)
+        
+        let records: [HydrationEntryRecord] = try await client
+            .from("hydration_entries")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .gte("logged_at", value: fromString)
+            .lte("logged_at", value: toString)
+            .order("logged_at", ascending: false)
+            .execute()
+            .value
+        
+        return records.map { $0.toHydrationEntry() }
+    }
+    
+    /// Fetches today's hydration entries
+    func fetchTodayHydrationEntries() async throws -> [HydrationEntry] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? Date()
+        
+        return try await fetchHydrationEntries(from: startOfDay, to: endOfDay)
+    }
+    
+    /// Deletes a hydration entry
+    func deleteHydrationEntry(id: UUID) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        try await client
+            .from("hydration_entries")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+    }
+    
+    /// Saves hydration preferences to Supabase
+    func saveHydrationPreferences(_ preferences: HydrationPreferences) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        var prefsToSave = preferences
+        prefsToSave.userId = userId
+        prefsToSave.updatedAt = Date()
+        
+        try await client
+            .from("hydration_preferences")
+            .upsert(prefsToSave, onConflict: "user_id")
+            .execute()
+    }
+    
+    /// Fetches hydration preferences from Supabase
+    func fetchHydrationPreferences() async throws -> HydrationPreferences? {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let records: [HydrationPreferences] = try await client
+            .from("hydration_preferences")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .limit(1)
+            .execute()
+            .value
+        
+        return records.first
+    }
+    
+    /// Gets daily hydration stats for a date range (for charts)
+    func getHydrationStats(days: Int = 7) async throws -> [(date: Date, totalMl: Int)] {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let startDate = calendar.date(byAdding: .day, value: -(days - 1), to: today) else {
+            return []
+        }
+        
+        let dateFormatter = ISO8601DateFormatter()
+        let fromString = dateFormatter.string(from: startDate)
+        
+        let records: [HydrationEntryRecord] = try await client
+            .from("hydration_entries")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .gte("logged_at", value: fromString)
+            .order("logged_at", ascending: true)
+            .execute()
+            .value
+        
+        // Group by date
+        var dailyTotals: [Date: Int] = [:]
+        for record in records {
+            let day = calendar.startOfDay(for: record.loggedAt)
+            dailyTotals[day, default: 0] += record.amountMl
+        }
+        
+        // Fill in missing days with 0
+        var result: [(date: Date, totalMl: Int)] = []
+        for dayOffset in 0..<days {
+            if let date = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
+                let day = calendar.startOfDay(for: date)
+                result.append((day, dailyTotals[day] ?? 0))
+            }
+        }
+        
+        return result
+    }
+    
     // MARK: - Private Helpers
     
     private func logSyncHistory(userId: UUID, syncType: String, recordsCount: Int) async throws {
@@ -582,6 +739,60 @@ enum SupabaseError: Error, LocalizedError {
         case .uploadFailed(let message):
             return "Upload failed: \(message)"
         }
+    }
+}
+
+// MARK: - Push Notification Token Management
+
+extension SupabaseManager {
+    
+    /// Register device push token with Supabase
+    func registerPushToken(
+        deviceToken: String,
+        deviceName: String,
+        deviceModel: String,
+        osVersion: String,
+        appVersion: String
+    ) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let record = PushTokenRecord(
+            userId: userId,
+            deviceToken: deviceToken,
+            deviceName: deviceName,
+            deviceModel: deviceModel,
+            osVersion: osVersion,
+            appVersion: appVersion,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+        
+        // Upsert: update if exists, insert if new
+        let _: PushTokenRecord = try await client
+            .from("push_tokens")
+            .upsert(record)
+            .execute()
+            .value
+        
+        print("📲 SupabaseManager: Push token registered successfully")
+    }
+    
+    /// Remove device push token
+    func removePushToken(deviceToken: String) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        try await client
+            .from("push_tokens")
+            .delete()
+            .eq("user_id", value: userId.uuidString)
+            .eq("device_token", value: deviceToken)
+            .execute()
+        
+        print("📲 SupabaseManager: Push token removed")
     }
 }
 
