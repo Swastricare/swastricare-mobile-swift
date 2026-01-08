@@ -47,32 +47,40 @@ struct MedicationDetailView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.black.opacity(0.95)
+                    .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: 20) {
                         // Header Card
                         medicationHeader
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
                         
                         // Today's Doses
                         todaysDosesSection
+                            .padding(.horizontal, 20)
                         
                         // Edit Form (when editing)
                         if isEditing {
                             editFormSection
+                                .padding(.horizontal, 20)
                         } else {
                             detailsSection
+                                .padding(.horizontal, 20)
                         }
                         
                         // Adherence History
                         adherenceSection
+                            .padding(.horizontal, 20)
                         
                         // Delete Button
                         if isEditing {
                             deleteButton
+                                .padding(.horizontal, 20)
                         }
                     }
-                    .padding()
+                    .padding(.bottom, 24)
                 }
             }
             .navigationTitle(isEditing ? "Edit Medication" : "Medication Details")
@@ -86,7 +94,8 @@ struct MedicationDetailView: View {
                             dismiss()
                         }
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
+                    .font(.body)
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -96,11 +105,13 @@ struct MedicationDetailView: View {
                         }
                         .disabled(isLoading || !hasChanges)
                         .foregroundColor(hasChanges ? Color(hex: "2E3192") : .secondary)
+                        .font(.body)
                     } else {
                         Button("Edit") {
                             isEditing = true
                         }
                         .foregroundColor(Color(hex: "2E3192"))
+                        .font(.body)
                     }
                 }
             }
@@ -118,7 +129,6 @@ struct MedicationDetailView: View {
                 Text("Are you sure you want to delete \(medication.name)? This will also cancel all scheduled reminders.")
             }
         }
-        .preferredColorScheme(.dark)
     }
     
     // MARK: - Medication Header
@@ -126,38 +136,38 @@ struct MedicationDetailView: View {
     private var medicationHeader: some View {
         HStack(spacing: 16) {
             ZStack {
-                Circle()
-                    .fill(LinearGradient(colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 70, height: 70)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(hex: "2E3192").opacity(0.12))
+                    .frame(width: 64, height: 64)
                 
                 Image(systemName: medication.type.icon)
-                    .font(.system(size: 32))
-                    .foregroundStyle(Color.white)
+                    .font(.system(size: 28))
+                    .foregroundColor(Color(hex: "2E3192"))
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(medication.name)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.primary)
                 
                 Text(medication.dosage)
-                    .font(.subheadline)
+                    .font(.system(size: 15))
                     .foregroundColor(.secondary)
                 
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                        .font(.caption)
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 12))
                     Text(medication.scheduleTemplate.displayName)
-                        .font(.caption)
+                        .font(.system(size: 13))
                 }
                 .foregroundColor(.secondary)
             }
             
             Spacer()
         }
-        .padding()
-        .glass(cornerRadius: 16)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 20)
+        .glass(cornerRadius: 18)
     }
     
     // MARK: - Today's Doses Section
@@ -165,34 +175,44 @@ struct MedicationDetailView: View {
     private var todaysDosesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Today's Doses")
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding(.horizontal)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
             
             let adherence = viewModel.getAdherence(for: medication.id, date: Date())
             
             if adherence.isEmpty {
-                Text("No doses scheduled for today")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .glass(cornerRadius: 12)
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary.opacity(0.5))
+                        Text("No doses scheduled for today")
+                            .font(.system(size: 15))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 32)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .glass(cornerRadius: 16)
             } else {
-                ForEach(adherence) { dose in
-                    DoseCard(
-                        dose: dose,
-                        onMarkTaken: {
-                            Task {
-                                try? await viewModel.markAsTaken(medicationId: medication.id, scheduledTime: dose.scheduledTime)
+                VStack(spacing: 10) {
+                    ForEach(adherence) { dose in
+                        DoseCard(
+                            dose: dose,
+                            onMarkTaken: {
+                                Task {
+                                    try? await viewModel.markAsTaken(medicationId: medication.id, scheduledTime: dose.scheduledTime)
+                                }
+                            },
+                            onMarkSkipped: {
+                                Task {
+                                    try? await viewModel.markAsSkipped(medicationId: medication.id, scheduledTime: dose.scheduledTime, notes: "Skipped manually")
+                                }
                             }
-                        },
-                        onMarkSkipped: {
-                            Task {
-                                try? await viewModel.markAsSkipped(medicationId: medication.id, scheduledTime: dose.scheduledTime, notes: "Skipped manually")
-                            }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -203,88 +223,101 @@ struct MedicationDetailView: View {
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Details")
-                .font(.headline)
-                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
             
-            DetailRow(label: "Type", value: medication.type.displayName, icon: medication.type.icon)
-            DetailRow(label: "Schedule", value: medication.scheduleTemplate.displayName, icon: "calendar")
-            
-            if medication.isOngoing {
-                DetailRow(label: "Duration", value: "Ongoing", icon: "infinity")
-            } else if let endDate = medication.endDate {
-                DetailRow(label: "End Date", value: formatDate(endDate), icon: "calendar.badge.clock")
+            VStack(spacing: 10) {
+                DetailRow(label: "Type", value: medication.type.displayName, icon: medication.type.icon)
+                DetailRow(label: "Schedule", value: medication.scheduleTemplate.displayName, icon: "calendar")
+                
+                if medication.isOngoing {
+                    DetailRow(label: "Duration", value: "Ongoing", icon: "infinity")
+                } else if let endDate = medication.endDate {
+                    DetailRow(label: "End Date", value: formatDate(endDate), icon: "calendar.badge.clock")
+                }
             }
             
             if let notes = medication.notes, !notes.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
                         Image(systemName: "note.text")
+                            .font(.system(size: 14))
                             .foregroundColor(.secondary)
                         Text("Notes")
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                     }
-                    .font(.caption)
                     
                     Text(notes)
-                        .font(.subheadline)
-                        .foregroundColor(.white)
+                        .font(.system(size: 15))
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding()
-                .glass(cornerRadius: 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .glass(cornerRadius: 14)
             }
         }
-        .padding()
-        .glass(cornerRadius: 16)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 20)
+        .glass(cornerRadius: 18)
     }
     
     // MARK: - Edit Form Section
     
     private var editFormSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             Text("Edit Details")
-                .font(.headline)
-                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("Name")
-                    .font(.caption)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                 TextField("Medication name", text: $name)
                     .textFieldStyle(PremiumTextFieldStyle())
             }
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("Dosage")
-                    .font(.caption)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                 TextField("Dosage", text: $dosage)
                     .textFieldStyle(PremiumTextFieldStyle())
             }
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("Notes")
-                    .font(.caption)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                 TextEditor(text: $notes)
-                    .frame(height: 80)
+                    .frame(height: 100)
                     .scrollContentBackground(.hidden)
-                    .padding(12)
-                    .background(Color.white.opacity(0.05))
-                    .cornerRadius(12)
+                    .padding(16)
+                    .background(Color.primary.opacity(0.05))
+                    .cornerRadius(14)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.primary.opacity(0.1), lineWidth: 1)
                     )
             }
             
             Toggle(isOn: $isOngoing) {
-                Text("Ongoing medication")
-                    .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ongoing medication")
+                        .font(.system(size: 15))
+                        .foregroundColor(.primary)
+                    Text("No end date")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
             }
-            .tint(PremiumColor.neonGreen)
+            .tint(Color(hex: "2E3192"))
         }
-        .padding()
-        .glass(cornerRadius: 16)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 20)
+        .glass(cornerRadius: 18)
     }
     
     // MARK: - Adherence Section
@@ -292,20 +325,20 @@ struct MedicationDetailView: View {
     private var adherenceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Adherence History")
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding(.horizontal)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
             
             let adherence = viewModel.getAdherence(for: medication.id, date: Date())
             let stats = AdherenceStatistics(adherenceRecords: adherence)
             
-            HStack(spacing: 20) {
+            HStack(spacing: 12) {
                 MedicationStatCard(title: "Taken", value: "\(stats.takenDoses)", color: .green)
                 MedicationStatCard(title: "Missed", value: "\(stats.missedDoses)", color: .red)
                 MedicationStatCard(title: "Skipped", value: "\(stats.skippedDoses)", color: .orange)
             }
-            .padding()
-            .glass(cornerRadius: 12)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 20)
+            .glass(cornerRadius: 18)
         }
     }
     
@@ -315,15 +348,17 @@ struct MedicationDetailView: View {
         Button(action: {
             showDeleteConfirmation = true
         }) {
-            HStack {
+            HStack(spacing: 8) {
                 Image(systemName: "trash.fill")
+                    .font(.system(size: 16))
                 Text("Delete Medication")
+                    .font(.system(size: 16, weight: .semibold))
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.red.opacity(0.2))
-            .cornerRadius(12)
             .foregroundColor(.red)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(14)
         }
         .buttonStyle(ScaleButtonStyle())
     }
@@ -410,17 +445,17 @@ struct DoseCard: View {
     let onMarkSkipped: () -> Void
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(formatTime(dose.scheduledTime))
-                    .font(.headline)
-                    .foregroundColor(.white)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.primary)
                 
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Image(systemName: dose.status.icon)
-                        .font(.caption)
+                        .font(.system(size: 12))
                     Text(dose.status.displayName)
-                        .font(.caption)
+                        .font(.system(size: 13))
                 }
                 .foregroundColor(statusColor(dose.status))
             }
@@ -428,29 +463,34 @@ struct DoseCard: View {
             Spacer()
             
             if dose.status == .pending {
-                HStack(spacing: 8) {
+                HStack(spacing: 12) {
                     Button(action: onMarkTaken) {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.title3)
+                            .font(.system(size: 28))
                             .foregroundColor(.green)
                     }
-                    .buttonStyle(ScaleButtonStyle())
+                    .buttonStyle(PlainButtonStyle())
                     
                     Button(action: onMarkSkipped) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.title3)
+                            .font(.system(size: 28))
                             .foregroundColor(.orange)
                     }
-                    .buttonStyle(ScaleButtonStyle())
+                    .buttonStyle(PlainButtonStyle())
                 }
             } else if let takenAt = dose.takenAt {
-                Text("at \(formatTime(takenAt))")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                    Text("at \(formatTime(takenAt))")
+                        .font(.system(size: 13))
+                }
+                .foregroundColor(.secondary)
             }
         }
-        .padding()
-        .glass(cornerRadius: 12)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .glass(cornerRadius: 14)
     }
     
     private func formatTime(_ date: Date) -> String {
@@ -477,23 +517,26 @@ struct DetailRow: View {
     let icon: String
     
     var body: some View {
-        HStack {
-            HStack {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 Image(systemName: icon)
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
+                    .frame(width: 20)
                 Text(label)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
             }
-            .font(.caption)
             
             Spacer()
             
             Text(value)
-                .font(.subheadline)
-                .foregroundColor(.white)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.primary)
         }
-        .padding()
-        .glass(cornerRadius: 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .glass(cornerRadius: 14)
     }
 }
 
@@ -507,12 +550,11 @@ struct MedicationStatCard: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.system(size: 28, weight: .bold))
                 .foregroundColor(color)
             
             Text(title)
-                .font(.caption)
+                .font(.system(size: 13))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

@@ -12,11 +12,13 @@ import GLTFKit2
 
 struct ModelViewer: UIViewRepresentable {
     let modelName: String
+    var allowsInteraction: Bool = true
     
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
         scnView.backgroundColor = .clear
-        scnView.allowsCameraControl = true
+        scnView.allowsCameraControl = allowsInteraction
+        scnView.isUserInteractionEnabled = allowsInteraction
         scnView.autoenablesDefaultLighting = true
         
         // Start with placeholder, then load async

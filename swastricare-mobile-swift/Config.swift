@@ -16,8 +16,9 @@ struct SupabaseConfig {
 
 struct AppConfig {
     // Onboarding Configuration
-    static let isTestingMode = true // Set to false for production to show onboarding only once
+    static let isTestingMode = false // Set to false for production to show onboarding only once
     static let hasSeenOnboardingKey = "hasSeenOnboarding"
+    static let hasLoggedInBeforeKey = "hasLoggedInBefore" // Track if user has logged in before
 }
 
 // MARK: - Usage Instructions

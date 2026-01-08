@@ -46,6 +46,8 @@ final class AuthViewModel: ObservableObject {
         do {
             if let user = try await authService.checkSession() {
                 authState = .authenticated(user)
+                // Mark that user has logged in before (for onboarding logic)
+                UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
             } else {
                 authState = .unauthenticated
             }
@@ -70,6 +72,8 @@ final class AuthViewModel: ObservableObject {
                 fullName: formState.fullName
             ) {
                 authState = .authenticated(user)
+                // Mark that user has logged in before (for onboarding logic)
+                UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
                 clearForm()
             } else {
                 errorMessage = "Please check your email to verify your account"
@@ -96,6 +100,8 @@ final class AuthViewModel: ObservableObject {
                 password: formState.password
             )
             authState = .authenticated(user)
+            // Mark that user has logged in before (for onboarding logic)
+            UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
             clearForm()
         } catch {
             errorMessage = error.localizedDescription
@@ -111,6 +117,8 @@ final class AuthViewModel: ObservableObject {
         do {
             let user = try await authService.signInWithGoogle()
             authState = .authenticated(user)
+            // Mark that user has logged in before (for onboarding logic)
+            UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -33,7 +33,7 @@ struct UrineColorGuideView: View {
                 }
                 .padding()
             }
-            .background(Color.black)
+            .background(PremiumBackground())
             .navigationTitle("Hydration Check")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -44,7 +44,6 @@ struct UrineColorGuideView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
     
     // MARK: - Header Section
@@ -108,13 +107,13 @@ struct UrineColorGuideView: View {
                     .frame(width: 50, height: 50)
                     .overlay(
                         Circle()
-                            .stroke(selectedColor == color ? Color.white : Color.clear, lineWidth: 3)
+                            .stroke(selectedColor == color ? Color.primary : Color.clear, lineWidth: 3)
                     )
                     .shadow(color: color.color.opacity(0.5), radius: selectedColor == color ? 8 : 0)
                 
                 Text(color.displayName)
                     .font(.caption2)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -160,7 +159,7 @@ struct UrineColorGuideView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.cyan)
+                    .background(Color(hex: "2E3192"))
                     .cornerRadius(12)
                 }
             }

@@ -69,12 +69,17 @@ struct TimelineItem: Identifiable, Equatable {
 
 enum TimelineItemType: Equatable {
     case document(MedicalDocument)
+    case documents([MedicalDocument]) // Multiple documents with same metadata
     case consultation(doctorName: String?, location: String?, date: Date)
     
     static func == (lhs: TimelineItemType, rhs: TimelineItemType) -> Bool {
         switch (lhs, rhs) {
         case (.document(let doc1), .document(let doc2)):
             return doc1.id == doc2.id
+        case (.documents(let docs1), .documents(let docs2)):
+            let ids1 = docs1.compactMap { $0.id }.sorted()
+            let ids2 = docs2.compactMap { $0.id }.sorted()
+            return ids1 == ids2
         case (.consultation(let doc1, let loc1, let date1), .consultation(let doc2, let loc2, let date2)):
             return doc1 == doc2 && loc1 == loc2 && date1 == date2
         default:
@@ -153,7 +158,14 @@ struct DocumentFolder: Identifiable, Equatable {
     }
     
     static func == (lhs: DocumentFolder, rhs: DocumentFolder) -> Bool {
-        lhs.id == rhs.id && lhs.documents.count == rhs.documents.count
+        // Compare by ID and document IDs to ensure proper equality
+        guard lhs.id == rhs.id && lhs.documents.count == rhs.documents.count else {
+            return false
+        }
+        // Compare document IDs to ensure they're the same documents
+        let lhsIds = lhs.documents.compactMap { $0.id }.sorted()
+        let rhsIds = rhs.documents.compactMap { $0.id }.sorted()
+        return lhsIds == rhsIds
     }
 }
 
@@ -171,20 +183,52 @@ final class VaultViewModel: ObservableObject {
     @Published private(set) var currentUploadIndex = 0
     @Published private(set) var totalUploadFiles = 0
     
-    @Published var searchQuery = ""
+    @Published var searchQuery = "" {
+        didSet {
+            // Debounce search updates
+            debounceSearch()
+        }
+    }
     @Published var selectedCategory: VaultCategory?
     @Published var showUploadSheet = false
-    @Published var sortOrder: VaultSortOrder = .dateDescending
-    @Published var viewMode: VaultViewMode = .folders  // Default to folders
+    @Published var sortOrder: VaultSortOrder = .dateDescending {
+        didSet {
+            invalidateCaches()
+        }
+    }
+    @Published var viewMode: VaultViewMode = .folders {
+        didSet {
+            invalidateCaches()
+        }
+    }
     
     // MARK: - Upload State
     
     @Published var pendingUploads: [PendingUpload] = []
     @Published var uploadCategory: VaultCategory = .prescriptions
     
+    // MARK: - UI State
+    
+    @Published var isSelectionMode = false
+    @Published var selectedDocuments: Set<UUID> = []
+    
+    // MARK: - Private State
+    
+    private var debounceTask: Task<Void, Never>?
+    private var _filteredDocuments: [MedicalDocument]?
+    private var _groupedDocuments: [DocumentFolder]?
+    private var _timelineItems: [TimelineItem]?
+    private var _documentsByCategory: [VaultCategory: Int]?
+    private var currentSearchQuery = ""
+    
     // MARK: - Computed Properties
     
     var filteredDocuments: [MedicalDocument] {
+        // Use cached value if available and search query hasn't changed
+        if let cached = _filteredDocuments, currentSearchQuery == searchQuery {
+            return cached
+        }
+        
         var result = documents
         
         // Filter by category
@@ -192,12 +236,15 @@ final class VaultViewModel: ObservableObject {
             result = result.filter { $0.category == category.rawValue }
         }
         
-        // Filter by search query
-        if !searchQuery.isEmpty {
-            let query = searchQuery.lowercased()
+        // Filter by search query (use currentSearchQuery which is debounced)
+        if !currentSearchQuery.isEmpty {
+            let query = currentSearchQuery.lowercased()
             result = result.filter {
                 $0.title.lowercased().contains(query) ||
                 ($0.notes?.lowercased().contains(query) ?? false) ||
+                ($0.description?.lowercased().contains(query) ?? false) ||
+                ($0.doctorName?.lowercased().contains(query) ?? false) ||
+                ($0.location?.lowercased().contains(query) ?? false) ||
                 $0.category.lowercased().contains(query)
             }
         }
@@ -205,14 +252,24 @@ final class VaultViewModel: ObservableObject {
         // Sort
         result = sortDocuments(result)
         
+        // Cache the result
+        _filteredDocuments = result
+        currentSearchQuery = searchQuery
+        
         return result
     }
     
     var documentsByCategory: [VaultCategory: Int] {
+        if let cached = _documentsByCategory {
+            return cached
+        }
+        
         var counts: [VaultCategory: Int] = [:]
         for category in VaultCategory.allCases {
             counts[category] = documents.filter { $0.category == category.rawValue }.count
         }
+        
+        _documentsByCategory = counts
         return counts
     }
     
@@ -232,8 +289,25 @@ final class VaultViewModel: ObservableObject {
     
     // Group documents into folders based on shared metadata
     var groupedDocuments: [DocumentFolder] {
+        // Use cached value if available
+        if let cached = _groupedDocuments {
+            return cached
+        }
+        
         // Group by folderName first, then by documentDate + doctorName + location
-        let grouped = Dictionary(grouping: filteredDocuments) { document -> String in
+        // Sort documents first to ensure consistent grouping order
+        let filtered = filteredDocuments.sorted { doc1, doc2 in
+            // Sort by date first for consistent grouping
+            let date1 = doc1.documentDate ?? doc1.createdAt ?? Date.distantPast
+            let date2 = doc2.documentDate ?? doc2.createdAt ?? Date.distantPast
+            if date1 != date2 {
+                return date1 > date2
+            }
+            // Then by ID for stability
+            return (doc1.id?.uuidString ?? "") < (doc2.id?.uuidString ?? "")
+        }
+        
+        let grouped = Dictionary(grouping: filtered) { document -> String in
             var key = ""
             
             // Use folderName as primary grouping key if available
@@ -266,41 +340,102 @@ final class VaultViewModel: ObservableObject {
             return key
         }
         
-        // Convert to folders
-        var folders = grouped.map { (key, docs) in
-            DocumentFolder(id: key, documents: docs)
+        // Convert to folders - use sorted keys for deterministic order
+        let sortedKeys = grouped.keys.sorted()
+        var folders = sortedKeys.compactMap { key -> DocumentFolder? in
+            guard let docs = grouped[key] else { return nil }
+            // Sort documents within folder for consistency
+            let sortedDocs = docs.sorted { doc1, doc2 in
+                let date1 = doc1.createdAt ?? Date.distantPast
+                let date2 = doc2.createdAt ?? Date.distantPast
+                if date1 != date2 {
+                    return date1 > date2
+                }
+                return (doc1.id?.uuidString ?? "") < (doc2.id?.uuidString ?? "")
+            }
+            return DocumentFolder(id: key, documents: sortedDocs)
         }
         
-        // Sort folders by document date (newest first)
+        // Sort folders by document date (newest first), with stable secondary sort
         folders.sort { folder1, folder2 in
             let date1 = folder1.documentDate ?? folder1.documents.first?.createdAt ?? Date.distantPast
             let date2 = folder2.documentDate ?? folder2.documents.first?.createdAt ?? Date.distantPast
-            return date1 > date2
+            
+            // Primary sort: by date (newest first)
+            if date1 != date2 {
+                return date1 > date2
+            }
+            
+            // Secondary sort: by folder name (alphabetical) for stability
+            let name1 = folder1.folderTitle.lowercased()
+            let name2 = folder2.folderTitle.lowercased()
+            if name1 != name2 {
+                return name1 < name2
+            }
+            
+            // Tertiary sort: by folder ID for complete stability
+            return folder1.id < folder2.id
         }
         
+        // Cache the result
+        _groupedDocuments = folders
         return folders
     }
     
     // Timeline items grouped by date
     var timelineItems: [TimelineItem] {
+        // Use cached value if available
+        if let cached = _timelineItems {
+            return cached
+        }
+        
+        // Group documents by folder name/metadata to avoid duplicates
+        let grouped = Dictionary(grouping: filteredDocuments) { document -> String in
+            // Use folderName as primary grouping key
+            if let name = document.folderName, !name.isEmpty {
+                return "folder_\(name)"
+            }
+            
+            // Group by document date + doctor + location
+            var key = ""
+            if let date = document.documentDate {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd"
+                key += formatter.string(from: date)
+            }
+            if let doctor = document.doctorName, !doctor.isEmpty {
+                key += "_\(doctor)"
+            }
+            if let location = document.location, !location.isEmpty {
+                key += "_\(location)"
+            }
+            
+            // If no metadata, use individual document ID
+            if key.isEmpty {
+                key = document.id?.uuidString ?? UUID().uuidString
+            }
+            
+            return key
+        }
+        
         var items: [TimelineItem] = []
         
-        // Create timeline items from documents
-        for document in filteredDocuments {
+        // Create timeline items from grouped documents
+        for (_, documents) in grouped {
+            guard let firstDoc = documents.first else { continue }
+            
             // For date grouping, use documentDate, appointmentDate, or reminderDate
-            let dateForGrouping = document.documentDate ?? 
-                                 document.appointmentDate ?? 
-                                 document.reminderDate ?? 
-                                 document.uploadedAt ?? 
-                                 document.createdAt ?? 
+            let dateForGrouping = firstDoc.documentDate ?? 
+                                 firstDoc.appointmentDate ?? 
+                                 firstDoc.reminderDate ?? 
+                                 firstDoc.uploadedAt ?? 
+                                 firstDoc.createdAt ?? 
                                  Date()
             
             // For time display, combine the date from documentDate with time from uploadedAt/createdAt
-            // This ensures we show the correct time (not midnight from date-only fields)
             let displayDate: Date
-            if let docDate = document.documentDate ?? document.appointmentDate ?? document.reminderDate,
-               let timeSource = document.uploadedAt ?? document.createdAt {
-                // Combine date from documentDate with time from uploadedAt/createdAt
+            if let docDate = firstDoc.documentDate ?? firstDoc.appointmentDate ?? firstDoc.reminderDate,
+               let timeSource = firstDoc.uploadedAt ?? firstDoc.createdAt {
                 let calendar = Calendar.current
                 let dateComponents = calendar.dateComponents([.year, .month, .day], from: docDate)
                 let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: timeSource)
@@ -313,22 +448,39 @@ final class VaultViewModel: ObservableObject {
                 combinedComponents.second = timeComponents.second
                 displayDate = calendar.date(from: combinedComponents) ?? timeSource
             } else {
-                // Use uploadedAt or createdAt directly (they have proper timestamps)
-                displayDate = document.uploadedAt ?? document.createdAt ?? dateForGrouping
+                displayDate = firstDoc.uploadedAt ?? firstDoc.createdAt ?? dateForGrouping
+            }
+            
+            // Use the most recent document's ID for the timeline item
+            let itemId = documents
+                .compactMap { $0.id }
+                .sorted()
+                .first ?? UUID()
+            
+            // If multiple documents, use .documents case, otherwise .document
+            let itemType: TimelineItemType
+            if documents.count > 1 {
+                itemType = .documents(documents)
+            } else {
+                itemType = .document(firstDoc)
             }
             
             items.append(TimelineItem(
-                id: document.id ?? UUID(),
+                id: itemId,
                 date: displayDate,
-                type: .document(document),
-                doctorName: document.doctorName,
-                location: document.location,
-                folderName: document.folderName
+                type: itemType,
+                doctorName: firstDoc.doctorName,
+                location: firstDoc.location,
+                folderName: firstDoc.folderName
             ))
         }
         
         // Sort by date (newest first)
-        return items.sorted { $0.date > $1.date }
+        let sorted = items.sorted { $0.date > $1.date }
+        
+        // Cache the result
+        _timelineItems = sorted
+        return sorted
     }
     
     func setViewMode(_ mode: VaultViewMode) {
@@ -375,19 +527,28 @@ final class VaultViewModel: ObservableObject {
     // MARK: - Actions
     
     func loadDocuments() async {
+        // Prevent concurrent loads
+        guard !isLoading else { return }
+        
         // Clear any previous errors
         errorMessage = nil
         
-        // Set loading state only if not already loading (to prevent UI flicker during refresh)
-        let wasLoading = isLoading
-        if !wasLoading {
-            isLoading = true
-        }
+        // Set loading state
+        isLoading = true
+        
+        // Invalidate caches
+        invalidateCaches()
         
         do {
             // Fetch documents
             let fetched = try await vaultService.fetchDocuments()
+            
+            // Update documents atomically
             documents = fetched
+            
+            // Invalidate caches after update
+            invalidateCaches()
+            
             isLoading = false
             print("✅ Loaded \(fetched.count) documents")
         } catch {
@@ -482,8 +643,9 @@ final class VaultViewModel: ObservableObject {
                 
                 print("✅ Successfully uploaded: \(upload.fileName)")
                 
-                // Add to beginning of list
+                // Add to beginning of list and invalidate caches
                 documents.insert(document, at: 0)
+                invalidateCaches()
                 successCount += 1
                 
                 // Update progress AFTER successful upload
@@ -514,6 +676,7 @@ final class VaultViewModel: ObservableObject {
             do {
                 let refreshed = try await vaultService.fetchDocuments()
                 documents = refreshed
+                invalidateCaches()
             } catch {
                 print("⚠️ Failed to refresh documents after upload: \(error)")
                 // Don't fail the entire upload if refresh fails
@@ -552,9 +715,8 @@ final class VaultViewModel: ObservableObject {
         
         do {
             try await vaultService.deleteDocument(document)
-            withAnimation {
-                documents.removeAll { $0.id == document.id }
-            }
+            documents.removeAll { $0.id == document.id }
+            invalidateCaches()
             isLoading = false
             return true
         } catch {
@@ -595,10 +757,35 @@ final class VaultViewModel: ObservableObject {
     
     func setCategory(_ category: VaultCategory?) {
         selectedCategory = category
+        invalidateCaches()
     }
     
     func setSortOrder(_ order: VaultSortOrder) {
         sortOrder = order
+        // Cache invalidation handled in didSet
+    }
+    
+    func toggleSelectionMode() {
+        isSelectionMode.toggle()
+        if !isSelectionMode {
+            selectedDocuments.removeAll()
+        }
+    }
+    
+    func toggleDocumentSelection(_ documentId: UUID) {
+        if selectedDocuments.contains(documentId) {
+            selectedDocuments.remove(documentId)
+        } else {
+            selectedDocuments.insert(documentId)
+        }
+    }
+    
+    func selectAllDocuments() {
+        selectedDocuments = Set(filteredDocuments.compactMap { $0.id })
+    }
+    
+    func clearSelection() {
+        selectedDocuments.removeAll()
     }
     
     // MARK: - Helpers
@@ -631,6 +818,34 @@ final class VaultViewModel: ObservableObject {
     func resetUploadForm() {
         pendingUploads.removeAll()
         uploadCategory = .prescriptions
+    }
+    
+    // MARK: - Private Helpers
+    
+    private func invalidateCaches() {
+        _filteredDocuments = nil
+        _groupedDocuments = nil
+        _timelineItems = nil
+        _documentsByCategory = nil
+    }
+    
+    private func debounceSearch() {
+        // Cancel previous debounce task
+        debounceTask?.cancel()
+        
+        // Create new debounce task
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms debounce
+            
+            // Check if task was cancelled
+            guard !Task.isCancelled else { return }
+            
+            // Update current search query and invalidate cache
+            if currentSearchQuery != searchQuery {
+                currentSearchQuery = searchQuery
+                invalidateCaches()
+            }
+        }
     }
 }
 

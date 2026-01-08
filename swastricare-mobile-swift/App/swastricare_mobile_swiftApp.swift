@@ -19,7 +19,8 @@ struct swastricare_mobile_swiftApp: App {
         if AppConfig.isTestingMode {
             return false
         }
-        return UserDefaults.standard.bool(forKey: AppConfig.hasSeenOnboardingKey)
+        // Show onboarding only for new users (before first login)
+        return UserDefaults.standard.bool(forKey: AppConfig.hasLoggedInBeforeKey)
     }()
     
     @Environment(\.scenePhase) private var scenePhase

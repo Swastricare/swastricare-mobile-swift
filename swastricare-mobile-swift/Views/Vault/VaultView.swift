@@ -34,8 +34,7 @@ struct VaultView: View {
     @State private var documentForDetails: MedicalDocument?
     @State private var showDeleteConfirmation = false
     @State private var documentToDelete: MedicalDocument?
-    @State private var isSelectionMode = false
-    @State private var selectedDocuments: Set<UUID> = []
+    // Selection state moved to ViewModel
     @State private var selectedFolder: DocumentFolder?
     @State private var showErrorAlert = false
     @State private var pendingAction: PendingAction?
@@ -67,7 +66,7 @@ struct VaultView: View {
         ZStack(alignment: .bottomTrailing) {
             mainContent
             
-            if !isSelectionMode {
+            if !viewModel.isSelectionMode {
                 floatingAddButton
             }
         }
@@ -90,7 +89,7 @@ struct VaultView: View {
             VStack(spacing: 20) {
                 categoryFilter
                 
-                if isSelectionMode {
+                if viewModel.isSelectionMode {
                     selectionBar
                 }
                 
@@ -138,14 +137,14 @@ struct VaultView: View {
     
     private var selectionBar: some View {
         HStack {
-            Text("\(selectedDocuments.count) selected")
+            Text("\(viewModel.selectedDocuments.count) selected")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
             Spacer()
             
             Button("Select All") {
-                selectedDocuments = Set(viewModel.filteredDocuments.compactMap { $0.id })
+                viewModel.selectAllDocuments()
             }
             .font(.subheadline)
             
@@ -154,7 +153,7 @@ struct VaultView: View {
             } label: {
                 Label("Delete", systemImage: "trash")
             }
-            .disabled(selectedDocuments.isEmpty)
+            .disabled(viewModel.selectedDocuments.isEmpty)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
@@ -179,6 +178,9 @@ struct VaultView: View {
                     documentsList
                 }
             }
+        }
+        .transaction { transaction in
+            transaction.animation = nil // Disable animations when switching views
         }
     }
     
@@ -221,11 +223,13 @@ struct VaultView: View {
                 DocumentRowWithPreview(
                     document: document,
                     viewModel: viewModel,
-                    isSelectionMode: isSelectionMode,
-                    isSelected: selectedDocuments.contains(document.id ?? UUID()),
+                    isSelectionMode: viewModel.isSelectionMode,
+                    isSelected: viewModel.selectedDocuments.contains(document.id ?? UUID()),
                     onTap: {
-                        if isSelectionMode {
-                            toggleSelection(document)
+                        if viewModel.isSelectionMode {
+                            if let id = document.id {
+                                viewModel.toggleDocumentSelection(id)
+                            }
                         } else {
                             viewDocument(document)
                         }
@@ -238,6 +242,9 @@ struct VaultView: View {
             }
         }
         .padding(.horizontal, 16)
+        .transaction { transaction in
+            transaction.animation = nil // Disable implicit animations for stable rendering
+        }
     }
     
     // MARK: - Folders View (Grid like Files app)
@@ -257,11 +264,13 @@ struct VaultView: View {
                         selectedFolder = folder
                     }
                 )
-                .id(folder.id)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .transaction { transaction in
+            transaction.animation = nil // Disable implicit animations for stable rendering
+        }
     }
     
     // MARK: - Timeline View
@@ -286,6 +295,9 @@ struct VaultView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
+        }
+        .transaction { transaction in
+            transaction.animation = nil // Disable implicit animations for stable rendering
         }
     }
     
@@ -321,9 +333,7 @@ struct VaultView: View {
                 // View mode toggle
                 Menu {
                     Button {
-                        withAnimation(.spring(response: 0.3)) {
-                            viewModel.setViewMode(.timeline)
-                        }
+                        viewModel.setViewMode(.timeline)
                     } label: {
                         Label("Timeline", systemImage: "calendar")
                         if viewModel.viewMode == .timeline {
@@ -332,9 +342,7 @@ struct VaultView: View {
                     }
                     
                     Button {
-                        withAnimation(.spring(response: 0.3)) {
-                            viewModel.setViewMode(.folders)
-                        }
+                        viewModel.setViewMode(.folders)
                     } label: {
                         Label("Folders", systemImage: "folder.fill")
                         if viewModel.viewMode == .folders {
@@ -343,9 +351,7 @@ struct VaultView: View {
                     }
                     
                     Button {
-                        withAnimation(.spring(response: 0.3)) {
-                            viewModel.setViewMode(.list)
-                        }
+                        viewModel.setViewMode(.list)
                     } label: {
                         Label("List", systemImage: "list.bullet")
                         if viewModel.viewMode == .list {
@@ -358,10 +364,10 @@ struct VaultView: View {
                 
                 // More options menu
                 Menu {
-                    Button(action: { isSelectionMode.toggle() }) {
+                    Button(action: { viewModel.toggleSelectionMode() }) {
                         Label(
-                            isSelectionMode ? "Done" : "Select",
-                            systemImage: isSelectionMode ? "checkmark.circle" : "checkmark.circle.fill"
+                            viewModel.isSelectionMode ? "Done" : "Select",
+                            systemImage: viewModel.isSelectionMode ? "checkmark.circle" : "checkmark.circle.fill"
                         )
                     }
                     
@@ -369,9 +375,7 @@ struct VaultView: View {
                     
                     Menu("View Mode") {
                         Button {
-                            withAnimation(.spring(response: 0.3)) {
-                                viewModel.setViewMode(.timeline)
-                            }
+                            viewModel.setViewMode(.timeline)
                         } label: {
                             Label("Timeline", systemImage: "calendar")
                             if viewModel.viewMode == .timeline {
@@ -380,9 +384,7 @@ struct VaultView: View {
                         }
                         
                         Button {
-                            withAnimation(.spring(response: 0.3)) {
-                                viewModel.setViewMode(.folders)
-                            }
+                            viewModel.setViewMode(.folders)
                         } label: {
                             Label("Folders", systemImage: "folder.fill")
                             if viewModel.viewMode == .folders {
@@ -391,9 +393,7 @@ struct VaultView: View {
                         }
                         
                         Button {
-                            withAnimation(.spring(response: 0.3)) {
-                                viewModel.setViewMode(.list)
-                            }
+                            viewModel.setViewMode(.list)
                         } label: {
                             Label("List", systemImage: "list.bullet")
                             if viewModel.viewMode == .list {
@@ -466,24 +466,15 @@ struct VaultView: View {
         showDeleteConfirmation = true
     }
     
-    private func toggleSelection(_ document: MedicalDocument) {
-        if let id = document.id {
-            if selectedDocuments.contains(id) {
-                selectedDocuments.remove(id)
-            } else {
-                selectedDocuments.insert(id)
-            }
-        }
-    }
-    
     private func deleteSelectedDocuments() async {
-        for id in selectedDocuments {
+        let selectedIds = viewModel.selectedDocuments
+        for id in selectedIds {
             if let doc = viewModel.documents.first(where: { $0.id == id }) {
                 await viewModel.deleteDocument(doc)
             }
         }
-        selectedDocuments.removeAll()
-        isSelectionMode = false
+        viewModel.clearSelection()
+        viewModel.toggleSelectionMode()
     }
 }
 
@@ -492,6 +483,13 @@ struct VaultView: View {
 private struct FolderGridItem: View {
     let folder: DocumentFolder
     let onTap: () -> Void
+    
+    // Cache color to prevent recalculation
+    private var folderColor: Color {
+        // Use app theme colors (royal blue or teal) - stable based on folder ID
+        let stableHash = abs(folder.id.hashValue)
+        return stableHash % 2 == 0 ? Color(hex: "2E3192") : Color(hex: "1BBBCE")
+    }
     
     var body: some View {
         Button(action: onTap) {
@@ -554,12 +552,6 @@ private struct FolderGridItem: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
-    }
-    
-    private var folderColor: Color {
-        // Use app theme colors (royal blue or teal)
-        let hash = folder.id.hashValue
-        return hash % 2 == 0 ? Color(hex: "2E3192") : Color(hex: "1BBBCE")
     }
 }
 
@@ -2331,29 +2323,41 @@ private struct TimelineItemCard: View {
             }
             .frame(width: 12)
             
-            // Content Card
-            VStack(alignment: .leading, spacing: 8) {
-                // Time
-                Text(timeFormatter.string(from: item.date))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
-                
+            // Content Card - Complete card design
+            VStack(alignment: .leading, spacing: 0) {
                 // Card Content
                 Group {
                     switch item.type {
                     case .document(let document):
                         DocumentTimelineCard(
                             document: document,
+                            documents: nil,
                             doctorName: item.doctorName,
                             location: item.location,
                             folderName: item.folderName,
+                            time: timeFormatter.string(from: item.date),
                             onTap: { onDocumentTap(document) },
                             onInfo: { onDocumentInfo(document) }
+                        )
+                    case .documents(let documents):
+                        DocumentTimelineCard(
+                            document: documents.first!,
+                            documents: documents,
+                            doctorName: item.doctorName,
+                            location: item.location,
+                            folderName: item.folderName,
+                            time: timeFormatter.string(from: item.date),
+                            onTap: {
+                                // Open first document (for multiple files, user can use folders view)
+                                onDocumentTap(documents.first!)
+                            },
+                            onInfo: { onDocumentInfo(documents.first!) }
                         )
                     case .consultation(let doctorName, let location, _):
                         ConsultationTimelineCard(
                             doctorName: doctorName,
-                            location: location
+                            location: location,
+                            time: timeFormatter.string(from: item.date)
                         )
                     }
                 }
@@ -2364,7 +2368,7 @@ private struct TimelineItemCard: View {
     
     private var itemColor: Color {
         switch item.type {
-        case .document:
+        case .document, .documents:
             return Color(hex: "2E3192")
         case .consultation:
             return Color(hex: "1BBBCE")
@@ -2374,41 +2378,37 @@ private struct TimelineItemCard: View {
 
 private struct DocumentTimelineCard: View {
     let document: MedicalDocument
+    let documents: [MedicalDocument]? // Multiple documents if grouped
     let doctorName: String?
     let location: String?
     let folderName: String?
+    let time: String
     let onTap: () -> Void
     let onInfo: () -> Void
     
+    private var fileCount: Int {
+        documents?.count ?? 1
+    }
+    
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 10) {
-                // Document Info
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        // Name (only folderName, no filename)
-                        if let name = document.folderName, !name.isEmpty {
-                            Text(name)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.primary)
-                                .lineLimit(2)
-                        }
-                        
-                        // Category with icon
-                        HStack(spacing: 6) {
-                            Image(systemName: categoryIcon(for: document.category))
-                                .font(.system(size: 11))
-                            Text(document.category)
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundColor(categoryColor(for: document.category))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(categoryColor(for: document.category).opacity(0.1))
-                        )
+            VStack(alignment: .leading, spacing: 12) {
+                // Header with time and info button
+                HStack {
+                    // Time badge
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 10))
+                        Text(time)
+                            .font(.system(size: 11, weight: .medium))
                     }
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.1))
+                    )
                     
                     Spacer()
                     
@@ -2419,47 +2419,89 @@ private struct DocumentTimelineCard: View {
                     }
                 }
                 
+                // Document Info
+                VStack(alignment: .leading, spacing: 8) {
+                    // Name (only folderName, no filename) with file count if multiple
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        if let name = document.folderName, !name.isEmpty {
+                            Text(name)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .lineLimit(2)
+                        } else {
+                            Text(document.title)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .lineLimit(2)
+                        }
+                        
+                        // Show file count badge if multiple files
+                        if fileCount > 1 {
+                            Text("\(fileCount) files")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.secondary.opacity(0.1))
+                                )
+                        }
+                    }
+                    
+                    // Category with icon
+                    HStack(spacing: 6) {
+                        Image(systemName: categoryIcon(for: document.category))
+                            .font(.system(size: 12))
+                        Text(document.category)
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundColor(categoryColor(for: document.category))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule()
+                            .fill(categoryColor(for: document.category).opacity(0.1))
+                    )
+                }
+                
                 // Description
                 if let description = document.description, !description.isEmpty {
                     Text(description)
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .lineLimit(3)
-                        .padding(.top, 2)
                 }
                 
                 // Metadata: Doctor and Hospital
-                HStack(spacing: 16) {
-                    if let doctor = doctorName, !doctor.isEmpty {
-                        HStack(spacing: 6) {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                            Text(doctor)
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
+                if doctorName != nil || location != nil {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let doctor = doctorName, !doctor.isEmpty {
+                            HStack(spacing: 6) {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                Text(doctor)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
                         }
-                    }
-                    
-                    if let loc = location, !loc.isEmpty {
-                        HStack(spacing: 6) {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                            Text(loc)
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
+                        
+                        if let loc = location, !loc.isEmpty {
+                            HStack(spacing: 6) {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                Text(loc)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }
-                .padding(.top, 4)
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-            )
+            .padding(16)
+            .glass(cornerRadius: 16)
         }
         .buttonStyle(.plain)
     }
@@ -2484,27 +2526,48 @@ private struct DocumentTimelineCard: View {
 private struct ConsultationTimelineCard: View {
     let doctorName: String?
     let location: String?
+    let time: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with time
+            HStack {
+                // Time badge
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 10))
+                    Text(time)
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.1))
+                )
+                
+                Spacer()
+            }
+            
+            HStack(spacing: 12) {
                 Image(systemName: "stethoscope")
                     .font(.system(size: 20))
                     .foregroundColor(Color(hex: "1BBBCE"))
                     .frame(width: 40, height: 40)
                     .background(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 10)
                             .fill(Color(hex: "1BBBCE").opacity(0.1))
                     )
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Consultation")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.primary)
                     
                     if let doctor = doctorName, !doctor.isEmpty {
                         Text(doctor)
-                            .font(.system(size: 12))
+                            .font(.system(size: 13))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -2515,7 +2578,7 @@ private struct ConsultationTimelineCard: View {
             if let loc = location, !loc.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 10))
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     Text(loc)
                         .font(.system(size: 12))
@@ -2523,12 +2586,8 @@ private struct ConsultationTimelineCard: View {
                 }
             }
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-        )
+        .padding(16)
+        .glass(cornerRadius: 16)
     }
 }
 

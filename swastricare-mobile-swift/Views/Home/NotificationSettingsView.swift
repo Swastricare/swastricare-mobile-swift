@@ -90,7 +90,6 @@ struct NotificationSettingsView: View {
                 Text("Please enable notifications in Settings to receive hydration reminders.")
             }
         }
-        .preferredColorScheme(.dark)
     }
     
     // MARK: - Permission Section

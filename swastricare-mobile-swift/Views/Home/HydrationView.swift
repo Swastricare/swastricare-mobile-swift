@@ -61,8 +61,8 @@ struct HydrationView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color.black.ignoresSafeArea()
-                
+                // Theme-aware Background
+                // PremiumBackground()
                 ScrollView {
                     VStack(spacing: 20) {
                         // Missing Data Tooltip
@@ -123,7 +123,7 @@ struct HydrationView: View {
                     Button("Close") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 }
             }
             .task {
@@ -142,7 +142,6 @@ struct HydrationView: View {
                 drinkTypePickerSheet
             }
         }
-        .preferredColorScheme(.dark)
     }
     
     // MARK: - Missing Data Tooltip
@@ -156,7 +155,7 @@ struct HydrationView: View {
                 
                 Text("Complete Your Profile")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Spacer()
                 
@@ -179,7 +178,7 @@ struct HydrationView: View {
                             Text(item.title)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                             
                             Text(item.description)
                                 .font(.caption)
@@ -208,20 +207,14 @@ struct HydrationView: View {
                 .padding(.top, 4)
             }
         }
-        .padding()
-        .background(
-            LinearGradient(
-                colors: [Color.orange.opacity(0.15), Color.orange.opacity(0.05)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .padding(16)
+        .background(Color.orange.opacity(0.1))
         .cornerRadius(16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                .stroke(Color.orange.opacity(0.2), lineWidth: 1)
         )
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
         .onTapGesture {
             viewModel.showSettings = true
         }
@@ -239,24 +232,22 @@ struct HydrationView: View {
                     
                     VStack(spacing: 8) {
                         Text(date.formatted(.dateTime.weekday(.abbreviated)))
-                            .font(.caption)
-                            .fontWeight(.medium)
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(isSelected ? .white : .secondary)
                         
                         Text(date.formatted(.dateTime.day()))
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(isSelected ? .white : .secondary)
-                            .padding(8)
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(isSelected ? .white : .primary)
+                            .frame(width: 36, height: 36)
                             .background(
                                 Circle()
-                                    .fill(isSelected ? AnyShapeStyle(Color.cyan) : AnyShapeStyle(Color.clear))
+                                    .fill(isSelected ? Color(hex: "2E3192") : Color.clear)
                             )
                     }
                     .frame(width: 50)
                     .padding(.vertical, 8)
-                    .background(isToday && !isSelected ? Color.white.opacity(0.1) : Color.clear)
-                    .cornerRadius(25)
+                    .background(isToday && !isSelected ? Color(UIColor.secondarySystemBackground) : Color.clear)
+                    .cornerRadius(12)
                     .onTapGesture {
                         withAnimation {
                             viewModel.selectedDate = date
@@ -281,17 +272,13 @@ struct HydrationView: View {
                 // Circular Progress
                 ZStack {
                     Circle()
-                        .stroke(Color.white.opacity(0.1), lineWidth: 12)
+                        .stroke(Color.primary.opacity(0.1), lineWidth: 12)
                         .frame(width: 120, height: 120)
                     
                     Circle()
                         .trim(from: 0, to: viewModel.progress)
                         .stroke(
-                            LinearGradient(
-                                colors: [.cyan, .blue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
+                            Color(hex: "2E3192"),
                             style: StrokeStyle(lineWidth: 12, lineCap: .round)
                         )
                         .frame(width: 120, height: 120)
@@ -308,7 +295,7 @@ struct HydrationView: View {
                                 .foregroundColor(.green)
                         }
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 }
                 
                 // Stats
@@ -336,55 +323,63 @@ struct HydrationView: View {
                 }
             }
         }
-        .padding()
-        .glass(cornerRadius: 20)
-        .padding(.horizontal)
+        .padding(20)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
+        .padding(.horizontal, 20)
     }
     
     private func statRow(icon: String, color: Color, value: String, label: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Image(systemName: icon)
+                .font(.system(size: 16, weight: .medium))
                 .foregroundColor(color)
-                .frame(width: 20)
+                .frame(width: 24)
             
-            Text(value)
-                .font(.headline)
-                .fontWeight(.bold)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Text(label)
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
             
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            Spacer()
         }
-        .foregroundColor(.white)
     }
     
     // MARK: - Quick Add Section
     
     private var quickAddSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Quick Add")
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.primary)
                 
                 Spacer()
                 
                 // Drink type selector
                 Button(action: { showDrinkTypePicker = true }) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
                         Image(systemName: selectedDrinkType.icon)
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(selectedDrinkType.color)
                         Text(selectedDrinkType.displayName)
-                            .font(.caption)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.primary)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.white.opacity(0.1))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color(UIColor.secondarySystemBackground))
                     .cornerRadius(20)
                 }
             }
             
             // Preset buttons
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 ForEach(QuickAddPreset.defaults) { preset in
                     quickAddButton(preset)
                 }
@@ -416,7 +411,7 @@ struct HydrationView: View {
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(.cyan)
+                    .tint(Color(hex: "2E3192"))
                     
                     Button(action: { showCustomAmountField = false }) {
                         Image(systemName: "xmark.circle.fill")
@@ -425,18 +420,20 @@ struct HydrationView: View {
                 }
             } else {
                 Button(action: { showCustomAmountField = true }) {
-                    HStack {
+                    HStack(spacing: 6) {
                         Image(systemName: "plus.circle")
+                            .font(.system(size: 14))
                         Text("Custom Amount")
+                            .font(.system(size: 13, weight: .medium))
                     }
-                    .font(.caption)
-                    .foregroundColor(.cyan)
+                    .foregroundColor(Color(hex: "2E3192"))
                 }
             }
         }
-        .padding()
-        .glass(cornerRadius: 16)
-        .padding(.horizontal)
+        .padding(20)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
+        .padding(.horizontal, 20)
     }
     
     private func quickAddButton(_ preset: QuickAddPreset) -> some View {
@@ -448,22 +445,18 @@ struct HydrationView: View {
                 )
             }
         }) {
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 Image(systemName: preset.icon)
-                    .font(.title3)
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundColor(selectedDrinkType.color)
+                
                 Text(preset.label)
-                    .font(.caption2)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.primary)
             }
-            .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(
-                LinearGradient(
-                    colors: [selectedDrinkType.color.opacity(0.3), selectedDrinkType.color.opacity(0.1)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
+            .padding(.vertical, 16)
+            .background(selectedDrinkType.color.opacity(0.15))
             .cornerRadius(12)
         }
     }
@@ -504,20 +497,24 @@ struct HydrationView: View {
                 }
             }
         }
-        .padding()
-        .glass(cornerRadius: 16)
-        .padding(.horizontal)
+        .padding(20)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
+        .padding(.horizontal, 20)
     }
     
     private func insightItem(value: String, label: String, icon: String, color: Color) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 8) {
             Image(systemName: icon)
+                .font(.system(size: 20, weight: .medium))
                 .foregroundColor(color)
+            
             Text(value)
-                .font(.headline)
-                .fontWeight(.bold)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.primary)
+            
             Text(label)
-                .font(.caption2)
+                .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -542,14 +539,14 @@ struct HydrationView: View {
             
             Spacer()
         }
-        .padding()
+        .padding(16)
         .background(Color.orange.opacity(0.1))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                .stroke(Color.orange.opacity(0.2), lineWidth: 1)
         )
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
     }
     
     // MARK: - Caffeine Warning
@@ -566,19 +563,20 @@ struct HydrationView: View {
             
             Spacer()
         }
-        .padding()
+        .padding(16)
         .background(Color.brown.opacity(0.1))
         .cornerRadius(12)
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
     }
     
     // MARK: - Entries Section
     
     private var entriesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Today's Log")
-                .font(.headline)
-                .padding(.horizontal)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
+                .padding(.horizontal, 20)
             
             if viewModel.todaysEntries.isEmpty {
                 emptyStateView
@@ -590,7 +588,7 @@ struct HydrationView: View {
                         }
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 20)
             }
         }
     }
@@ -660,7 +658,6 @@ struct HydrationView: View {
             }
         }
         .presentationDetents([.medium])
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -684,35 +681,29 @@ struct HydrationEntryCard: View {
             // Icon
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [entry.drinkType.color.opacity(0.3), entry.drinkType.color.opacity(0.1)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(entry.drinkType.color.opacity(0.15))
                     .frame(width: 50, height: 50)
                 
                 Image(systemName: entry.drinkType.icon)
-                    .font(.title2)
-                    .foregroundStyle(entry.drinkType.color)
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundColor(entry.drinkType.color)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text("\(entry.amountMl) ml")
-                        .font(.headline)
-                        .foregroundColor(.white)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.primary)
                     
                     if entry.drinkType != .water {
                         Text("(\(entry.effectiveHydration) ml effective)")
-                            .font(.caption)
+                            .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
                 
                 Text("\(entry.drinkType.displayName) • \(entry.formattedTime)")
-                    .font(.subheadline)
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
             }
             
@@ -721,12 +712,13 @@ struct HydrationEntryCard: View {
             // Delete button
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .font(.caption)
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.red.opacity(0.7))
             }
         }
-        .padding()
-        .glass(cornerRadius: 16)
+        .padding(16)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
     }
 }
 

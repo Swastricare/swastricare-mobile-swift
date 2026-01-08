@@ -30,6 +30,7 @@ struct PremiumColor {
 struct GlassModifier: ViewModifier {
     var cornerRadius: CGFloat
     var opacity: CGFloat = 0.1
+    @Environment(\.colorScheme) var colorScheme
     
     func body(content: Content) -> some View {
         content
@@ -37,7 +38,12 @@ struct GlassModifier: ViewModifier {
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(.white.opacity(0.2), lineWidth: 0.5)
+                    .stroke(
+                        colorScheme == .dark 
+                            ? Color.white.opacity(0.2) 
+                            : Color.black.opacity(0.1),
+                        lineWidth: 0.5
+                    )
             )
     }
 }
@@ -52,14 +58,24 @@ extension View {
     func liquidGlassCapsule() -> some View {
         self.background(.ultraThinMaterial)
             .clipShape(Capsule())
-            .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 0.5))
+            .overlay(
+                Capsule().stroke(
+                    Color.primary.opacity(0.1),
+                    lineWidth: 0.5
+                )
+            )
     }
     
     /// Liquid Glass with custom shape - Circle
     func liquidGlassCircle() -> some View {
         self.background(.ultraThinMaterial)
             .clipShape(Circle())
-            .overlay(Circle().stroke(.white.opacity(0.2), lineWidth: 0.5))
+            .overlay(
+                Circle().stroke(
+                    Color.primary.opacity(0.1),
+                    lineWidth: 0.5
+                )
+            )
     }
 }
 
@@ -67,33 +83,59 @@ extension View {
 
 struct PremiumBackground: View {
     @State private var animate = false
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         ZStack {
             // Base Color
             Color(UIColor.systemBackground).ignoresSafeArea()
             
-            // Animated Orbs
-            Circle()
-                .fill(Color.blue.opacity(0.15))
-                .frame(width: 350, height: 350)
-                .blur(radius: 100)
-                .offset(x: animate ? -100 : 100, y: animate ? -150 : -50)
-                .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animate)
-            
-            Circle()
-                .fill(Color.purple.opacity(0.15))
-                .frame(width: 300, height: 300)
-                .blur(radius: 100)
-                .offset(x: animate ? 150 : -50, y: animate ? 200 : 300)
-                .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animate)
-            
-            Circle()
-                .fill(Color.cyan.opacity(0.1))
-                .frame(width: 200, height: 200)
-                .blur(radius: 80)
-                .offset(x: animate ? -100 : 150, y: animate ? 100 : -200)
-                .animation(.easeInOut(duration: 12).repeatForever(autoreverses: true), value: animate)
+            // Animated Orbs - adapt opacity and colors based on theme
+            if colorScheme == .dark {
+                // Dark theme orbs (more vibrant)
+                Circle()
+                    .fill(Color.blue.opacity(0.15))
+                    .frame(width: 350, height: 350)
+                    .blur(radius: 100)
+                    .offset(x: animate ? -100 : 100, y: animate ? -150 : -50)
+                    .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animate)
+                
+                Circle()
+                    .fill(Color.purple.opacity(0.15))
+                    .frame(width: 300, height: 300)
+                    .blur(radius: 100)
+                    .offset(x: animate ? 150 : -50, y: animate ? 200 : 300)
+                    .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animate)
+                
+                Circle()
+                    .fill(Color.cyan.opacity(0.1))
+                    .frame(width: 200, height: 200)
+                    .blur(radius: 80)
+                    .offset(x: animate ? -100 : 150, y: animate ? 100 : -200)
+                    .animation(.easeInOut(duration: 12).repeatForever(autoreverses: true), value: animate)
+            } else {
+                // Light theme orbs (softer, more subtle)
+                Circle()
+                    .fill(Color.blue.opacity(0.08))
+                    .frame(width: 350, height: 350)
+                    .blur(radius: 100)
+                    .offset(x: animate ? -100 : 100, y: animate ? -150 : -50)
+                    .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animate)
+                
+                Circle()
+                    .fill(Color.purple.opacity(0.08))
+                    .frame(width: 300, height: 300)
+                    .blur(radius: 100)
+                    .offset(x: animate ? 150 : -50, y: animate ? 200 : 300)
+                    .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animate)
+                
+                Circle()
+                    .fill(Color.cyan.opacity(0.06))
+                    .frame(width: 200, height: 200)
+                    .blur(radius: 80)
+                    .offset(x: animate ? -100 : 150, y: animate ? 100 : -200)
+                    .animation(.easeInOut(duration: 12).repeatForever(autoreverses: true), value: animate)
+            }
         }
         .ignoresSafeArea()
         .onAppear {

@@ -17,24 +17,23 @@ struct LockScreenView: View {
     
     var body: some View {
         ZStack {
-            // Blurred Background
-            Rectangle()
-                .fill(Material.ultraThinMaterial)
+            // Theme-aware Background
+            PremiumBackground()
+             Color.black.opacity(0.30)
                 .ignoresSafeArea()
-            
-            VStack(spacing: 40) {
+            VStack(spacing: 30) {
                 Spacer()
                 
                 // App Icon
-                Image(systemName: "heart.text.square.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color(hex: "2E3192"), Color(hex: "654ea3")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                // Image(systemName: "heart.text.square.fill")
+                //     .font(.system(size: 80))
+                //     .foregroundStyle(
+                //         LinearGradient(
+                //             colors: [Color(hex: "2E3192"), Color(hex: "654ea3")],
+                //             startPoint: .topLeading,
+                //             endPoint: .bottomTrailing
+                //         )
+                //     )
                 
                 // Title
                 VStack(spacing: 8) {
@@ -60,7 +59,7 @@ struct LockScreenView: View {
                                 .frame(width: 80, height: 80)
                                 .overlay(
                                     Circle()
-                                        .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                                        .stroke(Color.primary.opacity(0.2), lineWidth: 0.5)
                                 )
                             
                             if viewModel.isAuthenticating {
@@ -69,7 +68,7 @@ struct LockScreenView: View {
                             } else {
                                 Image(systemName: viewModel.biometricIcon)
                                     .font(.system(size: 36))
-                                    .foregroundStyle(PremiumColor.royalBlue)
+                                    // .foregroundStyle(PremiumColor.royalBlue)
                             }
                         }
                         

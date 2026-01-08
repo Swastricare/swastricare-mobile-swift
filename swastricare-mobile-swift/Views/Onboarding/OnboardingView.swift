@@ -10,12 +10,37 @@ import SwiftUI
 struct OnboardingView: View {
     @Binding var isOnboardingComplete: Bool
     @State private var currentPage = 0
+    @State private var buttonOpacity: Double = 0.0
+    @State private var isAnimating: Bool = false
+    
+    private let totalPages = 3
+    private let buttonWidth: CGFloat = 160
+    private let buttonHeight: CGFloat = 54
     
     var body: some View {
         ZStack {
-            Color(UIColor.systemBackground).ignoresSafeArea()
+            // Background
+            PremiumBackground()
             
-            VStack {
+            VStack(spacing: 0) {
+                // Skip Button - Top Right
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        guard !isAnimating else { return }
+                        completeOnboarding()
+                    }) {
+                        Text("Skip")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.primary.opacity(0.7))
+                    }
+                    .disabled(isAnimating)
+                    .opacity(buttonOpacity)
+                    .padding(.trailing, 20)
+                    .padding(.top, 16)
+                    .animation(.linear(duration: 0.3).delay(0.1), value: buttonOpacity)
+                }
+                
                 // Page Content
                 TabView(selection: $currentPage) {
                     OnboardingPageView(
@@ -39,63 +64,102 @@ struct OnboardingView: View {
                     )
                     .tag(2)
                 }
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                .animation(.easeInOut, value: currentPage)
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .animation(.linear(duration: 0.3), value: currentPage)
+                .disabled(isAnimating)
+                .allowsHitTesting(!isAnimating)
                 
                 // Bottom Controls
                 VStack(spacing: 24) {
                     // Page Indicator
-                    HStack(spacing: 8) {
-                        ForEach(0..<3) { index in
-                            Circle()
-                                .fill(currentPage == index ? Color.accentColor : Color.gray.opacity(0.3))
-                                .frame(width: 8, height: 8)
-                                .scaleEffect(currentPage == index ? 1.2 : 1.0)
-                                .animation(.spring(), value: currentPage)
+                    HStack(spacing: 10) {
+                        ForEach(0..<totalPages, id: \.self) { index in
+                            Capsule()
+                                .fill(currentPage == index ? Color.accentColor : Color.primary.opacity(0.3))
+                                .frame(
+                                    width: currentPage == index ? 24 : 8,
+                                    height: 8
+                                )
+                                .animation(.linear(duration: 0.2), value: currentPage)
                         }
                     }
+                    .padding(.top, 8)
                     
-                    // Buttons
+                    // Centered Button
                     HStack {
-                        if currentPage < 2 {
-                            Button("Skip") {
-                                completeOnboarding()
-                            }
-                            .foregroundStyle(Color.secondary)
-                            
-                            Spacer()
-                            
+                        Spacer()
+                        
+                        if currentPage < totalPages - 1 {
+                            // Next Button - Centered
                             Button {
-                                withAnimation {
+                                guard !isAnimating else { return }
+                                isAnimating = true
+                                withAnimation(.linear(duration: 0.3)) {
                                     currentPage += 1
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                    isAnimating = false
                                 }
                             } label: {
                                 Text("Next")
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(Color.white)
-                                    .frame(width: 100, height: 44)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: buttonWidth, height: buttonHeight)
                                     .background(Color.accentColor)
-                                    .cornerRadius(22)
+                                    .cornerRadius(buttonHeight / 2)
+                                    .shadow(color: Color.accentColor.opacity(0.4), radius: 12, x: 0, y: 6)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: buttonHeight / 2)
+                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                    )
                             }
+                            .buttonStyle(ScaleButtonStyle())
+                            .disabled(isAnimating)
+                            .opacity(buttonOpacity)
+                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            .animation(.linear(duration: 0.3).delay(0.1), value: buttonOpacity)
                         } else {
+                            // Get Started Button - Centered (last page only)
                             Button {
+                                guard !isAnimating else { return }
+                                isAnimating = true
                                 completeOnboarding()
                             } label: {
                                 Text("Get Started")
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(Color.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 50)
+                                    .font(.system(size: 17, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: buttonWidth, height: buttonHeight)
                                     .background(Color.accentColor)
-                                    .cornerRadius(25)
+                                    .cornerRadius(buttonHeight / 2)
+                                    .shadow(color: Color.accentColor.opacity(0.4), radius: 14, x: 0, y: 7)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: buttonHeight / 2)
+                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                    )
                             }
-                            .padding(.horizontal)
+                            .buttonStyle(ScaleButtonStyle())
+                            .disabled(isAnimating)
+                            .opacity(buttonOpacity)
+                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            .animation(.linear(duration: 0.2), value: currentPage)
+                            .animation(.linear(duration: 0.3).delay(0.1), value: buttonOpacity)
                         }
+                        
+                        Spacer()
                     }
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 50)
                 }
             }
+        }
+        .onAppear {
+            // Simple fade-in for buttons
+            withAnimation(.linear(duration: 0.3).delay(0.2)) {
+                buttonOpacity = 1.0
+            }
+        }
+        .onChange(of: currentPage) { oldValue, newValue in
+            // Only disable interaction if button was clicked, not when swiping
+            // Don't change opacity during swipe
         }
     }
     
@@ -103,7 +167,7 @@ struct OnboardingView: View {
         if !AppConfig.isTestingMode {
             UserDefaults.standard.set(true, forKey: AppConfig.hasSeenOnboardingKey)
         }
-        withAnimation {
+        withAnimation(.linear(duration: 0.2)) {
             isOnboardingComplete = true
         }
     }

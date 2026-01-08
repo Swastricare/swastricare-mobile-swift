@@ -96,12 +96,9 @@ final class ProfileViewModel: ObservableObject {
     func signOut() async {
         isLoading = true
         
-        do {
-            try await authService.signOut()
-            user = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        // Use AuthViewModel's signOut to properly update auth state and trigger navigation
+        await DependencyContainer.shared.authViewModel.signOut()
+        user = nil
         
         isLoading = false
     }

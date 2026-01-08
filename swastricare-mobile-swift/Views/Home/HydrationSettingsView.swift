@@ -67,7 +67,6 @@ struct HydrationSettingsView: View {
                 NotificationSettingsView(viewModel: viewModel)
             }
         }
-        .preferredColorScheme(.dark)
     }
     
     // MARK: - Personal Info Section

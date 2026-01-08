@@ -12,6 +12,7 @@ struct SplashView: View {
     @State private var isAnimating = false
     @State private var scale: CGFloat = 0.8
     @State private var opacity: Double = 0
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         ZStack {
@@ -21,12 +22,15 @@ struct SplashView: View {
             VStack(spacing: 24) {
                 // Logo
                 ZStack {
-                    // Glow effect
+                    // Glow effect - adapts to theme
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [
+                                colors: colorScheme == .dark ? [
                                     Color(hex: "2E3192").opacity(0.3),
+                                    Color.clear
+                                ] : [
+                                    Color(hex: "2E3192").opacity(0.15),
                                     Color.clear
                                 ],
                                 center: .center,
@@ -47,7 +51,12 @@ struct SplashView: View {
                         .frame(width: 120, height: 120)
                         .overlay(
                             RoundedRectangle(cornerRadius: 40)
-                                .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                                .stroke(
+                                    colorScheme == .dark 
+                                        ? Color.white.opacity(0.2) 
+                                        : Color.black.opacity(0.1),
+                                    lineWidth: 0.5
+                                )
                         )
                     
                     // Logo icon
@@ -69,6 +78,7 @@ struct SplashView: View {
                     Text("Swastricare")
                         .font(.largeTitle)
                         .fontWeight(.bold)
+                        .foregroundColor(colorScheme == .dark ? .primary : Color(hex: "2E3192"))
                     
                     Text("Your Health Companion")
                         .font(.subheadline)

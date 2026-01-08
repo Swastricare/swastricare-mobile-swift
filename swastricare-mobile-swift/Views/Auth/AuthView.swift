@@ -27,13 +27,7 @@ struct LoginView: View {
                         VStack(spacing: 16) {
                             Image(systemName: "heart.text.square.fill")
                                 .font(.system(size: 80))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [Color(hex: "2E3192"), Color(hex: "654ea3")],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .foregroundColor(.accentColor)
                             
                             Text("Swastricare")
                                 .font(.largeTitle)
@@ -87,7 +81,7 @@ struct LoginView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(PremiumColor.royalBlue)
+                                .background(Color.accentColor)
                                 .cornerRadius(12)
                             }
                             .disabled(viewModel.isLoading || !viewModel.formState.isValidForLogin)
@@ -96,7 +90,7 @@ struct LoginView: View {
                             Button(action: { showResetPassword = true }) {
                                 Text("Forgot Password?")
                                     .font(.subheadline)
-                                    .foregroundStyle(PremiumColor.royalBlue)
+                                    .foregroundColor(.accentColor)
                             }
                         }
                         .padding()
@@ -139,7 +133,7 @@ struct LoginView: View {
                                     .foregroundColor(.secondary)
                                 Text("Sign Up")
                                     .fontWeight(.semibold)
-                                    .foregroundStyle(PremiumColor.royalBlue)
+                                    .foregroundColor(Color(hex: "2E3192"))
                             }
                             .font(.subheadline)
                         }
@@ -238,7 +232,7 @@ struct SignUpView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(PremiumColor.royalBlue)
+                            .background(Color.accentColor)
                             .cornerRadius(12)
                         }
                         .disabled(viewModel.isLoading || !viewModel.formState.isValidForSignUp)
@@ -275,7 +269,7 @@ struct ResetPasswordView: View {
             VStack(spacing: 24) {
                 Image(systemName: "lock.rotation")
                     .font(.system(size: 60))
-                    .foregroundStyle(PremiumColor.royalBlue)
+                    .foregroundColor(.accentColor)
                 
                 Text("Reset Password")
                     .font(.title2)
@@ -318,7 +312,7 @@ struct ResetPasswordView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(PremiumColor.royalBlue)
+                    .background(Color.accentColor)
                     .cornerRadius(12)
                 }
                 .disabled(viewModel.isLoading || !viewModel.formState.isValidEmail)

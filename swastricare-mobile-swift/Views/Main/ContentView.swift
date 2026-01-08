@@ -11,16 +11,14 @@ import UIKit
 // MARK: - Tab Enum
 
 enum Tab: String, CaseIterable {
-    case home = "Home"
-    case tracker = "Tracker"
+    case vitals = "Vitals"
     case ai = "AI"
     case vault = "Vault"
     case profile = "Profile"
     
     var icon: String {
         switch self {
-        case .home: return "house"
-        case .tracker: return "chart.bar"
+        case .vitals: return "heart.text.square.fill"
         case .ai: return "sparkles"
         case .vault: return "lock.doc"
         case .profile: return "person.circle"
@@ -34,37 +32,27 @@ struct ContentView: View {
     
     // MARK: - State
     
-    @State private var currentTab: Tab = .home
+    @State private var currentTab: Tab = .vitals
     @StateObject private var homeViewModel = DependencyContainer.shared.homeViewModel
     
     // MARK: - Body
     
     var body: some View {
         TabView(selection: $currentTab) {
-            // Home Tab
+            // Vitals Tab
             NavigationStack {
                 HomeView()
-                    .toolbarBackgroundVisibility(.automatic, for: .navigationBar)
+                    .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {
-                Label(Tab.home.rawValue, systemImage: Tab.home.icon)
+                Label(Tab.vitals.rawValue, systemImage: Tab.vitals.icon)
             }
-            .tag(Tab.home)
-            
-            // Tracker Tab
-            NavigationStack {
-                TrackerView()
-                    .toolbarBackgroundVisibility(.automatic, for: .navigationBar)
-            }
-            .tabItem {
-                Label(Tab.tracker.rawValue, systemImage: Tab.tracker.icon)
-            }
-            .tag(Tab.tracker)
+            .tag(Tab.vitals)
             
             // AI Tab
             NavigationStack {
                 AIView()
-                    .toolbarBackgroundVisibility(.automatic, for: .navigationBar)
+                    .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {
                 Label(Tab.ai.rawValue, systemImage: Tab.ai.icon)
@@ -74,7 +62,7 @@ struct ContentView: View {
             // Vault Tab
             NavigationStack {
                 VaultView()
-                    .toolbarBackgroundVisibility(.automatic, for: .navigationBar)
+                    .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {
                 Label(Tab.vault.rawValue, systemImage: Tab.vault.icon)
@@ -84,7 +72,7 @@ struct ContentView: View {
             // Profile Tab
             NavigationStack {
                 ProfileView()
-                    .toolbarBackgroundVisibility(.automatic, for: .navigationBar)
+                    .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {
                 Label(Tab.profile.rawValue, systemImage: Tab.profile.icon)
@@ -92,12 +80,28 @@ struct ContentView: View {
             .tag(Tab.profile)
         }
         .onChange(of: currentTab) { oldTab, newTab in
-            // Refresh health data when switching to home or tracker
-            if homeViewModel.isAuthorized && (newTab == .home || newTab == .tracker) {
+            // Haptic feedback on tab change
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            
+            // Refresh health data when switching to vitals
+            if homeViewModel.isAuthorized && newTab == .vitals {
                 Task {
                     await homeViewModel.loadTodaysData()
                 }
             }
+        }
+    }
+}
+
+// MARK: - Toolbar Background Visibility Modifier
+
+struct ToolbarBackgroundVisibilityModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.toolbarBackgroundVisibility(.automatic, for: .navigationBar)
+        } else {
+            content
         }
     }
 }
