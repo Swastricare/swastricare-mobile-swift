@@ -34,8 +34,6 @@ struct AddMedicationView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color.black.opacity(0.95)
-                    .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
                     // Progress indicator

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct AIView: View {
     
@@ -24,255 +25,249 @@ struct AIView: View {
     // MARK: - Body
     
     var body: some View {
-        chatView
-            .navigationTitle("Swastri AI")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            viewModel.clearChat()
+        NavigationStack {
+            chatView
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationTitle("Swastri AI")
+                .toolbarBackground(.hidden, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                viewModel.clearChat()
+                                showEmptyState = false
+                                // Re-trigger landing animation
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                                        showEmptyState = true
+                                    }
+                                }
+                            }
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .padding(10)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
                         }
-                    }) {
-                        Image(systemName: "trash")
                     }
-                    .disabled(viewModel.messages.isEmpty)
                 }
-            }
-            // Temporarily commented out - Analyze with AI button
-            /*
-            .overlay(alignment: .bottomTrailing) {
-                // Floating Action Button for AI Health Analysis
-                Button(action: {
-                    Task { await trackerViewModel.requestAIAnalysis() }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "sparkles")
-                            .font(.title3)
-                        Text("Analyze with AI")
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 14)
-                    .background(
-                        LinearGradient(
-                            colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .cornerRadius(25)
-                    .shadow(color: Color(hex: "2E3192").opacity(0.4), radius: 10, x: 0, y: 5)
-                }
-                .disabled(trackerViewModel.healthMetrics.isEmpty || trackerViewModel.analysisState.isAnalyzing)
-                .padding(.trailing, 20)
-                .padding(.bottom, 90) // Extra padding to avoid input bar
-            }
-            */
-            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("OK") { viewModel.clearError() }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
-            }
-            .sheet(isPresented: $trackerViewModel.showAnalysisSheet) {
-                AnalysisResultView(
-                    state: trackerViewModel.analysisState,
-                    onDismiss: { trackerViewModel.dismissAnalysis() }
-                )
-            }
-            .task {
-                await trackerViewModel.loadData()
-            }
+        }
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("OK") { viewModel.clearError() }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+        .sheet(isPresented: $trackerViewModel.showAnalysisSheet) {
+            AnalysisResultView(
+                state: trackerViewModel.analysisState,
+                onDismiss: { trackerViewModel.dismissAnalysis() }
+            )
+        }
+        .task {
+            await trackerViewModel.loadData()
+        }
     }
     
     // MARK: - Chat View
     
     private var chatView: some View {
-        VStack(spacing: 0) {
-            // Messages
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        if viewModel.messages.isEmpty {
-                            emptyChatState
-                                .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        } else {
-                            ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
-                                ChatBubble(message: message)
-                                    .id(message.id)
-                    .transition(
-                        .asymmetric(
-                            insertion: .move(edge: message.isUser ? .trailing : .leading)
-                                .combined(with: .opacity)
-                                .combined(with: .scale(scale: 0.8)),
-                            removal: .opacity.combined(with: .scale(scale: 0.9))
-                        )
-                    )
+        ZStack {
+            // Premium Background
+            PremiumBackground()
+            
+            VStack(spacing: 0) {
+                // Messages
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            if viewModel.messages.isEmpty {
+                                // Intro / Landing UI
+                                introView
+                                    .padding(.top, 60)
+                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                            } else {
+                                ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
+                                    ChatBubble(message: message)
+                                        .id(message.id)
+                                        .transition(
+                                            .asymmetric(
+                                                insertion: .move(edge: message.isUser ? .trailing : .leading)
+                                                    .combined(with: .opacity)
+                                                    .combined(with: .scale(scale: 0.8)),
+                                                removal: .opacity.combined(with: .scale(scale: 0.9))
+                                            )
+                                        )
+                                }
+                            }
+                        }
+                        .padding()
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.messages.count)
+                    }
+                    .onChange(of: viewModel.messages.count) { _, _ in
+                        if let lastMessage = viewModel.messages.last {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
                             }
                         }
                     }
-                    .padding()
-                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.messages.count)
                 }
-                .onChange(of: viewModel.messages.count) { _, _ in
-                    if let lastMessage = viewModel.messages.last {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
-                    }
-                }
+                
+                // Suggestions + Input Bar
+                chatInputBar
             }
-            
-            // Input Bar
-            chatInputBar
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.5).delay(0.2)) {
-                showEmptyState = true
+            // Trigger landing animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                    showEmptyState = true
+                }
             }
         }
     }
     
-    private var emptyChatState: some View {
+    // MARK: - Intro View
+    
+    private var introView: some View {
         VStack(spacing: 24) {
-            // Animated sparkle icon
-            AnimatedSparkleIcon()
-                .scaleEffect(showEmptyState ? 1.0 : 0.8)
-                .opacity(showEmptyState ? 1.0 : 0.0)
-                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showEmptyState)
-            
-            VStack(spacing: 8) {
-                Text("Ask me anything about health")
-                    .font(.headline)
-                    .opacity(showEmptyState ? 1 : 0)
-                    .offset(y: showEmptyState ? 0 : 10)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.2), value: showEmptyState)
+            // Logo / Icon
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "2E3192").opacity(0.1))
+                    .frame(width: 80, height: 80)
                 
-                Text("I can help with fitness tips, nutrition advice, and health questions")
-                    .font(.subheadline)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 40))
+                    .foregroundColor(Color(hex: "2E3192"))
+            }
+            .scaleEffect(showEmptyState ? 1 : 0.8)
+            .opacity(showEmptyState ? 1 : 0)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showEmptyState)
+            
+            VStack(spacing: 12) {
+                Text("Swastri AI")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Text("Your personal health assistant.\nAsk me anything about your vitals, diet, or fitness.")
+                    .font(.system(size: 16))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .opacity(showEmptyState ? 1 : 0)
-                    .offset(y: showEmptyState ? 0 : 10)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.3), value: showEmptyState)
+                    .padding(.horizontal, 32)
+                    .lineSpacing(4)
             }
+            .offset(y: showEmptyState ? 0 : 20)
+            .opacity(showEmptyState ? 1 : 0)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
             
-            // Quick Actions as smaller chips with wrap layout
-            LazyVGrid(columns: [
-                GridItem(.adaptive(minimum: 100))
-            ], spacing: 8) {
+            // Analyze Health Button
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                Task {
+                    await trackerViewModel.requestAIAnalysis()
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "waveform.path.ecg")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Analyse Health")
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(Capsule())
+                .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 8, x: 0, y: 4)
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .disabled(trackerViewModel.analysisState.isAnalyzing)
+            .opacity(showEmptyState ? 1 : 0)
+            .offset(y: showEmptyState ? 0 : 20)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: showEmptyState)
+        }
+        .padding(.bottom, 40)
+    }
+    
+    // MARK: - Suggestions Scroll
+    
+    private var suggestionsScroll: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
                 ForEach(Array(QuickAction.suggestions.enumerated()), id: \.element.id) { index, action in
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                            Task { await viewModel.sendQuickAction(action) }
+                        Task {
+                            await viewModel.sendQuickAction(action)
                         }
                     }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: action.icon)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(Color(hex: "2E3192"))
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(action.title)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.primary)
+                            
+                            Text(action.prompt.prefix(35) + "...")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
                                 .lineLimit(1)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color(hex: "2E3192").opacity(0.1))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color(hex: "2E3192").opacity(0.2), lineWidth: 1)
-                                )
-                        )
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .frame(width: 220, alignment: .leading)
+                        .glass(cornerRadius: 16)
                     }
                     .buttonStyle(QuickActionButtonStyle())
                     .opacity(showEmptyState ? 1 : 0)
-                    .scaleEffect(showEmptyState ? 1.0 : 0.8)
                     .offset(y: showEmptyState ? 0 : 20)
                     .animation(
                         .spring(response: 0.5, dampingFraction: 0.7)
-                            .delay(Double(index) * 0.08 + 0.4),
+                            .delay(Double(index) * 0.1 + 0.4),
                         value: showEmptyState
                     )
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 16)
         }
-        .padding()
     }
     
     private var chatInputBar: some View {
-        VStack(spacing: 0) {
-            Divider()
-                .opacity(0.3)
+        VStack(spacing: 12) {
+            // Horizontal scrolling suggestions only on landing screen (when no messages)
+            if viewModel.messages.isEmpty {
+                suggestionsScroll
+            }
             
-            HStack(alignment: .bottom, spacing: 10) {
-                // Text Field Container - Transparent background
-                HStack(alignment: .bottom, spacing: 8) {
-                    TextField("Ask Swastrica...", text: $viewModel.inputText, axis: .vertical)
-                        .font(.body)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+            // Input field with mic button beside
+            HStack(alignment: .center, spacing: 12) {
+                // Text Field with send button inside
+                HStack(spacing: 8) {
+                    TextField("Ask Swastri", text: $viewModel.inputText, axis: .vertical)
+                        .font(.system(size: 15))
                         .focused($isInputFocused)
                         .lineLimit(1...5)
-                        .background(Color.clear)
                         .onChange(of: speechManager.recognizedText) { _, newValue in
                             if speechManager.isRecording {
                                 viewModel.inputText = newValue
                             }
                         }
-                }
-                .background(Color.clear)
-                .cornerRadius(24)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(
-                            isInputFocused 
-                                ? Color(hex: "2E3192").opacity(0.4) 
-                                : Color.primary.opacity(0.15), 
-                            lineWidth: isInputFocused ? 1.5 : 1
-                        )
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isInputFocused)
-                )
-                
-                // Action Buttons (WhatsApp style - on the right)
-                HStack(alignment: .center, spacing: 8) {
-                    // Voice input button
-                    Button(action: {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        Task {
-                            if speechManager.isRecording {
-                                speechManager.stopRecording()
-                            } else {
-                                do {
-                                    try await speechManager.startRecording()
-                                } catch {
-                                    print("Voice input error: \(error)")
-                                }
-                            }
-                        }
-                    }) {
-                        ZStack {
-                            Circle()
-                                .fill(speechManager.isRecording ? .red : Color.clear)
-                                .frame(width: 44, height: 44)
-                                .liquidGlassCircle()
-                            
-                            Image(systemName: speechManager.isRecording ? "stop.fill" : "mic.fill")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(speechManager.isRecording ? .white : Color(hex: "2E3192"))
-                                .symbolEffect(.bounce, value: speechManager.isRecording)
-                                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: speechManager.isRecording)
-                        }
-                    }
-                    .buttonStyle(ScaleButtonStyle())
                     
-                    // Send button
+                    // Send button inside the field - always shows arrow icon
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        
+                        // Stop mic recording if active
+                        if speechManager.isRecording {
+                            speechManager.stopRecording()
+                        }
+                        
                         // Animate button press
                         withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
                             sendButtonScale = 0.8
@@ -283,34 +278,59 @@ struct AIView: View {
                             }
                         }
                         
-                        Task { await viewModel.sendMessage() }
+                        // Send message and clear
+                        Task {
+                            await viewModel.sendMessage()
+                        }
                         isInputFocused = false
                     }) {
-                        ZStack {
-                            Circle()
-                                .fill(viewModel.canSend ? Color(hex: "2E3192") : Color.gray.opacity(0.2))
-                                .frame(width: 44, height: 44)
-                                .shadow(color: viewModel.canSend ? Color(hex: "2E3192").opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
-                                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: viewModel.canSend)
-                            
-                            Image(systemName: viewModel.chatState.isBusy ? "stop.fill" : "paperplane.fill")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(viewModel.canSend ? .white : .secondary)
-                                .scaleEffect(sendButtonScale)
-                                .symbolEffect(.bounce, value: viewModel.chatState.isBusy)
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 26))
+                            .foregroundColor(viewModel.canSend ? Color(hex: "2E3192") : .gray.opacity(0.3))
+                            .scaleEffect(sendButtonScale)
+                    }
+                    .disabled(!viewModel.canSend)
+                }
+                .padding(.leading, 16)
+                .padding(.trailing, 8)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+                )
+                
+                // Mic button beside the field
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    Task {
+                        if speechManager.isRecording {
+                            speechManager.stopRecording()
+                        } else {
+                            do {
+                                try await speechManager.startRecording()
+                            } catch {
+                                print("Voice input error: \(error)")
+                            }
                         }
                     }
-                    .disabled(!viewModel.canSend && !viewModel.chatState.isBusy)
-                    .buttonStyle(ScaleButtonStyle())
+                }) {
+                    Image(systemName: speechManager.isRecording ? "stop.fill" : "mic.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(speechManager.isRecording ? .white : .secondary)
+                        .padding(12)
+                        .background(speechManager.isRecording ? AnyShapeStyle(Color.red) : AnyShapeStyle(.ultraThinMaterial))
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.primary.opacity(speechManager.isRecording ? 0 : 0.1), lineWidth: 0.5)
+                        )
                 }
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: speechManager.isRecording)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .ignoresSafeArea()
-            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
         }
         .onChange(of: speechManager.isRecording) { _, isRecording in
             if !isRecording && !speechManager.recognizedText.isEmpty {
@@ -328,28 +348,46 @@ private struct ChatBubble: View {
     @State private var appeared = false
     
     var body: some View {
-        HStack {
-            if message.isUser { Spacer(minLength: 60) }
-            
-            if message.isLoading {
-                TypingIndicator()
-            } else {
-                Text(message.content)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        message.isUser
-                            ? AnyShapeStyle(Color(hex: "2E3192"))
-                            : AnyShapeStyle(Material.ultraThinMaterial)
-                    )
-                    .foregroundColor(message.isUser ? .white : .primary)
-                    .cornerRadius(18)
-                    .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
-                    .scaleEffect(appeared ? 1 : 0.5)
-                    .opacity(appeared ? 1 : 0)
+        VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
+            if !message.isUser {
+                // AI Header (like "Copilot just now")
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "2E3192"))
+                    Text("Swastri")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Text("just now")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.leading, 4)
             }
             
-            if !message.isUser { Spacer(minLength: 60) }
+            HStack {
+                if message.isUser { Spacer(minLength: 40) }
+                
+                if message.isLoading {
+                    TypingIndicator()
+                } else {
+                    Text(message.content)
+                        .font(.system(size: 15))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            message.isUser
+                                ? Color(UIColor.secondarySystemBackground)
+                                : Color(UIColor.secondarySystemBackground)
+                        )
+                        .foregroundColor(.primary)
+                        .cornerRadius(16)
+                        .scaleEffect(appeared ? 1 : 0.5)
+                        .opacity(appeared ? 1 : 0)
+                }
+                
+                if !message.isUser { Spacer(minLength: 40) }
+            }
         }
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1)) {
@@ -368,8 +406,8 @@ private struct TypingIndicator: View {
         HStack(spacing: 6) {
             ForEach(0..<3, id: \.self) { index in
                 Circle()
-                    .fill(Color(hex: "2E3192").opacity(0.7))
-                    .frame(width: 10, height: 10)
+                    .fill(Color.secondary.opacity(0.6))
+                    .frame(width: 8, height: 8)
                     .scaleEffect(isAnimating ? 1.0 : 0.6)
                     .opacity(isAnimating ? 1.0 : 0.4)
                     .animation(
@@ -380,13 +418,12 @@ private struct TypingIndicator: View {
                     )
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Material.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.secondarySystemBackground))
         )
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
         .onAppear {
             isAnimating = true
         }
@@ -468,13 +505,6 @@ private struct AnalysisResultView: View {
             }
             .navigationTitle("AI Health Analysis")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        onDismiss()
-                    }
-                }
-            }
         }
     }
     

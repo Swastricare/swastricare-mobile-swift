@@ -35,6 +35,19 @@ struct ContentView: View {
     @State private var currentTab: Tab = .vitals
     @StateObject private var homeViewModel = DependencyContainer.shared.homeViewModel
     
+    // MARK: - Init
+    
+    init() {
+        // Configure transparent tab bar with blur effect
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+        appearance.backgroundColor = UIColor.clear
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+    
     // MARK: - Body
     
     var body: some View {

@@ -14,6 +14,7 @@ final class AuthViewModel: ObservableObject {
     // MARK: - Published State
     
     @Published private(set) var authState: AuthState = .unknown
+    @Published private(set) var healthProfile: HealthProfile?
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     @Published var formState = AuthFormState()
@@ -24,16 +25,23 @@ final class AuthViewModel: ObservableObject {
     var currentUser: AppUser? { authState.user }
     var userEmail: String? { currentUser?.email }
     var userPhotoURL: URL? { currentUser?.avatarURL }
-    var userName: String { currentUser?.fullName ?? currentUser?.email?.components(separatedBy: "@").first ?? "User" }
+    var userName: String { 
+        healthProfile?.name ?? currentUser?.fullName ?? currentUser?.email?.components(separatedBy: "@").first ?? "User" 
+    }
     
     // MARK: - Dependencies
     
     private let authService: AuthServiceProtocol
+    private let healthProfileService: HealthProfileServiceProtocol
     
     // MARK: - Init
     
-    init(authService: AuthServiceProtocol = AuthService.shared) {
+    init(
+        authService: AuthServiceProtocol = AuthService.shared,
+        healthProfileService: HealthProfileServiceProtocol = HealthProfileService.shared
+    ) {
         self.authService = authService
+        self.healthProfileService = healthProfileService
         
         Task {
             await checkAuthStatus()
@@ -48,11 +56,21 @@ final class AuthViewModel: ObservableObject {
                 authState = .authenticated(user)
                 // Mark that user has logged in before (for onboarding logic)
                 UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
+                // Fetch health profile for user name
+                await fetchHealthProfile()
             } else {
                 authState = .unauthenticated
             }
         } catch {
             authState = .unauthenticated
+        }
+    }
+    
+    func fetchHealthProfile() async {
+        do {
+            healthProfile = try await healthProfileService.fetchHealthProfile()
+        } catch {
+            print("Failed to fetch health profile: \(error.localizedDescription)")
         }
     }
     
@@ -74,6 +92,8 @@ final class AuthViewModel: ObservableObject {
                 authState = .authenticated(user)
                 // Mark that user has logged in before (for onboarding logic)
                 UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
+                // Fetch health profile
+                await fetchHealthProfile()
                 clearForm()
             } else {
                 errorMessage = "Please check your email to verify your account"
@@ -102,6 +122,8 @@ final class AuthViewModel: ObservableObject {
             authState = .authenticated(user)
             // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
+            // Fetch health profile
+            await fetchHealthProfile()
             clearForm()
         } catch {
             errorMessage = error.localizedDescription
@@ -119,6 +141,8 @@ final class AuthViewModel: ObservableObject {
             authState = .authenticated(user)
             // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
+            // Fetch health profile
+            await fetchHealthProfile()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -133,6 +157,7 @@ final class AuthViewModel: ObservableObject {
         do {
             try await authService.signOut()
             authState = .unauthenticated
+            healthProfile = nil
             clearForm()
         } catch {
             errorMessage = error.localizedDescription

@@ -51,7 +51,11 @@ final class DependencyContainer: ObservableObject {
     }()
     
     lazy var profileViewModel: ProfileViewModel = {
-        ProfileViewModel(authService: authService, biometricService: biometricService)
+        ProfileViewModel(
+            authService: authService,
+            biometricService: biometricService,
+            healthProfileService: HealthProfileService.shared
+        )
     }()
     
     lazy var lockScreenViewModel: LockScreenViewModel = {

@@ -242,16 +242,16 @@ class SupabaseManager {
         }
         
         do {
-            let documents: [MedicalDocument] = try await client
-                .from("medical_documents")
-                .select()
-                .eq("user_id", value: userId.uuidString)
-                .order("uploaded_at", ascending: false)
-                .execute()
-                .value
-            
+        let documents: [MedicalDocument] = try await client
+            .from("medical_documents")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .order("uploaded_at", ascending: false)
+            .execute()
+            .value
+        
             print("✅ Fetched \(documents.count) documents for user")
-            return documents
+        return documents
         } catch {
             print("❌ Failed to fetch documents: \(error)")
             throw SupabaseError.databaseError("Failed to fetch documents: \(error.localizedDescription)")
@@ -296,9 +296,9 @@ class SupabaseManager {
         )
         
         do {
-            try await client.storage
-                .from("medical-vault")
-                .upload(
+        try await client.storage
+            .from("medical-vault")
+            .upload(
                     storagePath,
                     data: fileData,
                     options: options
@@ -354,16 +354,16 @@ class SupabaseManager {
         print("   Tags: \(metadata.tags)")
         
         do {
-            let inserted: MedicalDocument = try await client
-                .from("medical_documents")
-                .insert(document)
-                .select()
-                .single()
-                .execute()
-                .value
-            
+        let inserted: MedicalDocument = try await client
+            .from("medical_documents")
+            .insert(document)
+            .select()
+            .single()
+            .execute()
+            .value
+        
             print("✅ Document uploaded successfully: \(inserted.id?.uuidString ?? "unknown")")
-            return inserted
+        return inserted
         } catch {
             print("❌ Database insert failed for document: \(error)")
             // Try to clean up the uploaded file if database insert fails
@@ -470,15 +470,15 @@ class SupabaseManager {
     /// Downloads a medical document
     func downloadDocument(storagePath: String) async throws -> Data {
         do {
-            let data = try await client.storage
-                .from("medical-vault")
-                .download(path: storagePath)
-            
+        let data = try await client.storage
+            .from("medical-vault")
+            .download(path: storagePath)
+        
             guard !data.isEmpty else {
                 throw SupabaseError.storageError("Downloaded file is empty")
             }
             
-            return data
+        return data
         } catch {
             // Provide more specific error messages
             if let supabaseError = error as? StorageError {

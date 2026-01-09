@@ -649,13 +649,6 @@ struct HydrationView: View {
             }
             .navigationTitle("Select Drink")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        showDrinkTypePicker = false
-                    }
-                }
-            }
         }
         .presentationDetents([.medium])
     }

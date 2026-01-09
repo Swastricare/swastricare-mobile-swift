@@ -23,6 +23,20 @@ struct swastricare_mobile_swiftApp: App {
         return UserDefaults.standard.bool(forKey: AppConfig.hasLoggedInBeforeKey)
     }()
     
+    @State private var hasAcceptedConsent: Bool = {
+        if AppConfig.isTestingMode {
+            return false
+        }
+        // Show consent screen if user hasn't accepted terms and privacy policy
+        return UserDefaults.standard.bool(forKey: AppConfig.hasAcceptedConsentKey)
+    }()
+    
+    // Health profile state - checked from DB on auth
+    // IMPORTANT: Start as false - only check when authenticated
+    @State private var hasCompletedHealthProfile: Bool = false
+    @State private var isCheckingHealthProfile: Bool = false
+    @State private var hasCheckedHealthProfile: Bool = false
+    
     @Environment(\.scenePhase) private var scenePhase
     
     // Notification delegate
@@ -41,27 +55,143 @@ struct swastricare_mobile_swiftApp: App {
             Group {
                 if !hasCompletedOnboarding {
                     OnboardingView(isOnboardingComplete: $hasCompletedOnboarding)
+                } else if !hasAcceptedConsent {
+                    // Show consent screen after onboarding
+                    ConsentView(hasAcceptedConsent: $hasAcceptedConsent)
                 } else if authViewModel.authState == .unknown {
-                    // Loading state
+                    // Loading state - checking auth
                     SplashView()
                 } else if authViewModel.isAuthenticated {
-                    // Authenticated - show main app or lock screen
-                    if lockViewModel.isLocked && UserDefaults.standard.bool(forKey: "biometricEnabled") {
+                    // CRITICAL: User MUST be authenticated to reach here
+                    // Always check DB once per authenticated session BEFORE deciding to show questionnaire
+                    if !hasCheckedHealthProfile || isCheckingHealthProfile {
+                        SplashView()
+                            .task {
+                                await checkHealthProfileFromDB()
+                            }
+                    } else if !hasCompletedHealthProfile {
+                        // Show health profile questionnaire ONLY if:
+                        // 1. User is authenticated (already checked above)
+                        // 2. Profile check is complete (hasCheckedHealthProfile == true)
+                        // 3. No profile found (!hasCompletedHealthProfile)
+                        
+                        // TRIPLE-CHECK: Verify authentication one more time
+                        if authViewModel.isAuthenticated && authViewModel.currentUser != nil {
+                            HealthProfileQuestionnaireView {
+                                // Profile saved to DB - update state to proceed to main app
+                                hasCompletedHealthProfile = true
+                                // Refresh auth profile to load the new data
+                                Task {
+                                    await authViewModel.fetchHealthProfile()
+                                }
+                            }
+                        } else {
+                            // Safety: If somehow we got here without auth, show login
+                            LoginView()
+                        }
+                    } else if lockViewModel.isLocked && UserDefaults.standard.bool(forKey: "biometricEnabled") {
+                        // Show lock screen if enabled
                         LockScreenView()
                     } else {
+                        // Show main app
                         ContentView()
                     }
                 } else {
-                    // Not authenticated - show login
+                    // NOT AUTHENTICATED - show login screen
+                    // NEVER show questionnaire here - this is the login screen
                     LoginView()
                 }
             }
             .animation(.easeInOut, value: authViewModel.authState)
             .animation(.easeInOut, value: hasCompletedOnboarding)
+            .animation(.easeInOut, value: hasAcceptedConsent)
+            .animation(.easeInOut, value: hasCompletedHealthProfile)
             .withDependencies()
+            .onChange(of: authViewModel.isAuthenticated) { _, isAuthenticated in
+                if isAuthenticated {
+                    // User just logged in - check if they have a health profile in DB
+                    print("🔐 User authenticated - checking health profile...")
+                    hasCompletedHealthProfile = false  // Reset until DB confirms
+                    hasCheckedHealthProfile = false    // Force a DB check for this session
+                    isCheckingHealthProfile = false    // Let the view trigger the check task
+                } else {
+                    // User logged out - reset state completely
+                    print("🔐 User logged out - resetting health profile state")
+                    hasCompletedHealthProfile = false
+                    isCheckingHealthProfile = false  // Don't check until next login
+                    hasCheckedHealthProfile = false
+                }
+            }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
+            }
         }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-            handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
+    }
+    
+    // MARK: - Health Profile Check
+    
+    /// Check health profile from database - this is the source of truth (per user)
+    /// IMPORTANT: This function ONLY runs when user is authenticated
+    private func checkHealthProfileFromDB() async {
+        // Avoid concurrent checks
+        if await MainActor.run(body: { isCheckingHealthProfile }) {
+            return
+        }
+        await MainActor.run {
+            isCheckingHealthProfile = true
+        }
+        
+        // Double-check authentication - NEVER check profile if not logged in
+        guard authViewModel.isAuthenticated else {
+            print("🚫 Health profile check: User NOT authenticated - skipping check")
+            await MainActor.run {
+                hasCompletedHealthProfile = false
+                isCheckingHealthProfile = false
+                hasCheckedHealthProfile = true
+            }
+            return
+        }
+        
+        print("✅ Health profile check: User is authenticated, proceeding with check")
+        
+        // Small delay to ensure auth session is fully ready
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        
+        // Retry up to 3 times if session isn't ready
+        var attempts = 0
+        let maxAttempts = 3
+        
+        while attempts < maxAttempts {
+            attempts += 1
+            
+            do {
+                // Query database for THIS user's health profile
+                let hasProfile = try await HealthProfileService.shared.hasHealthProfile()
+                print("📋 Health profile check (attempt \(attempts)): \(hasProfile ? "✅ EXISTS - skip questionnaire" : "❌ NOT FOUND - show questionnaire")")
+                
+                await MainActor.run {
+                    hasCompletedHealthProfile = hasProfile
+                    isCheckingHealthProfile = false
+                    hasCheckedHealthProfile = true
+                }
+                return // Success, exit
+                
+            } catch {
+                print("⚠️ Health profile check attempt \(attempts) failed: \(error.localizedDescription)")
+                
+                if attempts < maxAttempts {
+                    // Wait before retry
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                } else {
+                    // All attempts failed - show questionnaire
+                    print("❌ All health profile check attempts failed")
+                    await MainActor.run {
+                        hasCompletedHealthProfile = false
+                        isCheckingHealthProfile = false
+                        hasCheckedHealthProfile = true
+                    }
+                }
+            }
         }
     }
     
