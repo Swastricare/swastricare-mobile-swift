@@ -391,10 +391,9 @@ struct HomeView: View {
     }
     
     private var healthVitalsSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Health Vitals")
-                .font(.title3)
-                .fontWeight(.semibold)
+                .font(.system(size: 16, weight: .semibold))
                 .padding(.horizontal)
                 .opacity(hasAppeared ? 1 : 0)
                 .offset(y: hasAppeared ? 0 : -10)
@@ -403,7 +402,7 @@ struct HomeView: View {
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 12) {
+            ], spacing: 8) {
                 VitalCard(
                     icon: "heart.fill",
                     title: "Heart Rate",
@@ -754,9 +753,10 @@ private struct VitalCard: View {
     @State private var cardAppeared = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Image(systemName: icon)
+                    .font(.system(size: 14))
                     .foregroundColor(color)
                     .scaleEffect(cardAppeared ? 1 : 0)
                     .rotationEffect(.degrees(cardAppeared ? 0 : -180))
@@ -764,26 +764,25 @@ private struct VitalCard: View {
             }
             
             Text(title)
-                .font(.caption)
+                .font(.system(size: 10))
                 .foregroundColor(.secondary)
                 .opacity(cardAppeared ? 1 : 0)
             
             HStack(alignment: .lastTextBaseline, spacing: 2) {
                 Text(value)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.system(size: 16, weight: .bold))
                     .opacity(cardAppeared ? 1 : 0)
                     .offset(x: cardAppeared ? 0 : -10)
                 if !unit.isEmpty {
                     Text(unit)
-                        .font(.caption)
+                        .font(.system(size: 9))
                         .foregroundColor(.secondary)
                         .opacity(cardAppeared ? 1 : 0)
                 }
             }
         }
-        .padding()
-        .glass(cornerRadius: 16)
+        .padding(10)
+        .glass(cornerRadius: 12)
         .opacity(cardAppeared ? 1 : 0)
         .scaleEffect(cardAppeared ? 1 : 0.7)
         .offset(y: cardAppeared ? 0 : 30)
