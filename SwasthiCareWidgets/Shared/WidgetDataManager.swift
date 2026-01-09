@@ -164,7 +164,7 @@ final class WidgetDataManager {
         static let hydrationData = "widget_hydration_data"
         static let medicationData = "widget_medication_data"
         static let pendingWaterLog = "widget_pending_water_log"
-        static let pendingMedicationMark = "widget_pending_medication_mark"
+        static let pendingMedicationMarks = "widget_pending_medication_marks"
     }
     
     private init() {
@@ -281,29 +281,53 @@ final class WidgetDataManager {
         return try? decoder.decode(PendingWaterLog.self, from: data)
     }
     
-    /// Store pending medication mark from widget quick action
+    /// Store pending medication mark from widget quick action (accumulates multiple marks)
     func storePendingMedicationMark(medicationId: UUID) {
         guard let defaults = AppGroupConfig.sharedDefaults else { return }
         
-        let pending = PendingMedicationMark(medicationId: medicationId, timestamp: Date())
-        if let encoded = try? encoder.encode(pending) {
-            defaults.set(encoded, forKey: Keys.pendingMedicationMark)
+        // Load existing pending marks and append new one
+        var marks: [PendingMedicationMark] = []
+        if let existingData = defaults.data(forKey: Keys.pendingMedicationMarks),
+           let existing = try? decoder.decode([PendingMedicationMark].self, from: existingData) {
+            marks = existing
+            print("💊 WidgetDataManager: Found \(existing.count) existing pending medication mark(s)")
+        }
+        
+        // Append new mark
+        let newMark = PendingMedicationMark(medicationId: medicationId, timestamp: Date())
+        marks.append(newMark)
+        
+        // Save accumulated marks
+        if let encoded = try? encoder.encode(marks) {
+            defaults.set(encoded, forKey: Keys.pendingMedicationMarks)
             defaults.synchronize()
+            print("💊 WidgetDataManager: Stored \(marks.count) pending medication mark(s)")
         }
     }
     
-    /// Get and clear pending medication mark
-    func getPendingMedicationMark() -> PendingMedicationMark? {
+    /// Get and clear all pending medication marks
+    func getPendingMedicationMarks() -> [PendingMedicationMark] {
         guard let defaults = AppGroupConfig.sharedDefaults,
-              let data = defaults.data(forKey: Keys.pendingMedicationMark) else {
-            return nil
+              let data = defaults.data(forKey: Keys.pendingMedicationMarks) else {
+            return []
         }
         
         // Clear after reading
-        defaults.removeObject(forKey: Keys.pendingMedicationMark)
+        defaults.removeObject(forKey: Keys.pendingMedicationMarks)
         defaults.synchronize()
         
-        return try? decoder.decode(PendingMedicationMark.self, from: data)
+        if let marks = try? decoder.decode([PendingMedicationMark].self, from: data) {
+            print("💊 WidgetDataManager: Retrieved \(marks.count) pending medication mark(s)")
+            return marks
+        }
+        
+        return []
+    }
+    
+    /// Legacy support - Get single pending medication mark (deprecated)
+    @available(*, deprecated, message: "Use getPendingMedicationMarks() instead")
+    func getPendingMedicationMark() -> PendingMedicationMark? {
+        return getPendingMedicationMarks().first
     }
     
     // MARK: - Widget Refresh

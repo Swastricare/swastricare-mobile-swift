@@ -16,10 +16,57 @@ protocol NotificationServiceProtocol {
     func requestPermission() async -> Bool
     func checkPermissionStatus() async -> NotificationPermissionStatus
     func scheduleSmartReminder(progress: Double, remainingMl: Int, effectiveIntake: Int, dailyGoal: Int, streak: Int) async
+    func scheduleSmartReminder(progress: Double, remainingMl: Int, effectiveIntake: Int, dailyGoal: Int, streak: Int, context: HydrationReminderContext?) async
     func cancelAllReminders()
     func registerForRemoteNotifications()
     func handleNotificationResponse(response: UNNotificationResponse) async
     func handleMedicationNotificationResponse(response: UNNotificationResponse) async
+}
+
+// MARK: - Hydration Reminder Context
+
+/// Context information for smarter notification scheduling
+struct HydrationReminderContext {
+    let temperature: Double?
+    let exerciseMinutes: Int
+    let isHotDay: Bool
+    let recentlyExercised: Bool
+    let patternLearner: DrinkingPatternLearnerProtocol?
+    
+    init(
+        temperature: Double? = nil,
+        exerciseMinutes: Int = 0,
+        patternLearner: DrinkingPatternLearnerProtocol? = nil
+    ) {
+        self.temperature = temperature
+        self.exerciseMinutes = exerciseMinutes
+        self.isHotDay = (temperature ?? 0) > 30
+        self.recentlyExercised = exerciseMinutes > 30
+        self.patternLearner = patternLearner
+    }
+    
+    /// Get frequency adjustment based on context
+    func getFrequencyAdjustment() -> Int {
+        var adjustment = 0
+        
+        // Hot weather - more frequent reminders
+        if isHotDay {
+            adjustment -= 1 // Reduce frequency hours by 1
+        }
+        
+        // Recent exercise - more frequent reminders
+        if recentlyExercised {
+            adjustment -= 1
+        }
+        
+        return adjustment
+    }
+    
+    /// Check if we should send an immediate reminder
+    func shouldSendImmediateReminder() -> Bool {
+        // Send immediate reminder after significant exercise in hot weather
+        return recentlyExercised && isHotDay
+    }
 }
 
 // MARK: - Notification Service Implementation
@@ -34,12 +81,20 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
     private let settingsKey = "notification_settings"
+    private let scheduledIdsKey = "scheduled_notification_ids"
     
     private(set) var settings: NotificationSettings {
         didSet {
             saveSettings()
         }
     }
+    
+    /// Track scheduled notification IDs for incremental updates
+    private var scheduledNotificationIds: Set<String> = []
+    
+    /// Last known progress status to avoid unnecessary rescheduling
+    private var lastProgressStatus: HydrationProgressStatus?
+    private var lastGoalMet: Bool = false
     
     weak var hydrationViewModel: HydrationViewModel?
     weak var medicationViewModel: MedicationViewModel?
@@ -48,6 +103,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     
     override private init() {
         self.settings = NotificationService.loadSettings()
+        self.scheduledNotificationIds = NotificationService.loadScheduledIds()
         super.init()
         notificationCenter.delegate = self
         setupNotificationCategories()
@@ -133,7 +189,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     
     // MARK: - Smart Scheduling
     
-    /// Schedule a smart reminder based on hydration progress
+    /// Schedule a smart reminder based on hydration progress (without context)
     func scheduleSmartReminder(
         progress: Double,
         remainingMl: Int,
@@ -141,8 +197,29 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         dailyGoal: Int,
         streak: Int
     ) async {
+        await scheduleSmartReminder(
+            progress: progress,
+            remainingMl: remainingMl,
+            effectiveIntake: effectiveIntake,
+            dailyGoal: dailyGoal,
+            streak: streak,
+            context: nil
+        )
+    }
+    
+    /// Schedule a smart reminder based on hydration progress with context awareness
+    /// Uses incremental scheduling to avoid cancelling all reminders unnecessarily
+    func scheduleSmartReminder(
+        progress: Double,
+        remainingMl: Int,
+        effectiveIntake: Int,
+        dailyGoal: Int,
+        streak: Int,
+        context: HydrationReminderContext?
+    ) async {
         guard settings.enabled else {
             print("🔔 NotificationService: Notifications disabled, skipping schedule")
+            await cancelAllRemindersAsync()
             return
         }
         
@@ -152,53 +229,210 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             return
         }
         
-        // Cancel existing reminders
-        cancelAllReminders()
-        
-        // Don't schedule if goal is met
-        if progress >= 1.0 {
-            print("🔔 NotificationService: Goal met, no reminder needed")
-            return
-        }
-        
-        // Calculate next reminder time
+        let isGoalMet = progress >= 1.0
         let timeOfDay = TimeOfDay.current()
         let progressStatus = determineProgressStatus(progress: progress, timeOfDay: timeOfDay)
         
-        let frequencyHours = settings.smartReminders ? 
+        // Check if we need to reschedule
+        let shouldReschedule = shouldRescheduleNotifications(
+            newProgressStatus: progressStatus,
+            newGoalMet: isGoalMet,
+            context: context
+        )
+        
+        // Don't schedule if goal is met
+        if isGoalMet {
+            if lastGoalMet != isGoalMet {
+                // Goal just met - cancel remaining reminders and update badge
+                await cancelAllRemindersAsync()
+                await updateBadgeCount(pendingCount: 0)
+                print("🔔 NotificationService: Goal met, cancelled remaining reminders")
+            }
+            lastGoalMet = isGoalMet
+            lastProgressStatus = progressStatus
+            return
+        }
+        
+        // Check pattern learner if user naturally drinks at this time
+        if let patternLearner = context?.patternLearner {
+            if !patternLearner.shouldSendReminderNow() {
+                print("🔔 NotificationService: Pattern learner suggests user drinks naturally at this time, deferring")
+                // Don't cancel existing reminders, just don't add new ones
+                return
+            }
+        }
+        
+        // Only reschedule if progress status changed significantly
+        guard shouldReschedule else {
+            print("🔔 NotificationService: Progress status unchanged, skipping reschedule")
+            return
+        }
+        
+        // Cancel existing reminders only when needed
+        await cancelAllRemindersAsync()
+        
+        // Calculate frequency with context adjustments
+        var frequencyHours = settings.smartReminders ? 
             progressStatus.reminderFrequencyHours : 
             settings.reminderFrequencyHours
+        
+        // Apply context-based frequency adjustments
+        if let ctx = context {
+            frequencyHours = calculateOptimalFrequency(
+                baseFrequency: frequencyHours,
+                context: ctx,
+                progressStatus: progressStatus
+            )
+        }
         
         guard frequencyHours > 0 else {
             print("🔔 NotificationService: No reminder needed for current progress")
             return
         }
         
+        // Check if we should send an immediate reminder (e.g., after exercise in hot weather)
+        if let ctx = context, ctx.shouldSendImmediateReminder() && progress < 0.8 {
+            await scheduleImmediateContextReminder(context: ctx, remainingMl: remainingMl)
+        }
+        
         // Schedule reminders for the rest of the day
-        await scheduleReminders(
+        let scheduledCount = await scheduleReminders(
             frequencyHours: frequencyHours,
             progress: progress,
             remainingMl: remainingMl,
             effectiveIntake: effectiveIntake,
             dailyGoal: dailyGoal,
-            streak: streak
+            streak: streak,
+            context: context
         )
         
+        // Update badge count based on pending reminders
+        await updateBadgeCount(pendingCount: scheduledCount)
+        
+        // Update state
+        lastProgressStatus = progressStatus
+        lastGoalMet = isGoalMet
         settings.lastScheduledTime = Date()
+    }
+    
+    /// Determines if we should reschedule notifications based on progress changes
+    private func shouldRescheduleNotifications(
+        newProgressStatus: HydrationProgressStatus,
+        newGoalMet: Bool,
+        context: HydrationReminderContext? = nil
+    ) -> Bool {
+        // Always reschedule if goal status changed
+        if newGoalMet != lastGoalMet {
+            return true
+        }
+        
+        // First time scheduling
+        guard let lastStatus = lastProgressStatus else {
+            return true
+        }
+        
+        // Reschedule if progress status category changed
+        if lastStatus != newProgressStatus {
+            return true
+        }
+        
+        // Check if we have any scheduled notifications
+        if scheduledNotificationIds.isEmpty {
+            return true
+        }
+        
+        // Reschedule if context suggests urgency (hot day or recent exercise)
+        if let ctx = context {
+            if ctx.shouldSendImmediateReminder() {
+                return true
+            }
+        }
+        
+        return false
+    }
+    
+    /// Calculate optimal frequency based on context
+    private func calculateOptimalFrequency(
+        baseFrequency: Int,
+        context: HydrationReminderContext,
+        progressStatus: HydrationProgressStatus
+    ) -> Int {
+        var frequency = baseFrequency
+        
+        // Apply context adjustments
+        frequency += context.getFrequencyAdjustment()
+        
+        // Get pattern learner recommendations if available
+        if let patternLearner = context.patternLearner {
+            let pattern = patternLearner.getPattern()
+            
+            // If user has slow notification response, reduce frequency slightly
+            if let avgResponse = pattern.avgNotificationResponseTime, avgResponse > 1800 {
+                // User typically takes > 30 min to respond, don't spam
+                frequency = max(frequency, 3)
+            }
+        }
+        
+        // Ensure reasonable bounds (1-6 hours)
+        return max(1, min(6, frequency))
+    }
+    
+    /// Schedule an immediate context-based reminder (e.g., post-exercise)
+    private func scheduleImmediateContextReminder(context: HydrationReminderContext, remainingMl: Int) async {
+        let content = UNMutableNotificationContent()
+        
+        if context.recentlyExercised && context.isHotDay {
+            content.title = "🏃‍♂️💧 Post-Workout Hydration"
+            content.body = "Great workout! It's \(Int(context.temperature ?? 30))°C outside. Time to rehydrate - \(remainingMl)ml remaining!"
+        } else if context.recentlyExercised {
+            content.title = "🏃‍♂️ Post-Workout Reminder"
+            content.body = "Great workout! Don't forget to rehydrate - \(remainingMl)ml remaining!"
+        } else if context.isHotDay {
+            content.title = "🌡️ Hot Weather Alert"
+            content.body = "It's \(Int(context.temperature ?? 30))°C outside! Stay hydrated - \(remainingMl)ml remaining!"
+        }
+        
+        content.sound = .default
+        content.categoryIdentifier = NotificationCategory.hydrationReminder.identifier
+        content.userInfo = [
+            "type": "hydration_reminder",
+            "context": "immediate",
+            "temperature": context.temperature ?? 0,
+            "exerciseMinutes": context.exerciseMinutes
+        ]
+        
+        // Schedule 5 minutes from now
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 300, repeats: false)
+        let identifier = "hydration_context_\(Int(Date().timeIntervalSince1970))"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        
+        do {
+            try await notificationCenter.add(request)
+            scheduledNotificationIds.insert(identifier)
+            saveScheduledIds()
+            print("🔔 NotificationService: Scheduled immediate context reminder")
+        } catch {
+            print("🔔 NotificationService: Failed to schedule context reminder - \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Private Scheduling Helpers
     
+    @discardableResult
     private func scheduleReminders(
         frequencyHours: Int,
         progress: Double,
         remainingMl: Int,
         effectiveIntake: Int,
         dailyGoal: Int,
-        streak: Int
-    ) async {
+        streak: Int,
+        context: HydrationReminderContext? = nil
+    ) async -> Int {
         let calendar = Calendar.current
         let now = Date()
+        
+        // Clear tracked IDs for fresh scheduling
+        scheduledNotificationIds.removeAll()
         
         // Get end of day (10 PM or start of quiet hours)
         let quietHoursStartComponents = calendar.dateComponents([.hour, .minute], from: settings.quietHoursStart)
@@ -206,67 +440,124 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         endOfDayComponents.hour = quietHoursStartComponents.hour ?? 22
         endOfDayComponents.minute = quietHoursStartComponents.minute ?? 0
         
-        guard let endOfDay = calendar.date(from: endOfDayComponents) else { return }
+        guard let endOfDay = calendar.date(from: endOfDayComponents) else { return 0 }
         
-        // Get start time (now or end of quiet hours)
+        // Get start time (now + frequency or after quiet hours)
         var startTime = now.addingTimeInterval(TimeInterval(frequencyHours * 3600))
         
-        if settings.isInQuietHours(date: startTime) {
-            // Schedule after quiet hours end
-            let endComponents = calendar.dateComponents([.hour, .minute], from: settings.quietHoursEnd)
-            var nextComponents = calendar.dateComponents([.year, .month, .day], from: startTime)
-            nextComponents.hour = endComponents.hour
-            nextComponents.minute = endComponents.minute
-            
-            if let nextTime = calendar.date(from: nextComponents) {
-                startTime = nextTime
-                // If that time has passed, add a day
-                if nextTime < now {
-                    startTime = calendar.date(byAdding: .day, value: 1, to: nextTime) ?? startTime
-                }
-            }
-        }
+        // If start time falls in quiet hours, reschedule to next available time
+        startTime = getNextAvailableTime(after: startTime)
+        
+        // Get optimal reminder hours from pattern learner if available
+        let optimalHours = context?.patternLearner?.getOptimalReminderHours(
+            quietHoursStart: quietHoursStartComponents.hour ?? 22,
+            quietHoursEnd: calendar.component(.hour, from: settings.quietHoursEnd)
+        ) ?? []
         
         var currentTime = startTime
         var count = 0
         let maxReminders = 5 // Limit to 5 reminders per day
         
         while currentTime < endOfDay && count < maxReminders {
-            // Skip if in quiet hours
-            if !settings.isInQuietHours(date: currentTime) {
-                await scheduleNotification(
-                    at: currentTime,
+            // Get next available time (skipping quiet hours)
+            var availableTime = getNextAvailableTime(after: currentTime)
+            
+            // If pattern learner suggests better hours, try to align
+            if !optimalHours.isEmpty {
+                let currentHour = calendar.component(.hour, from: availableTime)
+                if let betterHour = optimalHours.first(where: { $0 > currentHour && $0 < (quietHoursStartComponents.hour ?? 22) }) {
+                    var betterComponents = calendar.dateComponents([.year, .month, .day], from: availableTime)
+                    betterComponents.hour = betterHour
+                    betterComponents.minute = 0
+                    if let betterTime = calendar.date(from: betterComponents), betterTime > now {
+                        availableTime = betterTime
+                    }
+                }
+            }
+            
+            // Check if still within today's schedule window
+            if availableTime < endOfDay {
+                let identifier = await scheduleNotification(
+                    at: availableTime,
                     progress: progress,
                     remainingMl: remainingMl,
                     effectiveIntake: effectiveIntake,
                     dailyGoal: dailyGoal,
-                    streak: streak
+                    streak: streak,
+                    context: context
                 )
-                count += 1
+                
+                if let id = identifier {
+                    scheduledNotificationIds.insert(id)
+                    count += 1
+                }
+                
+                currentTime = availableTime.addingTimeInterval(TimeInterval(frequencyHours * 3600))
+            } else {
+                break
             }
-            
-            currentTime = currentTime.addingTimeInterval(TimeInterval(frequencyHours * 3600))
         }
         
-        print("🔔 NotificationService: Scheduled \(count) reminders")
+        // Save scheduled IDs for persistence
+        saveScheduledIds()
+        
+        print("🔔 NotificationService: Scheduled \(count) reminders (frequency: \(frequencyHours)h)")
+        return count
     }
     
+    /// Get the next available time that's not in quiet hours
+    /// Handles overnight quiet hours properly (e.g., 22:00 to 07:00)
+    private func getNextAvailableTime(after date: Date) -> Date {
+        guard settings.isInQuietHours(date: date) else {
+            return date
+        }
+        
+        let calendar = Calendar.current
+        let endComponents = calendar.dateComponents([.hour, .minute], from: settings.quietHoursEnd)
+        
+        guard let endHour = endComponents.hour, let endMinute = endComponents.minute else {
+            return date
+        }
+        
+        // Build the quiet hours end time for today
+        var nextComponents = calendar.dateComponents([.year, .month, .day], from: date)
+        nextComponents.hour = endHour
+        nextComponents.minute = endMinute
+        
+        guard let nextTime = calendar.date(from: nextComponents) else {
+            return date
+        }
+        
+        // If the end time has already passed today, it means we're in overnight quiet hours
+        // and need to go to tomorrow's end time
+        if nextTime <= date {
+            return calendar.date(byAdding: .day, value: 1, to: nextTime) ?? date
+        }
+        
+        return nextTime
+    }
+    
+    @discardableResult
     private func scheduleNotification(
         at date: Date,
         progress: Double,
         remainingMl: Int,
         effectiveIntake: Int,
         dailyGoal: Int,
-        streak: Int
-    ) async {
+        streak: Int,
+        context: HydrationReminderContext? = nil
+    ) async -> String? {
         let timeOfDay = TimeOfDay.current(date: date)
+        
+        // Generate message with context awareness
         let message = NotificationMessageGenerator.generateMessage(
             progress: progress,
             remainingMl: remainingMl,
             effectiveIntake: effectiveIntake,
             dailyGoal: dailyGoal,
             timeOfDay: timeOfDay,
-            streak: streak
+            streak: streak,
+            context: context
         )
         
         let content = UNMutableNotificationContent()
@@ -274,28 +565,40 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         content.body = message.body
         content.sound = .default
         content.categoryIdentifier = NotificationCategory.hydrationReminder.identifier
-        content.badge = 1
+        // Badge will be managed separately for accuracy
         
         // Add user info for tracking
-        content.userInfo = [
+        var userInfo: [String: Any] = [
             "type": "hydration_reminder",
             "progress": progress,
             "remainingMl": remainingMl,
             "scheduledTime": date.timeIntervalSince1970
         ]
         
+        // Add context info if available
+        if let ctx = context {
+            userInfo["temperature"] = ctx.temperature ?? 0
+            userInfo["exerciseMinutes"] = ctx.exerciseMinutes
+            userInfo["isHotDay"] = ctx.isHotDay
+            userInfo["recentlyExercised"] = ctx.recentlyExercised
+        }
+        
+        content.userInfo = userInfo
+        
         let calendar = Calendar.current
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         
-        let identifier = "hydration_\(date.timeIntervalSince1970)"
+        let identifier = "hydration_\(Int(date.timeIntervalSince1970))"
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         
         do {
             try await notificationCenter.add(request)
             print("🔔 NotificationService: Scheduled notification for \(date)")
+            return identifier
         } catch {
             print("🔔 NotificationService: Failed to schedule - \(error.localizedDescription)")
+            return nil
         }
     }
     
@@ -320,7 +623,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     
     // MARK: - Cancel Notifications
     
-    /// Cancel all scheduled hydration reminders
+    /// Cancel all scheduled hydration reminders (synchronous version for protocol conformance)
     func cancelAllReminders() {
         notificationCenter.getPendingNotificationRequests { requests in
             let hydrationIds = requests
@@ -332,6 +635,48 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
                 print("🔔 NotificationService: Cancelled \(hydrationIds.count) reminders")
             }
         }
+        
+        scheduledNotificationIds.removeAll()
+        saveScheduledIds()
+    }
+    
+    /// Cancel all scheduled hydration reminders (async version)
+    private func cancelAllRemindersAsync() async {
+        let requests = await notificationCenter.pendingNotificationRequests()
+        let hydrationIds = requests
+            .filter { $0.identifier.starts(with: "hydration_") }
+            .map { $0.identifier }
+        
+        if !hydrationIds.isEmpty {
+            notificationCenter.removePendingNotificationRequests(withIdentifiers: hydrationIds)
+            print("🔔 NotificationService: Cancelled \(hydrationIds.count) reminders (async)")
+        }
+        
+        scheduledNotificationIds.removeAll()
+        saveScheduledIds()
+    }
+    
+    /// Cancel specific notification by ID
+    private func cancelNotification(withIdentifier identifier: String) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+        scheduledNotificationIds.remove(identifier)
+        saveScheduledIds()
+    }
+    
+    // MARK: - Badge Management
+    
+    /// Update app badge count based on pending notifications
+    private func updateBadgeCount(pendingCount: Int) async {
+        await MainActor.run {
+            // Badge shows 1 if goal not met and there are reminders, 0 otherwise
+            UIApplication.shared.applicationIconBadgeNumber = pendingCount > 0 ? 1 : 0
+        }
+    }
+    
+    /// Get current pending notification count
+    func getPendingNotificationCount() async -> Int {
+        let requests = await notificationCenter.pendingNotificationRequests()
+        return requests.filter { $0.identifier.starts(with: "hydration_") }.count
     }
     
     // MARK: - Notification Response Handler
@@ -358,11 +703,12 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             await logWaterFromNotification(amount: 500)
             
         case NotificationAction.remindLater.rawValue:
-            await scheduleOneTimeReminder(delayHours: 1)
+            // Use customizable snooze duration from settings
+            await scheduleSnoozeReminder(delayMinutes: settings.snoozeMinutes)
             
         case NotificationAction.dismiss.rawValue:
             // Stop reminders for 3 hours
-            await scheduleOneTimeReminder(delayHours: 3)
+            await scheduleSnoozeReminder(delayMinutes: 180)
             
         case UNNotificationDefaultActionIdentifier:
             // User tapped the notification
@@ -485,12 +831,12 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     }
     
     private func scheduleOneTimeReminder(delayHours: Int) async {
-        let triggerDate = Date().addingTimeInterval(TimeInterval(delayHours * 3600))
+        var triggerDate = Date().addingTimeInterval(TimeInterval(delayHours * 3600))
         
-        // Skip if in quiet hours
+        // If in quiet hours, reschedule to after quiet hours
         if settings.isInQuietHours(date: triggerDate) {
-            print("🔔 NotificationService: Delay would be in quiet hours, skipping")
-            return
+            triggerDate = getNextAvailableTime(after: triggerDate)
+            print("🔔 NotificationService: Delay was in quiet hours, rescheduled to \(triggerDate)")
         }
         
         let content = UNMutableNotificationContent()
@@ -499,12 +845,21 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         content.sound = .default
         content.categoryIdentifier = NotificationCategory.hydrationReminder.identifier
         
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(delayHours * 3600), repeats: false)
-        let request = UNNotificationRequest(identifier: "hydration_delayed", content: content, trigger: trigger)
+        let timeInterval = triggerDate.timeIntervalSince(Date())
+        guard timeInterval > 0 else {
+            print("🔔 NotificationService: Invalid trigger time, skipping")
+            return
+        }
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
+        let identifier = "hydration_delayed_\(Int(Date().timeIntervalSince1970))"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         
         do {
             try await notificationCenter.add(request)
-            print("🔔 NotificationService: Scheduled delayed reminder for \(delayHours) hours")
+            scheduledNotificationIds.insert(identifier)
+            saveScheduledIds()
+            print("🔔 NotificationService: Scheduled delayed reminder for \(triggerDate)")
         } catch {
             print("🔔 NotificationService: Failed to schedule delayed reminder - \(error.localizedDescription)")
         }
@@ -539,20 +894,42 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         return settings
     }
     
+    // MARK: - Scheduled IDs Persistence
+    
+    private func saveScheduledIds() {
+        let idsArray = Array(scheduledNotificationIds)
+        userDefaults.set(idsArray, forKey: scheduledIdsKey)
+    }
+    
+    private static func loadScheduledIds() -> Set<String> {
+        guard let idsArray = UserDefaults.standard.stringArray(forKey: "scheduled_notification_ids") else {
+            return []
+        }
+        return Set(idsArray)
+    }
+    
+    /// Reset scheduling state (useful when app launches or user changes settings)
+    func resetSchedulingState() {
+        lastProgressStatus = nil
+        lastGoalMet = false
+        scheduledNotificationIds.removeAll()
+        saveScheduledIds()
+    }
+    
     // MARK: - Setup Notification Categories
     
     private func setupNotificationCategories() {
-        // Hydration category
+        // Hydration category - actions run in background for better UX
         let log250Action = UNNotificationAction(
             identifier: NotificationAction.log250ml.rawValue,
             title: NotificationAction.log250ml.title,
-            options: [.foreground]
+            options: [] // No .foreground - handles in background
         )
         
         let log500Action = UNNotificationAction(
             identifier: NotificationAction.log500ml.rawValue,
             title: NotificationAction.log500ml.title,
-            options: [.foreground]
+            options: [] // No .foreground - handles in background
         )
         
         let remindLaterAction = UNNotificationAction(
@@ -571,14 +948,14 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             identifier: NotificationCategory.hydrationReminder.identifier,
             actions: [log250Action, log500Action, remindLaterAction, dismissAction],
             intentIdentifiers: [],
-            options: [.customDismissAction]
+            options: [.customDismissAction, .allowInCarPlay]
         )
         
-        // Medication category
+        // Medication category - actions run in background for better UX
         let medicationTakenAction = UNNotificationAction(
             identifier: NotificationAction.medicationTaken.rawValue,
             title: NotificationAction.medicationTaken.title,
-            options: []
+            options: [] // No .foreground - handles in background
         )
         
         let medicationSkipAction = UNNotificationAction(
@@ -597,11 +974,11 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             identifier: NotificationCategory.medicationReminder.identifier,
             actions: [medicationTakenAction, medicationSnoozeAction, medicationSkipAction],
             intentIdentifiers: [],
-            options: [.customDismissAction]
+            options: [.customDismissAction, .allowInCarPlay]
         )
         
         notificationCenter.setNotificationCategories([hydrationCategory, medicationCategory])
-        print("🔔 NotificationService: Notification categories configured (Hydration + Medication)")
+        print("🔔 NotificationService: Notification categories configured (Hydration + Medication) - Background actions enabled")
     }
 }
 

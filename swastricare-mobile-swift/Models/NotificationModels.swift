@@ -20,6 +20,11 @@ struct NotificationSettings: Codable, Equatable {
     var showProgress: Bool
     var showMotivational: Bool
     var lastScheduledTime: Date?
+    var snoozeMinutes: Int
+    var useAdaptiveLearning: Bool
+    
+    /// Available snooze duration options
+    static let snoozeDurationOptions: [Int] = [5, 10, 15, 30, 60]
     
     init(
         enabled: Bool = false,
@@ -29,7 +34,9 @@ struct NotificationSettings: Codable, Equatable {
         reminderFrequencyHours: Int = 3,
         showProgress: Bool = true,
         showMotivational: Bool = true,
-        lastScheduledTime: Date? = nil
+        lastScheduledTime: Date? = nil,
+        snoozeMinutes: Int = 15,
+        useAdaptiveLearning: Bool = true
     ) {
         self.enabled = enabled
         self.smartReminders = smartReminders
@@ -39,6 +46,16 @@ struct NotificationSettings: Codable, Equatable {
         self.showProgress = showProgress
         self.showMotivational = showMotivational
         self.lastScheduledTime = lastScheduledTime
+        self.snoozeMinutes = snoozeMinutes
+        self.useAdaptiveLearning = useAdaptiveLearning
+    }
+    
+    /// Get human-readable snooze duration description
+    var snoozeDurationDescription: String {
+        if snoozeMinutes >= 60 {
+            return "\(snoozeMinutes / 60) hour"
+        }
+        return "\(snoozeMinutes) minutes"
     }
     
     /// Check if current time is within quiet hours
@@ -160,7 +177,7 @@ enum TimeOfDay {
 
 struct NotificationMessageGenerator {
     
-    /// Generate a motivational notification message based on context
+    /// Generate a motivational notification message based on context (backward compatible)
     static func generateMessage(
         progress: Double,
         remainingMl: Int,
@@ -169,6 +186,34 @@ struct NotificationMessageGenerator {
         timeOfDay: TimeOfDay,
         streak: Int
     ) -> (title: String, body: String) {
+        return generateMessage(
+            progress: progress,
+            remainingMl: remainingMl,
+            effectiveIntake: effectiveIntake,
+            dailyGoal: dailyGoal,
+            timeOfDay: timeOfDay,
+            streak: streak,
+            context: nil
+        )
+    }
+    
+    /// Generate a motivational notification message with context awareness
+    static func generateMessage(
+        progress: Double,
+        remainingMl: Int,
+        effectiveIntake: Int,
+        dailyGoal: Int,
+        timeOfDay: TimeOfDay,
+        streak: Int,
+        context: HydrationReminderContext?
+    ) -> (title: String, body: String) {
+        
+        // Check for context-specific messages first
+        if let ctx = context {
+            if let contextMessage = generateContextMessage(context: ctx, remainingMl: remainingMl, progress: progress) {
+                return contextMessage
+            }
+        }
         
         let progressStatus = getProgressStatus(progress: progress, timeOfDay: timeOfDay)
         
@@ -180,11 +225,56 @@ struct NotificationMessageGenerator {
             return generateAheadMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay)
             
         case .onTrack:
-            return generateOnTrackMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay)
+            return generateOnTrackMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay, context: context)
             
         case .behindSchedule:
-            return generateBehindMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay)
+            return generateBehindMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay, context: context)
         }
+    }
+    
+    // MARK: - Context-Aware Messages
+    
+    private static func generateContextMessage(
+        context: HydrationReminderContext,
+        remainingMl: Int,
+        progress: Double
+    ) -> (String, String)? {
+        
+        // Hot weather + recent exercise - highest priority
+        if context.isHotDay && context.recentlyExercised {
+            let temp = Int(context.temperature ?? 30)
+            return (
+                "🏃‍♂️🌡️ Stay Hydrated!",
+                "After your workout in \(temp)°C weather, you need extra water! \(remainingMl)ml remaining."
+            )
+        }
+        
+        // Hot weather messages
+        if context.isHotDay {
+            let temp = Int(context.temperature ?? 30)
+            let messages = [
+                ("🌡️ Hot Day Alert", "It's \(temp)°C outside! Your body needs more water. \(remainingMl)ml to go."),
+                ("☀️ Beat the Heat", "Stay cool and hydrated! It's \(temp)°C. Drink some water now."),
+                ("🥵 Hydration Boost", "Hot weather means you need extra fluids. \(remainingMl)ml remaining.")
+            ]
+            return messages.randomElement()
+        }
+        
+        // Post-exercise messages
+        if context.recentlyExercised {
+            let exerciseMins = context.exerciseMinutes
+            let messages = [
+                ("🏃‍♂️ Post-Workout", "Great \(exerciseMins) min workout! Time to rehydrate. \(remainingMl)ml remaining."),
+                ("💪 Recovery Time", "After your exercise, replenish your fluids! \(remainingMl)ml to go."),
+                ("🎯 Fuel Your Body", "Exercise depletes water. Drink up! \(remainingMl)ml remaining.")
+            ]
+            return messages.randomElement()
+        }
+        
+        // Pattern-based messages (if we had pattern info in context)
+        // This would require passing pattern learner data through context
+        
+        return nil
     }
     
     // MARK: - Private Helpers
@@ -216,12 +306,20 @@ struct NotificationMessageGenerator {
             "💪 You Did It!"
         ]
         
-        let bodies = [
+        var bodies = [
             "You've reached your daily goal of \(effectiveIntake)ml! Keep up the great work!",
             "Fantastic! You've hit your hydration target. Your body thanks you!",
-            "Goal complete! You're staying healthy and hydrated.",
-            streak > 1 ? "That's \(streak) days in a row! You're on fire!" : "Another successful day of hydration!"
+            "Goal complete! You're staying healthy and hydrated."
         ]
+        
+        // Add streak-specific messages
+        if streak >= 7 {
+            bodies.append("🔥 \(streak) day streak! You're a hydration champion!")
+        } else if streak >= 3 {
+            bodies.append("That's \(streak) days in a row! Keep the streak going!")
+        } else if streak > 1 {
+            bodies.append("That's \(streak) days in a row! You're on fire!")
+        }
         
         return (titles.randomElement() ?? titles[0], bodies.randomElement() ?? bodies[0])
     }
@@ -241,7 +339,12 @@ struct NotificationMessageGenerator {
         }
     }
     
-    private static func generateOnTrackMessage(progress: Double, remainingMl: Int, timeOfDay: TimeOfDay) -> (String, String) {
+    private static func generateOnTrackMessage(
+        progress: Double,
+        remainingMl: Int,
+        timeOfDay: TimeOfDay,
+        context: HydrationReminderContext? = nil
+    ) -> (String, String) {
         let percent = Int(progress * 100)
         
         switch timeOfDay {
@@ -274,18 +377,26 @@ struct NotificationMessageGenerator {
         }
     }
     
-    private static func generateBehindMessage(progress: Double, remainingMl: Int, timeOfDay: TimeOfDay) -> (String, String) {
+    private static func generateBehindMessage(
+        progress: Double,
+        remainingMl: Int,
+        timeOfDay: TimeOfDay,
+        context: HydrationReminderContext? = nil
+    ) -> (String, String) {
         let percent = Int(progress * 100)
+        
+        // Add extra urgency for hot days
+        let hotDaySuffix = context?.isHotDay == true ? " Stay cool!" : ""
         
         switch timeOfDay {
         case .morning:
-            return ("⚠️ Let's Get Started", "Don't forget to hydrate! Start your day with water.")
+            return ("⚠️ Let's Get Started", "Don't forget to hydrate! Start your day with water.\(hotDaySuffix)")
             
         case .afternoon:
-            return ("🚨 Hydration Alert", "You're at \(percent)%. Time to catch up! Drink some water now.")
+            return ("🚨 Hydration Alert", "You're at \(percent)%. Time to catch up! Drink some water now.\(hotDaySuffix)")
             
         case .evening:
-            return ("⏰ Urgent Reminder", "You still need \(remainingMl)ml. Let's reach that goal!")
+            return ("⏰ Urgent Reminder", "You still need \(remainingMl)ml. Let's reach that goal!\(hotDaySuffix)")
             
         case .night:
             return ("💧 Final Reminder", "You're behind today. Try to drink \(remainingMl)ml before bed.")

@@ -415,10 +415,17 @@ final class MedicationViewModel: ObservableObject {
             medicationHandler: { [weak self] medicationId in
                 guard let self = self else { return }
                 
-                // Find the pending dose for this medication
-                if let medWithAdherence = self.todaysMedications.first(where: { $0.medication.id == medicationId }),
-                   let pendingDose = medWithAdherence.overdueDose ?? medWithAdherence.nextDose {
-                    try? await self.markAsTaken(medicationId: medicationId, scheduledTime: pendingDose.scheduledTime)
+                // Find the pending dose for this medication by matching the medication ID
+                // The widget stores the adherence record ID, but we need to find the dose by medication
+                if let medWithAdherence = self.todaysMedications.first(where: { 
+                    // Check if any of the today's doses match this ID
+                    $0.todayDoses.contains(where: { $0.id == medicationId })
+                }) {
+                    // Find the specific dose by ID
+                    if let dose = medWithAdherence.todayDoses.first(where: { $0.id == medicationId && $0.status == .pending }) {
+                        print("💊 MedicationVM: Processing widget action for \(medWithAdherence.medication.name)")
+                        try? await self.markAsTaken(medicationId: medWithAdherence.medication.id, scheduledTime: dose.scheduledTime)
+                    }
                 }
             }
         )

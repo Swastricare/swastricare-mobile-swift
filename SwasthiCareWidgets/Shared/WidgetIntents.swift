@@ -114,11 +114,32 @@ struct MarkMedicationTakenIntent: AppIntent {
             return .result(dialog: "Invalid medication")
         }
         
+        // Load medication data to get medication name
+        let currentData = WidgetDataManager.shared.loadMedicationData()
+        
+        // Check if already marked to prevent duplicates
+        let alreadyMarked = currentData.medications.first { $0.id == uuid }?.status == .taken
+        if alreadyMarked {
+            let medName = currentData.medications.first { $0.id == uuid }?.name ?? "Medication"
+            return .result(dialog: "\(medName) already taken ✓")
+        }
+        
+        // Get medication details for confirmation
+        guard let medication = currentData.medications.first(where: { $0.id == uuid }) else {
+            return .result(dialog: "Medication not found")
+        }
+        
+        // Request confirmation before marking as taken
+        try await requestConfirmation(
+            result: .result(
+                dialog: IntentDialog("Mark \(medication.name) (\(medication.dosage)) as taken?")
+            )
+        )
+        
         // Store pending mark for main app
         WidgetDataManager.shared.storePendingMedicationMark(medicationId: uuid)
         
         // Update widget data optimistically
-        var currentData = WidgetDataManager.shared.loadMedicationData()
         let updatedMedications = currentData.medications.map { med -> WidgetMedicationItem in
             if med.id == uuid {
                 return WidgetMedicationItem(
@@ -140,11 +161,11 @@ struct MarkMedicationTakenIntent: AppIntent {
             lastUpdated: Date()
         )
         WidgetDataManager.shared.saveMedicationData(updatedData)
+        
+        // Trigger widget refresh
         WidgetDataManager.shared.refreshMedicationWidget()
         
-        // Find medication name for feedback
-        let medName = currentData.medications.first { $0.id == uuid }?.name ?? "Medication"
-        return .result(dialog: "\(medName) marked as taken ✓")
+        return .result(dialog: "\(medication.name) marked as taken ✓")
     }
 }
 

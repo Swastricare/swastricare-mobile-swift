@@ -169,7 +169,7 @@ final class WidgetService {
         static let hydrationData = "widget_hydration_data"
         static let medicationData = "widget_medication_data"
         static let pendingWaterLog = "widget_pending_water_log"
-        static let pendingMedicationMark = "widget_pending_medication_mark"
+        static let pendingMedicationMarks = "widget_pending_medication_marks"
     }
     
     private init() {
@@ -305,18 +305,29 @@ final class WidgetService {
         return try? decoder.decode(PendingWaterLog.self, from: data)
     }
     
-    /// Get and clear pending medication mark from widget
-    func getPendingMedicationMark() -> PendingMedicationMark? {
+    /// Get and clear all pending medication marks from widget
+    func getPendingMedicationMarks() -> [PendingMedicationMark] {
         guard let defaults = WidgetAppGroup.sharedDefaults,
-              let data = defaults.data(forKey: Keys.pendingMedicationMark) else {
-            return nil
+              let data = defaults.data(forKey: Keys.pendingMedicationMarks) else {
+            return []
         }
         
         // Clear after reading
-        defaults.removeObject(forKey: Keys.pendingMedicationMark)
+        defaults.removeObject(forKey: Keys.pendingMedicationMarks)
         defaults.synchronize()
         
-        return try? decoder.decode(PendingMedicationMark.self, from: data)
+        if let marks = try? decoder.decode([PendingMedicationMark].self, from: data) {
+            print("💊 WidgetService: Retrieved \(marks.count) pending medication mark(s)")
+            return marks
+        }
+        
+        return []
+    }
+    
+    /// Legacy support - Get single pending medication mark (deprecated)
+    @available(*, deprecated, message: "Use getPendingMedicationMarks() instead")
+    func getPendingMedicationMark() -> PendingMedicationMark? {
+        return getPendingMedicationMarks().first
     }
     
     // MARK: - Widget Refresh
@@ -350,10 +361,14 @@ final class WidgetService {
             await hydrationHandler?(pendingWater.amount)
         }
         
-        // Process pending medication marks
-        if let pendingMed = getPendingMedicationMark() {
-            print("💊 WidgetService: Processing pending medication mark - \(pendingMed.medicationId)")
-            await medicationHandler?(pendingMed.medicationId)
+        // Process all pending medication marks
+        let pendingMeds = getPendingMedicationMarks()
+        if !pendingMeds.isEmpty {
+            print("💊 WidgetService: Processing \(pendingMeds.count) pending medication mark(s)")
+            for pendingMed in pendingMeds {
+                print("💊 WidgetService: Processing medication mark - \(pendingMed.medicationId)")
+                await medicationHandler?(pendingMed.medicationId)
+            }
         }
     }
 }

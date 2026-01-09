@@ -94,6 +94,7 @@ final class HydrationViewModel: ObservableObject {
     private let weatherService: WeatherServiceProtocol
     private let localStorage: HydrationLocalStorage
     private let notificationService: NotificationServiceProtocol
+    private let patternLearner: DrinkingPatternLearnerProtocol
     private let widgetService = WidgetService.shared
     
     // MARK: - Init
@@ -103,13 +104,15 @@ final class HydrationViewModel: ObservableObject {
         healthKitService: HealthKitServiceProtocol = HealthKitService.shared,
         weatherService: WeatherServiceProtocol = WeatherService.shared,
         localStorage: HydrationLocalStorage = HydrationLocalStorage.shared,
-        notificationService: NotificationServiceProtocol = NotificationService.shared
+        notificationService: NotificationServiceProtocol = NotificationService.shared,
+        patternLearner: DrinkingPatternLearnerProtocol = DrinkingPatternLearner.shared
     ) {
         self.hydrationService = hydrationService
         self.healthKitService = healthKitService
         self.weatherService = weatherService
         self.localStorage = localStorage
         self.notificationService = notificationService
+        self.patternLearner = patternLearner
         
         // Set up bidirectional reference for notifications
         Task { @MainActor in
@@ -187,6 +190,9 @@ final class HydrationViewModel: ObservableObject {
         localStorage.addEntry(entry)
         hydrationEntries = localStorage.loadEntries()
         
+        // Record to pattern learner for adaptive scheduling
+        patternLearner.recordDrinkingEntry(at: entry.timestamp, amountMl: amount)
+        
         // Recalculate insights
         calculateInsights()
         
@@ -212,20 +218,28 @@ final class HydrationViewModel: ObservableObject {
             }
         }
         
-        // Schedule next notification based on updated progress
+        // Schedule next notification based on updated progress with context
         await scheduleNextNotification()
     }
     
-    /// Schedule next notification based on current progress
+    /// Schedule next notification based on current progress with context awareness
     func scheduleNextNotification() async {
         let streak = insights?.currentStreak ?? 0
+        
+        // Build context for smart scheduling
+        let context = HydrationReminderContext(
+            temperature: currentTemperature,
+            exerciseMinutes: exerciseMinutes,
+            patternLearner: patternLearner
+        )
         
         await notificationService.scheduleSmartReminder(
             progress: progress,
             remainingMl: remainingMl,
             effectiveIntake: effectiveIntake,
             dailyGoal: dailyGoal,
-            streak: streak
+            streak: streak,
+            context: context
         )
     }
     
