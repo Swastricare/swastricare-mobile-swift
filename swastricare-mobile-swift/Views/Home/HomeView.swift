@@ -60,68 +60,62 @@ struct HomeView: View {
     // MARK: - Body
     
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 24) {
-                // Custom Header with Subheading
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Body Vitals")
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(.primary)
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : -10)
-                    
-                    // Animated rotating quotes - Fixed height for 2 lines
-                    Text(vitalQuotes[currentQuoteIndex])
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
-                        .opacity(quoteOpacity)
-                        .offset(y: hasAppeared ? 0 : -10)
-                        .animation(.easeInOut(duration: 0.3), value: quoteOpacity)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
-                        .lineLimit(2)
-                        .lineSpacing(4)
-                        .frame(height: 44, alignment: .topLeading) // Fixed height for 2 lines
-                        .fixedSize(horizontal: false, vertical: false)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
-                
-                // Health Authorization Banner
-                if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
-                    authorizationBanner
-                }
-                
-                // Human Body Image with Daily Activity Details
-                humanBodyImageWithDetails
+        ZStack {
+            // Premium Background
+            PremiumBackground()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Custom Header with Subheading
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Body Vitals")
+                            .font(.system(size: 34, weight: .bold))
+                            .foregroundColor(.primary)
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : -10)
+                        
+                        // Animated rotating quotes - Fixed height for 2 lines
+                        Text(vitalQuotes[currentQuoteIndex])
+                            .font(.system(size: 15))
+                            .foregroundColor(.secondary)
+                            .opacity(quoteOpacity)
+                            .offset(y: hasAppeared ? 0 : -10)
+                            .animation(.easeInOut(duration: 0.3), value: quoteOpacity)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
+                            .lineLimit(2)
+                            .lineSpacing(4)
+                            .frame(height: 44, alignment: .topLeading) // Fixed height for 2 lines
+                            .fixedSize(horizontal: false, vertical: false)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
                     .padding(.top, 8)
-                
-                // Health Vitals Grid
-                healthVitalsSection
-                
-                // Quick Actions
-                quickActionsSection
-                    .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
-                
-                // Tracker Section
-                trackerSection
-                    .modifier(ScrollAnimationModifier(isVisible: $trackerVisible))
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
+                    
+                    // Health Authorization Banner
+                    if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
+                        authorizationBanner
+                    }
+                    
+                    // Human Body Image with Daily Activity Details
+                    humanBodyImageWithDetails
+                        .padding(.top, 8)
+                    
+                    // Health Vitals Grid
+                    healthVitalsSection
+                    
+                    // Quick Actions
+                    quickActionsSection
+                        .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
+                    
+                    // Tracker Section
+                    trackerSection
+                        .modifier(ScrollAnimationModifier(isVisible: $trackerVisible))
+                }
+                .padding(.top)
+                .padding(.bottom, 20)
             }
-            .padding(.top)
-            .padding(.bottom, 20)
-        }
-        .coordinateSpace(name: "scroll")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                // Empty to hide default title
-                Text("")
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                profileButton
-            }
-        }
+            .coordinateSpace(name: "scroll")
         .alert("Sync Status", isPresented: $showSyncAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -154,7 +148,7 @@ struct HomeView: View {
             await viewModel.refresh()
             await trackerViewModel.refresh()
         }
-        .background(Color(UIColor.systemBackground))
+        }
     }
     
     // MARK: - Helper Methods
@@ -167,25 +161,29 @@ struct HomeView: View {
     }
     
     private func rotateQuotes() {
+    // Wait 10 seconds before rotating
+    DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
+
         // Fade out
         withAnimation(.easeInOut(duration: 0.5)) {
             quoteOpacity = 0
         }
-        
+
         // Change quote after fade out
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             currentQuoteIndex = (currentQuoteIndex + 1) % vitalQuotes.count
+
             // Fade in
             withAnimation(.easeInOut(duration: 0.5)) {
                 quoteOpacity = 1
             }
-            
-            // Schedule next rotation after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                rotateQuotes()
-            }
+
+            // Schedule next rotation
+            rotateQuotes()
         }
     }
+}
+
     
     // MARK: - Subviews
     
@@ -914,13 +912,6 @@ private struct AnalysisResultView: View {
             }
             .navigationTitle("AI Health Analysis")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        onDismiss()
-                    }
-                }
-            }
         }
     }
     

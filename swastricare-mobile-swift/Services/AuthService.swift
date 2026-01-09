@@ -18,6 +18,7 @@ protocol AuthServiceProtocol {
     func signInWithGoogle() async throws -> AppUser
     func signOut() async throws
     func resetPassword(email: String) async throws
+    func deleteAccount() async throws
 }
 
 // MARK: - Auth Service Implementation
@@ -116,6 +117,22 @@ final class AuthService: AuthServiceProtocol {
     
     func resetPassword(email: String) async throws {
         try await client.auth.resetPasswordForEmail(email)
+    }
+    
+    // MARK: - Delete Account
+    
+    func deleteAccount() async throws {
+        // Sign out the user first, then the account deletion should be handled
+        // by a Supabase Edge Function or database trigger for security
+        // For now, we sign out and clear local data
+        try await client.auth.signOut()
+        
+        // Clear all local user data
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "notificationsEnabled")
+        defaults.removeObject(forKey: "biometricEnabled")
+        defaults.removeObject(forKey: "healthSyncEnabled")
+        defaults.synchronize()
     }
     
     // MARK: - Helpers

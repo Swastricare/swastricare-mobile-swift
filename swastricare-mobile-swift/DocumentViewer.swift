@@ -378,13 +378,6 @@ struct DocumentInfoSheet: View {
             }
             .navigationTitle("Document Info")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
         }
     }
     

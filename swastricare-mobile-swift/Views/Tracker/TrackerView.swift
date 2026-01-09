@@ -69,18 +69,6 @@ struct TrackerView: View {
                 }
             }
         }
-        .navigationTitle("Health Tracker")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(action: {
-                    Task { await viewModel.refresh() }
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .disabled(viewModel.isLoading)
-            }
-        }
         .task {
             await viewModel.loadData()
         }
@@ -310,13 +298,6 @@ private struct AnalysisResultView: View {
             }
             .navigationTitle("AI Health Analysis")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        onDismiss()
-                    }
-                }
-            }
         }
     }
     

@@ -36,13 +36,6 @@ struct UrineColorGuideView: View {
             .background(PremiumBackground())
             .navigationTitle("Hydration Check")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
         }
     }
     

@@ -21,33 +21,29 @@ struct ProfileView: View {
     // MARK: - Body
     
     var body: some View {
-        List {
-            // Profile Header
-            profileHeader
+        ZStack {
+            PremiumBackground()
             
-            // Account Section
-            accountSection
-            
-            // Health Profile Section
-            healthProfileSection
-            
-            // Settings Section
-            settingsSection
-            
-            // About Section
-            aboutSection
-            
-            // Sign Out
-            signOutSection
-        }
-        .navigationTitle("Profile")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(action: {}) {
-                    Image(systemName: "gearshape")
-                }
+            List {
+                // Profile Header
+                profileHeader
+                
+                // Health Profile Section
+                healthProfileSection
+                
+                // Hydration Section
+                hydrationSection
+                
+                // Settings Section
+                settingsSection
+                
+                // About Section
+                aboutSection
+                
+                // Sign Out
+                signOutSection
             }
+            .scrollContentBackground(.hidden)
         }
         .alert(
             "Sign Out",
@@ -59,6 +55,17 @@ struct ProfileView: View {
             }
         } message: {
             Text("Are you sure you want to sign out?")
+        }
+        .alert(
+            "Delete Account",
+            isPresented: $viewModel.showDeleteAccountConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                Task { await viewModel.deleteAccount() }
+            }
+        } message: {
+            Text("This action cannot be undone. All your data will be permanently deleted.")
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.clearError() }
@@ -75,14 +82,14 @@ struct ProfileView: View {
     
     private var profileHeader: some View {
         Section {
-            HStack(spacing: 16) {
+            VStack(spacing: 16) {
                 // Avatar
                 if let avatarURL = viewModel.userAvatarURL {
                     AsyncImage(url: avatarURL) { image in
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
-                            .frame(width: 80, height: 80)
+                            .frame(width: 100, height: 100)
                             .clipShape(Circle())
                     } placeholder: {
                         defaultAvatar
@@ -92,7 +99,7 @@ struct ProfileView: View {
                 }
                 
                 // Info
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(spacing: 6) {
                     Text(viewModel.userName)
                         .font(.title2)
                         .fontWeight(.bold)
@@ -106,54 +113,136 @@ struct ProfileView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
         }
+        .listRowBackground(Color.clear)
     }
     
     private var defaultAvatar: some View {
         Circle()
-            .fill(PremiumColor.royalBlue)
-            .frame(width: 80, height: 80)
+            .fill(
+                LinearGradient(
+                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .frame(width: 100, height: 100)
             .overlay(
                 Text(String(viewModel.userName.prefix(1)).uppercased())
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.system(size: 40, weight: .bold))
                     .foregroundColor(.white)
             )
+            .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 10, x: 0, y: 5)
     }
     
-    private var accountSection: some View {
-        Section("Account") {
-            NavigationLink(destination: Text("Edit Profile")) {
-                Label("Edit Profile", systemImage: "person.fill")
+    private var healthProfileSection: some View {
+        Section {
+            if viewModel.isLoadingHealthProfile {
+                // Loading shimmer state
+                ForEach(0..<5, id: \.self) { _ in
+                    HStack {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 120, height: 16)
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray.opacity(0.15))
+                            .frame(width: 80, height: 16)
+                    }
+                    .shimmering()
+                }
+            } else if viewModel.hasHealthProfile {
+                // Name
+                HealthProfileRow(icon: "person.fill", iconColor: .blue, label: "Name", value: viewModel.profileName)
+                
+                // Gender
+                HealthProfileRow(icon: "person.2.fill", iconColor: .purple, label: "Gender", value: viewModel.profileGender)
+                
+                // Age
+                HealthProfileRow(icon: "calendar", iconColor: .orange, label: "Age", value: viewModel.profileAge)
+                
+                // Height
+                HealthProfileRow(icon: "ruler.fill", iconColor: .green, label: "Height", value: viewModel.profileHeight)
+                
+                // Weight
+                HealthProfileRow(icon: "scalemass.fill", iconColor: .cyan, label: "Weight", value: viewModel.profileWeight)
+                
+                // BMI
+                HealthProfileRow(icon: "figure.stand", iconColor: .indigo, label: "BMI", value: viewModel.profileBMI)
+                
+                // Blood Type
+                if viewModel.profileBloodType != "Not set" {
+                    HealthProfileRow(icon: "drop.fill", iconColor: .red, label: "Blood Type", value: viewModel.profileBloodType)
+                }
+                
+                // Exercise Level
+                HealthProfileRow(icon: "figure.run", iconColor: .mint, label: "Exercise Level", value: viewModel.profileExerciseLevel)
+                
+                // Food Intake Level
+                HealthProfileRow(icon: "fork.knife", iconColor: .brown, label: "Food Intake", value: viewModel.profileFoodIntakeLevel)
+                
+                // Allergies
+                if !viewModel.profileAllergies.isEmpty {
+                    HealthProfileRow(icon: "allergens", iconColor: .yellow, label: "Allergies", value: viewModel.profileAllergies.joined(separator: ", "))
+                }
+                
+                // Chronic Conditions
+                if !viewModel.profileChronicConditions.isEmpty {
+                    HealthProfileRow(icon: "heart.text.square.fill", iconColor: .pink, label: "Conditions", value: viewModel.profileChronicConditions.joined(separator: ", "))
+                }
+                
+                // Medications
+                if !viewModel.profileMedications.isEmpty {
+                    HealthProfileRow(icon: "pills.fill", iconColor: .teal, label: "Medications", value: viewModel.profileMedications.joined(separator: ", "))
+                }
+            } else {
+                // No profile found
+                HStack {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.crop.circle.badge.questionmark")
+                            .font(.system(size: 44))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        Text("No health profile found")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Text("Complete your health profile during onboarding")
+                            .font(.caption)
+                            .foregroundColor(.secondary.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 16)
             }
-            
-            NavigationLink(destination: Text("Health Data")) {
-                Label("Health Data", systemImage: "heart.text.square.fill")
-            }
-            
-            NavigationLink(destination: Text("Connected Apps")) {
-                Label("Connected Apps", systemImage: "app.connected.to.app.below.fill")
+        } header: {
+            HStack {
+                Text("Health Profile")
+                Spacer()
+                if viewModel.hasHealthProfile && !viewModel.isLoadingHealthProfile {
+                    Button {
+                        Task { await viewModel.refreshHealthProfile() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                }
             }
         }
     }
     
-    private var healthProfileSection: some View {
-        Section("Health Profile") {
-            // Weight display
-            HStack {
-                Label("Weight", systemImage: "scalemass.fill")
-                Spacer()
-                if let weight = hydrationViewModel.preferences.weightKg {
-                    Text(String(format: "%.1f kg", weight))
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("Not set")
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            // Activity Level
+    private var hydrationSection: some View {
+        Section("Hydration") {
+            // Activity Level for hydration
             HStack {
                 Label("Activity Level", systemImage: hydrationViewModel.preferences.activityLevel.icon)
                 Spacer()
@@ -163,7 +252,7 @@ struct ProfileView: View {
             
             // Hydration Goal
             HStack {
-                Label("Daily Hydration Goal", systemImage: "drop.fill")
+                Label("Daily Goal", systemImage: "drop.fill")
                     .foregroundColor(.cyan)
                 Spacer()
                 Text("\(hydrationViewModel.dailyGoal) ml")
@@ -196,40 +285,32 @@ struct ProfileView: View {
                 Label("Notifications", systemImage: "bell.fill")
             }
             
-            Toggle(isOn: $viewModel.biometricEnabled) {
+            // Biometric toggle - uses custom binding to verify before enabling
+            HStack {
                 Label(viewModel.biometricTypeName, systemImage: viewModel.biometricIcon)
-            }
-            .onChange(of: viewModel.biometricEnabled) { oldValue, newValue in
-                // Only verify when enabling (from false to true)
-                if newValue && !oldValue {
-                    Task { await viewModel.toggleBiometric() }
+                Spacer()
+                if viewModel.isTogglingBiometric {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                } else {
+                    Toggle("", isOn: Binding(
+                        get: { viewModel.biometricEnabled },
+                        set: { _ in
+                            Task { await viewModel.toggleBiometric() }
+                        }
+                    ))
+                    .labelsHidden()
                 }
             }
             
             Toggle(isOn: $viewModel.healthSyncEnabled) {
                 Label("Auto Sync Health", systemImage: "arrow.triangle.2.circlepath")
             }
-            
-            NavigationLink(destination: Text("Privacy")) {
-                Label("Privacy", systemImage: "hand.raised.fill")
-            }
         }
     }
     
     private var aboutSection: some View {
         Section("About") {
-            NavigationLink(destination: Text("Help & Support")) {
-                Label("Help & Support", systemImage: "questionmark.circle.fill")
-            }
-            
-            NavigationLink(destination: Text("Terms of Service")) {
-                Label("Terms of Service", systemImage: "doc.text.fill")
-            }
-            
-            NavigationLink(destination: Text("Privacy Policy")) {
-                Label("Privacy Policy", systemImage: "lock.shield.fill")
-            }
-            
             HStack {
                 Label("Version", systemImage: "info.circle.fill")
                 Spacer()
@@ -239,7 +320,25 @@ struct ProfileView: View {
         }
     }
     
+    @ViewBuilder
     private var signOutSection: some View {
+                Section {
+            Button(action: {
+                viewModel.showDeleteAccountConfirmation = true
+            }) {
+                HStack {
+                    Spacer()
+                    Label("Delete Account", systemImage: "trash.fill")
+                        .foregroundColor(.red)
+                    Spacer()
+                }
+            }
+            .disabled(viewModel.isLoading)
+        } footer: {
+            Text("Permanently delete your account and all associated data.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
         Section {
             Button(action: {
                 viewModel.showSignOutConfirmation = true
@@ -257,6 +356,73 @@ struct ProfileView: View {
             }
             .disabled(viewModel.isLoading)
         }
+        
+
+    }
+}
+
+// MARK: - Health Profile Row
+
+struct HealthProfileRow: View {
+    let icon: String
+    let iconColor: Color
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Label {
+                Text(label)
+            } icon: {
+                Image(systemName: icon)
+                    .foregroundColor(iconColor)
+            }
+            Spacer()
+            Text(value)
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+// MARK: - Shimmer Effect
+
+struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = 0
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geometry in
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            .clear,
+                            .white.opacity(0.4),
+                            .clear
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geometry.size.width * 2)
+                    .offset(x: -geometry.size.width + (geometry.size.width * 2) * phase)
+                }
+            )
+            .mask(content)
+            .onAppear {
+                withAnimation(
+                    .linear(duration: 1.5)
+                    .repeatForever(autoreverses: false)
+                ) {
+                    phase = 1
+                }
+            }
+    }
+}
+
+extension View {
+    func shimmering() -> some View {
+        modifier(ShimmerModifier())
     }
 }
 

@@ -80,69 +80,72 @@ extension View {
 }
 
 // MARK: - Premium Background
-
 struct PremiumBackground: View {
     @State private var animate = false
     @Environment(\.colorScheme) var colorScheme
-    
+
     var body: some View {
         ZStack {
             // Base Color
-            Color(UIColor.systemBackground).ignoresSafeArea()
-            
-            // Animated Orbs - adapt opacity and colors based on theme
+            Color(UIColor.systemBackground)
+                .ignoresSafeArea()
+
             if colorScheme == .dark {
-                // Dark theme orbs (more vibrant)
-                Circle()
-                    .fill(Color.blue.opacity(0.15))
-                    .frame(width: 350, height: 350)
-                    .blur(radius: 100)
-                    .offset(x: animate ? -100 : 100, y: animate ? -150 : -50)
-                    .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animate)
-                
-                Circle()
-                    .fill(Color.purple.opacity(0.15))
-                    .frame(width: 300, height: 300)
-                    .blur(radius: 100)
-                    .offset(x: animate ? 150 : -50, y: animate ? 200 : 300)
-                    .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animate)
-                
-                Circle()
-                    .fill(Color.cyan.opacity(0.1))
-                    .frame(width: 200, height: 200)
-                    .blur(radius: 80)
-                    .offset(x: animate ? -100 : 150, y: animate ? 100 : -200)
-                    .animation(.easeInOut(duration: 12).repeatForever(autoreverses: true), value: animate)
+                // Dark theme orbs (softer glow)
+                orb(color: .blue, opacity: 0.1, size: 350, blur: 100,
+                    x1: -100, x2: 100, y1: -150, y2: -50, duration: 10)
+
+                orb(color: .purple, opacity: 0.1, size: 300, blur: 100,
+                    x1: 150, x2: -50, y1: 200, y2: 300, duration: 8)
+
+                orb(color: .cyan, opacity: 0.08, size: 200, blur: 80,
+                    x1: -100, x2: 150, y1: 100, y2: -200, duration: 12)
+
             } else {
-                // Light theme orbs (softer, more subtle)
-                Circle()
-                    .fill(Color.blue.opacity(0.08))
-                    .frame(width: 350, height: 350)
-                    .blur(radius: 100)
-                    .offset(x: animate ? -100 : 100, y: animate ? -150 : -50)
-                    .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animate)
-                
-                Circle()
-                    .fill(Color.purple.opacity(0.08))
-                    .frame(width: 300, height: 300)
-                    .blur(radius: 100)
-                    .offset(x: animate ? 150 : -50, y: animate ? 200 : 300)
-                    .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animate)
-                
-                Circle()
-                    .fill(Color.cyan.opacity(0.06))
-                    .frame(width: 200, height: 200)
-                    .blur(radius: 80)
-                    .offset(x: animate ? -100 : 150, y: animate ? 100 : -200)
-                    .animation(.easeInOut(duration: 12).repeatForever(autoreverses: true), value: animate)
+                // Light theme orbs (very subtle)
+                orb(color: .blue, opacity: 0.04, size: 350, blur: 100,
+                    x1: -100, x2: 100, y1: -150, y2: -50, duration: 10)
+
+                orb(color: .purple, opacity: 0.04, size: 300, blur: 100,
+                    x1: 150, x2: -50, y1: 200, y2: 300, duration: 8)
+
+                orb(color: .cyan, opacity: 0.03, size: 200, blur: 80,
+                    x1: -100, x2: 150, y1: 100, y2: -200, duration: 12)
             }
         }
-        .ignoresSafeArea()
         .onAppear {
             animate = true
         }
     }
+
+    // MARK: - Orb Builder
+    private func orb(
+        color: Color,
+        opacity: Double,
+        size: CGFloat,
+        blur: CGFloat,
+        x1: CGFloat,
+        x2: CGFloat,
+        y1: CGFloat,
+        y2: CGFloat,
+        duration: Double
+    ) -> some View {
+        Circle()
+            .fill(color.opacity(opacity))
+            .frame(width: size, height: size)
+            .blur(radius: blur)
+            .offset(
+                x: animate ? x1 : x2,
+                y: animate ? y1 : y2
+            )
+            .animation(
+                .easeInOut(duration: duration)
+                    .repeatForever(autoreverses: true),
+                value: animate
+            )
+    }
 }
+
 
 // MARK: - Hero Header
 
