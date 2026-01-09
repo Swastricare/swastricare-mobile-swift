@@ -23,52 +23,6 @@ protocol NotificationServiceProtocol {
     func handleMedicationNotificationResponse(response: UNNotificationResponse) async
 }
 
-// MARK: - Hydration Reminder Context
-
-/// Context information for smarter notification scheduling
-struct HydrationReminderContext {
-    let temperature: Double?
-    let exerciseMinutes: Int
-    let isHotDay: Bool
-    let recentlyExercised: Bool
-    let patternLearner: DrinkingPatternLearnerProtocol?
-    
-    init(
-        temperature: Double? = nil,
-        exerciseMinutes: Int = 0,
-        patternLearner: DrinkingPatternLearnerProtocol? = nil
-    ) {
-        self.temperature = temperature
-        self.exerciseMinutes = exerciseMinutes
-        self.isHotDay = (temperature ?? 0) > 30
-        self.recentlyExercised = exerciseMinutes > 30
-        self.patternLearner = patternLearner
-    }
-    
-    /// Get frequency adjustment based on context
-    func getFrequencyAdjustment() -> Int {
-        var adjustment = 0
-        
-        // Hot weather - more frequent reminders
-        if isHotDay {
-            adjustment -= 1 // Reduce frequency hours by 1
-        }
-        
-        // Recent exercise - more frequent reminders
-        if recentlyExercised {
-            adjustment -= 1
-        }
-        
-        return adjustment
-    }
-    
-    /// Check if we should send an immediate reminder
-    func shouldSendImmediateReminder() -> Bool {
-        // Send immediate reminder after significant exercise in hot weather
-        return recentlyExercised && isHotDay
-    }
-}
-
 // MARK: - Notification Service Implementation
 
 @MainActor
@@ -82,6 +36,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     private let userDefaults = UserDefaults.standard
     private let settingsKey = "notification_settings"
     private let scheduledIdsKey = "scheduled_notification_ids"
+    private let historyManager = NotificationHistoryManager.shared
     
     private(set) var settings: NotificationSettings {
         didSet {
@@ -594,6 +549,22 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         
         do {
             try await notificationCenter.add(request)
+            
+            // Record in history
+            let historyContext = NotificationHistoryContext(
+                progress: progress,
+                remainingMl: remainingMl,
+                temperature: context?.temperature,
+                exerciseMinutes: context?.exerciseMinutes,
+                isHotDay: context?.isHotDay,
+                timeOfDay: timeOfDay.displayName
+            )
+            let _ = historyManager.recordScheduled(
+                type: .hydrationReminder,
+                scheduledTime: date,
+                context: historyContext
+            )
+            
             print("🔔 NotificationService: Scheduled notification for \(date)")
             return identifier
         } catch {
@@ -694,24 +665,45 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             }
         }
         
+        // Get scheduled time for history tracking
+        let scheduledTime: Date
+        if let scheduledTimeInterval = userInfo["scheduledTime"] as? TimeInterval {
+            scheduledTime = Date(timeIntervalSince1970: scheduledTimeInterval)
+        } else {
+            scheduledTime = response.notification.date
+        }
+        
         // Handle hydration notifications
         switch actionIdentifier {
         case NotificationAction.log250ml.rawValue:
             await logWaterFromNotification(amount: 250)
+            historyManager.recordActionByScheduledTime(scheduledTime, action: "log_250ml")
+            
+            // Record response time to pattern learner
+            let responseTime = Date().timeIntervalSince(response.notification.date)
+            DrinkingPatternLearner.shared.recordNotificationResponse(responseTime: responseTime)
             
         case NotificationAction.log500ml.rawValue:
             await logWaterFromNotification(amount: 500)
+            historyManager.recordActionByScheduledTime(scheduledTime, action: "log_500ml")
+            
+            // Record response time to pattern learner
+            let responseTime = Date().timeIntervalSince(response.notification.date)
+            DrinkingPatternLearner.shared.recordNotificationResponse(responseTime: responseTime)
             
         case NotificationAction.remindLater.rawValue:
             // Use customizable snooze duration from settings
             await scheduleSnoozeReminder(delayMinutes: settings.snoozeMinutes)
+            historyManager.recordActionByScheduledTime(scheduledTime, action: "snooze_\(settings.snoozeMinutes)m")
             
         case NotificationAction.dismiss.rawValue:
             // Stop reminders for 3 hours
             await scheduleSnoozeReminder(delayMinutes: 180)
+            historyManager.recordActionByScheduledTime(scheduledTime, action: "dismiss")
             
         case UNNotificationDefaultActionIdentifier:
             // User tapped the notification
+            historyManager.recordActionByScheduledTime(scheduledTime, action: "opened_app")
             print("🔔 NotificationService: User opened app from notification")
             
         default:
@@ -786,9 +778,6 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     }
     
     private func snoozeMedicationReminder(medicationId: UUID, scheduledTime: Date, minutes: Int) async {
-        // Schedule a new notification after the snooze period
-        let snoozeTime = Date().addingTimeInterval(TimeInterval(minutes * 60))
-        
         // Get medication name from user info would be ideal, but we'll use a generic message
         let content = UNMutableNotificationContent()
         content.title = "💊 Medication Reminder"
@@ -831,19 +820,38 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     }
     
     private func scheduleOneTimeReminder(delayHours: Int) async {
-        var triggerDate = Date().addingTimeInterval(TimeInterval(delayHours * 3600))
+        await scheduleSnoozeReminder(delayMinutes: delayHours * 60)
+    }
+    
+    /// Schedule a snooze reminder with customizable delay in minutes
+    private func scheduleSnoozeReminder(delayMinutes: Int) async {
+        var triggerDate = Date().addingTimeInterval(TimeInterval(delayMinutes * 60))
         
         // If in quiet hours, reschedule to after quiet hours
         if settings.isInQuietHours(date: triggerDate) {
             triggerDate = getNextAvailableTime(after: triggerDate)
-            print("🔔 NotificationService: Delay was in quiet hours, rescheduled to \(triggerDate)")
+            print("🔔 NotificationService: Snooze was in quiet hours, rescheduled to \(triggerDate)")
         }
         
         let content = UNMutableNotificationContent()
         content.title = "💧 Hydration Reminder"
-        content.body = "Time to drink some water!"
+        
+        // Customize body based on snooze duration
+        if delayMinutes >= 60 {
+            let hours = delayMinutes / 60
+            content.body = "You snoozed \(hours) hour\(hours > 1 ? "s" : "") ago. Time to drink some water!"
+        } else {
+            content.body = "You snoozed \(delayMinutes) minutes ago. Time to drink some water!"
+        }
+        
         content.sound = .default
         content.categoryIdentifier = NotificationCategory.hydrationReminder.identifier
+        content.userInfo = [
+            "type": "hydration_reminder",
+            "context": "snooze",
+            "snoozeMinutes": delayMinutes,
+            "scheduledTime": triggerDate.timeIntervalSince1970
+        ]
         
         let timeInterval = triggerDate.timeIntervalSince(Date())
         guard timeInterval > 0 else {
@@ -852,27 +860,53 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         }
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
-        let identifier = "hydration_delayed_\(Int(Date().timeIntervalSince1970))"
+        let identifier = "hydration_snooze_\(Int(Date().timeIntervalSince1970))"
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         
         do {
             try await notificationCenter.add(request)
             scheduledNotificationIds.insert(identifier)
             saveScheduledIds()
-            print("🔔 NotificationService: Scheduled delayed reminder for \(triggerDate)")
+            
+            // Record snooze notification in history
+            let _ = historyManager.recordScheduled(
+                type: .hydrationSnooze,
+                scheduledTime: triggerDate,
+                context: NotificationHistoryContext()
+            )
+            
+            print("🔔 NotificationService: Scheduled snooze reminder for \(delayMinutes) minutes (\(triggerDate))")
         } catch {
-            print("🔔 NotificationService: Failed to schedule delayed reminder - \(error.localizedDescription)")
+            print("🔔 NotificationService: Failed to schedule snooze reminder - \(error.localizedDescription)")
         }
+    }
+    
+    // MARK: - Analytics
+    
+    /// Get notification statistics for analytics
+    func getNotificationStats() -> NotificationStats {
+        return historyManager.getStats()
+    }
+    
+    /// Get today's notification history
+    func getTodayNotificationHistory() -> [NotificationHistoryEntry] {
+        return historyManager.getTodayHistory()
     }
     
     // MARK: - Settings Management
     
     func updateSettings(_ newSettings: NotificationSettings) {
+        let oldSnoozeMinutes = settings.snoozeMinutes
         settings = newSettings
         
         // If notifications are disabled, cancel all
         if !newSettings.enabled {
             cancelAllReminders()
+        }
+        
+        // Refresh notification categories if snooze duration changed
+        if oldSnoozeMinutes != newSettings.snoozeMinutes {
+            refreshNotificationCategories()
         }
     }
     
@@ -932,9 +966,10 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             options: [] // No .foreground - handles in background
         )
         
+        // Use customizable snooze duration from settings
         let remindLaterAction = UNNotificationAction(
             identifier: NotificationAction.remindLater.rawValue,
-            title: NotificationAction.remindLater.title,
+            title: NotificationAction.remindLater.title(snoozeMinutes: settings.snoozeMinutes),
             options: []
         )
         
@@ -966,7 +1001,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         
         let medicationSnoozeAction = UNNotificationAction(
             identifier: NotificationAction.medicationSnooze.rawValue,
-            title: NotificationAction.medicationSnooze.title,
+            title: NotificationAction.medicationSnooze.title(snoozeMinutes: settings.snoozeMinutes),
             options: []
         )
         
@@ -978,7 +1013,12 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         )
         
         notificationCenter.setNotificationCategories([hydrationCategory, medicationCategory])
-        print("🔔 NotificationService: Notification categories configured (Hydration + Medication) - Background actions enabled")
+        print("🔔 NotificationService: Notification categories configured (snooze: \(settings.snoozeMinutes)m)")
+    }
+    
+    /// Refresh notification categories when settings change (e.g., snooze duration)
+    func refreshNotificationCategories() {
+        setupNotificationCategories()
     }
 }
 

@@ -194,6 +194,21 @@ struct NotificationSettingsView: View {
             }
             .tint(.purple)
             
+            Toggle(isOn: $settings.useAdaptiveLearning) {
+                HStack {
+                    Image(systemName: "waveform.path.ecg")
+                        .foregroundColor(.cyan)
+                    VStack(alignment: .leading) {
+                        Text("Adaptive Learning")
+                            .fontWeight(.medium)
+                        Text("Learn your drinking patterns over time")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .tint(.cyan)
+            
             if !settings.smartReminders {
                 Picker("Reminder Frequency", selection: $settings.reminderFrequencyHours) {
                     Text("Every 2 hours").tag(2)
@@ -202,11 +217,24 @@ struct NotificationSettingsView: View {
                     Text("Every 5 hours").tag(5)
                 }
             }
+            
+            Picker("Snooze Duration", selection: $settings.snoozeMinutes) {
+                ForEach(NotificationSettings.snoozeDurationOptions, id: \.self) { minutes in
+                    if minutes >= 60 {
+                        Text("\(minutes / 60) hour").tag(minutes)
+                    } else {
+                        Text("\(minutes) minutes").tag(minutes)
+                    }
+                }
+            }
         } header: {
             Text("Reminder Schedule")
         } footer: {
             if settings.smartReminders {
                 Text("Behind schedule: every 2 hours\nOn track: every 3 hours\nAhead: every 4 hours\nGoal met: no reminders")
+            }
+            if settings.useAdaptiveLearning {
+                Text("\nAdaptive learning personalizes reminder timing based on when you typically drink water.")
             }
         }
     }
@@ -321,6 +349,9 @@ struct NotificationSettingsView: View {
                 featureRow("🧠 Smart Timing", "Notifications adapt to your progress")
                 featureRow("🌙 Quiet Hours", "No disturbance during sleep")
                 featureRow("⭐ Motivation", "Encouraging messages and streak tracking")
+                featureRow("🌡️ Weather Aware", "Extra reminders on hot days")
+                featureRow("🏃‍♂️ Exercise Aware", "Post-workout hydration reminders")
+                featureRow("📊 Pattern Learning", "Learns when you typically drink water")
             }
             .padding(.vertical, 8)
         } header: {

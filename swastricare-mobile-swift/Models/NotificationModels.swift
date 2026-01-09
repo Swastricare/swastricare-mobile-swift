@@ -173,6 +173,52 @@ enum TimeOfDay {
     }
 }
 
+// MARK: - Hydration Reminder Context
+
+/// Context information for smarter notification scheduling
+struct HydrationReminderContext {
+    let temperature: Double?
+    let exerciseMinutes: Int
+    let isHotDay: Bool
+    let recentlyExercised: Bool
+    let patternLearner: DrinkingPatternLearnerProtocol?
+    
+    init(
+        temperature: Double? = nil,
+        exerciseMinutes: Int = 0,
+        patternLearner: DrinkingPatternLearnerProtocol? = nil
+    ) {
+        self.temperature = temperature
+        self.exerciseMinutes = exerciseMinutes
+        self.isHotDay = (temperature ?? 0) > 30
+        self.recentlyExercised = exerciseMinutes > 30
+        self.patternLearner = patternLearner
+    }
+    
+    /// Get frequency adjustment based on context
+    func getFrequencyAdjustment() -> Int {
+        var adjustment = 0
+        
+        // Hot weather - more frequent reminders
+        if isHotDay {
+            adjustment -= 1 // Reduce frequency hours by 1
+        }
+        
+        // Recent exercise - more frequent reminders
+        if recentlyExercised {
+            adjustment -= 1
+        }
+        
+        return adjustment
+    }
+    
+    /// Check if we should send an immediate reminder
+    func shouldSendImmediateReminder() -> Bool {
+        // Send immediate reminder after significant exercise in hot weather
+        return recentlyExercised && isHotDay
+    }
+}
+
 // MARK: - Notification Message Generator
 
 struct NotificationMessageGenerator {
@@ -271,8 +317,51 @@ struct NotificationMessageGenerator {
             return messages.randomElement()
         }
         
-        // Pattern-based messages (if we had pattern info in context)
-        // This would require passing pattern learner data through context
+        // Pattern-based messages using pattern learner
+        if let patternLearner = context.patternLearner {
+            if let patternMessage = generatePatternBasedMessage(
+                patternLearner: patternLearner,
+                remainingMl: remainingMl,
+                progress: progress
+            ) {
+                return patternMessage
+            }
+        }
+        
+        return nil
+    }
+    
+    /// Generate messages based on learned drinking patterns
+    private static func generatePatternBasedMessage(
+        patternLearner: DrinkingPatternLearnerProtocol,
+        remainingMl: Int,
+        progress: Double
+    ) -> (String, String)? {
+        let pattern = patternLearner.getPattern()
+        
+        guard pattern.hasEnoughData else { return nil }
+        
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: Date())
+        let probability = pattern.hourlyProbability[currentHour] ?? 0
+        
+        // High probability hour - user usually drinks now
+        if probability > 0.6 {
+            let messages = [
+                ("📊 Pattern Alert", "You usually drink water around this time! \(remainingMl)ml to go."),
+                ("🎯 Right on Schedule", "This is typically when you hydrate. Keep it up!"),
+                ("💧 Your Hydration Time", "Based on your patterns, now is a great time to drink!")
+            ]
+            return messages.randomElement()
+        }
+        
+        // Low probability hour - remind user this is a gap in their routine
+        if probability < 0.2 && progress < 0.5 {
+            return (
+                "💡 Fill the Gap",
+                "You don't usually drink much at this time - perfect opportunity to catch up! \(remainingMl)ml remaining."
+            )
+        }
         
         return nil
     }
@@ -423,9 +512,30 @@ enum NotificationAction: String {
         case .log500ml: return "Log 500ml"
         case .remindLater: return "Remind Later"
         case .dismiss: return "Dismiss"
-        case .medicationTaken: return "✓ Taken"
+        case .medicationTaken: return "Taken"
         case .medicationSkip: return "Skip"
         case .medicationSnooze: return "Snooze 15m"
+        }
+    }
+    
+    /// Get title with customizable snooze duration
+    func title(snoozeMinutes: Int? = nil) -> String {
+        switch self {
+        case .remindLater:
+            if let minutes = snoozeMinutes {
+                if minutes >= 60 {
+                    return "Snooze \(minutes / 60)h"
+                }
+                return "Snooze \(minutes)m"
+            }
+            return "Remind Later"
+        case .medicationSnooze:
+            if let minutes = snoozeMinutes {
+                return "Snooze \(minutes)m"
+            }
+            return "Snooze 15m"
+        default:
+            return title
         }
     }
     
@@ -472,5 +582,240 @@ struct PushTokenRecord: Codable {
         case appVersion = "app_version"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+}
+
+// MARK: - Notification History
+
+/// Tracks notification events for analytics and debugging
+struct NotificationHistoryEntry: Codable, Identifiable {
+    let id: UUID
+    let notificationType: NotificationHistoryType
+    let scheduledTime: Date
+    var deliveredTime: Date?
+    var actionTaken: String?
+    var responseTime: TimeInterval? // Time between delivery and action
+    let context: NotificationHistoryContext
+    
+    init(
+        id: UUID = UUID(),
+        notificationType: NotificationHistoryType,
+        scheduledTime: Date,
+        deliveredTime: Date? = nil,
+        actionTaken: String? = nil,
+        responseTime: TimeInterval? = nil,
+        context: NotificationHistoryContext = NotificationHistoryContext()
+    ) {
+        self.id = id
+        self.notificationType = notificationType
+        self.scheduledTime = scheduledTime
+        self.deliveredTime = deliveredTime
+        self.actionTaken = actionTaken
+        self.responseTime = responseTime
+        self.context = context
+    }
+}
+
+/// Type of notification for history tracking
+enum NotificationHistoryType: String, Codable {
+    case hydrationReminder = "hydration_reminder"
+    case hydrationSnooze = "hydration_snooze"
+    case hydrationContextual = "hydration_contextual"
+    case medicationReminder = "medication_reminder"
+    case medicationSnooze = "medication_snooze"
+    case goalAchieved = "goal_achieved"
+}
+
+/// Context stored with notification history
+struct NotificationHistoryContext: Codable {
+    var progress: Double?
+    var remainingMl: Int?
+    var temperature: Double?
+    var exerciseMinutes: Int?
+    var isHotDay: Bool?
+    var timeOfDay: String?
+    
+    init(
+        progress: Double? = nil,
+        remainingMl: Int? = nil,
+        temperature: Double? = nil,
+        exerciseMinutes: Int? = nil,
+        isHotDay: Bool? = nil,
+        timeOfDay: String? = nil
+    ) {
+        self.progress = progress
+        self.remainingMl = remainingMl
+        self.temperature = temperature
+        self.exerciseMinutes = exerciseMinutes
+        self.isHotDay = isHotDay
+        self.timeOfDay = timeOfDay
+    }
+}
+
+// MARK: - Notification History Manager
+
+final class NotificationHistoryManager {
+    
+    static let shared = NotificationHistoryManager()
+    
+    private let userDefaults = UserDefaults.standard
+    private let historyKey = "notification_history"
+    private let maxHistoryEntries = 100 // Keep last 100 entries
+    
+    private var history: [NotificationHistoryEntry] = []
+    
+    private init() {
+        loadHistory()
+    }
+    
+    // MARK: - Recording
+    
+    /// Record a notification being scheduled
+    func recordScheduled(
+        type: NotificationHistoryType,
+        scheduledTime: Date,
+        context: NotificationHistoryContext
+    ) -> UUID {
+        let entry = NotificationHistoryEntry(
+            notificationType: type,
+            scheduledTime: scheduledTime,
+            context: context
+        )
+        
+        history.append(entry)
+        trimHistory()
+        saveHistory()
+        
+        return entry.id
+    }
+    
+    /// Record a notification being delivered
+    func recordDelivered(notificationId: UUID) {
+        if let index = history.firstIndex(where: { $0.id == notificationId }) {
+            history[index].deliveredTime = Date()
+            saveHistory()
+        }
+    }
+    
+    /// Record user action on a notification
+    func recordAction(notificationId: UUID, action: String) {
+        if let index = history.firstIndex(where: { $0.id == notificationId }) {
+            history[index].actionTaken = action
+            
+            // Calculate response time if delivered
+            if let deliveredTime = history[index].deliveredTime {
+                history[index].responseTime = Date().timeIntervalSince(deliveredTime)
+            }
+            
+            saveHistory()
+        }
+    }
+    
+    /// Record action by scheduled time (when we don't have the ID)
+    func recordActionByScheduledTime(_ scheduledTime: Date, action: String) {
+        // Find the most recent notification with matching scheduled time
+        if let index = history.lastIndex(where: { 
+            abs($0.scheduledTime.timeIntervalSince(scheduledTime)) < 60 // Within 1 minute
+        }) {
+            history[index].actionTaken = action
+            history[index].deliveredTime = history[index].deliveredTime ?? Date()
+            
+            if let deliveredTime = history[index].deliveredTime {
+                history[index].responseTime = Date().timeIntervalSince(deliveredTime)
+            }
+            
+            saveHistory()
+        }
+    }
+    
+    // MARK: - Analytics
+    
+    /// Get notification history for a date range
+    func getHistory(from startDate: Date, to endDate: Date) -> [NotificationHistoryEntry] {
+        return history.filter { entry in
+            entry.scheduledTime >= startDate && entry.scheduledTime <= endDate
+        }
+    }
+    
+    /// Get today's notification history
+    func getTodayHistory() -> [NotificationHistoryEntry] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        return getHistory(from: startOfDay, to: Date())
+    }
+    
+    /// Get statistics for analytics
+    func getStats() -> NotificationStats {
+        let last7Days = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let recentHistory = getHistory(from: last7Days, to: Date())
+        
+        let totalSent = recentHistory.count
+        let actionsCount = recentHistory.filter { $0.actionTaken != nil }.count
+        let avgResponseTime = recentHistory
+            .compactMap { $0.responseTime }
+            .reduce(0, +) / Double(max(1, recentHistory.filter { $0.responseTime != nil }.count))
+        
+        let actionCounts = Dictionary(grouping: recentHistory.compactMap { $0.actionTaken }) { $0 }
+            .mapValues { $0.count }
+        
+        return NotificationStats(
+            totalSent: totalSent,
+            totalActioned: actionsCount,
+            actionRate: totalSent > 0 ? Double(actionsCount) / Double(totalSent) : 0,
+            averageResponseTime: avgResponseTime,
+            actionBreakdown: actionCounts
+        )
+    }
+    
+    /// Clear all history
+    func clearHistory() {
+        history.removeAll()
+        saveHistory()
+    }
+    
+    // MARK: - Private Helpers
+    
+    private func trimHistory() {
+        if history.count > maxHistoryEntries {
+            history = Array(history.suffix(maxHistoryEntries))
+        }
+    }
+    
+    private func saveHistory() {
+        if let encoded = try? JSONEncoder().encode(history) {
+            userDefaults.set(encoded, forKey: historyKey)
+        }
+    }
+    
+    private func loadHistory() {
+        guard let data = userDefaults.data(forKey: historyKey),
+              let decoded = try? JSONDecoder().decode([NotificationHistoryEntry].self, from: data) else {
+            history = []
+            return
+        }
+        history = decoded
+    }
+}
+
+/// Statistics from notification history
+struct NotificationStats {
+    let totalSent: Int
+    let totalActioned: Int
+    let actionRate: Double
+    let averageResponseTime: TimeInterval
+    let actionBreakdown: [String: Int]
+    
+    var actionRatePercentage: String {
+        "\(Int(actionRate * 100))%"
+    }
+    
+    var averageResponseTimeFormatted: String {
+        if averageResponseTime < 60 {
+            return "\(Int(averageResponseTime))s"
+        } else if averageResponseTime < 3600 {
+            return "\(Int(averageResponseTime / 60))m"
+        } else {
+            return "\(Int(averageResponseTime / 3600))h"
+        }
     }
 }
