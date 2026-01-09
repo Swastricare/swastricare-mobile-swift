@@ -39,20 +39,11 @@ final class HealthProfileService: HealthProfileServiceProtocol {
         let profileToSave = HealthProfile(
             id: profile.id,
             userId: userId,
-            name: profile.name,
+            fullName: profile.fullName,
             gender: profile.gender,
             dateOfBirth: profile.dateOfBirth,
-            height: profile.height,
-            heightUnit: profile.heightUnit,
-            weight: profile.weight,
-            weightUnit: profile.weightUnit,
-            exerciseLevel: profile.exerciseLevel,
-            foodIntakeLevel: profile.foodIntakeLevel,
-            hasChronicConditions: profile.hasChronicConditions,
-            chronicConditions: profile.chronicConditions,
-            takesMedications: profile.takesMedications,
-            medications: profile.medications,
-            allergies: profile.allergies,
+            heightCm: profile.heightCm,
+            weightKg: profile.weightKg,
             bloodType: profile.bloodType,
             createdAt: profile.createdAt ?? Date(),
             updatedAt: Date()
@@ -82,20 +73,11 @@ final class HealthProfileService: HealthProfileServiceProtocol {
             let updatedProfile = HealthProfile(
                 id: existingProfile.id,
                 userId: userId,
-                name: profileToSave.name,
+                fullName: profileToSave.fullName,
                 gender: profileToSave.gender,
                 dateOfBirth: profileToSave.dateOfBirth,
-                height: profileToSave.height,
-                heightUnit: profileToSave.heightUnit,
-                weight: profileToSave.weight,
-                weightUnit: profileToSave.weightUnit,
-                exerciseLevel: profileToSave.exerciseLevel,
-                foodIntakeLevel: profileToSave.foodIntakeLevel,
-                hasChronicConditions: profileToSave.hasChronicConditions,
-                chronicConditions: profileToSave.chronicConditions,
-                takesMedications: profileToSave.takesMedications,
-                medications: profileToSave.medications,
-                allergies: profileToSave.allergies,
+                heightCm: profileToSave.heightCm,
+                weightKg: profileToSave.weightKg,
                 bloodType: profileToSave.bloodType,
                 createdAt: existingProfile.createdAt,
                 updatedAt: Date()
@@ -110,6 +92,28 @@ final class HealthProfileService: HealthProfileServiceProtocol {
                 .execute()
                 .value
         }
+        
+        // CRITICAL: Also update the users table with full_name and mark onboarding complete
+        struct UserUpdate: Encodable {
+            let full_name: String
+            let onboarding_completed: Bool
+            let updated_at: Date
+        }
+        
+        let userUpdate = UserUpdate(
+            full_name: profile.fullName,
+            onboarding_completed: true,
+            updated_at: Date()
+        )
+        
+        // Update users table
+        try await client
+            .from("users")
+            .update(userUpdate)
+            .eq("id", value: userId.uuidString)
+            .execute()
+        
+        print("✅ HealthProfileService: Updated users table with name '\(profile.fullName)' and onboarding_completed=true")
     }
     
     // MARK: - Fetch Health Profile
@@ -130,7 +134,7 @@ final class HealthProfileService: HealthProfileServiceProtocol {
             .value
         
         if let profile = profiles.first {
-            print("📋 HealthProfileService: Loaded profile for \(profile.name)")
+            print("📋 HealthProfileService: Loaded profile for \(profile.fullName)")
         } else {
             print("📋 HealthProfileService: No profile found")
         }

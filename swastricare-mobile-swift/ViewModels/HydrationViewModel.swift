@@ -256,6 +256,9 @@ final class HydrationViewModel: ObservableObject {
         // Recalculate goal with new preferences
         calculateGoal()
         
+        // Update widget data (goal may have changed)
+        updateWidgetData()
+        
         // Sync to cloud
         Task {
             do {
@@ -325,6 +328,7 @@ final class HydrationViewModel: ObservableObject {
                     preferences = cloudPrefs
                     localStorage.savePreferences(preferences)
                     calculateGoal()
+                    updateWidgetData()
                 }
             }
         } catch {
@@ -342,7 +346,6 @@ final class HydrationViewModel: ObservableObject {
             dailyGoal: dailyGoal,
             lastLoggedTime: lastLogTime
         )
-        widgetService.refreshHydrationWidget()
     }
     
     /// Process any pending water logs from widget quick actions

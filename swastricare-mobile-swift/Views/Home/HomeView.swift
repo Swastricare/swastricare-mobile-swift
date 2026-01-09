@@ -15,6 +15,8 @@ struct HomeView: View {
     @StateObject private var viewModel = DependencyContainer.shared.homeViewModel
     @StateObject private var trackerViewModel = DependencyContainer.shared.trackerViewModel
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
+    @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
+    @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
     
     // MARK: - Local State
     
@@ -143,10 +145,14 @@ struct HomeView: View {
         .task {
             await viewModel.loadTodaysData()
             await trackerViewModel.loadData()
+            await hydrationViewModel.loadData()
+            await medicationViewModel.loadMedications()
         }
         .refreshable {
             await viewModel.refresh()
             await trackerViewModel.refresh()
+            await hydrationViewModel.refresh()
+            await medicationViewModel.refresh()
         }
         }
     }
@@ -399,6 +405,7 @@ struct HomeView: View {
             
             LazyVGrid(columns: [
                 GridItem(.flexible()),
+                GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 8) {
                 VitalCard(
@@ -428,16 +435,6 @@ struct HomeView: View {
                     unit: "km",
                     color: .green,
                     animationDelay: 1.0,
-                    hasAppeared: hasAppeared
-                )
-                
-                VitalCard(
-                    icon: "drop.fill",
-                    title: "Blood Pressure",
-                    value: viewModel.bloodPressure,
-                    unit: "mmHg",
-                    color: .orange,
-                    animationDelay: 1.1,
                     hasAppeared: hasAppeared
                 )
             }
@@ -571,26 +568,25 @@ struct HomeView: View {
                 .animation(.spring(response: 0.5, dampingFraction: 0.7), value: quickActionsVisible)
             
             HStack(spacing: 12) {
-                QuickActionButton(icon: "waveform.path.ecg", title: "Log Vitals", color: .red) {
-                    // Action
+                MedicationQuickActionButton(
+                    takenCount: medicationViewModel.takenCount,
+                    totalCount: medicationViewModel.totalCount
+                ) {
+                    showMedications = true
                 }
                 .opacity(quickActionsVisible ? 1 : 0)
                 .scaleEffect(quickActionsVisible ? 1 : 0.8)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1), value: quickActionsVisible)
                 
-                QuickActionButton(icon: "pills.fill", title: "Medications", color: .blue) {
-                    showMedications = true
-                }
-                .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.8)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: quickActionsVisible)
-                
-                QuickActionButton(icon: "drop.fill", title: "Hydration", color: .cyan) {
+                HydrationQuickActionButton(
+                    currentIntake: hydrationViewModel.effectiveIntake,
+                    dailyGoal: hydrationViewModel.dailyGoal
+                ) {
                     showHydration = true
                 }
                 .opacity(quickActionsVisible ? 1 : 0)
                 .scaleEffect(quickActionsVisible ? 1 : 0.8)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: quickActionsVisible)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: quickActionsVisible)
             }
             .padding(.horizontal)
         }
@@ -824,6 +820,126 @@ private struct QuickActionButton: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
+            .glass(cornerRadius: 12)
+        }
+    }
+}
+
+private struct HydrationQuickActionButton: View {
+    let currentIntake: Int
+    let dailyGoal: Int
+    let action: () -> Void
+    
+    private var progress: Double {
+        guard dailyGoal > 0 else { return 0 }
+        return min(1.0, Double(currentIntake) / Double(dailyGoal))
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: "drop.fill")
+                    .font(.title2)
+                    .foregroundColor(.cyan)
+                
+                Text("Hydration")
+                    .font(.caption)
+                    .foregroundColor(.primary)
+                
+                // Current / Target
+                HStack(spacing: 3) {
+                    Text("\(currentIntake)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.cyan)
+                    Text("/")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                    Text("\(dailyGoal)")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.secondary)
+                    Text("ml")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+                
+                // Progress bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 3)
+                        
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.cyan)
+                            .frame(width: geometry.size.width * progress, height: 3)
+                            .animation(.easeInOut(duration: 0.3), value: progress)
+                    }
+                }
+                .frame(height: 3)
+                .padding(.horizontal, 4)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .glass(cornerRadius: 12)
+        }
+    }
+}
+
+private struct MedicationQuickActionButton: View {
+    let takenCount: Int
+    let totalCount: Int
+    let action: () -> Void
+    
+    private var progress: Double {
+        guard totalCount > 0 else { return 0 }
+        return min(1.0, Double(takenCount) / Double(totalCount))
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: "pills.fill")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+                
+                Text("Medications")
+                    .font(.caption)
+                    .foregroundColor(.primary)
+                
+                // Taken / Total
+                HStack(spacing: 3) {
+                    Text("\(takenCount)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.blue)
+                    Text("/")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                    Text("\(totalCount)")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.secondary)
+                    Text("taken")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+                
+                // Progress bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 3)
+                        
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.blue)
+                            .frame(width: geometry.size.width * progress, height: 3)
+                            .animation(.easeInOut(duration: 0.3), value: progress)
+                    }
+                }
+                .frame(height: 3)
+                .padding(.horizontal, 4)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
             .glass(cornerRadius: 12)
         }
     }

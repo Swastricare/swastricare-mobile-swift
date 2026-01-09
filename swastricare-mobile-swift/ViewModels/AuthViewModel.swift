@@ -25,8 +25,8 @@ final class AuthViewModel: ObservableObject {
     var currentUser: AppUser? { authState.user }
     var userEmail: String? { currentUser?.email }
     var userPhotoURL: URL? { currentUser?.avatarURL }
-    var userName: String { 
-        healthProfile?.name ?? currentUser?.fullName ?? currentUser?.email?.components(separatedBy: "@").first ?? "User" 
+    var userName: String {
+        healthProfile?.fullName ?? currentUser?.fullName ?? currentUser?.email?.components(separatedBy: "@").first ?? "User"
     }
     
     // MARK: - Dependencies

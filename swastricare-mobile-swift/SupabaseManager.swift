@@ -21,7 +21,12 @@ class SupabaseManager {
         
         self.client = SupabaseClient(
             supabaseURL: supabaseURL,
-            supabaseKey: SupabaseConfig.anonKey
+            supabaseKey: SupabaseConfig.anonKey,
+            options: SupabaseClientOptions(
+                auth: .init(
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
         )
     }
     

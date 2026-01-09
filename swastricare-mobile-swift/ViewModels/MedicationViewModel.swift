@@ -406,7 +406,6 @@ final class MedicationViewModel: ObservableObject {
     /// Update widget with current medication data
     private func updateWidgetData() {
         widgetService.saveMedicationData(medications: todaysMedications)
-        widgetService.refreshMedicationWidget()
     }
     
     /// Process any pending medication marks from widget quick actions

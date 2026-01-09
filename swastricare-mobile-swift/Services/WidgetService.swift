@@ -198,6 +198,9 @@ final class WidgetService {
             defaults.set(encoded, forKey: Keys.hydrationData)
             defaults.synchronize()
             print("💧 WidgetService: Saved hydration - \(currentIntake)/\(dailyGoal)ml")
+            
+            // Trigger widget refresh immediately
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             print("⚠️ WidgetService: Failed to encode hydration data - \(error)")
         }
@@ -264,6 +267,9 @@ final class WidgetService {
             defaults.set(encoded, forKey: Keys.medicationData)
             defaults.synchronize()
             print("💊 WidgetService: Saved medications - \(takenCount)/\(totalCount) taken")
+            
+            // Trigger widget refresh immediately
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             print("⚠️ WidgetService: Failed to encode medication data - \(error)")
         }

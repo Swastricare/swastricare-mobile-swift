@@ -193,13 +193,18 @@ final class WidgetDataManager {
     
     /// Load hydration data for widget display
     func loadHydrationData() -> WidgetHydrationData {
-        guard let defaults = AppGroupConfig.sharedDefaults,
-              let data = defaults.data(forKey: Keys.hydrationData) else {
+        guard let defaults = AppGroupConfig.sharedDefaults else {
+            print("⚠️ WidgetDataManager: Failed to access App Group")
+            return .empty
+        }
+        
+        guard let data = defaults.data(forKey: Keys.hydrationData) else {
             return .empty
         }
         
         do {
-            return try decoder.decode(WidgetHydrationData.self, from: data)
+            let decoded = try decoder.decode(WidgetHydrationData.self, from: data)
+            return decoded
         } catch {
             print("⚠️ WidgetDataManager: Failed to decode hydration data - \(error)")
             return .empty
@@ -242,14 +247,23 @@ final class WidgetDataManager {
     
     // MARK: - Quick Actions (Pending operations from widget)
     
-    /// Store pending water log from widget quick action
+    /// Store pending water log from widget quick action (accumulates if existing)
     func storePendingWaterLog(amount: Int) {
         guard let defaults = AppGroupConfig.sharedDefaults else { return }
         
-        let pending = PendingWaterLog(amount: amount, timestamp: Date())
+        // Check for existing pending log and accumulate
+        var totalAmount = amount
+        if let existingData = defaults.data(forKey: Keys.pendingWaterLog),
+           let existing = try? decoder.decode(PendingWaterLog.self, from: existingData) {
+            totalAmount += existing.amount
+            print("💧 WidgetDataManager: Accumulating pending water - \(existing.amount) + \(amount) = \(totalAmount)ml")
+        }
+        
+        let pending = PendingWaterLog(amount: totalAmount, timestamp: Date())
         if let encoded = try? encoder.encode(pending) {
             defaults.set(encoded, forKey: Keys.pendingWaterLog)
             defaults.synchronize()
+            print("💧 WidgetDataManager: Stored pending water log - \(totalAmount)ml")
         }
     }
     

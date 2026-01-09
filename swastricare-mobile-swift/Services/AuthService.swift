@@ -41,6 +41,9 @@ final class AuthService: AuthServiceProtocol {
             return try await withTimeout(seconds: 5) {
                 do {
                     let session = try await self.client.auth.session
+                    // Important: with newer SDK behavior, a locally stored session may be emitted
+                    // even if it's expired. Never treat an expired session as authenticated.
+                    guard !session.isExpired else { return nil }
                     return self.mapUser(session.user)
                 } catch {
                     return nil

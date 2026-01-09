@@ -176,27 +176,6 @@ struct ProfileView: View {
                 if viewModel.profileBloodType != "Not set" {
                     HealthProfileRow(icon: "drop.fill", iconColor: .red, label: "Blood Type", value: viewModel.profileBloodType)
                 }
-                
-                // Exercise Level
-                HealthProfileRow(icon: "figure.run", iconColor: .mint, label: "Exercise Level", value: viewModel.profileExerciseLevel)
-                
-                // Food Intake Level
-                HealthProfileRow(icon: "fork.knife", iconColor: .brown, label: "Food Intake", value: viewModel.profileFoodIntakeLevel)
-                
-                // Allergies
-                if !viewModel.profileAllergies.isEmpty {
-                    HealthProfileRow(icon: "allergens", iconColor: .yellow, label: "Allergies", value: viewModel.profileAllergies.joined(separator: ", "))
-                }
-                
-                // Chronic Conditions
-                if !viewModel.profileChronicConditions.isEmpty {
-                    HealthProfileRow(icon: "heart.text.square.fill", iconColor: .pink, label: "Conditions", value: viewModel.profileChronicConditions.joined(separator: ", "))
-                }
-                
-                // Medications
-                if !viewModel.profileMedications.isEmpty {
-                    HealthProfileRow(icon: "pills.fill", iconColor: .teal, label: "Medications", value: viewModel.profileMedications.joined(separator: ", "))
-                }
             } else {
                 // No profile found
                 HStack {

@@ -17,17 +17,15 @@ struct HealthProfileQuestionnaireView: View {
     // Text field states for numeric inputs
     @State private var heightText: String = "170"
     @State private var weightText: String = "70"
-    @State private var feetText: String = "5"
-    @State private var inchesText: String = "7"
     @FocusState private var focusedField: FocusedField?
     
     enum FocusedField {
-        case height, weight, feet, inches, name
+        case height, weight, name
     }
     
     let onComplete: () -> Void
     
-    private let totalSteps = 7
+    private let totalSteps = 4
     
     // CRITICAL: Only show this view if user is authenticated
     private var isAuthenticated: Bool {
@@ -70,18 +68,6 @@ struct HealthProfileQuestionnaireView: View {
                     // Step 4: Weight
                     weightStep
                         .tag(3)
-                    
-                    // Step 5: Exercise Level
-                    exerciseLevelStep
-                        .tag(4)
-                    
-                    // Step 6: Food Intake Level
-                    foodIntakeStep
-                        .tag(5)
-                    
-                    // Step 7: Additional Health Info
-                    additionalHealthStep
-                        .tag(6)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 
@@ -246,212 +232,23 @@ struct HealthProfileQuestionnaireView: View {
             icon: "ruler.fill"
         ) {
             VStack(spacing: 32) {
-                // Unit Selection
-                Picker("Unit", selection: $formState.heightUnit) {
-                    ForEach(HeightUnit.allCases, id: \.self) { unit in
-                        Text(unit.displayName).tag(unit)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 20)
-                .onChange(of: formState.heightUnit) { _, _ in
-                    syncHeightText()
-                }
-                
-                // Height Input
-                VStack(spacing: 24) {
-                    if formState.heightUnit == .cm {
-                        // CM Input
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            TextField("170", text: $heightText)
-                                .keyboardType(.numberPad)
-                                .font(.system(size: 56, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(hex: "2E3192"))
-                                .multilineTextAlignment(.center)
-                                .frame(width: 140)
-                                .focused($focusedField, equals: .height)
-                                .onChange(of: heightText) { _, newValue in
-                                    if let value = Double(newValue), value >= 50, value <= 300 {
-                                        formState.height = value
-                                    }
-                                }
-                            
-                            Text("cm")
-                                .font(.system(size: 24, weight: .semibold))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                        
-                        // Quick adjust buttons
-                        HStack(spacing: 16) {
-                            Button(action: {
-                                if formState.height > 100 {
-                                    formState.height -= 1
-                                    heightText = String(Int(formState.height))
-                                }
-                            }) {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(Color(hex: "2E3192"))
-                            }
-                            
-                            Slider(
-                                value: $formState.height,
-                                in: 100...250,
-                                step: 1
-                            )
-                            .tint(Color(hex: "2E3192"))
-                            .onChange(of: formState.height) { _, newValue in
-                                heightText = String(Int(newValue))
-                            }
-                            
-                            Button(action: {
-                                if formState.height < 250 {
-                                    formState.height += 1
-                                    heightText = String(Int(formState.height))
-                                }
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(Color(hex: "2E3192"))
-                            }
-                        }
-                        .padding(.horizontal, 10)
-                        
-                    } else {
-                        // Feet/Inches Input
-                        HStack(spacing: 24) {
-                            VStack(spacing: 4) {
-                                TextField("5", text: $feetText)
-                                    .keyboardType(.numberPad)
-                                    .font(.system(size: 56, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color(hex: "2E3192"))
-                                    .multilineTextAlignment(.center)
-                                    .frame(width: 80)
-                                    .focused($focusedField, equals: .feet)
-                                    .onChange(of: feetText) { _, newValue in
-                                        updateHeightFromFeetInches()
-                                    }
-                                
-                                Text("feet")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            VStack(spacing: 4) {
-                                TextField("7", text: $inchesText)
-                                    .keyboardType(.numberPad)
-                                    .font(.system(size: 56, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color(hex: "2E3192"))
-                                    .multilineTextAlignment(.center)
-                                    .frame(width: 80)
-                                    .focused($focusedField, equals: .inches)
-                                    .onChange(of: inchesText) { _, newValue in
-                                        updateHeightFromFeetInches()
-                                    }
-                                
-                                Text("inches")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                        
-                        Slider(
-                            value: $formState.height,
-                            in: 91.44...243.84, // 3' to 8' in cm
-                            step: 2.54 // 1 inch step
-                        )
-                        .tint(Color(hex: "2E3192"))
-                        .padding(.horizontal, 10)
-                        .onChange(of: formState.height) { _, _ in
-                            syncFeetInchesText()
-                        }
-                    }
-                }
-                .padding(.vertical, 30)
-                .padding(.horizontal, 16)
-                .glass(cornerRadius: 24)
-                .padding(.horizontal, 20)
-            }
-        }
-        .onAppear {
-            syncHeightText()
-        }
-        .onTapGesture {
-            focusedField = nil
-        }
-    }
-    
-    private func syncHeightText() {
-        if formState.heightUnit == .cm {
-            heightText = String(Int(formState.height))
-        } else {
-            syncFeetInchesText()
-        }
-    }
-    
-    private func syncFeetInchesText() {
-        let totalInches = formState.height / 2.54
-        feetText = String(Int(totalInches / 12))
-        inchesText = String(Int(totalInches.truncatingRemainder(dividingBy: 12)))
-    }
-    
-    private func updateHeightFromFeetInches() {
-        let feet = Int(feetText) ?? 5
-        let inches = Int(inchesText) ?? 7
-        let totalInches = Double(feet * 12 + inches)
-        formState.height = totalInches * 2.54
-    }
-    
-    // MARK: - Weight Step
-    
-    private var weightStep: some View {
-        QuestionnaireStepView(
-            title: "What's your weight?",
-            subtitle: "This helps us track your health progress",
-            icon: "scalemass.fill"
-        ) {
-            VStack(spacing: 32) {
-                // Unit Selection
-                Picker("Unit", selection: $formState.weightUnit) {
-                    ForEach(WeightUnit.allCases, id: \.self) { unit in
-                        Text(unit.displayName).tag(unit)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 20)
-                .onChange(of: formState.weightUnit) { _, newUnit in
-                    // Convert weight when changing units
-                    if newUnit == .lbs {
-                        formState.weight = formState.weight * 2.205
-                    } else {
-                        formState.weight = formState.weight / 2.205
-                    }
-                    weightText = String(Int(formState.weight))
-                }
-                
-                // Weight Input
+                // Height Input (CM only)
                 VStack(spacing: 24) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        TextField("70", text: $weightText)
+                        TextField("170", text: $heightText)
                             .keyboardType(.numberPad)
                             .font(.system(size: 56, weight: .bold, design: .rounded))
                             .foregroundColor(Color(hex: "2E3192"))
                             .multilineTextAlignment(.center)
                             .frame(width: 140)
-                            .focused($focusedField, equals: .weight)
-                            .onChange(of: weightText) { _, newValue in
-                                if let value = Double(newValue) {
-                                    let min = formState.weightUnit == .kg ? 20.0 : 44.0
-                                    let max = formState.weightUnit == .kg ? 300.0 : 660.0
-                                    if value >= min && value <= max {
-                                        formState.weight = value
-                                    }
+                            .focused($focusedField, equals: .height)
+                            .onChange(of: heightText) { _, newValue in
+                                if let value = Double(newValue), value >= 50, value <= 300 {
+                                    formState.heightCm = value
                                 }
                             }
                         
-                        Text(formState.weightUnit.displayName)
+                        Text("cm")
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundColor(.secondary)
                     }
@@ -460,10 +257,9 @@ struct HealthProfileQuestionnaireView: View {
                     // Quick adjust buttons
                     HStack(spacing: 16) {
                         Button(action: {
-                            let min = formState.weightUnit == .kg ? 30.0 : 66.0
-                            if formState.weight > min {
-                                formState.weight -= 1
-                                weightText = String(Int(formState.weight))
+                            if formState.heightCm > 100 {
+                                formState.heightCm -= 1
+                                heightText = String(Int(formState.heightCm))
                             }
                         }) {
                             Image(systemName: "minus.circle.fill")
@@ -472,20 +268,19 @@ struct HealthProfileQuestionnaireView: View {
                         }
                         
                         Slider(
-                            value: $formState.weight,
-                            in: formState.weightUnit == .kg ? 30...200 : 66...440,
+                            value: $formState.heightCm,
+                            in: 100...250,
                             step: 1
                         )
                         .tint(Color(hex: "2E3192"))
-                        .onChange(of: formState.weight) { _, newValue in
-                            weightText = String(Int(newValue))
+                        .onChange(of: formState.heightCm) { _, newValue in
+                            heightText = String(Int(newValue))
                         }
                         
                         Button(action: {
-                            let max = formState.weightUnit == .kg ? 200.0 : 440.0
-                            if formState.weight < max {
-                                formState.weight += 1
-                                weightText = String(Int(formState.weight))
+                            if formState.heightCm < 250 {
+                                formState.heightCm += 1
+                                heightText = String(Int(formState.heightCm))
                             }
                         }) {
                             Image(systemName: "plus.circle.fill")
@@ -502,7 +297,88 @@ struct HealthProfileQuestionnaireView: View {
             }
         }
         .onAppear {
-            weightText = String(Int(formState.weight))
+            heightText = String(Int(formState.heightCm))
+        }
+        .onTapGesture {
+            focusedField = nil
+        }
+    }
+    
+    // MARK: - Weight Step
+    
+    private var weightStep: some View {
+        QuestionnaireStepView(
+            title: "What's your weight?",
+            subtitle: "This helps us track your health progress",
+            icon: "scalemass.fill"
+        ) {
+            VStack(spacing: 32) {
+                // Weight Input (KG only)
+                VStack(spacing: 24) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        TextField("70", text: $weightText)
+                            .keyboardType(.numberPad)
+                            .font(.system(size: 56, weight: .bold, design: .rounded))
+                            .foregroundColor(Color(hex: "2E3192"))
+                            .multilineTextAlignment(.center)
+                            .frame(width: 140)
+                            .focused($focusedField, equals: .weight)
+                            .onChange(of: weightText) { _, newValue in
+                                if let value = Double(newValue), value >= 20, value <= 300 {
+                                    formState.weightKg = value
+                                }
+                            }
+                        
+                        Text("kg")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                    
+                    // Quick adjust buttons
+                    HStack(spacing: 16) {
+                        Button(action: {
+                            if formState.weightKg > 30 {
+                                formState.weightKg -= 1
+                                weightText = String(Int(formState.weightKg))
+                            }
+                        }) {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(Color(hex: "2E3192"))
+                        }
+                        
+                        Slider(
+                            value: $formState.weightKg,
+                            in: 30...200,
+                            step: 1
+                        )
+                        .tint(Color(hex: "2E3192"))
+                        .onChange(of: formState.weightKg) { _, newValue in
+                            weightText = String(Int(newValue))
+                        }
+                        
+                        Button(action: {
+                            if formState.weightKg < 200 {
+                                formState.weightKg += 1
+                                weightText = String(Int(formState.weightKg))
+                            }
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(Color(hex: "2E3192"))
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                }
+                .padding(.vertical, 30)
+                .padding(.horizontal, 16)
+                .glass(cornerRadius: 24)
+                .padding(.horizontal, 20)
+            }
+        }
+        .onAppear {
+            weightText = String(Int(formState.weightKg))
         }
         .onTapGesture {
             focusedField = nil
@@ -511,197 +387,6 @@ struct HealthProfileQuestionnaireView: View {
     
     // MARK: - Exercise Level Step
     
-    private var exerciseLevelStep: some View {
-        QuestionnaireStepView(
-            title: "How active are you?",
-            subtitle: "Select your exercise level",
-            icon: "figure.run"
-        ) {
-            VStack(spacing: 16) {
-                ForEach(ExerciseLevel.allCases, id: \.self) { level in
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            formState.exerciseLevel = level
-                        }
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(level.displayName)
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.primary)
-                                
-                                Text(level.description)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            if formState.exerciseLevel == level {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(Color(hex: "2E3192"))
-                                    .font(.system(size: 24))
-                            } else {
-                                Image(systemName: "circle")
-                                    .foregroundColor(.secondary)
-                                    .font(.system(size: 24))
-                            }
-                        }
-                        .padding()
-                        .background(
-                            formState.exerciseLevel == level
-                                ? Color(hex: "2E3192").opacity(0.1)
-                                : Color.clear
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(
-                                    formState.exerciseLevel == level
-                                        ? Color(hex: "2E3192")
-                                        : Color.primary.opacity(0.2),
-                                    lineWidth: formState.exerciseLevel == level ? 2 : 1
-                                )
-                        )
-                        .cornerRadius(16)
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-    
-    // MARK: - Food Intake Step
-    
-    private var foodIntakeStep: some View {
-        QuestionnaireStepView(
-            title: "Food Intake Level",
-            subtitle: "How much do you typically eat?",
-            icon: "fork.knife"
-        ) {
-            VStack(spacing: 16) {
-                ForEach(FoodIntakeLevel.allCases, id: \.self) { level in
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            formState.foodIntakeLevel = level
-                        }
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(level.displayName)
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.primary)
-                                
-                                Text(level.description)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            if formState.foodIntakeLevel == level {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(Color(hex: "2E3192"))
-                                    .font(.system(size: 24))
-                            } else {
-                                Image(systemName: "circle")
-                                    .foregroundColor(.secondary)
-                                    .font(.system(size: 24))
-                            }
-                        }
-                        .padding()
-                        .background(
-                            formState.foodIntakeLevel == level
-                                ? Color(hex: "2E3192").opacity(0.1)
-                                : Color.clear
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(
-                                    formState.foodIntakeLevel == level
-                                        ? Color(hex: "2E3192")
-                                        : Color.primary.opacity(0.2),
-                                    lineWidth: formState.foodIntakeLevel == level ? 2 : 1
-                                )
-                        )
-                        .cornerRadius(16)
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-    
-    // MARK: - Additional Health Step
-    
-    private var additionalHealthStep: some View {
-        QuestionnaireStepView(
-            title: "Additional Health Information",
-            subtitle: "Help us understand your health better",
-            icon: "heart.text.square.fill"
-        ) {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Chronic Conditions
-                    VStack(alignment: .leading, spacing: 12) {
-                        Toggle("Do you have any chronic conditions?", isOn: $formState.hasChronicConditions)
-                            .font(.headline)
-                        
-                        if formState.hasChronicConditions {
-                            GlassTextField(
-                                placeholder: "List conditions (comma separated)",
-                                text: Binding(
-                                    get: { formState.chronicConditions.joined(separator: ", ") },
-                                    set: { formState.chronicConditions = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
-                                )
-                            )
-                        }
-                    }
-                    
-                    // Medications
-                    VStack(alignment: .leading, spacing: 12) {
-                        Toggle("Do you take any medications?", isOn: $formState.takesMedications)
-                            .font(.headline)
-                        
-                        if formState.takesMedications {
-                            GlassTextField(
-                                placeholder: "List medications (comma separated)",
-                                text: Binding(
-                                    get: { formState.medications.joined(separator: ", ") },
-                                    set: { formState.medications = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
-                                )
-                            )
-                        }
-                    }
-                    
-                    // Allergies
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Allergies (optional)")
-                            .font(.headline)
-                        
-                        GlassTextField(
-                            placeholder: "List allergies (comma separated)",
-                            text: Binding(
-                                get: { formState.allergies.joined(separator: ", ") },
-                                set: { formState.allergies = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
-                            )
-                        )
-                    }
-                    
-                    // Blood Type
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Blood Type (optional)")
-                            .font(.headline)
-                        
-                        GlassTextField(
-                            placeholder: "e.g., A+, B-, O+, etc.",
-                            text: $formState.bloodType
-                        )
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-        }
-    }
     
     // MARK: - Navigation Buttons
     
@@ -763,8 +448,6 @@ struct HealthProfileQuestionnaireView: View {
         switch currentStep {
         case 0: return !formState.name.isEmpty
         case 1: return formState.gender != nil
-        case 4: return formState.exerciseLevel != nil
-        case 5: return formState.foodIntakeLevel != nil
         default: return true
         }
     }

@@ -34,7 +34,7 @@ final class ProfileViewModel: ObservableObject {
     // MARK: - Computed Properties
     
     var userName: String {
-        healthProfile?.name ?? user?.fullName ?? user?.email?.components(separatedBy: "@").first ?? "User"
+        healthProfile?.fullName ?? user?.fullName ?? user?.email?.components(separatedBy: "@").first ?? "User"
     }
     
     var userEmail: String {
@@ -54,7 +54,7 @@ final class ProfileViewModel: ObservableObject {
     
     // Health Profile Computed Properties
     var profileName: String {
-        healthProfile?.name ?? "Not set"
+        healthProfile?.fullName ?? "Not set"
     }
     
     var profileGender: String {
@@ -76,54 +76,23 @@ final class ProfileViewModel: ObservableObject {
     
     var profileHeight: String {
         guard let profile = healthProfile else { return "Not set" }
-        if profile.heightUnit == .cm {
-            return String(format: "%.0f cm", profile.height)
-        } else {
-            let totalInches = profile.height / 2.54
-            let feet = Int(totalInches / 12)
-            let inches = Int(totalInches.truncatingRemainder(dividingBy: 12))
-            return "\(feet)' \(inches)\""
-        }
+        return String(format: "%.0f cm", profile.heightCm)
     }
     
     var profileWeight: String {
         guard let profile = healthProfile else { return "Not set" }
-        return String(format: "%.1f %@", profile.weight, profile.weightUnit.displayName)
+        return String(format: "%.1f kg", profile.weightKg)
     }
     
     var profileBMI: String {
         guard let profile = healthProfile else { return "Not set" }
-        let heightInMeters = profile.height / 100
-        var weightInKg = profile.weight
-        if profile.weightUnit == .lbs {
-            weightInKg = profile.weight / 2.205
-        }
-        let bmi = weightInKg / (heightInMeters * heightInMeters)
+        let heightInMeters = profile.heightCm / 100
+        let bmi = profile.weightKg / (heightInMeters * heightInMeters)
         return String(format: "%.1f", bmi)
-    }
-    
-    var profileExerciseLevel: String {
-        healthProfile?.exerciseLevel.displayName ?? "Not set"
-    }
-    
-    var profileFoodIntakeLevel: String {
-        healthProfile?.foodIntakeLevel.displayName ?? "Not set"
     }
     
     var profileBloodType: String {
         healthProfile?.bloodType ?? "Not set"
-    }
-    
-    var profileAllergies: [String] {
-        healthProfile?.allergies ?? []
-    }
-    
-    var profileChronicConditions: [String] {
-        healthProfile?.chronicConditions ?? []
-    }
-    
-    var profileMedications: [String] {
-        healthProfile?.medications ?? []
     }
     
     var hasHealthProfile: Bool {
@@ -189,11 +158,11 @@ final class ProfileViewModel: ObservableObject {
             healthProfile = profile
             if let profile = profile {
                 print("📋 ProfileVM: ✅ Loaded health profile successfully:")
-                print("   - Name: \(profile.name)")
+                print("   - Name: \(profile.fullName)")
                 print("   - Gender: \(profile.gender.displayName)")
                 print("   - DOB: \(profile.dateOfBirth)")
-                print("   - Height: \(profile.height) \(profile.heightUnit.displayName)")
-                print("   - Weight: \(profile.weight) \(profile.weightUnit.displayName)")
+                print("   - Height: \(profile.heightCm) cm")
+                print("   - Weight: \(profile.weightKg) kg")
             } else {
                 print("📋 ProfileVM: ⚠️ No health profile found for user")
             }
