@@ -7,15 +7,63 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		635D9FDF2F1150B2005F0CB6 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 635D9FDE2F1150B2005F0CB6 /* WidgetKit.framework */; };
+		635D9FE12F1150B2005F0CB6 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 635D9FE02F1150B2005F0CB6 /* SwiftUI.framework */; };
+		635D9FF22F1150B3005F0CB6 /* SwasthiCareWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 635D9FDC2F1150B2005F0CB6 /* SwasthiCareWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		636C031B2F0E7E0A005CE638 /* GLTFKit2 in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF112F0D500000FAB1B5 /* GLTFKit2 */; };
 		636CFDA92F0D3FC8005CE638 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF0F2F0D400000FAB1B5 /* Supabase */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		635D9FF02F1150B3005F0CB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 63D3AEEA2F0D386F00FAB1B5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 635D9FDB2F1150B2005F0CB6;
+			remoteInfo = SwasthiCareWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		635D9FF72F1150B3005F0CB6 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				635D9FF22F1150B3005F0CB6 /* SwasthiCareWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		635D9FDC2F1150B2005F0CB6 /* SwasthiCareWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SwasthiCareWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		635D9FDE2F1150B2005F0CB6 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		635D9FE02F1150B2005F0CB6 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		63D3AEF22F0D386F00FAB1B5 /* swastricare-mobile-swift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "swastricare-mobile-swift.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		635D9FF32F1150B3005F0CB6 /* Exceptions for "SwasthiCareWidgets" folder in "SwasthiCareWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 635D9FDB2F1150B2005F0CB6 /* SwasthiCareWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		635D9FE22F1150B2005F0CB6 /* SwasthiCareWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				635D9FF32F1150B3005F0CB6 /* Exceptions for "SwasthiCareWidgets" folder in "SwasthiCareWidgetsExtension" target */,
+			);
+			path = SwasthiCareWidgets;
+			sourceTree = "<group>";
+		};
 		63D3AEF42F0D386F00FAB1B5 /* swastricare-mobile-swift */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "swastricare-mobile-swift";
@@ -24,6 +72,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		635D9FD92F1150B2005F0CB6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				635D9FE12F1150B2005F0CB6 /* SwiftUI.framework in Frameworks */,
+				635D9FDF2F1150B2005F0CB6 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		63D3AEEF2F0D386F00FAB1B5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -36,10 +93,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		635D9FDD2F1150B2005F0CB6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				635D9FDE2F1150B2005F0CB6 /* WidgetKit.framework */,
+				635D9FE02F1150B2005F0CB6 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		63D3AEE92F0D386F00FAB1B5 = {
 			isa = PBXGroup;
 			children = (
 				63D3AEF42F0D386F00FAB1B5 /* swastricare-mobile-swift */,
+				635D9FE22F1150B2005F0CB6 /* SwasthiCareWidgets */,
+				635D9FDD2F1150B2005F0CB6 /* Frameworks */,
 				63D3AEF32F0D386F00FAB1B5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -48,6 +116,7 @@
 			isa = PBXGroup;
 			children = (
 				63D3AEF22F0D386F00FAB1B5 /* swastricare-mobile-swift.app */,
+				635D9FDC2F1150B2005F0CB6 /* SwasthiCareWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,6 +124,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		635D9FDB2F1150B2005F0CB6 /* SwasthiCareWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 635D9FF42F1150B3005F0CB6 /* Build configuration list for PBXNativeTarget "SwasthiCareWidgetsExtension" */;
+			buildPhases = (
+				635D9FD82F1150B2005F0CB6 /* Sources */,
+				635D9FD92F1150B2005F0CB6 /* Frameworks */,
+				635D9FDA2F1150B2005F0CB6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				635D9FE22F1150B2005F0CB6 /* SwasthiCareWidgets */,
+			);
+			name = SwasthiCareWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = SwasthiCareWidgetsExtension;
+			productReference = 635D9FDC2F1150B2005F0CB6 /* SwasthiCareWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		63D3AEF12F0D386F00FAB1B5 /* swastricare-mobile-swift */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 63D3AEFD2F0D386F00FAB1B5 /* Build configuration list for PBXNativeTarget "swastricare-mobile-swift" */;
@@ -62,10 +153,12 @@
 				63D3AEEE2F0D386F00FAB1B5 /* Sources */,
 				63D3AEEF2F0D386F00FAB1B5 /* Frameworks */,
 				63D3AEF02F0D386F00FAB1B5 /* Resources */,
+				635D9FF72F1150B3005F0CB6 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				635D9FF12F1150B3005F0CB6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				63D3AEF42F0D386F00FAB1B5 /* swastricare-mobile-swift */,
@@ -89,6 +182,9 @@
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
+					635D9FDB2F1150B2005F0CB6 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					63D3AEF12F0D386F00FAB1B5 = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -113,11 +209,19 @@
 			projectRoot = "";
 			targets = (
 				63D3AEF12F0D386F00FAB1B5 /* swastricare-mobile-swift */,
+				635D9FDB2F1150B2005F0CB6 /* SwasthiCareWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		635D9FDA2F1150B2005F0CB6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		63D3AEF02F0D386F00FAB1B5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -128,6 +232,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		635D9FD82F1150B2005F0CB6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		63D3AEEE2F0D386F00FAB1B5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,7 +248,77 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		635D9FF12F1150B3005F0CB6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 635D9FDB2F1150B2005F0CB6 /* SwasthiCareWidgetsExtension */;
+			targetProxy = 635D9FF02F1150B3005F0CB6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		635D9FF52F1150B3005F0CB6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9TF7Y389MX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SwasthiCareWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SwasthiCareWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.swastricare.health.SwasthiCareWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		635D9FF62F1150B3005F0CB6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9TF7Y389MX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SwasthiCareWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SwasthiCareWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.swastricare.health.SwasthiCareWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		63D3AEFB2F0D386F00FAB1B5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -358,6 +539,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		635D9FF42F1150B3005F0CB6 /* Build configuration list for PBXNativeTarget "SwasthiCareWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				635D9FF52F1150B3005F0CB6 /* Debug */,
+				635D9FF62F1150B3005F0CB6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		63D3AEED2F0D386F00FAB1B5 /* Build configuration list for PBXProject "swastricare-mobile-swift" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

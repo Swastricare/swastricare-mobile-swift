@@ -1,0 +1,13 @@
+{"sessionId":"debug-session","message":"SwasthiCareWidgetsBundle @main init - ENTRY POINT","timestamp":1767973010081.3679,"location":"SwasthiCareWidgets.swift:62","data":{},"hypothesisId":"H2","runId":"run1"}
+{"sessionId":"debug-session","timestamp":1767973010096.6721,"hypothesisId":"H2","data":{},"message":"WidgetBundle body computed","location":"SwasthiCareWidgets.swift:67","runId":"run1"}
+{"sessionId":"debug-session","timestamp":1767973010096.8398,"hypothesisId":"H2,H3","data":{},"message":"HydrationWidget init","location":"SwasthiCareWidgets.swift:28","runId":"run1"}
+{"sessionId":"debug-session","timestamp":1767973010096.8909,"hypothesisId":"H2,H3","data":{},"message":"MedicationWidget init","location":"SwasthiCareWidgets.swift:44","runId":"run1"}
+{"sessionId":"debug-session","timestamp":1767973010096.9399,"hypothesisId":"H2","data":{"kind":"HydrationWidget"},"message":"HydrationWidget body computed","location":"SwasthiCareWidgets.swift:33","runId":"run1"}
+{"sessionId":"debug-session","data":{"kind":"MedicationWidget"},"location":"SwasthiCareWidgets.swift:49","runId":"run1","message":"MedicationWidget body computed","timestamp":1767973010097.3149,"hypothesisId":"H2"}
+{"location":"SwasthiCareWidgets.swift:62","sessionId":"debug-session","timestamp":1767973187188.7852,"runId":"run1","message":"SwasthiCareWidgetsBundle @main init - ENTRY POINT","hypothesisId":"H2","data":{}}
+{"sessionId":"debug-session","location":"SwasthiCareWidgets.swift:67","data":{},"runId":"run1","hypothesisId":"H2","message":"WidgetBundle body computed","timestamp":1767973187204.5139}
+{"sessionId":"debug-session","location":"SwasthiCareWidgets.swift:28","data":{},"runId":"run1","hypothesisId":"H2,H3","message":"HydrationWidget init","timestamp":1767973187204.636}
+{"message":"MedicationWidget init","location":"SwasthiCareWidgets.swift:44","runId":"run1","data":{},"timestamp":1767973187204.741,"hypothesisId":"H2,H3","sessionId":"debug-session"}
+{"timestamp":1767973187204.8491,"runId":"run1","data":{"kind":"HydrationWidget"},"sessionId":"debug-session","hypothesisId":"H2","location":"SwasthiCareWidgets.swift:33","message":"HydrationWidget body computed"}
+{"sessionId":"debug-session","hypothesisId":"H2","message":"MedicationWidget body computed","runId":"run1","location":"SwasthiCareWidgets.swift:49","data":{"kind":"MedicationWidget"},"timestamp":1767973187205.2688}
+{"runId":"run1","message":"placeholder called","data":{"isPreview":false},"timestamp":1767973187380.5608,"location":"HydrationWidgetProvider.swift:31","sessionId":"debug-session","hypothesisId":"H3,H4"}

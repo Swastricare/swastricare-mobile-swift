@@ -8,6 +8,7 @@
 
 import Foundation
 import Combine
+import WidgetKit
 
 @MainActor
 final class MedicationViewModel: ObservableObject {
@@ -54,6 +55,7 @@ final class MedicationViewModel: ObservableObject {
     
     private let medicationService: MedicationServiceProtocol
     private let supabaseManager = SupabaseManager.shared
+    private let widgetService = WidgetService.shared
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Init
@@ -87,6 +89,12 @@ final class MedicationViewModel: ObservableObject {
         medications = medicationService.loadMedications()
         todaysMedications = medicationService.getTodaysMedications()
         adherenceStatistics = medicationService.getAdherenceStatistics(for: Date())
+        
+        // Update widget data
+        updateWidgetData()
+        
+        // Process any pending widget actions
+        await processPendingWidgetActions()
         
         isLoading = false
         
@@ -187,7 +195,12 @@ final class MedicationViewModel: ObservableObject {
     func markAsTaken(medicationId: UUID, scheduledTime: Date) async throws {
         do {
             try await medicationService.markAsTaken(medicationId: medicationId, scheduledTime: scheduledTime)
-            await loadMedications()
+            
+            // Reload and update widget
+            medications = medicationService.loadMedications()
+            todaysMedications = medicationService.getTodaysMedications()
+            adherenceStatistics = medicationService.getAdherenceStatistics(for: Date())
+            updateWidgetData()
             
             // Background sync adherence
             Task {
@@ -205,7 +218,12 @@ final class MedicationViewModel: ObservableObject {
     func markAsSkipped(medicationId: UUID, scheduledTime: Date, notes: String?) async throws {
         do {
             try await medicationService.markAsSkipped(medicationId: medicationId, scheduledTime: scheduledTime, notes: notes)
-            await loadMedications()
+            
+            // Reload and update widget
+            medications = medicationService.loadMedications()
+            todaysMedications = medicationService.getTodaysMedications()
+            adherenceStatistics = medicationService.getAdherenceStatistics(for: Date())
+            updateWidgetData()
             
             // Background sync adherence
             Task {
@@ -381,5 +399,29 @@ final class MedicationViewModel: ObservableObject {
             let components = calendar.dateComponents([.hour, .minute], from: scheduledTime)
             return components.hour == targetComponents.hour && components.minute == targetComponents.minute
         }
+    }
+    
+    // MARK: - Widget Integration
+    
+    /// Update widget with current medication data
+    private func updateWidgetData() {
+        widgetService.saveMedicationData(medications: todaysMedications)
+        widgetService.refreshMedicationWidget()
+    }
+    
+    /// Process any pending medication marks from widget quick actions
+    private func processPendingWidgetActions() async {
+        await widgetService.processPendingActions(
+            hydrationHandler: nil,
+            medicationHandler: { [weak self] medicationId in
+                guard let self = self else { return }
+                
+                // Find the pending dose for this medication
+                if let medWithAdherence = self.todaysMedications.first(where: { $0.medication.id == medicationId }),
+                   let pendingDose = medWithAdherence.overdueDose ?? medWithAdherence.nextDose {
+                    try? await self.markAsTaken(medicationId: medicationId, scheduledTime: pendingDose.scheduledTime)
+                }
+            }
+        )
     }
 }

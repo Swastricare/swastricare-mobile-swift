@@ -8,6 +8,7 @@
 
 import Foundation
 import Combine
+import WidgetKit
 
 @MainActor
 final class HydrationViewModel: ObservableObject {
@@ -93,6 +94,7 @@ final class HydrationViewModel: ObservableObject {
     private let weatherService: WeatherServiceProtocol
     private let localStorage: HydrationLocalStorage
     private let notificationService: NotificationServiceProtocol
+    private let widgetService = WidgetService.shared
     
     // MARK: - Init
     
@@ -156,6 +158,12 @@ final class HydrationViewModel: ObservableObject {
         // Schedule notifications
         await scheduleNextNotification()
         
+        // Update widget data
+        updateWidgetData()
+        
+        // Process any pending widget actions
+        await processPendingWidgetActions()
+        
         // Try to sync with cloud in background
         Task {
             await syncWithCloud()
@@ -181,6 +189,9 @@ final class HydrationViewModel: ObservableObject {
         
         // Recalculate insights
         calculateInsights()
+        
+        // Update widget data
+        updateWidgetData()
         
         // Sync to HealthKit if enabled
         if preferences.syncToHealthKit {
@@ -223,6 +234,9 @@ final class HydrationViewModel: ObservableObject {
         localStorage.deleteEntry(id: entry.id)
         hydrationEntries = localStorage.loadEntries()
         calculateInsights()
+        
+        // Update widget data
+        updateWidgetData()
         
         // Delete from cloud
         Task {
@@ -316,6 +330,29 @@ final class HydrationViewModel: ObservableObject {
         } catch {
             print("💧 HydrationVM: Failed to fetch cloud preferences - \(error.localizedDescription)")
         }
+    }
+    
+    // MARK: - Widget Integration
+    
+    /// Update widget with current hydration data
+    private func updateWidgetData() {
+        let lastLogTime = todaysEntries.first?.timestamp
+        widgetService.saveHydrationData(
+            currentIntake: effectiveIntake,
+            dailyGoal: dailyGoal,
+            lastLoggedTime: lastLogTime
+        )
+        widgetService.refreshHydrationWidget()
+    }
+    
+    /// Process any pending water logs from widget quick actions
+    private func processPendingWidgetActions() async {
+        await widgetService.processPendingActions(
+            hydrationHandler: { [weak self] amount in
+                await self?.addWaterIntake(amount: amount, drinkType: .water, notes: "Added from widget")
+            },
+            medicationHandler: nil
+        )
     }
     
     // MARK: - Helpers

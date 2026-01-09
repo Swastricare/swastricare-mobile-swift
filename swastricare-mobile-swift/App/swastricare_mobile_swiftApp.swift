@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import WidgetKit
 
 @main
 struct swastricare_mobile_swiftApp: App {
@@ -38,6 +39,9 @@ struct swastricare_mobile_swiftApp: App {
     @State private var hasCheckedHealthProfile: Bool = false
     
     @Environment(\.scenePhase) private var scenePhase
+    
+    // Deep link handling for widgets
+    @State private var deepLinkDestination: DeepLinkDestination?
     
     // Notification delegate
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -125,6 +129,26 @@ struct swastricare_mobile_swiftApp: App {
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
             }
+            .onOpenURL { url in
+                handleDeepLink(url: url)
+            }
+        }
+    }
+    
+    // MARK: - Deep Link Handling
+    
+    private func handleDeepLink(url: URL) {
+        guard url.scheme == "swasthicare" else { return }
+        
+        switch url.host {
+        case "hydration":
+            deepLinkDestination = .hydration
+            print("🔗 Deep link: Opening Hydration")
+        case "medications":
+            deepLinkDestination = .medications
+            print("🔗 Deep link: Opening Medications")
+        default:
+            break
         }
     }
     
@@ -214,6 +238,13 @@ struct swastricare_mobile_swiftApp: App {
                         await homeVM.loadTodaysData()
                     }
                 }
+                
+                // Refresh widget data and process pending actions
+                Task {
+                    // Process pending widget quick actions
+                    await DependencyContainer.shared.hydrationViewModel.loadData()
+                    await DependencyContainer.shared.medicationViewModel.refresh()
+                }
             }
             
             // Clear notification badge
@@ -249,6 +280,13 @@ struct swastricare_mobile_swiftApp: App {
         UIToolbar.appearance().standardAppearance = toolbarAppearance
         UIToolbar.appearance().scrollEdgeAppearance = toolbarAppearance
     }
+}
+
+// MARK: - Deep Link Destination
+
+enum DeepLinkDestination {
+    case hydration
+    case medications
 }
 
 // MARK: - App Delegate

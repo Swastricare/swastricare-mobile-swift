@@ -70,6 +70,10 @@ final class DependencyContainer: ObservableObject {
         )
     }()
     
+    lazy var medicationViewModel: MedicationViewModel = {
+        MedicationViewModel()
+    }()
+    
     // MARK: - Init
     
     private init() {
@@ -107,6 +111,10 @@ final class DependencyContainer: ObservableObject {
             healthKitService: healthService,
             weatherService: weatherService
         )
+    }
+    
+    func makeMedicationViewModel() -> MedicationViewModel {
+        MedicationViewModel()
     }
 }
 
