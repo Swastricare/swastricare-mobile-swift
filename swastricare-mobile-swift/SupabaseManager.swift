@@ -19,19 +19,14 @@ class SupabaseManager {
             fatalError("Invalid Supabase URL. Please update Config.swift with your project credentials.")
         }
         
-        // #region agent log
-        if let jsonData = try? JSONSerialization.data(withJSONObject: ["sessionId": "debug-session", "runId": "initial", "hypothesisId": "D", "location": "SupabaseManager.swift:init", "message": "Initializing Supabase client", "data": ["url": SupabaseConfig.projectURL, "hasAuthOptions": true], "timestamp": Int64(Date().timeIntervalSince1970 * 1000)]), let jsonString = String(data: jsonData, encoding: .utf8) {
-            if let fileHandle = FileHandle(forWritingAtPath: "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log") ?? (try? FileHandle(forWritingAtPath: (try? FileManager.default.createFile(atPath: "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log", contents: nil)) != nil ? "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log" : "")) {
-                fileHandle.seekToEndOfFile(); fileHandle.write((jsonString + "\n").data(using: .utf8)!); try? fileHandle.close()
-            }
-        }
-        // #endregion
+        print("📲 SupabaseManager: Initializing with redirect URL: swastricareapp://auth-callback")
         
         self.client = SupabaseClient(
             supabaseURL: supabaseURL,
             supabaseKey: SupabaseConfig.anonKey,
             options: SupabaseClientOptions(
                 auth: .init(
+                    redirectToURL: URL(string: "swastricareapp://auth-callback"),
                     emitLocalSessionAsInitialSession: true
                 )
             )
