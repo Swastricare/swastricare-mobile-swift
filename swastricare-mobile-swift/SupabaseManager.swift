@@ -19,8 +19,6 @@ class SupabaseManager {
             fatalError("Invalid Supabase URL. Please update Config.swift with your project credentials.")
         }
         
-        print("📲 SupabaseManager: Initializing with redirect URL: swastricareapp://auth-callback")
-        
         self.client = SupabaseClient(
             supabaseURL: supabaseURL,
             supabaseKey: SupabaseConfig.anonKey,

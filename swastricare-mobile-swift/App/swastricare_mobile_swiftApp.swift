@@ -132,19 +132,9 @@ struct swastricare_mobile_swiftApp: App {
                 handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
             }
             .onOpenURL { url in
-                print("🔗 DEBUG: onOpenURL triggered with: \(url.absoluteString)")
-                print("🔗 DEBUG: scheme=\(url.scheme ?? "nil"), host=\(url.host ?? "nil")")
-                
-                // CRITICAL: Pass OAuth callbacks to Supabase SDK first
+                // Pass OAuth callbacks to Supabase SDK
                 Task {
-                    do {
-                        print("🔗 DEBUG: Calling Supabase session(from:)")
-                        try await SupabaseManager.shared.client.auth.session(from: url)
-                        print("🔗 DEBUG: Supabase handled OAuth URL successfully!")
-                    } catch {
-                        print("🔗 DEBUG: Supabase OAuth error: \(error)")
-                        print("🔗 DEBUG: Error type: \(type(of: error))")
-                    }
+                    try? await SupabaseManager.shared.client.auth.session(from: url)
                 }
                 
                 handleDeepLink(url: url)
@@ -155,31 +145,6 @@ struct swastricare_mobile_swiftApp: App {
     // MARK: - Deep Link Handling
     
     private func handleDeepLink(url: URL) {
-        // #region agent log
-        let logData: [String: Any] = ["url": url.absoluteString, "scheme": url.scheme ?? "nil", "host": url.host ?? "nil", "path": url.path, "query": url.query ?? "nil"]
-        if let jsonData = try? JSONSerialization.data(withJSONObject: ["sessionId": "debug-session", "runId": "initial", "hypothesisId": "A", "location": "swastricare_mobile_swiftApp.swift:handleDeepLink", "message": "Deep link received", "data": logData, "timestamp": Int64(Date().timeIntervalSince1970 * 1000)]), let jsonString = String(data: jsonData, encoding: .utf8) {
-            if let fileHandle = FileHandle(forWritingAtPath: "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log") ?? (try? FileHandle(forWritingAtPath: (try? FileManager.default.createFile(atPath: "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log", contents: nil)) != nil ? "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log" : "")) {
-                fileHandle.seekToEndOfFile(); fileHandle.write((jsonString + "\n").data(using: .utf8)!); try? fileHandle.close()
-            }
-        }
-        // #endregion
-        
-        print("🔗 Deep link received: \(url.absoluteString)")
-        
-        // Handle auth callback from Supabase OAuth
-        if url.scheme == "swastricareapp" && url.host == "auth-callback" {
-            // #region agent log
-            if let jsonData = try? JSONSerialization.data(withJSONObject: ["sessionId": "debug-session", "runId": "initial", "hypothesisId": "B", "location": "swastricare_mobile_swiftApp.swift:handleDeepLink:oauth", "message": "OAuth callback detected, passing to Supabase SDK", "data": ["url": url.absoluteString], "timestamp": Int64(Date().timeIntervalSince1970 * 1000)]), let jsonString = String(data: jsonData, encoding: .utf8) {
-                if let fileHandle = FileHandle(forWritingAtPath: "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log") ?? (try? FileHandle(forWritingAtPath: (try? FileManager.default.createFile(atPath: "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log", contents: nil)) != nil ? "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/.cursor/debug.log" : "")) {
-                    fileHandle.seekToEndOfFile(); fileHandle.write((jsonString + "\n").data(using: .utf8)!); try? fileHandle.close()
-                }
-            }
-            // #endregion
-            print("🔗 OAuth callback received")
-            // Supabase SDK will handle this automatically
-            return
-        }
-        
         // Handle widget deep links
         guard url.scheme == "swastricareapp" else { return }
         

@@ -104,7 +104,6 @@ final class AuthService: AuthServiceProtocol {
     // MARK: - Sign In with Google
     
     func signInWithGoogle() async throws -> AppUser {
-        // Don't specify redirectTo - let Supabase SDK handle it natively
         let session = try await client.auth.signInWithOAuth(provider: .google)
         return mapUser(session.user)
     }
@@ -112,19 +111,8 @@ final class AuthService: AuthServiceProtocol {
     // MARK: - Sign In with Apple
     
     func signInWithApple() async throws -> AppUser {
-        print("🍎 AuthService: Starting Apple Sign-In (native mode)")
-        
-        do {
-            // Don't specify redirectTo - let Supabase SDK handle it natively
-            let session = try await client.auth.signInWithOAuth(provider: .apple)
-            
-            print("🍎 AuthService: SUCCESS! Got session for user: \(session.user.email ?? "no-email")")
-            return mapUser(session.user)
-        } catch {
-            print("🍎 AuthService: ERROR: \(error)")
-            print("🍎 AuthService: Error type: \(type(of: error))")
-            throw error
-        }
+        let session = try await client.auth.signInWithOAuth(provider: .apple)
+        return mapUser(session.user)
     }
     
     // MARK: - Sign Out
