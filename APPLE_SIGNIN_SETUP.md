@@ -66,6 +66,12 @@ When user signs in with Apple, you'll receive:
 
 ## Troubleshooting
 
+### "Unable to exchange external code" Error ✅ FIXED
+- **Cause:** Deep link handler wasn't configured for OAuth callback
+- **Fix:** Updated `handleDeepLink` to accept `swastricareapp://auth-callback`
+- **URL Scheme:** `swastricareapp` (configured in Xcode)
+- **Redirect URL:** `swastricareapp://auth-callback` (used by Supabase SDK)
+
 ### "Invalid Client" Error
 - Check Services ID matches: `com.swastricare.health.auth`
 - Verify redirect URL in Apple Developer matches Supabase

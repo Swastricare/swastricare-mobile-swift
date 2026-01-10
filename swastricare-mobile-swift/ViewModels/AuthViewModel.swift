@@ -8,6 +8,20 @@
 import Foundation
 import Combine
 
+extension String {
+    func append(toFile path: String) throws {
+        let data = self.data(using: .utf8)!
+        if FileManager.default.fileExists(atPath: path) {
+            let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: path))
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(data)
+            try fileHandle.close()
+        } else {
+            try data.write(to: URL(fileURLWithPath: path), options: .atomic)
+        }
+    }
+}
+
 @MainActor
 final class AuthViewModel: ObservableObject {
     
@@ -151,21 +165,28 @@ final class AuthViewModel: ObservableObject {
     }
     
     func signInWithApple() async {
+        print("🍎 DEBUG: signInWithApple() called at \(Date())")
+        
         isLoading = true
         errorMessage = nil
         
         do {
+            print("🍎 DEBUG: Calling authService.signInWithApple()")
             let user = try await authService.signInWithApple()
+            print("🍎 DEBUG: SUCCESS! Got user: \(user.email ?? "no-email")")
             authState = .authenticated(user)
             // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
             // Fetch health profile
             await fetchHealthProfile()
         } catch {
+            print("🍎 DEBUG: ERROR in signInWithApple: \(error)")
+            print("🍎 DEBUG: Error localized: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
         
         isLoading = false
+        print("🍎 DEBUG: signInWithApple() completed")
     }
     
     func signOut() async {
