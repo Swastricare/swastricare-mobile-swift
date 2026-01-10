@@ -126,6 +126,20 @@ struct LoginView: View {
                         }
                         .padding(.horizontal)
                         
+                        Button(action: {
+                            Task { await viewModel.signInWithApple() }
+                        }) {
+                            HStack {
+                                Image(systemName: "apple.logo")
+                                Text("Continue with Apple")
+                            }
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .glass(cornerRadius: 12)
+                        }
+                        .padding(.horizontal)
+                        
                         // Sign Up Link
                         Button(action: { showSignUp = true }) {
                             HStack {

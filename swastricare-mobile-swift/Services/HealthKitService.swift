@@ -23,6 +23,10 @@ protocol HealthKitServiceProtocol {
     func fetchDailyWaterIntake(for date: Date) async -> Double
     func writeWaterIntake(amountMl: Double, date: Date) async throws
     func fetchExerciseMinutesValue(for date: Date) async -> Int
+    
+    // Heart rate methods
+    func saveHeartRate(bpm: Int, date: Date) async throws
+    func requestHeartRateWriteAuthorization() async throws
 }
 
 // MARK: - HealthKit Service Implementation
@@ -48,7 +52,8 @@ final class HealthKitService: HealthKitServiceProtocol {
     ]
     
     private let typesToShare: Set<HKSampleType> = [
-        HKObjectType.quantityType(forIdentifier: .dietaryWater)!
+        HKObjectType.quantityType(forIdentifier: .dietaryWater)!,
+        HKObjectType.quantityType(forIdentifier: .heartRate)!
     ]
     
     private init() {}
@@ -373,6 +378,42 @@ final class HealthKitService: HealthKitServiceProtocol {
     /// Fetches exercise minutes for a specific date (public method for hydration adjustments)
     func fetchExerciseMinutesValue(for date: Date) async -> Int {
         return await fetchExerciseMinutes(for: date)
+    }
+    
+    // MARK: - Heart Rate Methods
+    
+    /// Saves a heart rate measurement to HealthKit
+    func saveHeartRate(bpm: Int, date: Date) async throws {
+        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
+            throw HealthKitError.writeFailed
+        }
+        
+        // Create quantity (beats per minute)
+        let quantity = HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: Double(bpm))
+        
+        // Create sample
+        let sample = HKQuantitySample(
+            type: heartRateType,
+            quantity: quantity,
+            start: date,
+            end: date
+        )
+        
+        // Save to HealthKit
+        try await healthStore.save(sample)
+    }
+    
+    /// Requests authorization specifically for writing heart rate data
+    func requestHeartRateWriteAuthorization() async throws {
+        guard isHealthDataAvailable else {
+            throw HealthKitError.notAvailable
+        }
+        
+        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
+            throw HealthKitError.writeFailed
+        }
+        
+        try await healthStore.requestAuthorization(toShare: [heartRateType], read: [heartRateType])
     }
     
     // MARK: - Helpers

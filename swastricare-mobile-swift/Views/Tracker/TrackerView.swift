@@ -12,6 +12,7 @@ struct TrackerView: View {
     // MARK: - ViewModel
     
     @StateObject private var viewModel = DependencyContainer.shared.trackerViewModel
+    @State private var showHeartRateMeasurement = false
     
     // MARK: - Body
     
@@ -81,6 +82,11 @@ struct TrackerView: View {
                 onDismiss: { viewModel.dismissAnalysis() }
             )
         }
+        .sheet(isPresented: $showHeartRateMeasurement) {
+            NavigationStack {
+                HeartRateView()
+            }
+        }
     }
     
     // MARK: - Subviews
@@ -113,12 +119,15 @@ struct TrackerView: View {
                 color: .green
             )
             
-            StatCard(
-                icon: "heart.fill",
-                title: "Heart Rate",
-                value: "\(viewModel.heartRate)",
-                color: .red
-            )
+            // Heart Rate card - tappable to measure
+            Button(action: {
+                showHeartRateMeasurement = true
+            }) {
+                HeartRateStatCard(
+                    value: "\(viewModel.heartRate)",
+                    color: .red
+                )
+            }
             
             StatCard(
                 icon: "flame.fill",
@@ -173,7 +182,39 @@ struct TrackerView: View {
             
             VStack(spacing: 12) {
                 MetricRow(icon: "figure.walk", title: "Steps", value: "\(viewModel.stepCount)", color: .green)
-                MetricRow(icon: "heart.fill", title: "Heart Rate", value: "\(viewModel.heartRate) BPM", color: .red)
+                
+                // Heart Rate row with measure button
+                HStack {
+                    Image(systemName: "heart.fill")
+                        .foregroundColor(.red)
+                        .frame(width: 30)
+                    
+                    Text("Heart Rate")
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Text("\(viewModel.heartRate) BPM")
+                        .fontWeight(.semibold)
+                    
+                    Button(action: {
+                        showHeartRateMeasurement = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "camera.fill")
+                                .font(.caption)
+                            Text("Measure")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.red)
+                        .cornerRadius(8)
+                    }
+                }
+                .padding(.vertical, 4)
+                
                 MetricRow(icon: "flame.fill", title: "Active Calories", value: "\(viewModel.activeCalories) kcal", color: .orange)
                 MetricRow(icon: "clock.fill", title: "Exercise", value: "\(viewModel.exerciseMinutes) mins", color: .blue)
                 MetricRow(icon: "figure.stand", title: "Stand Hours", value: "\(viewModel.standHours) hrs", color: .purple)
@@ -240,6 +281,48 @@ private struct StatCard: View {
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .glass(cornerRadius: 16)
+    }
+}
+
+private struct HeartRateStatCard: View {
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Image(systemName: "heart.fill")
+                    .font(.title2)
+                    .foregroundColor(color)
+                
+                // Small camera icon overlay
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 8))
+                    .foregroundColor(.white)
+                    .padding(3)
+                    .background(color)
+                    .clipShape(Circle())
+                    .offset(x: 10, y: 8)
+            }
+            
+            Text(value)
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
+            
+            HStack(spacing: 2) {
+                Text("Heart Rate")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8))
+                    .foregroundColor(.secondary)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding()

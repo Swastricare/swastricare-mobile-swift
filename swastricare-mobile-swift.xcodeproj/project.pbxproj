@@ -457,6 +457,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Swastricare;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLName = \"com.swastricare.auth\";\n    CFBundleURLSchemes =     (\n        swastricareapp\n    );\n}";
+				INFOPLIST_KEY_NSCameraUsageDescription = "SwasthiCare needs camera access to measure your heart rate by detecting blood flow through your fingertip.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "for security ";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Swastricare needs access to your health data to track your daily activity, heart rate, and sleep patterns for personalized health insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Swastricare would like to update your health data to keep your records synchronized.";
@@ -504,6 +505,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Swastricare;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLName = \"com.swastricare.auth\";\n    CFBundleURLSchemes =     (\n        swastricareapp\n    );\n}";
+				INFOPLIST_KEY_NSCameraUsageDescription = "SwasthiCare needs camera access to measure your heart rate by detecting blood flow through your fingertip.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "for security ";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Swastricare needs access to your health data to track your daily activity, heart rate, and sleep patterns for personalized health insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Swastricare would like to update your health data to keep your records synchronized.";

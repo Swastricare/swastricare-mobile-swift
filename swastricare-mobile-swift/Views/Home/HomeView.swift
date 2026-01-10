@@ -29,6 +29,7 @@ struct HomeView: View {
     @State private var quoteOpacity: Double = 1
     @State private var quickActionsVisible = false
     @State private var trackerVisible = false
+    @State private var showHeartRateMeasurement = false
     
     private let vitalQuotes = [
         "Track your vital signs and understand your body better",
@@ -122,6 +123,11 @@ struct HomeView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(syncMessage ?? "")
+        }
+        .sheet(isPresented: $showHeartRateMeasurement) {
+            NavigationStack {
+                HeartRateView()
+            }
         }
         .onAppear {
             // Haptic feedback when opening vitals screen
@@ -408,15 +414,21 @@ struct HomeView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 8) {
-                VitalCard(
-                    icon: "heart.fill",
-                    title: "Heart Rate",
-                    value: "\(viewModel.heartRate)",
-                    unit: "BPM",
-                    color: .red,
-                    animationDelay: 0.8,
-                    hasAppeared: hasAppeared
-                )
+                // Heart Rate card - tappable to measure
+                Button(action: {
+                    showHeartRateMeasurement = true
+                }) {
+                    VitalCard(
+                        icon: "heart.fill",
+                        title: "Heart Rate",
+                        value: "\(viewModel.heartRate)",
+                        unit: "BPM",
+                        color: .red,
+                        animationDelay: 0.8,
+                        hasAppeared: hasAppeared
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
                 
                 VitalCard(
                     icon: "bed.double.fill",
@@ -520,10 +532,42 @@ struct HomeView: View {
                         .offset(x: trackerVisible ? 0 : -20)
                         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: trackerVisible)
                     
-                    MetricRow(icon: "heart.fill", title: "Heart Rate", value: "\(trackerViewModel.heartRate) BPM", color: .red)
-                        .opacity(trackerVisible ? 1 : 0)
-                        .offset(x: trackerVisible ? 0 : -20)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.4), value: trackerVisible)
+                    // Heart Rate row with measure button
+                    HStack {
+                        HStack {
+                            Image(systemName: "heart.fill")
+                                .foregroundColor(.red)
+                                .frame(width: 30)
+                            
+                            Text("Heart Rate")
+                                .foregroundColor(.secondary)
+                            
+                            Spacer()
+                            
+                            Text("\(trackerViewModel.heartRate) BPM")
+                                .fontWeight(.semibold)
+                        }
+                        
+                        Button(action: {
+                            showHeartRateMeasurement = true
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "camera.fill")
+                                    .font(.caption)
+                                Text("Measure")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.red)
+                            .cornerRadius(8)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    .opacity(trackerVisible ? 1 : 0)
+                    .offset(x: trackerVisible ? 0 : -20)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.4), value: trackerVisible)
                     
                     MetricRow(icon: "flame.fill", title: "Active Calories", value: "\(trackerViewModel.activeCalories) kcal", color: .orange)
                         .opacity(trackerVisible ? 1 : 0)

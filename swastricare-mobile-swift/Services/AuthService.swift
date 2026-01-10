@@ -16,6 +16,7 @@ protocol AuthServiceProtocol {
     func signUp(email: String, password: String, fullName: String) async throws -> AppUser?
     func signIn(email: String, password: String) async throws -> AppUser
     func signInWithGoogle() async throws -> AppUser
+    func signInWithApple() async throws -> AppUser
     func signOut() async throws
     func resetPassword(email: String) async throws
     func deleteAccount() async throws
@@ -105,6 +106,16 @@ final class AuthService: AuthServiceProtocol {
     func signInWithGoogle() async throws -> AppUser {
         let session = try await client.auth.signInWithOAuth(
             provider: .google,
+            redirectTo: URL(string: "swastricareapp://auth-callback")
+        )
+        return mapUser(session.user)
+    }
+    
+    // MARK: - Sign In with Apple
+    
+    func signInWithApple() async throws -> AppUser {
+        let session = try await client.auth.signInWithOAuth(
+            provider: .apple,
             redirectTo: URL(string: "swastricareapp://auth-callback")
         )
         return mapUser(session.user)

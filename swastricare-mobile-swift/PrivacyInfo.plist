@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSCameraUsageDescription</key>
+    <string>SwasthiCare needs camera access to measure your heart rate by detecting blood flow through your fingertip.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>We need speech recognition to convert your voice messages to text in the AI Assistant.</string>
     <key>NSMicrophoneUsageDescription</key>

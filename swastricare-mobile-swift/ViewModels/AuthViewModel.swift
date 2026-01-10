@@ -150,6 +150,24 @@ final class AuthViewModel: ObservableObject {
         isLoading = false
     }
     
+    func signInWithApple() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let user = try await authService.signInWithApple()
+            authState = .authenticated(user)
+            // Mark that user has logged in before (for onboarding logic)
+            UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
+            // Fetch health profile
+            await fetchHealthProfile()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        
+        isLoading = false
+    }
+    
     func signOut() async {
         isLoading = true
         errorMessage = nil

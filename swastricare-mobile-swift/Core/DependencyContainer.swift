@@ -27,6 +27,7 @@ final class DependencyContainer: ObservableObject {
     let biometricService: BiometricServiceProtocol
     let hydrationService: HydrationServiceProtocol
     let weatherService: WeatherServiceProtocol
+    let vitalSignsService: VitalSignsServiceProtocol
     
     // MARK: - ViewModels (Lazy initialized)
     
@@ -74,6 +75,10 @@ final class DependencyContainer: ObservableObject {
         MedicationViewModel()
     }()
     
+    lazy var heartRateViewModel: HeartRateViewModel = {
+        HeartRateViewModel(vitalSignsService: vitalSignsService)
+    }()
+    
     // MARK: - Init
     
     private init() {
@@ -85,6 +90,7 @@ final class DependencyContainer: ObservableObject {
         self.biometricService = BiometricService.shared
         self.hydrationService = HydrationService.shared
         self.weatherService = WeatherService.shared
+        self.vitalSignsService = VitalSignsService.shared
     }
     
     // MARK: - Factory Methods (for creating new instances if needed)
@@ -115,6 +121,10 @@ final class DependencyContainer: ObservableObject {
     
     func makeMedicationViewModel() -> MedicationViewModel {
         MedicationViewModel()
+    }
+    
+    func makeHeartRateViewModel() -> HeartRateViewModel {
+        HeartRateViewModel(vitalSignsService: vitalSignsService)
     }
 }
 
