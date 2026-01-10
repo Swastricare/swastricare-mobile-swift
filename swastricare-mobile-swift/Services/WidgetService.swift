@@ -98,7 +98,7 @@ enum WidgetMedicationStatus: String, Codable {
     init(from adherenceStatus: AdherenceStatus) {
         switch adherenceStatus {
         case .pending: self = .pending
-        case .taken: self = .taken
+        case .taken, .late, .early: self = .taken
         case .missed: self = .missed
         case .skipped: self = .skipped
         }

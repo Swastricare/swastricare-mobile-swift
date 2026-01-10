@@ -97,12 +97,13 @@ struct Medication: Identifiable, Codable, Equatable {
 // MARK: - Medication Type
 
 enum MedicationType: String, Codable, CaseIterable {
-    case pill = "Pill"
-    case liquid = "Liquid"
-    case injection = "Injection"
-    case inhaler = "Inhaler"
-    case drops = "Drops"
-    case cream = "Cream"
+    case pill = "tablet"
+    case liquid = "syrup"
+    case injection = "injection"
+    case inhaler = "inhaler"
+    case drops = "drops"
+    case cream = "cream"
+    case other = "other"
     
     var icon: String {
         switch self {
@@ -112,10 +113,11 @@ enum MedicationType: String, Codable, CaseIterable {
         case .inhaler: return "wind"
         case .drops: return "eyedropper.full"
         case .cream: return "bandage.fill"
+        case .other: return "cross.case.fill"
         }
     }
     
-    var displayName: String { rawValue }
+    var displayName: String { rawValue.capitalized }
 }
 
 // MARK: - Medication Schedule
@@ -271,12 +273,14 @@ struct MedicationAdherence: Identifiable, Codable, Equatable {
 // MARK: - Adherence Status
 
 enum AdherenceStatus: String, Codable, CaseIterable {
-    case pending = "Pending"
-    case taken = "Taken"
-    case missed = "Missed"
-    case skipped = "Skipped"
+    case pending = "pending"
+    case taken = "taken"
+    case missed = "missed"
+    case skipped = "skipped"
+    case late = "late"
+    case early = "early"
     
-    var displayName: String { rawValue }
+    var displayName: String { rawValue.capitalized }
     
     var icon: String {
         switch self {
@@ -284,6 +288,8 @@ enum AdherenceStatus: String, Codable, CaseIterable {
         case .taken: return "checkmark.circle.fill"
         case .missed: return "exclamationmark.circle.fill"
         case .skipped: return "xmark.circle.fill"
+        case .late: return "clock.badge.exclamationmark"
+        case .early: return "clock.badge.checkmark"
         }
     }
     
@@ -293,6 +299,8 @@ enum AdherenceStatus: String, Codable, CaseIterable {
         case .taken: return "green"
         case .missed: return "red"
         case .skipped: return "orange"
+        case .late: return "yellow"
+        case .early: return "blue"
         }
     }
 }
@@ -306,7 +314,7 @@ struct MedicationWithAdherence: Identifiable {
     var id: UUID { medication.id }
     
     var takenCount: Int {
-        todayDoses.filter { $0.status == .taken }.count
+        todayDoses.filter { $0.status == .taken || $0.status == .late || $0.status == .early }.count
     }
     
     var totalDoses: Int {
@@ -353,7 +361,7 @@ struct AdherenceStatistics {
     
     init(adherenceRecords: [MedicationAdherence]) {
         self.totalDoses = adherenceRecords.count
-        self.takenDoses = adherenceRecords.filter { $0.status == .taken }.count
+        self.takenDoses = adherenceRecords.filter { $0.status == .taken || $0.status == .late || $0.status == .early }.count
         self.missedDoses = adherenceRecords.filter { $0.status == .missed }.count
         self.skippedDoses = adherenceRecords.filter { $0.status == .skipped }.count
         self.pendingDoses = adherenceRecords.filter { $0.status == .pending }.count
@@ -364,77 +372,74 @@ struct AdherenceStatistics {
 
 struct MedicationRecord: Codable {
     let id: UUID?
-    let userId: UUID
+    let healthProfileId: UUID
     let name: String
     let dosage: String
-    let type: String
-    let scheduleTimes: [Date]
-    let frequencyTemplate: String
+    let form: String
     let startDate: Date
     let endDate: Date?
     let isOngoing: Bool
     let notes: String?
+    let status: String
     let createdAt: Date?
     let updatedAt: Date?
     
     enum CodingKeys: String, CodingKey {
         case id
-        case userId = "user_id"
+        case healthProfileId = "health_profile_id"
         case name
         case dosage
-        case type
-        case scheduleTimes = "schedule_times"
-        case frequencyTemplate = "frequency_template"
+        case form
         case startDate = "start_date"
         case endDate = "end_date"
         case isOngoing = "is_ongoing"
         case notes
+        case status
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
     
-    init(from medication: Medication) {
+    init(from medication: Medication, healthProfileId: UUID) {
         self.id = medication.id
-        self.userId = medication.userId ?? UUID()
+        self.healthProfileId = healthProfileId
         self.name = medication.name
         self.dosage = medication.dosage
-        self.type = medication.type.rawValue
-        self.scheduleTimes = medication.scheduledTimes
-        self.frequencyTemplate = medication.scheduleTemplate.displayName
+        self.form = medication.type.rawValue
         self.startDate = medication.startDate
         self.endDate = medication.endDate
         self.isOngoing = medication.isOngoing
         self.notes = medication.notes
+        self.status = "active" // Default to active
         self.createdAt = medication.createdAt
         self.updatedAt = medication.updatedAt
     }
     
-    func toMedication() -> Medication {
-        var scheduleTemplate: MedicationSchedule = .onceDaily
-        
-        switch frequencyTemplate {
-        case "Once Daily":
-            scheduleTemplate = .onceDaily
-        case "Twice Daily":
-            scheduleTemplate = .twiceDaily
-        case "Thrice Daily":
-            scheduleTemplate = .thriceDaily
-        default:
-            scheduleTemplate = .custom(scheduleTimes)
+    // Convert back to Medication - requires fetching schedule separately or passing defaults
+    func toMedication(schedules: [MedicationScheduleRecord]) -> Medication {
+        // Simple reconstruction - in real app, we'd join with schedules
+        let scheduledTimes = schedules.compactMap { schedule -> Date? in
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm:ss"
+            guard let timeDate = formatter.date(from: schedule.timeOfDay) else { return nil }
+            
+            let calendar = Calendar.current
+            let now = Date()
+            let components = calendar.dateComponents([.hour, .minute, .second], from: timeDate)
+            return calendar.date(bySettingHour: components.hour ?? 0, minute: components.minute ?? 0, second: components.second ?? 0, of: now)
         }
         
         return Medication(
             id: id ?? UUID(),
             name: name,
             dosage: dosage,
-            type: MedicationType(rawValue: type) ?? .pill,
-            scheduleTemplate: scheduleTemplate,
-            scheduledTimes: scheduleTimes,
+            type: MedicationType(rawValue: form) ?? .pill,
+            scheduleTemplate: .custom(scheduledTimes), // Simplified
+            scheduledTimes: scheduledTimes,
             startDate: startDate,
             endDate: endDate,
             isOngoing: isOngoing,
             notes: notes,
-            userId: userId,
+            userId: nil, // Use healthProfileId in context
             isSynced: true,
             createdAt: createdAt ?? Date(),
             updatedAt: updatedAt ?? Date()
@@ -442,12 +447,34 @@ struct MedicationRecord: Codable {
     }
 }
 
-struct MedicationAdherenceRecord: Codable {
+struct MedicationScheduleRecord: Codable {
     let id: UUID?
     let medicationId: UUID
-    let userId: UUID
+    let healthProfileId: UUID
+    let scheduleType: String
+    let timeOfDay: String // SQL TIME type comes as string
+    let frequencyPerDay: Int
+    let daysOfWeek: [Int]?
+    let isActive: Bool
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case medicationId = "medication_id"
+        case healthProfileId = "health_profile_id"
+        case scheduleType = "schedule_type"
+        case timeOfDay = "time_of_day"
+        case frequencyPerDay = "frequency_per_day"
+        case daysOfWeek = "days_of_week"
+        case isActive = "is_active"
+    }
+}
+
+struct MedicationLogRecord: Codable {
+    let id: UUID?
+    let medicationId: UUID
+    let healthProfileId: UUID
     let scheduledTime: Date
-    let takenAt: Date?
+    let takenTime: Date?
     let status: String
     let notes: String?
     let createdAt: Date?
@@ -455,20 +482,20 @@ struct MedicationAdherenceRecord: Codable {
     enum CodingKeys: String, CodingKey {
         case id
         case medicationId = "medication_id"
-        case userId = "user_id"
+        case healthProfileId = "health_profile_id"
         case scheduledTime = "scheduled_time"
-        case takenAt = "taken_at"
+        case takenTime = "taken_time"
         case status
         case notes
         case createdAt = "created_at"
     }
     
-    init(from adherence: MedicationAdherence, userId: UUID) {
+    init(from adherence: MedicationAdherence, healthProfileId: UUID) {
         self.id = adherence.id
         self.medicationId = adherence.medicationId
-        self.userId = userId
+        self.healthProfileId = healthProfileId
         self.scheduledTime = adherence.scheduledTime
-        self.takenAt = adherence.takenAt
+        self.takenTime = adherence.takenAt
         self.status = adherence.status.rawValue
         self.notes = adherence.notes
         self.createdAt = adherence.createdAt
@@ -478,9 +505,9 @@ struct MedicationAdherenceRecord: Codable {
         MedicationAdherence(
             id: id ?? UUID(),
             medicationId: medicationId,
-            userId: userId,
+            userId: nil, // Contextual
             scheduledTime: scheduledTime,
-            takenAt: takenAt,
+            takenAt: takenTime,
             status: AdherenceStatus(rawValue: status) ?? .pending,
             notes: notes,
             isSynced: true,

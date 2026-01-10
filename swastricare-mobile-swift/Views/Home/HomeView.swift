@@ -25,24 +25,9 @@ struct HomeView: View {
     @State private var hasAppeared = false
     @State private var modelOpacity: Double = 0
     @State private var modelScale: CGFloat = 0.8
-    @State private var currentQuoteIndex = 0
-    @State private var quoteOpacity: Double = 1
     @State private var quickActionsVisible = false
     @State private var trackerVisible = false
     @State private var showHeartRateMeasurement = false
-    
-    private let vitalQuotes = [
-        "Track your vital signs and understand your body better",
-        "Monitor essential body signals that matter every day",
-        "Your vital health data clearly measured and monitored",
-        "Stay aware of your vital signs with real-time health tracking",
-        "Essential vitals, simplified for everyday health awareness",
-        "Know what your body is telling you through your vital signs",
-        "Daily vital measurements for smarter health decisions",
-        "Keep track of your body's vitals and stay informed",
-        "Vital signs that reflect your health updated throughout the day",
-        "Understand your body better by monitoring your vitals"
-    ]
     
     // MARK: - Computed Properties
     
@@ -60,6 +45,62 @@ struct HomeView: View {
         }
     }
     
+    // MARK: - Health Status Logic
+    
+    private enum HealthStatus {
+        case optimal
+        case attention
+        case normal
+        
+        var title: String {
+            switch self {
+            case .optimal: return "System Optimal"
+            case .attention: return "Attention Needed"
+            case .normal: return "Status Normal"
+            }
+        }
+        
+        var message: String {
+            switch self {
+            case .optimal: return "All vitals and medications on track"
+            case .attention: return "Medications pending or vitals check required"
+            case .normal: return "Health metrics within normal range"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .optimal: return Color.green
+            case .attention: return Color.orange
+            case .normal: return Color.blue
+            }
+        }
+        
+        var glowColor: Color {
+            switch self {
+            case .optimal: return Color.green.opacity(0.5)
+            case .attention: return Color.orange.opacity(0.5)
+            case .normal: return Color.blue.opacity(0.5)
+            }
+        }
+    }
+    
+    private var healthStatus: HealthStatus {
+        if !viewModel.isAuthorized {
+            return .attention
+        }
+        // Example logic: If meds taken < total, attention needed (simplified)
+        // In reality, this would check times. For now, if taken == total > 0, optimal.
+        if medicationViewModel.totalCount > 0 && medicationViewModel.takenCount == medicationViewModel.totalCount {
+            return .optimal
+        }
+        if medicationViewModel.takenCount < medicationViewModel.totalCount {
+             // If it's late in the day, maybe attention? For now just normal/attention differentiation
+            return .normal 
+        }
+        return .normal
+    }
+    
     // MARK: - Body
     
     var body: some View {
@@ -68,31 +109,16 @@ struct HomeView: View {
             PremiumBackground()
             
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    // Custom Header with Subheading
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Body Vitals")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundColor(.primary)
-                            .opacity(hasAppeared ? 1 : 0)
-                            .offset(y: hasAppeared ? 0 : -10)
-                        
-                        // Animated rotating quotes - Fixed height for 2 lines
-                        Text(vitalQuotes[currentQuoteIndex])
-                            .font(.system(size: 15))
-                            .foregroundColor(.secondary)
-                            .opacity(quoteOpacity)
-                            .offset(y: hasAppeared ? 0 : -10)
-                            .animation(.easeInOut(duration: 0.3), value: quoteOpacity)
-                            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
-                            .lineLimit(2)
-                            .lineSpacing(4)
-                            .frame(height: 44, alignment: .topLeading) // Fixed height for 2 lines
-                            .fixedSize(horizontal: false, vertical: false)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                VStack(spacing: 16) {
+                    // Living Status Header
+                    LivingStatusHeader(
+                        userName: userName,
+                        userPhotoURL: authViewModel.userPhotoURL,
+                        status: healthStatus,
+                        greeting: timeBasedGreeting
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 4)
                     .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
                     
                     // Health Authorization Banner
@@ -145,8 +171,6 @@ struct HomeView: View {
                 modelOpacity = 0.8
                 modelScale = 1.40 // Zoomed in (was 1.0)
             }
-            // Start quote rotation
-            startQuoteRotation()
         }
         .task {
             await viewModel.loadTodaysData()
@@ -164,38 +188,6 @@ struct HomeView: View {
     }
     
     // MARK: - Helper Methods
-    
-    private func startQuoteRotation() {
-        // Wait for initial appearance animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-            rotateQuotes()
-        }
-    }
-    
-    private func rotateQuotes() {
-    // Wait 10 seconds before rotating
-    DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
-
-        // Fade out
-        withAnimation(.easeInOut(duration: 0.5)) {
-            quoteOpacity = 0
-        }
-
-        // Change quote after fade out
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            currentQuoteIndex = (currentQuoteIndex + 1) % vitalQuotes.count
-
-            // Fade in
-            withAnimation(.easeInOut(duration: 0.5)) {
-                quoteOpacity = 1
-            }
-
-            // Schedule next rotation
-            rotateQuotes()
-        }
-    }
-}
-
     
     // MARK: - Subviews
     
@@ -291,9 +283,9 @@ struct HomeView: View {
     private var authorizationBanner: some View {
         VStack(spacing: 12) {
             Image(systemName: "heart.text.square.fill")
-                .font(.largeTitle)
-                .foregroundColor(.red)
-                .shadow(color: .red.opacity(0.5), radius: 10)
+            .font(.largeTitle)
+            .foregroundColor(.red)
+            .shadow(color: .red.opacity(0.5), radius: 10)
             
             Text("Enable Health Access")
                 .font(.headline)
@@ -425,7 +417,8 @@ struct HomeView: View {
                         unit: "BPM",
                         color: .red,
                         animationDelay: 0.8,
-                        hasAppeared: hasAppeared
+                        hasAppeared: hasAppeared,
+                        showCameraBadge: true
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -671,6 +664,121 @@ struct HomeView: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
+    
+    // MARK: - Living Status Header
+    
+    private struct LivingStatusHeader: View {
+        let userName: String
+        let userPhotoURL: URL?
+        let status: HealthStatus
+        let greeting: String
+        
+        @State private var isPulsing = false
+        
+        var body: some View {
+            HStack {
+                // Left: System Status
+                HStack(spacing: 12) {
+                    // Pulsing Indicator
+                    ZStack {
+                        // Ripple 1 (Main Expansion)
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.red.opacity(0.5))
+                            .scaleEffect(isPulsing ? 1.5 : 1.0)
+                            .opacity(isPulsing ? 0 : 0.5)
+                            .animation(
+                                .easeOut(duration: 2).repeatForever(autoreverses: false),
+                                value: isPulsing
+                            )
+                        
+                        // Ripple 2 (Echo/Delay)
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.red.opacity(0.5))
+                            .scaleEffect(isPulsing ? 1.5 : 1.0)
+                            .opacity(isPulsing ? 0 : 0.3)
+                            .animation(
+                                .easeOut(duration: 2).repeatForever(autoreverses: false).delay(1.0),
+                                value: isPulsing
+                            )
+                        
+                        // Core "Breathing" Heart
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.red, Color(hex: "FF512F")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: .red.opacity(0.5), radius: 8)
+                            .scaleEffect(isPulsing ? 1.1 : 0.9)
+                            .animation(
+                                .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                                value: isPulsing
+                            )
+                    }
+                    .onAppear {
+                        isPulsing = true
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(greeting), \(userName)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text(status.title)
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.primary, .primary.opacity(0.8)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                }
+                
+                Spacer()
+                
+                // Right: Profile & Actions
+                HStack(spacing: 12) {
+                    // Notification Bell (Placeholder)
+                    Button(action: {}) {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.primary)
+                            .frame(width: 36, height: 36)
+                            .glass(cornerRadius: 18)
+                    }
+                    
+                    // Profile Image
+                    Button(action: {}) {
+                        Group {
+                            if let imageURL = userPhotoURL {
+                                AsyncImage(url: imageURL) { image in
+                                    image.resizable()
+                                } placeholder: {
+                                    Color.gray.opacity(0.3)
+                                }
+                            } else {
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .frame(width: 36, height: 36)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                    }
+                }
+            }
+            .padding()
+            .glass(cornerRadius: 20)
+        }
+    }
 }
 
 // MARK: - Scroll Animation Modifier
@@ -787,6 +895,7 @@ private struct VitalCard: View {
     let color: Color
     let animationDelay: Double
     let hasAppeared: Bool
+    var showCameraBadge: Bool = false
     
     @State private var cardAppeared = false
     
@@ -798,7 +907,15 @@ private struct VitalCard: View {
                     .foregroundColor(color)
                     .scaleEffect(cardAppeared ? 1 : 0)
                     .rotationEffect(.degrees(cardAppeared ? 0 : -180))
+                
                 Spacer()
+                
+                if showCameraBadge {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .opacity(cardAppeared ? 1 : 0)
+                }
             }
             
             Text(title)
@@ -1145,8 +1262,8 @@ private struct AnalysisResultView: View {
                     ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
                         HStack(alignment: .top, spacing: 10) {
                             Text("\(index + 1).")
-                                .fontWeight(.semibold)
-                                .foregroundColor(Color(hex: "2E3192"))
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color(hex: "2E3192"))
                             Text(rec)
                                 .font(.body)
                                 .lineSpacing(4)
@@ -1196,4 +1313,3 @@ private struct AnalysisResultView: View {
         HomeView()
     }
 }
-

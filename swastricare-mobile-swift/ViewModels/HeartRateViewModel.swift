@@ -29,6 +29,7 @@ final class HeartRateViewModel: ObservableObject {
     // BPM readings for confidence calculation
     @Published private(set) var bpmReadings: [Int] = []
     @Published private(set) var confidence: Double = 0
+    @Published private(set) var errorMargin: Int = 5 // ±X BPM
     
     // MARK: - Dependencies
     
@@ -68,6 +69,10 @@ final class HeartRateViewModel: ObservableObject {
         } else {
             return "Place your fingertip firmly on the rear camera lens"
         }
+    }
+    
+    var errorBoundsText: String {
+        return "±\(errorMargin) BPM"
     }
     
     // MARK: - Init
@@ -154,6 +159,7 @@ final class HeartRateViewModel: ObservableObject {
         errorMessage = nil
         bpmReadings.removeAll()
         confidence = 0
+        errorMargin = 5
         saveSuccess = false
         saveError = nil
         signalQuality = .poor
@@ -192,6 +198,10 @@ extension HeartRateViewModel: HeartRateDetectorDelegate {
     nonisolated func heartRateDetector(_ detector: HeartRateDetector, didUpdateSignalQuality quality: SignalQuality) {
         Task { @MainActor in
             self.signalQuality = quality
+            // Provide immediate feedback if signal is lost
+            if quality == .poor {
+                self.bpm = 0
+            }
         }
     }
     
@@ -218,6 +228,14 @@ extension HeartRateViewModel: HeartRateDetectorDelegate {
                 readings: self.bpmReadings,
                 signalQualityScore: qualityScore
             )
+            
+            // Calculate error bounds
+            if let bounds = SignalValidator.calculateErrorBounds(self.bpmReadings) {
+                self.errorMargin = bounds.margin
+            } else {
+                // Default error margin based on confidence
+                self.errorMargin = self.confidence >= 0.7 ? 3 : 5
+            }
             
             // Show result if we have acceptable quality
             let hasAcceptableSignal = self.signalQuality == .good || self.signalQuality == .excellent || self.signalQuality == .fair

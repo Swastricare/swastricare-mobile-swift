@@ -148,13 +148,23 @@ class PPGSignalProcessor {
         }
         defer { vDSP_destroy_fftsetupD(fft) }
         
-        // Perform FFT
-        var splitComplex = DSPDoubleSplitComplex(realp: &real, imagp: &imaginary)
-        vDSP_fft_zipD(fft, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
-        
-        // Calculate magnitudes
+        // Perform FFT using withUnsafeMutableBufferPointer for memory safety
         var magnitudes = [Double](repeating: 0, count: n / 2)
-        vDSP_zvmagsD(&splitComplex, 1, &magnitudes, 1, vDSP_Length(n / 2))
+        
+        real.withUnsafeMutableBufferPointer { realBuffer in
+            imaginary.withUnsafeMutableBufferPointer { imagBuffer in
+                var splitComplex = DSPDoubleSplitComplex(
+                    realp: realBuffer.baseAddress!,
+                    imagp: imagBuffer.baseAddress!
+                )
+                vDSP_fft_zipD(fft, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
+                
+                // Calculate magnitudes
+                magnitudes.withUnsafeMutableBufferPointer { magBuffer in
+                    vDSP_zvmagsD(&splitComplex, 1, magBuffer.baseAddress!, 1, vDSP_Length(n / 2))
+                }
+            }
+        }
         
         // Find peak frequency in heart rate range (0.8-3.0 Hz = 48-180 BPM)
         let freqResolution = sampleRate / Double(n)

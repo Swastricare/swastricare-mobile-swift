@@ -505,6 +505,8 @@ struct DoseCard: View {
         case .missed: return .red
         case .skipped: return .orange
         case .pending: return .secondary
+        case .late: return .yellow
+        case .early: return .blue
         }
     }
 }

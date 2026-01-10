@@ -28,9 +28,9 @@ enum SignalQuality {
     
     var description: String {
         switch self {
-        case .poor: return "Place finger on camera"
-        case .fair: return "Adjusting..."
-        case .good: return "Good signal"
+        case .poor: return "Place finger firmly covering camera and flash"
+        case .fair: return "Hold steady..."
+        case .good: return "Detecting pulse..."
         case .excellent: return "Excellent signal"
         }
     }
@@ -77,14 +77,16 @@ class HeartRateDetector: NSObject {
     
     // Configuration
     let sampleRate: Double = 30.0  // Target FPS
-    private let measurementDuration: TimeInterval = 30.0  // Extended to 30 seconds for better accuracy
-    private let warmupSamples = 60  // Ignore first 2 seconds of unstable frames
-    let minSamplesForCalculation = 180  // ~6 seconds at 30fps
-    private let maxSamples = 900  // ~30 seconds at 30fps
+    private let measurementDuration: TimeInterval = 30.0
+    private let warmupSamples = 60  // Ignore first 2 seconds
+    let minSamplesForCalculation = 180
+    private let maxSamples = 900
     
     // State
     private var isRunning = false
     private var bpmReadings: [Int] = []
+    private var validTimeElapsed: TimeInterval = 0
+    private var lastFrameTime: Date?
     
     // MARK: - Public Methods
     
@@ -110,6 +112,9 @@ class HeartRateDetector: NSObject {
         captureSession?.stopRunning()
         turnOffTorch()
         
+        // Clear session to reset preview in UI
+        captureSession = nil
+        
         if !bpmReadings.isEmpty {
             let averageBPM = bpmReadings.reduce(0, +) / bpmReadings.count
             delegate?.heartRateDetectorDidFinish(self, averageBPM: averageBPM)
@@ -123,6 +128,8 @@ class HeartRateDetector: NSObject {
         timestamps.removeAll()
         bpmReadings.removeAll()
         startTime = nil
+        lastFrameTime = nil
+        validTimeElapsed = 0
         motionDetector.reset()
     }
     
@@ -142,8 +149,9 @@ class HeartRateDetector: NSObject {
     }
     
     private func setupCaptureSession() {
-        captureSession = AVCaptureSession()
-        captureSession?.sessionPreset = .low  // Low resolution is sufficient
+        let session = AVCaptureSession()
+        session.sessionPreset = .low  // Low resolution is sufficient
+        self.captureSession = session
         
         guard let device = AVCaptureDevice.default(for: .video) else {
             DispatchQueue.main.async { [weak self] in
@@ -159,13 +167,36 @@ class HeartRateDetector: NSObject {
             try device.lockForConfiguration()
             device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: Int32(sampleRate))
             device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: Int32(sampleRate))
+            
+            // Fix focus and exposure for consistent lighting
+            if device.isFocusModeSupported(.locked) {
+                device.focusMode = .locked
+                device.setFocusModeLocked(lensPosition: 0.0, completionHandler: nil) // Macro focus
+            }
+            
+            if device.isExposureModeSupported(.locked) {
+                // We want a relatively bright image but not blown out. 
+                // However, auto-exposure is often better for adapting to different fingers/torches.
+                // Let's try continuous auto exposure but lock it once we start if needed.
+                // For now, continuous usually works best to adapt to skin tone.
+                device.exposureMode = .continuousAutoExposure
+            }
+            
+            // White balance locked to Red gain if possible? No, auto is fine if we look at relative changes.
+            // Actually, locking WB is good to prevent color shifts being interpreted as pulse.
+            if device.isWhiteBalanceModeSupported(.locked) {
+                // Locking current WB (which might be wrong initially) is risky.
+                // continuousAutoWhiteBalance is safer unless we set custom gains.
+                device.whiteBalanceMode = .continuousAutoWhiteBalance
+            }
+            
             device.unlockForConfiguration()
             
             // Setup input
             let input = try AVCaptureDeviceInput(device: device)
-            captureSession?.beginConfiguration()
-            if captureSession?.canAddInput(input) == true {
-                captureSession?.addInput(input)
+            session.beginConfiguration()
+            if session.canAddInput(input) == true {
+                session.addInput(input)
             }
             
             // Setup output
@@ -176,19 +207,20 @@ class HeartRateDetector: NSObject {
             videoOutput?.setSampleBufferDelegate(self, queue: processingQueue)
             videoOutput?.alwaysDiscardsLateVideoFrames = true
             
-            if let output = videoOutput, captureSession?.canAddOutput(output) == true {
-                captureSession?.addOutput(output)
+            if let output = videoOutput, session.canAddOutput(output) == true {
+                session.addOutput(output)
             }
-            captureSession?.commitConfiguration()
+            session.commitConfiguration()
             
             // Start session
             isRunning = true
-            startTime = Date()
+            // Reset startTime only when we actually get good frames
+            startTime = nil 
             
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 self?.captureSession?.startRunning()
                 // Ensure torch stays on even if the session reconfigures
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                     self?.ensureTorchOn(retries: 3)
                 }
             }
@@ -213,7 +245,7 @@ class HeartRateDetector: NSObject {
         do {
             try device.lockForConfiguration()
             if device.isTorchModeSupported(.on) {
-                try device.setTorchModeOn(level: 1.0)
+                try device.setTorchModeOn(level: 0.1) // Use lower torch level to avoid saturation and heat
             } else {
                 device.torchMode = .on
             }
@@ -260,6 +292,10 @@ class HeartRateDetector: NSObject {
             sampleRate: observedSampleRate
         )
         
+        // Verify signal has sufficient variation (not flat)
+        let signalRange = (filtered.max() ?? 0) - (filtered.min() ?? 0)
+        guard signalRange > 0.1 else { return nil }
+        
         // Method 1: Autocorrelation (most accurate for PPG)
         var acBPM: Int? = nil
         if let rawAC = PPGSignalProcessor.calculateBPMWithAutocorrelation(signal: filtered, sampleRate: observedSampleRate) {
@@ -303,30 +339,48 @@ class HeartRateDetector: NSObject {
             }
         }
         
-        // Decision logic: prefer autocorrelation, validate with others
+        // PRODUCTION DECISION LOGIC:
+        // Tighter agreement threshold (6 BPM) for high accuracy
+        let agreementThreshold = 6
         
-        // If autocorrelation agrees with FFT or peak (within 12 BPM), use average
+        // Best case: All three methods agree (within threshold)
+        if let ac = acBPM, let fft = fftBPM, let peak = peakBPM {
+            let maxDiff = max(abs(ac - fft), max(abs(ac - peak), abs(fft - peak)))
+            if maxDiff <= agreementThreshold {
+                // High confidence: use median of three
+                let sorted = [ac, fft, peak].sorted()
+                return sorted[1]
+            }
+        }
+        
+        // Two methods agree: prefer autocorrelation combinations
         if let ac = acBPM {
-            if let fft = fftBPM, abs(ac - fft) <= 12 {
+            if let fft = fftBPM, abs(ac - fft) <= agreementThreshold {
                 return (ac + fft) / 2
             }
-            if let peak = peakBPM, abs(ac - peak) <= 12 {
+            if let peak = peakBPM, abs(ac - peak) <= agreementThreshold {
                 return (ac + peak) / 2
             }
-            // If autocorrelation is alone but in good range, trust it
+        }
+        
+        // FFT and Peak agree
+        if let fft = fftBPM, let peak = peakBPM, abs(fft - peak) <= agreementThreshold {
+            return (fft + peak) / 2
+        }
+        
+        // No agreement - require at least autocorrelation for reliability
+        // Autocorrelation is most robust for PPG signals
+        if let ac = acBPM {
             return ac
         }
         
-        // Fallback to FFT + peak
-        if let fft = fftBPM, let peak = peakBPM {
-            if abs(fft - peak) <= 12 {
-                return (fft + peak) / 2
-            }
-            // Prefer higher value (PPG tends to undercount)
-            return max(fft, peak)
+        // Last resort: only return if FFT and Peak are close-ish (within 10)
+        if let fft = fftBPM, let peak = peakBPM, abs(fft - peak) <= 10 {
+            return (fft + peak) / 2
         }
         
-        return fftBPM ?? peakBPM
+        // Methods disagree too much - don't return unreliable data
+        return nil
     }
     
     // Observed sample rate based on timestamps to account for actual camera FPS
@@ -348,33 +402,60 @@ class HeartRateDetector: NSObject {
         return (Array(redValues[start...]), Array(timestamps[start...]))
     }
     
-    func evaluateSignalQuality() -> SignalQuality {
-        guard redValues.count >= 30 else { return .poor }
+    // Improved Signal Quality Evaluation
+    func evaluateSignalQuality(red: Double, green: Double, blue: Double) -> SignalQuality {
+        // Basic brightness check
+        // With torch ON, finger should be bright.
+        // If it's dark, finger is likely not covering the lens.
+        if red < 60 { return .poor }
         
+        // Color dominance check
+        // Finger should look RED.
+        // If Red is not significantly higher than Green and Blue, it's likely not a finger (e.g. ambient light on a table)
+        if red < (green + blue) * 0.8 {
+            return .poor
+        }
+        
+        // Now check the signal buffer statistics if we have enough data
+        guard redValues.count >= 30 else { return .poor }
         let recentValues = Array(redValues.suffix(30))
         
-        // Check mean brightness (finger covering camera should be bright red)
+        // Check mean brightness
         let mean = recentValues.reduce(0, +) / Double(recentValues.count)
         
         // Check amplitude (pulsation should create variation)
-        let min = recentValues.min() ?? 0
-        let max = recentValues.max() ?? 0
-        let amplitude = max - min
+        let minVal = recentValues.min() ?? 0
+        let maxVal = recentValues.max() ?? 0
+        let amplitude = maxVal - minVal
         
-        // Check standard deviation (should have rhythmic variation)
+        // Check standard deviation
         let variance = recentValues.map { pow($0 - mean, 2) }.reduce(0, +) / Double(recentValues.count)
         let stdDev = sqrt(variance)
         
-        // Evaluate quality (relaxed thresholds to reduce false "noisy")
-        if mean < 80 || amplitude < 1 {
-            return .poor  // Finger likely not on camera
-        } else if mean < 120 || amplitude < 3 || stdDev < 0.8 {
-            return .fair  // Weak signal
-        } else if stdDev < 2.5 {
-            return .good
-        } else {
+        // Tier 1: POOR
+        // - Too dark (mean < 60)
+        // - Too flat (amplitude < 1.0) -> indicates no pulse or inanimate object
+        // - Too noisy (stdDev > 10) -> indicates motion
+        if mean < 60 || amplitude < 1.0 || stdDev > 15 {
+            return .poor
+        }
+        
+        // Tier 2: FAIR
+        if mean < 100 || amplitude < 2.5 || stdDev < 0.6 {
+            return .fair
+        }
+        
+        // Tier 3: EXCELLENT
+        if amplitude >= 5.0 && stdDev >= 1.2 && stdDev <= 5.0 && mean >= 120 {
             return .excellent
         }
+        
+        // Tier 4: GOOD
+        if amplitude >= 2.5 && stdDev >= 0.7 && stdDev <= 6.0 {
+            return .good
+        }
+        
+        return .fair
     }
 }
 
@@ -389,21 +470,53 @@ extension HeartRateDetector: AVCaptureVideoDataOutputSampleBufferDelegate {
         guard isRunning,
               let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
-        // Extract red channel average
-        let redAverage = extractRedAverage(from: pixelBuffer)
+        // Extract color averages
+        let colors = extractColorAverages(from: pixelBuffer)
         
-        // Skip frames with excessive motion (helps avoid spikes)
-        if motionDetector.isMotionExcessive(newValue: redAverage) {
+        // Evaluate Quality using full color info
+        let quality = evaluateSignalQuality(red: colors.red, green: colors.green, blue: colors.blue)
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.delegate?.heartRateDetector(self, didUpdateSignalQuality: quality)
+        }
+        
+        // SMART DETECTION:
+        // If quality is poor (finger removed or bad placement), DO NOT record data or advance progress.
+        // This effectively "pauses" the measurement until the user fixes placement.
+        if quality == .poor {
+            // Optionally clear recent buffer if poor for too long to avoid mixing bad data
+            // For now, just skipping is enough to pause.
+            return
+        }
+        
+        // Motion Check
+        if motionDetector.isMotionExcessive(newValue: colors.red) {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.delegate?.heartRateDetector(self, didUpdateSignalQuality: .poor)
             }
             return
         }
-        let timestamp = Date().timeIntervalSince(startTime ?? Date())
+        
+        // Record timestamp logic
+        let now = Date()
+        if startTime == nil {
+            startTime = now
+        }
+        
+        // Calculate delta time for progress
+        if let last = lastFrameTime {
+            let delta = now.timeIntervalSince(last)
+            // Cap delta to avoid jumps if thread was blocked
+            validTimeElapsed += min(delta, 0.1)
+        }
+        lastFrameTime = now
+        
+        let timestamp = validTimeElapsed
         
         // Store sample
-        redValues.append(redAverage)
+        redValues.append(colors.red)
         timestamps.append(timestamp)
         
         // Trim old samples
@@ -412,25 +525,18 @@ extension HeartRateDetector: AVCaptureVideoDataOutputSampleBufferDelegate {
             timestamps.removeFirst()
         }
         
-        // Update progress
-        let progress = Float(min(timestamp / measurementDuration, 1.0))
+        // Update progress based on VALID time elapsed, not wall clock time
+        let progress = Float(min(validTimeElapsed / measurementDuration, 1.0))
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.delegate?.heartRateDetector(self, didUpdateProgress: progress)
         }
         
-        // Check signal quality and calculate BPM
-        let quality = evaluateSignalQuality()
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.delegate?.heartRateDetector(self, didUpdateSignalQuality: quality)
-        }
-        
         // Calculate BPM if we have enough samples
         if redValues.count >= minSamplesForCalculation {
+            // Run calculation less frequently to save CPU? No, every frame is fine for responsiveness.
             if let bpm = calculateHeartRate() {
                 bpmReadings.append(bpm)
-                
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self else { return }
                     self.delegate?.heartRateDetector(self, didUpdateBPM: bpm)
@@ -439,19 +545,19 @@ extension HeartRateDetector: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
         
         // Auto-stop after measurement duration
-        if timestamp >= measurementDuration {
+        if validTimeElapsed >= measurementDuration {
             DispatchQueue.main.async { [weak self] in
                 self?.stopMeasurement()
             }
         }
     }
     
-    private func extractRedAverage(from pixelBuffer: CVPixelBuffer) -> Double {
+    private func extractColorAverages(from pixelBuffer: CVPixelBuffer) -> (red: Double, green: Double, blue: Double) {
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
         
         guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
-            return 0
+            return (0, 0, 0)
         }
         
         let width = CVPixelBufferGetWidth(pixelBuffer)
@@ -461,9 +567,11 @@ extension HeartRateDetector: AVCaptureVideoDataOutputSampleBufferDelegate {
         let buffer = baseAddress.assumingMemoryBound(to: UInt8.self)
         
         var redSum: Double = 0
+        var greenSum: Double = 0
+        var blueSum: Double = 0
         var pixelCount: Double = 0
         
-        // Sample center region (more reliable)
+        // Sample center region
         let startX = width / 4
         let endX = 3 * width / 4
         let startY = height / 4
@@ -473,13 +581,19 @@ extension HeartRateDetector: AVCaptureVideoDataOutputSampleBufferDelegate {
             for x in stride(from: startX, to: endX, by: 2) {
                 let offset = y * bytesPerRow + x * 4
                 
-                // BGRA format - red is at offset + 2
+                // BGRA format
+                // 0: Blue, 1: Green, 2: Red, 3: Alpha
+                let blue = Double(buffer[offset])
+                let green = Double(buffer[offset + 1])
                 let red = Double(buffer[offset + 2])
+                
                 redSum += red
+                greenSum += green
+                blueSum += blue
                 pixelCount += 1
             }
         }
         
-        return redSum / pixelCount
+        return (redSum / pixelCount, greenSum / pixelCount, blueSum / pixelCount)
     }
 }

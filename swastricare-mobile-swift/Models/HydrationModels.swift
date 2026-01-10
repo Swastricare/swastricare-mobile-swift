@@ -497,39 +497,39 @@ struct QuickAddPreset: Identifiable {
 
 struct HydrationEntryRecord: Codable {
     let id: UUID?
-    let userId: UUID
-    let loggedAt: Date
+    let healthProfileId: UUID
+    let beverageType: String
     let amountMl: Int
-    let drinkType: String
+    let consumedAt: Date
     let notes: String?
-    let syncedAt: Date?
+    let hydrationFactor: Double
     
     enum CodingKeys: String, CodingKey {
         case id
-        case userId = "user_id"
-        case loggedAt = "logged_at"
+        case healthProfileId = "health_profile_id"
+        case beverageType = "beverage_type"
         case amountMl = "amount_ml"
-        case drinkType = "drink_type"
+        case consumedAt = "consumed_at"
         case notes
-        case syncedAt = "synced_at"
+        case hydrationFactor = "hydration_factor"
     }
     
-    init(from entry: HydrationEntry, userId: UUID) {
+    init(from entry: HydrationEntry, healthProfileId: UUID) {
         self.id = entry.id
-        self.userId = userId
-        self.loggedAt = entry.timestamp
+        self.healthProfileId = healthProfileId
+        self.consumedAt = entry.timestamp
         self.amountMl = entry.amountMl
-        self.drinkType = entry.drinkType.rawValue
+        self.beverageType = entry.drinkType.rawValue
         self.notes = entry.notes
-        self.syncedAt = Date()
+        self.hydrationFactor = entry.drinkType.hydrationMultiplier
     }
     
     func toHydrationEntry() -> HydrationEntry {
         HydrationEntry(
             id: id ?? UUID(),
-            timestamp: loggedAt,
+            timestamp: consumedAt,
             amountMl: amountMl,
-            drinkType: DrinkType(rawValue: drinkType) ?? .water,
+            drinkType: DrinkType(rawValue: beverageType) ?? .water,
             notes: notes,
             synced: true
         )

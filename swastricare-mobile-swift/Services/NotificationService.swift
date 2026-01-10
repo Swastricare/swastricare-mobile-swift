@@ -211,9 +211,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         // Check pattern learner if user naturally drinks at this time
         if let patternLearner = context?.patternLearner {
             if !patternLearner.shouldSendReminderNow() {
-                print("🔔 NotificationService: Pattern learner suggests user drinks naturally at this time, deferring")
-                // Don't cancel existing reminders, just don't add new ones
-                return
+                print("🔔 NotificationService: Pattern learner suggests user drinks naturally at this time, but checking future schedule")
             }
         }
         
@@ -293,6 +291,22 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         
         // Check if we have any scheduled notifications
         if scheduledNotificationIds.isEmpty {
+            return true
+        }
+        
+        // Check if any scheduled notifications are in the future
+        let now = Date().timeIntervalSince1970
+        let hasFutureReminders = scheduledNotificationIds.contains { id in
+            // Extract timestamp from identifier (assumed format: prefix_TIMESTAMP)
+            let components = id.components(separatedBy: "_")
+            if let last = components.last, let timestamp = TimeInterval(last) {
+                return timestamp > now
+            }
+            return false
+        }
+        
+        if !hasFutureReminders {
+            print("🔔 NotificationService: No future reminders found, forcing reschedule")
             return true
         }
         
