@@ -94,6 +94,7 @@ fun ResetPasswordScreen(
         }
         
         IconButton(onClick = onNavigateBack, modifier = Modifier.padding(16.dp).align(Alignment.TopStart)) {
+            @Suppress("DEPRECATION")
             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = PremiumColors.RoyalBlue)
         }
     }
