@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.navigation.AppNavigation
 import com.swasthicare.mobile.ui.theme.SwasthiCareTheme
 
@@ -15,13 +16,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        
+        // Initialize AppContainer
+        AppContainer.initialize(this)
+        
         setContent {
             SwasthiCareTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation()
+                    AppNavigation(authViewModel = AppContainer.authViewModel)
                 }
             }
         }

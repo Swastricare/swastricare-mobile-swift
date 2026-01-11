@@ -1,7 +1,6 @@
 package com.swasthicare.mobile.data.helpers
 
 import android.content.Context
-import android.content.Intent
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
@@ -17,7 +16,7 @@ import java.util.UUID
  */
 class GoogleAuthHelper(
     private val context: Context,
-    private val webClientId: String // From Google Cloud Console
+    private val webClientId: String
 ) {
     private val credentialManager = CredentialManager.create(context)
     
@@ -52,33 +51,14 @@ class GoogleAuthHelper(
         }
     }
     
-    /**
-     * Generate a random nonce for security
-     */
     private fun generateNonce(): String {
         return UUID.randomUUID().toString()
     }
     
-    /**
-     * Hash nonce using SHA-256
-     */
     private fun hashNonce(nonce: String): String {
         val bytes = nonce.toByteArray()
         val md = MessageDigest.getInstance("SHA-256")
         val digest = md.digest(bytes)
         return digest.fold("") { str, it -> str + "%02x".format(it) }
-    }
-}
-
-/**
- * Google Sign-In Intent Handler
- * Handles the OAuth callback intent
- */
-object GoogleAuthIntentHandler {
-    
-    fun handleIntent(intent: Intent?): String? {
-        // Handle deep link callback from OAuth flow
-        val data = intent?.data
-        return data?.getQueryParameter("id_token")
     }
 }

@@ -15,11 +15,13 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     LaunchedEffect(Unit) {
         delay(2000)
-        onNavigateToHome()
+        // Navigate to login (auth check happens in ViewModel)
+        onNavigateToLogin()
     }
     
     Box(

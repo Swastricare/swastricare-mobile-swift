@@ -32,6 +32,10 @@ class ProfileViewModel : ViewModel() {
     private val authRepository = AppContainer.authRepository
     private val profileRepository = AppContainer.profileRepository
     
+    // Expose sign out event for navigation
+    private val _signOutEvent = MutableStateFlow(false)
+    val signOutEvent: StateFlow<Boolean> = _signOutEvent.asStateFlow()
+    
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
@@ -147,11 +151,16 @@ class ProfileViewModel : ViewModel() {
                         showSignOutConfirmation = false
                     ) 
                 }
-                // Navigate to Auth screen logic would be here (usually via a higher level state)
+                // Trigger sign out event for navigation
+                _signOutEvent.value = true
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
             }
         }
+    }
+    
+    fun onSignOutHandled() {
+        _signOutEvent.value = false
     }
 
     fun deleteAccount() {

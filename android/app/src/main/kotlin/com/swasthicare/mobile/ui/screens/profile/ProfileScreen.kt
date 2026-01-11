@@ -34,9 +34,19 @@ import com.swasthicare.mobile.ui.theme.PrimaryColor
 
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel = viewModel()
+    viewModel: ProfileViewModel = viewModel(),
+    onSignOut: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val signOutEvent by viewModel.signOutEvent.collectAsState()
+    
+    // Handle sign out navigation
+    LaunchedEffect(signOutEvent) {
+        if (signOutEvent) {
+            onSignOut()
+            viewModel.onSignOutHandled()
+        }
+    }
 
     ProfileScreenContent(
         uiState = uiState,

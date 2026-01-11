@@ -71,7 +71,9 @@ sealed class MainTab(
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    onSignOut: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val haptic = LocalHapticFeedback.current
     
@@ -143,7 +145,11 @@ fun MainScreen() {
             composable(MainTab.Vitals.route) { HomeScreen() }
             composable(MainTab.AI.route) { AIScreen() }
             composable(MainTab.Vault.route) { VaultScreen() }
-            composable(MainTab.Profile.route) { ProfileScreen() }
+            composable(MainTab.Profile.route) { 
+                ProfileScreen(
+                    onSignOut = onSignOut
+                )
+            }
         }
     }
 }
