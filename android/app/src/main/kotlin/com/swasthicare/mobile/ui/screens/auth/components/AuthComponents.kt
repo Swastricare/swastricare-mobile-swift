@@ -265,7 +265,7 @@ fun SocialLoginButton(
             imageVector = icon, 
             contentDescription = null, 
             modifier = Modifier.size(24.dp),
-            tint = if (label == "Google") Color.Unspecified else Color.Black.copy(alpha = alpha) // Allow original colors if needed
+            tint = if (label.contains("Google")) Color.Unspecified else PremiumColors.TextDark.copy(alpha = alpha) // Allow original colors if needed
         )
         // Manual tint for Google if using vector icon that doesn't have intrinsic color
         // For now using default tint, but if using Vector drawable with color, invoke tint=Color.Unspecified

@@ -197,10 +197,13 @@ fun LoginScreen(
                             HorizontalDivider(modifier = Modifier.weight(1f), color = PremiumColors.TextGrey.copy(alpha = 0.2f))
                         }
                         
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                            SocialLoginButton(Icons.Default.Email, "Google", onClick = { viewModel.signInWithGoogle() }, modifier = Modifier.weight(1f), enabled = !isLoading)
-                            SocialLoginButton(Icons.Default.AccountCircle, "Apple", onClick = { }, modifier = Modifier.weight(1f), enabled = !isLoading)
-                        }
+                        SocialLoginButton(
+                            icon = Icons.Default.Email, 
+                            label = "Continue with Google", 
+                            onClick = { viewModel.signInWithGoogle() }, 
+                            modifier = Modifier.fillMaxWidth(), 
+                            enabled = !isLoading
+                        )
                     }
                 }
                 

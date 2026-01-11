@@ -80,8 +80,8 @@ fun SignUpScreen(
                 enter = fadeIn(tween(800, easing = EaseOut)) + slideInVertically(tween(800, easing = EaseOut)) { -20 }
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Create Account", fontSize = 32.sp, fontWeight = FontWeight.Bold)
-                    Text("Start your health journey today", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    Text("Create Account", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = PremiumColors.TextDark)
+                    Text("Start your health journey today", style = MaterialTheme.typography.bodyMedium, color = PremiumColors.TextGrey)
                 }
             }
             
@@ -94,9 +94,13 @@ fun SignUpScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(20.dp, RoundedCornerShape(30.dp))
-                        .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(30.dp))
-                        .border(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.4f), Color.White.copy(alpha = 0.1f))), RoundedCornerShape(30.dp))
+                        .shadow(
+                            elevation = 25.dp, 
+                            shape = RoundedCornerShape(30.dp),
+                            spotColor = PremiumColors.RoyalBlue.copy(alpha = 0.2f),
+                            ambientColor = PremiumColors.Cyan.copy(alpha = 0.1f)
+                        )
+                        .background(Color.White, RoundedCornerShape(30.dp))
                         .padding(30.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
@@ -152,7 +156,7 @@ fun SignUpScreen(
                     
                     PremiumButton("Create Account", onClick = { viewModel.signUp() }, enabled = formState.isValidForSignUp && !isLoading, isLoading = isLoading, modifier = Modifier.padding(top = 10.dp))
                     
-                    Text("By signing up, you agree to our Terms of Service and Privacy Policy", style = MaterialTheme.typography.bodySmall, color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    Text("By signing up, you agree to our Terms of Service and Privacy Policy", style = MaterialTheme.typography.bodySmall, color = PremiumColors.TextGrey, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
             }
             
