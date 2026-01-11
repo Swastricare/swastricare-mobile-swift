@@ -97,6 +97,7 @@ class HeartRateDetector: NSObject {
         
         checkPermissions { [weak self] granted in
             guard let self = self else { return }
+            
             guard granted else {
                 DispatchQueue.main.async {
                     self.delegate?.heartRateDetector(self, didEncounterError: .permissionDenied)
@@ -149,8 +150,11 @@ class HeartRateDetector: NSObject {
     }
     
     private func setupCaptureSession() {
+        // Stop any existing session first
+        captureSession?.stopRunning()
+        captureSession = nil
+        
         let session = AVCaptureSession()
-        session.sessionPreset = .low  // Low resolution is sufficient
         self.captureSession = session
         
         guard let device = AVCaptureDevice.default(for: .video) else {
@@ -163,39 +167,19 @@ class HeartRateDetector: NSObject {
         captureDevice = device
         
         do {
-            // Configure camera fps
-            try device.lockForConfiguration()
-            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: Int32(sampleRate))
-            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: Int32(sampleRate))
+            // Begin session configuration FIRST (before any device config)
+            session.beginConfiguration()
             
-            // Fix focus and exposure for consistent lighting
-            if device.isFocusModeSupported(.locked) {
-                device.focusMode = .locked
-                device.setFocusModeLocked(lensPosition: 0.0, completionHandler: nil) // Macro focus
+            // Use medium preset for better compatibility
+            if session.canSetSessionPreset(.medium) {
+                session.sessionPreset = .medium
+            } else if session.canSetSessionPreset(.low) {
+                session.sessionPreset = .low
             }
-            
-            if device.isExposureModeSupported(.locked) {
-                // We want a relatively bright image but not blown out. 
-                // However, auto-exposure is often better for adapting to different fingers/torches.
-                // Let's try continuous auto exposure but lock it once we start if needed.
-                // For now, continuous usually works best to adapt to skin tone.
-                device.exposureMode = .continuousAutoExposure
-            }
-            
-            // White balance locked to Red gain if possible? No, auto is fine if we look at relative changes.
-            // Actually, locking WB is good to prevent color shifts being interpreted as pulse.
-            if device.isWhiteBalanceModeSupported(.locked) {
-                // Locking current WB (which might be wrong initially) is risky.
-                // continuousAutoWhiteBalance is safer unless we set custom gains.
-                device.whiteBalanceMode = .continuousAutoWhiteBalance
-            }
-            
-            device.unlockForConfiguration()
             
             // Setup input
             let input = try AVCaptureDeviceInput(device: device)
-            session.beginConfiguration()
-            if session.canAddInput(input) == true {
+            if session.canAddInput(input) {
                 session.addInput(input)
             }
             
@@ -207,21 +191,37 @@ class HeartRateDetector: NSObject {
             videoOutput?.setSampleBufferDelegate(self, queue: processingQueue)
             videoOutput?.alwaysDiscardsLateVideoFrames = true
             
-            if let output = videoOutput, session.canAddOutput(output) == true {
+            if let output = videoOutput, session.canAddOutput(output) {
                 session.addOutput(output)
             }
+            
+            // Commit session configuration
             session.commitConfiguration()
             
-            // Start session
-            isRunning = true
-            // Reset startTime only when we actually get good frames
-            startTime = nil 
+            // Configure frame rate only (NOT torch yet - torch must be set AFTER session starts)
+            try device.lockForConfiguration()
+            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: Int32(sampleRate))
+            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: Int32(sampleRate))
+            if device.isExposureModeSupported(.continuousAutoExposure) {
+                device.exposureMode = .continuousAutoExposure
+            }
+            device.unlockForConfiguration()
             
+            // Set running state
+            isRunning = true
+            startTime = nil
+            
+            // Start session on background thread
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                self?.captureSession?.startRunning()
-                // Ensure torch stays on even if the session reconfigures
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                    self?.ensureTorchOn(retries: 3)
+                guard let self = self else { return }
+                session.startRunning()
+                
+                // Wait for session to fully start, then turn on torch
+                Thread.sleep(forTimeInterval: 0.5)
+                
+                DispatchQueue.main.async {
+                    // Turn on torch AFTER session is running
+                    self.turnOnTorch()
                 }
             }
             
@@ -233,34 +233,41 @@ class HeartRateDetector: NSObject {
         }
     }
     
-    private func ensureTorchOn(retries: Int) {
-        guard let device = captureDevice else { return }
-        guard device.hasTorch else {
+    private func turnOnTorch() {
+        guard isRunning else { return }
+        guard let device = captureDevice, device.hasTorch else {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.delegate?.heartRateDetector(self, didEncounterError: .torchNotAvailable)
             }
             return
         }
+        
         do {
             try device.lockForConfiguration()
+            // Use maximum torch level for best finger illumination
             if device.isTorchModeSupported(.on) {
-                try device.setTorchModeOn(level: 0.1) // Use lower torch level to avoid saturation and heat
-            } else {
-                device.torchMode = .on
+                try device.setTorchModeOn(level: AVCaptureDevice.maxAvailableTorchLevel)
             }
             device.unlockForConfiguration()
-        } catch {
-            if retries > 0 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                    self?.ensureTorchOn(retries: retries - 1)
-                }
-            } else {
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.delegate?.heartRateDetector(self, didEncounterError: .torchNotAvailable)
-                }
+            
+            // Keep checking torch stays on
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.verifyTorchOn()
             }
+        } catch {
+            // Retry after short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.turnOnTorch()
+            }
+        }
+    }
+    
+    private func verifyTorchOn() {
+        guard isRunning, let device = captureDevice else { return }
+        
+        if device.torchMode != .on {
+            turnOnTorch()
         }
     }
     
@@ -403,58 +410,55 @@ class HeartRateDetector: NSObject {
     }
     
     // Improved Signal Quality Evaluation
+    // Returns quality based on current frame + buffer statistics (if available)
     func evaluateSignalQuality(red: Double, green: Double, blue: Double) -> SignalQuality {
-        // Basic brightness check
-        // With torch ON, finger should be bright.
-        // If it's dark, finger is likely not covering the lens.
-        if red < 60 { return .poor }
+        // STAGE 1: Basic frame checks (brightness + redness)
+        // These determine if we should even collect this sample
         
-        // Color dominance check
-        // Finger should look RED.
-        // If Red is not significantly higher than Green and Blue, it's likely not a finger (e.g. ambient light on a table)
-        if red < (green + blue) * 0.8 {
+        // Basic brightness check - with torch ON, finger should be bright
+        if red < 50 {
             return .poor
         }
         
-        // Now check the signal buffer statistics if we have enough data
-        guard redValues.count >= 30 else { return .poor }
+        // Color dominance check - finger with blood should be RED dominant
+        // When finger covers camera+torch: R>>G, R>>B (blood absorbs green/blue)
+        let rednessRatio = red / max(green + blue, 1)
+        if rednessRatio < 0.6 {
+            return .poor
+        }
+        
+        // STAGE 2: Basic checks passed - this is a valid finger frame!
+        // NEVER return .poor after this point - we want to collect data
+        
+        // Need more samples for detailed analysis
+        guard redValues.count >= 60 else {
+            return .fair  // Allow data collection during warmup
+        }
+        
+        // STAGE 3: Buffer-based quality assessment (for UI feedback only)
+        // Use recent samples, skipping warmup period
         let recentValues = Array(redValues.suffix(30))
-        
-        // Check mean brightness
         let mean = recentValues.reduce(0, +) / Double(recentValues.count)
-        
-        // Check amplitude (pulsation should create variation)
         let minVal = recentValues.min() ?? 0
         let maxVal = recentValues.max() ?? 0
         let amplitude = maxVal - minVal
-        
-        // Check standard deviation
         let variance = recentValues.map { pow($0 - mean, 2) }.reduce(0, +) / Double(recentValues.count)
         let stdDev = sqrt(variance)
         
-        // Tier 1: POOR
-        // - Too dark (mean < 60)
-        // - Too flat (amplitude < 1.0) -> indicates no pulse or inanimate object
-        // - Too noisy (stdDev > 10) -> indicates motion
-        if mean < 60 || amplitude < 1.0 || stdDev > 15 {
-            return .poor
-        }
+        // Note: We NEVER return .poor here - basic checks already passed
+        // This is just for user feedback (fair/good/excellent)
         
-        // Tier 2: FAIR
-        if mean < 100 || amplitude < 2.5 || stdDev < 0.6 {
-            return .fair
-        }
-        
-        // Tier 3: EXCELLENT
-        if amplitude >= 5.0 && stdDev >= 1.2 && stdDev <= 5.0 && mean >= 120 {
+        // EXCELLENT: Good brightness, nice pulse amplitude, reasonably stable
+        if mean >= 100 && amplitude >= 2.0 && stdDev <= 30.0 {
             return .excellent
         }
         
-        // Tier 4: GOOD
-        if amplitude >= 2.5 && stdDev >= 0.7 && stdDev <= 6.0 {
+        // GOOD: Decent readings
+        if mean >= 80 && amplitude >= 1.0 {
             return .good
         }
         
+        // Default to FAIR (still collecting data!)
         return .fair
     }
 }
@@ -527,6 +531,7 @@ extension HeartRateDetector: AVCaptureVideoDataOutputSampleBufferDelegate {
         
         // Update progress based on VALID time elapsed, not wall clock time
         let progress = Float(min(validTimeElapsed / measurementDuration, 1.0))
+        
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.delegate?.heartRateDetector(self, didUpdateProgress: progress)

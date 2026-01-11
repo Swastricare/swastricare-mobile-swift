@@ -8,9 +8,14 @@
 import Foundation
 import Combine
 import AVFoundation
+import UIKit
 
 @MainActor
 final class HeartRateViewModel: ObservableObject {
+    
+    // MARK: - Constants
+    
+    static let measurementDuration: TimeInterval = 30.0
     
     // MARK: - Published State
     
@@ -18,6 +23,7 @@ final class HeartRateViewModel: ObservableObject {
     @Published private(set) var signalQuality: SignalQuality = .poor
     @Published private(set) var progress: Float = 0
     @Published private(set) var isRunning = false
+    @Published private(set) var measurementPhase: MeasurementPhase = .idle
     @Published private(set) var errorMessage: String?
     @Published private(set) var finalBPM: Int?
     @Published private(set) var isSaving = false
@@ -35,6 +41,9 @@ final class HeartRateViewModel: ObservableObject {
     
     private let detector = HeartRateDetector()
     private let vitalSignsService: VitalSignsServiceProtocol
+    
+    // Track first BPM detection for accessibility
+    private var hasAnnouncedFirstBPM = false
     
     // MARK: - Camera Session
     
@@ -92,12 +101,21 @@ final class HeartRateViewModel: ObservableObject {
     func startMeasurement() {
         resetState()
         isRunning = true
+        measurementPhase = .preparing
+        hasAnnouncedFirstBPM = false
         detector.startMeasurement()
+        
+        // Accessibility announcement
+        announceForAccessibility("Heart rate measurement started. Place your finger on the camera.")
     }
     
     func stopMeasurement() {
         detector.stopMeasurement()
         isRunning = false
+        measurementPhase = .idle
+        
+        // Accessibility announcement
+        announceForAccessibility("Measurement stopped")
     }
     
     func dismissResult() {
@@ -138,6 +156,9 @@ final class HeartRateViewModel: ObservableObject {
             
             saveSuccess = true
             
+            // Accessibility announcement
+            announceForAccessibility("Heart rate reading saved successfully")
+            
             // Auto-dismiss after successful save
             try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
             showResult = false
@@ -145,6 +166,7 @@ final class HeartRateViewModel: ObservableObject {
             
         } catch {
             saveError = error.localizedDescription
+            announceForAccessibility("Failed to save reading: \(error.localizedDescription)")
         }
         
         isSaving = false
@@ -163,6 +185,49 @@ final class HeartRateViewModel: ObservableObject {
         saveSuccess = false
         saveError = nil
         signalQuality = .poor
+        measurementPhase = .idle
+        hasAnnouncedFirstBPM = false
+    }
+    
+    private func updateMeasurementPhase() {
+        guard isRunning else {
+            measurementPhase = .idle
+            return
+        }
+        
+        let newPhase: MeasurementPhase
+        if progress < 0.07 {
+            newPhase = .preparing
+        } else if progress < 0.17 {
+            newPhase = .calibrating
+        } else if progress > 0.90 {
+            newPhase = .completing
+        } else {
+            newPhase = .measuring
+        }
+        
+        // Announce phase changes for accessibility
+        if newPhase != measurementPhase {
+            measurementPhase = newPhase
+            
+            switch newPhase {
+            case .calibrating:
+                announceForAccessibility("Calibrating signal")
+            case .measuring:
+                if bpm > 0 {
+                    announceForAccessibility("Measuring heart rate")
+                }
+            case .completing:
+                announceForAccessibility("Almost done, \(Int((1 - progress) * Float(Self.measurementDuration))) seconds remaining")
+            default:
+                break
+            }
+        }
+    }
+    
+    private func announceForAccessibility(_ message: String) {
+        // Post accessibility notification for VoiceOver users
+        UIAccessibility.post(notification: .announcement, argument: message)
     }
 }
 
@@ -172,8 +237,15 @@ extension HeartRateViewModel: HeartRateDetectorDelegate {
     
     nonisolated func heartRateDetector(_ detector: HeartRateDetector, didUpdateBPM bpm: Int) {
         Task { @MainActor in
+            let previousBPM = self.bpm
             self.bpm = bpm
             self.bpmReadings.append(bpm)
+            
+            // Announce first BPM detection for accessibility
+            if !hasAnnouncedFirstBPM && bpm > 0 {
+                hasAnnouncedFirstBPM = true
+                announceForAccessibility("Heart rate detected: \(bpm) beats per minute")
+            }
             
             // Calculate running confidence with signal quality factor
             if self.bpmReadings.count >= 5 {
@@ -197,10 +269,19 @@ extension HeartRateViewModel: HeartRateDetectorDelegate {
     
     nonisolated func heartRateDetector(_ detector: HeartRateDetector, didUpdateSignalQuality quality: SignalQuality) {
         Task { @MainActor in
+            let previousQuality = self.signalQuality
             self.signalQuality = quality
+            
             // Provide immediate feedback if signal is lost
             if quality == .poor {
                 self.bpm = 0
+                
+                // Announce signal loss for accessibility (but not too frequently)
+                if previousQuality != .poor {
+                    announceForAccessibility("Signal lost. Place finger on camera.")
+                }
+            } else if previousQuality == .poor && quality != .poor {
+                announceForAccessibility("Signal detected")
             }
         }
     }
@@ -208,12 +289,14 @@ extension HeartRateViewModel: HeartRateDetectorDelegate {
     nonisolated func heartRateDetector(_ detector: HeartRateDetector, didUpdateProgress progress: Float) {
         Task { @MainActor in
             self.progress = progress
+            self.updateMeasurementPhase()
         }
     }
     
     nonisolated func heartRateDetectorDidFinish(_ detector: HeartRateDetector, averageBPM: Int) {
         Task { @MainActor in
             self.isRunning = false
+            self.measurementPhase = .idle
             
             // Use validated average if we have enough readings
             if let validatedBPM = SignalValidator.calculateValidatedAverageBPM(self.bpmReadings) {
@@ -243,8 +326,13 @@ extension HeartRateViewModel: HeartRateDetectorDelegate {
             
             if hasAcceptableSignal && hasAcceptableConfidence {
                 self.showResult = true
+                
+                // Accessibility announcement
+                let categoryText = self.bpmCategory?.description ?? ""
+                announceForAccessibility("Measurement complete. Your heart rate is \(self.finalBPM ?? 0) beats per minute. \(categoryText)")
             } else {
                 self.errorMessage = "Signal too noisy. Keep finger steady and retry with firm coverage."
+                announceForAccessibility("Measurement failed. Signal was too noisy. Please try again.")
             }
         }
     }
@@ -252,7 +340,10 @@ extension HeartRateViewModel: HeartRateDetectorDelegate {
     nonisolated func heartRateDetector(_ detector: HeartRateDetector, didEncounterError error: HeartRateError) {
         Task { @MainActor in
             self.isRunning = false
+            self.measurementPhase = .idle
             self.errorMessage = error.localizedDescription
+            
+            announceForAccessibility("Error: \(error.localizedDescription)")
         }
     }
 }

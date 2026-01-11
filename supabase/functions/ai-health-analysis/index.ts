@@ -58,16 +58,29 @@ serve(async (req) => {
     )
 
     let userId = null
+    let healthProfileId = null
     if (authHeader) {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         userId = user?.id
+        
+        if (userId) {
+          const { data: profile } = await supabase
+            .from('health_profiles')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_primary', true)
+            .single()
+          healthProfileId = profile?.id
+        }
       } catch (e) {
-        console.log('Auth failed')
+        console.log('Auth/profile fetch failed:', e.message)
       }
     }
 
-    const prompt = `You are Swastrica! 💚 Analyze comprehensive health data:
+    const prompt = `You are Swastrica! 💚 A health assistant created by Swastricare team (product of Onwords). NEVER say you were made by Google or any other company.
+
+Analyze comprehensive health data:
 
 Activity: ${steps} steps, ${distance.toFixed(1)}km walked/run, ${exerciseMinutes} min exercise, ${standHours} stand hours
 Vitals: Heart Rate ${heartRate}bpm, Sleep ${sleepDuration}
@@ -132,12 +145,16 @@ No markdown, no code blocks, just pure JSON.`
         throw new Error('Invalid structure')
       }
 
-      if (userId) {
+      if (userId && healthProfileId) {
         try {
           await supabase.from('ai_insights').insert({
-            user_id: userId,
-            insight_type: 'health_analysis',
-            metrics_analyzed: { 
+            health_profile_id: healthProfileId,
+            insight_type: 'daily_health_analysis',
+            priority: 'medium',
+            title: 'Daily Health Analysis',
+            description: analysis.assessment,
+            detailed_analysis: analysis.insights,
+            supporting_data: { 
               steps, 
               heartRate, 
               sleepDuration,
@@ -146,11 +163,17 @@ No markdown, no code blocks, just pure JSON.`
               standHours,
               distance,
               bloodPressure,
-              weight
+              weight,
+              analyzed_at: new Date().toISOString()
             },
-            insights: analysis.insights,
-            recommendations: analysis.recommendations
+            data_sources: ['health_metrics', 'activity_data'],
+            data_range_start: new Date().toISOString().split('T')[0],
+            data_range_end: new Date().toISOString().split('T')[0],
+            suggested_actions: analysis.recommendations,
+            confidence_score: 0.85,
+            show_in_dashboard: true
           })
+          console.log('Health insight saved')
         } catch (e) {
           console.log('DB failed:', e.message)
         }
