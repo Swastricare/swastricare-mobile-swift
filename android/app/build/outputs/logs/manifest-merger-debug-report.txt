@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:1-27:12
-INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:1-27:12
-INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:1-27:12
-INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:1-27:12
+ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:1-25:12
+INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:1-25:12
+INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:1-25:12
+INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:1-25:12
 MERGED from [androidx.navigation:navigation-common:2.7.6] /Users/onwords/.gradle/caches/transforms-3/6d06b5b998e6ba7342119f7c381c99d7/transformed/navigation-common-2.7.6/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-runtime:2.7.6] /Users/onwords/.gradle/caches/transforms-3/5840fb3a06126c7b02dcb2ca292f6a99/transformed/navigation-runtime-2.7.6/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-common-ktx:2.7.6] /Users/onwords/.gradle/caches/transforms-3/3cfceeef3dace905f8936933b2fbb9c9/transformed/navigation-common-ktx-2.7.6/AndroidManifest.xml:2:1-7:12
@@ -82,8 +82,8 @@ ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swi
 	android:name
 		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:5:22-76
 application
-ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:7:5-25:19
-INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:7:5-25:19
+ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:7:5-23:19
+INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:7:5-23:19
 MERGED from [androidx.compose.ui:ui-test-manifest:1.6.0] /Users/onwords/.gradle/caches/transforms-3/dd026a6ea425cfa34c4b70ea3aaba68d/transformed/jetified-ui-test-manifest-1.6.0/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-test-manifest:1.6.0] /Users/onwords/.gradle/caches/transforms-3/dd026a6ea425cfa34c4b70ea3aaba68d/transformed/jetified-ui-test-manifest-1.6.0/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.0] /Users/onwords/.gradle/caches/transforms-3/162ec6f5f73e89cc34b807564f22b7e0/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
@@ -109,37 +109,33 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/onwords/.gradle/cach
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/4bb07ff4fd244f2b5e6e748600c19591/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:13:9-35
+		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:11:9-35
 	android:label
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:11:9-41
-	android:roundIcon
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:12:9-54
-	android:icon
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:10:9-43
+		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:10:9-41
 	android:allowBackup
 		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:9:9-35
 	android:theme
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:14:9-49
+		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:12:9-49
 	android:name
 		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:8:9-47
 activity#com.swasthicare.mobile.MainActivity
-ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:16:9-24:20
+ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:14:9-22:20
 	android:exported
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:18:13-36
+		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:16:13-36
 	android:theme
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:19:13-53
+		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:17:13-53
 	android:name
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:17:13-41
+		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:15:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:20:13-23:29
+ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:18:13-21:29
 action#android.intent.action.MAIN
-ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:21:17-69
+ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:19:17-69
 	android:name
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:21:25-66
+		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:19:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:22:17-77
+ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:20:17-77
 	android:name
-		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:22:27-74
+		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:20:27-74
 uses-sdk
 INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml

@@ -27,7 +27,7 @@
 18-->[androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/4bb07ff4fd244f2b5e6e748600c19591/transformed/core-1.12.0/AndroidManifest.xml:26:22-94
 19
 20    <application
-20-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:7:5-25:19
+20-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:7:5-23:19
 21        android:name="com.swasthicare.mobile.SwasthiCareApplication"
 21-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:8:9-47
 22        android:allowBackup="true"
@@ -36,125 +36,121 @@
 23-->[androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/4bb07ff4fd244f2b5e6e748600c19591/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
 24        android:debuggable="true"
 25        android:extractNativeLibs="false"
-26        android:icon="@mipmap/ic_launcher"
-26-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:10:9-43
-27        android:label="@string/app_name"
-27-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:11:9-41
-28        android:roundIcon="@mipmap/ic_launcher_round"
-28-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:12:9-54
-29        android:supportsRtl="true"
-29-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:13:9-35
-30        android:theme="@style/Theme.SwasthiCare" >
-30-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:14:9-49
-31        <activity
-31-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:16:9-24:20
-32            android:name="com.swasthicare.mobile.MainActivity"
-32-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:17:13-41
-33            android:exported="true"
-33-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:18:13-36
-34            android:theme="@style/Theme.SwasthiCare" >
-34-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:19:13-53
-35            <intent-filter>
-35-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:20:13-23:29
-36                <action android:name="android.intent.action.MAIN" />
-36-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:21:17-69
-36-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:21:25-66
-37
-38                <category android:name="android.intent.category.LAUNCHER" />
-38-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:22:17-77
-38-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:22:27-74
-39            </intent-filter>
-40        </activity>
-41        <activity
-41-->[androidx.compose.ui:ui-test-manifest:1.6.0] /Users/onwords/.gradle/caches/transforms-3/dd026a6ea425cfa34c4b70ea3aaba68d/transformed/jetified-ui-test-manifest-1.6.0/AndroidManifest.xml:23:9-25:39
-42            android:name="androidx.activity.ComponentActivity"
-42-->[androidx.compose.ui:ui-test-manifest:1.6.0] /Users/onwords/.gradle/caches/transforms-3/dd026a6ea425cfa34c4b70ea3aaba68d/transformed/jetified-ui-test-manifest-1.6.0/AndroidManifest.xml:24:13-63
-43            android:exported="true" />
-43-->[androidx.compose.ui:ui-test-manifest:1.6.0] /Users/onwords/.gradle/caches/transforms-3/dd026a6ea425cfa34c4b70ea3aaba68d/transformed/jetified-ui-test-manifest-1.6.0/AndroidManifest.xml:25:13-36
-44        <activity
-44-->[androidx.compose.ui:ui-tooling-android:1.6.0] /Users/onwords/.gradle/caches/transforms-3/162ec6f5f73e89cc34b807564f22b7e0/transformed/jetified-ui-tooling-release/AndroidManifest.xml:23:9-25:39
-45            android:name="androidx.compose.ui.tooling.PreviewActivity"
-45-->[androidx.compose.ui:ui-tooling-android:1.6.0] /Users/onwords/.gradle/caches/transforms-3/162ec6f5f73e89cc34b807564f22b7e0/transformed/jetified-ui-tooling-release/AndroidManifest.xml:24:13-71
-46            android:exported="true" />
-46-->[androidx.compose.ui:ui-tooling-android:1.6.0] /Users/onwords/.gradle/caches/transforms-3/162ec6f5f73e89cc34b807564f22b7e0/transformed/jetified-ui-tooling-release/AndroidManifest.xml:25:13-36
-47
-48        <provider
-48-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:9:9-17:20
-49            android:name="androidx.startup.InitializationProvider"
-49-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:10:13-67
-50            android:authorities="com.swasthicare.mobile.androidx-startup"
-50-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:11:13-68
-51            android:exported="false" >
-51-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:12:13-37
-52            <meta-data
-52-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:14:13-16:52
-53                android:name="io.github.jan.supabase.gotrue.SupabaseInitializer"
-53-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:15:17-81
-54                android:value="androidx.startup" />
-54-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:16:17-49
-55            <meta-data
-55-->[androidx.emoji2:emoji2:1.3.0] /Users/onwords/.gradle/caches/transforms-3/81d701fd4a15f74c07dab043a443889e/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
-56                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-56-->[androidx.emoji2:emoji2:1.3.0] /Users/onwords/.gradle/caches/transforms-3/81d701fd4a15f74c07dab043a443889e/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:30:17-75
-57                android:value="androidx.startup" />
-57-->[androidx.emoji2:emoji2:1.3.0] /Users/onwords/.gradle/caches/transforms-3/81d701fd4a15f74c07dab043a443889e/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:31:17-49
-58            <meta-data
-58-->[androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/c9d3c449a8484b0d4092461561846100/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:29:13-31:52
-59                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-59-->[androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/c9d3c449a8484b0d4092461561846100/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:30:17-78
-60                android:value="androidx.startup" />
-60-->[androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/c9d3c449a8484b0d4092461561846100/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:31:17-49
-61            <meta-data
-61-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/a1942c3748cd4bafead7eeef2186783c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:29:13-31:52
-62                android:name="com.russhwolf.settings.SettingsInitializer"
-62-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/a1942c3748cd4bafead7eeef2186783c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:30:17-74
-63                android:value="androidx.startup" />
-63-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/a1942c3748cd4bafead7eeef2186783c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:31:17-49
-64            <meta-data
-64-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
-65                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-65-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
-66                android:value="androidx.startup" />
-66-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
-67        </provider>
-68
-69        <receiver
-69-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
-70            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-70-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
-71            android:directBootAware="false"
-71-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
-72            android:enabled="true"
-72-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
-73            android:exported="true"
-73-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
-74            android:permission="android.permission.DUMP" >
-74-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
-75            <intent-filter>
-75-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
-76                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-76-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
-76-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
-77            </intent-filter>
-78            <intent-filter>
-78-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
-79                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-79-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
-79-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
-80            </intent-filter>
-81            <intent-filter>
-81-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
-82                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-82-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
-82-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
-83            </intent-filter>
-84            <intent-filter>
-84-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
-85                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-85-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
-85-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
-86            </intent-filter>
-87        </receiver>
-88    </application>
-89
-90</manifest>
+26        android:label="@string/app_name"
+26-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:10:9-41
+27        android:supportsRtl="true"
+27-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:11:9-35
+28        android:theme="@style/Theme.SwasthiCare" >
+28-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:12:9-49
+29        <activity
+29-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:14:9-22:20
+30            android:name="com.swasthicare.mobile.MainActivity"
+30-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:15:13-41
+31            android:exported="true"
+31-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:16:13-36
+32            android:theme="@style/Theme.SwasthiCare" >
+32-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:17:13-53
+33            <intent-filter>
+33-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:18:13-21:29
+34                <action android:name="android.intent.action.MAIN" />
+34-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:19:17-69
+34-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:19:25-66
+35
+36                <category android:name="android.intent.category.LAUNCHER" />
+36-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:20:17-77
+36-->/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:20:27-74
+37            </intent-filter>
+38        </activity>
+39        <activity
+39-->[androidx.compose.ui:ui-test-manifest:1.6.0] /Users/onwords/.gradle/caches/transforms-3/dd026a6ea425cfa34c4b70ea3aaba68d/transformed/jetified-ui-test-manifest-1.6.0/AndroidManifest.xml:23:9-25:39
+40            android:name="androidx.activity.ComponentActivity"
+40-->[androidx.compose.ui:ui-test-manifest:1.6.0] /Users/onwords/.gradle/caches/transforms-3/dd026a6ea425cfa34c4b70ea3aaba68d/transformed/jetified-ui-test-manifest-1.6.0/AndroidManifest.xml:24:13-63
+41            android:exported="true" />
+41-->[androidx.compose.ui:ui-test-manifest:1.6.0] /Users/onwords/.gradle/caches/transforms-3/dd026a6ea425cfa34c4b70ea3aaba68d/transformed/jetified-ui-test-manifest-1.6.0/AndroidManifest.xml:25:13-36
+42        <activity
+42-->[androidx.compose.ui:ui-tooling-android:1.6.0] /Users/onwords/.gradle/caches/transforms-3/162ec6f5f73e89cc34b807564f22b7e0/transformed/jetified-ui-tooling-release/AndroidManifest.xml:23:9-25:39
+43            android:name="androidx.compose.ui.tooling.PreviewActivity"
+43-->[androidx.compose.ui:ui-tooling-android:1.6.0] /Users/onwords/.gradle/caches/transforms-3/162ec6f5f73e89cc34b807564f22b7e0/transformed/jetified-ui-tooling-release/AndroidManifest.xml:24:13-71
+44            android:exported="true" />
+44-->[androidx.compose.ui:ui-tooling-android:1.6.0] /Users/onwords/.gradle/caches/transforms-3/162ec6f5f73e89cc34b807564f22b7e0/transformed/jetified-ui-tooling-release/AndroidManifest.xml:25:13-36
+45
+46        <provider
+46-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:9:9-17:20
+47            android:name="androidx.startup.InitializationProvider"
+47-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:10:13-67
+48            android:authorities="com.swasthicare.mobile.androidx-startup"
+48-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:11:13-68
+49            android:exported="false" >
+49-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:12:13-37
+50            <meta-data
+50-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:14:13-16:52
+51                android:name="io.github.jan.supabase.gotrue.SupabaseInitializer"
+51-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:15:17-81
+52                android:value="androidx.startup" />
+52-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/4fb3fbe6abea429143f921a02b2ef540/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:16:17-49
+53            <meta-data
+53-->[androidx.emoji2:emoji2:1.3.0] /Users/onwords/.gradle/caches/transforms-3/81d701fd4a15f74c07dab043a443889e/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+54                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+54-->[androidx.emoji2:emoji2:1.3.0] /Users/onwords/.gradle/caches/transforms-3/81d701fd4a15f74c07dab043a443889e/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:30:17-75
+55                android:value="androidx.startup" />
+55-->[androidx.emoji2:emoji2:1.3.0] /Users/onwords/.gradle/caches/transforms-3/81d701fd4a15f74c07dab043a443889e/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:31:17-49
+56            <meta-data
+56-->[androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/c9d3c449a8484b0d4092461561846100/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:29:13-31:52
+57                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+57-->[androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/c9d3c449a8484b0d4092461561846100/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:30:17-78
+58                android:value="androidx.startup" />
+58-->[androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/c9d3c449a8484b0d4092461561846100/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:31:17-49
+59            <meta-data
+59-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/a1942c3748cd4bafead7eeef2186783c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:29:13-31:52
+60                android:name="com.russhwolf.settings.SettingsInitializer"
+60-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/a1942c3748cd4bafead7eeef2186783c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:30:17-74
+61                android:value="androidx.startup" />
+61-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/a1942c3748cd4bafead7eeef2186783c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:31:17-49
+62            <meta-data
+62-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+63                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+63-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+64                android:value="androidx.startup" />
+64-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+65        </provider>
+66
+67        <receiver
+67-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+68            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+68-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+69            android:directBootAware="false"
+69-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+70            android:enabled="true"
+70-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+71            android:exported="true"
+71-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+72            android:permission="android.permission.DUMP" >
+72-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+73            <intent-filter>
+73-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+74                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+74-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+74-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+75            </intent-filter>
+76            <intent-filter>
+76-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+77                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+77-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+77-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+78            </intent-filter>
+79            <intent-filter>
+79-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+80                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+80-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+80-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+81            </intent-filter>
+82            <intent-filter>
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+83                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+83-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+83-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/3eaa4505a91a728f00a5142ea2e28b0e/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+84            </intent-filter>
+85        </receiver>
+86    </application>
+87
+88</manifest>
