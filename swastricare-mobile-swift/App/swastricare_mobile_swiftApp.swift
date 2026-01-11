@@ -186,8 +186,8 @@ struct swastricare_mobile_swiftApp: App {
         
         print("✅ Health profile check: User is authenticated, proceeding with check")
         
-        // Small delay to ensure auth session is fully ready
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        // IMPORTANT: Add 2-second minimum delay to show splash screen animations
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2.0 seconds
         
         // Retry up to 3 times if session isn't ready
         var attempts = 0
