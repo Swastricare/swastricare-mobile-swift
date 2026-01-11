@@ -72,71 +72,67 @@ struct HeartRateProgressOverlay: View {
     let signalQuality: SignalQuality
     
     var body: some View {
-        VStack {
-            Spacer()
+        VStack(spacing: 8) {
+            // Warning when signal is poor
+            if signalQuality == .poor {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    Text("Place finger firmly on camera")
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(.orange)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.orange.opacity(0.15))
+                )
+            }
             
-            VStack(spacing: 12) {
-                // Warning when signal is poor
-                if signalQuality == .poor {
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text("Place finger firmly on camera")
-                            .font(.caption.weight(.medium))
-                            .foregroundColor(.orange)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color.orange.opacity(0.15))
-                    )
+            HStack(spacing: 12) {
+                // Time remaining
+                VStack(spacing: 2) {
+                    Text(timeRemainingFormatted)
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundColor(.primary)
+                        .contentTransition(.numericText())
+                    Text(signalQuality == .poor ? "paused" : "remaining")
+                        .font(.caption2)
+                        .foregroundColor(signalQuality == .poor ? .orange : .secondary)
+                        .textCase(.uppercase)
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Time remaining: \(Int(timeRemaining)) seconds")
                 
-                HStack(spacing: 20) {
-                    // Time remaining
-                    VStack(spacing: 4) {
-                        Text(timeRemainingFormatted)
-                            .font(.system(size: 24, weight: .bold, design: .monospaced))
-                            .foregroundColor(.primary)
-                            .contentTransition(.numericText())
-                        Text(signalQuality == .poor ? "paused" : "remaining")
-                            .font(.caption2)
-                            .foregroundColor(signalQuality == .poor ? .orange : .secondary)
-                            .textCase(.uppercase)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color(UIColor.secondarySystemBackground))
-                    )
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Time remaining: \(Int(timeRemaining)) seconds")
-                    
-                    // Progress percentage
-                    VStack(spacing: 4) {
-                        Text("\(Int(progress * 100))%")
-                            .font(.system(size: 24, weight: .bold, design: .monospaced))
-                            .foregroundColor(.red)
-                            .contentTransition(.numericText())
-                        Text("complete")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color(UIColor.secondarySystemBackground))
-                    )
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(Int(progress * 100)) percent complete")
+                // Progress percentage
+                VStack(spacing: 2) {
+                    Text("\(Int(progress * 100))%")
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundColor(.red)
+                        .contentTransition(.numericText())
+                    Text("complete")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(Int(progress * 100)) percent complete")
             }
         }
-        .offset(y: 190)
         .animation(.easeInOut(duration: 0.3), value: signalQuality)
     }
     

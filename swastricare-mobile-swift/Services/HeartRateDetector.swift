@@ -420,6 +420,12 @@ class HeartRateDetector: NSObject {
             return .poor
         }
         
+        // CRITICAL: Check for ambient light (all channels high = no finger)
+        // If green and blue are also very bright, it's NOT a finger
+        if green > 100 && blue > 100 {
+            return .poor  // Ambient light, not finger
+        }
+        
         // Color dominance check - finger with blood should be RED dominant
         // When finger covers camera+torch: R>>G, R>>B (blood absorbs green/blue)
         let rednessRatio = red / max(green + blue, 1)

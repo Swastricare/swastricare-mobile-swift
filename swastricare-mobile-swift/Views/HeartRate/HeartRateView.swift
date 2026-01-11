@@ -32,17 +32,17 @@ struct HeartRateView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
                 
-                Spacer()
+                Spacer(minLength: 20)
                 
                 // Main Measurement Area
                 measurementArea
                 
-                Spacer()
+                Spacer(minLength: 30)
                 
                 // BPM & Waveform Section
                 bpmSection
                 
-                Spacer()
+                Spacer(minLength: 20)
                 
                 // Bottom Action
                 actionSection
@@ -195,16 +195,17 @@ struct HeartRateView: View {
                 borderPulse: $borderPulse
             )
             
-            // Time/Progress overlay
+            // Time/Progress overlay - positioned below camera
             if viewModel.isRunning {
                 HeartRateProgressOverlay(
                     progress: viewModel.progress,
                     measurementDuration: measurementDuration,
                     signalQuality: viewModel.signalQuality
                 )
+                .offset(y: 170)
             }
         }
-        .frame(height: 340)
+        .frame(height: 320)
         .opacity(showContent ? 1 : 0)
         .scaleEffect(showContent ? 1 : 0.8)
         .animation(.spring(response: 0.5, dampingFraction: 0.7), value: showContent)
@@ -213,11 +214,11 @@ struct HeartRateView: View {
     // MARK: - BPM Section
     
     private var bpmSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             // BPM Display with heartbeat animation
             HStack(alignment: .lastTextBaseline, spacing: 8) {
                 Text(viewModel.bpm > 0 ? "\(viewModel.bpm)" : "--")
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                     .contentTransition(.numericText())
                     .animation(.spring(response: 0.3), value: viewModel.bpm)
@@ -225,7 +226,7 @@ struct HeartRateView: View {
                 Text("BPM")
                     .font(.title3.weight(.medium))
                     .foregroundColor(.secondary)
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 8)
             }
             .scaleEffect(heartbeatScale)
             .animation(.spring(response: 0.15, dampingFraction: 0.5), value: heartbeatScale)
@@ -234,8 +235,9 @@ struct HeartRateView: View {
             
             // Waveform
             HeartRateWaveformView(isRunning: viewModel.isRunning, bpm: viewModel.bpm)
-                .frame(height: 100)
+                .frame(height: 80)
                 .padding(.horizontal, 20)
+                .padding(.bottom, 8)
                 .accessibilityHidden(true)
             
             // Signal Quality Indicator
