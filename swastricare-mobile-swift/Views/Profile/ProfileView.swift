@@ -12,7 +12,7 @@ struct ProfileView: View {
     // MARK: - ViewModel
     
     @StateObject private var viewModel = DependencyContainer.shared.profileViewModel
-    @StateObject private var hydrationViewModel = HydrationViewModel()
+    @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     
     // MARK: - State
     

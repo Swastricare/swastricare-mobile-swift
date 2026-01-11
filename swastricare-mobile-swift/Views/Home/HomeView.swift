@@ -626,7 +626,7 @@ struct HomeView: View {
             MedicationsView()
         }
         .sheet(isPresented: $showHydration) {
-            HydrationView()
+            HydrationView(viewModel: hydrationViewModel)
         }
     }
     
@@ -985,78 +985,128 @@ private struct HydrationQuickActionButton: View {
     let dailyGoal: Int
     let action: () -> Void
     
-    private var progress: Double {
+    // Start at 1.0 (100%)
+    @State private var visualProgress: Double = 1.0
+    @State private var wavePhase: Double = 0.0
+    
+    private var targetProgress: Double {
         guard dailyGoal > 0 else { return 0 }
         return min(1.0, Double(currentIntake) / Double(dailyGoal))
     }
     
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    ZStack {
-                        Circle()
-                            .fill(Color.cyan.opacity(0.15))
-                            .frame(width: 40, height: 40)
-                        Image(systemName: "drop.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.cyan)
-                    }
-                    Spacer()
-                    Text("\(Int(progress * 100))%")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.cyan)
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Hydration")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    HStack(spacing: 2) {
-                        Text("\(currentIntake)")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        Text("/ \(dailyGoal) ml")
-                            .foregroundColor(.secondary)
-                    }
-                    .font(.caption)
-                }
-                
-                // Enhanced Progress Bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white.opacity(0.1))
-                            .frame(height: 6)
+            ZStack {
+                // Background & Water Animation
+                GeometryReader { geo in
+                    ZStack(alignment: .bottom) {
+                        // Base background
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.blue.opacity(0.05))
                         
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(
-                                LinearGradient(
-                                    colors: [.cyan, .blue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: geometry.size.width * progress, height: 6)
-                            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: progress)
+                        // Water Waves
+                        // We control the height of the water view directly via frame height
+                        // This ensures smooth height animation without cross-fading
+                        if visualProgress > 0.01 {
+                            ZStack(alignment: .bottom) {
+                                // Back wave
+                                WaterWave(amplitude: geo.size.height * 0.04, offset: wavePhase)
+                                    .fill(Color.cyan.opacity(0.3))
+                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                
+                                // Front wave
+                                WaterWave(amplitude: geo.size.height * 0.03, offset: wavePhase + 1.5)
+                                    .fill(LinearGradient(
+                                        colors: [.cyan.opacity(0.6), .blue.opacity(0.6)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ))
+                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                            }
+                            // Mask the waves to strictly stay within the card bounds
+                            .mask(RoundedRectangle(cornerRadius: 24))
+                            // Clip the water to the rounded corners of the card
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                        }
                     }
                 }
-                .frame(height: 6)
+                
+                // Content Overlay
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        // Icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "drop.fill")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        
+                        // Percentage
+                        Text("\(Int(visualProgress * 100))%")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                            .contentTransition(.numericText(value: visualProgress))
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Hydration")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white.opacity(0.9))
+                        
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(currentIntake)")
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text("/ \(dailyGoal) ml")
+                                .font(.footnote)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                }
+                .padding(20)
+                
+                // Glass border
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(LinearGradient(
+                        colors: [.white.opacity(0.5), .white.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ), lineWidth: 1)
             }
-            .padding(16)
+            .frame(height: 150)
             .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.05))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-            )
+            .shadow(color: Color.blue.opacity(0.15), radius: 10, x: 0, y: 5)
         }
         .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            // 1. Start continuous wave animation
+            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                wavePhase = .pi * 2
+            }
+            
+            // 2. Animate from 100% down to actual value on load
+            // Using frame animation is robust and won't fade
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.easeInOut(duration: 2.0)) {
+                    visualProgress = targetProgress
+                }
+            }
+        }
+        .onChange(of: targetProgress) { _, newValue in
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                visualProgress = newValue
+            }
+        }
     }
 }
 
@@ -1339,6 +1389,56 @@ private struct AnalysisResultView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Water Wave Shape
+
+struct WaterWave: Shape {
+    var amplitude: CGFloat
+    var offset: Double
+
+    var animatableData: Double {
+        get { offset }
+        set { offset = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        
+        // We draw the wave relative to the top of the rect (y=0)
+        // The wave oscillates around y=0.
+        // Points with negative y will be drawn above the top edge (which is fine)
+        
+        let width = rect.width
+        let height = rect.height
+        
+        // Start at left edge
+        // Start the path from a point high enough to accommodate the wave's peak (amplitude)
+        // But since we are filling DOWN, we actually want the wave line to be at y=0, and we fill everything below it.
+        // The frame height determines how much "water" is visible.
+        // The wave should oscillate around y=0.
+        
+        path.move(to: CGPoint(x: 0, y: 0)) // Start at top-left
+        
+        for x in stride(from: 0, to: width, by: 2) {
+            let relativeX = x / width
+            // 2 * pi for one full cycle across width
+            let angle = relativeX * .pi * 2 + offset
+            let y = sin(angle) * amplitude
+            
+            // We draw the line. y values > 0 go down into the rect. y < 0 go up (outside rect).
+            // This is correct behavior for a top-edge wave.
+            path.addLine(to: CGPoint(x: x, y: y))
+        }
+        
+        // Close the shape at the bottom
+        // Extend far down to ensure we cover the area even if the frame is slightly mismatched or during animation
+        path.addLine(to: CGPoint(x: width, y: height + amplitude)) 
+        path.addLine(to: CGPoint(x: 0, y: height + amplitude))
+        path.closeSubpath()
+        
+        return path
     }
 }
 
