@@ -124,26 +124,17 @@ struct HomeView: View {
                         authorizationBanner
                     }
                     
-                    // Daily Activity Title
-                    Text("Daily Activity")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .padding(.top, 10)
-                    
                     // Human Body Image with Daily Activity Details
                     humanBodyImageWithDetails
                         .padding(.top, 0)
                     
                     // Health Vitals Grid
                     healthVitalsSection
-                        .padding(.top, 16)
+                        .padding(.top, 8)
                     
                     // Quick Actions
                     quickActionsSection
-                        .padding(.top, 16)
+                        .padding(.top, 8)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                     
                     // Tracker Section
@@ -204,15 +195,30 @@ struct HomeView: View {
     private var humanBodyImageWithDetails: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
+                
+                // 3. Ambient Glow behind the model
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color(hex: "2E3192").opacity(0.3), // Brand Blue Glow
+                        Color.clear
+                    ]),
+                    center: .trailing, // Center glow on the right side
+                    startRadius: 50,
+                    endRadius: 250
+                )
+                .offset(x: 50, y: 0) // Shift slightly right
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.easeIn(duration: 1.0), value: hasAppeared)
+
                 // Human Body 3D Model on the right
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 350)
+                        .frame(height: 380) // Slightly taller
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
                         .offset(x: geometry.size.width * 0.16)
-                        .offset(y: geometry.size.height * 0.20)
+                        .offset(y: geometry.size.height * 0.15) // Adjusted vertical offset
                         .allowsHitTesting(false) // Disable all touch interactions
                         .clipped()
                         .mask(
@@ -238,12 +244,12 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     
                     // Stats List - Vertical
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 12) { // Tighter spacing for cards
                         DailyActivityStatItem(
                             icon: "flame.fill",
                             color: .orange,
                             value: "\(viewModel.activeCalories)",
-                            unit: "kcal",
+                            unit: "Active Calories",
                             animationDelay: 0.3,
                             hasAppeared: hasAppeared
                         )
@@ -252,7 +258,7 @@ struct HomeView: View {
                             icon: "figure.walk",
                             color: .green,
                             value: "\(viewModel.stepCount)",
-                            unit: "steps",
+                            unit: "Step Count",
                             animationDelay: 0.4,
                             hasAppeared: hasAppeared
                         )
@@ -261,7 +267,7 @@ struct HomeView: View {
                             icon: "clock.fill",
                             color: .blue,
                             value: "\(viewModel.exerciseMinutes)",
-                            unit: "mins",
+                            unit: "Exercise Min",
                             animationDelay: 0.5,
                             hasAppeared: hasAppeared
                         )
@@ -270,18 +276,18 @@ struct HomeView: View {
                             icon: "figure.stand",
                             color: .purple,
                             value: "\(viewModel.standHours)",
-                            unit: "/ 12 hrs",
+                            unit: "Stand Hours",
                             animationDelay: 0.6,
                             hasAppeared: hasAppeared
                         )
                     }
                 }
                 .padding(.horizontal, 20)
-                .frame(maxWidth: geometry.size.width * 0.5, alignment: .leading) // Left half of screen
+                .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading) // Give slightly more space to stats
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: hasAppeared)
             }
         }
-        .frame(height: 350)
+        .frame(height: 380) // Match model height
     }
     
     private var authorizationBanner: some View {
@@ -397,9 +403,10 @@ struct HomeView: View {
     }
     
     private var healthVitalsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Health Vitals")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.title2)
+                .fontWeight(.bold)
                 .padding(.horizontal)
                 .opacity(hasAppeared ? 1 : 0)
                 .offset(y: hasAppeared ? 0 : -10)
@@ -409,7 +416,7 @@ struct HomeView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 8) {
+            ], spacing: 12) {
                 // Heart Rate card - tappable to measure
                 Button(action: {
                     showHeartRateMeasurement = true
@@ -599,10 +606,10 @@ struct HomeView: View {
     }
 
     private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Quick Actions")
-                .font(.title3)
-                .fontWeight(.semibold)
+                .font(.title2)
+                .fontWeight(.bold)
                 .padding(.horizontal)
                 .opacity(quickActionsVisible ? 1 : 0)
                 .offset(y: quickActionsVisible ? 0 : -10)
@@ -799,45 +806,55 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 
 // MARK: - Supporting Views
 
-private struct DailyActivityStatItem: View {
-    let icon: String
-    let color: Color
-    let value: String
-    let unit: String
-    let animationDelay: Double
-    let hasAppeared: Bool
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Icon with background
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.15))
-                    .frame(width: 36, height: 36)
+    private struct DailyActivityStatItem: View {
+        let icon: String
+        let color: Color
+        let value: String
+        let unit: String
+        let animationDelay: Double
+        let hasAppeared: Bool
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                // Icon with background
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(color)
+                }
                 
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(color)
-            }
-            
-            // Value and unit
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.primary)
+                // Value and unit
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 24, weight: .bold)) // Larger & Bold
+                        .foregroundColor(.primary)
+                    
+                    Text(unit)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
                 
-                Text(unit)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                Spacer()
             }
-            
-            Spacer()
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.05)) // Subtle glass effect
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            )
+            .opacity(hasAppeared ? 1 : 0)
+            .offset(x: hasAppeared ? 0 : -20)
+            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(animationDelay), value: hasAppeared)
         }
-        .opacity(hasAppeared ? 1 : 0)
-        .offset(x: hasAppeared ? 0 : -20)
-        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(animationDelay), value: hasAppeared)
     }
-}
 
 private struct StatRow: View {
     let icon: String
@@ -871,13 +888,20 @@ private struct VitalCard: View {
     @State private var cardAppeared = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 10) {
+            // Header: Icon and Camera Badge
             HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(color)
-                    .scaleEffect(cardAppeared ? 1 : 0)
-                    .rotationEffect(.degrees(cardAppeared ? 0 : -180))
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 32, height: 32)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(color)
+                }
+                .scaleEffect(cardAppeared ? 1 : 0)
+                .rotationEffect(.degrees(cardAppeared ? 0 : -180))
                 
                 Spacer()
                 
@@ -885,33 +909,48 @@ private struct VitalCard: View {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
+                        .padding(5)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
                         .opacity(cardAppeared ? 1 : 0)
                 }
             }
             
-            Text(title)
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
-                .opacity(cardAppeared ? 1 : 0)
-            
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 16, weight: .bold))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
                     .opacity(cardAppeared ? 1 : 0)
-                    .offset(x: cardAppeared ? 0 : -10)
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
+                
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(.primary)
                         .opacity(cardAppeared ? 1 : 0)
+                        .offset(x: cardAppeared ? 0 : -10)
+                    
+                    if !unit.isEmpty {
+                        Text(unit)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .opacity(cardAppeared ? 1 : 0)
+                    }
                 }
             }
         }
-        .padding(10)
-        .glass(cornerRadius: 12)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+        )
         .opacity(cardAppeared ? 1 : 0)
-        .scaleEffect(cardAppeared ? 1 : 0.7)
-        .offset(y: cardAppeared ? 0 : 30)
+        .scaleEffect(cardAppeared ? 1 : 0.9)
+        .offset(y: cardAppeared ? 0 : 20)
         .onChange(of: hasAppeared) { oldValue, newValue in
             if newValue && !cardAppeared {
                 DispatchQueue.main.asyncAfter(deadline: .now() + animationDelay) {
@@ -969,51 +1008,71 @@ private struct HydrationQuickActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: "drop.fill")
-                    .font(.title2)
-                    .foregroundColor(.cyan)
-                
-                Text("Hydration")
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                
-                // Current / Target
-                HStack(spacing: 3) {
-                    Text("\(currentIntake)")
-                        .font(.system(size: 11, weight: .semibold))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(Color.cyan.opacity(0.15))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "drop.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.cyan)
+                    }
+                    Spacer()
+                    Text("\(Int(progress * 100))%")
+                        .font(.caption)
+                        .fontWeight(.bold)
                         .foregroundColor(.cyan)
-                    Text("/")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                    Text("\(dailyGoal)")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.secondary)
-                    Text("ml")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
                 }
                 
-                // Progress bar
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Hydration")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: 2) {
+                        Text("\(currentIntake)")
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        Text("/ \(dailyGoal) ml")
+                            .foregroundColor(.secondary)
+                    }
+                    .font(.caption)
+                }
+                
+                // Enhanced Progress Bar
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 3)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.1))
+                            .frame(height: 6)
                         
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.cyan)
-                            .frame(width: geometry.size.width * progress, height: 3)
-                            .animation(.easeInOut(duration: 0.3), value: progress)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.cyan, .blue],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * progress, height: 6)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: progress)
                     }
                 }
-                .frame(height: 3)
-                .padding(.horizontal, 4)
+                .frame(height: 6)
             }
+            .padding(16)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .glass(cornerRadius: 12)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            )
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -1029,51 +1088,71 @@ private struct MedicationQuickActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: "pills.fill")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-                
-                Text("Medications")
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                
-                // Taken / Total
-                HStack(spacing: 3) {
-                    Text("\(takenCount)")
-                        .font(.system(size: 11, weight: .semibold))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue.opacity(0.15))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "pills.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.blue)
+                    }
+                    Spacer()
+                    Text("\(Int(progress * 100))%")
+                        .font(.caption)
+                        .fontWeight(.bold)
                         .foregroundColor(.blue)
-                    Text("/")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                    Text("\(totalCount)")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.secondary)
-                    Text("taken")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
                 }
                 
-                // Progress bar
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Medications")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: 2) {
+                        Text("\(takenCount)")
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        Text("/ \(totalCount) taken")
+                            .foregroundColor(.secondary)
+                    }
+                    .font(.caption)
+                }
+                
+                // Enhanced Progress Bar
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 3)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.1))
+                            .frame(height: 6)
                         
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.blue)
-                            .frame(width: geometry.size.width * progress, height: 3)
-                            .animation(.easeInOut(duration: 0.3), value: progress)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.blue, .indigo],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * progress, height: 6)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: progress)
                     }
                 }
-                .frame(height: 3)
-                .padding(.horizontal, 4)
+                .frame(height: 6)
             }
+            .padding(16)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .glass(cornerRadius: 12)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            )
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
