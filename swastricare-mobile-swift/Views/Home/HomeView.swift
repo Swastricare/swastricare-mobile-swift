@@ -109,7 +109,7 @@ struct HomeView: View {
             PremiumBackground()
             
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
+                VStack(spacing: 0) {
                     // Living Status Header
                     LivingStatusHeader(
                         userName: userName,
@@ -117,8 +117,6 @@ struct HomeView: View {
                         status: healthStatus,
                         greeting: timeBasedGreeting
                     )
-                    .padding(.horizontal)
-                    .padding(.top, 4)
                     .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
                     
                     // Health Authorization Banner
@@ -126,19 +124,31 @@ struct HomeView: View {
                         authorizationBanner
                     }
                     
+                    // Daily Activity Title
+                    Text("Daily Activity")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.top, 10)
+                    
                     // Human Body Image with Daily Activity Details
                     humanBodyImageWithDetails
-                        .padding(.top, 8)
+                        .padding(.top, 0)
                     
                     // Health Vitals Grid
                     healthVitalsSection
+                        .padding(.top, 16)
                     
                     // Quick Actions
                     quickActionsSection
+                        .padding(.top, 16)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                     
                     // Tracker Section
                     trackerSection
+                        .padding(.top, 16)
                         .modifier(ScrollAnimationModifier(isVisible: $trackerVisible))
                 }
                 .padding(.top)
@@ -226,12 +236,6 @@ struct HomeView: View {
                 
                 // Daily Activity Details on the left (without card)
                 VStack(alignment: .leading, spacing: 20) {
-                    // Title Section
-                    Text("Daily Activity")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.primary)
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(x: hasAppeared ? 0 : -20)
                     
                     // Stats List - Vertical
                     VStack(alignment: .leading, spacing: 14) {
@@ -676,83 +680,49 @@ struct HomeView: View {
         @State private var isPulsing = false
         
         var body: some View {
-            HStack {
-                // Left: System Status
-                HStack(spacing: 12) {
-                    // Pulsing Indicator
-                    ZStack {
-                        // Ripple 1 (Main Expansion)
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.red.opacity(0.5))
-                            .scaleEffect(isPulsing ? 1.5 : 1.0)
-                            .opacity(isPulsing ? 0 : 0.5)
-                            .animation(
-                                .easeOut(duration: 2).repeatForever(autoreverses: false),
-                                value: isPulsing
-                            )
-                        
-                        // Ripple 2 (Echo/Delay)
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.red.opacity(0.5))
-                            .scaleEffect(isPulsing ? 1.5 : 1.0)
-                            .opacity(isPulsing ? 0 : 0.3)
-                            .animation(
-                                .easeOut(duration: 2).repeatForever(autoreverses: false).delay(1.0),
-                                value: isPulsing
-                            )
-                        
-                        // Core "Breathing" Heart
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 24))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [.red, Color(hex: "FF512F")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: .red.opacity(0.5), radius: 8)
-                            .scaleEffect(isPulsing ? 1.1 : 0.9)
-                            .animation(
-                                .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
-                                value: isPulsing
-                            )
-                    }
-                    .onAppear {
-                        isPulsing = true
-                    }
+            HStack(alignment: .top) {
+                // Left: Text Info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(greeting)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(status.color)
                     
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(greeting), \(userName)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(status.title)
-                            .font(.headline)
+                    HStack(alignment: .center, spacing: 8) {
+                        Text(userName)
+                            .font(.largeTitle)
                             .fontWeight(.bold)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [.primary, .primary.opacity(0.8)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        
+                        // Pulsing Heart
+                        ZStack {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.red)
+                                .scaleEffect(isPulsing ? 1.2 : 1.0)
+                                .opacity(isPulsing ? 1.0 : 0.8)
+                                .animation(
+                                    .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                                    value: isPulsing
                                 )
-                            )
+                        }
+                        .onAppear {
+                            isPulsing = true
+                        }
                     }
                 }
                 
                 Spacer()
                 
-                // Right: Profile & Actions
-                HStack(spacing: 12) {
-                    // Notification Bell (Placeholder)
+                // Right: Actions
+                HStack(spacing: 16) {
+                    // Notification Bell
                     Button(action: {}) {
                         Image(systemName: "bell.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.primary)
-                            .frame(width: 36, height: 36)
-                            .glass(cornerRadius: 18)
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
                     }
                     
                     // Profile Image
@@ -765,18 +735,19 @@ struct HomeView: View {
                                     Color.gray.opacity(0.3)
                                 }
                             } else {
-                                Image(systemName: "person.fill")
-                                    .foregroundColor(.primary)
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .foregroundColor(.gray)
                             }
                         }
-                        .frame(width: 36, height: 36)
+                        .frame(width: 40, height: 40)
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
                     }
                 }
             }
-            .padding()
-            .glass(cornerRadius: 20)
+            .padding(.horizontal)
+            .padding(.vertical, 10)
         }
     }
 }
