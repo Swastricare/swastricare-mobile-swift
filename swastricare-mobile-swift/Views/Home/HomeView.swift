@@ -404,14 +404,6 @@ struct HomeView: View {
     
     private var healthVitalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Health Vitals")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
-                .opacity(hasAppeared ? 1 : 0)
-                .offset(y: hasAppeared ? 0 : -10)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.7), value: hasAppeared)
-            
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible()),
@@ -607,14 +599,6 @@ struct HomeView: View {
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Actions")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
-                .opacity(quickActionsVisible ? 1 : 0)
-                .offset(y: quickActionsVisible ? 0 : -10)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: quickActionsVisible)
-            
             HStack(spacing: 12) {
                 MedicationQuickActionButton(
                     takenCount: medicationViewModel.takenCount,
