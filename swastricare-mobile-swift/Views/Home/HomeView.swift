@@ -623,7 +623,7 @@ struct HomeView: View {
             .padding(.horizontal)
         }
         .sheet(isPresented: $showMedications) {
-            MedicationsView()
+            MedicationsView(viewModel: medicationViewModel)
         }
         .sheet(isPresented: $showHydration) {
             HydrationView(viewModel: hydrationViewModel)
@@ -1115,78 +1115,130 @@ private struct MedicationQuickActionButton: View {
     let totalCount: Int
     let action: () -> Void
     
-    private var progress: Double {
+    // Start at 0%
+    @State private var visualProgress: Double = 0.0
+    
+    private var targetProgress: Double {
         guard totalCount > 0 else { return 0 }
         return min(1.0, Double(takenCount) / Double(totalCount))
     }
     
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    ZStack {
-                        Circle()
-                            .fill(Color.blue.opacity(0.15))
-                            .frame(width: 40, height: 40)
-                        Image(systemName: "pills.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.blue)
-                    }
-                    Spacer()
-                    Text("\(Int(progress * 100))%")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.blue)
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Medications")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    HStack(spacing: 2) {
-                        Text("\(takenCount)")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        Text("/ \(totalCount) taken")
-                            .foregroundColor(.secondary)
-                    }
-                    .font(.caption)
-                }
-                
-                // Enhanced Progress Bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white.opacity(0.1))
-                            .frame(height: 6)
+            ZStack {
+                // Background & "Potion" Animation
+                GeometryReader { geo in
+                    ZStack(alignment: .bottom) {
+                        // Base background
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color(hex: "5856D6").opacity(0.05)) // Indigo base
                         
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(
-                                LinearGradient(
-                                    colors: [.blue, .indigo],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: geometry.size.width * progress, height: 6)
-                            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: progress)
+                        // Liquid Fill
+                        if visualProgress > 0.01 {
+                            ZStack {
+                                // Gradient Fill
+                                RoundedRectangle(cornerRadius: 24)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color(hex: "AF52DE").opacity(0.6), // Purple
+                                                Color(hex: "5856D6").opacity(0.6)  // Indigo
+                                            ],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                                    // Height from bottom
+                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                                
+                                // Bubbles Effect (Only visible inside the filled area)
+                                RisingBubblesEffect(color: .white.opacity(0.3))
+                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                                    // Mask to liquid area
+                                    .mask(
+                                        RoundedRectangle(cornerRadius: 24)
+                                            .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                                    )
+                            }
+                            // Clip to card
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                        }
                     }
                 }
-                .frame(height: 6)
+                
+                // Content Overlay
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        // Icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "pills.fill")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        
+                        // Percentage
+                        Text("\(Int(visualProgress * 100))%")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                            .contentTransition(.numericText(value: visualProgress))
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Medications")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white.opacity(0.9))
+                        
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(takenCount)")
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text("/ \(totalCount) taken")
+                                .font(.footnote)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                }
+                .padding(20)
+                
+                // Glass border
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(LinearGradient(
+                        colors: [.white.opacity(0.5), .white.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ), lineWidth: 1)
             }
-            .padding(16)
+            .frame(height: 150)
             .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.05))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-            )
+            .shadow(color: Color(hex: "5856D6").opacity(0.15), radius: 10, x: 0, y: 5)
         }
         .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            // Animate from 0 to target on load
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                    visualProgress = targetProgress
+                }
+            }
+        }
+        .onChange(of: targetProgress) { _, newValue in
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                visualProgress = newValue
+            }
+        }
     }
 }
 
@@ -1393,6 +1445,67 @@ private struct AnalysisResultView: View {
 }
 
 // MARK: - Water Wave Shape
+
+struct RisingBubblesEffect: View {
+    let color: Color
+    
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(0..<12) { i in
+                    Bubble(
+                        delay: Double(i) * 0.5,
+                        size: CGFloat.random(in: 4...10),
+                        xRange: 0...geo.size.width,
+                        color: color
+                    )
+                }
+            }
+        }
+    }
+    
+    struct Bubble: View {
+        let delay: Double
+        let size: CGFloat
+        let xRange: ClosedRange<CGFloat>
+        let color: Color
+        
+        @State private var offset: CGFloat = 200
+        @State private var xOffset: CGFloat = 0
+        @State private var opacity: Double = 0
+        
+        var body: some View {
+            Circle()
+                .fill(color)
+                .frame(width: size, height: size)
+                .offset(x: xOffset, y: offset)
+                .opacity(opacity)
+                .onAppear {
+                    // Randomize x position for each loop
+                    xOffset = CGFloat.random(in: xRange)
+                    
+                    withAnimation(
+                        .linear(duration: 4.0)
+                        .repeatForever(autoreverses: false)
+                        .delay(delay)
+                    ) {
+                        offset = -200 // Move up
+                        opacity = 1 // Fade in/out logic handled by modifier?
+                        // Simple opacity fade:
+                    }
+                    
+                    // Separate animation for opacity to fade in and out
+                    withAnimation(
+                        .easeInOut(duration: 2.0)
+                        .repeatForever(autoreverses: true)
+                        .delay(delay)
+                    ) {
+                       // opacity = 0.8
+                    }
+                }
+        }
+    }
+}
 
 struct WaterWave: Shape {
     var amplitude: CGFloat

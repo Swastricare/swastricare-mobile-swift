@@ -9,7 +9,7 @@ import SwiftUI
 
 struct MedicationsView: View {
     @Environment(\.dismiss) var dismiss
-    @StateObject private var viewModel = MedicationViewModel()
+    @ObservedObject var viewModel: MedicationViewModel
     
     @State private var selectedDate = Date()
     @State private var showAddMedication = false
@@ -348,5 +348,5 @@ struct MedicationCard: View {
 }
 
 #Preview {
-    MedicationsView()
+    MedicationsView(viewModel: MedicationViewModel())
 }

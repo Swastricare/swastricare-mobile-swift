@@ -111,7 +111,7 @@ struct TrackerView: View {
     }
     
     private var statsOverview: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             StatCard(
                 icon: "figure.walk",
                 title: "Steps",
@@ -128,6 +128,7 @@ struct TrackerView: View {
                     color: .red
                 )
             }
+            .buttonStyle(PlainButtonStyle())
             
             StatCard(
                 icon: "flame.fill",
@@ -169,7 +170,12 @@ struct TrackerView: View {
             .frame(height: 150, alignment: .bottom)
         }
         .padding()
-        .glass(cornerRadius: 16)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
         .padding(.horizontal)
     }
     
@@ -269,22 +275,33 @@ private struct StatCard: View {
     let color: Color
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Image(systemName: icon)
-                .font(.title2)
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(color)
+                .padding(10)
+                .background(color.opacity(0.2))
+                .clipShape(Circle())
             
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .glass(cornerRadius: 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
     }
 }
 
@@ -293,40 +310,51 @@ private struct HeartRateStatCard: View {
     let color: Color
     
     var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 0) {
                 Image(systemName: "heart.fill")
-                    .font(.title2)
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(color)
-                
-                // Small camera icon overlay
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 8))
-                    .foregroundColor(.white)
-                    .padding(3)
-                    .background(color)
+                    .padding(10)
+                    .background(color.opacity(0.2))
                     .clipShape(Circle())
-                    .offset(x: 10, y: 8)
+                
+                Spacer()
+                
+                // Camera indicator
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(color)
+                    .padding(6)
+                    .background(color.opacity(0.1))
+                    .clipShape(Circle())
             }
             
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-            
-            HStack(spacing: 2) {
-                Text("Heart Rate")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
                 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Text("Heart Rate")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundColor(.secondary.opacity(0.7))
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .glass(cornerRadius: 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
     }
 }
 
