@@ -11,6 +11,7 @@ struct SetupLoadingView: View {
     let formState: HealthProfileFormState
     let onComplete: () -> Void
     
+    @Environment(\.dismiss) private var dismiss
     private let service = HealthProfileService.shared
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @State private var progress: Double = 0
@@ -134,7 +135,12 @@ struct SetupLoadingView: View {
                     try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                     
                     hasCompleted = true
-                    onComplete()
+                    
+                    // Call onComplete - parent view will handle dismissal
+                    // The questionnaire view is already hidden when showSetup is true
+                    await MainActor.run {
+                        onComplete()
+                    }
                 } catch {
                     // Handle error - show it but still complete
                     print("❌ SetupLoadingView: Error saving health profile: \(error)")
@@ -142,7 +148,12 @@ struct SetupLoadingView: View {
                     // Still mark as completed to not block user
                     UserDefaults.standard.set(true, forKey: "hasCompletedHealthProfile")
                     hasCompleted = true
-                    onComplete()
+                    
+                    // Call onComplete - parent view will handle dismissal
+                    // The questionnaire view is already hidden when showSetup is true
+                    await MainActor.run {
+                        onComplete()
+                    }
                 }
             }
         }

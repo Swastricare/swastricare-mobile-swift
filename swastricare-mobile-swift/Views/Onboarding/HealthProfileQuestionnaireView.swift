@@ -2,506 +2,722 @@
 //  HealthProfileQuestionnaireView.swift
 //  swastricare-mobile-swift
 //
-//  MVVM Architecture - Views Layer
+//  Created by SwastriCare Team
+//  Redesigned from scratch - High-End Production UI
 //
 
 import SwiftUI
 
+// MARK: - Main View
 struct HealthProfileQuestionnaireView: View {
+    // MARK: - State
     @StateObject private var formState = HealthProfileFormState()
-    @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @State private var currentStep = 0
     @State private var showSetup = false
-    @State private var isAnimating = false
+    @State private var isCompleting = false  // Hide everything immediately when completing
+    @Namespace private var animation
+    @Environment(\.colorScheme) var colorScheme
     
-    // Text field states for numeric inputs
-    @State private var heightText: String = "170"
-    @State private var weightText: String = "70"
-    @FocusState private var focusedField: FocusedField?
-    
-    enum FocusedField {
-        case height, weight, name
-    }
-    
+    // MARK: - Properties
     let onComplete: () -> Void
+    // Steps:
+    // 0: Intro
+    // 1: Name
+    // 2: Welcome (Transition)
+    // 3: Gender
+    // 4: DOB
+    // 5: Height
+    // 6: Weight
+    private let totalSteps = 7
     
-    private let totalSteps = 4
-    
-    // CRITICAL: Only show this view if user is authenticated
-    private var isAuthenticated: Bool {
-        authViewModel.isAuthenticated && authViewModel.currentUser != nil
+    // MARK: - Init
+    init(onComplete: @escaping () -> Void) {
+        self.onComplete = onComplete
     }
     
+    // MARK: - Body
     var body: some View {
         Group {
-            if isAuthenticated {
-                questionnaireContent
+            if isCompleting {
+                // Show blank screen immediately when completing to prevent any glitch
+                Color(UIColor.systemBackground)
+                    .ignoresSafeArea()
             } else {
-                // User not authenticated - show login screen instead
-                LoginView()
-            }
-        }
-    }
-    
-    private var questionnaireContent: some View {
-        ZStack {
-            PremiumBackground()
-            
-            VStack(spacing: 0) {
-                // Progress Bar
-                progressBar
-                
-                // Content
-                TabView(selection: $currentStep) {
-                    // Step 1: Name
-                    nameStep
-                        .tag(0)
+                ZStack {
+                    // 1. Clean Background
+                    Color(UIColor.systemBackground).ignoresSafeArea()
                     
-                    // Step 2: Gender & Date of Birth
-                    genderAndDOBStep
-                        .tag(1)
+                    // Ambient Glow
+                    GeometryReader { geo in
+                        Circle()
+                            .fill(Color(hex: "2E3192").opacity(colorScheme == .dark ? 0.15 : 0.05))
+                            .blur(radius: 120)
+                            .frame(width: 400, height: 400)
+                            .position(x: geo.size.width, y: 0)
+                        
+                        Circle()
+                            .fill(Color(hex: "1BFFFF").opacity(colorScheme == .dark ? 0.1 : 0.05))
+                            .blur(radius: 100)
+                            .frame(width: 300, height: 300)
+                            .position(x: 0, y: geo.size.height)
+                    }
+                    .ignoresSafeArea()
                     
-                    // Step 3: Height
-                    heightStep
-                        .tag(2)
-                    
-                    // Step 4: Weight
-                    weightStep
-                        .tag(3)
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                
-                // Navigation Buttons
-                navigationButtons
-            }
-        }
-        .onTapGesture {
-            focusedField = nil
-        }
-        .fullScreenCover(isPresented: $showSetup) {
-            SetupLoadingView(
-                formState: formState,
-                onComplete: onComplete
-            )
-        }
-        .onChange(of: authViewModel.isAuthenticated) { _, isAuthenticated in
-            // If user logs out while on this screen, the view will automatically switch to LoginView
-            if !isAuthenticated {
-                // User logged out - view will handle it via the Group check above
-            }
-        }
-    }
-    
-    // MARK: - Progress Bar
-    
-    private var progressBar: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("Step \(currentStep + 1) of \(totalSteps)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text("\(Int((Double(currentStep + 1) / Double(totalSteps)) * 100))%")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 4)
-                    
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: geometry.size.width * CGFloat(currentStep + 1) / CGFloat(totalSteps), height: 4)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStep)
-                }
-            }
-            .frame(height: 4)
-            .padding(.horizontal, 20)
-        }
-    }
-    
-    // MARK: - Name Step
-    
-    private var nameStep: some View {
-        QuestionnaireStepView(
-            title: "What's your name?",
-            subtitle: "We'll use this to personalize your experience",
-            icon: "person.fill"
-        ) {
-            VStack(spacing: 24) {
-                TextField("Enter your name", text: $formState.name)
-                    .font(.system(size: 20, weight: .medium))
-                    .padding()
-                    .padding(.horizontal, 8)
-                    .glass(cornerRadius: 16)
-                    .focused($focusedField, equals: .name)
-                    .textContentType(.name)
-                    .autocapitalization(.words)
-                    .padding(.horizontal, 20)
-            }
-        }
-        .onTapGesture {
-            focusedField = nil
-        }
-    }
-    
-    // MARK: - Gender & DOB Step
-    
-    private var genderAndDOBStep: some View {
-        QuestionnaireStepView(
-            title: "Tell us about yourself",
-            subtitle: "This helps us provide better health insights",
-            icon: "person.circle.fill"
-        ) {
-            VStack(spacing: 32) {
-                // Gender Selection
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Gender")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    HStack(spacing: 12) {
-                        ForEach(Gender.allCases, id: \.self) { gender in
-                            Button(action: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    formState.gender = gender
+                    // 2. Content - Hide immediately when setup starts to prevent glitch
+                    if !showSetup {
+                        VStack(spacing: 0) {
+                            // Header (Progress) - Hide on Intro (0) and Welcome (2)
+                            if currentStep > 0 && currentStep != 2 {
+                                ProgressHeader(current: adjustedProgressStep, total: 4) {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        // Skip Welcome screen when going back from Gender (3) -> Name (1)
+                                        if currentStep == 3 {
+                                            currentStep = 1
+                                        } else {
+                                            currentStep -= 1
+                                        }
+                                    }
                                 }
-                            }) {
-                                Text(gender.displayName)
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundColor(formState.gender == gender ? .white : .primary)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(
-                                        formState.gender == gender
-                                            ? LinearGradient(
-                                                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                            : LinearGradient(colors: [.clear], startPoint: .leading, endPoint: .trailing)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(formState.gender == gender ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .cornerRadius(12)
+                                .padding(.top, 60)
+                                .padding(.horizontal, 24)
+                                .transition(.move(edge: .top).combined(with: .opacity))
                             }
-                        }
-                    }
-                }
-                
-                // Date of Birth
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Date of Birth")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    DatePicker(
-                        "",
-                        selection: $formState.dateOfBirth,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.wheel)
-                    .labelsHidden()
-                    .padding()
-                    .glass(cornerRadius: 16)
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-    
-    // MARK: - Height Step
-    
-    private var heightStep: some View {
-        QuestionnaireStepView(
-            title: "What's your height?",
-            subtitle: "This helps calculate your health metrics",
-            icon: "ruler.fill"
-        ) {
-            VStack(spacing: 32) {
-                // Height Input (CM only)
-                VStack(spacing: 24) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        TextField("170", text: $heightText)
-                            .keyboardType(.numberPad)
-                            .font(.system(size: 56, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(hex: "2E3192"))
-                            .multilineTextAlignment(.center)
-                            .frame(width: 140)
-                            .focused($focusedField, equals: .height)
-                            .onChange(of: heightText) { _, newValue in
-                                if let value = Double(newValue), value >= 50, value <= 300 {
-                                    formState.heightCm = value
+                            
+                            // Steps
+                            TabView(selection: $currentStep) {
+                                IntroStepView(onStart: nextStep)
+                                    .tag(0)
+                                
+                                NameStepView(name: $formState.name)
+                                    .tag(1)
+                                
+                                WelcomeStepView(name: formState.name, onContinue: nextStep)
+                                    .tag(2)
+                                
+                                GenderStepView(gender: $formState.gender)
+                                    .tag(3)
+                                
+                                DOBStepView(date: $formState.dateOfBirth)
+                                    .tag(4)
+                                
+                                HeightStepView(height: $formState.heightCm)
+                                    .tag(5)
+                                    
+                                WeightStepView(weight: $formState.weightKg)
+                                    .tag(6)
+                            }
+                            .tabViewStyle(.page(indexDisplayMode: .never))
+                            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: currentStep)
+                            
+                            // Bottom Button (Only for input steps)
+                            if shouldShowBottomButton {
+                                Button(action: {
+                                    if currentStep == 6 {
+                                        // Dismiss keyboard before showing setup
+                                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                                        // Small delay to ensure keyboard is dismissed
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                            withAnimation(.easeOut(duration: 0.2)) {
+                                                showSetup = true
+                                            }
+                                        }
+                                    } else {
+                                        nextStep()
+                                    }
+                                }) {
+                                    Text(currentStep == 6 ? "Finish Setup" : "Continue")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 56)
+                                        .background(canProceed ? Color(hex: "2E3192") : Color.gray.opacity(0.3))
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                        .shadow(color: canProceed ? Color(hex: "2E3192").opacity(0.4) : .clear, radius: 20, y: 10)
                                 }
+                                .disabled(!canProceed)
+                                .padding(.horizontal, 24)
+                                .padding(.bottom, 40)
+                                .padding(.top, 20)
                             }
-                        
-                        Text("cm")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(.secondary)
+                        }
+                        .transition(.opacity)
                     }
-                    .padding(.vertical, 8)
-                    
-                    // Quick adjust buttons
-                    HStack(spacing: 16) {
-                        Button(action: {
-                            if formState.heightCm > 100 {
-                                formState.heightCm -= 1
-                                heightText = String(Int(formState.heightCm))
-                            }
-                        }) {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(Color(hex: "2E3192"))
-                        }
-                        
-                        Slider(
-                            value: $formState.heightCm,
-                            in: 100...250,
-                            step: 1
-                        )
-                        .tint(Color(hex: "2E3192"))
-                        .onChange(of: formState.heightCm) { _, newValue in
-                            heightText = String(Int(newValue))
-                        }
-                        
-                        Button(action: {
-                            if formState.heightCm < 250 {
-                                formState.heightCm += 1
-                                heightText = String(Int(formState.heightCm))
-                            }
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(Color(hex: "2E3192"))
-                        }
-                    }
-                    .padding(.horizontal, 10)
                 }
-                .padding(.vertical, 30)
-                .padding(.horizontal, 16)
-                .glass(cornerRadius: 24)
-                .padding(.horizontal, 20)
+                .fullScreenCover(isPresented: $showSetup) {
+                    SetupLoadingView(formState: formState, onComplete: {
+                        // Set completing flag immediately to hide everything
+                        isCompleting = true
+                        
+                        // Dismiss setup screen
+                        showSetup = false
+                        
+                        // Complete onboarding after a brief delay to ensure smooth transition
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            onComplete()
+                        }
+                    })
+                }
             }
-        }
-        .onAppear {
-            heightText = String(Int(formState.heightCm))
-        }
-        .onTapGesture {
-            focusedField = nil
         }
     }
     
-    // MARK: - Weight Step
+    // MARK: - Helpers
     
-    private var weightStep: some View {
-        QuestionnaireStepView(
-            title: "What's your weight?",
-            subtitle: "This helps us track your health progress",
-            icon: "scalemass.fill"
-        ) {
-            VStack(spacing: 32) {
-                // Weight Input (KG only)
-                VStack(spacing: 24) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        TextField("70", text: $weightText)
-                            .keyboardType(.numberPad)
-                            .font(.system(size: 56, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(hex: "2E3192"))
-                            .multilineTextAlignment(.center)
-                            .frame(width: 140)
-                            .focused($focusedField, equals: .weight)
-                            .onChange(of: weightText) { _, newValue in
-                                if let value = Double(newValue), value >= 20, value <= 300 {
-                                    formState.weightKg = value
-                                }
-                            }
-                        
-                        Text("kg")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 8)
-                    
-                    // Quick adjust buttons
-                    HStack(spacing: 16) {
-                        Button(action: {
-                            if formState.weightKg > 30 {
-                                formState.weightKg -= 1
-                                weightText = String(Int(formState.weightKg))
-                            }
-                        }) {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(Color(hex: "2E3192"))
-                        }
-                        
-                        Slider(
-                            value: $formState.weightKg,
-                            in: 30...200,
-                            step: 1
-                        )
-                        .tint(Color(hex: "2E3192"))
-                        .onChange(of: formState.weightKg) { _, newValue in
-                            weightText = String(Int(newValue))
-                        }
-                        
-                        Button(action: {
-                            if formState.weightKg < 200 {
-                                formState.weightKg += 1
-                                weightText = String(Int(formState.weightKg))
-                            }
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(Color(hex: "2E3192"))
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                }
-                .padding(.vertical, 30)
-                .padding(.horizontal, 16)
-                .glass(cornerRadius: 24)
-                .padding(.horizontal, 20)
-            }
-        }
-        .onAppear {
-            weightText = String(Int(formState.weightKg))
-        }
-        .onTapGesture {
-            focusedField = nil
+    private func nextStep() {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+            currentStep += 1
         }
     }
     
-    // MARK: - Exercise Level Step
+    private var shouldShowBottomButton: Bool {
+        // Hide button on Intro (0) and Welcome (2)
+        // Intro has its own button, Welcome has its own button/auto-advance
+        return currentStep != 0 && currentStep != 2
+    }
     
-    
-    // MARK: - Navigation Buttons
-    
-    private var navigationButtons: some View {
-        HStack(spacing: 16) {
-            if currentStep > 0 {
-                Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        currentStep -= 1
-                    }
-                }) {
-                    Text("Back")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .glass(cornerRadius: 16)
-                }
-            }
-            
-            Button(action: {
-                if currentStep < totalSteps - 1 {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        currentStep += 1
-                    }
-                } else {
-                    // Last step - proceed to setup
-                    showSetup = true
-                }
-            }) {
-                HStack {
-                    Text(currentStep < totalSteps - 1 ? "Next" : "Complete")
-                        .font(.system(size: 17, weight: .semibold))
-                    
-                    if currentStep == totalSteps - 1 {
-                        Image(systemName: "checkmark")
-                    }
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(
-                    LinearGradient(
-                        colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .cornerRadius(16)
-            }
-            .disabled(!canProceed)
-            .opacity(canProceed ? 1 : 0.5)
+    private var adjustedProgressStep: Int {
+        // Map currentStep to 1...4 for the progress bar
+        // 0: Intro (Hidden)
+        // 1: Name -> 1
+        // 2: Welcome (Hidden)
+        // 3: Gender -> 2
+        // 4: DOB -> 3
+        // 5: Height -> 4
+        // 6: Weight -> 4 (keep at max) or maybe expand total to 5
+        
+        switch currentStep {
+        case 1: return 1
+        case 3: return 2
+        case 4: return 3
+        case 5: return 4
+        case 6: return 5 // Increased total to 5 displayed steps in logic
+        default: return 1
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 32)
     }
     
     private var canProceed: Bool {
         switch currentStep {
-        case 0: return !formState.name.isEmpty
-        case 1: return formState.gender != nil
+        case 1: return !formState.name.trimmingCharacters(in: .whitespaces).isEmpty
+        case 3: return formState.gender != nil
         default: return true
         }
     }
 }
 
-// MARK: - Questionnaire Step View
+// MARK: - Subviews
 
-private struct QuestionnaireStepView<Content: View>: View {
-    let title: String
-    let subtitle: String
-    let icon: String
-    @ViewBuilder let content: Content
+struct ProgressHeader: View {
+    let current: Int
+    let total: Int // Should ideally be 5 now
+    let onBack: () -> Void
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                // Icon
-                Image(systemName: icon)
-                    .font(.system(size: 60))
-                    .foregroundColor(Color(hex: "2E3192"))
-                    .padding(.top, 40)
-                
-                // Title & Subtitle
-                VStack(spacing: 8) {
-                    Text(title)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
-                    
-                    Text(subtitle)
-                        .font(.system(size: 16))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
+        HStack {
+            Button(action: onBack) {
+                Image(systemName: "arrow.left")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
+                    .background(Color.primary.opacity(0.05))
+                    .clipShape(Circle())
+            }
+            
+            Spacer()
+            
+            // Segmented Progress
+            HStack(spacing: 6) {
+                ForEach(1...5, id: \.self) { step in
+                    Capsule()
+                        .fill(step <= current ? Color(hex: "2E3192") : Color.primary.opacity(0.1))
+                        .frame(width: 30, height: 6)
+                        .animation(.spring, value: current)
                 }
-                .padding(.horizontal, 20)
+            }
+            
+            Spacer()
+            
+            // Invisible balancer
+            Color.clear.frame(width: 44, height: 44)
+        }
+    }
+}
+
+// MARK: - Step 0: Intro
+struct IntroStepView: View {
+    let onStart: () -> Void
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        VStack(spacing: 32) {
+            Spacer()
+            
+            Image(systemName: "heart.text.square.fill")
+                .font(.system(size: 80))
+                .foregroundStyle(LinearGradient(colors: [Color(hex: "2E3192"), Color(hex: "1BFFFF")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .shadow(color: Color(hex: "2E3192").opacity(0.5), radius: 30)
+            
+            VStack(spacing: 16) {
+                Text("Your Health Profile")
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundColor(.primary)
                 
-                // Content
-                content
-                    .padding(.top, 20)
+                Text("Let's personalize Swastricare for you.\nThis takes less than a minute.")
+                    .font(.system(size: 17))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            Spacer()
+            
+            Button(action: onStart) {
+                Text("Get Started")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color(hex: "2E3192"))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
+        }
+    }
+}
+
+// MARK: - Step 1: Name
+struct NameStepView: View {
+    @Binding var name: String
+    @FocusState private var isFocused: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Spacer().frame(height: 40)
+            
+            Text("What's your name?")
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(.primary)
+            
+            TextField("Your Name", text: $name)
+                .font(.system(size: 28, weight: .medium))
+                .foregroundColor(.primary)
+                .tint(Color(hex: "2E3192"))
+                .focused($isFocused)
+                .submitLabel(.done)
+                .padding(.vertical, 20)
+                .overlay(
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.1))
+                        .frame(height: 2)
+                        .padding(.top, 50),
+                    alignment: .bottom
+                )
+                .onSubmit {
+                    // Dismiss keyboard when user presses done
+                    isFocused = false
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+            
+            Text("This is how we'll address you.")
+                .font(.system(size: 15))
+                .foregroundColor(.secondary)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 32)
+        .onAppear { 
+            isFocused = true 
+        }
+        .onDisappear {
+            // Always dismiss keyboard when leaving this view
+            isFocused = false
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+    }
+}
+
+// MARK: - Step 2: Welcome
+struct WelcomeStepView: View {
+    let name: String
+    let onContinue: () -> Void
+    @State private var displayedWelcomeText = ""
+    @State private var displayedNameText = ""
+    @State private var welcomeCursorOpacity: Double = 1.0
+    @State private var nameCursorOpacity: Double = 1.0
+    @State private var showQuote = false
+    @State private var showButton = false
+    @State private var welcomeTimer: Timer?
+    @State private var nameTimer: Timer?
+    @State private var welcomeCursorTimer: Timer?
+    @State private var nameCursorTimer: Timer?
+    
+    var body: some View {
+        VStack(spacing: 32) {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                // Welcome text and name on separate lines to prevent overflow
+                VStack(spacing: 8) {
+                    HStack(spacing: 0) {
+                        Text(displayedWelcomeText)
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                        
+                        if displayedWelcomeText != "Welcome" {
+                            Text("|")
+                                .font(.system(size: 36, weight: .bold))
+                                .foregroundColor(.primary.opacity(0.6))
+                                .opacity(welcomeCursorOpacity)
+                        }
+                    }
+                    .multilineTextAlignment(.center)
+                    .onChange(of: displayedWelcomeText) { _, newValue in
+                        if newValue == "Welcome" {
+                            // Stop cursor and start typing name after welcome is complete
+                            welcomeCursorTimer?.invalidate()
+                            welcomeCursorOpacity = 0
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                startTypingName()
+                            }
+                        }
+                    }
+                    
+                    HStack(spacing: 0) {
+                        Text(displayedNameText)
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                        
+                        if !displayedNameText.isEmpty && displayedNameText != name {
+                            Text("|")
+                                .font(.system(size: 36, weight: .bold))
+                                .foregroundColor(.primary.opacity(0.6))
+                                .opacity(nameCursorOpacity)
+                        }
+                    }
+                    .multilineTextAlignment(.center)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 24)
+                    .opacity(displayedNameText.isEmpty ? 0 : 1)
+                    .onChange(of: displayedNameText) { _, newValue in
+                        if newValue == name {
+                            // Hide cursor and show quote after name is complete
+                            nameCursorTimer?.invalidate()
+                            nameCursorOpacity = 0
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                                    showQuote = true
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Text("\"The journey of a thousand miles\nbegins with a single step.\"")
+                    .font(.system(size: 18, weight: .medium, design: .serif))
+                    .italic()
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                    .opacity(showQuote ? 1 : 0)
+                    .offset(y: showQuote ? 0 : 20)
+                    .onChange(of: showQuote) { _, newValue in
+                        if newValue {
+                            // Show button after quote appears
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                                    showButton = true
+                                }
+                            }
+                        }
+                    }
+            }
+            
+            Spacer()
+            
+            Button(action: onContinue) {
+                Text("Let's Go")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color(hex: "2E3192"))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: Color(hex: "2E3192").opacity(0.4), radius: 20, y: 10)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
+            .opacity(showButton ? 1 : 0)
+            .scaleEffect(showButton ? 1 : 0.9)
+        }
+        .onAppear {
+            // Dismiss keyboard immediately when welcome screen appears
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            // Start typing welcome text
+            startTypingWelcome()
+            startWelcomeCursorBlink()
+        }
+        .onDisappear {
+            // Clean up timers
+            welcomeTimer?.invalidate()
+            nameTimer?.invalidate()
+            welcomeCursorTimer?.invalidate()
+            nameCursorTimer?.invalidate()
+        }
+    }
+    
+    private func startTypingWelcome() {
+        let welcomeText = "Welcome"
+        var index = 0
+        displayedWelcomeText = ""
+        
+        welcomeTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
+            if index < welcomeText.count {
+                let charIndex = welcomeText.index(welcomeText.startIndex, offsetBy: index)
+                displayedWelcomeText += String(welcomeText[charIndex])
+                index += 1
+            } else {
+                timer.invalidate()
+            }
+        }
+    }
+    
+    private func startWelcomeCursorBlink() {
+        welcomeCursorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.5)) {
+                welcomeCursorOpacity = welcomeCursorOpacity == 1.0 ? 0.0 : 1.0
+            }
+        }
+    }
+    
+    private func startTypingName() {
+        var index = 0
+        displayedNameText = ""
+        nameCursorOpacity = 1.0
+        startNameCursorBlink()
+        
+        nameTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { timer in
+            if index < name.count {
+                let charIndex = name.index(name.startIndex, offsetBy: index)
+                displayedNameText += String(name[charIndex])
+                index += 1
+            } else {
+                timer.invalidate()
+            }
+        }
+    }
+    
+    private func startNameCursorBlink() {
+        nameCursorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.5)) {
+                nameCursorOpacity = nameCursorOpacity == 1.0 ? 0.0 : 1.0
             }
         }
     }
 }
 
-// MARK: - Glass Text Field
 
-private struct GlassTextField: View {
-    let placeholder: String
-    @Binding var text: String
+// MARK: - Step 3: Gender
+struct GenderStepView: View {
+    @Binding var gender: Gender?
     
     var body: some View {
-        TextField(placeholder, text: $text)
-            .padding()
-            .glass(cornerRadius: 16)
+        VStack(alignment: .leading, spacing: 32) {
+            Spacer().frame(height: 40)
+            
+            Text("Which gender do you identify with?")
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(.primary)
+            
+            VStack(spacing: 16) {
+                GenderOption(title: "Male", icon: "figure.stand", isSelected: gender == .male) {
+                    gender = .male
+                }
+                
+                GenderOption(title: "Female", icon: "figure.dress.line.vertical.figure", isSelected: gender == .female) {
+                    gender = .female
+                }
+                
+                GenderOption(title: "Other", icon: "person.2", isSelected: gender == .other) {
+                    gender = .other
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 32)
     }
 }
 
+struct GenderOption: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 24))
+                    .foregroundColor(isSelected ? .white : .secondary)
+                    .frame(width: 40)
+                
+                Text(title)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(isSelected ? .white : .secondary)
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(Color(hex: "2E3192"))
+                        .font(.system(size: 24))
+                        .background(Circle().fill(.white).padding(2))
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected ? Color(hex: "2E3192") : Color.primary.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? Color(hex: "2E3192") : Color.clear, lineWidth: 1.5)
+            )
+        }
+    }
+}
+
+// MARK: - Step 4: DOB (Redesigned)
+struct DOBStepView: View {
+    @Binding var date: Date
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 32) {
+            Spacer().frame(height: 40)
+            
+            Text("Date of Birth")
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(.primary)
+            
+            Text("This helps us provide age-appropriate insights.")
+                .font(.system(size: 17))
+                .foregroundColor(.secondary)
+            
+            // Clean Wheel Picker style
+            DatePicker("", selection: $date, displayedComponents: .date)
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .frame(maxWidth: .infinity)
+                .background(Color.primary.opacity(0.03))
+                .cornerRadius(20)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+                )
+            
+            Spacer()
+        }
+        .padding(.horizontal, 32)
+    }
+}
+
+// MARK: - Step 5: Height
+struct HeightStepView: View {
+    @Binding var height: Double
+    
+    var body: some View {
+        VStack(spacing: 40) {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                Text("How tall are you?")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
+                
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(Int(height))")
+                        .font(.system(size: 80, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                    
+                    Text("cm")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Slider with custom thumb
+            VStack(spacing: 20) {
+                Slider(value: $height, in: 100...250, step: 1)
+                    .tint(Color(hex: "2E3192"))
+                
+                HStack {
+                    Text("100 cm")
+                    Spacer()
+                    Text("250 cm")
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 32)
+            
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Step 6: Weight
+struct WeightStepView: View {
+    @Binding var weight: Double
+    
+    var body: some View {
+        VStack(spacing: 40) {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                Text("What is your weight?")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
+                
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(Int(weight))")
+                        .font(.system(size: 80, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                    
+                    Text("kg")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Slider with custom thumb
+            VStack(spacing: 20) {
+                Slider(value: $weight, in: 30...200, step: 0.5)
+                    .tint(Color(hex: "2E3192"))
+                
+                HStack {
+                    Text("30 kg")
+                    Spacer()
+                    Text("200 kg")
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 32)
+            
+            Spacer()
+        }
+    }
+}
+
+#Preview {
+    HealthProfileQuestionnaireView {}
+}

@@ -14,7 +14,8 @@ import UIKit
 struct DocumentViewer: View {
     let document: MedicalDocument
     
-    @StateObject private var viewModel = DependencyContainer.shared.vaultViewModel
+    // Use ObservedObject since ViewModel is shared/owned by DependencyContainer
+    @ObservedObject private var viewModel = DependencyContainer.shared.vaultViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var documentData: Data?
@@ -171,42 +172,138 @@ struct DocumentViewer: View {
     // MARK: - Actions
     
     private func loadDocument() async {
-        isLoading = true
-        loadError = nil
+        // Check if task was cancelled before starting
+        guard !Task.isCancelled else {
+            print("ℹ️ DocumentViewer: Task cancelled before load started")
+            return
+        }
+        
+        await MainActor.run {
+            isLoading = true
+            loadError = nil
+        }
+        
+        print("🔄 DocumentViewer: Loading document '\(document.title)'")
+        print("   ID: \(document.id?.uuidString ?? "nil")")
+        print("   File URL: \(document.fileUrl)")
         
         do {
             let data = try await viewModel.downloadDocument(document)
+            
+            // Check if task was cancelled after download but before updating UI
+            guard !Task.isCancelled else {
+                print("ℹ️ DocumentViewer: Task cancelled after download completed - ignoring result")
+                return
+            }
+            
+            print("✅ DocumentViewer: Document loaded successfully (\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)))")
             await MainActor.run {
+                // Double-check cancellation state before updating UI
+                guard !Task.isCancelled else {
+                    print("ℹ️ DocumentViewer: Task cancelled just before UI update - ignoring result")
+                    return
+                }
                 documentData = data
                 isLoading = false
+                loadError = nil
             }
         } catch {
-            // Handle cancellation gracefully
+            let errorDescription = error.localizedDescription.lowercased()
+            let originalErrorDescription = error.localizedDescription
+            
+            // Handle cancellation gracefully - only treat actual CancellationError as cancellation
+            // Don't treat error messages with "cancelled" as cancellation - they might be real errors
+            // that the Supabase client will retry and succeed on
             if error is CancellationError {
+                print("ℹ️ DocumentViewer: Load was cancelled (CancellationError)")
                 await MainActor.run {
                     isLoading = false
+                    // Don't set error for cancellation - it's expected during view transitions
+                    loadError = nil
                 }
                 return
             }
             
+            // For non-CancellationError errors that mention "cancelled", treat as transient error
+            // and retry once - these often succeed on retry (often due to view transition timing)
+            var shouldRetry = false
+            var finalError = error
+            
+            if (errorDescription.contains("cancelled") || errorDescription.contains("canceled")) && 
+               !(error is URLError) && !(error is SupabaseError) {
+                print("⚠️ DocumentViewer: Error mentions 'cancelled' but is not CancellationError")
+                print("   Error: \(originalErrorDescription)")
+                print("   Will retry download once...")
+                shouldRetry = true
+            }
+            
+            // Retry logic for transient errors
+            if shouldRetry {
+                // Retry once after a short delay
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                
+                guard !Task.isCancelled else {
+                    print("ℹ️ DocumentViewer: Task cancelled during retry delay")
+                    await MainActor.run {
+                        isLoading = false
+                        loadError = nil
+                    }
+                    return
+                }
+                
+                do {
+                    let retryData = try await viewModel.downloadDocument(document)
+                    print("✅ DocumentViewer: Document loaded successfully on retry (\(ByteCountFormatter.string(fromByteCount: Int64(retryData.count), countStyle: .file)))")
+                    await MainActor.run {
+                        guard !Task.isCancelled else { return }
+                        documentData = retryData
+                        isLoading = false
+                        loadError = nil
+                    }
+                    return
+                } catch let retryError {
+                    print("❌ DocumentViewer: Retry also failed: \(retryError.localizedDescription)")
+                    // Use retry error for error message
+                    finalError = retryError
+                }
+            }
+            
+            print("❌ DocumentViewer: Failed to load document")
+            print("   Error type: \(type(of: finalError))")
+            print("   Error: \(finalError.localizedDescription)")
+            
             // Provide user-friendly error messages
             let errorMessage: String
-            if let urlError = error as? URLError {
+            if let urlError = finalError as? URLError {
                 switch urlError.code {
                 case .notConnectedToInternet, .networkConnectionLost:
                     errorMessage = "No internet connection. Please check your network and try again."
                 case .timedOut:
                     errorMessage = "Request timed out. Please try again."
+                case .cannotFindHost, .cannotConnectToHost:
+                    errorMessage = "Unable to connect to server. Please try again later."
                 default:
                     errorMessage = "Network error: \(urlError.localizedDescription)"
                 }
-        } else {
-                errorMessage = error.localizedDescription
-        }
-        
+            } else if let supabaseError = finalError as? SupabaseError {
+                switch supabaseError {
+                case .notAuthenticated:
+                    errorMessage = "Session expired. Please sign in again."
+                case .storageError(let message):
+                    // Show storage errors - even if they mention "cancelled", they're real errors
+                    errorMessage = message
+                default:
+                    errorMessage = supabaseError.localizedDescription ?? "Failed to load document"
+                }
+            } else {
+                // For other errors, show the error message
+                errorMessage = finalError.localizedDescription
+            }
+            
             await MainActor.run {
+                guard !Task.isCancelled else { return }
                 loadError = errorMessage
-        isLoading = false
+                isLoading = false
             }
         }
     }

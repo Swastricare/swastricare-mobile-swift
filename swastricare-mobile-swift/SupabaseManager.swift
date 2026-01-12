@@ -504,32 +504,79 @@ class SupabaseManager {
     
     /// Downloads a medical document
     func downloadDocument(storagePath: String) async throws -> Data {
-        do {
-        let data = try await client.storage
-            .from("medical-vault")
-            .download(path: storagePath)
+        print("📥 SupabaseManager: Downloading document from path: \(storagePath)")
         
+        // Validate storage path
+        guard !storagePath.isEmpty else {
+            print("❌ SupabaseManager: Storage path is empty")
+            throw SupabaseError.storageError("Storage path is empty")
+        }
+        
+        do {
+            let data = try await client.storage
+                .from("medical-vault")
+                .download(path: storagePath)
+            
             guard !data.isEmpty else {
+                print("❌ SupabaseManager: Downloaded file is empty for path: \(storagePath)")
                 throw SupabaseError.storageError("Downloaded file is empty")
             }
             
-        return data
+            print("✅ SupabaseManager: Successfully downloaded \(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)) from \(storagePath)")
+            return data
         } catch {
-            // Provide more specific error messages
-            if let supabaseError = error as? StorageError {
-                throw SupabaseError.storageError("Failed to download: \(supabaseError.message ?? supabaseError.localizedDescription)")
+            // Only treat actual CancellationError as cancellation - don't treat error messages with "cancelled" as cancellation
+            // This prevents false positives where an error message might contain "cancelled" but the operation continues
+            if error is CancellationError {
+                print("ℹ️ SupabaseManager: Download was cancelled (CancellationError) for path '\(storagePath)'")
+                throw error
             }
-            throw error
+            
+            let errorDescription = error.localizedDescription
+            let errorDescLower = errorDescription.lowercased()
+            
+            // Handle SupabaseError
+            if let supabaseError = error as? SupabaseError {
+                print("❌ SupabaseManager: Download failed with SupabaseError: \(supabaseError.localizedDescription)")
+                throw supabaseError
+            }
+            
+            print("❌ SupabaseManager: Download failed for path '\(storagePath)'")
+            print("   Error type: \(type(of: error))")
+            print("   Error: \(errorDescription)")
+            
+            // Check for specific error types
+            if let storageError = error as? StorageError {
+                let message = storageError.message ?? storageError.localizedDescription
+                print("   Storage error message: \(message)")
+                
+                // Only treat as cancellation if it's explicitly a CancellationError type
+                // Don't treat error messages with "cancelled" as cancellation - the operation might still complete
+                throw SupabaseError.storageError(message)
+            }
+            
+            // Re-throw with context (but not for cancellations)
+            throw SupabaseError.storageError("Download failed: \(errorDescription)")
         }
     }
     
     /// Gets a signed URL for a document (valid for specified seconds)
     func getSignedURL(storagePath: String, expiresIn: Int = 3600) async throws -> URL {
-        let signedURL = try await client.storage
-            .from("medical-vault")
-            .createSignedURL(path: storagePath, expiresIn: expiresIn)
+        guard !storagePath.isEmpty else {
+            print("❌ SupabaseManager: Cannot create signed URL - storage path is empty")
+            throw SupabaseError.storageError("Storage path is empty")
+        }
         
-        return signedURL
+        do {
+            let signedURL = try await client.storage
+                .from("medical-vault")
+                .createSignedURL(path: storagePath, expiresIn: expiresIn)
+            
+            return signedURL
+        } catch {
+            print("❌ SupabaseManager: Failed to create signed URL for path '\(storagePath)': \(error.localizedDescription)")
+            throw error
+        }
     }
     
     /// Searches medical documents
@@ -1200,6 +1247,27 @@ extension SupabaseManager {
             .execute()
         
         print("📲 SupabaseManager: Push token removed")
+    }
+}
+
+// MARK: - App Version Management
+
+extension SupabaseManager {
+    
+    /// Fetch app version info for the current platform and channel
+    /// This does NOT require authentication - can be called before login
+    func fetchAppVersion(platform: String = "ios", channel: String = AppChannel.current.rawValue) async throws -> AppVersionRecord? {
+        let records: [AppVersionRecord] = try await client
+            .from("app_versions")
+            .select()
+            .eq("platform", value: platform)
+            .eq("channel", value: channel)
+            .eq("is_active", value: true)
+            .limit(1)
+            .execute()
+            .value
+        
+        return records.first
     }
 }
 

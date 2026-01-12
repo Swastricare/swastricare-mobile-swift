@@ -1,55 +1,120 @@
 //
-//  ProfileView.swift
+//  SettingsView.swift
 //  swastricare-mobile-swift
 //
-//  MVVM Architecture - Views Layer
+//  Settings Screen with Linear Loading Progress
 //
 
 import SwiftUI
 
-struct ProfileView: View {
-    
-    // MARK: - ViewModel
-    
+struct SettingsView: View {
     @StateObject private var viewModel = DependencyContainer.shared.profileViewModel
     @StateObject private var hydrationViewModel = HydrationViewModel()
     @EnvironmentObject private var appVersionService: AppVersionService
     
-    // MARK: - State
-    
+    @State private var isLoading = false
+    @State private var loadingProgress: Double = 0.0
+    @State private var loadingMessage: String = "Loading settings..."
     @State private var activeSheet: ProfileSheet?
-    
-    // MARK: - Body
     
     var body: some View {
         ZStack {
             PremiumBackground()
             
-            List {
-                // Profile Header
-                profileHeader
-                
-                // Health Profile Section
-                healthProfileSection
-                
-                // Hydration Section
-                hydrationSection
-                
-                // Settings Section
-                settingsSection
-                
-                // Sign Out and Delete Account
-                signOutSection
-                
-                // Version at bottom
-                Section {
-                    EmptyView()
-                } footer: {
-                    versionFooter
+            if isLoading {
+                // Loading State with Linear Progress
+                VStack(spacing: 32) {
+                    Spacer()
+                    
+                    // Animated Icon
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "2E3192").opacity(0.2), Color(hex: "4A90E2").opacity(0.2)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 100, height: 100)
+                            .blur(radius: 20)
+                        
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(Color(hex: "2E3192"))
+                            .symbolEffect(.pulse, options: .repeating)
+                    }
+                    
+                    // Loading Message
+                    VStack(spacing: 12) {
+                        Text(loadingMessage)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                            .animation(.easeInOut, value: loadingMessage)
+                        
+                        Text("\(Int(loadingProgress * 100))%")
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 40)
+                    
+                    // Linear Progress Bar
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            // Background
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.gray.opacity(0.2))
+                                .frame(height: 6)
+                            
+                            // Progress Fill
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: geometry.size.width * loadingProgress, height: 6)
+                                .animation(.linear(duration: 0.2), value: loadingProgress)
+                        }
+                    }
+                    .frame(height: 6)
+                    .padding(.horizontal, 40)
+                    
+                    Spacer()
                 }
+            } else {
+                // Settings Content
+                List {
+                    // Profile Header
+                    profileHeader
+                    
+                    // Health Profile Section
+                    healthProfileSection
+                    
+                    // Hydration Section
+                    hydrationSection
+                    
+                    // Settings Section
+                    settingsSection
+                    
+                    // Sign Out and Delete Account
+                    signOutSection
+                    
+                    // Version at bottom
+                    Section {
+                        EmptyView()
+                    } footer: {
+                        versionFooter
+                    }
+                }
+                .scrollContentBackground(.hidden)
             }
-            .scrollContentBackground(.hidden)
         }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
         .alert(
             "Sign Out",
             isPresented: $viewModel.showSignOutConfirmation
@@ -90,8 +155,39 @@ struct ProfileView: View {
             }
         }
         .task {
-            // Load user data in background when view appears
-            await viewModel.loadUser()
+            await loadSettings()
+        }
+    }
+    
+    // MARK: - Loading
+    
+    private func loadSettings() async {
+        isLoading = true
+        loadingProgress = 0.0
+        loadingMessage = "Loading settings..."
+        
+        // Simulate loading steps
+        let steps = [
+            ("Loading user profile...", 0.2),
+            ("Fetching health data...", 0.5),
+            ("Loading preferences...", 0.8),
+            ("Finalizing...", 1.0)
+        ]
+        
+        for (message, progress) in steps {
+            await MainActor.run {
+                loadingMessage = message
+                loadingProgress = progress
+            }
+            try? await Task.sleep(nanoseconds: 400_000_000) // 0.4 seconds per step
+        }
+        
+        // Load actual data
+        await viewModel.loadUser()
+        await hydrationViewModel.loadData()
+        
+        await MainActor.run {
+            isLoading = false
         }
     }
     
@@ -285,9 +381,6 @@ struct ProfileView: View {
             }
             .foregroundColor(.primary)
         }
-        .task {
-            await hydrationViewModel.loadData()
-        }
     }
     
     private var settingsSection: some View {
@@ -455,75 +548,9 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - Health Profile Row
-
-struct HealthProfileRow: View {
-    let icon: String
-    let iconColor: Color
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Label {
-                Text(label)
-            } icon: {
-                Image(systemName: icon)
-                    .foregroundColor(iconColor)
-            }
-            Spacer()
-            Text(value)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-                .multilineTextAlignment(.trailing)
-        }
-    }
-}
-
-// MARK: - Shimmer Effect
-
-struct ShimmerModifier: ViewModifier {
-    @State private var phase: CGFloat = 0
-    
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                GeometryReader { geometry in
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            .clear,
-                            .white.opacity(0.4),
-                            .clear
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: geometry.size.width * 2)
-                    .offset(x: -geometry.size.width + (geometry.size.width * 2) * phase)
-                }
-            )
-            .mask(content)
-            .onAppear {
-                withAnimation(
-                    .linear(duration: 1.5)
-                    .repeatForever(autoreverses: false)
-                ) {
-                    phase = 1
-                }
-            }
-    }
-}
-
-extension View {
-    func shimmering() -> some View {
-        modifier(ShimmerModifier())
-    }
-}
-
 #Preview {
     NavigationStack {
-        ProfileView()
+        SettingsView()
             .environmentObject(AppVersionService.shared)
     }
 }
-
