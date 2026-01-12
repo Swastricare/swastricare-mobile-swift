@@ -45,6 +45,9 @@ struct swastricare_mobile_swiftApp: App {
     // App version state
     @State private var hasCheckedAppVersion: Bool = false
     
+    // Notification permission state
+    @State private var hasRequestedNotificationPermission: Bool = false
+    
     @Environment(\.scenePhase) private var scenePhase
     
     // Deep link handling for widgets
@@ -69,6 +72,8 @@ struct swastricare_mobile_swiftApp: App {
                     SplashView()
                         .task {
                             await checkAppVersion()
+                            // Request notification permission after version check
+                            await requestNotificationPermissionIfNeeded()
                         }
                 } else if appVersionService.updateStatus.requiresAction {
                     // FORCE UPDATE: Block the app until user updates
@@ -188,6 +193,32 @@ struct swastricare_mobile_swiftApp: App {
         }
         
         print("📱 App version check complete: \(status)")
+    }
+    
+    // MARK: - Notification Permission
+    
+    /// Request notification permission if not yet determined
+    private func requestNotificationPermissionIfNeeded() async {
+        // Only request once per app launch
+        guard !hasRequestedNotificationPermission else {
+            return
+        }
+        
+        await MainActor.run {
+            hasRequestedNotificationPermission = true
+        }
+        
+        // Check current permission status
+        let status = await NotificationService.shared.checkPermissionStatus()
+        
+        // Only request if permission hasn't been determined yet
+        if status == .notDetermined {
+            print("🔔 Requesting notification permission...")
+            let granted = await NotificationService.shared.requestPermission()
+            print("🔔 Notification permission: \(granted ? "granted" : "denied")")
+        } else {
+            print("🔔 Notification permission already determined: \(status)")
+        }
     }
     
     // MARK: - Health Profile Check
