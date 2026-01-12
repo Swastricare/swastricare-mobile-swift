@@ -102,7 +102,7 @@ struct swastricare_mobile_swiftApp: App {
                         
                         // TRIPLE-CHECK: Verify authentication one more time
                         if authViewModel.isAuthenticated && authViewModel.currentUser != nil {
-                            HealthProfileQuestionnaireView {
+                            OneQuestionPerScreenOnboardingView {
                                 // Profile saved to DB - update state to proceed to main app
                                 hasCompletedHealthProfile = true
                                 // Refresh auth profile to load the new data
