@@ -25,24 +25,9 @@ struct HomeView: View {
     @State private var hasAppeared = false
     @State private var modelOpacity: Double = 0
     @State private var modelScale: CGFloat = 0.8
-    @State private var currentQuoteIndex = 0
-    @State private var quoteOpacity: Double = 1
     @State private var quickActionsVisible = false
     @State private var trackerVisible = false
     @State private var showHeartRateMeasurement = false
-    
-    private let vitalQuotes = [
-        "Track your vital signs and understand your body better",
-        "Monitor essential body signals that matter every day",
-        "Your vital health data clearly measured and monitored",
-        "Stay aware of your vital signs with real-time health tracking",
-        "Essential vitals, simplified for everyday health awareness",
-        "Know what your body is telling you through your vital signs",
-        "Daily vital measurements for smarter health decisions",
-        "Keep track of your body's vitals and stay informed",
-        "Vital signs that reflect your health updated throughout the day",
-        "Understand your body better by monitoring your vitals"
-    ]
     
     // MARK: - Computed Properties
     
@@ -60,6 +45,62 @@ struct HomeView: View {
         }
     }
     
+    // MARK: - Health Status Logic
+    
+    private enum HealthStatus {
+        case optimal
+        case attention
+        case normal
+        
+        var title: String {
+            switch self {
+            case .optimal: return "System Optimal"
+            case .attention: return "Attention Needed"
+            case .normal: return "Status Normal"
+            }
+        }
+        
+        var message: String {
+            switch self {
+            case .optimal: return "All vitals and medications on track"
+            case .attention: return "Medications pending or vitals check required"
+            case .normal: return "Health metrics within normal range"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .optimal: return Color.green
+            case .attention: return Color.orange
+            case .normal: return Color.blue
+            }
+        }
+        
+        var glowColor: Color {
+            switch self {
+            case .optimal: return Color.green.opacity(0.5)
+            case .attention: return Color.orange.opacity(0.5)
+            case .normal: return Color.blue.opacity(0.5)
+            }
+        }
+    }
+    
+    private var healthStatus: HealthStatus {
+        if !viewModel.isAuthorized {
+            return .attention
+        }
+        // Example logic: If meds taken < total, attention needed (simplified)
+        // In reality, this would check times. For now, if taken == total > 0, optimal.
+        if medicationViewModel.totalCount > 0 && medicationViewModel.takenCount == medicationViewModel.totalCount {
+            return .optimal
+        }
+        if medicationViewModel.takenCount < medicationViewModel.totalCount {
+             // If it's late in the day, maybe attention? For now just normal/attention differentiation
+            return .normal 
+        }
+        return .normal
+    }
+    
     // MARK: - Body
     
     var body: some View {
@@ -68,31 +109,14 @@ struct HomeView: View {
             PremiumBackground()
             
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    // Custom Header with Subheading
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Body Vitals")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundColor(.primary)
-                            .opacity(hasAppeared ? 1 : 0)
-                            .offset(y: hasAppeared ? 0 : -10)
-                        
-                        // Animated rotating quotes - Fixed height for 2 lines
-                        Text(vitalQuotes[currentQuoteIndex])
-                            .font(.system(size: 15))
-                            .foregroundColor(.secondary)
-                            .opacity(quoteOpacity)
-                            .offset(y: hasAppeared ? 0 : -10)
-                            .animation(.easeInOut(duration: 0.3), value: quoteOpacity)
-                            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
-                            .lineLimit(2)
-                            .lineSpacing(4)
-                            .frame(height: 44, alignment: .topLeading) // Fixed height for 2 lines
-                            .fixedSize(horizontal: false, vertical: false)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                VStack(spacing: 0) {
+                    // Living Status Header
+                    LivingStatusHeader(
+                        userName: userName,
+                        userPhotoURL: authViewModel.userPhotoURL,
+                        status: healthStatus,
+                        greeting: timeBasedGreeting
+                    )
                     .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
                     
                     // Health Authorization Banner
@@ -102,17 +126,20 @@ struct HomeView: View {
                     
                     // Human Body Image with Daily Activity Details
                     humanBodyImageWithDetails
-                        .padding(.top, 8)
+                        .padding(.top, 0)
                     
                     // Health Vitals Grid
                     healthVitalsSection
+                        .padding(.top, 8)
                     
                     // Quick Actions
                     quickActionsSection
+                        .padding(.top, 8)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                     
                     // Tracker Section
                     trackerSection
+                        .padding(.top, 16)
                         .modifier(ScrollAnimationModifier(isVisible: $trackerVisible))
                 }
                 .padding(.top)
@@ -145,8 +172,6 @@ struct HomeView: View {
                 modelOpacity = 0.8
                 modelScale = 1.40 // Zoomed in (was 1.0)
             }
-            // Start quote rotation
-            startQuoteRotation()
         }
         .task {
             await viewModel.loadTodaysData()
@@ -165,52 +190,35 @@ struct HomeView: View {
     
     // MARK: - Helper Methods
     
-    private func startQuoteRotation() {
-        // Wait for initial appearance animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-            rotateQuotes()
-        }
-    }
-    
-    private func rotateQuotes() {
-    // Wait 10 seconds before rotating
-    DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
-
-        // Fade out
-        withAnimation(.easeInOut(duration: 0.5)) {
-            quoteOpacity = 0
-        }
-
-        // Change quote after fade out
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            currentQuoteIndex = (currentQuoteIndex + 1) % vitalQuotes.count
-
-            // Fade in
-            withAnimation(.easeInOut(duration: 0.5)) {
-                quoteOpacity = 1
-            }
-
-            // Schedule next rotation
-            rotateQuotes()
-        }
-    }
-}
-
-    
     // MARK: - Subviews
     
     private var humanBodyImageWithDetails: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
+                
+                // 3. Ambient Glow behind the model
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color(hex: "2E3192").opacity(0.3), // Brand Blue Glow
+                        Color.clear
+                    ]),
+                    center: .trailing, // Center glow on the right side
+                    startRadius: 50,
+                    endRadius: 250
+                )
+                .offset(x: 50, y: 0) // Shift slightly right
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.easeIn(duration: 1.0), value: hasAppeared)
+
                 // Human Body 3D Model on the right
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 350)
+                        .frame(height: 380) // Slightly taller
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
                         .offset(x: geometry.size.width * 0.16)
-                        .offset(y: geometry.size.height * 0.20)
+                        .offset(y: geometry.size.height * 0.15) // Adjusted vertical offset
                         .allowsHitTesting(false) // Disable all touch interactions
                         .clipped()
                         .mask(
@@ -234,20 +242,14 @@ struct HomeView: View {
                 
                 // Daily Activity Details on the left (without card)
                 VStack(alignment: .leading, spacing: 20) {
-                    // Title Section
-                    Text("Daily Activity")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.primary)
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(x: hasAppeared ? 0 : -20)
                     
                     // Stats List - Vertical
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 12) { // Tighter spacing for cards
                         DailyActivityStatItem(
                             icon: "flame.fill",
                             color: .orange,
                             value: "\(viewModel.activeCalories)",
-                            unit: "kcal",
+                            unit: "Active Calories",
                             animationDelay: 0.3,
                             hasAppeared: hasAppeared
                         )
@@ -256,7 +258,7 @@ struct HomeView: View {
                             icon: "figure.walk",
                             color: .green,
                             value: "\(viewModel.stepCount)",
-                            unit: "steps",
+                            unit: "Step Count",
                             animationDelay: 0.4,
                             hasAppeared: hasAppeared
                         )
@@ -265,7 +267,7 @@ struct HomeView: View {
                             icon: "clock.fill",
                             color: .blue,
                             value: "\(viewModel.exerciseMinutes)",
-                            unit: "mins",
+                            unit: "Exercise Min",
                             animationDelay: 0.5,
                             hasAppeared: hasAppeared
                         )
@@ -274,26 +276,26 @@ struct HomeView: View {
                             icon: "figure.stand",
                             color: .purple,
                             value: "\(viewModel.standHours)",
-                            unit: "/ 12 hrs",
+                            unit: "Stand Hours",
                             animationDelay: 0.6,
                             hasAppeared: hasAppeared
                         )
                     }
                 }
                 .padding(.horizontal, 20)
-                .frame(maxWidth: geometry.size.width * 0.5, alignment: .leading) // Left half of screen
+                .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading) // Give slightly more space to stats
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: hasAppeared)
             }
         }
-        .frame(height: 350)
+        .frame(height: 380) // Match model height
     }
     
     private var authorizationBanner: some View {
         VStack(spacing: 12) {
             Image(systemName: "heart.text.square.fill")
-                .font(.largeTitle)
-                .foregroundColor(.red)
-                .shadow(color: .red.opacity(0.5), radius: 10)
+            .font(.largeTitle)
+            .foregroundColor(.red)
+            .shadow(color: .red.opacity(0.5), radius: 10)
             
             Text("Enable Health Access")
                 .font(.headline)
@@ -401,19 +403,12 @@ struct HomeView: View {
     }
     
     private var healthVitalsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Health Vitals")
-                .font(.system(size: 16, weight: .semibold))
-                .padding(.horizontal)
-                .opacity(hasAppeared ? 1 : 0)
-                .offset(y: hasAppeared ? 0 : -10)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.7), value: hasAppeared)
-            
+        VStack(alignment: .leading, spacing: 12) {
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 8) {
+            ], spacing: 12) {
                 // Heart Rate card - tappable to measure
                 Button(action: {
                     showHeartRateMeasurement = true
@@ -425,7 +420,8 @@ struct HomeView: View {
                         unit: "BPM",
                         color: .red,
                         animationDelay: 0.8,
-                        hasAppeared: hasAppeared
+                        hasAppeared: hasAppeared,
+                        showCameraBadge: true
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -602,15 +598,7 @@ struct HomeView: View {
     }
 
     private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("Quick Actions")
-                .font(.title3)
-                .fontWeight(.semibold)
-                .padding(.horizontal)
-                .opacity(quickActionsVisible ? 1 : 0)
-                .offset(y: quickActionsVisible ? 0 : -10)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: quickActionsVisible)
-            
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 MedicationQuickActionButton(
                     takenCount: medicationViewModel.takenCount,
@@ -635,10 +623,10 @@ struct HomeView: View {
             .padding(.horizontal)
         }
         .sheet(isPresented: $showMedications) {
-            MedicationsView()
+            MedicationsView(viewModel: medicationViewModel)
         }
         .sheet(isPresented: $showHydration) {
-            HydrationView()
+            HydrationView(viewModel: hydrationViewModel)
         }
     }
     
@@ -670,6 +658,88 @@ struct HomeView: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
+    }
+    
+    // MARK: - Living Status Header
+    
+    private struct LivingStatusHeader: View {
+        let userName: String
+        let userPhotoURL: URL?
+        let status: HealthStatus
+        let greeting: String
+        
+        @State private var isPulsing = false
+        
+        var body: some View {
+            HStack(alignment: .top) {
+                // Left: Text Info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(greeting)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(status.color)
+                    
+                    HStack(alignment: .center, spacing: 8) {
+                        Text(userName)
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        
+                        // Pulsing Heart
+                        ZStack {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.red)
+                                .scaleEffect(isPulsing ? 1.2 : 1.0)
+                                .opacity(isPulsing ? 1.0 : 0.8)
+                                .animation(
+                                    .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                                    value: isPulsing
+                                )
+                        }
+                        .onAppear {
+                            isPulsing = true
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                // Right: Actions
+                HStack(spacing: 16) {
+                    // Notification Bell
+                    Button(action: {}) {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                    }
+                    
+                    // Profile Image
+                    Button(action: {}) {
+                        Group {
+                            if let imageURL = userPhotoURL {
+                                AsyncImage(url: imageURL) { image in
+                                    image.resizable()
+                                } placeholder: {
+                                    Color.gray.opacity(0.3)
+                                }
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+        }
     }
 }
 
@@ -720,45 +790,55 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 
 // MARK: - Supporting Views
 
-private struct DailyActivityStatItem: View {
-    let icon: String
-    let color: Color
-    let value: String
-    let unit: String
-    let animationDelay: Double
-    let hasAppeared: Bool
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Icon with background
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.15))
-                    .frame(width: 36, height: 36)
+    private struct DailyActivityStatItem: View {
+        let icon: String
+        let color: Color
+        let value: String
+        let unit: String
+        let animationDelay: Double
+        let hasAppeared: Bool
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                // Icon with background
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(color)
+                }
                 
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(color)
-            }
-            
-            // Value and unit
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.primary)
+                // Value and unit
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 24, weight: .bold)) // Larger & Bold
+                        .foregroundColor(.primary)
+                    
+                    Text(unit)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
                 
-                Text(unit)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                Spacer()
             }
-            
-            Spacer()
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.05)) // Subtle glass effect
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            )
+            .opacity(hasAppeared ? 1 : 0)
+            .offset(x: hasAppeared ? 0 : -20)
+            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(animationDelay), value: hasAppeared)
         }
-        .opacity(hasAppeared ? 1 : 0)
-        .offset(x: hasAppeared ? 0 : -20)
-        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(animationDelay), value: hasAppeared)
     }
-}
 
 private struct StatRow: View {
     let icon: String
@@ -787,43 +867,74 @@ private struct VitalCard: View {
     let color: Color
     let animationDelay: Double
     let hasAppeared: Bool
+    var showCameraBadge: Bool = false
     
     @State private var cardAppeared = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 10) {
+            // Header: Icon and Camera Badge
             HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(color)
-                    .scaleEffect(cardAppeared ? 1 : 0)
-                    .rotationEffect(.degrees(cardAppeared ? 0 : -180))
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 32, height: 32)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(color)
+                }
+                .scaleEffect(cardAppeared ? 1 : 0)
+                .rotationEffect(.degrees(cardAppeared ? 0 : -180))
+                
                 Spacer()
-            }
-            
-            Text(title)
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
-                .opacity(cardAppeared ? 1 : 0)
-            
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 16, weight: .bold))
-                    .opacity(cardAppeared ? 1 : 0)
-                    .offset(x: cardAppeared ? 0 : -10)
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.system(size: 9))
+                
+                if showCameraBadge {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 10))
                         .foregroundColor(.secondary)
+                        .padding(5)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
                         .opacity(cardAppeared ? 1 : 0)
                 }
             }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .opacity(cardAppeared ? 1 : 0)
+                
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(.primary)
+                        .opacity(cardAppeared ? 1 : 0)
+                        .offset(x: cardAppeared ? 0 : -10)
+                    
+                    if !unit.isEmpty {
+                        Text(unit)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .opacity(cardAppeared ? 1 : 0)
+                    }
+                }
+            }
         }
-        .padding(10)
-        .glass(cornerRadius: 12)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+        )
         .opacity(cardAppeared ? 1 : 0)
-        .scaleEffect(cardAppeared ? 1 : 0.7)
-        .offset(y: cardAppeared ? 0 : 30)
+        .scaleEffect(cardAppeared ? 1 : 0.9)
+        .offset(y: cardAppeared ? 0 : 20)
         .onChange(of: hasAppeared) { oldValue, newValue in
             if newValue && !cardAppeared {
                 DispatchQueue.main.asyncAfter(deadline: .now() + animationDelay) {
@@ -874,57 +985,127 @@ private struct HydrationQuickActionButton: View {
     let dailyGoal: Int
     let action: () -> Void
     
-    private var progress: Double {
+    // Start at 1.0 (100%)
+    @State private var visualProgress: Double = 1.0
+    @State private var wavePhase: Double = 0.0
+    
+    private var targetProgress: Double {
         guard dailyGoal > 0 else { return 0 }
         return min(1.0, Double(currentIntake) / Double(dailyGoal))
     }
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: "drop.fill")
-                    .font(.title2)
-                    .foregroundColor(.cyan)
-                
-                Text("Hydration")
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                
-                // Current / Target
-                HStack(spacing: 3) {
-                    Text("\(currentIntake)")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.cyan)
-                    Text("/")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                    Text("\(dailyGoal)")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.secondary)
-                    Text("ml")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                }
-                
-                // Progress bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 3)
+            ZStack {
+                // Background & Water Animation
+                GeometryReader { geo in
+                    ZStack(alignment: .bottom) {
+                        // Base background
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.blue.opacity(0.05))
                         
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.cyan)
-                            .frame(width: geometry.size.width * progress, height: 3)
-                            .animation(.easeInOut(duration: 0.3), value: progress)
+                        // Water Waves
+                        // We control the height of the water view directly via frame height
+                        // This ensures smooth height animation without cross-fading
+                        if visualProgress > 0.01 {
+                            ZStack(alignment: .bottom) {
+                                // Back wave
+                                WaterWave(amplitude: geo.size.height * 0.04, offset: wavePhase)
+                                    .fill(Color.cyan.opacity(0.3))
+                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                
+                                // Front wave
+                                WaterWave(amplitude: geo.size.height * 0.03, offset: wavePhase + 1.5)
+                                    .fill(LinearGradient(
+                                        colors: [.cyan.opacity(0.6), .blue.opacity(0.6)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ))
+                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                            }
+                            // Mask the waves to strictly stay within the card bounds
+                            .mask(RoundedRectangle(cornerRadius: 24))
+                            // Clip the water to the rounded corners of the card
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                        }
                     }
                 }
-                .frame(height: 3)
-                .padding(.horizontal, 4)
+                
+                // Content Overlay
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        // Icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "drop.fill")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        
+                        // Percentage
+                        Text("\(Int(visualProgress * 100))%")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                            .contentTransition(.numericText(value: visualProgress))
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Hydration")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white.opacity(0.9))
+                        
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(currentIntake)")
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text("/ \(dailyGoal) ml")
+                                .font(.footnote)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                }
+                .padding(20)
+                
+                // Glass border
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(LinearGradient(
+                        colors: [.white.opacity(0.5), .white.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ), lineWidth: 1)
             }
+            .frame(height: 150)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .glass(cornerRadius: 12)
+            .shadow(color: Color.blue.opacity(0.15), radius: 10, x: 0, y: 5)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            // 1. Start continuous wave animation
+            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                wavePhase = .pi * 2
+            }
+            
+            // 2. Animate from 100% down to actual value on load
+            // Using frame animation is robust and won't fade
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.easeInOut(duration: 2.0)) {
+                    visualProgress = targetProgress
+                }
+            }
+        }
+        .onChange(of: targetProgress) { _, newValue in
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                visualProgress = newValue
+            }
         }
     }
 }
@@ -934,57 +1115,129 @@ private struct MedicationQuickActionButton: View {
     let totalCount: Int
     let action: () -> Void
     
-    private var progress: Double {
+    // Start at 0%
+    @State private var visualProgress: Double = 0.0
+    
+    private var targetProgress: Double {
         guard totalCount > 0 else { return 0 }
         return min(1.0, Double(takenCount) / Double(totalCount))
     }
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: "pills.fill")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-                
-                Text("Medications")
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                
-                // Taken / Total
-                HStack(spacing: 3) {
-                    Text("\(takenCount)")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.blue)
-                    Text("/")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                    Text("\(totalCount)")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.secondary)
-                    Text("taken")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                }
-                
-                // Progress bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 3)
+            ZStack {
+                // Background & "Potion" Animation
+                GeometryReader { geo in
+                    ZStack(alignment: .bottom) {
+                        // Base background
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color(hex: "5856D6").opacity(0.05)) // Indigo base
                         
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.blue)
-                            .frame(width: geometry.size.width * progress, height: 3)
-                            .animation(.easeInOut(duration: 0.3), value: progress)
+                        // Liquid Fill
+                        if visualProgress > 0.01 {
+                            ZStack {
+                                // Gradient Fill
+                                RoundedRectangle(cornerRadius: 24)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color(hex: "AF52DE").opacity(0.6), // Purple
+                                                Color(hex: "5856D6").opacity(0.6)  // Indigo
+                                            ],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                                    // Height from bottom
+                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                                
+                                // Bubbles Effect (Only visible inside the filled area)
+                                RisingBubblesEffect(color: .white.opacity(0.3))
+                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                                    // Mask to liquid area
+                                    .mask(
+                                        RoundedRectangle(cornerRadius: 24)
+                                            .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                                    )
+                            }
+                            // Clip to card
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                        }
                     }
                 }
-                .frame(height: 3)
-                .padding(.horizontal, 4)
+                
+                // Content Overlay
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        // Icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "pills.fill")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        
+                        // Percentage
+                        Text("\(Int(visualProgress * 100))%")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                            .contentTransition(.numericText(value: visualProgress))
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Medications")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white.opacity(0.9))
+                        
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(takenCount)")
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text("/ \(totalCount) taken")
+                                .font(.footnote)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                }
+                .padding(20)
+                
+                // Glass border
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(LinearGradient(
+                        colors: [.white.opacity(0.5), .white.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ), lineWidth: 1)
             }
+            .frame(height: 150)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .glass(cornerRadius: 12)
+            .shadow(color: Color(hex: "5856D6").opacity(0.15), radius: 10, x: 0, y: 5)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            // Animate from 0 to target on load
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                    visualProgress = targetProgress
+                }
+            }
+        }
+        .onChange(of: targetProgress) { _, newValue in
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                visualProgress = newValue
+            }
         }
     }
 }
@@ -1145,8 +1398,8 @@ private struct AnalysisResultView: View {
                     ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
                         HStack(alignment: .top, spacing: 10) {
                             Text("\(index + 1).")
-                                .fontWeight(.semibold)
-                                .foregroundColor(Color(hex: "2E3192"))
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color(hex: "2E3192"))
                             Text(rec)
                                 .font(.body)
                                 .lineSpacing(4)
@@ -1191,9 +1444,119 @@ private struct AnalysisResultView: View {
     }
 }
 
+// MARK: - Water Wave Shape
+
+struct RisingBubblesEffect: View {
+    let color: Color
+    
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(0..<12) { i in
+                    Bubble(
+                        delay: Double(i) * 0.5,
+                        size: CGFloat.random(in: 4...10),
+                        xRange: 0...geo.size.width,
+                        color: color
+                    )
+                }
+            }
+        }
+    }
+    
+    struct Bubble: View {
+        let delay: Double
+        let size: CGFloat
+        let xRange: ClosedRange<CGFloat>
+        let color: Color
+        
+        @State private var offset: CGFloat = 200
+        @State private var xOffset: CGFloat = 0
+        @State private var opacity: Double = 0
+        
+        var body: some View {
+            Circle()
+                .fill(color)
+                .frame(width: size, height: size)
+                .offset(x: xOffset, y: offset)
+                .opacity(opacity)
+                .onAppear {
+                    // Randomize x position for each loop
+                    xOffset = CGFloat.random(in: xRange)
+                    
+                    withAnimation(
+                        .linear(duration: 4.0)
+                        .repeatForever(autoreverses: false)
+                        .delay(delay)
+                    ) {
+                        offset = -200 // Move up
+                        opacity = 1 // Fade in/out logic handled by modifier?
+                        // Simple opacity fade:
+                    }
+                    
+                    // Separate animation for opacity to fade in and out
+                    withAnimation(
+                        .easeInOut(duration: 2.0)
+                        .repeatForever(autoreverses: true)
+                        .delay(delay)
+                    ) {
+                       // opacity = 0.8
+                    }
+                }
+        }
+    }
+}
+
+struct WaterWave: Shape {
+    var amplitude: CGFloat
+    var offset: Double
+
+    var animatableData: Double {
+        get { offset }
+        set { offset = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        
+        // We draw the wave relative to the top of the rect (y=0)
+        // The wave oscillates around y=0.
+        // Points with negative y will be drawn above the top edge (which is fine)
+        
+        let width = rect.width
+        let height = rect.height
+        
+        // Start at left edge
+        // Start the path from a point high enough to accommodate the wave's peak (amplitude)
+        // But since we are filling DOWN, we actually want the wave line to be at y=0, and we fill everything below it.
+        // The frame height determines how much "water" is visible.
+        // The wave should oscillate around y=0.
+        
+        path.move(to: CGPoint(x: 0, y: 0)) // Start at top-left
+        
+        for x in stride(from: 0, to: width, by: 2) {
+            let relativeX = x / width
+            // 2 * pi for one full cycle across width
+            let angle = relativeX * .pi * 2 + offset
+            let y = sin(angle) * amplitude
+            
+            // We draw the line. y values > 0 go down into the rect. y < 0 go up (outside rect).
+            // This is correct behavior for a top-edge wave.
+            path.addLine(to: CGPoint(x: x, y: y))
+        }
+        
+        // Close the shape at the bottom
+        // Extend far down to ensure we cover the area even if the frame is slightly mismatched or during animation
+        path.addLine(to: CGPoint(x: width, y: height + amplitude)) 
+        path.addLine(to: CGPoint(x: 0, y: height + amplitude))
+        path.closeSubpath()
+        
+        return path
+    }
+}
+
 #Preview {
     NavigationStack {
         HomeView()
     }
 }
-

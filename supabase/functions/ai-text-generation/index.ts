@@ -35,14 +35,14 @@ serve(async (req) => {
     // Generate different types of content based on request
     switch (contentType) {
       case 'daily_summary':
-        prompt = `Hi! I'm Swastrica 💚 Create a daily health summary based on this data:
+        prompt = `Hi! I'm Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Create a daily health summary based on this data:
 ${JSON.stringify(data, null, 2)}
 
 Use short sentences. Add emojis. Write 3-4 encouraging sentences highlighting achievements and one tip for tomorrow. Keep it warm and friendly!`
         break
         
       case 'weekly_report':
-        prompt = `Hi! I'm Swastrica 💚 Create a weekly health report based on this data:
+        prompt = `Hi! I'm Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Create a weekly health report based on this data:
 ${JSON.stringify(data, null, 2)}
 
 Use short sentences and emojis. Write a friendly report covering:
@@ -52,7 +52,7 @@ Keep it encouraging!`
         break
         
       case 'goal_suggestions':
-        prompt = `Hi! I'm Swastrica 💚 Based on this health data, suggest 3 achievable goals:
+        prompt = `Hi! I'm Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Based on this health data, suggest 3 achievable goals:
 ${JSON.stringify(data, null, 2)}
 
 Format as JSON array with "title" and "description". Use short sentences and emojis. Make goals SMART and encouraging!`

@@ -46,16 +46,35 @@ serve(async (req) => {
     )
 
     let userId = null
+    let healthProfileId = null
     if (authHeader) {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         userId = user?.id
+        
+        if (userId) {
+          const { data: profile } = await supabase
+            .from('health_profiles')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_primary', true)
+            .single()
+          healthProfileId = profile?.id
+        }
       } catch (e) {
-        console.log('Auth failed')
+        console.log('Auth/profile fetch failed:', e.message)
       }
     }
 
-    let fullPrompt = `You are Swastrica, a friendly health assistant! 💚 Use short sentences. Add relevant emojis. Be encouraging and warm. Keep responses brief (2-4 short sentences).\n\n`
+    let fullPrompt = `You are Swastrica, a friendly health assistant! 💚 Use short sentences. Add relevant emojis. Be encouraging and warm. Keep responses brief (2-4 short sentences).
+
+IMPORTANT IDENTITY RULES:
+- You were created by the Swastricare team, a product of Onwords (parent company)
+- NEVER say you were made by Google, OpenAI, or any other company
+- If asked about your creator/maker, always say "I was built by the Swastricare team at Onwords"
+- You are Swastrica, the AI health assistant of the Swastricare app
+
+`
     
     if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
       fullPrompt += "Previous:\n"
@@ -105,14 +124,25 @@ serve(async (req) => {
       const aiResponse = geminiData.candidates[0].content.parts[0].text.trim()
       console.log('Got response')
 
-      if (userId) {
+      if (userId && healthProfileId) {
         try {
+          const messagesArray = [
+            ...(conversationHistory || []),
+            { role: 'user', content: message, timestamp: new Date().toISOString() },
+            { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString() }
+          ]
+          
           await supabase.from('ai_conversations').insert({
             user_id: userId,
-            message,
-            response: aiResponse,
-            context: { history: conversationHistory || [] }
+            health_profile_id: healthProfileId,
+            title: message.substring(0, 100),
+            conversation_type: 'health_chat',
+            messages: messagesArray,
+            context_data: { history_length: conversationHistory?.length || 0 },
+            model_used: 'gemini-3-flash-preview',
+            status: 'completed'
           })
+          console.log('Conversation saved')
         } catch (e) {
           console.log('DB insert failed:', e.message)
         }

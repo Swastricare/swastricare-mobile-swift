@@ -9,7 +9,7 @@ import SwiftUI
 
 struct HydrationView: View {
     @Environment(\.dismiss) var dismiss
-    @StateObject private var viewModel = HydrationViewModel()
+    @ObservedObject var viewModel: HydrationViewModel
     
     @State private var selectedDrinkType: DrinkType = .water
     @State private var showDrinkTypePicker = false
@@ -716,5 +716,5 @@ struct HydrationEntryCard: View {
 }
 
 #Preview {
-    HydrationView()
+    HydrationView(viewModel: HydrationViewModel())
 }

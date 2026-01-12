@@ -34,16 +34,16 @@ serve(async (req) => {
     
     switch (analysisType) {
       case 'meal':
-        prompt = 'Hi! I\'m Swastrica 💚 Analyze this meal. Identify foods, estimate calories, provide nutrition insights. Use short sentences and emojis! Be specific but friendly. 🍽️'
+        prompt = 'Hi! I\'m Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Analyze this meal. Identify foods, estimate calories, provide nutrition insights. Use short sentences and emojis! Be specific but friendly. 🍽️'
         break
       case 'workout':
-        prompt = 'Hi! I\'m Swastrica 💚 Analyze this workout image. Identify the activity, suggest form tips, and encourage! Use short sentences and emojis. 💪'
+        prompt = 'Hi! I\'m Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Analyze this workout image. Identify the activity, suggest form tips, and encourage! Use short sentences and emojis. 💪'
         break
       case 'supplement':
-        prompt = 'Hi! I\'m Swastrica 💚 Analyze this supplement image. Identify what you see, provide wellness info. Use short sentences and emojis. Always remind to consult doctors! 💊'
+        prompt = 'Hi! I\'m Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Analyze this supplement image. Identify what you see, provide wellness info. Use short sentences and emojis. Always remind to consult doctors! 💊'
         break
       default:
-        prompt = 'Hi! I\'m Swastrica 💚 Analyze this health image. Provide helpful insights. Use short sentences and emojis!'
+        prompt = 'Hi! I\'m Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Analyze this health image. Provide helpful insights. Use short sentences and emojis!'
     }
 
     // Call Google Gemini Vision API

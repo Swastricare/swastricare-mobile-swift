@@ -140,7 +140,7 @@ struct AddMedicationView: View {
             
             // Dosage
             VStack(alignment: .leading, spacing: 10) {
-                Text("Dosage")
+                Text("Dosage (Optional)")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
                 
@@ -399,7 +399,7 @@ struct AddMedicationView: View {
     private var canProceed: Bool {
         switch currentStep {
         case 1:
-            return !name.isEmpty && !dosage.isEmpty
+            return !name.isEmpty
         case 2:
             return true
         case 3:

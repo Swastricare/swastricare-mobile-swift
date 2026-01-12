@@ -13,14 +13,17 @@ struct SignalValidator {
     
     // MARK: - BPM Validation
     
-    /// Validate if BPM reading is physiologically plausible
+    /// Validate if BPM reading is physiologically plausible with extended error bounds
     static func isValidBPM(_ bpm: Int) -> Bool {
-        return bpm >= 40 && bpm <= 200
+        // Absolute physiological limits (survival possible but rare outside this)
+        // Neonates can be up to 190, athletes down to 30.
+        // For general adult population app context:
+        return bpm >= 30 && bpm <= 220
     }
     
-    /// Validate if BPM is in resting range
+    /// Validate if BPM is in expected resting range for adults
     static func isRestingBPM(_ bpm: Int) -> Bool {
-        return bpm >= 50 && bpm <= 100
+        return bpm >= 40 && bpm <= 100
     }
     
     /// Get BPM category description
@@ -88,7 +91,9 @@ struct SignalValidator {
         // Apply signal quality multiplier
         let finalConfidence = baseConfidence * signalQualityScore
         
-        return max(0, min(1, finalConfidence))
+        // Cap confidence at 99% (0.99) to indicate margin of error
+        // Never return 100% confidence for camera PPG
+        return max(0, min(0.99, finalConfidence))
     }
     
     /// Get confidence level description
@@ -153,6 +158,57 @@ struct SignalValidator {
         
         return filteredReadings.reduce(0, +) / filteredReadings.count
     }
+    
+    // MARK: - Error Bounds Calculation (Production)
+    
+    /// Calculate error bounds (±X BPM) for a set of readings
+    /// Returns (minBPM, maxBPM, errorMargin) tuple
+    static func calculateErrorBounds(_ readings: [Int]) -> (min: Int, max: Int, margin: Int)? {
+        let validReadings = filterValidReadings(readings)
+        guard validReadings.count >= 5 else { return nil }
+        
+        // Remove outliers first
+        let sorted = validReadings.sorted()
+        let q1Index = sorted.count / 4
+        let q3Index = (sorted.count * 3) / 4
+        
+        let q1 = Double(sorted[q1Index])
+        let q3 = Double(sorted[q3Index])
+        let iqr = q3 - q1
+        
+        let lowerBound = q1 - (1.5 * iqr)
+        let upperBound = q3 + (1.5 * iqr)
+        
+        let cleanedReadings = validReadings.filter { Double($0) >= lowerBound && Double($0) <= upperBound }
+        guard cleanedReadings.count >= 3 else { return nil }
+        
+        let cleanedSorted = cleanedReadings.sorted()
+        
+        // Calculate statistics
+        let mean = Double(cleanedReadings.reduce(0, +)) / Double(cleanedReadings.count)
+        let variance = cleanedReadings.map { pow(Double($0) - mean, 2) }.reduce(0, +) / Double(cleanedReadings.count)
+        let stdDev = sqrt(variance)
+        
+        // Error margin based on standard deviation
+        // Use 1.5 * stdDev for ~87% confidence interval
+        // Minimum error margin of 2 BPM (inherent sensor limitation)
+        let calculatedMargin = Int(ceil(stdDev * 1.5))
+        let errorMargin = max(2, min(calculatedMargin, 10)) // Cap at ±10 BPM
+        
+        // Min/Max from actual cleaned data
+        let minBPM = cleanedSorted.first ?? 0
+        let maxBPM = cleanedSorted.last ?? 0
+        
+        return (min: minBPM, max: maxBPM, margin: errorMargin)
+    }
+    
+    /// Get human-readable error description
+    static func errorBoundsDescription(_ readings: [Int], averageBPM: Int) -> String {
+        guard let bounds = calculateErrorBounds(readings) else {
+            return "±5 BPM (estimated)"
+        }
+        return "±\(bounds.margin) BPM"
+    }
 }
 
 // MARK: - Motion Detector
@@ -180,8 +236,9 @@ class MotionDetector {
         
         let avgDerivative = derivatives.reduce(0, +) / Double(derivatives.count)
         
-        // Threshold for excessive motion (relaxed to reduce false positives)
-        return avgDerivative > 25.0
+        // Threshold for excessive motion
+        // 15.0 is strict enough to filter noise but allows normal pulsation (~5-10)
+        return avgDerivative > 15.0
     }
     
     func reset() {

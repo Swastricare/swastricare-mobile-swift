@@ -172,8 +172,10 @@ final class HealthKitService: HealthKitServiceProtocol {
         }
         
         let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: date))!
-        let endDate = calendar.startOfDay(for: date)
+        // Get sleep data for the sleep session ending on the selected date (Noon Yesterday to Noon Today)
+        let startOfDay = calendar.startOfDay(for: date)
+        let startDate = calendar.date(byAdding: .hour, value: -12, to: startOfDay)! // Yesterday 12:00 PM
+        let endDate = calendar.date(byAdding: .hour, value: 12, to: startOfDay)!   // Today 12:00 PM
         
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)

@@ -2,577 +2,315 @@
 //  HeartRateView.swift
 //  swastricare-mobile-swift
 //
-//  SwiftUI view for camera-based heart rate measurement
+//  Main view for camera-based heart rate measurement
 //
 
 import SwiftUI
 
 struct HeartRateView: View {
     
-    // MARK: - ViewModel
-    
     @StateObject private var viewModel = HeartRateViewModel()
     @Environment(\.dismiss) private var dismiss
     
-    // MARK: - Body
+    // Animation states
+    @State private var showContent = false
+    @State private var heartbeatScale: CGFloat = 1.0
+    @State private var borderPulse = false
+    @State private var showError = false
+    
+    // Measurement duration constant
+    private let measurementDuration: TimeInterval = 30.0
     
     var body: some View {
         ZStack {
             // Background
+            backgroundView
+            
+            VStack(spacing: 0) {
+                // Header
+                headerView
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                
+                Spacer(minLength: 20)
+                
+                // Main Measurement Area
+                measurementArea
+                
+                Spacer(minLength: 30)
+                
+                // BPM & Waveform Section
+                bpmSection
+                
+                Spacer(minLength: 20)
+                
+                // Bottom Action
+                actionSection
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 30)
+            }
+        }
+        .navigationBarHidden(true)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.5)) {
+                showContent = true
+            }
+        }
+        // Fixed alert binding
+        .alert("Error", isPresented: $showError) {
+            Button("OK") {
+                viewModel.dismissResult()
+                showError = false
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "An error occurred")
+        }
+        .onChange(of: viewModel.errorMessage) { _, newValue in
+            showError = newValue != nil
+        }
+        // Heartbeat pulse animation
+        .onChange(of: viewModel.bpm) { _, newBPM in
+            if newBPM > 0 {
+                triggerHeartbeatPulse()
+                HapticManager.selection()
+            }
+        }
+        // Border pulse when signal is good
+        .onChange(of: viewModel.signalQuality) { _, newQuality in
+            if newQuality == .good || newQuality == .excellent {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    borderPulse.toggle()
+                }
+            }
+        }
+        .sheet(isPresented: $viewModel.showResult) {
+            HeartRateResultView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $viewModel.showDisclaimer) {
+            HeartRateDisclaimerView(onAccept: viewModel.acceptDisclaimer)
+        }
+    }
+    
+    // MARK: - Background
+    
+    private var backgroundView: some View {
+        ZStack {
             Color(UIColor.systemBackground)
                 .ignoresSafeArea()
             
-            VStack(spacing: 30) {
-                Spacer()
-                
-                // Camera preview with overlay
-                cameraPreviewSection
-                
-                // BPM display
-                bpmDisplayView
-                
-                // Signal quality indicator
-                signalQualityView
-                
-                // Progress bar (when measuring)
-                if viewModel.isRunning {
-                    progressView
-                }
-                
-                Spacer()
-                
-                // Action buttons
-                actionButtons
-                    .padding(.bottom, 40)
-            }
-            .padding()
-        }
-        .navigationTitle("Measure Heart Rate")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Close") {
-                    viewModel.stopMeasurement()
-                    dismiss()
-                }
-            }
-        }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") {
-                viewModel.dismissResult()
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
-        .sheet(isPresented: $viewModel.showResult) {
-            ResultSheetView(viewModel: viewModel)
-        }
-        .sheet(isPresented: $viewModel.showDisclaimer) {
-            DisclaimerSheetView(onAccept: viewModel.acceptDisclaimer)
-        }
-    }
-    
-    // MARK: - Subviews
-    
-    private var cameraPreviewSection: some View {
-        ZStack {
-            // Camera preview
-            if let session = viewModel.captureSession {
-                CameraPreviewView(session: session)
-                    .frame(width: 200, height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.red.opacity(0.5), lineWidth: 3)
-                    )
-                    .shadow(color: .red.opacity(0.3), radius: 10)
-            } else {
-                // Placeholder when camera not active
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.black.opacity(0.1))
-                    .frame(width: 200, height: 200)
-                    .overlay(
-                        VStack(spacing: 12) {
-                            Image(systemName: "camera.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(.secondary)
-                            Text(viewModel.instructionText)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                        }
-                    )
-            }
-            
-            // Overlay: Finger placement guide
+            // Animated gradient when running
             if viewModel.isRunning {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Image(systemName: "hand.point.up.fill")
-                            .foregroundColor(.white)
-                        Text("Keep finger on lens")
-                            .font(.caption)
-                            .foregroundColor(.white)
-                    }
-                    .padding(8)
-                    .background(Color.black.opacity(0.6))
-                    .cornerRadius(8)
-                    .padding(.bottom, 8)
-                }
-                .frame(width: 200, height: 200)
-            }
-        }
-    }
-    
-    private var heartPulseView: some View {
-        ZStack {
-            // Outer pulse circle
-            Circle()
-                .fill(Color.red.opacity(0.2))
-                .frame(width: 160, height: 160)
-                .scaleEffect(pulseScale)
-                .animation(pulseAnimation, value: viewModel.bpm)
-            
-            // Inner circle
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.red.opacity(0.3), Color.red.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color.red.opacity(0.15),
+                        Color.red.opacity(0.05),
+                        Color.clear
+                    ]),
+                    center: .center,
+                    startRadius: 100,
+                    endRadius: 400
                 )
-                .frame(width: 140, height: 140)
-            
-            // Heart icon
-            Image(systemName: "heart.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.red)
-                .scaleEffect(heartScale)
-                .animation(heartAnimation, value: viewModel.bpm)
+                .ignoresSafeArea()
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 1.0), value: viewModel.isRunning)
+            }
         }
     }
     
-    private var pulseScale: CGFloat {
-        viewModel.isRunning && viewModel.bpm > 0 ? 1.15 : 1.0
-    }
+    // MARK: - Header
     
-    private var heartScale: CGFloat {
-        viewModel.isRunning && viewModel.bpm > 0 ? 1.1 : 1.0
-    }
-    
-    private var pulseAnimation: Animation? {
-        guard viewModel.isRunning && viewModel.bpm > 0 else { return .default }
-        let duration = 60.0 / Double(viewModel.bpm)
-        return .easeInOut(duration: duration * 0.5).repeatForever(autoreverses: true)
-    }
-    
-    private var heartAnimation: Animation? {
-        guard viewModel.isRunning && viewModel.bpm > 0 else { return .default }
-        let duration = 60.0 / Double(viewModel.bpm)
-        return .easeInOut(duration: duration * 0.3).repeatForever(autoreverses: true)
-    }
-    
-    private var bpmDisplayView: some View {
-        VStack(spacing: 4) {
-            Text(viewModel.bpm > 0 ? "\(viewModel.bpm)" : "--")
-                .font(.system(size: 72, weight: .bold, design: .rounded))
-                .foregroundColor(.red)
-                .contentTransition(.numericText())
-                .animation(.spring(response: 0.3), value: viewModel.bpm)
-            
-            Text("BPM")
-                .font(.title2.weight(.medium))
-                .foregroundColor(.secondary)
-        }
-    }
-    
-    private var signalQualityView: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(signalQualityColor)
-                .frame(width: 10, height: 10)
-            
-            Text(viewModel.signalQuality.description)
-                .font(.subheadline)
-                .foregroundColor(signalQualityColor)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(
-            Capsule()
-                .fill(signalQualityColor.opacity(0.1))
-        )
-        .animation(.easeInOut, value: viewModel.signalQuality)
-    }
-    
-    private var signalQualityColor: Color {
-        switch viewModel.signalQuality {
-        case .poor: return .red
-        case .fair: return .orange
-        case .good, .excellent: return .green
-        }
-    }
-    
-    private var progressView: some View {
-        VStack(spacing: 8) {
-            ProgressView(value: viewModel.progress)
-                .progressViewStyle(LinearProgressViewStyle(tint: .red))
-                .scaleEffect(y: 1.5)
-            
-            Text("\(Int(viewModel.progress * 100))%")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding(.horizontal, 40)
-    }
-    
-    private var actionButtons: some View {
-        Button(action: {
-            if viewModel.isRunning {
+    private var headerView: some View {
+        HStack {
+            Button(action: {
+                HapticManager.impact(.light)
                 viewModel.stopMeasurement()
-            } else {
-                viewModel.startMeasurement()
+                dismiss()
+            }) {
+                Image(systemName: "chevron.left")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Go back")
+            
+            Spacer()
+            
+            VStack(spacing: 2) {
+                Text("Heart Rate")
+                    .font(.headline)
+                if viewModel.isRunning {
+                    Text(phaseDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut, value: viewModel.isRunning)
+            
+            Spacer()
+            
+            // Info button
+            Button(action: {
+                HapticManager.impact(.light)
+                viewModel.showDisclaimer = true
+            }) {
+                Image(systemName: "info.circle")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Show measurement instructions")
+        }
+    }
+    
+    private var phaseDescription: String {
+        if viewModel.progress < 0.1 {
+            return "Preparing..."
+        } else if viewModel.progress < 0.2 {
+            return "Calibrating..."
+        } else if viewModel.progress > 0.9 {
+            return "Almost done..."
+        } else {
+            return "Measuring..."
+        }
+    }
+    
+    // MARK: - Measurement Area
+    
+    private var measurementArea: some View {
+        ZStack {
+            // Pulsing rings animation
+            if viewModel.isRunning {
+                PulsingRingsView()
+            }
+            
+            // Main camera circle with progress
+            CameraPreviewCircle(
+                session: viewModel.captureSession,
+                isRunning: viewModel.isRunning,
+                signalQuality: viewModel.signalQuality,
+                progress: viewModel.progress,
+                borderPulse: $borderPulse
+            )
+            
+            // Time/Progress overlay - positioned below camera
+            if viewModel.isRunning {
+                HeartRateProgressOverlay(
+                    progress: viewModel.progress,
+                    measurementDuration: measurementDuration,
+                    signalQuality: viewModel.signalQuality
+                )
+                .offset(y: 170)
+            }
+        }
+        .frame(height: 320)
+        .opacity(showContent ? 1 : 0)
+        .scaleEffect(showContent ? 1 : 0.8)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: showContent)
+    }
+    
+    // MARK: - BPM Section
+    
+    private var bpmSection: some View {
+        VStack(spacing: 12) {
+            // BPM Display with heartbeat animation
+            HStack(alignment: .lastTextBaseline, spacing: 8) {
+                Text(viewModel.bpm > 0 ? "\(viewModel.bpm)" : "--")
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .contentTransition(.numericText())
+                    .animation(.spring(response: 0.3), value: viewModel.bpm)
+                
+                Text("BPM")
+                    .font(.title3.weight(.medium))
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 8)
+            }
+            .scaleEffect(heartbeatScale)
+            .animation(.spring(response: 0.15, dampingFraction: 0.5), value: heartbeatScale)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(viewModel.bpm > 0 ? "\(viewModel.bpm) beats per minute" : "No reading")
+            
+            // Waveform
+            HeartRateWaveformView(isRunning: viewModel.isRunning, bpm: viewModel.bpm)
+                .frame(height: 80)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+                .accessibilityHidden(true)
+            
+            // Signal Quality Indicator
+            SignalQualityIndicator(
+                quality: viewModel.signalQuality,
+                isRunning: viewModel.isRunning,
+                instructionText: viewModel.instructionText
+            )
+        }
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1), value: showContent)
+    }
+    
+    // MARK: - Action Section
+    
+    private var actionSection: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                if viewModel.isRunning {
+                    HapticManager.impact(.medium)
+                    viewModel.stopMeasurement()
+                } else {
+                    HapticManager.notification(.success)
+                    viewModel.startMeasurement()
+                }
             }
         }) {
-            HStack(spacing: 10) {
-                Image(systemName: viewModel.isRunning ? "stop.fill" : "play.fill")
-                Text(viewModel.isRunning ? "Stop" : "Start Measurement")
+            HStack(spacing: 12) {
+                Image(systemName: viewModel.isRunning ? "stop.fill" : "heart.fill")
+                    .font(.title3)
+                    .symbolEffect(.pulse, isActive: !viewModel.isRunning)
+                
+                Text(viewModel.isRunning ? "Stop Measurement" : "Start Measurement")
+                    .font(.headline)
             }
-            .font(.headline)
             .foregroundColor(.white)
-            .frame(width: 220, height: 50)
-            .background(viewModel.isRunning ? Color.gray : Color.red)
-            .cornerRadius(25)
-            .shadow(color: (viewModel.isRunning ? Color.gray : Color.red).opacity(0.3), radius: 10, x: 0, y: 5)
-        }
-    }
-}
-
-// MARK: - Result Sheet View
-
-private struct ResultSheetView: View {
-    @ObservedObject var viewModel: HeartRateViewModel
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(UIColor.systemGroupedBackground)
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Success icon
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.green)
-                            .padding(.top, 20)
-                        
-                        Text("Measurement Complete")
-                            .font(.title2.bold())
-                        
-                        // Result card
-                        resultCard
-                        
-                        // Confidence info
-                        confidenceCard
-                        
-                        // Category info
-                        if let category = viewModel.bpmCategory {
-                            categoryCard(category)
-                        }
-                        
-                        // Save status
-                        if viewModel.saveSuccess {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text("Saved successfully!")
-                            }
-                            .font(.subheadline)
-                            .padding()
-                            .background(Color.green.opacity(0.1))
-                            .cornerRadius(10)
-                        }
-                        
-                        if let error = viewModel.saveError {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
-                                Text(error)
-                            }
-                            .font(.subheadline)
-                            .padding()
-                            .background(Color.orange.opacity(0.1))
-                            .cornerRadius(10)
-                        }
-                        
-                        Spacer(minLength: 20)
-                        
-                        // Action buttons
-                        actionButtons
-                    }
-                    .padding()
-                }
-            }
-            .navigationTitle("Result")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        viewModel.dismissResult()
-                    }
-                }
-            }
-        }
-        .interactiveDismissDisabled(viewModel.isSaving)
-    }
-    
-    private var resultCard: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Image(systemName: "heart.fill")
-                    .foregroundColor(.red)
-                Text("Heart Rate")
-                    .foregroundColor(.secondary)
-            }
-            .font(.subheadline)
-            
-            Text("\(viewModel.finalBPM ?? 0)")
-                .font(.system(size: 64, weight: .bold, design: .rounded))
-                .foregroundColor(.red)
-            
-            Text("BPM")
-                .font(.title3.weight(.medium))
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 30)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
-    }
-    
-    private var confidenceCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Measurement Confidence")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Text(viewModel.confidenceDescription)
-                    .font(.headline)
-            }
-            
-            Spacer()
-            
-            Text("\(Int(viewModel.confidence * 100))%")
-                .font(.title2.bold())
-                .foregroundColor(confidenceColor)
-        }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-    }
-    
-    private var confidenceColor: Color {
-        switch viewModel.confidenceLevel {
-        case .veryHigh, .high: return .green
-        case .moderate: return .orange
-        case .low, .veryLow: return .red
-        }
-    }
-    
-    private func categoryCard(_ category: BPMCategory) -> some View {
-        HStack {
-            Text(category.emoji)
-                .font(.title)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Category")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Text(category.description)
-                    .font(.headline)
-            }
-            
-            Spacer()
-        }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-    }
-    
-    private var actionButtons: some View {
-        VStack(spacing: 12) {
-            // Save button
-            Button(action: {
-                Task {
-                    await viewModel.saveReading()
-                }
-            }) {
-                HStack {
-                    if viewModel.isSaving {
-                        ProgressView()
-                            .tint(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
+            .background(
+                Group {
+                    if viewModel.isRunning {
+                        Color.gray
                     } else {
-                        Image(systemName: "square.and.arrow.down")
+                        LinearGradient(
+                            colors: [.red, .orange.opacity(0.9)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     }
-                    Text(viewModel.isSaving ? "Saving..." : "Save Reading")
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(viewModel.canSave ? Color.red : Color.gray)
-                .cornerRadius(12)
-            }
-            .disabled(!viewModel.canSave || viewModel.saveSuccess)
-            
-            // Discard button
-            Button(action: {
-                viewModel.dismissResult()
-            }) {
-                Text("Discard")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(12)
-            }
-            .disabled(viewModel.isSaving)
+            )
+            .clipShape(Capsule())
+            .shadow(color: (viewModel.isRunning ? Color.gray : Color.red).opacity(0.3), radius: 15, x: 0, y: 8)
+        }
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 30)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: showContent)
+        .accessibilityLabel(viewModel.isRunning ? "Stop measurement" : "Start heart rate measurement")
+    }
+    
+    // MARK: - Helpers
+    
+    private func triggerHeartbeatPulse() {
+        withAnimation(.easeOut(duration: 0.1)) {
+            heartbeatScale = 1.15
+        }
+        withAnimation(.easeInOut(duration: 0.2).delay(0.1)) {
+            heartbeatScale = 1.0
         }
     }
 }
-
-// MARK: - Disclaimer Sheet View
-
-private struct DisclaimerSheetView: View {
-    let onAccept: () -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Warning icon
-                    HStack {
-                        Spacer()
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.orange)
-                        Spacer()
-                    }
-                    .padding(.top, 20)
-                    
-                    Text("Medical Disclaimer")
-                        .font(.title.bold())
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    
-                    VStack(alignment: .leading, spacing: 16) {
-                        disclaimerItem(
-                            icon: "info.circle",
-                            title: "For Wellness Only",
-                            text: "This heart rate measurement feature is for informational and wellness purposes only."
-                        )
-                        
-                        disclaimerItem(
-                            icon: "cross.case",
-                            title: "Not Medical Advice",
-                            text: "It is not intended to diagnose, treat, cure, or prevent any disease or health condition."
-                        )
-                        
-                        disclaimerItem(
-                            icon: "iphone",
-                            title: "Results May Vary",
-                            text: "Results may vary based on device, lighting, skin tone, and measurement technique."
-                        )
-                        
-                        disclaimerItem(
-                            icon: "stethoscope",
-                            title: "Consult Professionals",
-                            text: "For accurate medical readings, please use a certified medical device and consult with a healthcare professional."
-                        )
-                    }
-                    .padding()
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(16)
-                    
-                    // Tips for accurate measurement
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Tips for Best Results")
-                            .font(.headline)
-                        
-                        tipItem("Place fingertip firmly on the camera lens")
-                        tipItem("Stay still during measurement")
-                        tipItem("Ensure good lighting")
-                        tipItem("Wait for signal quality to improve")
-                        tipItem("Measure at rest for accurate results")
-                    }
-                    .padding()
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(16)
-                    
-                    Spacer(minLength: 20)
-                    
-                    // Accept button
-                    Button(action: onAccept) {
-                        Text("I Understand")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.red)
-                            .cornerRadius(12)
-                    }
-                    .padding(.bottom, 20)
-                }
-                .padding()
-            }
-            .navigationTitle("Important Information")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .interactiveDismissDisabled()
-    }
-    
-    private func disclaimerItem(icon: String, title: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(.orange)
-                .frame(width: 30)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.subheadline.bold())
-                
-                Text(text)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-    
-    private func tipItem(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-                .font(.subheadline)
-            
-            Text(text)
-                .font(.subheadline)
-        }
-    }
-}
-
-// MARK: - Preview
 
 #Preview {
-    NavigationStack {
-        HeartRateView()
-    }
+    HeartRateView()
 }
