@@ -1,6 +1,10 @@
 package com.swasthicare.mobile.ui.screens.main
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Favorite
@@ -13,6 +17,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
@@ -35,6 +40,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.swasthicare.mobile.ui.screens.ai.AIScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
+import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.screens.profile.ProfileScreen
 import com.swasthicare.mobile.ui.screens.vault.VaultScreen
 
@@ -85,62 +91,70 @@ fun MainScreen(
     )
 
     Scaffold(
+        containerColor = Color.Transparent, // Let the background show through
         bottomBar = {
-            // Semi-transparent navigation bar to mimic glass effect
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                tonalElevation = 0.dp,
+            // Floating Glass Navigation Bar
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                    .glass(cornerRadius = 32.dp, opacity = 0.8f) // Use our glass modifier
             ) {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-                
-                items.forEach { screen ->
-                    val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                NavigationBar(
+                    containerColor = Color.Transparent,
+                    tonalElevation = 0.dp,
+                    windowInsets = NavigationBarDefaults.windowInsets,
+                    modifier = Modifier.height(70.dp) // Slightly taller for floating look
+                ) {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = navBackStackEntry?.destination
                     
-                    NavigationBarItem(
-                        icon = { 
-                            Icon(
-                                imageVector = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
-                                contentDescription = screen.title
-                            ) 
-                        },
-                        label = { 
-                            Text(
-                                text = screen.title,
-                                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
-                                fontSize = 12.sp
-                            ) 
-                        },
-                        selected = isSelected,
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = Color.Transparent,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        onClick = {
-                            if (currentDestination?.route != screen.route) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                            
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                    items.forEach { screen ->
+                        val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                        val selectedColor = MaterialTheme.colorScheme.primary
+                        val unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        
+                        NavigationBarItem(
+                            icon = { 
+                                Icon(
+                                    imageVector = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
+                                    contentDescription = screen.title,
+                                    modifier = Modifier.size(24.dp)
+                                ) 
+                            },
+                            label = null, // Remove labels for cleaner "Apple-like" look
+                            selected = isSelected,
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = selectedColor,
+                                selectedTextColor = selectedColor,
+                                indicatorColor = selectedColor.copy(alpha = 0.1f),
+                                unselectedIconColor = unselectedColor,
+                                unselectedTextColor = unselectedColor
+                            ),
+                            onClick = {
+                                if (currentDestination?.route != screen.route) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 }
-                                launchSingleTop = true
-                                restoreState = true
+                                
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
     ) { innerPadding ->
+        // We want content to go behind the floating bar, so we ignore bottom padding mostly
+        // but we add a spacer at the bottom of screens instead (already added in HomeScreen)
         NavHost(
             navController = navController,
             startDestination = MainTab.Vitals.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.fillMaxSize() // Fill entire screen including behind bar
         ) {
             composable(MainTab.Vitals.route) { HomeScreen() }
             composable(MainTab.AI.route) { AIScreen() }

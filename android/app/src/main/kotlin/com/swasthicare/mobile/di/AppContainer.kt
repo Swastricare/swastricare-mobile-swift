@@ -49,7 +49,14 @@ object AppContainer {
     val googleAuthHelper: GoogleAuthHelper by lazy {
         GoogleAuthHelper(
             context = context,
-            webClientId = "YOUR_GOOGLE_WEB_CLIENT_ID" // TODO: Add from Google Cloud Console
+            // TODO: Replace with your Google Web Client ID from Supabase Dashboard
+            // Steps:
+            // 1. Go to https://supabase.com/dashboard/project/jlumbeyukpnuicyxzvre/auth/providers
+            // 2. Enable Google provider
+            // 3. Add Android package name: com.swasthicare.mobile
+            // 4. Add SHA-1 certificate fingerprint
+            // 5. Copy the Web Client ID from Google Cloud Console
+            webClientId = "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
         )
     }
     

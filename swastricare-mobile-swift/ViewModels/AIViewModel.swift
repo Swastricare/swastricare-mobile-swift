@@ -55,7 +55,11 @@ final class AIViewModel: ObservableObject {
         chatState = .sending
         
         do {
-            let response = try await aiService.sendChatMessage(text, context: messages.dropLast())
+            // Fetch health history for the last 7 days
+            let history = await healthService.fetchHealthMetricsHistory(days: 7)
+            let systemContext = formatHealthHistoryForChat(history)
+            
+            let response = try await aiService.sendChatMessage(text, context: messages.dropLast(), systemContext: systemContext)
             
             // Remove loading message and add response
             messages.removeLast()
@@ -99,7 +103,7 @@ final class AIViewModel: ObservableObject {
             // Send to AI with health context
             let prompt = "Here are my current health metrics:\n\n\(metricsContext)\n\nPlease analyze my health and provide insights and recommendations."
             
-            let response = try await aiService.sendChatMessage(prompt, context: messages.dropLast())
+            let response = try await aiService.sendChatMessage(prompt, context: messages.dropLast(), systemContext: nil)
             
             // Remove loading message and add response
             messages.removeLast()
@@ -125,6 +129,27 @@ final class AIViewModel: ObservableObject {
         if case .error = chatState {
             chatState = .idle
         }
+    }
+    
+    private func formatHealthHistoryForChat(_ history: [HealthMetrics]) -> String {
+        var parts: [String] = []
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "dd/MM"
+        
+        parts.append("Past 7 Days Health:")
+        
+        for metrics in history {
+            let dateStr = dateFormatter.string(from: metrics.timestamp)
+            // Compact format: "12/01: Steps:10k, Sleep:7h30m, HR:72, Cal:500, Ex:30m"
+            
+            let sleepVal = (metrics.sleep == "0h 0m") ? "N/A" : metrics.sleep
+            let stepsK = String(format: "%.1fk", Double(metrics.steps)/1000.0)
+            
+            let line = "\(dateStr): Steps:\(stepsK), Sleep:\(sleepVal), HR:\(metrics.heartRate), Cal:\(metrics.activeCalories), Ex:\(metrics.exerciseMinutes)m"
+            parts.append(line)
+        }
+        
+        return parts.joined(separator: "\n")
     }
     
     private func formatHealthMetricsForChat(_ metrics: HealthMetrics) -> String {

@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY')
-const MAX_MESSAGE_LENGTH = 1000
+const MAX_MESSAGE_LENGTH = 4000
 const MAX_HISTORY_LENGTH = 10
 
 serve(async (req) => {

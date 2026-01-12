@@ -139,7 +139,7 @@ class AuthViewModel(
                 val idToken = googleAuthHelper.signIn()
                 
                 // Sign in with Supabase using the ID token
-                val user = authRepository.signInWithGoogle()
+                val user = authRepository.signInWithGoogle(idToken)
                 _uiState.value = AuthUiState.Success(user)
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Google sign-in failed"

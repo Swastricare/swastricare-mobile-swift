@@ -5,6 +5,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.Email
+import io.github.jan.supabase.gotrue.providers.builtin.IDToken
 import io.github.jan.supabase.gotrue.user.UserInfo
 import kotlinx.coroutines.withTimeout
 
@@ -81,17 +82,20 @@ class SupabaseAuthRepository(
     }
     
     /**
-     * Sign in with Google OAuth
+     * Sign in with Google OAuth using ID Token
      * Matches iOS: signInWithGoogle() async throws -> AppUser
      */
-    suspend fun signInWithGoogle(): AppUser {
-        // iOS: let session = try await client.auth.signInWithOAuth(provider: .google)
-        supabaseClient.auth.signInWith(Google)
+    suspend fun signInWithGoogle(idToken: String): AppUser {
+        // Sign in with Supabase using Google ID token
+        supabaseClient.auth.signInWith(IDToken) {
+            this.idToken = idToken
+            provider = Google
+        }
         
         val user = supabaseClient.auth.currentUserOrNull()
             ?: throw Exception("Google sign-in failed")
         
-        // iOS: return mapUser(session.user)
+        // Return mapped user
         return mapUser(user)
     }
     

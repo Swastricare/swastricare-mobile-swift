@@ -33,7 +33,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.swasthicare.mobile.ui.theme.PremiumColor
+import com.swasthicare.mobile.ui.theme.*
 
 @Composable
 fun HomeScreen(
@@ -51,7 +51,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
             Column(
@@ -64,7 +64,7 @@ fun HomeScreen(
                 LivingStatusHeader(
                     userName = uiState.userName,
                     greeting = uiState.greeting,
-                    statusColor = Color.Green
+                    statusColor = SecondaryColor
                 )
                 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -94,19 +94,19 @@ fun HomeScreen(
                             icon = Icons.Default.DirectionsWalk,
                             value = "${uiState.stepCount}",
                             label = "Steps",
-                            color = Color.Green
+                            color = SecondaryColor
                         )
                          ActivityStatRow(
                             icon = Icons.Default.Favorite,
                             value = "${uiState.calories}",
                             label = "Kcal",
-                            color = Color(0xFFFF9500)
+                            color = ActivityColor
                         )
                          ActivityStatRow(
                             icon = Icons.Default.LocalDrink,
                             value = "${uiState.activeMinutes}",
                             label = "Active Min",
-                             color = Color.Blue
+                            color = HydrationColor
                         )
                     }
                     
@@ -120,7 +120,7 @@ fun HomeScreen(
                             .glass(cornerRadius = 20.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        BodySilhouette(color = Color.White.copy(alpha = 0.2f))
+                        BodySilhouette(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
                         
                         // Overlay some "scanning" effect or status dots
                         ScanningEffect()
@@ -148,7 +148,7 @@ fun HomeScreen(
                         title = "Heart Rate",
                         value = "${uiState.heartRate}",
                         unit = "BPM",
-                        color = Color.Red,
+                        color = HeartRateColor,
                         modifier = Modifier.weight(1f),
                         delay = 100
                     )
@@ -158,7 +158,7 @@ fun HomeScreen(
                         title = "Sleep",
                         value = uiState.sleepHours,
                         unit = "",
-                        color = Color(0xFF5856D6),
+                        color = SleepColor,
                         modifier = Modifier.weight(1f),
                         delay = 200
                     )
@@ -168,7 +168,7 @@ fun HomeScreen(
                         title = "Distance",
                         value = "${uiState.distance}",
                         unit = "km",
-                        color = Color.Green,
+                        color = SecondaryColor,
                         modifier = Modifier.weight(1f),
                         delay = 300
                     )
@@ -206,8 +206,8 @@ fun HomeScreen(
                                     .background(
                                         brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                                             colors = listOf(
-                                                Color(0xFFAF52DE).copy(alpha = 0.6f),
-                                                Color(0xFF5856D6).copy(alpha = 0.6f)
+                                                PrimaryColor.copy(alpha = 0.6f),
+                                                SleepColor.copy(alpha = 0.6f)
                                             )
                                         )
                                     )
@@ -224,7 +224,7 @@ fun HomeScreen(
                             Icon(
                                 imageVector = Icons.Default.Medication,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
                             
@@ -232,19 +232,19 @@ fun HomeScreen(
                                 Text(
                                     "Medication",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color.White.copy(alpha = 0.9f)
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                                 )
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text(
                                         "${uiState.medicationsTaken}",
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         "/${uiState.medicationsTotal}",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.7f),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                         modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
                                     )
                                 }
@@ -269,12 +269,12 @@ fun HomeScreen(
                         ) {
                              WaterWave(
                                 progress = progress,
-                                color = Color.Blue.copy(alpha = 0.3f),
+                                color = HydrationColor.copy(alpha = 0.3f),
                                 modifier = Modifier.fillMaxSize()
                             )
                             WaterWave(
                                 progress = progress,
-                                color = Color.Cyan.copy(alpha = 0.4f),
+                                color = HydrationColor.copy(alpha = 0.4f),
                                  modifier = Modifier.fillMaxSize().padding(top = 5.dp)
                             )
                         }
@@ -286,7 +286,7 @@ fun HomeScreen(
                             Icon(
                                 imageVector = Icons.Default.LocalDrink,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
                             
@@ -294,25 +294,25 @@ fun HomeScreen(
                                 Text(
                                     "Hydration",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color.White.copy(alpha = 0.9f)
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                                 )
                                 Text(
                                     "${uiState.hydrationCurrent} ml",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     "Goal: ${uiState.hydrationGoal}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.7f)
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )
                             }
                         }
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(120.dp)) // Extra space for bottom bar
             }
         }
     }
@@ -348,32 +348,53 @@ fun BodySilhouette(color: Color) {
     Canvas(modifier = Modifier.fillMaxSize().padding(20.dp)) {
         val width = size.width
         val height = size.height
+        val cx = width / 2
+        val headRadius = width * 0.15f // Moved up
         
         val path = Path().apply {
             // Head
-            addOval(androidx.compose.ui.geometry.Rect(width/2 - 25.dp.toPx(), 0f, width/2 + 25.dp.toPx(), 50.dp.toPx()))
+            addOval(androidx.compose.ui.geometry.Rect(cx - headRadius, 0f, cx + headRadius, headRadius * 2))
             
-            // Shoulders/Torso (simplified)
-            moveTo(width/2, 55.dp.toPx())
-            lineTo(width/2 - 60.dp.toPx(), 80.dp.toPx()) // Left Shoulder
-            lineTo(width/2 - 50.dp.toPx(), 200.dp.toPx()) // Left Hip
-            lineTo(width/2 + 50.dp.toPx(), 200.dp.toPx()) // Right Hip
-            lineTo(width/2 + 60.dp.toPx(), 80.dp.toPx()) // Right Shoulder
-            close()
+            // Neck
+            moveTo(cx - headRadius * 0.6f, headRadius * 1.8f)
+            quadraticBezierTo(cx, headRadius * 2.2f, cx + headRadius * 0.6f, headRadius * 1.8f)
             
-            // Legs (simplified)
-            moveTo(width/2 - 40.dp.toPx(), 205.dp.toPx())
-            lineTo(width/2 - 40.dp.toPx(), height - 20.dp.toPx())
-            lineTo(width/2 - 10.dp.toPx(), height - 20.dp.toPx())
-            lineTo(width/2 - 5.dp.toPx(), 205.dp.toPx())
+            // Shoulders
+            moveTo(cx - headRadius * 0.6f, headRadius * 1.9f)
+            quadraticBezierTo(cx - width * 0.35f, headRadius * 2.2f, cx - width * 0.35f, headRadius * 3.5f) // Left shoulder
             
-            moveTo(width/2 + 40.dp.toPx(), 205.dp.toPx())
-            lineTo(width/2 + 40.dp.toPx(), height - 20.dp.toPx())
-            lineTo(width/2 + 10.dp.toPx(), height - 20.dp.toPx())
-            lineTo(width/2 + 5.dp.toPx(), 205.dp.toPx())
+            moveTo(cx + headRadius * 0.6f, headRadius * 1.9f)
+            quadraticBezierTo(cx + width * 0.35f, headRadius * 2.2f, cx + width * 0.35f, headRadius * 3.5f) // Right shoulder
+
+            // Torso
+            moveTo(cx - width * 0.35f, headRadius * 3.5f)
+            lineTo(cx - width * 0.25f, height * 0.45f) // Waist Left
+            quadraticBezierTo(cx - width * 0.28f, height * 0.55f, cx - width * 0.15f, height * 0.8f) // Left Leg Start
+            
+            moveTo(cx + width * 0.35f, headRadius * 3.5f)
+            lineTo(cx + width * 0.25f, height * 0.45f) // Waist Right
+            quadraticBezierTo(cx + width * 0.28f, height * 0.55f, cx + width * 0.15f, height * 0.8f) // Right Leg Start
+            
+            // Legs (Abstracted)
+            moveTo(cx - width * 0.15f, height * 0.8f)
+            lineTo(cx - width * 0.1f, height * 0.95f)
+            
+            moveTo(cx + width * 0.15f, height * 0.8f)
+            lineTo(cx + width * 0.1f, height * 0.95f)
         }
         
-        drawPath(path, color = color, style = Stroke(width = 2.dp.toPx()))
+        // Draw Fill
+        drawPath(path, color = color.copy(alpha = 0.1f), style = Fill)
+        
+        // Draw Stroke
+        drawPath(path, color = color, style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        
+        // Draw Joints/Points
+        val jointColor = SecondaryColor
+        drawCircle(jointColor, radius = 4.dp.toPx(), center = Offset(cx, headRadius)) // Head center
+        drawCircle(jointColor, radius = 4.dp.toPx(), center = Offset(cx - width * 0.35f, headRadius * 3.5f)) // L Shoulder
+        drawCircle(jointColor, radius = 4.dp.toPx(), center = Offset(cx + width * 0.35f, headRadius * 3.5f)) // R Shoulder
+        drawCircle(jointColor, radius = 4.dp.toPx(), center = Offset(cx, height * 0.45f)) // Core
     }
 }
 
@@ -383,9 +404,9 @@ fun ScanningEffect() {
     val offsetY by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(3000, easing = androidx.compose.animation.core.LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
         label = "scanLine"
     )
@@ -394,7 +415,7 @@ fun ScanningEffect() {
         val lineY = size.height * offsetY
         
         drawLine(
-            color = Color.Cyan.copy(alpha = 0.6f),
+            color = SecondaryColor.copy(alpha = 0.8f),
             start = Offset(0f, lineY),
             end = Offset(size.width, lineY),
             strokeWidth = 2.dp.toPx()
@@ -403,7 +424,7 @@ fun ScanningEffect() {
         // Glow effect
         drawRect(
             brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                colors = listOf(Color.Cyan.copy(alpha = 0f), Color.Cyan.copy(alpha = 0.3f)),
+                colors = listOf(SecondaryColor.copy(alpha = 0f), SecondaryColor.copy(alpha = 0.3f)),
                 startY = lineY - 50.dp.toPx(),
                 endY = lineY
             ),

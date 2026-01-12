@@ -4,21 +4,29 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // Brand Colors
-val PrimaryColor = Color(0xFF6C63FF)
-val SecondaryColor = Color(0xFF00D4AA)
-val AccentColor = Color(0xFFFF6584)
+val PrimaryColor = Color(0xFF5E5CE6) // A more vibrant Indigo
+val SecondaryColor = Color(0xFF32D74B) // iOS Health Green
+val AccentColor = Color(0xFFFF375F) // Modern Pink
 
 // Background Colors
-val BackgroundLight = Color(0xFFFAFAFA)
-val BackgroundDark = Color(0xFF121212)
+val BackgroundLight = Color(0xFFF2F2F7) // Slight grey for depth
+val BackgroundDark = Color(0xFF000000) // True OLED Black
 
 // Surface Colors
 val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceDark = Color(0xFF1E1E1E)
+val SurfaceDark = Color(0xFF1C1C1E) // iOS Dark Gray
 
 // Text Colors
-val TextPrimary = Color(0xFF2D3748)
-val TextSecondary = Color(0xFF718096)
+val TextPrimaryLight = Color(0xFF000000)
+val TextSecondaryLight = Color(0xFF8E8E93)
+val TextPrimaryDark = Color(0xFFFFFFFF)
+val TextSecondaryDark = Color(0xFF8E8E93)
+
+// Functional Colors
+val HeartRateColor = Color(0xFFFF2D55)
+val SleepColor = Color(0xFF5E5CE6)
+val ActivityColor = Color(0xFFFF9F0A)
+val HydrationColor = Color(0xFF64D2FF)
 
 // Premium Colors (Ported from iOS)
 object PremiumColor {

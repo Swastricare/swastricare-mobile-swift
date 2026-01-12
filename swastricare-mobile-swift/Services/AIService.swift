@@ -11,7 +11,7 @@ import Foundation
 // MARK: - AI Service Protocol
 
 protocol AIServiceProtocol {
-    func sendChatMessage(_ message: String, context: [ChatMessage]) async throws -> String
+    func sendChatMessage(_ message: String, context: [ChatMessage], systemContext: String?) async throws -> String
     func analyzeHealth(_ metrics: HealthMetrics) async throws -> HealthAnalysisResponse
     func generateHealthSummary(_ metrics: HealthMetrics) async throws -> String
 }
@@ -28,15 +28,24 @@ final class AIService: AIServiceProtocol {
     
     // MARK: - Chat
     
-    func sendChatMessage(_ message: String, context: [ChatMessage]) async throws -> String {
+    func sendChatMessage(_ message: String, context: [ChatMessage], systemContext: String? = nil) async throws -> String {
         // Format context for API
-        let formattedContext = context.suffix(10).map { msg in
+        // Backend expects 'conversationHistory' (not 'context')
+        let conversationHistory = context.suffix(10).map { msg in
             ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
         }
         
+        // Prepare the message payload
+        // We prepend the system context to the message because the backend 
+        // treats 'message' as the user's prompt and doesn't support a separate system role.
+        var finalMessage = message
+        if let systemContext = systemContext {
+            finalMessage = "CONTEXT_DATA:\n\(systemContext)\n\nUSER_QUERY:\n\(message)"
+        }
+        
         let payload: [String: Any] = [
-            "message": message,
-            "context": formattedContext
+            "message": finalMessage,
+            "conversationHistory": conversationHistory
         ]
         
         let response = try await supabase.invokeFunction(

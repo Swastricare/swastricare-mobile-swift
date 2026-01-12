@@ -15,6 +15,7 @@ protocol HealthKitServiceProtocol {
     var isHealthDataAvailable: Bool { get }
     func requestAuthorization() async throws
     func fetchHealthMetrics(for date: Date) async -> HealthMetrics
+    func fetchHealthMetricsHistory(days: Int) async -> [HealthMetrics]
     func fetchWeeklySteps() async -> [DailyMetric]
     func fetchStepCount(for date: Date) async -> Int
     
@@ -97,8 +98,24 @@ final class HealthKitService: HealthKitServiceProtocol {
             distance: distance,
             bloodPressure: bp,
             weight: weight,
-            timestamp: Date()
+            timestamp: date
         )
+    }
+    
+    func fetchHealthMetricsHistory(days: Int) async -> [HealthMetrics] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var history: [HealthMetrics] = []
+        
+        // Fetch last N days including today
+        for dayOffset in (0..<days).reversed() {
+            if let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) {
+                let metrics = await fetchHealthMetrics(for: date)
+                history.append(metrics)
+            }
+        }
+        
+        return history
     }
     
     // MARK: - Weekly Steps
