@@ -321,70 +321,32 @@ struct TermsContentView: View {
                         Group {
                             termsSection(
                                 number: "1",
-                                title: "Acceptance of Terms",
-                                content: """
-                                By accessing or using Swastricare, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the application.
-                                
-                                These terms apply to all users of the app, including without limitation users who are browsers, customers, and contributors of content.
-                                """
+                                title: "Service Description",
+                                content: "Swastricare provides health tracking, medication reminders, AI-powered insights (including image analysis for meals, workouts, and supplements), secure document storage, and heart rate measurement using your device camera. We may modify or discontinue the service at any time."
                             )
                             
                             termsSection(
                                 number: "2",
-                                title: "Description of Service",
-                                content: """
-                                Swastricare provides health tracking, medication reminders, AI-powered health insights, and secure document storage services. The app integrates with Apple HealthKit to provide comprehensive health monitoring.
-                                
-                                We reserve the right to modify or discontinue the service at any time without prior notice.
-                                """
+                                title: "Medical Disclaimer",
+                                content: "The information provided is for general purposes only and is not medical advice. AI-generated insights (including chat responses, health analysis, image analysis, and text generation) are for informational purposes only and should not replace professional medical advice. Always consult with your physician for medical concerns and before making health decisions. We are not responsible for the accuracy of AI-generated insights or any health decisions made based on them."
                             )
                             
                             termsSection(
                                 number: "3",
-                                title: "Medical Disclaimer",
-                                content: """
-                                The information provided by Swastricare is for general informational purposes only and should not be considered as medical advice.
-                                
-                                Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay seeking it because of something you have read in this app.
-                                """
+                                title: "AI Features & Third-Party Services",
+                                content: "By using our AI features (chat assistant, health analysis, image analysis, text generation), you consent to your data being processed by Google Gemini API. This includes: chat messages and conversation history, health metrics (steps, heart rate, sleep, calories, etc.), and images. Your data is processed according to Google's privacy policy and terms of service. We are not responsible for the accuracy, reliability, or appropriateness of AI-generated responses or insights. AI responses may contain errors or be unsuitable for your specific situation."
                             )
                             
                             termsSection(
                                 number: "4",
                                 title: "User Responsibilities",
-                                content: """
-                                You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.
-                                
-                                You must not use the app for any illegal or unauthorized purpose, nor may you violate any laws in your jurisdiction.
-                                """
+                                content: "You are responsible for maintaining account security and using the app lawfully. Do not use the app for illegal or unauthorized purposes. You are responsible for ensuring you have the right to upload any images or documents, and that they do not violate any laws or third-party rights."
                             )
                             
                             termsSection(
                                 number: "5",
-                                title: "Intellectual Property",
-                                content: """
-                                All content, features, and functionality of Swastricare, including but not limited to text, graphics, logos, and software, are the exclusive property of Swastricare and are protected by international copyright, trademark, and other intellectual property laws.
-                                """
-                            )
-                            
-                            termsSection(
-                                number: "6",
                                 title: "Limitation of Liability",
-                                content: """
-                                Swastricare and its affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.
-                                
-                                We do not guarantee the accuracy, completeness, or usefulness of any information in the app.
-                                """
-                            )
-                            
-                            termsSection(
-                                number: "7",
-                                title: "Governing Law",
-                                content: """
-                                These Terms shall be governed and construed in accordance with the laws of India, without regard to its conflict of law provisions.
-                                
-                                Any disputes arising under these terms will be resolved in the courts of India.
-                                """
+                                content: "Swastricare is not liable for indirect, incidental, or consequential damages. We do not guarantee the accuracy of all information in the app, including AI-generated insights. We are not liable for any health decisions made based on information provided by the app."
                             )
                         }
                     }
@@ -397,23 +359,14 @@ struct TermsContentView: View {
     }
     
     private func termsSection(number: String, title: String, content: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Text(number)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
-                    .background(Color.accentColor)
-                    .clipShape(Circle())
-                
-                Text(title)
-                    .font(.system(size: 18, weight: .semibold))
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("\(number). \(title)")
+                .font(.system(size: 16, weight: .semibold))
             
             Text(content)
-                .font(.system(size: 15))
+                .font(.system(size: 14))
                 .foregroundColor(.secondary)
-                .lineSpacing(4)
+                .lineSpacing(3)
         }
     }
 }
@@ -450,25 +403,6 @@ struct PrivacyContentView: View {
                         
                         Divider()
                         
-                        // Privacy commitment card
-                        HStack(spacing: 12) {
-                            Image(systemName: "hand.raised.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.accentColor)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Your Privacy Matters")
-                                    .font(.system(size: 16, weight: .semibold))
-                                
-                                Text("We are committed to protecting your personal health information.")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(16)
-                        .background(Color.accentColor.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        
                         // Sections
                         Group {
                             privacySection(
@@ -476,9 +410,39 @@ struct PrivacyContentView: View {
                                 title: "Information We Collect",
                                 items: [
                                     "Personal information (name, email) when you create an account",
-                                    "Health data from Apple HealthKit (with your explicit permission)",
-                                    "Medication and hydration tracking data you enter",
-                                    "Documents you choose to store in the secure vault"
+                                    "Health profile information (name, gender, date of birth, height, weight, blood type)",
+                                    "Health data from Apple HealthKit (with your permission) - We READ: activity data (steps, exercise time, distance, calories, stand hours), vital signs (heart rate, blood pressure), body measurements (weight), sleep data, and hydration data. We WRITE: heart rate measurements from our camera-based detector and water intake data you log in the app",
+                                    "Location data: We access your location to fetch local weather data to personalize your daily hydration goals based on temperature and climate conditions",
+                                    "Images from your photo library for medical document storage",
+                                    "Images captured via camera for heart rate measurement",
+                                    "Images analyzed using AI for meal, workout, and supplement insights",
+                                    "Audio/voice recordings for AI Assistant voice input (with your permission)",
+                                    "Documents and images you store in the secure vault",
+                                    "Medication and hydration data you enter"
+                                ]
+                            )
+                            
+                            privacySection(
+                                icon: "photo.fill",
+                                title: "Image Collection & Analysis",
+                                items: [
+                                    "Photo Library: We access your photo library to upload medical documents and images to your secure vault",
+                                    "Camera: We use your device camera to detect blood flow through your fingertip for heart rate measurement. Camera frames are processed locally and not stored",
+                                    "AI Image Analysis: Images you upload for meal, workout, or supplement analysis are processed using Google Gemini Vision API. Images are sent to Google for analysis, and results are stored securely in our database",
+                                    "Document Storage: Images and documents you upload to the medical vault are stored securely in our encrypted storage system"
+                                ]
+                            )
+                            
+                            privacySection(
+                                icon: "sparkles",
+                                title: "AI Features & Data Processing",
+                                items: [
+                                    "AI Chat Assistant: Your chat messages and conversation history are sent to Google Gemini API to generate responses. Conversations are stored in our database for context and improvement",
+                                    "AI Health Analysis: Your health metrics (steps, heart rate, sleep, calories, exercise, blood pressure, weight) are sent to Google Gemini API for analysis and personalized insights. Analysis results are stored securely",
+                                    "AI Image Analysis: Images for meal, workout, and supplement analysis are sent to Google Gemini Vision API. Analysis results are stored in our database",
+                                    "AI Text Generation: Your health data may be sent to Google Gemini API to generate daily summaries, weekly reports, and goal suggestions. Generated content is stored securely",
+                                    "All AI processing is performed by Google Gemini API. Your data is processed according to Google's privacy policy and terms of service",
+                                    "AI-generated insights are for informational purposes only and should not replace professional medical advice"
                                 ]
                             )
                             
@@ -486,10 +450,35 @@ struct PrivacyContentView: View {
                                 icon: "gearshape.2",
                                 title: "How We Use Your Information",
                                 items: [
-                                    "To provide personalized health insights and recommendations",
-                                    "To send medication and hydration reminders",
-                                    "To improve our AI health assistant's accuracy",
-                                    "To sync your data securely across devices"
+                                    "Provide personalized health insights and recommendations using AI",
+                                    "Analyze images for meal nutrition, workout form, and supplement information using AI",
+                                    "Generate health summaries, reports, and goal suggestions using AI",
+                                    "Process chat conversations to provide AI-powered health assistance",
+                                    "Improve our AI health assistant based on usage patterns",
+                                    "Sync your data securely across devices",
+                                    "Provide medication reminders and hydration tracking"
+                                ]
+                            )
+                            
+                            privacySection(
+                                icon: "heart.text.square.fill",
+                                title: "Apple HealthKit Integration",
+                                items: [
+                                    "We READ health data: steps, exercise time, distance, calories burned, stand hours, heart rate, blood pressure, weight, sleep data, and water intake from your Apple HealthKit",
+                                    "We WRITE health data: heart rate measurements taken with our camera-based detector and water intake data you log in the app are saved to your Apple HealthKit",
+                                    "All HealthKit access requires your explicit permission through iOS system prompts",
+                                    "You can revoke HealthKit access at any time through iOS Settings > Privacy & Security > Health > Swastricare",
+                                    "HealthKit data syncing is optional and can be disabled in app settings"
+                                ]
+                            )
+                            
+                            privacySection(
+                                icon: "building.2",
+                                title: "Third-Party Services",
+                                items: [
+                                    "Google Gemini API: Processes your chat messages, health metrics, and images using AI to provide health insights, analysis, and recommendations. Models used: Gemini 3 Flash Preview (chat & health analysis), Gemini 1.5 Flash (image analysis), Gemini Pro (text generation)",
+                                    "Supabase: Provides secure cloud storage and database services for your health data, documents, and app data",
+                                    "Apple HealthKit: Provides secure access to health data stored on your device (with your explicit permission). Data stays on your device and is only accessed with your consent"
                                 ]
                             )
                             
@@ -499,8 +488,8 @@ struct PrivacyContentView: View {
                                 items: [
                                     "All data is encrypted in transit and at rest",
                                     "Biometric authentication protects sensitive features",
-                                    "We use industry-standard security protocols",
-                                    "Regular security audits and updates"
+                                    "Industry-standard security protocols",
+                                    "Images sent to third-party services are processed securely and in accordance with their privacy policies"
                                 ]
                             )
                             
@@ -508,10 +497,13 @@ struct PrivacyContentView: View {
                                 icon: "arrow.triangle.2.circlepath",
                                 title: "Data Sharing",
                                 items: [
-                                    "We never sell your personal data to third parties",
+                                    "We never sell your personal data",
                                     "Health data is not shared with advertisers",
-                                    "Data may be shared with service providers under strict contracts",
-                                    "We may disclose data if required by law"
+                                    "Data is shared with service providers under strict contracts and privacy agreements:",
+                                    "  • Google Gemini API: Processes chat messages, health metrics, and images for AI-powered insights and analysis",
+                                    "  • Supabase: Provides secure cloud storage and database services for your health data and documents",
+                                    "All third-party services are required to maintain data confidentiality and security",
+                                    "Your conversations, health metrics, and images sent to Google Gemini are processed according to Google's privacy policy"
                                 ]
                             )
                             
@@ -519,10 +511,11 @@ struct PrivacyContentView: View {
                                 icon: "hand.point.up.braille",
                                 title: "Your Rights",
                                 items: [
-                                    "Access and download your personal data",
-                                    "Request deletion of your account and data",
-                                    "Opt-out of non-essential data processing",
-                                    "Update or correct your information anytime"
+                                    "Access and download your data",
+                                    "Request account and data deletion",
+                                    "Update or correct your information anytime",
+                                    "Withdraw consent for data processing",
+                                    "Request information about what data we have collected about you"
                                 ]
                             )
                             
@@ -530,9 +523,8 @@ struct PrivacyContentView: View {
                                 icon: "envelope",
                                 title: "Contact Us",
                                 items: [
-                                    "For privacy concerns: privacy@swastricare.com",
-                                    "For support: support@swastricare.com",
-                                    "Response within 48 business hours"
+                                    "Privacy concerns: privacy@swastricare.com",
+                                    "Support: support@swastricare.com"
                                 ]
                             )
                         }
@@ -546,32 +538,23 @@ struct PrivacyContentView: View {
     }
     
     private func privacySection(icon: String, title: String, items: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(.accentColor)
-                    .frame(width: 28)
-                
-                Text(title)
-                    .font(.system(size: 18, weight: .semibold))
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 ForEach(items, id: \.self) { item in
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.green)
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•")
+                            .foregroundColor(.secondary)
                             .padding(.top, 2)
                         
                         Text(item)
-                            .font(.system(size: 15))
+                            .font(.system(size: 14))
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            .padding(.leading, 38)
         }
     }
 }

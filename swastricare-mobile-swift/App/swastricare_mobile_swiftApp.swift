@@ -18,6 +18,8 @@ struct swastricare_mobile_swiftApp: App {
     
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @StateObject private var lockViewModel = DependencyContainer.shared.lockScreenViewModel
+    @StateObject private var appVersionService = AppVersionService.shared
+    
     @State private var hasCompletedOnboarding: Bool = {
         if AppConfig.isTestingMode {
             return false
@@ -40,6 +42,9 @@ struct swastricare_mobile_swiftApp: App {
     @State private var isCheckingHealthProfile: Bool = false
     @State private var hasCheckedHealthProfile: Bool = false
     
+    // App version state
+    @State private var hasCheckedAppVersion: Bool = false
+    
     @Environment(\.scenePhase) private var scenePhase
     
     // Deep link handling for widgets
@@ -59,7 +64,16 @@ struct swastricare_mobile_swiftApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if !hasCompletedOnboarding {
+                // FIRST: Check app version before anything else
+                if !hasCheckedAppVersion {
+                    SplashView()
+                        .task {
+                            await checkAppVersion()
+                        }
+                } else if appVersionService.updateStatus.requiresAction {
+                    // FORCE UPDATE: Block the app until user updates
+                    ForceUpdateView(appVersionService: appVersionService, onSkip: nil)
+                } else if !hasCompletedOnboarding {
                     OnboardingView(isOnboardingComplete: $hasCompletedOnboarding)
                 } else if !hasAcceptedConsent {
                     // Show consent screen after onboarding
@@ -112,7 +126,9 @@ struct swastricare_mobile_swiftApp: App {
             .animation(.easeInOut, value: hasCompletedOnboarding)
             .animation(.easeInOut, value: hasAcceptedConsent)
             .animation(.easeInOut, value: hasCompletedHealthProfile)
+            .animation(.easeInOut, value: hasCheckedAppVersion)
             .withDependencies()
+            .environmentObject(appVersionService)
             .onChange(of: authViewModel.isAuthenticated) { _, isAuthenticated in
                 if isAuthenticated {
                     // User just logged in - check if they have a health profile in DB
@@ -158,6 +174,20 @@ struct swastricare_mobile_swiftApp: App {
         default:
             break
         }
+    }
+    
+    // MARK: - App Version Check
+    
+    /// Check app version on launch - blocks app if force update required
+    private func checkAppVersion() async {
+        print("📱 Checking app version...")
+        let status = await appVersionService.checkForUpdates(force: true)
+        
+        await MainActor.run {
+            hasCheckedAppVersion = true
+        }
+        
+        print("📱 App version check complete: \(status)")
     }
     
     // MARK: - Health Profile Check
@@ -238,6 +268,17 @@ struct swastricare_mobile_swiftApp: App {
             }
             
         case .active:
+            // Re-check app version periodically when becoming active
+            Task {
+                let status = await appVersionService.checkForUpdates(force: false)
+                if status.requiresAction {
+                    // Force update now required
+                    await MainActor.run {
+                        hasCheckedAppVersion = true
+                    }
+                }
+            }
+            
             // Refresh health data when app becomes active
             if authViewModel.isAuthenticated {
                 let homeVM = DependencyContainer.shared.homeViewModel

@@ -13,10 +13,11 @@ struct ProfileView: View {
     
     @StateObject private var viewModel = DependencyContainer.shared.profileViewModel
     @StateObject private var hydrationViewModel = HydrationViewModel()
+    @EnvironmentObject private var appVersionService: AppVersionService
     
     // MARK: - State
     
-    @State private var showHydrationSettings = false
+    @State private var activeSheet: ProfileSheet?
     
     // MARK: - Body
     
@@ -37,11 +38,15 @@ struct ProfileView: View {
                 // Settings Section
                 settingsSection
                 
-                // About Section
-                aboutSection
-                
-                // Sign Out
+                // Sign Out and Delete Account
                 signOutSection
+                
+                // Version at bottom
+                Section {
+                    EmptyView()
+                } footer: {
+                    versionFooter
+                }
             }
             .scrollContentBackground(.hidden)
         }
@@ -72,9 +77,39 @@ struct ProfileView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .terms:
+                TermsContentView()
+            case .privacy:
+                PrivacyContentView()
+            case .hydrationSettings:
+                HydrationSettingsView(viewModel: hydrationViewModel)
+            case .appUpdate:
+                ForceUpdateView(appVersionService: appVersionService, onSkip: { activeSheet = nil })
+            }
+        }
         .task {
             // Load user data in background when view appears
             await viewModel.loadUser()
+        }
+    }
+    
+    // MARK: - Sheet Type
+    
+    enum ProfileSheet: Identifiable {
+        case terms
+        case privacy
+        case hydrationSettings
+        case appUpdate
+        
+        var id: String {
+            switch self {
+            case .terms: return "terms"
+            case .privacy: return "privacy"
+            case .hydrationSettings: return "hydrationSettings"
+            case .appUpdate: return "appUpdate"
+            }
         }
     }
     
@@ -239,7 +274,7 @@ struct ProfileView: View {
             }
             
             // Hydration Settings
-            Button(action: { showHydrationSettings = true }) {
+            Button(action: { activeSheet = .hydrationSettings }) {
                 HStack {
                     Label("Hydration Preferences", systemImage: "gearshape.fill")
                     Spacer()
@@ -252,9 +287,6 @@ struct ProfileView: View {
         }
         .task {
             await hydrationViewModel.loadData()
-        }
-        .sheet(isPresented: $showHydrationSettings) {
-            HydrationSettingsView(viewModel: hydrationViewModel)
         }
     }
     
@@ -285,32 +317,101 @@ struct ProfileView: View {
             Toggle(isOn: $viewModel.healthSyncEnabled) {
                 Label("Auto Sync Health", systemImage: "arrow.triangle.2.circlepath")
             }
+            
+            // App Version Row - always visible
+            appVersionRow
         }
     }
     
-    private var aboutSection: some View {
-        Section("About") {
+    // MARK: - App Version Row
+    
+    private var appVersionRow: some View {
+        Button(action: {
+            if appVersionService.updateStatus.hasUpdate {
+                activeSheet = .appUpdate
+            }
+        }) {
             HStack {
-                Label("Version", systemImage: "info.circle.fill")
+                Label {
+                    Text("App Version")
+                } icon: {
+                    Image(systemName: appVersionService.updateStatus.hasUpdate ? "arrow.down.app.fill" : "app.badge.checkmark.fill")
+                        .foregroundStyle(
+                            appVersionService.updateStatus.hasUpdate
+                                ? LinearGradient(
+                                    colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(
+                                    colors: [Color(hex: "2E3192"), Color(hex: "654ea3")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                        )
+                }
+                
                 Spacer()
+                
+                // Version text
                 Text(viewModel.appVersion)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
+                
+                // Update indicator
+                if appVersionService.updateStatus.hasUpdate {
+                    Text("Update")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        )
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
+        .foregroundColor(.primary)
+        .disabled(!appVersionService.updateStatus.hasUpdate)
     }
     
     @ViewBuilder
     private var signOutSection: some View {
-                Section {
+        Section {
+            Button(action: {
+                viewModel.showSignOutConfirmation = true
+            }) {
+                if viewModel.isLoading {
+                    HStack {
+                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                            .foregroundColor(.red)
+                        Spacer()
+                        ProgressView()
+                    }
+                } else {
+                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        .foregroundColor(.red)
+                }
+            }
+            .disabled(viewModel.isLoading)
+            
             Button(action: {
                 viewModel.showDeleteAccountConfirmation = true
             }) {
-                HStack {
-                    Spacer()
-                    Label("Delete Account", systemImage: "trash.fill")
-                        .foregroundColor(.red)
-                    Spacer()
-                }
+                Label("Delete Account", systemImage: "trash.fill")
+                    .foregroundColor(.red)
             }
             .disabled(viewModel.isLoading)
         } footer: {
@@ -318,25 +419,39 @@ struct ProfileView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        Section {
-            Button(action: {
-                viewModel.showSignOutConfirmation = true
-            }) {
-                HStack {
-                    Spacer()
-                    if viewModel.isLoading {
-                        ProgressView()
-                    } else {
-                        Text("Sign Out")
-                            .foregroundColor(.red)
-                    }
-                    Spacer()
+    }
+    
+    private var versionFooter: some View {
+        VStack(spacing: 8) {
+            Text("Version \(viewModel.appVersion)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 12) {
+                Button(action: {
+                    activeSheet = .terms
+                }) {
+                    Text("Terms & Conditions")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                
+                Text("•")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Button(action: {
+                    activeSheet = .privacy
+                }) {
+                    Text("Privacy Policy")
+                        .font(.caption)
+                        .foregroundColor(.blue)
                 }
             }
-            .disabled(viewModel.isLoading)
         }
-        
-
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
+        .padding(.vertical, 8)
     }
 }
 
@@ -408,6 +523,7 @@ extension View {
 #Preview {
     NavigationStack {
         ProfileView()
+            .environmentObject(AppVersionService.shared)
     }
 }
 

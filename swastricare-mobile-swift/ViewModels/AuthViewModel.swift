@@ -76,7 +76,7 @@ final class AuthViewModel: ObservableObject {
     
     func signUp() async {
         guard formState.isValidForSignUp else {
-            errorMessage = "Please fill all fields correctly"
+            errorMessage = "Please fill in all fields correctly."
             return
         }
         
@@ -96,10 +96,10 @@ final class AuthViewModel: ObservableObject {
                 await fetchHealthProfile()
                 clearForm()
             } else {
-                errorMessage = "Please check your email to verify your account"
+                errorMessage = "Please check your email to verify your account."
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = mapError(error)
         }
         
         isLoading = false
@@ -107,7 +107,7 @@ final class AuthViewModel: ObservableObject {
     
     func signIn() async {
         guard formState.isValidForLogin else {
-            errorMessage = "Please enter valid email and password"
+            errorMessage = "Please enter a valid email and password."
             return
         }
         
@@ -126,7 +126,7 @@ final class AuthViewModel: ObservableObject {
             await fetchHealthProfile()
             clearForm()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = mapError(error)
         }
         
         isLoading = false
@@ -144,7 +144,7 @@ final class AuthViewModel: ObservableObject {
             // Fetch health profile
             await fetchHealthProfile()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = mapError(error)
         }
         
         isLoading = false
@@ -162,7 +162,7 @@ final class AuthViewModel: ObservableObject {
             // Fetch health profile
             await fetchHealthProfile()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = mapError(error)
         }
         
         isLoading = false
@@ -178,7 +178,7 @@ final class AuthViewModel: ObservableObject {
             healthProfile = nil
             clearForm()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = mapError(error)
         }
         
         isLoading = false
@@ -186,7 +186,7 @@ final class AuthViewModel: ObservableObject {
     
     func resetPassword() async {
         guard formState.isValidEmail else {
-            errorMessage = "Please enter a valid email"
+            errorMessage = "Please enter a valid email address."
             return
         }
         
@@ -197,7 +197,7 @@ final class AuthViewModel: ObservableObject {
             try await authService.resetPassword(email: formState.email)
             errorMessage = "Password reset email sent! Check your inbox."
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = mapError(error)
         }
         
         isLoading = false
@@ -212,5 +212,29 @@ final class AuthViewModel: ObservableObject {
     private func clearForm() {
         formState = AuthFormState()
     }
+    
+    /// Maps raw server errors to user-friendly messages
+    private func mapError(_ error: Error) -> String {
+        let errorString = error.localizedDescription.lowercased()
+        
+        if errorString.contains("invalid login credentials") || errorString.contains("invalid_grant") {
+            return "Incorrect email or password. Please try again."
+        } else if errorString.contains("user already registered") || errorString.contains("user_already_exists") {
+            return "An account with this email already exists."
+        } else if errorString.contains("password should be at least") {
+            return "Password is too short. It must be at least 6 characters."
+        } else if errorString.contains("email not confirmed") {
+            return "Please verify your email address before signing in."
+        } else if errorString.contains("network") || errorString.contains("connection") || errorString.contains("offline") {
+            return "Network error. Please check your internet connection."
+        } else if errorString.contains("rate limit") || errorString.contains("too many requests") {
+            return "Too many attempts. Please wait a moment and try again."
+        } else if errorString.contains("invalid email") {
+            return "Please enter a valid email address."
+        }
+        
+        // Fallback for unknown errors (log actual error for debug, show generic for user)
+        print("❌ Auth Error: \(error.localizedDescription)")
+        return "Something went wrong. Please try again."
+    }
 }
-

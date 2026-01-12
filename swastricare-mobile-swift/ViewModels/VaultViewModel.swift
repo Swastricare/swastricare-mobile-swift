@@ -727,12 +727,22 @@ final class VaultViewModel: ObservableObject {
     }
     
     func downloadDocument(_ document: MedicalDocument) async throws -> Data {
+        print("📄 VaultVM: Downloading document '\(document.title)'")
+        print("   File URL: \(document.fileUrl)")
+        print("   File Type: \(document.fileType)")
+        print("   File Size: \(document.formattedFileSize)")
+        
         do {
-            return try await vaultService.downloadDocument(storagePath: document.fileUrl)
+            let data = try await vaultService.downloadDocument(storagePath: document.fileUrl)
+            print("✅ VaultVM: Successfully downloaded '\(document.title)' (\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)))")
+            return data
         } catch {
             // Only set error message if it's not a cancellation
             if !(error is CancellationError) {
-                errorMessage = "Download failed: \(error.localizedDescription)"
+                print("❌ VaultVM: Download failed for '\(document.title)'")
+                print("   Error: \(error.localizedDescription)")
+                // Don't set errorMessage here as it affects the main VaultView
+                // The DocumentViewer handles its own error state
             }
             throw error
         }
@@ -741,11 +751,12 @@ final class VaultViewModel: ObservableObject {
     func getDocumentURL(_ document: MedicalDocument) async -> URL? {
         do {
             // Get signed URL valid for 1 hour
-            return try await vaultService.getSignedURL(storagePath: document.fileUrl, expiresIn: 3600)
+            let url = try await vaultService.getSignedURL(storagePath: document.fileUrl, expiresIn: 3600)
+            return url
         } catch {
-            // Only set error message if it's not a cancellation
+            // Only log if it's not a cancellation - don't set errorMessage as it affects main view
             if !(error is CancellationError) {
-                errorMessage = "Failed to get document URL: \(error.localizedDescription)"
+                print("⚠️ VaultVM: Failed to get URL for '\(document.title)': \(error.localizedDescription)")
             }
             return nil
         }

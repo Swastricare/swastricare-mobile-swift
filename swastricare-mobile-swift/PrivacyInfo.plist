@@ -12,5 +12,13 @@
     <string>We use Face ID to securely protect your sensitive health data and ensure only you can access your medical records.</string>
     <key>NSUserNotificationsUsageDescription</key>
     <string>We send you friendly reminders to stay hydrated throughout the day and help you reach your daily water intake goals.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>SwasthiCare needs access to your photo library to upload medical documents and images to your secure vault.</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>SwasthiCare needs access to your health data from Apple HealthKit to track your daily activity (steps, distance, exercise, calories), vital signs (heart rate, blood pressure), body measurements (weight), sleep patterns, and hydration data for personalized health insights and recommendations.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>SwasthiCare would like to write heart rate measurements and water intake data to Apple HealthKit to keep your health records synchronized and up-to-date.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>SwasthiCare needs access to your location to fetch local weather data, which helps personalize your daily hydration goals based on temperature and climate conditions.</string>
 </dict>
 </plist>

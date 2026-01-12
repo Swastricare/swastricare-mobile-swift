@@ -16,7 +16,8 @@ import PhotosUI
 struct VaultView: View {
     
     // MARK: - ViewModel
-    @StateObject private var viewModel = DependencyContainer.shared.vaultViewModel
+    // Use ObservedObject since ViewModel is shared/owned by DependencyContainer
+    @ObservedObject private var viewModel = DependencyContainer.shared.vaultViewModel
     
     // MARK: - Local State
     @State private var showAddOptions = false
