@@ -164,3 +164,20 @@ struct QuickAction: Identifiable, Equatable {
     ]
 }
 
+// MARK: - Conversation Summary
+
+struct ConversationSummary: Identifiable, Equatable {
+    let id: UUID
+    let title: String
+    let lastMessage: String
+    let updatedAt: Date
+    let messageCount: Int
+    let status: String
+    
+    var formattedDate: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: updatedAt, relativeTo: Date())
+    }
+}
+

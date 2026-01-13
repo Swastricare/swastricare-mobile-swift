@@ -159,19 +159,57 @@ INTERACTION GUIDELINES:
             { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString() }
           ]
           
-          await supabase.from('ai_conversations').insert({
-            user_id: userId,
-            health_profile_id: healthProfileId,
-            title: message.substring(0, 100),
-            conversation_type: 'health_chat',
-            messages: messagesArray,
-            context_data: { history_length: conversationHistory?.length || 0 },
-            model_used: 'gemini-3-flash-preview',
-            status: 'completed'
-          })
-          console.log('Conversation saved')
+          // Try to find existing active conversation
+          const { data: existingConversations, error: fetchError } = await supabase
+            .from('ai_conversations')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('health_profile_id', healthProfileId)
+            .eq('status', 'active')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+          
+          if (existingConversations && existingConversations.length > 0) {
+            // Update existing conversation
+            const { error: updateError } = await supabase
+              .from('ai_conversations')
+              .update({
+                messages: messagesArray,
+                updated_at: new Date().toISOString(),
+                title: message.substring(0, 100)
+              })
+              .eq('id', existingConversations[0].id)
+            
+            if (updateError) {
+              console.log('Update error:', updateError.message)
+            } else {
+              console.log('Conversation updated:', existingConversations[0].id)
+            }
+          } else {
+            // Create new conversation
+            const { data: newConv, error: insertError } = await supabase
+              .from('ai_conversations')
+              .insert({
+                user_id: userId,
+                health_profile_id: healthProfileId,
+                title: message.substring(0, 100),
+                conversation_type: 'general_health',
+                messages: messagesArray,
+                context_data: { history_length: conversationHistory?.length || 0 },
+                model_used: 'gemini-3-flash-preview',
+                status: 'active'
+              })
+              .select('id')
+              .single()
+            
+            if (insertError) {
+              console.log('Insert error:', insertError.message)
+            } else {
+              console.log('New conversation created:', newConv?.id)
+            }
+          }
         } catch (e) {
-          console.log('DB insert failed:', e.message)
+          console.log('DB save failed:', e.message)
         }
       }
 

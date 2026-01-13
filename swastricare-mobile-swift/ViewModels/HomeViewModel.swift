@@ -85,13 +85,16 @@ final class HomeViewModel: ObservableObject {
     }
     
     func loadTodaysData() async {
-        guard isAuthorized else {
-            print("🏠 HomeVM: Not authorized, skipping fetch")
+        // Allow loading in demo mode even without authorization (thread-safe check)
+        let isDemoMode = DemoModeService.isDemoModeEnabledValue
+        
+        guard isAuthorized || isDemoMode else {
+            print("🏠 HomeVM: Not authorized and demo mode disabled, skipping fetch")
             return
         }
         
         isLoading = true
-        print("🏠 HomeVM: Loading today's data...")
+        print("🏠 HomeVM: Loading today's data... (Demo mode: \(isDemoMode))")
         
         let today = Date()
         healthMetrics = await healthService.fetchHealthMetrics(for: today)
@@ -136,6 +139,13 @@ final class HomeViewModel: ObservableObject {
     
     func clearError() {
         errorMessage = nil
+    }
+    
+    func clearDemoData() {
+        // Reset health metrics to empty/default values
+        healthMetrics = HealthMetrics()
+        weeklySteps = []
+        lastSyncTime = nil
     }
     
     func formatSyncTime() -> String {

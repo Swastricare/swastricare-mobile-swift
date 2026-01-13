@@ -78,6 +78,11 @@ final class HealthKitService: HealthKitServiceProtocol {
     // MARK: - Fetch All Metrics
     
     func fetchHealthMetrics(for date: Date) async -> HealthMetrics {
+        // Check if demo mode is enabled (thread-safe check)
+        if DemoModeService.isDemoModeEnabledValue {
+            return await DemoModeService.shared.generateDemoHealthMetrics(for: date)
+        }
+        
         async let steps = fetchStepCount(for: date)
         async let heartRate = fetchHeartRate(for: date)
         async let sleep = fetchSleepData(for: date)
@@ -103,6 +108,11 @@ final class HealthKitService: HealthKitServiceProtocol {
     }
     
     func fetchHealthMetricsHistory(days: Int) async -> [HealthMetrics] {
+        // Check if demo mode is enabled (thread-safe check)
+        if DemoModeService.isDemoModeEnabledValue {
+            return await DemoModeService.shared.generateDemoHealthMetricsHistory(days: days)
+        }
+        
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         var history: [HealthMetrics] = []
@@ -121,6 +131,11 @@ final class HealthKitService: HealthKitServiceProtocol {
     // MARK: - Weekly Steps
     
     func fetchWeeklySteps() async -> [DailyMetric] {
+        // Check if demo mode is enabled (thread-safe check)
+        if DemoModeService.isDemoModeEnabledValue {
+            return await DemoModeService.shared.generateDemoWeeklySteps()
+        }
+        
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         var metrics: [DailyMetric] = []
@@ -139,6 +154,12 @@ final class HealthKitService: HealthKitServiceProtocol {
     // MARK: - Individual Metrics
     
     func fetchStepCount(for date: Date) async -> Int {
+        // Check if demo mode is enabled (thread-safe check)
+        if DemoModeService.isDemoModeEnabledValue {
+            let demoMetrics = await DemoModeService.shared.generateDemoHealthMetrics(for: date)
+            return demoMetrics.steps
+        }
+        
         guard let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) else {
             return 0
         }
@@ -347,6 +368,12 @@ final class HealthKitService: HealthKitServiceProtocol {
     
     /// Fetches the user's latest weight in kg from HealthKit
     func fetchUserWeight() async -> Double? {
+        // Check if demo mode is enabled (thread-safe check)
+        if DemoModeService.isDemoModeEnabledValue {
+            // Return demo weight value
+            return Double.random(in: 65.0...75.0)
+        }
+        
         guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
             return nil
         }
@@ -359,6 +386,12 @@ final class HealthKitService: HealthKitServiceProtocol {
     
     /// Fetches total water intake for a specific date in ml
     func fetchDailyWaterIntake(for date: Date) async -> Double {
+        // Check if demo mode is enabled - return realistic demo value (thread-safe check)
+        if DemoModeService.isDemoModeEnabledValue {
+            // Demo: 1500-2500 ml per day
+            return Double.random(in: 1500...2500)
+        }
+        
         guard let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
             return 0
         }
@@ -396,6 +429,12 @@ final class HealthKitService: HealthKitServiceProtocol {
     
     /// Fetches exercise minutes for a specific date (public method for hydration adjustments)
     func fetchExerciseMinutesValue(for date: Date) async -> Int {
+        // Check if demo mode is enabled (thread-safe check)
+        if DemoModeService.isDemoModeEnabledValue {
+            let demoMetrics = await DemoModeService.shared.generateDemoHealthMetrics(for: date)
+            return demoMetrics.exerciseMinutes
+        }
+        
         return await fetchExerciseMinutes(for: date)
     }
     

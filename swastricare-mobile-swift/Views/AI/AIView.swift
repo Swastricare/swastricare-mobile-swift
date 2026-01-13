@@ -31,6 +31,27 @@ struct AIView: View {
                 .navigationTitle("Swastri AI")
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: {
+                            // Only show history if no other sheet is showing
+                            guard !trackerViewModel.showAnalysisSheet else { return }
+                            Task {
+                                await viewModel.loadAllConversations()
+                                // Use a small delay to ensure any other presentations are complete
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    viewModel.showHistorySheet = true
+                                }
+                            }
+                        }) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                        }
+                    }
+                    
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -47,7 +68,7 @@ struct AIView: View {
                             Image(systemName: "xmark")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.primary)
-                                .padding(10)
+                             
                                 .background(.ultraThinMaterial)
                                 .clipShape(Circle())
                         }
@@ -65,8 +86,15 @@ struct AIView: View {
                 onDismiss: { trackerViewModel.dismissAnalysis() }
             )
         }
+        .sheet(isPresented: Binding(
+            get: { viewModel.showHistorySheet && !trackerViewModel.showAnalysisSheet },
+            set: { viewModel.showHistorySheet = $0 }
+        )) {
+            ConversationHistoryView(viewModel: viewModel)
+        }
         .task {
             await trackerViewModel.loadData()
+            await viewModel.loadHistory()
         }
     }
     
@@ -615,6 +643,219 @@ private struct AnalysisResultView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Conversation History View
+
+struct ConversationHistoryView: View {
+    @ObservedObject var viewModel: AIViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var conversationToDelete: ConversationSummary?
+    @State private var showDeleteConfirmation = false
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                PremiumBackground()
+                
+                if viewModel.isLoadingConversations {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                } else if viewModel.conversations.isEmpty {
+                    emptyStateView
+                } else {
+                    conversationListView
+                }
+            }
+            .navigationTitle("Chat History")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .alert("Delete Conversation", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {
+                    conversationToDelete = nil
+                }
+                Button("Delete", role: .destructive) {
+                    if let conversation = conversationToDelete {
+                        Task {
+                            await viewModel.deleteConversation(id: conversation.id)
+                        }
+                    }
+                    conversationToDelete = nil
+                }
+            } message: {
+                Text("Are you sure you want to delete this conversation? This action cannot be undone.")
+            }
+        }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "2E3192").opacity(0.1))
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 50))
+                    .foregroundColor(Color(hex: "2E3192").opacity(0.6))
+            }
+            
+            VStack(spacing: 8) {
+                Text("No Conversations Yet")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                
+                Text("Start chatting with Swastri AI to see your conversation history here.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+        }
+    }
+    
+    private var conversationListView: some View {
+        List {
+            ForEach(viewModel.conversations) { conversation in
+                ConversationRow(
+                    conversation: conversation,
+                    onTap: {
+                        Task {
+                            await viewModel.loadConversation(id: conversation.id)
+                        }
+                    },
+                    onDelete: {
+                        conversationToDelete = conversation
+                        showDeleteConfirmation = true
+                    }
+                )
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        conversationToDelete = conversation
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Delete", systemImage: "trash.fill")
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+    }
+}
+
+// MARK: - Conversation Row
+
+private struct ConversationRow: View {
+    let conversation: ConversationSummary
+    let onTap: () -> Void
+    let onDelete: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .center, spacing: 16) {
+                // Icon with gradient
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "4A90E2").opacity(0.1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 52, height: 52)
+                    
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(Color(hex: "2E3192"))
+                }
+                .frame(width: 52, height: 52)
+                
+                // Content
+                VStack(alignment: .leading, spacing: 6) {
+                    // Title
+                    Text(conversation.title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // Last message preview
+                    Text(conversation.lastMessage)
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // Metadata row
+                    HStack(alignment: .center, spacing: 6) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                            Text(conversation.formattedDate)
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Text("•")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary.opacity(0.4))
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "message.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                            Text("\(conversation.messageCount)")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        if conversation.status == "archived" {
+                            Spacer()
+                            Text("Archived")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Color.orange.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary.opacity(0.3))
+                    .frame(width: 20)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

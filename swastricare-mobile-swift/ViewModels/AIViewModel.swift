@@ -17,6 +17,10 @@ final class AIViewModel: ObservableObject {
     @Published private(set) var chatState: AIChatState = .idle
     @Published private(set) var errorMessage: String?
     @Published var inputText = ""
+    @Published private(set) var isLoadingHistory = false
+    @Published var showHistorySheet = false
+    @Published private(set) var conversations: [ConversationSummary] = []
+    @Published private(set) var isLoadingConversations = false
     
     // MARK: - Computed Properties
     
@@ -29,12 +33,32 @@ final class AIViewModel: ObservableObject {
     private let aiService: AIServiceProtocol
     private let healthService: HealthKitServiceProtocol
     
+    // MARK: - Private State
+    
+    private var currentConversationId: UUID?
+    
     // MARK: - Init
     
     init(aiService: AIServiceProtocol = AIService.shared,
          healthService: HealthKitServiceProtocol = HealthKitService.shared) {
         self.aiService = aiService
         self.healthService = healthService
+    }
+    
+    // MARK: - Lifecycle
+    
+    func loadHistory() async {
+        isLoadingHistory = true
+        defer { isLoadingHistory = false }
+        
+        do {
+            let (history, conversationId) = try await aiService.loadChatHistory()
+            messages = history
+            currentConversationId = conversationId
+        } catch {
+            // Silently fail if history can't be loaded (e.g., not authenticated)
+            print("Failed to load chat history: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Chat Actions
@@ -65,6 +89,84 @@ final class AIViewModel: ObservableObject {
             messages.removeLast()
             messages.append(ChatMessage.assistantMessage(response))
             chatState = .idle
+            
+            // Save chat history
+            do {
+                // #region agent log
+                do {
+                    let logData: [String: Any] = [
+                        "sessionId": "debug-session",
+                        "runId": "verify-storage",
+                        "hypothesisId": "E",
+                        "location": "AIViewModel.swift:94",
+                        "message": "calling saveChatHistory",
+                        "data": [
+                            "messageCount": messages.count,
+                            "hasConversationId": currentConversationId != nil
+                        ],
+                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+                    ]
+                    if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
+                        try? logFile.seekToEnd()
+                        try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
+                        try? logFile.write(Data("\n".utf8))
+                        try? logFile.close()
+                    }
+                } catch {}
+                // #endregion
+                
+                currentConversationId = try await aiService.saveChatHistory(messages, conversationId: currentConversationId)
+                
+                // #region agent log
+                do {
+                    let logData: [String: Any] = [
+                        "sessionId": "debug-session",
+                        "runId": "verify-storage",
+                        "hypothesisId": "E",
+                        "location": "AIViewModel.swift:115",
+                        "message": "saveChatHistory completed",
+                        "data": [
+                            "conversationId": currentConversationId?.uuidString ?? "nil",
+                            "saveSuccess": true
+                        ],
+                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+                    ]
+                    if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
+                        try? logFile.seekToEnd()
+                        try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
+                        try? logFile.write(Data("\n".utf8))
+                        try? logFile.close()
+                    }
+                } catch {}
+                // #endregion
+                
+                print("✅ Chat history saved successfully")
+            } catch {
+                // #region agent log
+                do {
+                    let logData: [String: Any] = [
+                        "sessionId": "debug-session",
+                        "runId": "verify-storage",
+                        "hypothesisId": "E",
+                        "location": "AIViewModel.swift:132",
+                        "message": "saveChatHistory failed",
+                        "data": [
+                            "error": error.localizedDescription,
+                            "saveSuccess": false
+                        ],
+                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+                    ]
+                    if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
+                        try? logFile.seekToEnd()
+                        try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
+                        try? logFile.write(Data("\n".utf8))
+                        try? logFile.close()
+                    }
+                } catch {}
+                // #endregion
+                
+                print("❌ Failed to save chat history: \(error.localizedDescription)")
+            }
         } catch {
             messages.removeLast()
             chatState = .error(error.localizedDescription)
@@ -79,6 +181,69 @@ final class AIViewModel: ObservableObject {
         } else {
             inputText = action.prompt
             await sendMessage()
+        }
+    }
+    
+    // MARK: - Conversation Management
+    
+    func setConversationId(_ id: UUID?) {
+        currentConversationId = id
+    }
+    
+    func loadAllConversations() async {
+        isLoadingConversations = true
+        defer { isLoadingConversations = false }
+        
+        do {
+            let loadedConversations = try await aiService.loadAllConversations()
+            print("✅ Loaded \(loadedConversations.count) conversations")
+            conversations = loadedConversations
+            // Clear error if successful
+            if errorMessage?.contains("chat history") == true {
+                errorMessage = nil
+            }
+        } catch {
+            print("❌ Failed to load conversations: \(error.localizedDescription)")
+            print("Error details: \(error)")
+            conversations = []
+            // Only show error if it's not a network/auth issue (user might not be logged in)
+            if let aiError = error as? AIError, aiError == .networkError {
+                // Silently fail for network/auth errors - user might not be authenticated
+                print("⚠️ Network/auth error - user may not be authenticated")
+            } else {
+                errorMessage = "Failed to load chat history: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    func loadConversation(id: UUID) async {
+        isLoadingHistory = true
+        defer { isLoadingHistory = false }
+        
+        do {
+            let messages = try await aiService.loadConversation(id: id)
+            self.messages = messages
+            self.currentConversationId = id
+            showHistorySheet = false
+        } catch {
+            errorMessage = "Failed to load conversation"
+            print("Failed to load conversation: \(error.localizedDescription)")
+        }
+    }
+    
+    func deleteConversation(id: UUID) async {
+        do {
+            try await aiService.deleteConversation(id: id)
+            // Remove from local list
+            conversations.removeAll { $0.id == id }
+            // If this was the current conversation, clear it
+            if currentConversationId == id {
+                messages = []
+                currentConversationId = nil
+            }
+        } catch {
+            errorMessage = "Failed to delete conversation"
+            print("Failed to delete conversation: \(error.localizedDescription)")
         }
     }
     
@@ -109,6 +274,13 @@ final class AIViewModel: ObservableObject {
             messages.removeLast()
             messages.append(ChatMessage.assistantMessage(response))
             chatState = .idle
+            
+            // Save chat history
+            do {
+                currentConversationId = try await aiService.saveChatHistory(messages, conversationId: currentConversationId)
+            } catch {
+                print("Failed to save chat history: \(error.localizedDescription)")
+            }
         } catch {
             messages.removeLast()
             chatState = .error(error.localizedDescription)
@@ -120,6 +292,16 @@ final class AIViewModel: ObservableObject {
         messages = []
         chatState = .idle
         errorMessage = nil
+        currentConversationId = nil
+        
+        // Archive current conversation in background
+        Task {
+            do {
+                try await aiService.clearChatHistory()
+            } catch {
+                print("Failed to clear chat history: \(error.localizedDescription)")
+            }
+        }
     }
     
     // MARK: - Helpers

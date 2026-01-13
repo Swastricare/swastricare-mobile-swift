@@ -13,11 +13,13 @@ struct ProfileView: View {
     
     @StateObject private var viewModel = DependencyContainer.shared.profileViewModel
     @StateObject private var hydrationViewModel = HydrationViewModel()
+    @StateObject private var demoModeService = DemoModeService.shared
     @EnvironmentObject private var appVersionService: AppVersionService
     
     // MARK: - State
     
     @State private var activeSheet: ProfileSheet?
+    @State private var showDemoModeAlert = false
     
     // MARK: - Body
     
@@ -76,6 +78,11 @@ struct ProfileView: View {
             Button("OK") { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
+        }
+        .alert("Demo Mode Enabled", isPresented: $showDemoModeAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Demo mode is now active. The app will display sample health data instead of reading from HealthKit. This allows you to explore all features without requiring health data access.")
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
@@ -291,7 +298,7 @@ struct ProfileView: View {
     }
     
     private var settingsSection: some View {
-        Section("Settings") {
+        Section {
             Toggle(isOn: $viewModel.notificationsEnabled) {
                 Label("Notifications", systemImage: "bell.fill")
             }
@@ -318,8 +325,46 @@ struct ProfileView: View {
                 Label("Auto Sync Health", systemImage: "arrow.triangle.2.circlepath")
             }
             
+            // Demo Mode Toggle
+            Toggle(isOn: Binding(
+                get: { demoModeService.isDemoModeEnabled },
+                set: { newValue in
+                    let wasEnabled = demoModeService.isDemoModeEnabled
+                    demoModeService.isDemoModeEnabled = newValue
+                    
+                    if newValue {
+                        showDemoModeAlert = true
+                    } else if wasEnabled {
+                        // Demo mode was turned off - clear demo data
+                        Task {
+                            // Clear demo data from view models
+                            NotificationCenter.default.post(name: NSNotification.Name("DemoModeDisabled"), object: nil)
+                            // Then refresh with real data if authorized
+                            NotificationCenter.default.post(name: NSNotification.Name("DemoModeToggled"), object: nil)
+                        }
+                    } else {
+                        // Refresh health data when demo mode is toggled
+                        Task {
+                            NotificationCenter.default.post(name: NSNotification.Name("DemoModeToggled"), object: nil)
+                        }
+                    }
+                }
+            )) {
+                Label("Demo Mode", systemImage: "eye.fill")
+            }
+            
             // App Version Row - always visible
             appVersionRow
+        } header: {
+            Text("Settings")
+        } footer: {
+            if demoModeService.isDemoModeEnabled {
+                Text("Demo mode is active. The app displays sample health data for testing purposes without requiring HealthKit access.")
+                    .font(.caption)
+            } else {
+                Text("Enable demo mode to explore app features with sample health data without HealthKit access.")
+                    .font(.caption)
+            }
         }
     }
     
