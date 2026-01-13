@@ -67,13 +67,29 @@ struct swastricare_mobile_swiftApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                // FIRST: Check app version before anything else
-                if !hasCheckedAppVersion {
+                // Combined initialization: Show splash until version check AND (auth check AND health profile check if authenticated) complete
+                let isInitializing = !hasCheckedAppVersion || 
+                                     authViewModel.authState == .unknown || 
+                                     (authViewModel.isAuthenticated && (!hasCheckedHealthProfile || isCheckingHealthProfile))
+                
+                if isInitializing {
                     SplashView()
                         .task {
-                            await checkAppVersion()
-                            // Request notification permission after version check
-                            await requestNotificationPermissionIfNeeded()
+                            // Check app version first
+                            if !hasCheckedAppVersion {
+                                await checkAppVersion()
+                                await requestNotificationPermissionIfNeeded()
+                            }
+                            
+                            // Wait for auth to complete
+                            while authViewModel.authState == .unknown {
+                                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                            }
+                            
+                            // If authenticated, check health profile
+                            if authViewModel.isAuthenticated && !hasCheckedHealthProfile {
+                                await checkHealthProfileFromDB()
+                            }
                         }
                 } else if appVersionService.updateStatus.requiresAction {
                     // FORCE UPDATE: Block the app until user updates
@@ -83,18 +99,9 @@ struct swastricare_mobile_swiftApp: App {
                 } else if !hasAcceptedConsent {
                     // Show consent screen after onboarding
                     ConsentView(hasAcceptedConsent: $hasAcceptedConsent)
-                } else if authViewModel.authState == .unknown {
-                    // Loading state - checking auth
-                    SplashView()
                 } else if authViewModel.isAuthenticated {
                     // CRITICAL: User MUST be authenticated to reach here
-                    // Always check DB once per authenticated session BEFORE deciding to show questionnaire
-                    if !hasCheckedHealthProfile || isCheckingHealthProfile {
-                        SplashView()
-                            .task {
-                                await checkHealthProfileFromDB()
-                            }
-                    } else if !hasCompletedHealthProfile {
+                    if !hasCompletedHealthProfile {
                         // Show health profile questionnaire ONLY if:
                         // 1. User is authenticated (already checked above)
                         // 2. Profile check is complete (hasCheckedHealthProfile == true)
@@ -246,9 +253,6 @@ struct swastricare_mobile_swiftApp: App {
         }
         
         print("✅ Health profile check: User is authenticated, proceeding with check")
-        
-        // IMPORTANT: Add 2-second minimum delay to show splash screen animations
-        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2.0 seconds
         
         // Retry up to 3 times if session isn't ready
         var attempts = 0

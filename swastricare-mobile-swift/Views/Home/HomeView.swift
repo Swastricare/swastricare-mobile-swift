@@ -17,6 +17,7 @@ struct HomeView: View {
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
+    @StateObject private var demoModeService = DemoModeService.shared
     
     // MARK: - Local State
     
@@ -119,8 +120,13 @@ struct HomeView: View {
                     )
                     .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
                     
+                    // Demo Mode Banner
+                    if demoModeService.isDemoModeEnabled {
+                        demoModeBanner
+                    }
+                    
                     // Health Authorization Banner
-                    if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
+                    if !viewModel.isAuthorized && !viewModel.hasRequestedAuth && !demoModeService.isDemoModeEnabled {
                         authorizationBanner
                     }
                     
@@ -178,6 +184,19 @@ struct HomeView: View {
             await trackerViewModel.loadData()
             await hydrationViewModel.loadData()
             await medicationViewModel.loadMedications()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DemoModeDisabled"))) { _ in
+            // Clear demo data when demo mode is disabled
+            viewModel.clearDemoData()
+            trackerViewModel.clearDemoData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DemoModeToggled"))) { _ in
+            // Refresh data when demo mode is toggled
+            Task {
+                await viewModel.loadTodaysData()
+                await trackerViewModel.loadData()
+                await hydrationViewModel.loadData()
+            }
         }
         .refreshable {
             await viewModel.refresh()
@@ -288,6 +307,39 @@ struct HomeView: View {
             }
         }
         .frame(height: 380) // Match model height
+    }
+    
+    private var demoModeBanner: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: "eye.fill")
+                    .font(.title2)
+                    .foregroundColor(.orange)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Demo Mode Active")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Text("Showing sample health data. Enable HealthKit access in Settings to use real data.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                Spacer()
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.orange.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+        .padding(.horizontal)
     }
     
     private var authorizationBanner: some View {
