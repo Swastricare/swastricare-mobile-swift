@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.swasthicare.mobile.app-mergeDebugResources-58:/values-zh-rTW/values-zh-rTW.xml",
+            "outputFile": "com.swasthicare.mobile.app-mergeDebugResources-61:/values-zh-rTW/values-zh-rTW.xml",
             "map": [
                 {
                     "source": "/Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/res/values-zh-rTW/values.xml",
@@ -18,6 +18,23 @@
                         "startOffsets": "2000",
                         "endColumns": "102",
                         "endOffsets": "2098"
+                    }
+                },
+                {
+                    "source": "/Users/onwords/.gradle/caches/transforms-3/ed5b4ef75d787a8300f455556f27cf6c/transformed/jetified-ui-release/res/values-zh-rTW/values-zh-rTW.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "105,182,258,345,436,514,588,665,743,818,883,948,1021,1096,1164,1238,1306",
+                        "endColumns": "76,75,86,90,77,73,76,77,74,64,64,72,74,67,73,67,115",
+                        "endOffsets": "177,253,340,431,509,583,660,738,813,878,943,1016,1091,1159,1233,1301,1417"
+                    },
+                    "to": {
+                        "startLines": "11,12,32,33,34,38,39,96,97,98,99,100,101,102,104,105,106",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "983,1060,3039,3126,3217,3581,3655,9172,9250,9325,9390,9455,9528,9603,9772,9846,9914",
+                        "endColumns": "76,75,86,90,77,73,76,77,74,64,64,72,74,67,73,67,115",
+                        "endOffsets": "1055,1131,3121,3212,3290,3650,3727,9245,9320,9385,9450,9523,9598,9666,9841,9909,10025"
                     }
                 },
                 {
@@ -55,7 +72,7 @@
                     }
                 },
                 {
-                    "source": "/Users/onwords/.gradle/caches/transforms-3/ae5a4bff10afa66579a96fa065f536f8/transformed/jetified-foundation-release/res/values-zh-rTW/values-zh-rTW.xml",
+                    "source": "/Users/onwords/.gradle/caches/transforms-3/e48e1e09513334d27c464de9e52422b5/transformed/jetified-foundation-release/res/values-zh-rTW/values-zh-rTW.xml",
                     "from": {
                         "startLines": "2,3",
                         "startColumns": "4,4",
@@ -69,23 +86,6 @@
                         "startOffsets": "10030,10113",
                         "endColumns": "82,78",
                         "endOffsets": "10108,10187"
-                    }
-                },
-                {
-                    "source": "/Users/onwords/.gradle/caches/transforms-3/4e6790f6576d0c6e23418c60f330b559/transformed/jetified-ui-release/res/values-zh-rTW/values-zh-rTW.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "105,182,258,345,436,514,588,665,743,818,883,948,1021,1096,1164,1238,1306",
-                        "endColumns": "76,75,86,90,77,73,76,77,74,64,64,72,74,67,73,67,115",
-                        "endOffsets": "177,253,340,431,509,583,660,738,813,878,943,1016,1091,1159,1233,1301,1417"
-                    },
-                    "to": {
-                        "startLines": "11,12,32,33,34,38,39,96,97,98,99,100,101,102,104,105,106",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "983,1060,3039,3126,3217,3581,3655,9172,9250,9325,9390,9455,9528,9603,9772,9846,9914",
-                        "endColumns": "76,75,86,90,77,73,76,77,74,64,64,72,74,67,73,67,115",
-                        "endOffsets": "1055,1131,3121,3212,3290,3650,3727,9245,9320,9385,9450,9523,9598,9666,9841,9909,10025"
                     }
                 },
                 {

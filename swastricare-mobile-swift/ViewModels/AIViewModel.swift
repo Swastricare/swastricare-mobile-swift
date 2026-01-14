@@ -22,11 +22,50 @@ final class AIViewModel: ObservableObject {
     @Published private(set) var conversations: [ConversationSummary] = []
     @Published private(set) var isLoadingConversations = false
     
+    // MARK: - AI Mode Selection
+    
+    @Published var selectedAIMode: AIMode = .general
+    
+    // MARK: - MedGemma State
+    
+    @Published private(set) var lastResponseModel: String = "gemini"
+    @Published private(set) var lastResponseWasMedical: Bool = false
+    @Published var showEmergencyAlert: Bool = false
+    @Published var showMedicalDisclaimer: Bool = false
+    @Published var hasAcknowledgedMedicalDisclaimer: Bool = false
+    @Published private(set) var selectedImage: Data?
+    @Published private(set) var isAnalyzingImage: Bool = false
+    
     // MARK: - Computed Properties
     
     var isBusy: Bool { chatState.isBusy }
     var hasMessages: Bool { !messages.isEmpty }
     var canSend: Bool { !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !chatState.isBusy }
+    var isMedicalMode: Bool { selectedAIMode == .medical || lastResponseWasMedical }
+    
+    // MARK: - Medical Keywords Detection
+    
+    private static let medicalKeywords: Set<String> = [
+        // Symptoms
+        "symptom", "pain", "ache", "hurt", "sore", "fever", "nausea", "dizzy", "fatigue",
+        "headache", "migraine", "cough", "cold", "flu", "infection", "swelling", "rash",
+        "bleeding", "vomiting", "diarrhea", "constipation", "cramp", "numbness", "tingling",
+        // Medical terms
+        "medication", "medicine", "drug", "prescription", "dose", "dosage", "side effect",
+        "diagnosis", "condition", "disease", "illness", "disorder", "syndrome",
+        "treatment", "therapy", "surgery", "procedure", "test", "scan", "x-ray", "mri",
+        // Healthcare
+        "doctor", "physician", "hospital", "clinic", "specialist",
+        // Conditions
+        "diabetes", "hypertension", "asthma", "allergy", "arthritis", "cancer",
+        "depression", "anxiety", "insomnia", "anemia", "thyroid"
+    ]
+    
+    private static let emergencyKeywords: Set<String> = [
+        "chest pain", "heart attack", "stroke", "cant breathe", "cannot breathe",
+        "difficulty breathing", "unconscious", "seizure", "severe bleeding",
+        "overdose", "suicide", "suicidal", "dying", "emergency"
+    ]
     
     // MARK: - Dependencies
     
@@ -67,6 +106,19 @@ final class AIViewModel: ObservableObject {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         
+        // Check for emergency before proceeding
+        if isEmergencyMessage(text) {
+            showEmergencyAlert = true
+            // Still proceed with the message but flag it
+        }
+        
+        // Check if medical disclaimer needed when in medical mode (first time)
+        if selectedAIMode == .medical && !hasAcknowledgedMedicalDisclaimer {
+            showMedicalDisclaimer = true
+            // Store input and wait for acknowledgment
+            return
+        }
+        
         // Add user message
         let userMessage = ChatMessage.userMessage(text)
         messages.append(userMessage)
@@ -83,7 +135,37 @@ final class AIViewModel: ObservableObject {
             let history = await healthService.fetchHealthMetricsHistory(days: 7)
             let systemContext = formatHealthHistoryForChat(history)
             
-            let response = try await aiService.sendChatMessage(text, context: messages.dropLast(), systemContext: systemContext)
+            let response: String
+            
+            // Route based on selected AI mode
+            switch selectedAIMode {
+            case .general:
+                // Use general chat (Gemini)
+                print("🤖 AI Mode: General (Swastri Assistant)")
+                response = try await aiService.sendChatMessage(text, context: Array(messages.dropLast()), systemContext: systemContext)
+                lastResponseModel = "gemini"
+                lastResponseWasMedical = false
+                
+            case .medical:
+                // TEMPORARY: Use ai-chat with medical prompt until medgemma-chat is fixed
+                print("🏥 AI Mode: Medical Expert (using ai-chat temporarily)")
+                
+                // Build medical-specific system context
+                var medicalContext = """
+                You are Swastrica Medical AI, a health assistant by Swastricare (Onwords). Provide accurate medical information with these guidelines:
+                - Always recommend consulting healthcare professionals
+                - Flag emergency symptoms immediately
+                - Use clear, empathetic language
+                - Never prescribe medications or dosages
+                - Include appropriate disclaimers
+                
+                """
+                medicalContext += systemContext
+                
+                response = try await aiService.sendChatMessage(text, context: Array(messages.dropLast()), systemContext: medicalContext)
+                lastResponseModel = "gemini-medical"
+                lastResponseWasMedical = true
+            }
             
             // Remove loading message and add response
             messages.removeLast()
@@ -302,6 +384,96 @@ final class AIViewModel: ObservableObject {
                 print("Failed to clear chat history: \(error.localizedDescription)")
             }
         }
+    }
+    
+    // MARK: - Medical Disclaimer Acknowledgment
+    
+    func acknowledgeMedicalDisclaimer() {
+        hasAcknowledgedMedicalDisclaimer = true
+        showMedicalDisclaimer = false
+        
+        // Continue with the message if there was one pending
+        if !inputText.isEmpty {
+            Task {
+                await sendMessage()
+            }
+        }
+    }
+    
+    func dismissEmergencyAlert() {
+        showEmergencyAlert = false
+    }
+    
+    // MARK: - Image Analysis
+    
+    func setSelectedImage(_ imageData: Data?) {
+        selectedImage = imageData
+    }
+    
+    func analyzeSelectedImage(type: MedicalImageAnalysisType = .general, question: String? = nil) async {
+        guard let imageData = selectedImage else { return }
+        
+        isAnalyzingImage = true
+        
+        // Add user message
+        let typeDescription: String
+        switch type {
+        case .prescription: typeDescription = "Analyze this prescription"
+        case .labReport: typeDescription = "Analyze this lab report"
+        case .medicalDocument: typeDescription = "Analyze this medical document"
+        case .xray: typeDescription = "Analyze this X-ray/scan"
+        case .general: typeDescription = "Analyze this medical image"
+        }
+        
+        let userMessage = ChatMessage.userMessage(question ?? typeDescription)
+        messages.append(userMessage)
+        
+        // Add loading message
+        let loadingMessage = ChatMessage.loadingMessage()
+        messages.append(loadingMessage)
+        
+        chatState = .sending
+        
+        do {
+            let aiResponse = try await aiService.analyzeMedicalImage(imageData, analysisType: type, question: question)
+            
+            // Update state
+            lastResponseModel = aiResponse.model
+            lastResponseWasMedical = true
+            
+            // Remove loading message and add response
+            messages.removeLast()
+            messages.append(ChatMessage.assistantMessage(aiResponse.text))
+            chatState = .idle
+            
+            // Clear image after analysis
+            selectedImage = nil
+            isAnalyzingImage = false
+            
+            // Save chat history
+            do {
+                currentConversationId = try await aiService.saveChatHistory(messages, conversationId: currentConversationId)
+            } catch {
+                print("Failed to save chat history: \(error.localizedDescription)")
+            }
+        } catch {
+            messages.removeLast()
+            chatState = .error(error.localizedDescription)
+            errorMessage = error.localizedDescription
+            isAnalyzingImage = false
+        }
+    }
+    
+    // MARK: - Message Classification
+    
+    private func isMedicalMessage(_ text: String) -> Bool {
+        let lowercased = text.lowercased()
+        return Self.medicalKeywords.contains { lowercased.contains($0) }
+    }
+    
+    private func isEmergencyMessage(_ text: String) -> Bool {
+        let lowercased = text.lowercased()
+        return Self.emergencyKeywords.contains { lowercased.contains($0) }
     }
     
     // MARK: - Helpers

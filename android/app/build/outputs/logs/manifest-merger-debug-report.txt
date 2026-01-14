@@ -14,37 +14,35 @@ MERGED from [com.google.android.gms:play-services-fido:20.1.0] /Users/onwords/.g
 MERGED from [com.google.android.gms:play-services-base:18.3.0] /Users/onwords/.gradle/caches/transforms-3/0cf1647d741aa8c8a7ea86d93ddfd4c2/transformed/jetified-play-services-base-18.3.0/AndroidManifest.xml:16:1-24:12
 MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/onwords/.gradle/caches/transforms-3/550e13f8f33a2a3d095708d4d24382dc/transformed/jetified-play-services-tasks-18.1.0/AndroidManifest.xml:2:1-6:12
 MERGED from [com.google.android.gms:play-services-basement:18.3.0] /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/AndroidManifest.xml:16:1-26:12
-MERGED from [androidx.fragment:fragment:1.5.7] /Users/onwords/.gradle/caches/transforms-3/b6d8aa55a7096787d32f4d8685bcf9a7/transformed/fragment-1.5.7/AndroidManifest.xml:17:1-24:12
+MERGED from [io.github.sceneview:sceneview:2.2.1] /Users/onwords/.gradle/caches/transforms-3/16d0d1da910e2d51ce94c62bae71450c/transformed/jetified-sceneview-2.2.1/AndroidManifest.xml:2:1-15:12
+MERGED from [androidx.fragment:fragment-ktx:1.7.1] /Users/onwords/.gradle/caches/transforms-3/d5b368cd258dd8ba176a829d956ef7ee/transformed/jetified-fragment-ktx-1.7.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.fragment:fragment:1.7.1] /Users/onwords/.gradle/caches/transforms-3/84aa1eb38baa2d2a033c83919c8dbdf1/transformed/fragment-1.7.1/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.loader:loader:1.1.0] /Users/onwords/.gradle/caches/transforms-3/296dcfcb4f9e827e508c0cd13ec89680/transformed/loader-1.1.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.navigation:navigation-common:2.7.6] /Users/onwords/.gradle/caches/transforms-3/6a8431bff2121a4094d1f4a8d5e5d275/transformed/navigation-common-2.7.6/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-runtime:2.7.6] /Users/onwords/.gradle/caches/transforms-3/02a241975e2003bb5a7a54b2b95ae240/transformed/navigation-runtime-2.7.6/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-common-ktx:2.7.6] /Users/onwords/.gradle/caches/transforms-3/4995ee6256f66a58fd4f25c97484d6e4/transformed/navigation-common-ktx-2.7.6/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.6] /Users/onwords/.gradle/caches/transforms-3/2478c3970f5b461328e498559a83ca4d/transformed/navigation-runtime-ktx-2.7.6/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.navigation:navigation-compose:2.7.6] /Users/onwords/.gradle/caches/transforms-3/e57082cedf5ac18d5a49b5b388d8825e/transformed/jetified-navigation-compose-2.7.6/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.activity:activity:1.8.2] /Users/onwords/.gradle/caches/transforms-3/88124307881e8475864f3ba6e1ae9fe7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.activity:activity-ktx:1.8.2] /Users/onwords/.gradle/caches/transforms-3/d2b052d7838841548074d95f95101eee/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.material3:material3-android:1.2.0] /Users/onwords/.gradle/caches/transforms-3/d53e1f7fecb16a01734742adb93adc7e/transformed/jetified-material3-release/AndroidManifest.xml:17:1-22:12
 MERGED from [io.coil-kt:coil-compose:2.5.0] /Users/onwords/.gradle/caches/transforms-3/c224a8fbeeace76dc82e04dc1b4583fe/transformed/jetified-coil-compose-2.5.0/AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt:coil-compose-base:2.5.0] /Users/onwords/.gradle/caches/transforms-3/315f3fa1c5a38dbeed4b8f15a1ac7c22/transformed/jetified-coil-compose-base-2.5.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /Users/onwords/.gradle/caches/transforms-3/54f2e89d99ca06e5b11ef8ec11fb55b1/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:17:1-23:12
 MERGED from [androidx.compose.material:material-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/f76126866241e8170f9f0ff77cadc057/transformed/jetified-material-release/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.material:material-icons-core-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/f9b0b360fc89f7fb7c37266f1de369d2/transformed/jetified-material-icons-core-release/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33447507d034fb22285582c7ddbc88c0/transformed/jetified-material-icons-extended-release/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.material:material-ripple-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/7a018a4c4d360625b04b2235ab3e768d/transformed/jetified-material-ripple-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.animation:animation-core-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/9a67b774e07077db547d9de5d2799b30/transformed/jetified-animation-core-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.animation:animation-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/216332772c7460ca7653e9b01a391030/transformed/jetified-animation-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/0e28d04898c6e103887cd945b8894fd8/transformed/jetified-foundation-layout-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.foundation:foundation-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ae5a4bff10afa66579a96fa065f536f8/transformed/jetified-foundation-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/bafea9c2af51110585372881ab951e29/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/504a407a7103c625dccbc61d465acee4/transformed/jetified-ui-unit-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/50b5d11470212c3868e64cca71f66e55/transformed/jetified-ui-geometry-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-util-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/4f0d588c13e676fd43b0282727e58d1a/transformed/jetified-ui-util-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-text-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/e147b4d43abd7e62abbec97b4d9a5782/transformed/jetified-ui-text-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/52e90dcd51d363de82ffc9e68d49f322/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/78f48fa6b5cb801af8ead79891f70ab7/transformed/jetified-ui-graphics-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:17:1-28:12
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/AndroidManifest.xml:17:1-28:12
-MERGED from [androidx.activity:activity-compose:1.8.2] /Users/onwords/.gradle/caches/transforms-3/6e89e2b2708d0461b0db6db15e24846a/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:2:1-7:12
-MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /Users/onwords/.gradle/caches/transforms-3/54f2e89d99ca06e5b11ef8ec11fb55b1/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.compose.animation:animation-core-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e4546bbaf7d3dda2fb193e3ba0f6f9e6/transformed/jetified-animation-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/40dddda7521177b3036e9972e7e44ff0/transformed/jetified-animation-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/959387d362928acaa5853339113ac504/transformed/jetified-foundation-layout-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e48e1e09513334d27c464de9e52422b5/transformed/jetified-foundation-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0ebf943c6f63654a8e1cb6b5a80cb73b/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e1193db6c8f4bc2e460f6682f473c42f/transformed/jetified-ui-unit-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/29b396791413141012fffdbc49794214/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-util-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/7ca90c1aff6dd14ddc70c4b6fef0019f/transformed/jetified-ui-util-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/6ef09a6231f2d3ac43e581060fe9de7d/transformed/jetified-ui-text-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/090e2a2c15115c24b1d77af60fdead3c/transformed/jetified-ui-graphics-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/34776f06d54cf8c43cb8e26a0c1808d3/transformed/jetified-ui-geometry-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/AndroidManifest.xml:17:1-28:12
 MERGED from [io.github.jan-tennert.supabase:realtime-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/cb15a8e2b9eb7344a91faaf24f1b42b3/transformed/jetified-realtime-kt-debug/AndroidManifest.xml:2:1-7:12
 MERGED from [io.github.jan-tennert.supabase:postgrest-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/8718e3a3f81e84e19763f523e7f5f7c1/transformed/jetified-postgrest-kt-debug/AndroidManifest.xml:2:1-7:12
 MERGED from [io.github.jan-tennert.supabase:functions-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/3a94f3703594ab0693f4ebd75a1fda75/transformed/jetified-functions-kt-debug/AndroidManifest.xml:2:1-7:12
@@ -62,30 +60,39 @@ MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.4] /Users/onwo
 MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.4] /Users/onwords/.gradle/caches/transforms-3/c754a5fda96c85a58d1819aea97c7a7c/transformed/jetified-lifecycle-runtime-release/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4] /Users/onwords/.gradle/caches/transforms-3/57be9fb4c56dbd86c669ea12bb1d8fce/transformed/jetified-lifecycle-viewmodel-ktx-2.8.4/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.4] /Users/onwords/.gradle/caches/transforms-3/a7d8c7a98b64f027406978f67e99f6ff/transformed/jetified-lifecycle-viewmodel-savedstate-2.8.4/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.4] /Users/onwords/.gradle/caches/transforms-3/ef0227e217103be7ce549584e0b48ff6/transformed/jetified-lifecycle-livedata-core-ktx-2.8.4/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.4] /Users/onwords/.gradle/caches/transforms-3/ddc1fa8894db0e06aac5a81cab7b32eb/transformed/lifecycle-livedata-core-2.8.4/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:17:1-35:12
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.4] /Users/onwords/.gradle/caches/transforms-3/b03613d2b093abb205b505b9cbb2c29c/transformed/jetified-lifecycle-viewmodel-compose-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/4e6790f6576d0c6e23418c60f330b559/transformed/jetified-ui-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/ed5b4ef75d787a8300f455556f27cf6c/transformed/jetified-ui-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.activity:activity-compose:1.8.2] /Users/onwords/.gradle/caches/transforms-3/6e89e2b2708d0461b0db6db15e24846a/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-ktx:1.8.2] /Users/onwords/.gradle/caches/transforms-3/d2b052d7838841548074d95f95101eee/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.8.2] /Users/onwords/.gradle/caches/transforms-3/88124307881e8475864f3ba6e1ae9fe7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.browser:browser:1.8.0] /Users/onwords/.gradle/caches/transforms-3/03d9b8726907368cf975e34986728830/transformed/browser-1.8.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/onwords/.gradle/caches/transforms-3/308460feba311cd7bcbeaa165288eb05/transformed/viewpager-1.0.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.autofill:autofill:1.0.0] /Users/onwords/.gradle/caches/transforms-3/f122d795e7281fc5d3611ef31adf1fe1/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /Users/onwords/.gradle/caches/transforms-3/604145ee66233f5c04d5d17d9c9b866d/transformed/jetified-appcompat-resources-1.6.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.customview:customview:1.0.0] /Users/onwords/.gradle/caches/transforms-3/224049608c800b2bac519a86f326ef57/transformed/customview-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/onwords/.gradle/caches/transforms-3/f122d795e7281fc5d3611ef31adf1fe1/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/onwords/.gradle/caches/transforms-3/308460feba311cd7bcbeaa165288eb05/transformed/viewpager-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/onwords/.gradle/caches/transforms-3/44a0f1cbd6784bcc1b4d27e312806009/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/onwords/.gradle/caches/transforms-3/97dfd07fd177df9225b057266ccff5a4/transformed/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.customview:customview:1.0.0] /Users/onwords/.gradle/caches/transforms-3/224049608c800b2bac519a86f326ef57/transformed/customview-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/ca3e7561b7215da18c9fb1851493cdba/transformed/core-1.12.0/AndroidManifest.xml:17:1-30:12
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/onwords/.gradle/caches/transforms-3/555b39a5881c3d272fea16a7383a1346/transformed/jetified-customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
 MERGED from [androidx.core:core-ktx:1.12.0] /Users/onwords/.gradle/caches/transforms-3/d2bf7960538b48577acb43620fede6b5/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.github.kittinunf.fuel:fuel-android:2.3.1] /Users/onwords/.gradle/caches/transforms-3/b9d7c860dbe9e0c32778fb113a7769ed/transformed/jetified-fuel-android-2.3.1/AndroidManifest.xml:2:1-10:12
+MERGED from [com.google.android.filament:filament-utils-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/e0c8a546f28a34769dfea0e3a4e6f513/transformed/jetified-filament-utils-android-1.52.0/AndroidManifest.xml:17:1-22:12
 MERGED from [com.soywiz.korlibs.krypto:krypto-android:4.0.10] /Users/onwords/.gradle/caches/transforms-3/ef20084c514394d3e02725596df9df7e/transformed/jetified-krypto-debug/AndroidManifest.xml:2:1-9:12
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/75de5e5edc17c20082d986e988d79051/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ac27ee7383f984e8905ffd8dee38ad49/transformed/jetified-runtime-release/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.annotation:annotation-experimental:1.4.0] /Users/onwords/.gradle/caches/transforms-3/7149b74205d5b639f9a38d5c2d1fec79/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/3c584334981b6f0ec505690c1cdb4be1/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/95df541f0b00c8c61e02f8f511c00fa5/transformed/jetified-runtime-release/AndroidManifest.xml:2:1-7:12
 MERGED from [com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/03ffeba7b0db4e34856c3c03ffacf65c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:17:1-35:12
 MERGED from [com.russhwolf:multiplatform-settings-coroutines-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/bbc406092f7620769651c45beaba3c01/transformed/jetified-multiplatform-settings-coroutines-debug/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/onwords/.gradle/caches/transforms-3/cafd6f3ac1cf39a1e9a1b95fbb7d037b/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
 MERGED from [co.touchlab:kermit-android-debug:2.0.4] /Users/onwords/.gradle/caches/transforms-3/c66c66a25366ffadfbd51794c4dc1e27/transformed/jetified-kermit-debug/AndroidManifest.xml:2:1-7:12
 MERGED from [com.russhwolf:multiplatform-settings-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/a0c3b68c6c350971a1990e388e101929/transformed/jetified-multiplatform-settings-debug/AndroidManifest.xml:2:1-7:12
 MERGED from [co.touchlab:kermit-core-android-debug:2.0.4] /Users/onwords/.gradle/caches/transforms-3/6c125b59752cc2cef0e3dde14505a691/transformed/jetified-kermit-core-debug/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.filament:gltfio-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/2a5a47509e56feb2aa12979db3efc5e3/transformed/jetified-gltfio-android-1.52.0/AndroidManifest.xml:17:1-22:12
+MERGED from [com.google.android.filament:filament-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/290525e53f6c5745bb793ec1f4c19a50/transformed/jetified-filament-android-1.52.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/onwords/.gradle/caches/transforms-3/b9a763dfa6f2931294a657db246505b6/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/ed262b393a63a38e7c4846b56d6e94ea/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:17:1-55:12
 MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/onwords/.gradle/caches/transforms-3/9f0c38904724e91ad85f44c00fb2af53/transformed/jetified-startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
@@ -102,6 +109,8 @@ MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/onwords/.gradle/cache
 		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:2:11-69
 uses-permission#android.permission.INTERNET
 ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:4:5-67
+MERGED from [io.github.sceneview:sceneview:2.2.1] /Users/onwords/.gradle/caches/transforms-3/16d0d1da910e2d51ce94c62bae71450c/transformed/jetified-sceneview-2.2.1/AndroidManifest.xml:8:5-67
+MERGED from [io.github.sceneview:sceneview:2.2.1] /Users/onwords/.gradle/caches/transforms-3/16d0d1da910e2d51ce94c62bae71450c/transformed/jetified-sceneview-2.2.1/AndroidManifest.xml:8:5-67
 	android:name
 		ADDED from /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/AndroidManifest.xml:4:22-64
 uses-permission#android.permission.ACCESS_NETWORK_STATE
@@ -127,10 +136,8 @@ MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/onwords/.
 MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/onwords/.gradle/caches/transforms-3/550e13f8f33a2a3d095708d4d24382dc/transformed/jetified-play-services-tasks-18.1.0/AndroidManifest.xml:5:5-20
 MERGED from [com.google.android.gms:play-services-basement:18.3.0] /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/AndroidManifest.xml:20:5-24:19
 MERGED from [com.google.android.gms:play-services-basement:18.3.0] /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/AndroidManifest.xml:20:5-24:19
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:22:5-26:19
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:22:5-26:19
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/AndroidManifest.xml:22:5-26:19
 MERGED from [io.github.jan-tennert.supabase:storage-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/19a927a879784d9d93d4726737b29c2c/transformed/jetified-storage-kt-debug/AndroidManifest.xml:8:5-18:19
 MERGED from [io.github.jan-tennert.supabase:storage-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/19a927a879784d9d93d4726737b29c2c/transformed/jetified-storage-kt-debug/AndroidManifest.xml:8:5-18:19
 MERGED from [io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/e21478e859b68fcb4af3bbcb53e386cd/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:8:5-18:19
@@ -139,6 +146,8 @@ MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/onwords/.gradle/caches/transfo
 MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/onwords/.gradle/caches/transforms-3/f7e41f53d2730dd50e1556331e456734/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/ca3e7561b7215da18c9fb1851493cdba/transformed/core-1.12.0/AndroidManifest.xml:28:5-89
 MERGED from [androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/ca3e7561b7215da18c9fb1851493cdba/transformed/core-1.12.0/AndroidManifest.xml:28:5-89
 MERGED from [com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/03ffeba7b0db4e34856c3c03ffacf65c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:23:5-33:19
@@ -225,8 +234,12 @@ MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/onwords/.
 MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/onwords/.gradle/caches/transforms-3/550e13f8f33a2a3d095708d4d24382dc/transformed/jetified-play-services-tasks-18.1.0/AndroidManifest.xml:4:5-43
 MERGED from [com.google.android.gms:play-services-basement:18.3.0] /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/AndroidManifest.xml:18:5-43
 MERGED from [com.google.android.gms:play-services-basement:18.3.0] /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/AndroidManifest.xml:18:5-43
-MERGED from [androidx.fragment:fragment:1.5.7] /Users/onwords/.gradle/caches/transforms-3/b6d8aa55a7096787d32f4d8685bcf9a7/transformed/fragment-1.5.7/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.fragment:fragment:1.5.7] /Users/onwords/.gradle/caches/transforms-3/b6d8aa55a7096787d32f4d8685bcf9a7/transformed/fragment-1.5.7/AndroidManifest.xml:20:5-22:41
+MERGED from [io.github.sceneview:sceneview:2.2.1] /Users/onwords/.gradle/caches/transforms-3/16d0d1da910e2d51ce94c62bae71450c/transformed/jetified-sceneview-2.2.1/AndroidManifest.xml:5:5-44
+MERGED from [io.github.sceneview:sceneview:2.2.1] /Users/onwords/.gradle/caches/transforms-3/16d0d1da910e2d51ce94c62bae71450c/transformed/jetified-sceneview-2.2.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment-ktx:1.7.1] /Users/onwords/.gradle/caches/transforms-3/d5b368cd258dd8ba176a829d956ef7ee/transformed/jetified-fragment-ktx-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment-ktx:1.7.1] /Users/onwords/.gradle/caches/transforms-3/d5b368cd258dd8ba176a829d956ef7ee/transformed/jetified-fragment-ktx-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment:1.7.1] /Users/onwords/.gradle/caches/transforms-3/84aa1eb38baa2d2a033c83919c8dbdf1/transformed/fragment-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment:1.7.1] /Users/onwords/.gradle/caches/transforms-3/84aa1eb38baa2d2a033c83919c8dbdf1/transformed/fragment-1.7.1/AndroidManifest.xml:5:5-44
 MERGED from [androidx.loader:loader:1.1.0] /Users/onwords/.gradle/caches/transforms-3/296dcfcb4f9e827e508c0cd13ec89680/transformed/loader-1.1.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.loader:loader:1.1.0] /Users/onwords/.gradle/caches/transforms-3/296dcfcb4f9e827e508c0cd13ec89680/transformed/loader-1.1.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.navigation:navigation-common:2.7.6] /Users/onwords/.gradle/caches/transforms-3/6a8431bff2121a4094d1f4a8d5e5d275/transformed/navigation-common-2.7.6/AndroidManifest.xml:20:5-44
@@ -239,16 +252,14 @@ MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.6] /Users/onwords/.g
 MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.6] /Users/onwords/.gradle/caches/transforms-3/2478c3970f5b461328e498559a83ca4d/transformed/navigation-runtime-ktx-2.7.6/AndroidManifest.xml:5:5-44
 MERGED from [androidx.navigation:navigation-compose:2.7.6] /Users/onwords/.gradle/caches/transforms-3/e57082cedf5ac18d5a49b5b388d8825e/transformed/jetified-navigation-compose-2.7.6/AndroidManifest.xml:5:5-44
 MERGED from [androidx.navigation:navigation-compose:2.7.6] /Users/onwords/.gradle/caches/transforms-3/e57082cedf5ac18d5a49b5b388d8825e/transformed/jetified-navigation-compose-2.7.6/AndroidManifest.xml:5:5-44
-MERGED from [androidx.activity:activity:1.8.2] /Users/onwords/.gradle/caches/transforms-3/88124307881e8475864f3ba6e1ae9fe7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:20:5-44
-MERGED from [androidx.activity:activity:1.8.2] /Users/onwords/.gradle/caches/transforms-3/88124307881e8475864f3ba6e1ae9fe7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:20:5-44
-MERGED from [androidx.activity:activity-ktx:1.8.2] /Users/onwords/.gradle/caches/transforms-3/d2b052d7838841548074d95f95101eee/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:5:5-44
-MERGED from [androidx.activity:activity-ktx:1.8.2] /Users/onwords/.gradle/caches/transforms-3/d2b052d7838841548074d95f95101eee/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material3:material3-android:1.2.0] /Users/onwords/.gradle/caches/transforms-3/d53e1f7fecb16a01734742adb93adc7e/transformed/jetified-material3-release/AndroidManifest.xml:20:5-44
 MERGED from [androidx.compose.material3:material3-android:1.2.0] /Users/onwords/.gradle/caches/transforms-3/d53e1f7fecb16a01734742adb93adc7e/transformed/jetified-material3-release/AndroidManifest.xml:20:5-44
 MERGED from [io.coil-kt:coil-compose:2.5.0] /Users/onwords/.gradle/caches/transforms-3/c224a8fbeeace76dc82e04dc1b4583fe/transformed/jetified-coil-compose-2.5.0/AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt:coil-compose:2.5.0] /Users/onwords/.gradle/caches/transforms-3/c224a8fbeeace76dc82e04dc1b4583fe/transformed/jetified-coil-compose-2.5.0/AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt:coil-compose-base:2.5.0] /Users/onwords/.gradle/caches/transforms-3/315f3fa1c5a38dbeed4b8f15a1ac7c22/transformed/jetified-coil-compose-base-2.5.0/AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt:coil-compose-base:2.5.0] /Users/onwords/.gradle/caches/transforms-3/315f3fa1c5a38dbeed4b8f15a1ac7c22/transformed/jetified-coil-compose-base-2.5.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /Users/onwords/.gradle/caches/transforms-3/54f2e89d99ca06e5b11ef8ec11fb55b1/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:21:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /Users/onwords/.gradle/caches/transforms-3/54f2e89d99ca06e5b11ef8ec11fb55b1/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:21:5-44
 MERGED from [androidx.compose.material:material-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/f76126866241e8170f9f0ff77cadc057/transformed/jetified-material-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material:material-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/f76126866241e8170f9f0ff77cadc057/transformed/jetified-material-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material:material-icons-core-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/f9b0b360fc89f7fb7c37266f1de369d2/transformed/jetified-material-icons-core-release/AndroidManifest.xml:5:5-44
@@ -257,36 +268,30 @@ MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] /U
 MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33447507d034fb22285582c7ddbc88c0/transformed/jetified-material-icons-extended-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material:material-ripple-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/7a018a4c4d360625b04b2235ab3e768d/transformed/jetified-material-ripple-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material:material-ripple-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/7a018a4c4d360625b04b2235ab3e768d/transformed/jetified-material-ripple-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-core-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/9a67b774e07077db547d9de5d2799b30/transformed/jetified-animation-core-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-core-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/9a67b774e07077db547d9de5d2799b30/transformed/jetified-animation-core-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/216332772c7460ca7653e9b01a391030/transformed/jetified-animation-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/216332772c7460ca7653e9b01a391030/transformed/jetified-animation-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/0e28d04898c6e103887cd945b8894fd8/transformed/jetified-foundation-layout-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/0e28d04898c6e103887cd945b8894fd8/transformed/jetified-foundation-layout-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ae5a4bff10afa66579a96fa065f536f8/transformed/jetified-foundation-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ae5a4bff10afa66579a96fa065f536f8/transformed/jetified-foundation-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/bafea9c2af51110585372881ab951e29/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/bafea9c2af51110585372881ab951e29/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/504a407a7103c625dccbc61d465acee4/transformed/jetified-ui-unit-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/504a407a7103c625dccbc61d465acee4/transformed/jetified-ui-unit-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/50b5d11470212c3868e64cca71f66e55/transformed/jetified-ui-geometry-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/50b5d11470212c3868e64cca71f66e55/transformed/jetified-ui-geometry-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-util-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/4f0d588c13e676fd43b0282727e58d1a/transformed/jetified-ui-util-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-util-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/4f0d588c13e676fd43b0282727e58d1a/transformed/jetified-ui-util-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-text-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/e147b4d43abd7e62abbec97b4d9a5782/transformed/jetified-ui-text-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-text-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/e147b4d43abd7e62abbec97b4d9a5782/transformed/jetified-ui-text-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/52e90dcd51d363de82ffc9e68d49f322/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/52e90dcd51d363de82ffc9e68d49f322/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/78f48fa6b5cb801af8ead79891f70ab7/transformed/jetified-ui-graphics-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/78f48fa6b5cb801af8ead79891f70ab7/transformed/jetified-ui-graphics-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.activity:activity-compose:1.8.2] /Users/onwords/.gradle/caches/transforms-3/6e89e2b2708d0461b0db6db15e24846a/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:5:5-44
-MERGED from [androidx.activity:activity-compose:1.8.2] /Users/onwords/.gradle/caches/transforms-3/6e89e2b2708d0461b0db6db15e24846a/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:5:5-44
-MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /Users/onwords/.gradle/caches/transforms-3/54f2e89d99ca06e5b11ef8ec11fb55b1/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:21:5-44
-MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /Users/onwords/.gradle/caches/transforms-3/54f2e89d99ca06e5b11ef8ec11fb55b1/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e4546bbaf7d3dda2fb193e3ba0f6f9e6/transformed/jetified-animation-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e4546bbaf7d3dda2fb193e3ba0f6f9e6/transformed/jetified-animation-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/40dddda7521177b3036e9972e7e44ff0/transformed/jetified-animation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/40dddda7521177b3036e9972e7e44ff0/transformed/jetified-animation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/959387d362928acaa5853339113ac504/transformed/jetified-foundation-layout-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/959387d362928acaa5853339113ac504/transformed/jetified-foundation-layout-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e48e1e09513334d27c464de9e52422b5/transformed/jetified-foundation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e48e1e09513334d27c464de9e52422b5/transformed/jetified-foundation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0ebf943c6f63654a8e1cb6b5a80cb73b/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0ebf943c6f63654a8e1cb6b5a80cb73b/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e1193db6c8f4bc2e460f6682f473c42f/transformed/jetified-ui-unit-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/e1193db6c8f4bc2e460f6682f473c42f/transformed/jetified-ui-unit-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/29b396791413141012fffdbc49794214/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/29b396791413141012fffdbc49794214/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/7ca90c1aff6dd14ddc70c4b6fef0019f/transformed/jetified-ui-util-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/7ca90c1aff6dd14ddc70c4b6fef0019f/transformed/jetified-ui-util-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/6ef09a6231f2d3ac43e581060fe9de7d/transformed/jetified-ui-text-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/6ef09a6231f2d3ac43e581060fe9de7d/transformed/jetified-ui-text-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/090e2a2c15115c24b1d77af60fdead3c/transformed/jetified-ui-graphics-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/090e2a2c15115c24b1d77af60fdead3c/transformed/jetified-ui-graphics-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/34776f06d54cf8c43cb8e26a0c1808d3/transformed/jetified-ui-geometry-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/34776f06d54cf8c43cb8e26a0c1808d3/transformed/jetified-ui-geometry-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/AndroidManifest.xml:20:5-44
 MERGED from [io.github.jan-tennert.supabase:realtime-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/cb15a8e2b9eb7344a91faaf24f1b42b3/transformed/jetified-realtime-kt-debug/AndroidManifest.xml:5:5-44
 MERGED from [io.github.jan-tennert.supabase:realtime-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/cb15a8e2b9eb7344a91faaf24f1b42b3/transformed/jetified-realtime-kt-debug/AndroidManifest.xml:5:5-44
 MERGED from [io.github.jan-tennert.supabase:postgrest-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/8718e3a3f81e84e19763f523e7f5f7c1/transformed/jetified-postgrest-kt-debug/AndroidManifest.xml:5:5-44
@@ -321,42 +326,56 @@ MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4] /Users/onwords/.g
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4] /Users/onwords/.gradle/caches/transforms-3/57be9fb4c56dbd86c669ea12bb1d8fce/transformed/jetified-lifecycle-viewmodel-ktx-2.8.4/AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.4] /Users/onwords/.gradle/caches/transforms-3/a7d8c7a98b64f027406978f67e99f6ff/transformed/jetified-lifecycle-viewmodel-savedstate-2.8.4/AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.4] /Users/onwords/.gradle/caches/transforms-3/a7d8c7a98b64f027406978f67e99f6ff/transformed/jetified-lifecycle-viewmodel-savedstate-2.8.4/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.4] /Users/onwords/.gradle/caches/transforms-3/ef0227e217103be7ce549584e0b48ff6/transformed/jetified-lifecycle-livedata-core-ktx-2.8.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.4] /Users/onwords/.gradle/caches/transforms-3/ef0227e217103be7ce549584e0b48ff6/transformed/jetified-lifecycle-livedata-core-ktx-2.8.4/AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.4] /Users/onwords/.gradle/caches/transforms-3/ddc1fa8894db0e06aac5a81cab7b32eb/transformed/lifecycle-livedata-core-2.8.4/AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.4] /Users/onwords/.gradle/caches/transforms-3/ddc1fa8894db0e06aac5a81cab7b32eb/transformed/lifecycle-livedata-core-2.8.4/AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:21:5-44
 MERGED from [androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:21:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.4] /Users/onwords/.gradle/caches/transforms-3/b03613d2b093abb205b505b9cbb2c29c/transformed/jetified-lifecycle-viewmodel-compose-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.4] /Users/onwords/.gradle/caches/transforms-3/b03613d2b093abb205b505b9cbb2c29c/transformed/jetified-lifecycle-viewmodel-compose-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/4e6790f6576d0c6e23418c60f330b559/transformed/jetified-ui-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/4e6790f6576d0c6e23418c60f330b559/transformed/jetified-ui-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/ed5b4ef75d787a8300f455556f27cf6c/transformed/jetified-ui-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/ed5b4ef75d787a8300f455556f27cf6c/transformed/jetified-ui-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-compose:1.8.2] /Users/onwords/.gradle/caches/transforms-3/6e89e2b2708d0461b0db6db15e24846a/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.8.2] /Users/onwords/.gradle/caches/transforms-3/6e89e2b2708d0461b0db6db15e24846a/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.8.2] /Users/onwords/.gradle/caches/transforms-3/d2b052d7838841548074d95f95101eee/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.8.2] /Users/onwords/.gradle/caches/transforms-3/d2b052d7838841548074d95f95101eee/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.8.2] /Users/onwords/.gradle/caches/transforms-3/88124307881e8475864f3ba6e1ae9fe7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.8.2] /Users/onwords/.gradle/caches/transforms-3/88124307881e8475864f3ba6e1ae9fe7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:20:5-44
 MERGED from [androidx.browser:browser:1.8.0] /Users/onwords/.gradle/caches/transforms-3/03d9b8726907368cf975e34986728830/transformed/browser-1.8.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.browser:browser:1.8.0] /Users/onwords/.gradle/caches/transforms-3/03d9b8726907368cf975e34986728830/transformed/browser-1.8.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/onwords/.gradle/caches/transforms-3/308460feba311cd7bcbeaa165288eb05/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/onwords/.gradle/caches/transforms-3/308460feba311cd7bcbeaa165288eb05/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.autofill:autofill:1.0.0] /Users/onwords/.gradle/caches/transforms-3/f122d795e7281fc5d3611ef31adf1fe1/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.autofill:autofill:1.0.0] /Users/onwords/.gradle/caches/transforms-3/f122d795e7281fc5d3611ef31adf1fe1/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /Users/onwords/.gradle/caches/transforms-3/604145ee66233f5c04d5d17d9c9b866d/transformed/jetified-appcompat-resources-1.6.1/AndroidManifest.xml:20:5-44
 MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /Users/onwords/.gradle/caches/transforms-3/604145ee66233f5c04d5d17d9c9b866d/transformed/jetified-appcompat-resources-1.6.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.customview:customview:1.0.0] /Users/onwords/.gradle/caches/transforms-3/224049608c800b2bac519a86f326ef57/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.customview:customview:1.0.0] /Users/onwords/.gradle/caches/transforms-3/224049608c800b2bac519a86f326ef57/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/onwords/.gradle/caches/transforms-3/f122d795e7281fc5d3611ef31adf1fe1/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/onwords/.gradle/caches/transforms-3/f122d795e7281fc5d3611ef31adf1fe1/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/onwords/.gradle/caches/transforms-3/308460feba311cd7bcbeaa165288eb05/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/onwords/.gradle/caches/transforms-3/308460feba311cd7bcbeaa165288eb05/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/onwords/.gradle/caches/transforms-3/44a0f1cbd6784bcc1b4d27e312806009/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/onwords/.gradle/caches/transforms-3/44a0f1cbd6784bcc1b4d27e312806009/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/onwords/.gradle/caches/transforms-3/97dfd07fd177df9225b057266ccff5a4/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/onwords/.gradle/caches/transforms-3/97dfd07fd177df9225b057266ccff5a4/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.0.0] /Users/onwords/.gradle/caches/transforms-3/224049608c800b2bac519a86f326ef57/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] /Users/onwords/.gradle/caches/transforms-3/224049608c800b2bac519a86f326ef57/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/ca3e7561b7215da18c9fb1851493cdba/transformed/core-1.12.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/ca3e7561b7215da18c9fb1851493cdba/transformed/core-1.12.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/onwords/.gradle/caches/transforms-3/555b39a5881c3d272fea16a7383a1346/transformed/jetified-customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/onwords/.gradle/caches/transforms-3/555b39a5881c3d272fea16a7383a1346/transformed/jetified-customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
 MERGED from [androidx.core:core-ktx:1.12.0] /Users/onwords/.gradle/caches/transforms-3/d2bf7960538b48577acb43620fede6b5/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.core:core-ktx:1.12.0] /Users/onwords/.gradle/caches/transforms-3/d2bf7960538b48577acb43620fede6b5/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:5:5-44
+MERGED from [com.github.kittinunf.fuel:fuel-android:2.3.1] /Users/onwords/.gradle/caches/transforms-3/b9d7c860dbe9e0c32778fb113a7769ed/transformed/jetified-fuel-android-2.3.1/AndroidManifest.xml:6:5-8:41
+MERGED from [com.github.kittinunf.fuel:fuel-android:2.3.1] /Users/onwords/.gradle/caches/transforms-3/b9d7c860dbe9e0c32778fb113a7769ed/transformed/jetified-fuel-android-2.3.1/AndroidManifest.xml:6:5-8:41
+MERGED from [com.google.android.filament:filament-utils-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/e0c8a546f28a34769dfea0e3a4e6f513/transformed/jetified-filament-utils-android-1.52.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.filament:filament-utils-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/e0c8a546f28a34769dfea0e3a4e6f513/transformed/jetified-filament-utils-android-1.52.0/AndroidManifest.xml:20:5-44
 MERGED from [com.soywiz.korlibs.krypto:krypto-android:4.0.10] /Users/onwords/.gradle/caches/transforms-3/ef20084c514394d3e02725596df9df7e/transformed/jetified-krypto-debug/AndroidManifest.xml:5:5-7:41
 MERGED from [com.soywiz.korlibs.krypto:krypto-android:4.0.10] /Users/onwords/.gradle/caches/transforms-3/ef20084c514394d3e02725596df9df7e/transformed/jetified-krypto-debug/AndroidManifest.xml:5:5-7:41
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/75de5e5edc17c20082d986e988d79051/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/75de5e5edc17c20082d986e988d79051/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ac27ee7383f984e8905ffd8dee38ad49/transformed/jetified-runtime-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ac27ee7383f984e8905ffd8dee38ad49/transformed/jetified-runtime-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.annotation:annotation-experimental:1.4.0] /Users/onwords/.gradle/caches/transforms-3/7149b74205d5b639f9a38d5c2d1fec79/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.annotation:annotation-experimental:1.4.0] /Users/onwords/.gradle/caches/transforms-3/7149b74205d5b639f9a38d5c2d1fec79/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/3c584334981b6f0ec505690c1cdb4be1/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/3c584334981b6f0ec505690c1cdb4be1/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/95df541f0b00c8c61e02f8f511c00fa5/transformed/jetified-runtime-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/95df541f0b00c8c61e02f8f511c00fa5/transformed/jetified-runtime-release/AndroidManifest.xml:5:5-44
 MERGED from [com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/03ffeba7b0db4e34856c3c03ffacf65c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:21:5-44
 MERGED from [com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/03ffeba7b0db4e34856c3c03ffacf65c/transformed/jetified-multiplatform-settings-no-arg-debug/AndroidManifest.xml:21:5-44
 MERGED from [com.russhwolf:multiplatform-settings-coroutines-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/bbc406092f7620769651c45beaba3c01/transformed/jetified-multiplatform-settings-coroutines-debug/AndroidManifest.xml:5:5-44
@@ -369,6 +388,10 @@ MERGED from [com.russhwolf:multiplatform-settings-android-debug:1.1.1] /Users/on
 MERGED from [com.russhwolf:multiplatform-settings-android-debug:1.1.1] /Users/onwords/.gradle/caches/transforms-3/a0c3b68c6c350971a1990e388e101929/transformed/jetified-multiplatform-settings-debug/AndroidManifest.xml:5:5-44
 MERGED from [co.touchlab:kermit-core-android-debug:2.0.4] /Users/onwords/.gradle/caches/transforms-3/6c125b59752cc2cef0e3dde14505a691/transformed/jetified-kermit-core-debug/AndroidManifest.xml:5:5-44
 MERGED from [co.touchlab:kermit-core-android-debug:2.0.4] /Users/onwords/.gradle/caches/transforms-3/6c125b59752cc2cef0e3dde14505a691/transformed/jetified-kermit-core-debug/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.filament:gltfio-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/2a5a47509e56feb2aa12979db3efc5e3/transformed/jetified-gltfio-android-1.52.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.filament:gltfio-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/2a5a47509e56feb2aa12979db3efc5e3/transformed/jetified-gltfio-android-1.52.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.filament:filament-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/290525e53f6c5745bb793ec1f4c19a50/transformed/jetified-filament-android-1.52.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.filament:filament-android:1.52.0] /Users/onwords/.gradle/caches/transforms-3/290525e53f6c5745bb793ec1f4c19a50/transformed/jetified-filament-android-1.52.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/onwords/.gradle/caches/transforms-3/b9a763dfa6f2931294a657db246505b6/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/onwords/.gradle/caches/transforms-3/b9a763dfa6f2931294a657db246505b6/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/onwords/.gradle/caches/transforms-3/ed262b393a63a38e7c4846b56d6e94ea/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:21:5-44
@@ -449,18 +472,18 @@ ADDED from [com.google.android.gms:play-services-basement:18.3.0] /Users/onwords
 		ADDED from [com.google.android.gms:play-services-basement:18.3.0] /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/AndroidManifest.xml:23:13-66
 	android:name
 		ADDED from [com.google.android.gms:play-services-basement:18.3.0] /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/AndroidManifest.xml:22:13-58
+uses-feature#0x00030000
+ADDED from [io.github.sceneview:sceneview:2.2.1] /Users/onwords/.gradle/caches/transforms-3/16d0d1da910e2d51ce94c62bae71450c/transformed/jetified-sceneview-2.2.1/AndroidManifest.xml:11:5-13:35
+	android:glEsVersion
+		ADDED from [io.github.sceneview:sceneview:2.2.1] /Users/onwords/.gradle/caches/transforms-3/16d0d1da910e2d51ce94c62bae71450c/transformed/jetified-sceneview-2.2.1/AndroidManifest.xml:12:9-41
+	android:required
+		ADDED from [io.github.sceneview:sceneview:2.2.1] /Users/onwords/.gradle/caches/transforms-3/16d0d1da910e2d51ce94c62bae71450c/transformed/jetified-sceneview-2.2.1/AndroidManifest.xml:13:9-32
 activity#androidx.activity.ComponentActivity
-ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:23:9-25:39
+ADDED from [androidx.compose.ui:ui-test-manifest:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/AndroidManifest.xml:23:9-25:39
 	android:exported
-		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:25:13-36
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/AndroidManifest.xml:25:13-36
 	android:name
-		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:24:13-63
-activity#androidx.compose.ui.tooling.PreviewActivity
-ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/AndroidManifest.xml:23:9-25:39
-	android:exported
-		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/AndroidManifest.xml:25:13-36
-	android:name
-		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/AndroidManifest.xml:24:13-71
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.7] /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/AndroidManifest.xml:24:13-63
 provider#androidx.startup.InitializationProvider
 ADDED from [io.github.jan-tennert.supabase:storage-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/19a927a879784d9d93d4726737b29c2c/transformed/jetified-storage-kt-debug/AndroidManifest.xml:9:9-17:20
 MERGED from [io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.6.0] /Users/onwords/.gradle/caches/transforms-3/e21478e859b68fcb4af3bbcb53e386cd/transformed/jetified-gotrue-kt-debug/AndroidManifest.xml:9:9-17:20
@@ -507,6 +530,12 @@ ADDED from [androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/c
 		ADDED from [androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:31:17-49
 	android:name
 		ADDED from [androidx.lifecycle:lifecycle-process:2.8.4] /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/AndroidManifest.xml:30:17-78
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.7] /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/AndroidManifest.xml:24:13-71
 permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
 ADDED from [androidx.core:core:1.12.0] /Users/onwords/.gradle/caches/transforms-3/ca3e7561b7215da18c9fb1851493cdba/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
 	android:protectionLevel

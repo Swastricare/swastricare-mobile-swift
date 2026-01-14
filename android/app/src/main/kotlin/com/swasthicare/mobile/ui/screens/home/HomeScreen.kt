@@ -18,11 +18,16 @@ import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -33,6 +38,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.swasthicare.mobile.ui.components.ModelViewer
+import com.swasthicare.mobile.ui.components.WeekDateSelector
+import com.swasthicare.mobile.ui.components.WeeklyStepsChart
+import com.swasthicare.mobile.ui.components.DetailedMetricsSection
 import com.swasthicare.mobile.ui.theme.*
 
 @Composable
@@ -85,45 +94,60 @@ fun HomeScreen(
                         .padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Activity Stats Column
+                    // Activity Stats Column (matching iOS: Calories, Steps, Exercise, Stand Hours)
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.weight(0.45f)
                     ) {
                         ActivityStatRow(
+                            icon = Icons.Default.LocalFireDepartment,
+                            value = "${uiState.calories}",
+                            label = "Active Calories",
+                            color = ActivityColor,
+                            animationDelay = 300
+                        )
+                        ActivityStatRow(
                             icon = Icons.Default.DirectionsWalk,
                             value = "${uiState.stepCount}",
-                            label = "Steps",
-                            color = SecondaryColor
+                            label = "Step Count",
+                            color = SecondaryColor,
+                            animationDelay = 400
                         )
-                         ActivityStatRow(
+                        ActivityStatRow(
                             icon = Icons.Default.Favorite,
-                            value = "${uiState.calories}",
-                            label = "Kcal",
-                            color = ActivityColor
-                        )
-                         ActivityStatRow(
-                            icon = Icons.Default.LocalDrink,
                             value = "${uiState.activeMinutes}",
-                            label = "Active Min",
-                            color = HydrationColor
+                            label = "Exercise Min",
+                            color = HydrationColor,
+                            animationDelay = 500
+                        )
+                        ActivityStatRow(
+                            icon = Icons.Default.Accessibility,
+                            value = "${uiState.standHours}",
+                            label = "Stand Hours",
+                            color = SleepColor,
+                            animationDelay = 600
                         )
                     }
                     
                     Spacer(modifier = Modifier.width(16.dp))
                     
-                    // Body Silhouette
-                     Box(
+                    // 3D Anatomy Model (replacing 2D silhouette)
+                    Box(
                         modifier = Modifier
                             .weight(0.55f)
-                            .height(320.dp)
-                            .glass(cornerRadius = 20.dp),
+                            .height(380.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        BodySilhouette(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-                        
-                        // Overlay some "scanning" effect or status dots
-                        ScanningEffect()
+                        ModelViewer(
+                            modelName = "anatomy",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .scale(1.4f)
+                                .alpha(0.8f),
+                            autoRotate = true,
+                            allowInteraction = false,
+                            rotationDurationMs = 8000
+                        )
                     }
                 }
                 
@@ -312,6 +336,38 @@ fun HomeScreen(
                     }
                 }
                 
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                // 6. Tracker Section
+                // Date Selector
+                WeekDateSelector(
+                    weekDates = uiState.weekDates,
+                    selectedDate = uiState.selectedDate,
+                    onDateSelected = { viewModel.selectDate(it) }
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Weekly Steps Chart
+                WeeklyStepsChart(
+                    weeklySteps = uiState.weeklySteps,
+                    selectedDate = uiState.selectedDate
+                )
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                // Detailed Metrics
+                DetailedMetricsSection(
+                    stepCount = uiState.stepCount,
+                    heartRate = uiState.heartRate,
+                    activeCalories = uiState.calories,
+                    exerciseMinutes = uiState.activeMinutes,
+                    standHours = uiState.standHours,
+                    sleepHours = uiState.sleepHours,
+                    distance = uiState.distance,
+                    onMeasureHeartRate = { /* TODO: Implement heart rate measurement */ }
+                )
+                
                 Spacer(modifier = Modifier.height(120.dp)) // Extra space for bottom bar
             }
         }
@@ -319,117 +375,64 @@ fun HomeScreen(
 }
 
 @Composable
-fun ActivityStatRow(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String, color: Color) {
+fun ActivityStatRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    label: String,
+    color: Color,
+    animationDelay: Int = 0
+) {
+    var isVisible by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(animationDelay.toLong())
+        isVisible = true
+    }
+    
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "statAlpha"
+    )
+    
+    val animatedOffset by animateFloatAsState(
+        targetValue = if (isVisible) 0f else -20f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        label = "statOffset"
+    )
+    
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(animatedAlpha)
+            .offset(x = animatedOffset.dp)
             .glass(cornerRadius = 16.dp)
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
+        // Icon with background circle
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(40.dp)
                 .background(color.copy(alpha = 0.2f), androidx.compose.foundation.shape.CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
         }
+        
+        // Value and label
         Column {
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-    }
-}
-
-@Composable
-fun BodySilhouette(color: Color) {
-    Canvas(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        val width = size.width
-        val height = size.height
-        val cx = width / 2
-        val headRadius = width * 0.15f // Moved up
-        
-        val path = Path().apply {
-            // Head
-            addOval(androidx.compose.ui.geometry.Rect(cx - headRadius, 0f, cx + headRadius, headRadius * 2))
-            
-            // Neck
-            moveTo(cx - headRadius * 0.6f, headRadius * 1.8f)
-            quadraticBezierTo(cx, headRadius * 2.2f, cx + headRadius * 0.6f, headRadius * 1.8f)
-            
-            // Shoulders
-            moveTo(cx - headRadius * 0.6f, headRadius * 1.9f)
-            quadraticBezierTo(cx - width * 0.35f, headRadius * 2.2f, cx - width * 0.35f, headRadius * 3.5f) // Left shoulder
-            
-            moveTo(cx + headRadius * 0.6f, headRadius * 1.9f)
-            quadraticBezierTo(cx + width * 0.35f, headRadius * 2.2f, cx + width * 0.35f, headRadius * 3.5f) // Right shoulder
-
-            // Torso
-            moveTo(cx - width * 0.35f, headRadius * 3.5f)
-            lineTo(cx - width * 0.25f, height * 0.45f) // Waist Left
-            quadraticBezierTo(cx - width * 0.28f, height * 0.55f, cx - width * 0.15f, height * 0.8f) // Left Leg Start
-            
-            moveTo(cx + width * 0.35f, headRadius * 3.5f)
-            lineTo(cx + width * 0.25f, height * 0.45f) // Waist Right
-            quadraticBezierTo(cx + width * 0.28f, height * 0.55f, cx + width * 0.15f, height * 0.8f) // Right Leg Start
-            
-            // Legs (Abstracted)
-            moveTo(cx - width * 0.15f, height * 0.8f)
-            lineTo(cx - width * 0.1f, height * 0.95f)
-            
-            moveTo(cx + width * 0.15f, height * 0.8f)
-            lineTo(cx + width * 0.1f, height * 0.95f)
-        }
-        
-        // Draw Fill
-        drawPath(path, color = color.copy(alpha = 0.1f), style = Fill)
-        
-        // Draw Stroke
-        drawPath(path, color = color, style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
-        
-        // Draw Joints/Points
-        val jointColor = SecondaryColor
-        drawCircle(jointColor, radius = 4.dp.toPx(), center = Offset(cx, headRadius)) // Head center
-        drawCircle(jointColor, radius = 4.dp.toPx(), center = Offset(cx - width * 0.35f, headRadius * 3.5f)) // L Shoulder
-        drawCircle(jointColor, radius = 4.dp.toPx(), center = Offset(cx + width * 0.35f, headRadius * 3.5f)) // R Shoulder
-        drawCircle(jointColor, radius = 4.dp.toPx(), center = Offset(cx, height * 0.45f)) // Core
-    }
-}
-
-@Composable
-fun ScanningEffect() {
-    val infiniteTransition = rememberInfiniteTransition(label = "scan")
-    val offsetY by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "scanLine"
-    )
-    
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val lineY = size.height * offsetY
-        
-        drawLine(
-            color = SecondaryColor.copy(alpha = 0.8f),
-            start = Offset(0f, lineY),
-            end = Offset(size.width, lineY),
-            strokeWidth = 2.dp.toPx()
-        )
-        
-        // Glow effect
-        drawRect(
-            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                colors = listOf(SecondaryColor.copy(alpha = 0f), SecondaryColor.copy(alpha = 0.3f)),
-                startY = lineY - 50.dp.toPx(),
-                endY = lineY
-            ),
-            topLeft = Offset(0f, lineY - 50.dp.toPx()),
-            size = Size(size.width, 50.dp.toPx())
-        )
     }
 }

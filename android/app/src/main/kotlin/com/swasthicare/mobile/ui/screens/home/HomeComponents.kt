@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -185,14 +186,26 @@ fun LivingStatusHeader(
     statusColor: Color
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "heartbeat")
-    val scale by infiniteTransition.animateFloat(
+    
+    // Pulsing heart animation (matching iOS)
+    val heartScale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.2f,
         animationSpec = infiniteRepeatable(
             animation = tween(800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "scale"
+        label = "heartScale"
+    )
+    
+    val heartAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "heartAlpha"
     )
 
     Row(
@@ -218,15 +231,15 @@ fun LivingStatusHeader(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 
-                // Pulsing Heart
+                // Pulsing Heart with scale animation
                 Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Favorite, // Requires implementation dependency
+                    imageVector = androidx.compose.material.icons.Icons.Default.Favorite,
                     contentDescription = "Heart Rate",
-                    tint = Color.Red,
-                    modifier = Modifier.size(24.dp)
-                        // Note: scale modifier in compose is simple
+                    tint = Color.Red.copy(alpha = heartAlpha),
+                    modifier = Modifier
+                        .size(24.dp)
+                        .scale(heartScale)
                 )
-                // Using Canvas for precise scaling or just modifier
             }
         }
         
@@ -369,7 +382,7 @@ fun Bubble(state: RandomBubbleState, containerHeight: Dp, color: Color) {
     }
 }
 
-// MARK: - Vital Card
+// MARK: - Vital Card with Staggered Animation
 @Composable
 fun VitalCard(
     icon: ImageVector,
@@ -378,7 +391,8 @@ fun VitalCard(
     unit: String,
     color: Color,
     modifier: Modifier = Modifier,
-    delay: Int = 0
+    delay: Int = 0,
+    showCameraBadge: Boolean = false
 ) {
     var isVisible by remember { mutableStateOf(false) }
     
@@ -387,39 +401,112 @@ fun VitalCard(
         isVisible = true
     }
     
+    // Staggered entry animations
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "cardAlpha"
+    )
+    
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0.9f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        label = "cardScale"
+    )
+    
+    val animatedOffset by animateFloatAsState(
+        targetValue = if (isVisible) 0f else 20f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        label = "cardOffset"
+    )
+    
+    // Icon rotation animation
+    var iconAppeared by remember { mutableStateOf(false) }
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            delay(100)
+            iconAppeared = true
+        }
+    }
+    
+    val iconScale by animateFloatAsState(
+        targetValue = if (iconAppeared) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 400f),
+        label = "iconScale"
+    )
+    
+    val iconRotation by animateFloatAsState(
+        targetValue = if (iconAppeared) 0f else -180f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f),
+        label = "iconRotation"
+    )
+    
     Column(
         modifier = modifier
+            .graphicsLayer {
+                alpha = animatedAlpha
+                scaleX = animatedScale
+                scaleY = animatedScale
+                translationY = animatedOffset
+            }
             .glass(cornerRadius = 20.dp)
             .padding(14.dp)
             .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Icon
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(color.copy(alpha = 0.15f), CircleShape),
-            contentAlignment = Alignment.Center
+        // Header with Icon and optional camera badge
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(16.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                        rotationZ = iconRotation
+                    }
+                    .background(color.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            
+            if (showCameraBadge) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(Color.White.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.Favorite,
+                        contentDescription = "Measure",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
+            }
         }
         
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -432,6 +519,135 @@ fun VitalCard(
                     )
                 }
             }
+        }
+    }
+}
+
+// MARK: - Animated Section Wrapper for Scroll-Triggered Animations
+@Composable
+fun AnimatedSection(
+    modifier: Modifier = Modifier,
+    delay: Int = 0,
+    content: @Composable () -> Unit
+) {
+    var isVisible by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        delay(delay.toLong())
+        isVisible = true
+    }
+    
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "sectionAlpha"
+    )
+    
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0.8f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        label = "sectionScale"
+    )
+    
+    Box(
+        modifier = modifier.graphicsLayer {
+            alpha = animatedAlpha
+            scaleX = animatedScale
+            scaleY = animatedScale
+        }
+    ) {
+        content()
+    }
+}
+
+// MARK: - Demo Mode Banner
+@Composable
+fun DemoModeBanner(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .background(
+                color = Color(0xFFFFA500).copy(alpha = 0.1f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = Color(0xFFFFA500).copy(alpha = 0.3f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = androidx.compose.material.icons.Icons.Default.Favorite,
+            contentDescription = null,
+            tint = Color(0xFFFFA500),
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Column {
+            Text(
+                text = "Demo Mode Active",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Showing sample health data. Enable health access for real data.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// MARK: - Health Authorization Banner
+@Composable
+fun HealthAuthBanner(
+    onRequestAccess: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .glass(cornerRadius = 16.dp)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = androidx.compose.material.icons.Icons.Default.Favorite,
+            contentDescription = null,
+            tint = Color.Red,
+            modifier = Modifier.size(40.dp)
+        )
+        
+        Text(
+            text = "Enable Health Access",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        
+        Text(
+            text = "Allow SwasthiCare to read your health data for personalized insights",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        
+        androidx.compose.material3.Button(
+            onClick = onRequestAccess,
+            modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = PremiumColor.RoyalBlueStart
+            )
+        ) {
+            Text("Allow Access")
         }
     }
 }

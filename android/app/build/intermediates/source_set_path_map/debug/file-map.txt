@@ -1,63 +1,66 @@
 com.swasthicare.mobile.app-jetified-savedstate-ktx-1.2.1-0 /Users/onwords/.gradle/caches/transforms-3/0005f6e9d8f206cfa6b72cd78e23b1c4/transformed/jetified-savedstate-ktx-1.2.1/res
 com.swasthicare.mobile.app-navigation-runtime-2.7.6-1 /Users/onwords/.gradle/caches/transforms-3/02a241975e2003bb5a7a54b2b95ae240/transformed/navigation-runtime-2.7.6/res
 com.swasthicare.mobile.app-browser-1.8.0-2 /Users/onwords/.gradle/caches/transforms-3/03d9b8726907368cf975e34986728830/transformed/browser-1.8.0/res
-com.swasthicare.mobile.app-jetified-play-services-base-18.3.0-3 /Users/onwords/.gradle/caches/transforms-3/0cf1647d741aa8c8a7ea86d93ddfd4c2/transformed/jetified-play-services-base-18.3.0/res
-com.swasthicare.mobile.app-jetified-foundation-layout-release-4 /Users/onwords/.gradle/caches/transforms-3/0e28d04898c6e103887cd945b8894fd8/transformed/jetified-foundation-layout-release/res
-com.swasthicare.mobile.app-jetified-lifecycle-viewmodel-release-5 /Users/onwords/.gradle/caches/transforms-3/123f3d34c3f390cd69e21d982388876f/transformed/jetified-lifecycle-viewmodel-release/res
-com.swasthicare.mobile.app-jetified-lifecycle-process-2.8.4-6 /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/res
-com.swasthicare.mobile.app-jetified-animation-release-7 /Users/onwords/.gradle/caches/transforms-3/216332772c7460ca7653e9b01a391030/transformed/jetified-animation-release/res
-com.swasthicare.mobile.app-navigation-runtime-ktx-2.7.6-8 /Users/onwords/.gradle/caches/transforms-3/2478c3970f5b461328e498559a83ca4d/transformed/navigation-runtime-ktx-2.7.6/res
-com.swasthicare.mobile.app-jetified-material-icons-extended-release-9 /Users/onwords/.gradle/caches/transforms-3/33447507d034fb22285582c7ddbc88c0/transformed/jetified-material-icons-extended-release/res
-com.swasthicare.mobile.app-jetified-ui-test-manifest-1.6.1-10 /Users/onwords/.gradle/caches/transforms-3/33beb6c9a03b4d483d57d970947a20e0/transformed/jetified-ui-test-manifest-1.6.1/res
-com.swasthicare.mobile.app-navigation-common-ktx-2.7.6-11 /Users/onwords/.gradle/caches/transforms-3/4995ee6256f66a58fd4f25c97484d6e4/transformed/navigation-common-ktx-2.7.6/res
-com.swasthicare.mobile.app-jetified-ui-release-12 /Users/onwords/.gradle/caches/transforms-3/4e6790f6576d0c6e23418c60f330b559/transformed/jetified-ui-release/res
-com.swasthicare.mobile.app-jetified-ui-util-release-13 /Users/onwords/.gradle/caches/transforms-3/4f0d588c13e676fd43b0282727e58d1a/transformed/jetified-ui-util-release/res
-com.swasthicare.mobile.app-jetified-ui-unit-release-14 /Users/onwords/.gradle/caches/transforms-3/504a407a7103c625dccbc61d465acee4/transformed/jetified-ui-unit-release/res
-com.swasthicare.mobile.app-jetified-ui-geometry-release-15 /Users/onwords/.gradle/caches/transforms-3/50b5d11470212c3868e64cca71f66e55/transformed/jetified-ui-geometry-release/res
-com.swasthicare.mobile.app-jetified-ui-tooling-preview-release-16 /Users/onwords/.gradle/caches/transforms-3/52e90dcd51d363de82ffc9e68d49f322/transformed/jetified-ui-tooling-preview-release/res
+com.swasthicare.mobile.app-jetified-ui-graphics-release-3 /Users/onwords/.gradle/caches/transforms-3/090e2a2c15115c24b1d77af60fdead3c/transformed/jetified-ui-graphics-release/res
+com.swasthicare.mobile.app-jetified-ui-test-manifest-1.6.7-4 /Users/onwords/.gradle/caches/transforms-3/0a6e6b0f332b70255a4e08d74d8f62e2/transformed/jetified-ui-test-manifest-1.6.7/res
+com.swasthicare.mobile.app-jetified-play-services-base-18.3.0-5 /Users/onwords/.gradle/caches/transforms-3/0cf1647d741aa8c8a7ea86d93ddfd4c2/transformed/jetified-play-services-base-18.3.0/res
+com.swasthicare.mobile.app-jetified-ui-tooling-data-release-6 /Users/onwords/.gradle/caches/transforms-3/0ebf943c6f63654a8e1cb6b5a80cb73b/transformed/jetified-ui-tooling-data-release/res
+com.swasthicare.mobile.app-jetified-lifecycle-viewmodel-release-7 /Users/onwords/.gradle/caches/transforms-3/123f3d34c3f390cd69e21d982388876f/transformed/jetified-lifecycle-viewmodel-release/res
+com.swasthicare.mobile.app-jetified-lifecycle-process-2.8.4-8 /Users/onwords/.gradle/caches/transforms-3/1bbbc5dbe07a15ac8f37d67792c0218a/transformed/jetified-lifecycle-process-2.8.4/res
+com.swasthicare.mobile.app-navigation-runtime-ktx-2.7.6-9 /Users/onwords/.gradle/caches/transforms-3/2478c3970f5b461328e498559a83ca4d/transformed/navigation-runtime-ktx-2.7.6/res
+com.swasthicare.mobile.app-jetified-filament-android-1.52.0-10 /Users/onwords/.gradle/caches/transforms-3/290525e53f6c5745bb793ec1f4c19a50/transformed/jetified-filament-android-1.52.0/res
+com.swasthicare.mobile.app-jetified-ui-tooling-preview-release-11 /Users/onwords/.gradle/caches/transforms-3/29b396791413141012fffdbc49794214/transformed/jetified-ui-tooling-preview-release/res
+com.swasthicare.mobile.app-jetified-material-icons-extended-release-12 /Users/onwords/.gradle/caches/transforms-3/33447507d034fb22285582c7ddbc88c0/transformed/jetified-material-icons-extended-release/res
+com.swasthicare.mobile.app-jetified-ui-geometry-release-13 /Users/onwords/.gradle/caches/transforms-3/34776f06d54cf8c43cb8e26a0c1808d3/transformed/jetified-ui-geometry-release/res
+com.swasthicare.mobile.app-jetified-runtime-saveable-release-14 /Users/onwords/.gradle/caches/transforms-3/3c584334981b6f0ec505690c1cdb4be1/transformed/jetified-runtime-saveable-release/res
+com.swasthicare.mobile.app-jetified-animation-release-15 /Users/onwords/.gradle/caches/transforms-3/40dddda7521177b3036e9972e7e44ff0/transformed/jetified-animation-release/res
+com.swasthicare.mobile.app-navigation-common-ktx-2.7.6-16 /Users/onwords/.gradle/caches/transforms-3/4995ee6256f66a58fd4f25c97484d6e4/transformed/navigation-common-ktx-2.7.6/res
 com.swasthicare.mobile.app-jetified-customview-poolingcontainer-1.0.0-17 /Users/onwords/.gradle/caches/transforms-3/555b39a5881c3d272fea16a7383a1346/transformed/jetified-customview-poolingcontainer-1.0.0/res
 com.swasthicare.mobile.app-jetified-lifecycle-viewmodel-ktx-2.8.4-18 /Users/onwords/.gradle/caches/transforms-3/57be9fb4c56dbd86c669ea12bb1d8fce/transformed/jetified-lifecycle-viewmodel-ktx-2.8.4/res
 com.swasthicare.mobile.app-jetified-appcompat-resources-1.6.1-19 /Users/onwords/.gradle/caches/transforms-3/604145ee66233f5c04d5d17d9c9b866d/transformed/jetified-appcompat-resources-1.6.1/res
 com.swasthicare.mobile.app-navigation-common-2.7.6-20 /Users/onwords/.gradle/caches/transforms-3/6a8431bff2121a4094d1f4a8d5e5d275/transformed/navigation-common-2.7.6/res
 com.swasthicare.mobile.app-jetified-coil-base-2.5.0-21 /Users/onwords/.gradle/caches/transforms-3/6ce7dc73f01db94ce3be4be6d4a613fa/transformed/jetified-coil-base-2.5.0/res
 com.swasthicare.mobile.app-jetified-activity-compose-1.8.2-22 /Users/onwords/.gradle/caches/transforms-3/6e89e2b2708d0461b0db6db15e24846a/transformed/jetified-activity-compose-1.8.2/res
-com.swasthicare.mobile.app-jetified-annotation-experimental-1.4.0-23 /Users/onwords/.gradle/caches/transforms-3/7149b74205d5b639f9a38d5c2d1fec79/transformed/jetified-annotation-experimental-1.4.0/res
-com.swasthicare.mobile.app-jetified-runtime-saveable-release-24 /Users/onwords/.gradle/caches/transforms-3/75de5e5edc17c20082d986e988d79051/transformed/jetified-runtime-saveable-release/res
-com.swasthicare.mobile.app-jetified-ui-graphics-release-25 /Users/onwords/.gradle/caches/transforms-3/78f48fa6b5cb801af8ead79891f70ab7/transformed/jetified-ui-graphics-release/res
-com.swasthicare.mobile.app-jetified-material-ripple-release-26 /Users/onwords/.gradle/caches/transforms-3/7a018a4c4d360625b04b2235ab3e768d/transformed/jetified-material-ripple-release/res
-com.swasthicare.mobile.app-jetified-activity-1.8.2-27 /Users/onwords/.gradle/caches/transforms-3/88124307881e8475864f3ba6e1ae9fe7/transformed/jetified-activity-1.8.2/res
-com.swasthicare.mobile.app-jetified-credentials-play-services-auth-1.2.2-28 /Users/onwords/.gradle/caches/transforms-3/90bf08bc1dfc4e2a464bfae99a1c661c/transformed/jetified-credentials-play-services-auth-1.2.2/res
-com.swasthicare.mobile.app-jetified-animation-core-release-29 /Users/onwords/.gradle/caches/transforms-3/9a67b774e07077db547d9de5d2799b30/transformed/jetified-animation-core-release/res
-com.swasthicare.mobile.app-jetified-startup-runtime-1.1.1-30 /Users/onwords/.gradle/caches/transforms-3/9f0c38904724e91ad85f44c00fb2af53/transformed/jetified-startup-runtime-1.1.1/res
-com.swasthicare.mobile.app-jetified-credentials-1.2.2-31 /Users/onwords/.gradle/caches/transforms-3/9f3d855eb1365df39a7312f22a37449d/transformed/jetified-credentials-1.2.2/res
-com.swasthicare.mobile.app-jetified-play-services-basement-18.3.0-32 /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/res
-com.swasthicare.mobile.app-jetified-lifecycle-viewmodel-savedstate-2.8.4-33 /Users/onwords/.gradle/caches/transforms-3/a7d8c7a98b64f027406978f67e99f6ff/transformed/jetified-lifecycle-viewmodel-savedstate-2.8.4/res
-com.swasthicare.mobile.app-jetified-runtime-release-34 /Users/onwords/.gradle/caches/transforms-3/ac27ee7383f984e8905ffd8dee38ad49/transformed/jetified-runtime-release/res
-com.swasthicare.mobile.app-jetified-foundation-release-35 /Users/onwords/.gradle/caches/transforms-3/ae5a4bff10afa66579a96fa065f536f8/transformed/jetified-foundation-release/res
+com.swasthicare.mobile.app-jetified-ui-text-release-23 /Users/onwords/.gradle/caches/transforms-3/6ef09a6231f2d3ac43e581060fe9de7d/transformed/jetified-ui-text-release/res
+com.swasthicare.mobile.app-jetified-annotation-experimental-1.4.0-24 /Users/onwords/.gradle/caches/transforms-3/7149b74205d5b639f9a38d5c2d1fec79/transformed/jetified-annotation-experimental-1.4.0/res
+com.swasthicare.mobile.app-jetified-material-ripple-release-25 /Users/onwords/.gradle/caches/transforms-3/7a018a4c4d360625b04b2235ab3e768d/transformed/jetified-material-ripple-release/res
+com.swasthicare.mobile.app-jetified-ui-util-release-26 /Users/onwords/.gradle/caches/transforms-3/7ca90c1aff6dd14ddc70c4b6fef0019f/transformed/jetified-ui-util-release/res
+com.swasthicare.mobile.app-fragment-1.7.1-27 /Users/onwords/.gradle/caches/transforms-3/84aa1eb38baa2d2a033c83919c8dbdf1/transformed/fragment-1.7.1/res
+com.swasthicare.mobile.app-jetified-activity-1.8.2-28 /Users/onwords/.gradle/caches/transforms-3/88124307881e8475864f3ba6e1ae9fe7/transformed/jetified-activity-1.8.2/res
+com.swasthicare.mobile.app-jetified-credentials-play-services-auth-1.2.2-29 /Users/onwords/.gradle/caches/transforms-3/90bf08bc1dfc4e2a464bfae99a1c661c/transformed/jetified-credentials-play-services-auth-1.2.2/res
+com.swasthicare.mobile.app-jetified-foundation-layout-release-30 /Users/onwords/.gradle/caches/transforms-3/959387d362928acaa5853339113ac504/transformed/jetified-foundation-layout-release/res
+com.swasthicare.mobile.app-jetified-runtime-release-31 /Users/onwords/.gradle/caches/transforms-3/95df541f0b00c8c61e02f8f511c00fa5/transformed/jetified-runtime-release/res
+com.swasthicare.mobile.app-jetified-startup-runtime-1.1.1-32 /Users/onwords/.gradle/caches/transforms-3/9f0c38904724e91ad85f44c00fb2af53/transformed/jetified-startup-runtime-1.1.1/res
+com.swasthicare.mobile.app-jetified-credentials-1.2.2-33 /Users/onwords/.gradle/caches/transforms-3/9f3d855eb1365df39a7312f22a37449d/transformed/jetified-credentials-1.2.2/res
+com.swasthicare.mobile.app-jetified-play-services-basement-18.3.0-34 /Users/onwords/.gradle/caches/transforms-3/a02ffdac7ecc0ba0970d4ee6af0dbfbc/transformed/jetified-play-services-basement-18.3.0/res
+com.swasthicare.mobile.app-jetified-lifecycle-viewmodel-savedstate-2.8.4-35 /Users/onwords/.gradle/caches/transforms-3/a7d8c7a98b64f027406978f67e99f6ff/transformed/jetified-lifecycle-viewmodel-savedstate-2.8.4/res
 com.swasthicare.mobile.app-jetified-lifecycle-viewmodel-compose-release-36 /Users/onwords/.gradle/caches/transforms-3/b03613d2b093abb205b505b9cbb2c29c/transformed/jetified-lifecycle-viewmodel-compose-release/res
-com.swasthicare.mobile.app-fragment-1.5.7-37 /Users/onwords/.gradle/caches/transforms-3/b6d8aa55a7096787d32f4d8685bcf9a7/transformed/fragment-1.5.7/res
-com.swasthicare.mobile.app-jetified-ui-tooling-data-release-38 /Users/onwords/.gradle/caches/transforms-3/bafea9c2af51110585372881ab951e29/transformed/jetified-ui-tooling-data-release/res
-com.swasthicare.mobile.app-core-runtime-2.2.0-39 /Users/onwords/.gradle/caches/transforms-3/bc64fcc133a92be94fe23019ca59a570/transformed/core-runtime-2.2.0/res
-com.swasthicare.mobile.app-jetified-lifecycle-runtime-ktx-release-40 /Users/onwords/.gradle/caches/transforms-3/bfb499586e6663a6533beb948b4bead1/transformed/jetified-lifecycle-runtime-ktx-release/res
-com.swasthicare.mobile.app-jetified-play-services-auth-21.2.0-41 /Users/onwords/.gradle/caches/transforms-3/c6c19fa589d98ef3f1c46899c0f88e16/transformed/jetified-play-services-auth-21.2.0/res
-com.swasthicare.mobile.app-jetified-lifecycle-runtime-release-42 /Users/onwords/.gradle/caches/transforms-3/c754a5fda96c85a58d1819aea97c7a7c/transformed/jetified-lifecycle-runtime-release/res
-com.swasthicare.mobile.app-core-1.12.0-43 /Users/onwords/.gradle/caches/transforms-3/ca3e7561b7215da18c9fb1851493cdba/transformed/core-1.12.0/res
-com.swasthicare.mobile.app-jetified-activity-ktx-1.8.2-44 /Users/onwords/.gradle/caches/transforms-3/d2b052d7838841548074d95f95101eee/transformed/jetified-activity-ktx-1.8.2/res
-com.swasthicare.mobile.app-jetified-core-ktx-1.12.0-45 /Users/onwords/.gradle/caches/transforms-3/d2bf7960538b48577acb43620fede6b5/transformed/jetified-core-ktx-1.12.0/res
-com.swasthicare.mobile.app-jetified-material3-release-46 /Users/onwords/.gradle/caches/transforms-3/d53e1f7fecb16a01734742adb93adc7e/transformed/jetified-material3-release/res
+com.swasthicare.mobile.app-jetified-ui-tooling-release-37 /Users/onwords/.gradle/caches/transforms-3/b0557407130136d66488999055c26881/transformed/jetified-ui-tooling-release/res
+com.swasthicare.mobile.app-core-runtime-2.2.0-38 /Users/onwords/.gradle/caches/transforms-3/bc64fcc133a92be94fe23019ca59a570/transformed/core-runtime-2.2.0/res
+com.swasthicare.mobile.app-jetified-lifecycle-runtime-ktx-release-39 /Users/onwords/.gradle/caches/transforms-3/bfb499586e6663a6533beb948b4bead1/transformed/jetified-lifecycle-runtime-ktx-release/res
+com.swasthicare.mobile.app-jetified-play-services-auth-21.2.0-40 /Users/onwords/.gradle/caches/transforms-3/c6c19fa589d98ef3f1c46899c0f88e16/transformed/jetified-play-services-auth-21.2.0/res
+com.swasthicare.mobile.app-jetified-lifecycle-runtime-release-41 /Users/onwords/.gradle/caches/transforms-3/c754a5fda96c85a58d1819aea97c7a7c/transformed/jetified-lifecycle-runtime-release/res
+com.swasthicare.mobile.app-core-1.12.0-42 /Users/onwords/.gradle/caches/transforms-3/ca3e7561b7215da18c9fb1851493cdba/transformed/core-1.12.0/res
+com.swasthicare.mobile.app-jetified-activity-ktx-1.8.2-43 /Users/onwords/.gradle/caches/transforms-3/d2b052d7838841548074d95f95101eee/transformed/jetified-activity-ktx-1.8.2/res
+com.swasthicare.mobile.app-jetified-core-ktx-1.12.0-44 /Users/onwords/.gradle/caches/transforms-3/d2bf7960538b48577acb43620fede6b5/transformed/jetified-core-ktx-1.12.0/res
+com.swasthicare.mobile.app-jetified-material3-release-45 /Users/onwords/.gradle/caches/transforms-3/d53e1f7fecb16a01734742adb93adc7e/transformed/jetified-material3-release/res
+com.swasthicare.mobile.app-jetified-fragment-ktx-1.7.1-46 /Users/onwords/.gradle/caches/transforms-3/d5b368cd258dd8ba176a829d956ef7ee/transformed/jetified-fragment-ktx-1.7.1/res
 com.swasthicare.mobile.app-lifecycle-livedata-core-2.8.4-47 /Users/onwords/.gradle/caches/transforms-3/ddc1fa8894db0e06aac5a81cab7b32eb/transformed/lifecycle-livedata-core-2.8.4/res
-com.swasthicare.mobile.app-jetified-ui-text-release-48 /Users/onwords/.gradle/caches/transforms-3/e147b4d43abd7e62abbec97b4d9a5782/transformed/jetified-ui-text-release/res
-com.swasthicare.mobile.app-jetified-navigation-compose-2.7.6-49 /Users/onwords/.gradle/caches/transforms-3/e57082cedf5ac18d5a49b5b388d8825e/transformed/jetified-navigation-compose-2.7.6/res
-com.swasthicare.mobile.app-jetified-ui-tooling-release-50 /Users/onwords/.gradle/caches/transforms-3/ec6f5a425e03e2da6e8828f65c4fd096/transformed/jetified-ui-tooling-release/res
-com.swasthicare.mobile.app-jetified-profileinstaller-1.3.1-51 /Users/onwords/.gradle/caches/transforms-3/ed262b393a63a38e7c4846b56d6e94ea/transformed/jetified-profileinstaller-1.3.1/res
-com.swasthicare.mobile.app-jetified-material-release-52 /Users/onwords/.gradle/caches/transforms-3/f76126866241e8170f9f0ff77cadc057/transformed/jetified-material-release/res
-com.swasthicare.mobile.app-jetified-emoji2-1.3.0-53 /Users/onwords/.gradle/caches/transforms-3/f7e41f53d2730dd50e1556331e456734/transformed/jetified-emoji2-1.3.0/res
-com.swasthicare.mobile.app-jetified-material-icons-core-release-54 /Users/onwords/.gradle/caches/transforms-3/f9b0b360fc89f7fb7c37266f1de369d2/transformed/jetified-material-icons-core-release/res
-com.swasthicare.mobile.app-jetified-savedstate-1.2.1-55 /Users/onwords/.gradle/caches/transforms-3/fafd678ba7f385dcaebbd136cff17844/transformed/jetified-savedstate-1.2.1/res
-com.swasthicare.mobile.app-pngs-56 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/generated/res/pngs/debug
-com.swasthicare.mobile.app-resValues-57 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/generated/res/resValues/debug
-com.swasthicare.mobile.app-packageDebugResources-58 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-com.swasthicare.mobile.app-packageDebugResources-59 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-com.swasthicare.mobile.app-merged_res-60 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/intermediates/merged_res/debug
-com.swasthicare.mobile.app-debug-61 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/debug/res
-com.swasthicare.mobile.app-main-62 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/res
+com.swasthicare.mobile.app-jetified-ui-unit-release-48 /Users/onwords/.gradle/caches/transforms-3/e1193db6c8f4bc2e460f6682f473c42f/transformed/jetified-ui-unit-release/res
+com.swasthicare.mobile.app-jetified-animation-core-release-49 /Users/onwords/.gradle/caches/transforms-3/e4546bbaf7d3dda2fb193e3ba0f6f9e6/transformed/jetified-animation-core-release/res
+com.swasthicare.mobile.app-jetified-foundation-release-50 /Users/onwords/.gradle/caches/transforms-3/e48e1e09513334d27c464de9e52422b5/transformed/jetified-foundation-release/res
+com.swasthicare.mobile.app-jetified-navigation-compose-2.7.6-51 /Users/onwords/.gradle/caches/transforms-3/e57082cedf5ac18d5a49b5b388d8825e/transformed/jetified-navigation-compose-2.7.6/res
+com.swasthicare.mobile.app-jetified-profileinstaller-1.3.1-52 /Users/onwords/.gradle/caches/transforms-3/ed262b393a63a38e7c4846b56d6e94ea/transformed/jetified-profileinstaller-1.3.1/res
+com.swasthicare.mobile.app-jetified-ui-release-53 /Users/onwords/.gradle/caches/transforms-3/ed5b4ef75d787a8300f455556f27cf6c/transformed/jetified-ui-release/res
+com.swasthicare.mobile.app-jetified-lifecycle-livedata-core-ktx-2.8.4-54 /Users/onwords/.gradle/caches/transforms-3/ef0227e217103be7ce549584e0b48ff6/transformed/jetified-lifecycle-livedata-core-ktx-2.8.4/res
+com.swasthicare.mobile.app-jetified-material-release-55 /Users/onwords/.gradle/caches/transforms-3/f76126866241e8170f9f0ff77cadc057/transformed/jetified-material-release/res
+com.swasthicare.mobile.app-jetified-emoji2-1.3.0-56 /Users/onwords/.gradle/caches/transforms-3/f7e41f53d2730dd50e1556331e456734/transformed/jetified-emoji2-1.3.0/res
+com.swasthicare.mobile.app-jetified-material-icons-core-release-57 /Users/onwords/.gradle/caches/transforms-3/f9b0b360fc89f7fb7c37266f1de369d2/transformed/jetified-material-icons-core-release/res
+com.swasthicare.mobile.app-jetified-savedstate-1.2.1-58 /Users/onwords/.gradle/caches/transforms-3/fafd678ba7f385dcaebbd136cff17844/transformed/jetified-savedstate-1.2.1/res
+com.swasthicare.mobile.app-pngs-59 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/generated/res/pngs/debug
+com.swasthicare.mobile.app-resValues-60 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/generated/res/resValues/debug
+com.swasthicare.mobile.app-packageDebugResources-61 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.swasthicare.mobile.app-packageDebugResources-62 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.swasthicare.mobile.app-merged_res-63 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/build/intermediates/merged_res/debug
+com.swasthicare.mobile.app-debug-64 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/debug/res
+com.swasthicare.mobile.app-main-65 /Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/android/app/src/main/res
