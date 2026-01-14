@@ -614,6 +614,7 @@ private struct ChatBubble: View {
                 } else {
                     Text(message.content)
                         .font(.system(size: 15))
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         .background(
