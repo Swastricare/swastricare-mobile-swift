@@ -36,6 +36,7 @@ struct ContentView: View {
     
     @State private var currentTab: Tab = .vitals
     @StateObject private var homeViewModel = DependencyContainer.shared.homeViewModel
+    @State private var hasConfiguredTabBar = false
     
     // MARK: - Init
     
@@ -80,13 +81,7 @@ struct ContentView: View {
                     .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {
-                Label {
-                    Text(Tab.ai.rawValue)
-                        .fontWeight(.semibold)
-                } icon: {
-                    Image(systemName: Tab.ai.icon)
-                        .symbolEffect(.variableColor.iterative.dimInactiveLayers, options: .repeating)
-                }
+                Label(Tab.ai.rawValue, systemImage: Tab.ai.icon)
             }
             .tag(Tab.ai)
             
@@ -110,10 +105,18 @@ struct ContentView: View {
             }
             .tag(Tab.profile)
         }
+        .onAppear {
+            configureAITabColor()
+        }
         .onChange(of: currentTab) { oldTab, newTab in
             // Haptic feedback on tab change
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
+            
+            // Re-apply green color to AI tab after switching
+            DispatchQueue.main.async {
+                self.applyGreenToAITab()
+            }
             
             // Refresh health data when switching to vitals
             if homeViewModel.isAuthorized && newTab == .vitals {
@@ -121,6 +124,38 @@ struct ContentView: View {
                     await homeViewModel.loadTodaysData()
                 }
             }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func configureAITabColor() {
+        guard !hasConfiguredTabBar else { return }
+        
+        // Try multiple times with increasing delays to ensure it applies
+        for delay in [0.1, 0.3, 0.5, 0.7] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                self.applyGreenToAITab()
+            }
+        }
+        
+        hasConfiguredTabBar = true
+    }
+    
+    private func applyGreenToAITab() {
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let tabBarController = window.rootViewController?.children.first as? UITabBarController,
+           let items = tabBarController.tabBar.items,
+           items.count > 2 {
+            
+            // Create green icon that stays green always
+            let greenIcon = UIImage(systemName: Tab.ai.icon)?
+                .withTintColor(.systemGreen, renderingMode: .alwaysOriginal)
+            
+            // Apply to both selected and unselected states
+            items[2].image = greenIcon
+            items[2].selectedImage = greenIcon
         }
     }
 }
