@@ -24,7 +24,12 @@ final class AIViewModel: ObservableObject {
     
     // MARK: - AI Mode Selection
     
-    @Published var selectedAIMode: AIMode = .general
+    @Published var selectedAIMode: AIMode = .general {
+        didSet {
+            // Persist mode selection
+            UserDefaults.standard.set(selectedAIMode.rawValue, forKey: "ai_selected_mode")
+        }
+    }
     
     // MARK: - MedGemma State
     
@@ -35,6 +40,9 @@ final class AIViewModel: ObservableObject {
     @Published var hasAcknowledgedMedicalDisclaimer: Bool = false
     @Published private(set) var selectedImage: Data?
     @Published private(set) var isAnalyzingImage: Bool = false
+    @Published private(set) var currentLoadingOperation: LoadingOperationType = .generalChat
+    @Published private(set) var currentErrorState: AIErrorState?
+    @Published private(set) var lastFailedMessage: String?
     
     // MARK: - Computed Properties
     
@@ -82,6 +90,12 @@ final class AIViewModel: ObservableObject {
          healthService: HealthKitServiceProtocol = HealthKitService.shared) {
         self.aiService = aiService
         self.healthService = healthService
+        
+        // Restore saved AI mode preference
+        if let savedMode = UserDefaults.standard.string(forKey: "ai_selected_mode"),
+           let mode = AIMode(rawValue: savedMode) {
+            self.selectedAIMode = mode
+        }
     }
     
     // MARK: - Lifecycle
@@ -128,6 +142,8 @@ final class AIViewModel: ObservableObject {
         let loadingMessage = ChatMessage.loadingMessage()
         messages.append(loadingMessage)
         
+        // Set loading operation type based on mode
+        currentLoadingOperation = selectedAIMode == .medical ? .medicalQuery : .generalChat
         chatState = .sending
         
         do {
@@ -167,9 +183,10 @@ final class AIViewModel: ObservableObject {
                 lastResponseWasMedical = true
             }
             
-            // Remove loading message and add response
+            // Remove loading message and add response with mode badge
             messages.removeLast()
-            messages.append(ChatMessage.assistantMessage(response))
+            let responseMode: AIResponseMode = selectedAIMode == .medical ? .medical : .general
+            messages.append(ChatMessage.assistantMessage(response, mode: responseMode))
             chatState = .idle
             
             // Save chat history
@@ -250,9 +267,64 @@ final class AIViewModel: ObservableObject {
                 print("❌ Failed to save chat history: \(error.localizedDescription)")
             }
         } catch {
-            messages.removeLast()
-            chatState = .error(error.localizedDescription)
-            errorMessage = error.localizedDescription
+            messages.removeLast() // Remove loading message
+            messages.removeLast() // Remove user message (we'll restore it on retry)
+            lastFailedMessage = text
+            currentErrorState = AIErrorState.fromError(error, mode: selectedAIMode)
+            chatState = .error(currentErrorState?.message ?? error.localizedDescription)
+            // Don't set errorMessage to prevent alert popup - show inline instead
+        }
+    }
+    
+    /// Retry the last failed message
+    func retryLastMessage() async {
+        guard let message = lastFailedMessage else { return }
+        currentErrorState = nil
+        inputText = message
+        lastFailedMessage = nil
+        await sendMessage()
+    }
+    
+    /// Switch to general mode and retry
+    func switchToGeneralAndRetry() async {
+        selectedAIMode = .general
+        currentErrorState = nil
+        await retryLastMessage()
+    }
+    
+    /// Dismiss the current error
+    func dismissError() {
+        currentErrorState = nil
+        lastFailedMessage = nil
+        if case .error = chatState {
+            chatState = .idle
+        }
+    }
+    
+    /// Submit feedback for a message
+    func submitFeedback(messageId: UUID, feedback: MessageFeedback) {
+        // Update the message locally
+        if let index = messages.firstIndex(where: { $0.id == messageId }) {
+            // Create new message with feedback
+            let oldMessage = messages[index]
+            let updatedMessage = ChatMessage(
+                id: oldMessage.id,
+                content: oldMessage.content,
+                isUser: oldMessage.isUser,
+                timestamp: oldMessage.timestamp,
+                isLoading: oldMessage.isLoading,
+                responseMode: oldMessage.responseMode,
+                userFeedback: feedback
+            )
+            messages[index] = updatedMessage
+            
+            // Log feedback (could send to analytics or backend)
+            print("📊 User feedback: \(feedback.rawValue) for message: \(messageId)")
+            
+            // TODO: Send to Supabase for quality monitoring
+            // Task {
+            //     try? await aiService.logMessageFeedback(messageId: messageId, feedback: feedback)
+            // }
         }
     }
     
@@ -338,6 +410,7 @@ final class AIViewModel: ObservableObject {
         let loadingMessage = ChatMessage.loadingMessage()
         messages.append(loadingMessage)
         
+        currentLoadingOperation = .healthAnalysis
         chatState = .sending
         
         do {
@@ -352,9 +425,9 @@ final class AIViewModel: ObservableObject {
             
             let response = try await aiService.sendChatMessage(prompt, context: messages.dropLast(), systemContext: nil)
             
-            // Remove loading message and add response
+            // Remove loading message and add response with health analysis mode
             messages.removeLast()
-            messages.append(ChatMessage.assistantMessage(response))
+            messages.append(ChatMessage.assistantMessage(response, mode: .healthAnalysis))
             chatState = .idle
             
             // Save chat history
@@ -432,6 +505,7 @@ final class AIViewModel: ObservableObject {
         let loadingMessage = ChatMessage.loadingMessage()
         messages.append(loadingMessage)
         
+        currentLoadingOperation = .imageAnalysis
         chatState = .sending
         
         do {
@@ -441,9 +515,9 @@ final class AIViewModel: ObservableObject {
             lastResponseModel = aiResponse.model
             lastResponseWasMedical = true
             
-            // Remove loading message and add response
+            // Remove loading message and add response with image analysis mode
             messages.removeLast()
-            messages.append(ChatMessage.assistantMessage(aiResponse.text))
+            messages.append(ChatMessage.assistantMessage(aiResponse.text, mode: .imageAnalysis))
             chatState = .idle
             
             // Clear image after analysis

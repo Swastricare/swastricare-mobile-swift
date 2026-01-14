@@ -288,21 +288,93 @@ struct MedicalAIBadge: View {
 // MARK: - Medical Disclaimer Banner
 
 struct MedicalDisclaimerBanner: View {
+    @State private var isExpanded = true
+    
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "info.circle.fill")
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "2E3192"))
+        VStack(spacing: 0) {
+            // Main banner content
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isExpanded.toggle()
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: isExpanded ? "info.circle.fill" : "info.circle")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "2E3192"))
+                    
+                    if isExpanded {
+                        Text("Medical AI responses are for informational purposes only")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        Text("Medical disclaimer")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(Color(hex: "2E3192"))
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(Color(hex: "2E3192").opacity(isExpanded ? 0.08 : 0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
             
-            Text("Medical AI responses are for informational purposes only")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
+            // Expanded details
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.orange)
+                        Text("Always consult healthcare professionals for medical advice")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "phone.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.red)
+                        Text("Call 911 for emergencies")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: "2E3192").opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.top, 4)
+                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+            }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity)
-        .background(Color(hex: "2E3192").opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .onAppear {
+            // Auto-collapse after 3 seconds on first show
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                if isExpanded && !UserDefaults.standard.bool(forKey: "ai_medical_banner_interacted") {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        isExpanded = false
+                    }
+                }
+            }
+        }
+        .onChange(of: isExpanded) { _, _ in
+            // Mark as interacted so it doesn't auto-collapse again
+            UserDefaults.standard.set(true, forKey: "ai_medical_banner_interacted")
+        }
     }
 }
 

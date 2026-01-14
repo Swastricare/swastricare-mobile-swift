@@ -116,7 +116,7 @@ serve(async (req) => {
     console.log('📝 Prompt length:', fullPrompt.length, 'chars')
     
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased from 25s to 60s
     
     try {
       console.log('🔄 Calling Gemini API...')
@@ -130,7 +130,7 @@ serve(async (req) => {
             contents: [{ parts: [{ text: fullPrompt }] }],
             generationConfig: { 
               temperature: 0.4,
-              maxOutputTokens: 1024 
+              maxOutputTokens: 2048 // Increased from 1024
             },
             safetySettings: [
               { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },

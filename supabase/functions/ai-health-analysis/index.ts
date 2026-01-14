@@ -100,7 +100,7 @@ No markdown, no code blocks, just pure JSON.`
     
     // Add timeout
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000)
+    const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased from 30s to 60s
     
     try {
       const geminiResponse = await fetch(
@@ -112,7 +112,7 @@ No markdown, no code blocks, just pure JSON.`
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 1024,
+              maxOutputTokens: 2048, // Increased from 1024
               responseMimeType: "application/json"
             }
           }),
