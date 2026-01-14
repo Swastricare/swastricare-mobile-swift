@@ -12,15 +12,17 @@ import UIKit
 
 enum Tab: String, CaseIterable {
     case vitals = "Vitals"
-    case ai = "AI"
     case vault = "Vault"
+    case ai = "AI"
+    case family = "Family"
     case profile = "Profile"
     
     var icon: String {
         switch self {
         case .vitals: return "heart.text.square.fill"
-        case .ai: return "sparkles"
         case .vault: return "lock.doc"
+        case .ai: return "sparkles"
+        case .family: return "person.2"
         case .profile: return "person.circle"
         }
     }
@@ -62,16 +64,6 @@ struct ContentView: View {
             }
             .tag(Tab.vitals)
             
-            // AI Tab
-            NavigationStack {
-                AIView()
-                    .modifier(ToolbarBackgroundVisibilityModifier())
-            }
-            .tabItem {
-                Label(Tab.ai.rawValue, systemImage: Tab.ai.icon)
-            }
-            .tag(Tab.ai)
-            
             // Vault Tab
             NavigationStack {
                 VaultView()
@@ -81,6 +73,32 @@ struct ContentView: View {
                 Label(Tab.vault.rawValue, systemImage: Tab.vault.icon)
             }
             .tag(Tab.vault)
+            
+            // AI Tab - Center of Attraction
+            NavigationStack {
+                AIView()
+                    .modifier(ToolbarBackgroundVisibilityModifier())
+            }
+            .tabItem {
+                Label {
+                    Text(Tab.ai.rawValue)
+                        .fontWeight(.semibold)
+                } icon: {
+                    Image(systemName: Tab.ai.icon)
+                        .symbolEffect(.variableColor.iterative.dimInactiveLayers, options: .repeating)
+                }
+            }
+            .tag(Tab.ai)
+            
+            // Family Tab
+            NavigationStack {
+                FamilyPlaceholderView()
+                    .modifier(ToolbarBackgroundVisibilityModifier())
+            }
+            .tabItem {
+                Label(Tab.family.rawValue, systemImage: Tab.family.icon)
+            }
+            .tag(Tab.family)
             
             // Profile Tab
             NavigationStack {
@@ -116,6 +134,27 @@ struct ToolbarBackgroundVisibilityModifier: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+// MARK: - Family Placeholder View
+
+struct FamilyPlaceholderView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "person.2")
+                .font(.system(size: 80))
+                .foregroundColor(.blue)
+            
+            Text("Family")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            Text("Coming Soon")
+                .font(.title3)
+                .foregroundColor(.secondary)
+        }
+        .navigationTitle("Family")
     }
 }
 
