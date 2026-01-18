@@ -24,7 +24,7 @@ struct ModelViewer: UIViewRepresentable {
         // Start with placeholder, then load async
         let placeholderScene = createThemedPlaceholder(for: modelName)
         addLighting(to: placeholderScene)
-        addRotation(to: placeholderScene)
+        // addRotation(to: placeholderScene) // Removed rotation
         scnView.scene = placeholderScene
         
         // Try to load .glb file asynchronously using GLTFKit2
@@ -90,6 +90,9 @@ struct ModelViewer: UIViewRepresentable {
         case "vault":
             // Security - Shield/lock shape
             createVaultIcon(in: scene)
+        case "intro":
+            // Welcome - Pyramid/Star shape
+            createIntroIcon(in: scene)
         default:
             // Generic sphere
             createDefaultIcon(in: scene)
@@ -209,6 +212,65 @@ struct ModelViewer: UIViewRepresentable {
         let keyholeNode = SCNNode(geometry: keyhole)
         keyholeNode.position = SCNVector3(0, -0.2, 0.25)
         containerNode.addChildNode(keyholeNode)
+        
+        scene.rootNode.addChildNode(containerNode)
+    }
+    
+    private func createIntroIcon(in scene: SCNScene) {
+        let containerNode = SCNNode()
+        
+        // Central Medical Cross (Plus sign)
+        let verticalBar = SCNBox(width: 0.4, height: 1.2, length: 0.4, chamferRadius: 0.1)
+        verticalBar.firstMaterial?.diffuse.contents = UIColor(red: 0.18, green: 0.19, blue: 0.57, alpha: 1.0) // Royal Blue Dark
+        verticalBar.firstMaterial?.specular.contents = UIColor.white
+        verticalBar.firstMaterial?.emission.contents = UIColor(red: 0.11, green: 1.0, blue: 1.0, alpha: 0.3)
+        let vNode = SCNNode(geometry: verticalBar)
+        
+        let horizontalBar = SCNBox(width: 1.2, height: 0.4, length: 0.4, chamferRadius: 0.1)
+        horizontalBar.firstMaterial?.diffuse.contents = UIColor(red: 0.18, green: 0.19, blue: 0.57, alpha: 1.0)
+        horizontalBar.firstMaterial?.specular.contents = UIColor.white
+        horizontalBar.firstMaterial?.emission.contents = UIColor(red: 0.11, green: 1.0, blue: 1.0, alpha: 0.3)
+        let hNode = SCNNode(geometry: horizontalBar)
+        
+        let crossNode = SCNNode()
+        crossNode.addChildNode(vNode)
+        crossNode.addChildNode(hNode)
+        
+        // Pulse animation removed
+        /*
+        let scaleUp = SCNAction.scale(to: 1.05, duration: 1.0)
+        let scaleDown = SCNAction.scale(to: 0.95, duration: 1.0)
+        let pulse = SCNAction.sequence([scaleUp, scaleDown])
+        crossNode.runAction(SCNAction.repeatForever(pulse))
+        */
+        
+        containerNode.addChildNode(crossNode)
+        
+        // Orbiting Rings
+        let torus1 = SCNTorus(ringRadius: 1.0, pipeRadius: 0.05)
+        torus1.firstMaterial?.diffuse.contents = UIColor(red: 0.11, green: 1.0, blue: 1.0, alpha: 0.8) // Cyan
+        torus1.firstMaterial?.emission.contents = UIColor(red: 0.11, green: 1.0, blue: 1.0, alpha: 0.5)
+        let t1Node = SCNNode(geometry: torus1)
+        
+        // Animation removed
+        /*
+        let rotate1 = SCNAction.rotateBy(x: 1, y: 2, z: 0, duration: 3)
+        t1Node.runAction(SCNAction.repeatForever(rotate1))
+        */
+        
+        let torus2 = SCNTorus(ringRadius: 1.3, pipeRadius: 0.03)
+        torus2.firstMaterial?.diffuse.contents = UIColor(red: 1.0, green: 0.3, blue: 0.5, alpha: 0.8) // Pink/Sunset
+        torus2.firstMaterial?.emission.contents = UIColor(red: 1.0, green: 0.3, blue: 0.5, alpha: 0.5)
+        let t2Node = SCNNode(geometry: torus2)
+        
+        // Animation removed
+        /*
+        let rotate2 = SCNAction.rotateBy(x: -2, y: 1, z: 0, duration: 4)
+        t2Node.runAction(SCNAction.repeatForever(rotate2))
+        */
+        
+        containerNode.addChildNode(t1Node)
+        containerNode.addChildNode(t2Node)
         
         scene.rootNode.addChildNode(containerNode)
     }

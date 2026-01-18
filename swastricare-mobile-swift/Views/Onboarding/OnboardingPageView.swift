@@ -7,10 +7,26 @@
 
 import SwiftUI
 
-struct OnboardingPageView: View {
+struct OnboardingPageView<Content: View>: View {
     let modelName: String
     let title: String
-    let subtitle: String
+    let subtitle: String?
+    var subtext: String? = nil
+    @ViewBuilder let actionView: Content
+    
+    init(
+        modelName: String,
+        title: String,
+        subtitle: String? = nil,
+        subtext: String? = nil,
+        @ViewBuilder actionView: () -> Content = { EmptyView() }
+    ) {
+        self.modelName = modelName
+        self.title = title
+        self.subtitle = subtitle
+        self.subtext = subtext
+        self.actionView = actionView()
+    }
     
     @State private var contentOffset: CGFloat = 20
     @State private var contentOpacity: Double = 0
@@ -18,40 +34,75 @@ struct OnboardingPageView: View {
     @State private var modelRotation: Double = 0
     @State private var titleOffset: CGFloat = 20
     @State private var subtitleOffset: CGFloat = 15
+    @State private var isBreathing: Bool = false
     
     var body: some View {
-        VStack(spacing: 50) {
+        VStack(spacing: 40) {
             Spacer()
             
-            // 3D Model Display with smooth animations
-            ModelViewer(modelName: modelName)
-                .frame(height: 300)
-                .scaleEffect(modelScale)
-                .rotation3DEffect(
-                    .degrees(modelRotation),
-                    axis: (x: 0, y: 1, z: 0),
-                    perspective: 0.5
-                )
-                .offset(y: contentOffset)
-                .opacity(contentOpacity)
+            // Unified Graphic View (Replaces 3D Models)
+            OnboardingGraphicView(
+                modelName: modelName,
+                isBreathing: $isBreathing
+            )
+            .frame(height: 300)
+            .opacity(contentOpacity)
             
             // Text Content with smooth fade-in and slide animations
-            VStack(spacing: 20) {
-                Text(title)
-                    .font(.system(size: 34, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.primary)
-                    .offset(y: titleOffset)
-                    .opacity(contentOpacity)
+            VStack(spacing: 16) {
+                // Split title by newlines to ensure all parts render with gradient
+                VStack(spacing: 12) {
+                    ForEach(title.components(separatedBy: "\n"), id: \.self) { line in
+                        if !line.isEmpty {
+                            Text(line)
+                                .font(.system(size: 36, weight: .bold))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, 24)
+                                .foregroundStyle(
+                                    PremiumColor.royalBlue
+                                )
+                        }
+                    }
+                }
+                .offset(y: titleOffset)
+                .opacity(contentOpacity)
                 
-                Text(subtitle)
-                    .font(.system(size: 17, weight: .regular))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.secondary)
-                    .lineSpacing(4)
-                    .padding(.horizontal, 40)
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 18, weight: .medium))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.secondary)
+                        .lineSpacing(4)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 32)
+                        .offset(y: subtitleOffset)
+                        .opacity(contentOpacity * 0.95)
+                }
+                
+                if let subtext = subtext {
+                    Text(subtext)
+                        .font(.system(size: 14, weight: .regular))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.gray.opacity(0.8))
+                        .padding(.top, 8)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 32)
+                        .offset(y: subtitleOffset)
+                        .opacity(contentOpacity * 0.8)
+                }
+                
+                // Custom Action View
+                actionView
+                    .padding(.top, 20)
                     .offset(y: subtitleOffset)
-                    .opacity(contentOpacity * 0.95)
+                    .opacity(contentOpacity)
             }
             
             Spacer()
@@ -67,9 +118,9 @@ struct OnboardingPageView: View {
                 subtitleOffset = 0
             }
             
-            // Subtle continuous rotation animation
-            withAnimation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true)) {
-                modelRotation = 8
+            // Breathing animation
+            withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
+                isBreathing = true
             }
         }
         .onDisappear {
