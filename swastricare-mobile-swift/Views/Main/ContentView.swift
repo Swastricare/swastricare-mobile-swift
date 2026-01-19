@@ -104,6 +104,11 @@ struct ContentView: View {
                 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToAITab"))) { _ in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                currentTab = .ai
+            }
+        }
     }
 }
 

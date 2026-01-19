@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import SceneKit
 
 struct AIView: View {
     
@@ -68,8 +69,6 @@ struct AIView: View {
                             Image(systemName: "xmark")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.primary)
-                             
-                                .background(.ultraThinMaterial)
                                 .clipShape(Circle())
                         }
                     }
@@ -160,19 +159,12 @@ struct AIView: View {
     
     private var introView: some View {
         VStack(spacing: 24) {
-            // Logo / Icon
-            ZStack {
-                Circle()
-                    .fill(Color(hex: "2E3192").opacity(0.1))
-                    .frame(width: 80, height: 80)
-                
-                Image(systemName: "sparkles")
-                    .font(.system(size: 40))
-                    .foregroundColor(Color(hex: "2E3192"))
-            }
-            .scaleEffect(showEmptyState ? 1 : 0.8)
-            .opacity(showEmptyState ? 1 : 0)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showEmptyState)
+            // Particle Orb
+            ParticleOrbView(state: orbState)
+                .frame(width: 200, height: 200)
+                .scaleEffect(showEmptyState ? 1 : 0.8)
+                .opacity(showEmptyState ? 1 : 0)
+                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showEmptyState)
             
             VStack(spacing: 12) {
                 Text("Swastri AI")
@@ -223,6 +215,23 @@ struct AIView: View {
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: showEmptyState)
         }
         .padding(.bottom, 40)
+    }
+    
+    // MARK: - Orb State Determination
+    
+    private var orbState: ParticleOrbView.OrbState {
+        // Listening state takes priority
+        if speechManager.isRecording {
+            return .listening
+        }
+        
+        // Thinking state when processing
+        if viewModel.chatState.isBusy || viewModel.messages.contains(where: { $0.isLoading }) {
+            return .thinking
+        }
+        
+        // Default idle state
+        return .idle
     }
     
     // MARK: - Suggestions Scroll
@@ -378,7 +387,7 @@ private struct ChatBubble: View {
     var body: some View {
         VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
             if !message.isUser {
-                // AI Header (like "Copilot just now")
+                // AI Header with formatted timestamp
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 12))
@@ -386,7 +395,7 @@ private struct ChatBubble: View {
                     Text("Swastri")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.secondary)
-                    Text("just now")
+                    Text(formatMessageTime(message.timestamp))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
@@ -422,6 +431,40 @@ private struct ChatBubble: View {
                 appeared = true
             }
         }
+    }
+    
+    private func formatMessageTime(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Check if it's today
+        if calendar.isDateInToday(date) {
+            let timeFormatter = DateFormatter()
+            timeFormatter.timeStyle = .short
+            return timeFormatter.string(from: date)
+        }
+        
+        // Check if it's yesterday
+        if calendar.isDateInYesterday(date) {
+            let timeFormatter = DateFormatter()
+            timeFormatter.timeStyle = .short
+            return "Yesterday \(timeFormatter.string(from: date))"
+        }
+        
+        // Check if it's within the last week
+        if let daysAgo = calendar.dateComponents([.day], from: date, to: now).day, daysAgo < 7 {
+            let weekdayFormatter = DateFormatter()
+            weekdayFormatter.dateFormat = "EEEE"
+            let timeFormatter = DateFormatter()
+            timeFormatter.timeStyle = .short
+            return "\(weekdayFormatter.string(from: date)) \(timeFormatter.string(from: date))"
+        }
+        
+        // For older dates, show the date and time
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+        return dateFormatter.string(from: date)
     }
 }
 
@@ -856,6 +899,194 @@ private struct ConversationRow: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Particle Orb View
+
+private struct ParticleOrbView: UIViewRepresentable {
+    enum OrbState {
+        case idle, listening, thinking
+    }
+    
+    var state: OrbState
+    
+    func makeUIView(context: Context) -> SCNView {
+        let scnView = SCNView()
+        scnView.backgroundColor = .clear
+        scnView.allowsCameraControl = false
+        scnView.autoenablesDefaultLighting = false
+        scnView.antialiasingMode = .multisampling4X
+        
+        let scene = SCNScene()
+        scnView.scene = scene
+        
+        // Camera setup
+        let cameraNode = SCNNode()
+        cameraNode.camera = SCNCamera()
+        cameraNode.position = SCNVector3(x: 0, y: 0, z: 4)
+        scene.rootNode.addChildNode(cameraNode)
+        
+        // Add point light for depth
+        let pointLight = SCNNode()
+        pointLight.light = SCNLight()
+        pointLight.light?.type = .omni
+        pointLight.light?.color = hexToUIColor("1A1F6B") // Darker blue
+        pointLight.light?.intensity = 1000
+        pointLight.position = SCNVector3(x: 0, y: 0, z: 2)
+        scene.rootNode.addChildNode(pointLight)
+        context.coordinator.pointLight = pointLight
+        
+        // Create the Orb Node
+        let orbNode = SCNNode()
+        scene.rootNode.addChildNode(orbNode)
+        context.coordinator.orbNode = orbNode
+        
+        // Particle System Setup
+        let particleSystem = SCNParticleSystem()
+        particleSystem.birthRate = 600
+        particleSystem.particleLifeSpan = 2.0
+        particleSystem.particleSize = 0.015
+        particleSystem.emissionDuration = 1.0
+        particleSystem.loops = true
+        particleSystem.particleVelocity = 0.1
+        particleSystem.particleVelocityVariation = 0.05
+        
+        // Shape the particles into a shell/sphere
+        particleSystem.emitterShape = SCNSphere(radius: 1.5)
+        particleSystem.birthLocation = .surface
+        particleSystem.spreadingAngle = 0
+        
+        // Create rounded particle image (circle)
+        particleSystem.particleImage = createCircularParticleImage()
+        
+        // Visual Style (Additive blending like WebGL)
+        // Use darker blue color
+        particleSystem.particleColor = hexToUIColor("1A1F6B") // Darker blue
+        particleSystem.blendMode = .additive
+        particleSystem.particleColorVariation = SCNVector4(0.2, 0.2, 0.2, 0)
+        
+        orbNode.addParticleSystem(particleSystem)
+        context.coordinator.particleSystem = particleSystem
+        
+        // Store references
+        context.coordinator.sceneView = scnView
+        
+        // Initial state
+        updateOrbState(orbNode: orbNode, particleSystem: particleSystem, pointLight: pointLight, state: state)
+        
+        return scnView
+    }
+    
+    func updateUIView(_ uiView: SCNView, context: Context) {
+        if let orbNode = context.coordinator.orbNode,
+           let particleSystem = context.coordinator.particleSystem {
+            updateOrbState(orbNode: orbNode, particleSystem: particleSystem, pointLight: context.coordinator.pointLight, state: state)
+        }
+    }
+    
+    private func updateOrbState(orbNode: SCNNode, particleSystem: SCNParticleSystem, pointLight: SCNNode?, state: OrbState) {
+        // Remove all actions
+        orbNode.removeAllActions()
+        orbNode.position = SCNVector3Zero
+        orbNode.scale = SCNVector3(1, 1, 1)
+        orbNode.eulerAngles = SCNVector3Zero
+        
+        // Horizontal rotation animation (around Y-axis)
+        let rotateAction = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 8.0)
+        orbNode.runAction(SCNAction.repeatForever(rotateAction))
+        
+        switch state {
+        case .idle:
+            // Darker blue for idle state
+            particleSystem.particleColor = hexToUIColor("1A1F6B") // Darker blue
+            particleSystem.speedFactor = 0.5
+            pointLight?.light?.color = hexToUIColor("1A1F6B")
+            
+            // Heartbeat animation: double pulse pattern (lub-dub)
+            let pulse1 = SCNAction.scale(to: 1.08, duration: 0.15)  // First beat
+            let pause1 = SCNAction.wait(duration: 0.1)
+            let pulse2 = SCNAction.scale(to: 1.06, duration: 0.15)  // Second beat
+            let rest = SCNAction.scale(to: 1.0, duration: 0.2)      // Return to normal
+            let pause2 = SCNAction.wait(duration: 0.7)              // Rest period (heartbeat frequency ~60 bpm)
+            let heartbeat = SCNAction.sequence([pulse1, pause1, pulse2, rest, pause2])
+            orbNode.runAction(SCNAction.repeatForever(heartbeat))
+            
+        case .listening:
+            // Darker blue variant for listening (active state)
+            particleSystem.particleColor = hexToUIColor("2E3192") // Royal blue
+            particleSystem.speedFactor = 2.5
+            pointLight?.light?.color = hexToUIColor("2E3192")
+            
+            // Faster heartbeat (like increased heart rate)
+            let pulse1 = SCNAction.scale(to: 1.1, duration: 0.1)
+            let pause1 = SCNAction.wait(duration: 0.08)
+            let pulse2 = SCNAction.scale(to: 1.08, duration: 0.1)
+            let rest = SCNAction.scale(to: 1.0, duration: 0.15)
+            let pause2 = SCNAction.wait(duration: 0.3)
+            let heartbeat = SCNAction.sequence([pulse1, pause1, pulse2, rest, pause2])
+            orbNode.runAction(SCNAction.repeatForever(heartbeat))
+            
+        case .thinking:
+            // Darker blue for thinking state
+            particleSystem.particleColor = hexToUIColor("0F1345") // Very dark blue
+            particleSystem.speedFactor = 2
+            pointLight?.light?.color = hexToUIColor("0F1345")
+            
+            // Moderate heartbeat
+            let pulse1 = SCNAction.scale(to: 1.06, duration: 0.12)
+            let pause1 = SCNAction.wait(duration: 0.09)
+            let pulse2 = SCNAction.scale(to: 1.04, duration: 0.12)
+            let rest = SCNAction.scale(to: 1.0, duration: 0.18)
+            let pause2 = SCNAction.wait(duration: 0.5)
+            let heartbeat = SCNAction.sequence([pulse1, pause1, pulse2, rest, pause2])
+            orbNode.runAction(SCNAction.repeatForever(heartbeat))
+        }
+    }
+    
+    // MARK: - Helper: Create Circular Particle Image
+    
+    private func createCircularParticleImage() -> UIImage? {
+        let size: CGFloat = 64
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
+        
+        return renderer.image { context in
+            // Fill with white circle (alpha will be handled by particle system)
+            UIColor.white.setFill()
+            let circlePath = UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: size, height: size))
+            circlePath.fill()
+        }
+    }
+    
+    // MARK: - Helper: Hex to UIColor
+    
+    private func hexToUIColor(_ hex: String) -> UIColor {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        return UIColor(red: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: CGFloat(a) / 255)
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator {
+        var orbNode: SCNNode?
+        var particleSystem: SCNParticleSystem?
+        var sceneView: SCNView?
+        var pointLight: SCNNode?
     }
 }
 

@@ -47,14 +47,24 @@ final class AIViewModel: ObservableObject {
     
     // MARK: - Lifecycle
     
+    @Published private var shouldLoadHistory = true
+    
     func loadHistory() async {
+        // Don't load history if we explicitly cleared it
+        guard shouldLoadHistory else {
+            return
+        }
+        
         isLoadingHistory = true
         defer { isLoadingHistory = false }
         
         do {
             let (history, conversationId) = try await aiService.loadChatHistory()
-            messages = history
-            currentConversationId = conversationId
+            // Only load if we got actual messages
+            if !history.isEmpty {
+                messages = history
+                currentConversationId = conversationId
+            }
         } catch {
             // Silently fail if history can't be loaded (e.g., not authenticated)
             print("Failed to load chat history: \(error.localizedDescription)")
@@ -66,6 +76,11 @@ final class AIViewModel: ObservableObject {
     func sendMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        
+        // If this is a new conversation after clearing, allow history loading
+        if !shouldLoadHistory && messages.isEmpty {
+            shouldLoadHistory = true
+        }
         
         // Add user message
         let userMessage = ChatMessage.userMessage(text)
@@ -289,19 +304,32 @@ final class AIViewModel: ObservableObject {
     }
     
     func clearChat() {
+        let conversationIdToArchive = currentConversationId
         messages = []
         chatState = .idle
         errorMessage = nil
         currentConversationId = nil
+        shouldLoadHistory = false // Prevent reloading after clear
         
-        // Archive current conversation in background
+        // Archive the specific conversation that was just cleared
         Task {
             do {
-                try await aiService.clearChatHistory()
+                if let id = conversationIdToArchive {
+                    // Archive this specific conversation
+                    try await aiService.archiveConversation(id: id)
+                } else {
+                    // If no specific conversation, archive all active ones
+                    try await aiService.clearChatHistory()
+                }
             } catch {
-                print("Failed to clear chat history: \(error.localizedDescription)")
+                print("Failed to archive conversation: \(error.localizedDescription)")
             }
         }
+    }
+    
+    func startNewConversation() {
+        // Allow history loading again when user starts a new conversation
+        shouldLoadHistory = true
     }
     
     // MARK: - Helpers
