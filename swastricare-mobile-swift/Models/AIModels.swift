@@ -175,9 +175,33 @@ struct ConversationSummary: Identifiable, Equatable {
     let status: String
     
     var formattedDate: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: updatedAt, relativeTo: Date())
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Check if it's today
+        if calendar.isDateInToday(updatedAt) {
+            let timeFormatter = DateFormatter()
+            timeFormatter.timeStyle = .short
+            return timeFormatter.string(from: updatedAt)
+        }
+        
+        // Check if it's yesterday
+        if calendar.isDateInYesterday(updatedAt) {
+            return "Yesterday"
+        }
+        
+        // Check if it's within the last week
+        if let daysAgo = calendar.dateComponents([.day], from: updatedAt, to: now).day, daysAgo < 7 {
+            let weekdayFormatter = DateFormatter()
+            weekdayFormatter.dateFormat = "EEEE"
+            return weekdayFormatter.string(from: updatedAt)
+        }
+        
+        // For older dates, show the date
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .none
+        return dateFormatter.string(from: updatedAt)
     }
 }
 

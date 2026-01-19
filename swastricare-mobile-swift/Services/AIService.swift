@@ -20,6 +20,7 @@ protocol AIServiceProtocol {
     func loadConversation(id: UUID) async throws -> [ChatMessage]
     func saveChatHistory(_ messages: [ChatMessage], conversationId: UUID?) async throws -> UUID
     func deleteConversation(id: UUID) async throws
+    func archiveConversation(id: UUID) async throws
     func clearChatHistory() async throws
 }
 
@@ -151,7 +152,7 @@ final class AIService: AIServiceProtocol {
         
         // Try to get health profile ID first, but fall back to user_id if not available
         if let profileId = try? await getHealthProfileId() {
-            // Try querying by health_profile_id first
+            // Try querying by health_profile_id first - only load ACTIVE conversations
             conversations = try await supabase.client
                 .from("ai_conversations")
                 .select("id, messages, updated_at")
@@ -176,6 +177,7 @@ final class AIService: AIServiceProtocol {
                 .value
         }
         
+        // Only return conversation if it has messages
         guard let conversation = conversations.first,
               !conversation.messages.isEmpty else {
             return ([], nil)
@@ -570,6 +572,23 @@ final class AIService: AIServiceProtocol {
             .execute()
         
         print("✅ Conversation deleted: \(id.uuidString)")
+    }
+    
+    func archiveConversation(id: UUID) async throws {
+        guard let userId = try? await supabase.client.auth.session.user.id else {
+            print("❌ No user ID - not authenticated")
+            throw AIError.networkError
+        }
+        
+        // Archive the conversation by setting status to 'archived'
+        try await supabase.client
+            .from("ai_conversations")
+            .update(["status": "archived"])
+            .eq("id", value: id.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+        
+        print("✅ Conversation archived: \(id.uuidString)")
     }
     
     func clearChatHistory() async throws {
