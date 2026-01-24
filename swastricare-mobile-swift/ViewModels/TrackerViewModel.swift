@@ -68,10 +68,7 @@ final class TrackerViewModel: ObservableObject {
     // MARK: - Actions
     
     func loadData() async {
-        // Allow loading in demo mode even without authorization (thread-safe check)
-        let isDemoMode = DemoModeService.isDemoModeEnabledValue
-        
-        guard isAuthorized || isDemoMode else { return }
+        guard isAuthorized else { return }
         
         isLoading = true
         
@@ -87,10 +84,7 @@ final class TrackerViewModel: ObservableObject {
     }
     
     func loadDataForSelectedDate() async {
-        // Allow loading in demo mode even without authorization (thread-safe check)
-        let isDemoMode = DemoModeService.isDemoModeEnabledValue
-        
-        guard isAuthorized || isDemoMode else { return }
+        guard isAuthorized else { return }
         
         isLoading = true
         healthMetrics = await healthService.fetchHealthMetrics(for: selectedDate)
@@ -143,12 +137,6 @@ final class TrackerViewModel: ObservableObject {
     
     func clearError() {
         errorMessage = nil
-    }
-    
-    func clearDemoData() {
-        // Reset health metrics to empty/default values
-        healthMetrics = HealthMetrics()
-        weeklySteps = []
     }
 }
 

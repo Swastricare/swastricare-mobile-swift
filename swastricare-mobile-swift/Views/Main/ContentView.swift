@@ -92,6 +92,12 @@ struct ContentView: View {
             }
             .tag(Tab.profile)
         }
+        .task {
+            // Fetch user + health profile once when main app appears (shared by Profile/Settings)
+            await DependencyContainer.shared.profileViewModel.loadUser()
+            // Fetch vault documents once when main app appears; use cached data in Vault tab
+            await DependencyContainer.shared.vaultViewModel.loadDocuments()
+        }
         .onChange(of: currentTab) { oldTab, newTab in
             // Haptic feedback on tab change
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)

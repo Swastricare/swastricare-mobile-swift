@@ -48,6 +48,9 @@ struct swastricare_mobile_swiftApp: App {
     // Notification permission state
     @State private var hasRequestedNotificationPermission: Bool = false
     
+    // Splash screen minimum duration state
+    @State private var isSplashDelayComplete: Bool = false
+    
     @Environment(\.scenePhase) private var scenePhase
     
     // Deep link handling for widgets
@@ -68,13 +71,19 @@ struct swastricare_mobile_swiftApp: App {
         WindowGroup {
             Group {
                 // Combined initialization: Show splash until version check AND (auth check AND health profile check if authenticated) complete
-                let isInitializing = !hasCheckedAppVersion || 
+                let isInitializing = !isSplashDelayComplete ||
+                                     !hasCheckedAppVersion || 
                                      authViewModel.authState == .unknown || 
                                      (authViewModel.isAuthenticated && (!hasCheckedHealthProfile || isCheckingHealthProfile))
                 
                 if isInitializing {
                     SplashView()
                         .task {
+                            // Start minimum splash timer (1.5 seconds)
+                            let splashMinDuration = Task {
+                                try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+                            }
+                            
                             // Check app version first
                             if !hasCheckedAppVersion {
                                 await checkAppVersion()
@@ -89,6 +98,14 @@ struct swastricare_mobile_swiftApp: App {
                             // If authenticated, check health profile
                             if authViewModel.isAuthenticated && !hasCheckedHealthProfile {
                                 await checkHealthProfileFromDB()
+                            }
+                            
+                            // Wait for minimum splash duration
+                            _ = await splashMinDuration.value
+                            
+                            // Signal that splash delay is complete
+                            await MainActor.run {
+                                isSplashDelayComplete = true
                             }
                         }
                 } else if appVersionService.updateStatus.requiresAction {
