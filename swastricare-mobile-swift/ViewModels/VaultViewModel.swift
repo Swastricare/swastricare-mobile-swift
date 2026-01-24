@@ -221,6 +221,9 @@ final class VaultViewModel: ObservableObject {
     private var _documentsByCategory: [VaultCategory: Int]?
     private var currentSearchQuery = ""
     
+    /// Skip refetch when already loaded (e.g. returning to Vault tab). Reset on sign out.
+    private var hasLoadedDocumentsOnce = false
+    
     // MARK: - Computed Properties
     
     var filteredDocuments: [MedicalDocument] {
@@ -526,29 +529,23 @@ final class VaultViewModel: ObservableObject {
     
     // MARK: - Actions
     
-    func loadDocuments() async {
-        // Prevent concurrent loads
+    func loadDocuments(forceRefresh: Bool = false) async {
+        // Use cached documents when already loaded (e.g. returning to Vault tab), unless force refresh
+        if !forceRefresh, hasLoadedDocumentsOnce {
+            return
+        }
+        
         guard !isLoading else { return }
         
-        // Clear any previous errors
         errorMessage = nil
-        
-        // Set loading state
         isLoading = true
-        
-        // Invalidate caches
         invalidateCaches()
         
         do {
-            // Fetch documents
             let fetched = try await vaultService.fetchDocuments()
-            
-            // Update documents atomically
             documents = fetched
-            
-            // Invalidate caches after update
             invalidateCaches()
-            
+            hasLoadedDocumentsOnce = true
             isLoading = false
             print("✅ Loaded \(fetched.count) documents")
         } catch {
@@ -565,6 +562,14 @@ final class VaultViewModel: ObservableObject {
             isLoading = false
             print("❌ Failed to load documents: \(errorMsg)")
         }
+    }
+    
+    /// Clear vault state on sign out so next user doesn't see previous user's documents
+    func clearOnSignOut() {
+        documents = []
+        hasLoadedDocumentsOnce = false
+        invalidateCaches()
+        errorMessage = nil
     }
     
     func prepareMultipleUploads(files: [(String, Data)]) {

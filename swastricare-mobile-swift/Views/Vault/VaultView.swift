@@ -56,11 +56,9 @@ struct VaultView: View {
         }
             }
         }
-        .task {
-            await viewModel.loadDocuments()
-        }
+        // Documents loaded once in ContentView; use cached data. Pull-to-refresh for manual reload.
         .refreshable {
-            await viewModel.loadDocuments()
+            await viewModel.loadDocuments(forceRefresh: true)
         }
         .sheet(isPresented: $showAddOptions) {
             AddDocumentSheet(
@@ -527,7 +525,7 @@ struct VaultView: View {
                     }
                     
             Button {
-                Task { await viewModel.loadDocuments() }
+                Task { await viewModel.loadDocuments(forceRefresh: true) }
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.clockwise")
@@ -1834,7 +1832,7 @@ private struct EditDocumentSheet: View {
         
         do {
             _ = try await viewModel.updateDocument(document, metadata: metadata)
-            await viewModel.loadDocuments()
+            await viewModel.loadDocuments(forceRefresh: true)
             dismiss()
         } catch {
             print("Failed to update: \(error)")

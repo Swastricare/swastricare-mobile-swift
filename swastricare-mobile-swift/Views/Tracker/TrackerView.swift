@@ -76,16 +76,6 @@ struct TrackerView: View {
         .refreshable {
             await viewModel.refresh()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DemoModeDisabled"))) { _ in
-            // Clear demo data when demo mode is disabled
-            viewModel.clearDemoData()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DemoModeToggled"))) { _ in
-            // Refresh data when demo mode is toggled
-            Task {
-                await viewModel.loadData()
-            }
-        }
         .sheet(isPresented: $viewModel.showAnalysisSheet) {
             AnalysisResultView(
                 state: viewModel.analysisState,

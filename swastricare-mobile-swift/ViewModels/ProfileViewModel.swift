@@ -17,6 +17,9 @@ final class ProfileViewModel: ObservableObject {
     @Published private(set) var healthProfile: HealthProfile?
     @Published private(set) var isLoading = false
     @Published private(set) var isLoadingHealthProfile = false
+    
+    /// Skip refetch when we already loaded (e.g. returning from lock). Reset on sign out.
+    private var hasLoadedUserOnce = false
     @Published private(set) var errorMessage: String?
     @Published var showSignOutConfirmation = false
     @Published var showDeleteAccountConfirmation = false
@@ -127,9 +130,12 @@ final class ProfileViewModel: ObservableObject {
     // MARK: - Actions
     
     func loadUser() async {
-        // Run on a background task to avoid blocking the main thread (prevents gesture timeouts)
-        let service = authService
+        // Use cached user + health profile when already loaded (e.g. returning from lock)
+        if hasLoadedUserOnce, user != nil {
+            return
+        }
         
+        let service = authService
         isLoading = true
         defer { isLoading = false }
         
@@ -138,11 +144,9 @@ final class ProfileViewModel: ObservableObject {
                 try await service.checkSession()
             }.value
             
-            // Update on main actor (class is @MainActor)
             user = fetchedUser
-            
-            // Also fetch health profile
             await loadHealthProfile()
+            hasLoadedUserOnce = true
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -184,6 +188,9 @@ final class ProfileViewModel: ObservableObject {
         // Use AuthViewModel's signOut to properly update auth state and trigger navigation
         await DependencyContainer.shared.authViewModel.signOut()
         user = nil
+        healthProfile = nil
+        hasLoadedUserOnce = false
+        DependencyContainer.shared.vaultViewModel.clearOnSignOut()
         
         isLoading = false
     }
@@ -194,6 +201,9 @@ final class ProfileViewModel: ObservableObject {
         do {
             try await authService.deleteAccount()
             user = nil
+            healthProfile = nil
+            hasLoadedUserOnce = false
+            DependencyContainer.shared.vaultViewModel.clearOnSignOut()
             // Update auth state to trigger navigation back to auth screen
             await DependencyContainer.shared.authViewModel.signOut()
         } catch {

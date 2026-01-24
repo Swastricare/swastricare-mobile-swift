@@ -83,29 +83,13 @@ struct OneQuestionPerScreenOnboardingView: View {
                             PrimaryGoalQuestionView(formState: viewModel.formState)
                                 .tag(OnboardingQuestion.primaryGoal)
                             
-                            // Question 8: Tracking Preferences
-                            TrackingPreferencesQuestionView(formState: viewModel.formState)
-                                .tag(OnboardingQuestion.trackingPreferences)
-                            
-                            // Question 9: Activity Level
+                            // Question 8: Activity Level
                             ActivityLevelQuestionView(formState: viewModel.formState)
                                 .tag(OnboardingQuestion.activityLevel)
                             
-                            // Question 10: Sleep Duration
-                            SleepDurationQuestionView(formState: viewModel.formState)
-                                .tag(OnboardingQuestion.sleepDuration)
-                            
-                            // Question 11: Diet Type
-                            DietTypeQuestionView(formState: viewModel.formState)
-                                .tag(OnboardingQuestion.dietType)
-                            
-                            // Question 12: Water Intake
+                            // Question 9: Water Intake
                             WaterIntakeQuestionView(formState: viewModel.formState)
                                 .tag(OnboardingQuestion.waterIntake)
-                            
-                            // Question 13: Blood Group
-                            BloodGroupQuestionView(formState: viewModel.formState)
-                                .tag(OnboardingQuestion.bloodGroup)
                             
                         }
                         .tabViewStyle(.page(indexDisplayMode: .never))
@@ -138,7 +122,7 @@ struct OneQuestionPerScreenOnboardingView: View {
                         VStack {
                             Spacer()
                                Button(action: {
-                                   if viewModel.currentQuestion == .bloodGroup {
+                                   if viewModel.currentQuestion == .waterIntake {
                                        completeOnboarding()
                                    } else {
                                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -146,7 +130,7 @@ struct OneQuestionPerScreenOnboardingView: View {
                                        }
                                    }
                                }) {
-                                   Text(viewModel.currentQuestion == .bloodGroup ? "Complete Setup" : "Continue")
+                                   Text(viewModel.currentQuestion == .waterIntake ? "Complete Setup" : "Continue")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)

@@ -81,7 +81,6 @@ extension View {
 
 // MARK: - Premium Background
 struct PremiumBackground: View {
-    @State private var animate = false
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
@@ -91,30 +90,17 @@ struct PremiumBackground: View {
                 .ignoresSafeArea()
 
             if colorScheme == .dark {
-                // Dark theme orbs (softer glow)
-                orb(color: .blue, opacity: 0.1, size: 350, blur: 100,
-                    x1: -100, x2: 100, y1: -150, y2: -50, duration: 10)
-
-                orb(color: .purple, opacity: 0.1, size: 300, blur: 100,
-                    x1: 150, x2: -50, y1: 200, y2: 300, duration: 8)
-
-                orb(color: .cyan, opacity: 0.08, size: 200, blur: 80,
-                    x1: -100, x2: 150, y1: 100, y2: -200, duration: 12)
+                // Dark theme orbs (softer glow) - static positions
+                orb(color: .blue, opacity: 0.1, size: 350, blur: 100, x: -100, y: -150)
+                orb(color: .purple, opacity: 0.1, size: 300, blur: 100, x: 150, y: 200)
+                orb(color: .cyan, opacity: 0.08, size: 200, blur: 80, x: -100, y: 100)
 
             } else {
-                // Light theme orbs (very subtle)
-                orb(color: .blue, opacity: 0.04, size: 350, blur: 100,
-                    x1: -100, x2: 100, y1: -150, y2: -50, duration: 10)
-
-                orb(color: .purple, opacity: 0.04, size: 300, blur: 100,
-                    x1: 150, x2: -50, y1: 200, y2: 300, duration: 8)
-
-                orb(color: .cyan, opacity: 0.03, size: 200, blur: 80,
-                    x1: -100, x2: 150, y1: 100, y2: -200, duration: 12)
+                // Light theme orbs (very subtle) - static positions
+                orb(color: .blue, opacity: 0.04, size: 350, blur: 100, x: -100, y: -150)
+                orb(color: .purple, opacity: 0.04, size: 300, blur: 100, x: 150, y: 200)
+                orb(color: .cyan, opacity: 0.03, size: 200, blur: 80, x: -100, y: 100)
             }
-        }
-        .onAppear {
-            animate = true
         }
     }
 
@@ -124,25 +110,14 @@ struct PremiumBackground: View {
         opacity: Double,
         size: CGFloat,
         blur: CGFloat,
-        x1: CGFloat,
-        x2: CGFloat,
-        y1: CGFloat,
-        y2: CGFloat,
-        duration: Double
+        x: CGFloat,
+        y: CGFloat
     ) -> some View {
         Circle()
             .fill(color.opacity(opacity))
             .frame(width: size, height: size)
             .blur(radius: blur)
-            .offset(
-                x: animate ? x1 : x2,
-                y: animate ? y1 : y2
-            )
-            .animation(
-                .easeInOut(duration: duration)
-                    .repeatForever(autoreverses: true),
-                value: animate
-            )
+            .offset(x: x, y: y)
     }
 }
 

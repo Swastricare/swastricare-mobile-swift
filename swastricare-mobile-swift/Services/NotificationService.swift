@@ -664,6 +664,58 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         return requests.filter { $0.identifier.starts(with: "hydration_") }.count
     }
     
+    /// Get all pending reminders (hydration and medication)
+    func getAllPendingReminders() async -> [PendingReminder] {
+        let requests = await notificationCenter.pendingNotificationRequests()
+        var reminders: [PendingReminder] = []
+        
+        for request in requests {
+            let userInfo = request.content.userInfo
+            let type = userInfo["type"] as? String ?? "unknown"
+            
+            // Extract scheduled time
+            var scheduledTime: Date?
+            if let timeInterval = userInfo["scheduledTime"] as? TimeInterval {
+                scheduledTime = Date(timeIntervalSince1970: timeInterval)
+            } else if let timeInterval = userInfo["scheduled_time"] as? TimeInterval {
+                scheduledTime = Date(timeIntervalSince1970: timeInterval)
+            }
+            
+            // Get trigger date if available
+            if let trigger = request.trigger as? UNCalendarNotificationTrigger {
+                scheduledTime = trigger.nextTriggerDate()
+            } else if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
+                scheduledTime = trigger.nextTriggerDate()
+            }
+            
+            guard let time = scheduledTime, time > Date() else { continue }
+            
+            if type == "hydration_reminder" {
+                let remainingMl = userInfo["remainingMl"] as? Int ?? 0
+                reminders.append(PendingReminder(
+                    id: request.identifier,
+                    type: .hydration,
+                    title: request.content.title,
+                    body: request.content.body,
+                    scheduledTime: time
+                ))
+            } else if type == "medication_reminder" {
+                let medicationName = userInfo["medication_name"] as? String ?? "Medication"
+                reminders.append(PendingReminder(
+                    id: request.identifier,
+                    type: .medication,
+                    title: request.content.title,
+                    body: request.content.body,
+                    scheduledTime: time,
+                    medicationName: medicationName
+                ))
+            }
+        }
+        
+        // Sort by scheduled time
+        return reminders.sorted { $0.scheduledTime < $1.scheduledTime }
+    }
+    
     // MARK: - Notification Response Handler
     
     /// Handle user interaction with notification

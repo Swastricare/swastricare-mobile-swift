@@ -20,12 +20,8 @@ enum OnboardingQuestion: Int, CaseIterable {
     case height = 3
     case weight = 4
     case primaryGoal = 5
-    case trackingPreferences = 6
-    case activityLevel = 7
-    case sleepDuration = 8
-    case dietType = 9
-    case waterIntake = 10
-    case bloodGroup = 11
+    case activityLevel = 6
+    case waterIntake = 7
     
     var title: String {
         switch self {
@@ -35,12 +31,8 @@ enum OnboardingQuestion: Int, CaseIterable {
         case .height: return "How tall are you?"
         case .weight: return "What is your weight?"
         case .primaryGoal: return "What's your primary health goal?"
-        case .trackingPreferences: return "What would you like to track?"
         case .activityLevel: return "What's your activity level?"
-        case .sleepDuration: return "How many hours do you sleep?"
-        case .dietType: return "What's your diet type?"
         case .waterIntake: return "How much water do you drink daily?"
-        case .bloodGroup: return "What's your blood group?"
         }
     }
     
@@ -52,12 +44,8 @@ enum OnboardingQuestion: Int, CaseIterable {
         case .height: return "Select your height"
         case .weight: return "Select your weight"
         case .primaryGoal: return "Select your main health objective"
-        case .trackingPreferences: return "Select all that apply"
         case .activityLevel: return "How active are you daily?"
-        case .sleepDuration: return "Average hours of sleep per night"
-        case .dietType: return "Describe your eating habits"
         case .waterIntake: return "Daily water consumption"
-        case .bloodGroup: return "Optional but recommended"
         }
     }
 }
@@ -223,25 +211,15 @@ final class OneQuestionOnboardingViewModel: ObservableObject {
             return true // Has default value
         case .primaryGoal:
             return formState.primaryGoal != nil
-        case .trackingPreferences:
-            return !formState.trackingPreferences.isEmpty
         case .activityLevel:
             return formState.activityLevel != nil
-        case .sleepDuration:
-            return formState.sleepDuration != nil
-        case .dietType:
-            return formState.dietType != nil
         case .waterIntake:
             return formState.waterIntake != nil
-        case .bloodGroup:
-            return true // Optional
         }
     }
     
     var isOptionalQuestion: Bool {
         switch currentQuestion {
-        case .bloodGroup:
-            return true
         default:
             return false
         }

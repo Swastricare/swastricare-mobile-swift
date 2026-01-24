@@ -819,3 +819,45 @@ struct NotificationStats {
         }
     }
 }
+
+// MARK: - Pending Reminder
+
+struct PendingReminder: Identifiable {
+    let id: String
+    let type: ReminderType
+    let title: String
+    let body: String
+    let scheduledTime: Date
+    var medicationName: String?
+    
+    enum ReminderType {
+        case hydration
+        case medication
+        
+        var icon: String {
+            switch self {
+            case .hydration: return "drop.fill"
+            case .medication: return "pills.fill"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .hydration: return .cyan
+            case .medication: return .purple
+            }
+        }
+    }
+    
+    var formattedTime: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: scheduledTime)
+    }
+    
+    var relativeTime: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: scheduledTime, relativeTo: Date())
+    }
+}

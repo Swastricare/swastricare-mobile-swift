@@ -18,7 +18,6 @@ struct HomeViewV2: View {
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
-    @StateObject private var demoModeService = DemoModeService.shared
     @StateObject private var aiViewModel = DependencyContainer.shared.aiViewModel
     
     // MARK: - Local State
@@ -227,22 +226,6 @@ struct HomeViewV2: View {
             // Restart heartbeat with new rate when heart rate changes
             if hasAppeared {
                 startContinuousHeartbeat()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DemoModeDisabled"))) { _ in
-            viewModel.clearDemoData()
-            trackerViewModel.clearDemoData()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DemoModeToggled"))) { _ in
-            Task {
-                await viewModel.loadTodaysData()
-                await trackerViewModel.loadData()
-                await hydrationViewModel.loadData()
-                
-                // Regenerate suggestions after data refresh
-                Task.detached(priority: .background) {
-                    await generateHealthSuggestions()
-                }
             }
         }
         .refreshable {
@@ -1707,6 +1690,7 @@ private struct HydrationQuickActionCard: View {
     let dailyGoal: Int
     let hasAppeared: Bool
     
+    @Environment(\.colorScheme) private var colorScheme
     @State private var cardAppeared = false
     @State private var visualProgress: Double = 0.0
     @State private var wavePhase: Double = 0.0
@@ -1716,27 +1700,28 @@ private struct HydrationQuickActionCard: View {
         return min(1.0, Double(currentIntake) / Double(dailyGoal))
     }
     
+    private var isLight: Bool { colorScheme == .light }
+    private var textColor: Color { isLight ? .primary : .white }
+    private var textOpacity: Double { isLight ? 0.85 : 0.9 }
+    private var waveBackOpacity: Double { isLight ? 0.2 : 0.3 }
+    private var waveFrontOpacities: (Double, Double) { isLight ? (0.35, 0.35) : (0.6, 0.6) }
+    
     var body: some View {
         ZStack {
-            // Background & Water Animation
             GeometryReader { geo in
                 ZStack(alignment: .bottom) {
-                    // Base background
                     RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.cyan.opacity(0.1))
+                        .fill(Color.cyan.opacity(isLight ? 0.12 : 0.1))
                     
-                    // Water Waves
                     if visualProgress > 0.01 {
                         ZStack(alignment: .bottom) {
-                            // Back wave
                             WaterWaveShape(amplitude: geo.size.height * 0.04, offset: wavePhase)
-                                .fill(Color.cyan.opacity(0.3))
+                                .fill(Color.cyan.opacity(waveBackOpacity))
                                 .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
                             
-                            // Front wave
                             WaterWaveShape(amplitude: geo.size.height * 0.03, offset: wavePhase + 1.5)
                                 .fill(LinearGradient(
-                                    colors: [.cyan.opacity(0.6), .blue.opacity(0.6)],
+                                    colors: [.cyan.opacity(waveFrontOpacities.0), .blue.opacity(waveFrontOpacities.1)],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 ))
@@ -1752,35 +1737,35 @@ private struct HydrationQuickActionCard: View {
                 HStack {
                     Image(systemName: "drop.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(textColor.opacity(textOpacity))
                     
                     Spacer()
                     
                     Text("\(Int(visualProgress * 100))%")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(textColor.opacity(textOpacity))
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(currentIntake)")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(textColor)
                         
                         Text("/ \(dailyGoal) ml")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(textColor.opacity(isLight ? 0.75 : 0.8))
                     }
                     
                     Text("Hydration")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(textColor.opacity(textOpacity))
                 }
             }
             .padding(16)
         }
         .frame(height: 120)
-        .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+        .shadow(color: Color.blue.opacity(isLight ? 0.2 : 0.3), radius: 8, x: 0, y: 4)
         .opacity(cardAppeared ? 1 : 0)
         .scaleEffect(cardAppeared ? 1 : 0.95)
         .onChange(of: hasAppeared) { _, newValue in
@@ -1857,6 +1842,7 @@ private struct MedicationQuickActionCard: View {
     let totalCount: Int
     let hasAppeared: Bool
     
+    @Environment(\.colorScheme) private var colorScheme
     @State private var cardAppeared = false
     
     private var progress: Double {
@@ -1864,15 +1850,19 @@ private struct MedicationQuickActionCard: View {
         return min(1.0, Double(takenCount) / Double(totalCount))
     }
     
+    private var isLight: Bool { colorScheme == .light }
+    private var textColor: Color { isLight ? .primary : .white }
+    private var textOpacity: Double { isLight ? 0.85 : 0.9 }
+    private var gradientOpacity: Double { isLight ? 0.35 : 0.8 }
+    
     var body: some View {
         ZStack {
-            // Background gradient
             RoundedRectangle(cornerRadius: 24)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(hex: "AF52DE").opacity(0.8),
-                            Color(hex: "5856D6").opacity(0.8)
+                            Color(hex: "AF52DE").opacity(gradientOpacity),
+                            Color(hex: "5856D6").opacity(gradientOpacity)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -1884,35 +1874,35 @@ private struct MedicationQuickActionCard: View {
                 HStack {
                     Image(systemName: "pills.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(textColor.opacity(textOpacity))
                     
                     Spacer()
                     
                     Text("\(Int(progress * 100))%")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(textColor.opacity(textOpacity))
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(takenCount)")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(textColor)
                         
                         Text("/ \(totalCount)")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(textColor.opacity(isLight ? 0.75 : 0.8))
                     }
                     
                     Text("Medication")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(textColor.opacity(textOpacity))
                 }
             }
             .padding(16)
         }
         .frame(height: 120)
-        .shadow(color: Color.purple.opacity(0.3), radius: 8, x: 0, y: 4)
+        .shadow(color: Color.purple.opacity(isLight ? 0.2 : 0.3), radius: 8, x: 0, y: 4)
         .opacity(cardAppeared ? 1 : 0)
         .scaleEffect(cardAppeared ? 1 : 0.95)
         .onChange(of: hasAppeared) { _, newValue in

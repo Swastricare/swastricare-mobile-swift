@@ -17,7 +17,6 @@ struct HomeView: View {
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
-    @StateObject private var demoModeService = DemoModeService.shared
     
     // MARK: - Local State
     
@@ -29,6 +28,7 @@ struct HomeView: View {
     @State private var quickActionsVisible = false
     @State private var trackerVisible = false
     @State private var showHeartRateMeasurement = false
+    @State private var showReminders = false
     
     // MARK: - Computed Properties
     
@@ -116,17 +116,13 @@ struct HomeView: View {
                         userName: userName,
                         userPhotoURL: authViewModel.userPhotoURL,
                         status: healthStatus,
-                        greeting: timeBasedGreeting
+                        greeting: timeBasedGreeting,
+                        showReminders: $showReminders
                     )
                     .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
                     
-                    // Demo Mode Banner
-                    if demoModeService.isDemoModeEnabled {
-                        demoModeBanner
-                    }
-                    
                     // Health Authorization Banner
-                    if !viewModel.isAuthorized && !viewModel.hasRequestedAuth && !demoModeService.isDemoModeEnabled {
+                    if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
                         authorizationBanner
                     }
                     
@@ -162,6 +158,9 @@ struct HomeView: View {
                 HeartRateView()
             }
         }
+        .sheet(isPresented: $showReminders) {
+            RemindersView()
+        }
         .onAppear {
             // Haptic feedback when opening vitals screen
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -176,7 +175,7 @@ struct HomeView: View {
             // Animate 3D model
             withAnimation(.easeOut(duration: 1.0).delay(0.2)) {
                 modelOpacity = 0.8
-                modelScale = 1.40 // Zoomed in (was 1.0)
+                modelScale = 1.20 // Reduced size
             }
         }
         .task {
@@ -184,19 +183,6 @@ struct HomeView: View {
             await trackerViewModel.loadData()
             await hydrationViewModel.loadData()
             await medicationViewModel.loadMedications()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DemoModeDisabled"))) { _ in
-            // Clear demo data when demo mode is disabled
-            viewModel.clearDemoData()
-            trackerViewModel.clearDemoData()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DemoModeToggled"))) { _ in
-            // Refresh data when demo mode is toggled
-            Task {
-                await viewModel.loadTodaysData()
-                await trackerViewModel.loadData()
-                await hydrationViewModel.loadData()
-            }
         }
         .refreshable {
             await viewModel.refresh()
@@ -215,29 +201,16 @@ struct HomeView: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 
-                // 3. Ambient Glow behind the model
-                RadialGradient(
-                    gradient: Gradient(colors: [
-                        Color(hex: "2E3192").opacity(0.3), // Brand Blue Glow
-                        Color.clear
-                    ]),
-                    center: .trailing, // Center glow on the right side
-                    startRadius: 50,
-                    endRadius: 250
-                )
-                .offset(x: 50, y: 0) // Shift slightly right
-                .opacity(hasAppeared ? 1 : 0)
-                .animation(.easeIn(duration: 1.0), value: hasAppeared)
-
+              
                 // Human Body 3D Model on the right
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 380) // Slightly taller
+                        .frame(height: 340) // Reduced height
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
                         .offset(x: geometry.size.width * 0.16)
-                        .offset(y: geometry.size.height * 0.15) // Adjusted vertical offset
+                        .offset(y: geometry.size.height * 0.0) // Moved upward
                         .allowsHitTesting(false) // Disable all touch interactions
                         .clipped()
                         .mask(
@@ -260,10 +233,10 @@ struct HomeView: View {
                 }
                 
                 // Daily Activity Details on the left (without card)
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 12) {
                     
                     // Stats List - Vertical
-                    VStack(alignment: .leading, spacing: 12) { // Tighter spacing for cards
+                    VStack(alignment: .leading, spacing: 10) { // Tighter spacing for cards
                         DailyActivityStatItem(
                             icon: "flame.fill",
                             color: .orange,
@@ -302,44 +275,12 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal, 20)
+                // .padding(.top, -10) // Move metrics upward
                 .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading) // Give slightly more space to stats
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: hasAppeared)
             }
         }
-        .frame(height: 380) // Match model height
-    }
-    
-    private var demoModeBanner: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: "eye.fill")
-                    .font(.title2)
-                    .foregroundColor(.orange)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Demo Mode Active")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    Text("Showing sample health data. Enable HealthKit access in Settings to use real data.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.leading)
-                }
-                
-                Spacer()
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.orange.opacity(0.1))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-        )
-        .padding(.horizontal)
+        .frame(height: 320) // Reduced height to match model
     }
     
     private var authorizationBanner: some View {
@@ -719,6 +660,7 @@ struct HomeView: View {
         let userPhotoURL: URL?
         let status: HealthStatus
         let greeting: String
+        @Binding var showReminders: Bool
         
         @State private var isPulsing = false
         
@@ -762,10 +704,12 @@ struct HomeView: View {
                 // Right: Actions
                 HStack(spacing: 16) {
                     // Notification Bell
-                    Button(action: {}) {
+                    Button(action: {
+                        showReminders = true
+                    }) {
                         Image(systemName: "bell.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     }
                     
                     // Profile Image
@@ -856,10 +800,10 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
                 ZStack {
                     Circle()
                         .fill(color.opacity(0.2))
-                        .frame(width: 40, height: 40)
+                        .frame(width: 35, height: 35)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(color)
                 }
                 
@@ -878,14 +822,14 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white.opacity(0.05)) // Subtle glass effect
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-            )
+            // .background(
+            //     RoundedRectangle(cornerRadius: 16)
+            //         .fill(Color.white.opacity(0.05)) // Subtle glass effect
+            // )
+            // .overlay(
+            //     RoundedRectangle(cornerRadius: 16)
+            //         .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            // )
             .opacity(hasAppeared ? 1 : 0)
             .offset(x: hasAppeared ? 0 : -20)
             .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(animationDelay), value: hasAppeared)
@@ -922,6 +866,15 @@ private struct VitalCard: View {
     var showCameraBadge: Bool = false
     
     @State private var cardAppeared = false
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? Color.gray.opacity(0.05) : Color.gray.opacity(0.05)
+    }
+    
+    private var cardBorderColor: Color {
+        colorScheme == .dark ? Color.gray.opacity(0.1) : Color.gray.opacity(0.1)
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -946,7 +899,7 @@ private struct VitalCard: View {
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                         .padding(5)
-                        .background(Color.white.opacity(0.1))
+                        .background(cardBackgroundColor)
                         .clipShape(Circle())
                         .opacity(cardAppeared ? 1 : 0)
                 }
@@ -1037,6 +990,8 @@ private struct HydrationQuickActionButton: View {
     let dailyGoal: Int
     let action: () -> Void
     
+    @Environment(\.colorScheme) private var colorScheme
+    
     // Start at 1.0 (100%)
     @State private var visualProgress: Double = 1.0
     @State private var wavePhase: Double = 0.0
@@ -1046,6 +1001,14 @@ private struct HydrationQuickActionButton: View {
         return min(1.0, Double(currentIntake) / Double(dailyGoal))
     }
     
+    private var isLight: Bool { colorScheme == .light }
+    private var textColor: Color { isLight ? .primary : .white }
+    private var secondaryTextOpacity: Double { isLight ? 0.75 : 0.9 }
+    private var tertiaryTextOpacity: Double { isLight ? 0.6 : 0.7 }
+    private var iconCircleFill: Color { isLight ? Color.primary.opacity(0.12) : Color.white.opacity(0.2) }
+    private var waveBackOpacity: Double { isLight ? 0.2 : 0.3 }
+    private var waveFrontOpacities: (Double, Double) { isLight ? (0.35, 0.35) : (0.6, 0.6) }
+    
     var body: some View {
         Button(action: action) {
             ZStack {
@@ -1054,30 +1017,28 @@ private struct HydrationQuickActionButton: View {
                     ZStack(alignment: .bottom) {
                         // Base background
                         RoundedRectangle(cornerRadius: 24)
-                            .fill(Color.blue.opacity(0.05))
+                            .fill(Color.blue.opacity(isLight ? 0.08 : 0.05))
                         
-                        // Water Waves
-                        // We control the height of the water view directly via frame height
-                        // This ensures smooth height animation without cross-fading
+                        // Water Waves — same geometry as Medication card (RoundedRectangle, bottom-aligned fill)
                         if visualProgress > 0.01 {
-                            ZStack(alignment: .bottom) {
-                                // Back wave
-                                WaterWave(amplitude: geo.size.height * 0.04, offset: wavePhase)
-                                    .fill(Color.cyan.opacity(0.3))
-                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                            let waveHeight = max(geo.size.height * visualProgress, geo.size.height * 0.05)
+                            let amp = min(geo.size.height * 0.04, waveHeight * 0.45)
+                            let ampFront = min(geo.size.height * 0.03, waveHeight * 0.35)
+                            ZStack {
+                                WaterWave(amplitude: amp, offset: wavePhase)
+                                    .fill(Color.cyan.opacity(waveBackOpacity))
+                                    .frame(height: waveHeight)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                                 
-                                // Front wave
-                                WaterWave(amplitude: geo.size.height * 0.03, offset: wavePhase + 1.5)
+                                WaterWave(amplitude: ampFront, offset: wavePhase + 1.5)
                                     .fill(LinearGradient(
-                                        colors: [.cyan.opacity(0.6), .blue.opacity(0.6)],
+                                        colors: [.cyan.opacity(waveFrontOpacities.0), .blue.opacity(waveFrontOpacities.1)],
                                         startPoint: .top,
                                         endPoint: .bottom
                                     ))
-                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                    .frame(height: waveHeight)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                             }
-                            // Mask the waves to strictly stay within the card bounds
-                            .mask(RoundedRectangle(cornerRadius: 24))
-                            // Clip the water to the rounded corners of the card
                             .clipShape(RoundedRectangle(cornerRadius: 24))
                         }
                     }
@@ -1086,23 +1047,21 @@ private struct HydrationQuickActionButton: View {
                 // Content Overlay
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .top) {
-                        // Icon
                         ZStack {
                             Circle()
-                                .fill(Color.white.opacity(0.2))
+                                .fill(iconCircleFill)
                                 .frame(width: 44, height: 44)
                             Image(systemName: "drop.fill")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(textColor)
                         }
                         
                         Spacer()
                         
-                        // Percentage
                         Text("\(Int(visualProgress * 100))%")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                            .foregroundColor(textColor)
+                            .shadow(color: (isLight ? Color.clear : Color.black).opacity(0.1), radius: 2, x: 0, y: 1)
                             .contentTransition(.numericText(value: visualProgress))
                     }
                     
@@ -1112,32 +1071,28 @@ private struct HydrationQuickActionButton: View {
                         Text("Hydration")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(textColor.opacity(secondaryTextOpacity))
                         
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text("\(currentIntake)")
                                 .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundColor(textColor)
                             Text("/ \(dailyGoal) ml")
                                 .font(.footnote)
                                 .fontWeight(.medium)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(textColor.opacity(tertiaryTextOpacity))
                         }
                     }
                 }
                 .padding(20)
-                
-                // Glass border
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(LinearGradient(
-                        colors: [.white.opacity(0.5), .white.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ), lineWidth: 1)
             }
             .frame(height: 150)
             .frame(maxWidth: .infinity)
-            .shadow(color: Color.blue.opacity(0.15), radius: 10, x: 0, y: 5)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            )
+            .shadow(color: Color.blue.opacity(isLight ? 0.12 : 0.15), radius: 10, x: 0, y: 5)
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {
@@ -1167,6 +1122,8 @@ private struct MedicationQuickActionButton: View {
     let totalCount: Int
     let action: () -> Void
     
+    @Environment(\.colorScheme) private var colorScheme
+    
     // Start at 0%
     @State private var visualProgress: Double = 0.0
     
@@ -1175,47 +1132,48 @@ private struct MedicationQuickActionButton: View {
         return min(1.0, Double(takenCount) / Double(totalCount))
     }
     
+    private var isLight: Bool { colorScheme == .light }
+    private var textColor: Color { isLight ? .primary : .white }
+    private var secondaryTextOpacity: Double { isLight ? 0.75 : 0.9 }
+    private var tertiaryTextOpacity: Double { isLight ? 0.6 : 0.7 }
+    private var iconCircleFill: Color { isLight ? Color.primary.opacity(0.12) : Color.white.opacity(0.2) }
+    private var liquidOpacity: Double { isLight ? 0.35 : 0.6 }
+    private var bubblesColor: Color { isLight ? Color.primary.opacity(0.2) : Color.white.opacity(0.3) }
+    
     var body: some View {
         Button(action: action) {
             ZStack {
                 // Background & "Potion" Animation
                 GeometryReader { geo in
                     ZStack(alignment: .bottom) {
-                        // Base background
                         RoundedRectangle(cornerRadius: 24)
-                            .fill(Color(hex: "5856D6").opacity(0.05)) // Indigo base
+                            .fill(Color(hex: "5856D6").opacity(isLight ? 0.08 : 0.05))
                         
-                        // Liquid Fill
                         if visualProgress > 0.01 {
                             ZStack {
-                                // Gradient Fill
                                 RoundedRectangle(cornerRadius: 24)
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color(hex: "AF52DE").opacity(0.6), // Purple
-                                                Color(hex: "5856D6").opacity(0.6)  // Indigo
+                                                Color(hex: "AF52DE").opacity(liquidOpacity),
+                                                Color(hex: "5856D6").opacity(liquidOpacity)
                                             ],
                                             startPoint: .top,
                                             endPoint: .bottom
                                         )
                                     )
-                                    // Height from bottom
                                     .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
                                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                                 
-                                // Bubbles Effect (Only visible inside the filled area)
-                                RisingBubblesEffect(color: .white.opacity(0.3))
+                                RisingBubblesEffect(color: bubblesColor)
                                     .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
                                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                                    // Mask to liquid area
                                     .mask(
                                         RoundedRectangle(cornerRadius: 24)
                                             .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
                                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                                     )
                             }
-                            // Clip to card
                             .clipShape(RoundedRectangle(cornerRadius: 24))
                         }
                     }
@@ -1224,23 +1182,21 @@ private struct MedicationQuickActionButton: View {
                 // Content Overlay
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .top) {
-                        // Icon
                         ZStack {
                             Circle()
-                                .fill(Color.white.opacity(0.2))
+                                .fill(iconCircleFill)
                                 .frame(width: 44, height: 44)
                             Image(systemName: "pills.fill")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(textColor)
                         }
                         
                         Spacer()
                         
-                        // Percentage
                         Text("\(Int(visualProgress * 100))%")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                            .foregroundColor(textColor)
+                            .shadow(color: (isLight ? Color.clear : Color.black).opacity(0.1), radius: 2, x: 0, y: 1)
                             .contentTransition(.numericText(value: visualProgress))
                     }
                     
@@ -1250,32 +1206,28 @@ private struct MedicationQuickActionButton: View {
                         Text("Medications")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(textColor.opacity(secondaryTextOpacity))
                         
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text("\(takenCount)")
                                 .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundColor(textColor)
                             Text("/ \(totalCount) taken")
                                 .font(.footnote)
                                 .fontWeight(.medium)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(textColor.opacity(tertiaryTextOpacity))
                         }
                     }
                 }
                 .padding(20)
-                
-                // Glass border
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(LinearGradient(
-                        colors: [.white.opacity(0.5), .white.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ), lineWidth: 1)
             }
             .frame(height: 150)
             .frame(maxWidth: .infinity)
-            .shadow(color: Color(hex: "5856D6").opacity(0.15), radius: 10, x: 0, y: 5)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            )
+            .shadow(color: Color(hex: "5856D6").opacity(isLight ? 0.12 : 0.15), radius: 10, x: 0, y: 5)
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {
@@ -1571,36 +1523,70 @@ struct WaterWave: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         
-        // We draw the wave relative to the top of the rect (y=0)
-        // The wave oscillates around y=0.
-        // Points with negative y will be drawn above the top edge (which is fine)
-        
         let width = rect.width
         let height = rect.height
         
-        // Start at left edge
-        // Start the path from a point high enough to accommodate the wave's peak (amplitude)
-        // But since we are filling DOWN, we actually want the wave line to be at y=0, and we fill everything below it.
-        // The frame height determines how much "water" is visible.
-        // The wave should oscillate around y=0.
+        // Wave oscillates around y = amplitude so it stays in [0, 2*amplitude], avoiding top cut-off.
+        let cap = min(amplitude, height / 2)
         
-        path.move(to: CGPoint(x: 0, y: 0)) // Start at top-left
+        path.move(to: CGPoint(x: 0, y: cap * (1 + sin(offset))))
         
         for x in stride(from: 0, to: width, by: 2) {
             let relativeX = x / width
-            // 2 * pi for one full cycle across width
             let angle = relativeX * .pi * 2 + offset
-            let y = sin(angle) * amplitude
-            
-            // We draw the line. y values > 0 go down into the rect. y < 0 go up (outside rect).
-            // This is correct behavior for a top-edge wave.
+            let y = cap * (1 + sin(angle))
             path.addLine(to: CGPoint(x: x, y: y))
         }
         
-        // Close the shape at the bottom
-        // Extend far down to ensure we cover the area even if the frame is slightly mismatched or during animation
-        path.addLine(to: CGPoint(x: width, y: height + amplitude)) 
-        path.addLine(to: CGPoint(x: 0, y: height + amplitude))
+        path.addLine(to: CGPoint(x: width, y: height + cap))
+        path.addLine(to: CGPoint(x: 0, y: height + cap))
+        path.closeSubpath()
+        
+        return path
+    }
+}
+
+// MARK: - Bottom Rounded Rectangle Shape
+
+struct BottomRoundedRectangle: Shape {
+    var cornerRadius: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let radius = min(cornerRadius, rect.height / 2, rect.width / 2)
+        
+        // Start from top-left (sharp corner)
+        path.move(to: CGPoint(x: 0, y: 0))
+        
+        // Line to top-right (sharp corner)
+        path.addLine(to: CGPoint(x: rect.width, y: 0))
+        
+        // Line to top of bottom-right rounded corner
+        path.addLine(to: CGPoint(x: rect.width, y: rect.height - radius))
+        
+        // Bottom-right rounded corner
+        path.addArc(
+            center: CGPoint(x: rect.width - radius, y: rect.height - radius),
+            radius: radius,
+            startAngle: .zero,
+            endAngle: .degrees(90),
+            clockwise: false
+        )
+        
+        // Line to top of bottom-left rounded corner
+        path.addLine(to: CGPoint(x: radius, y: rect.height))
+        
+        // Bottom-left rounded corner
+        path.addArc(
+            center: CGPoint(x: radius, y: rect.height - radius),
+            radius: radius,
+            startAngle: .degrees(90),
+            endAngle: .degrees(180),
+            clockwise: false
+        )
+        
+        // Close path back to start
+        path.addLine(to: CGPoint(x: 0, y: 0))
         path.closeSubpath()
         
         return path
