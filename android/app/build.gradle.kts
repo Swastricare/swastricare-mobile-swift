@@ -77,6 +77,9 @@ dependencies {
     implementation("androidx.credentials:credentials:1.2.2")
     implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
+    
+    // SceneView for 3D rendering (wraps Filament with Compose support)
+    implementation("io.github.sceneview:sceneview:2.2.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

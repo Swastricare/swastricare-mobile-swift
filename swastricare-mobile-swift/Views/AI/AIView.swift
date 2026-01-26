@@ -8,6 +8,8 @@
 import SwiftUI
 import UIKit
 import SceneKit
+import Combine
+import PhotosUI
 
 struct AIView: View {
     
@@ -22,6 +24,31 @@ struct AIView: View {
     @State private var showEmptyState = false
     @State private var sendButtonScale: CGFloat = 1.0
     @StateObject private var speechManager = SpeechManager.shared
+    @State private var isModeSwitching = false
+    
+    // MARK: - Image Picker State
+    
+    @State private var showImagePicker = false
+    @State private var showCamera = false
+    @State private var showImageSourceSheet = false
+    @State private var showImageTypeSheet = false
+    @State private var selectedImageType: MedicalImageAnalysisType = .general
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var capturedImage: UIImage?
+    @State private var useCamera = false  // Track user's source preference
+    
+    // MARK: - Toast State
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    @State private var toastIcon = ""
+    @State private var toastColor: Color = .blue
+    
+    // MARK: - Mode Switch Confirmation
+    @State private var showModeSwitchConfirmation = false
+    @State private var pendingModeSwitch: AIMode?
+    
+    // MARK: - First-time Tooltip
+    @State private var showModeTooltip = false
     
     // MARK: - Body
     
@@ -53,6 +80,77 @@ struct AIView: View {
                         }
                     }
                     
+                    // AI Mode Selector (center)
+                    ToolbarItem(placement: .principal) {
+                        Menu {
+                            ForEach(AIMode.allCases) { mode in
+                                Button(action: {
+                                    // Prevent switching if sheets are active
+                                    guard !viewModel.showMedicalDisclaimer,
+                                          !viewModel.showEmergencyAlert,
+                                          !showCamera,
+                                          !trackerViewModel.showAnalysisSheet else {
+                                        return
+                                    }
+                                    
+                                    // Prevent switching if already the current mode
+                                    guard mode != viewModel.selectedAIMode else {
+                                        return
+                                    }
+                                    
+                                    // Prevent rapid successive switches (debounce)
+                                    guard !isModeSwitching else {
+                                        return
+                                    }
+                                    
+                                    // If there are messages, show confirmation dialog
+                                    if !viewModel.messages.isEmpty {
+                                        pendingModeSwitch = mode
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                            showModeSwitchConfirmation = true
+                                        }
+                                        return
+                                    }
+                                    
+                                    // No messages, switch directly
+                                    performModeSwitch(to: mode)
+                                }) {
+                                    Label {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(mode.displayName)
+                                            Text(mode.description)
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    } icon: {
+                                        Image(systemName: mode.icon)
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: viewModel.selectedAIMode.icon)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                                    .symbolEffect(.bounce, value: viewModel.selectedAIMode)
+                                Text(viewModel.selectedAIMode.displayName)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B").opacity(0.1) : Color(hex: "2E3192").opacity(0.1))
+                            )
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
+                        }
+                        .disabled(viewModel.showMedicalDisclaimer || viewModel.showEmergencyAlert || showCamera || trackerViewModel.showAnalysisSheet || isModeSwitching)
+                    }
+                    
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -74,10 +172,28 @@ struct AIView: View {
                     }
                 }
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+        // Only show alert for non-chat errors (like history loading failures)
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil && viewModel.currentErrorState == nil)) {
             Button("OK") { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
+        }
+        // Mode switch confirmation dialog
+        .alert("Switch Mode?", isPresented: $showModeSwitchConfirmation) {
+            Button("Cancel", role: .cancel) {
+                pendingModeSwitch = nil
+            }
+            Button("Clear & Switch", role: .destructive) {
+                if let mode = pendingModeSwitch {
+                    viewModel.clearChat()
+                    performModeSwitch(to: mode)
+                }
+                pendingModeSwitch = nil
+            }
+        } message: {
+            if let mode = pendingModeSwitch {
+                Text("Switching to \(mode.displayName) will clear your current conversation. Continue?")
+            }
         }
         .sheet(isPresented: $trackerViewModel.showAnalysisSheet) {
             AnalysisResultView(
@@ -90,6 +206,108 @@ struct AIView: View {
             set: { viewModel.showHistorySheet = $0 }
         )) {
             ConversationHistoryView(viewModel: viewModel)
+        }
+        // Medical Disclaimer Sheet
+        .sheet(isPresented: $viewModel.showMedicalDisclaimer) {
+            MedicalDisclaimerView(
+                onAcknowledge: {
+                    viewModel.acknowledgeMedicalDisclaimer()
+                },
+                onCancel: {
+                    viewModel.showMedicalDisclaimer = false
+                }
+            )
+            .presentationDetents([.large])
+        }
+        // Emergency Alert Sheet
+        .sheet(isPresented: $viewModel.showEmergencyAlert) {
+            EmergencyAlertView(
+                onDismiss: {
+                    viewModel.dismissEmergencyAlert()
+                },
+                onCallEmergency: {
+                    // Call emergency services
+                    if let url = URL(string: "tel://911") {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            )
+            .presentationDetents([.medium])
+        }
+        // Image Source Selection Sheet (Camera or Library)
+        .confirmationDialog("Choose Image Source", isPresented: $showImageSourceSheet, titleVisibility: .visible) {
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button("📷 Take Photo") {
+                    useCamera = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showImageTypeSheet = true
+                    }
+                }
+            }
+            Button("🖼️ Choose from Library") {
+                useCamera = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showImageTypeSheet = true
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        // Image Type Selection Sheet
+        .confirmationDialog("Select Document Type", isPresented: $showImageTypeSheet, titleVisibility: .visible) {
+            Button("📋 Prescription") {
+                selectedImageType = .prescription
+                openImageSource()
+            }
+            Button("🔬 Lab Report") {
+                selectedImageType = .labReport
+                openImageSource()
+            }
+            Button("📄 Medical Document") {
+                selectedImageType = .medicalDocument
+                openImageSource()
+            }
+            Button("🩻 X-Ray / Scan") {
+                selectedImageType = .xray
+                openImageSource()
+            }
+            Button("📷 Other Medical Image") {
+                selectedImageType = .general
+                openImageSource()
+            }
+            Button("Cancel", role: .cancel) {
+                useCamera = false
+            }
+        }
+        // Photo Picker
+        .photosPicker(
+            isPresented: $showImagePicker,
+            selection: $selectedPhotoItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            Task {
+                if let newItem = newItem,
+                   let data = try? await newItem.loadTransferable(type: Data.self) {
+                    viewModel.setSelectedImage(data)
+                    await viewModel.analyzeSelectedImage(type: selectedImageType)
+                    selectedPhotoItem = nil
+                }
+            }
+        }
+        // Camera Sheet
+        .sheet(isPresented: $showCamera) {
+            CameraImagePicker(image: $capturedImage, sourceType: .camera)
+                .ignoresSafeArea()
+        }
+        .onChange(of: capturedImage) { _, newImage in
+            if let image = newImage, let imageData = image.jpegData(compressionQuality: 0.8) {
+                viewModel.setSelectedImage(imageData)
+                Task {
+                    await viewModel.analyzeSelectedImage(type: selectedImageType)
+                }
+                capturedImage = nil
+            }
         }
         .task {
             await trackerViewModel.loadData()
@@ -108,7 +326,7 @@ struct AIView: View {
                 // Messages
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 16) {
+                        VStack(spacing: 16) {
                             if viewModel.messages.isEmpty {
                                 // Intro / Landing UI
                                 introView
@@ -116,9 +334,15 @@ struct AIView: View {
                                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                             } else {
                                 ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
-                                    ChatBubble(message: message)
-                                        .id(message.id)
-                                        .transition(
+                                    ChatBubble(
+                                        message: message,
+                                        loadingOperation: viewModel.currentLoadingOperation,
+                                        onFeedback: { feedback in
+                                            viewModel.submitFeedback(messageId: message.id, feedback: feedback)
+                                        }
+                                    )
+                                    .id(message.id)
+                                    .transition(
                                             .asymmetric(
                                                 insertion: .move(edge: message.isUser ? .trailing : .leading)
                                                     .combined(with: .opacity)
@@ -126,6 +350,23 @@ struct AIView: View {
                                                 removal: .opacity.combined(with: .scale(scale: 0.9))
                                             )
                                         )
+                                }
+                                
+                                // Inline error view
+                                if let errorState = viewModel.currentErrorState {
+                                    InlineErrorView(
+                                        errorState: errorState,
+                                        onRetry: {
+                                            Task { await viewModel.retryLastMessage() }
+                                        },
+                                        onSwitchMode: {
+                                            Task { await viewModel.switchToGeneralAndRetry() }
+                                        },
+                                        onDismiss: {
+                                            viewModel.dismissError()
+                                        }
+                                    )
+                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                                 }
                             }
                         }
@@ -145,11 +386,58 @@ struct AIView: View {
                 chatInputBar
             }
         }
+        .overlay(alignment: .top) {
+            // Toast notification
+            if showToast {
+                ToastView(message: toastMessage, icon: toastIcon, color: toastColor)
+                    .padding(.top, 60)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+            }
+            
+            // First-time mode selector tooltip
+            if showModeTooltip {
+                ModeTooltipView(onDismiss: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showModeTooltip = false
+                    }
+                    // Mark as seen
+                    UserDefaults.standard.set(true, forKey: "ai_mode_tooltip_seen")
+                })
+                .padding(.top, 50)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.8).combined(with: .opacity),
+                    removal: .opacity
+                ))
+            }
+        }
         .onAppear {
             // Trigger landing animation
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                     showEmptyState = true
+                }
+            }
+            // Check if we should show the tooltip
+            checkFirstTimeTooltip()
+        }
+    }
+    
+    private func checkFirstTimeTooltip() {
+        let tooltipSeen = UserDefaults.standard.bool(forKey: "ai_mode_tooltip_seen")
+        let visitCount = UserDefaults.standard.integer(forKey: "ai_view_visit_count")
+        
+        // Increment visit count
+        UserDefaults.standard.set(visitCount + 1, forKey: "ai_view_visit_count")
+        
+        // Show tooltip on first 2 visits if not dismissed
+        if !tooltipSeen && visitCount < 2 {
+            // Delay to let the view settle
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    showModeTooltip = true
                 }
             }
         }
@@ -275,16 +563,87 @@ struct AIView: View {
         }
     }
     
+    // MARK: - Image Source Helper
+    
+    private func openImageSource() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            if useCamera && UIImagePickerController.isSourceTypeAvailable(.camera) {
+                showCamera = true
+            } else {
+                // Fallback to library if camera not available (e.g., Simulator)
+                showImagePicker = true
+            }
+        }
+    }
+    
+    private func performModeSwitch(to mode: AIMode) {
+        isModeSwitching = true
+        
+        // Delay to allow menu/dialog to dismiss first
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                viewModel.selectedAIMode = mode
+            }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            
+            // Show toast notification
+            toastMessage = "Switched to \(mode.displayName)"
+            toastIcon = mode.icon
+            toastColor = mode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")
+            
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                showToast = true
+            }
+            
+            // Auto-hide toast after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    showToast = false
+                }
+            }
+            
+            // Reset debounce flag after animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                isModeSwitching = false
+            }
+        }
+    }
+    
     private var chatInputBar: some View {
         VStack(spacing: 12) {
+            // Medical disclaimer banner when in Medical Expert mode
+            if viewModel.selectedAIMode == .medical {
+                MedicalDisclaimerBanner()
+                    .padding(.horizontal, 16)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+            
             // Horizontal scrolling suggestions only on landing screen (when no messages)
             if viewModel.messages.isEmpty {
                 suggestionsScroll
             }
             
-            // Input field with mic button beside
-            HStack(alignment: .center, spacing: 12) {
-                // Text Field with send button inside
+            // Input field with mic and image buttons
+            HStack(alignment: .center, spacing: 8) {
+                // Image upload button
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    showImageSourceSheet = true
+                }) {
+                    Image(systemName: "doc.viewfinder")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(viewModel.isAnalyzingImage ? Color(hex: "2E3192") : .secondary)
+                        .padding(12)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+                        )
+                }
+                .disabled(viewModel.isAnalyzingImage)
+                
+                // Text Field with mic button inside
                 HStack(spacing: 8) {
                     TextField("Ask Swastri", text: $viewModel.inputText, axis: .vertical)
                         .font(.system(size: 15))
@@ -296,37 +655,58 @@ struct AIView: View {
                             }
                         }
                     
-                    // Send button inside the field - always shows arrow icon
+                    // Mic button inside the field
                     Button(action: {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        
-                        // Stop mic recording if active
-                        if speechManager.isRecording {
-                            speechManager.stopRecording()
-                        }
-                        
-                        // Animate button press
-                        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
-                            sendButtonScale = 0.8
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                                sendButtonScale = 1.0
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        Task {
+                            if speechManager.isRecording {
+                                speechManager.stopRecording()
+                            } else {
+                                do {
+                                    try await speechManager.startRecording()
+                                } catch {
+                                    print("Voice input error: \(error)")
+                                }
                             }
                         }
-                        
-                        // Send message and clear
-                        Task {
-                            await viewModel.sendMessage()
-                        }
-                        isInputFocused = false
                     }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 26))
-                            .foregroundColor(viewModel.canSend ? Color(hex: "2E3192") : .gray.opacity(0.3))
-                            .scaleEffect(sendButtonScale)
+                        ZStack {
+                            // Glow effect when recording
+                            if speechManager.isRecording {
+                                Circle()
+                                    .fill(
+                                        viewModel.selectedAIMode == .medical
+                                            ? Color(hex: "00A86B").opacity(0.3)
+                                            : Color(hex: "2E3192").opacity(0.3)
+                                    )
+                                    .frame(width: 34, height: 34)
+                                    .blur(radius: 4)
+                            }
+                            
+                            Image(systemName: speechManager.isRecording ? "stop.fill" : "mic.fill")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(
+                                    speechManager.isRecording
+                                        ? .white
+                                        : (viewModel.selectedAIMode == .medical
+                                            ? Color(hex: "00A86B")
+                                            : Color(hex: "2E3192"))
+                                )
+                                .padding(8)
+                                .background(
+                                    speechManager.isRecording
+                                        ? AnyShapeStyle(
+                                            viewModel.selectedAIMode == .medical
+                                                ? Color(hex: "00A86B")
+                                                : Color(hex: "2E3192")
+                                        )
+                                        : AnyShapeStyle(Color.clear)
+                                )
+                                .clipShape(Circle())
+                        }
                     }
-                    .disabled(!viewModel.canSend)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: speechManager.isRecording)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
                 }
                 .padding(.leading, 16)
                 .padding(.trailing, 8)
@@ -338,37 +718,61 @@ struct AIView: View {
                         .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
                 )
                 
-                // Mic button beside the field
+                // Send button beside the field
                 Button(action: {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    Task {
-                        if speechManager.isRecording {
-                            speechManager.stopRecording()
-                        } else {
-                            do {
-                                try await speechManager.startRecording()
-                            } catch {
-                                print("Voice input error: \(error)")
-                            }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    
+                    // Stop mic recording if active
+                    if speechManager.isRecording {
+                        speechManager.stopRecording()
+                    }
+                    
+                    // Animate button press
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+                        sendButtonScale = 0.8
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                            sendButtonScale = 1.0
                         }
                     }
+                    
+                    // Send message and clear
+                    Task {
+                        await viewModel.sendMessage()
+                    }
+                    isInputFocused = false
                 }) {
-                    Image(systemName: speechManager.isRecording ? "stop.fill" : "mic.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(speechManager.isRecording ? .white : .secondary)
-                        .padding(12)
-                        .background(speechManager.isRecording ? AnyShapeStyle(Color.red) : AnyShapeStyle(.ultraThinMaterial))
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color.primary.opacity(speechManager.isRecording ? 0 : 0.1), lineWidth: 0.5)
-                        )
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(viewModel.canSend ? Color(hex: "2E3192") : .gray.opacity(0.3))
+                        .scaleEffect(sendButtonScale)
                 }
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: speechManager.isRecording)
+                .disabled(!viewModel.canSend)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
+            
+            // Voice recording status badge
+            if speechManager.isRecording {
+                HStack(spacing: 6) {
+                    Image(systemName: viewModel.selectedAIMode.icon)
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Listening in \(viewModel.selectedAIMode.displayName) mode")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill((viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")).opacity(0.12))
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .padding(.bottom, 8)
+            }
         }
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
         .onChange(of: speechManager.isRecording) { _, isRecording in
             if !isRecording && !speechManager.recognizedText.isEmpty {
                 viewModel.inputText = speechManager.recognizedText
@@ -382,16 +786,23 @@ struct AIView: View {
 
 private struct ChatBubble: View {
     let message: ChatMessage
+    let loadingOperation: LoadingOperationType
+    let onFeedback: ((MessageFeedback) -> Void)?
     @State private var appeared = false
+    @State private var showFeedbackButtons = false
+    
+    init(message: ChatMessage, loadingOperation: LoadingOperationType, onFeedback: ((MessageFeedback) -> Void)? = nil) {
+        self.message = message
+        self.loadingOperation = loadingOperation
+        self.onFeedback = onFeedback
+    }
     
     var body: some View {
         VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
             if !message.isUser {
                 // AI Header with formatted timestamp
                 HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "2E3192"))
+                    MiniAIOrb(size: 14)
                     Text("Swastri")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.secondary)
@@ -406,21 +817,82 @@ private struct ChatBubble: View {
                 if message.isUser { Spacer(minLength: 40) }
                 
                 if message.isLoading {
-                    TypingIndicator()
+                    TypingIndicator(loadingOperation: loadingOperation)
                 } else {
-                    Text(message.content)
-                        .font(.system(size: 15))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(
-                            message.isUser
-                                ? Color(UIColor.secondarySystemBackground)
-                                : Color(UIColor.secondarySystemBackground)
-                        )
-                        .foregroundColor(.primary)
-                        .cornerRadius(16)
-                        .scaleEffect(appeared ? 1 : 0.5)
-                        .opacity(appeared ? 1 : 0)
+                    VStack(alignment: message.isUser ? .trailing : .leading, spacing: 6) {
+                        Text(message.content)
+                            .font(.system(size: 15))
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                message.isUser
+                                    ? Color(UIColor.secondarySystemBackground)
+                                    : Color(UIColor.secondarySystemBackground)
+                            )
+                            .foregroundColor(.primary)
+                            .cornerRadius(16)
+                            .scaleEffect(appeared ? 1 : 0.5)
+                            .opacity(appeared ? 1 : 0)
+                        
+                        HStack(spacing: 8) {
+                            // Mode badge for AI responses
+                            if !message.isUser, let mode = message.responseMode {
+                                HStack(spacing: 4) {
+                                    Image(systemName: mode.badgeIcon)
+                                        .font(.system(size: 9, weight: .semibold))
+                                    Text(mode.badgeText)
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                                .foregroundColor(Color(hex: mode.badgeColor))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(Color(hex: mode.badgeColor).opacity(0.12))
+                                )
+                                .scaleEffect(appeared ? 1 : 0.5)
+                                .opacity(appeared ? 1 : 0)
+                                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: appeared)
+                            }
+                            
+                            // Feedback buttons for AI responses
+                            if !message.isUser && !message.isLoading && onFeedback != nil {
+                                HStack(spacing: 6) {
+                                    Button(action: {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        onFeedback?(.helpful)
+                                    }) {
+                                        Image(systemName: message.userFeedback == .helpful ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(message.userFeedback == .helpful ? Color(hex: "00A86B") : .secondary)
+                                    }
+                                    
+                                    Button(action: {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        onFeedback?(.notHelpful)
+                                    }) {
+                                        Image(systemName: message.userFeedback == .notHelpful ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(message.userFeedback == .notHelpful ? .orange : .secondary)
+                                    }
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(Color(UIColor.tertiarySystemFill))
+                                )
+                                .scaleEffect(appeared ? 1 : 0.5)
+                                .opacity(appeared ? 1 : 0)
+                                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.25), value: appeared)
+                            }
+                        }
+                        .padding(.leading, 4)
+                    }
                 }
                 
                 if !message.isUser { Spacer(minLength: 40) }
@@ -471,22 +943,42 @@ private struct ChatBubble: View {
 // MARK: - Typing Indicator
 
 private struct TypingIndicator: View {
+    let loadingOperation: LoadingOperationType
     @State private var isAnimating = false
     
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .fill(Color.secondary.opacity(0.6))
-                    .frame(width: 8, height: 8)
-                    .scaleEffect(isAnimating ? 1.0 : 0.6)
-                    .opacity(isAnimating ? 1.0 : 0.4)
-                    .animation(
-                        .easeInOut(duration: 0.5)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(index) * 0.15),
-                        value: isAnimating
-                    )
+        HStack(spacing: 10) {
+            // Contextual icon
+            Image(systemName: loadingOperation.icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(loadingOperation == .medicalQuery ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                .scaleEffect(isAnimating ? 1.1 : 0.9)
+                .animation(
+                    .easeInOut(duration: 0.8)
+                        .repeatForever(autoreverses: true),
+                    value: isAnimating
+                )
+            
+            // Loading message
+            Text(loadingOperation.loadingMessage)
+                .font(.system(size: 14))
+                .foregroundColor(.secondary)
+            
+            // Animated dots
+            HStack(spacing: 4) {
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .fill(loadingOperation == .medicalQuery ? Color(hex: "00A86B").opacity(0.6) : Color(hex: "2E3192").opacity(0.6))
+                        .frame(width: 6, height: 6)
+                        .scaleEffect(isAnimating ? 1.0 : 0.5)
+                        .opacity(isAnimating ? 1.0 : 0.3)
+                        .animation(
+                            .easeInOut(duration: 0.5)
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(index) * 0.15),
+                            value: isAnimating
+                        )
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -501,14 +993,403 @@ private struct TypingIndicator: View {
     }
 }
 
-// MARK: - Animated Sparkle Icon
+// MARK: - Mode Selector Tooltip
+
+private struct ModeTooltipView: View {
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Arrow pointing up
+            Triangle()
+                .fill(Color(UIColor.systemBackground))
+                .frame(width: 20, height: 10)
+                .shadow(color: Color.black.opacity(0.1), radius: 2, y: -2)
+            
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundColor(.yellow)
+                    Text("Pro Tip")
+                        .font(.system(size: 14, weight: .bold))
+                    Spacer()
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Text("Tap here to switch between:")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(Color(hex: "2E3192"))
+                            .frame(width: 20)
+                        Text("Swastri Assistant")
+                            .font(.system(size: 13, weight: .medium))
+                        Text("- General wellness chat")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    HStack(spacing: 8) {
+                        Image(systemName: "stethoscope")
+                            .foregroundColor(Color(hex: "00A86B"))
+                            .frame(width: 20)
+                        Text("Medical Expert")
+                            .font(.system(size: 13, weight: .medium))
+                        Text("- Health information")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Button(action: onDismiss) {
+                    Text("Got it!")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color(hex: "2E3192"))
+                        .cornerRadius(8)
+                }
+                .padding(.top, 4)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(UIColor.systemBackground))
+                    .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
+            )
+        }
+        .frame(width: 280)
+    }
+}
+
+// Helper shape for tooltip arrow
+private struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - Toast View
+
+private struct ToastView: View {
+    let message: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(color)
+            
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+        )
+        .overlay(
+            Capsule()
+                .stroke(color.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Inline Error View
+
+private struct InlineErrorView: View {
+    let errorState: AIErrorState
+    let onRetry: () -> Void
+    let onSwitchMode: () -> Void
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(.orange)
+                
+                Text(errorState.message)
+                    .font(.system(size: 14))
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Spacer()
+                
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(6)
+                        .background(Color(UIColor.tertiarySystemFill))
+                        .clipShape(Circle())
+                }
+            }
+            
+            HStack(spacing: 12) {
+                if errorState.canRetry {
+                    Button(action: onRetry) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("Try Again")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color(hex: "2E3192"))
+                        .cornerRadius(8)
+                    }
+                }
+                
+                if errorState.canSwitchMode {
+                    Button(action: onSwitchMode) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("Use General Mode")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundColor(Color(hex: "2E3192"))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color(hex: "2E3192").opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.orange.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Ethereal AI Orb (Premium Fluid Design)
+
+private struct AIOrb: View {
+    let size: CGFloat
+    let showGlow: Bool
+    
+    // Animation States for 4 fluid blobs
+    @State private var offset1: CGSize = .zero
+    @State private var offset2: CGSize = .zero
+    @State private var offset3: CGSize = .zero
+    @State private var scale: CGFloat = 1.0
+    @State private var rotation: Double = 0
+    
+    init(size: CGFloat = 80, showGlow: Bool = true) {
+        self.size = size
+        self.showGlow = showGlow
+    }
+    
+    var body: some View {
+        ZStack {
+            // 1. Ambient Background Glow (The "Aura")
+            if showGlow {
+                Circle()
+                    .fill(Color(hex: "2E3192").opacity(0.25))
+                    .frame(width: size * 1.6, height: size * 1.6)
+                    .blur(radius: size * 0.3)
+                    .scaleEffect(scale)
+            }
+            
+            // 2. The Fluid Core Container
+            ZStack {
+                // Background Base
+                Circle()
+                    .fill(Color(hex: "0F1123")) // Deep dark void blue
+                    .frame(width: size, height: size)
+                
+                // Fluid Blob 1: Electric Blue (Main Mover)
+                FluidBlob(color: Color(hex: "4A90E2"), size: size * 0.8)
+                    .offset(offset1)
+                    .blur(radius: size * 0.2)
+                    .blendMode(.screen)
+                
+                // Fluid Blob 2: Vivid Purple (Contrast)
+                FluidBlob(color: Color(hex: "6B5CE7"), size: size * 0.7)
+                    .offset(offset2)
+                    .blur(radius: size * 0.2)
+                    .blendMode(.screen)
+                
+                // Fluid Blob 3: Bright Cyan (Highlight)
+                FluidBlob(color: Color(hex: "00F0FF"), size: size * 0.6)
+                    .offset(offset3)
+                    .blur(radius: size * 0.25)
+                    .blendMode(.overlay)
+                
+                // Fluid Blob 4: White/Blue Core (Center Energy)
+                Circle()
+                    .fill(Color.white.opacity(0.6))
+                    .frame(width: size * 0.3, height: size * 0.3)
+                    .blur(radius: size * 0.15)
+                    .blendMode(.overlay)
+                    .scaleEffect(scale)
+            }
+            .mask(Circle()) // Clip everything to a perfect circle
+            .overlay(
+                // Glass Reflection / Gloss
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.4), .white.opacity(0.05), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
+            .rotationEffect(.degrees(rotation))
+            
+            // 3. Subtle Inner Sparkles (Stars)
+            if showGlow {
+                ForEach(0..<3) { i in
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 2, height: 2)
+                        .offset(x: CGFloat.random(in: -size/3...size/3), y: CGFloat.random(in: -size/3...size/3))
+                        .opacity(Double.random(in: 0.3...0.8))
+                        .animation(
+                            .easeInOut(duration: Double.random(in: 1...3)).repeatForever(autoreverses: true),
+                            value: scale
+                        )
+                }
+            }
+        }
+        .onAppear {
+            startFluidAnimation()
+        }
+    }
+    
+    private func startFluidAnimation() {
+        // Blob 1 Motion (Elliptical)
+        withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
+            offset1 = CGSize(width: size * 0.15, height: -size * 0.1)
+        }
+        
+        // Blob 2 Motion (Opposite)
+        withAnimation(.easeInOut(duration: 5).repeatForever(autoreverses: true)) {
+            offset2 = CGSize(width: -size * 0.15, height: size * 0.15)
+        }
+        
+        // Blob 3 Motion (Wandering)
+        withAnimation(.easeInOut(duration: 3.5).repeatForever(autoreverses: true)) {
+            offset3 = CGSize(width: size * 0.1, height: size * 0.1)
+        }
+        
+        // Breathing Scale (Heartbeat)
+        withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+            scale = 1.1
+        }
+        
+        // Slow Rotation (Drifting)
+        withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
+            rotation = 360
+        }
+    }
+}
+
+// Helper view for blobs
+private struct FluidBlob: View {
+    let color: Color
+    let size: CGFloat
+    
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Mini Ethereal Orb (Chat Bubble)
+
+private struct MiniAIOrb: View {
+    let size: CGFloat
+    
+    @State private var rotation: Double = 0
+    @State private var pulse: CGFloat = 1.0
+    
+    init(size: CGFloat = 14) {
+        self.size = size
+    }
+    
+    var body: some View {
+        ZStack {
+            // Background
+            Circle()
+                .fill(Color(hex: "0F1123"))
+                .frame(width: size, height: size)
+            
+            // Spinning gradients
+            Circle()
+                .fill(
+                    AngularGradient(
+                        colors: [
+                            Color(hex: "4A90E2"),
+                            Color(hex: "6B5CE7"),
+                            Color(hex: "00F0FF"),
+                            Color(hex: "4A90E2")
+                        ],
+                        center: .center
+                    )
+                )
+                .frame(width: size, height: size)
+                .rotationEffect(.degrees(rotation))
+                .blur(radius: size * 0.3)
+            
+            // Core highlight
+            Circle()
+                .fill(Color.white.opacity(0.8))
+                .frame(width: size * 0.4, height: size * 0.4)
+                .blur(radius: size * 0.2)
+                .scaleEffect(pulse)
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                pulse = 1.2
+            }
+        }
+    }
+}
+
+// MARK: - Animated Sparkle Icon (Legacy)
 
 private struct AnimatedSparkleIcon: View {
     @State private var isAnimating = false
     
     var body: some View {
         ZStack {
-            // Glow effect - using simple circle with opacity
             Circle()
                 .fill(Color(hex: "2E3192").opacity(0.15))
                 .frame(width: 100, height: 100)
@@ -520,7 +1401,6 @@ private struct AnimatedSparkleIcon: View {
                     value: isAnimating
                 )
             
-            // Main icon
             Image(systemName: "sparkles")
                 .font(.system(size: 50))
                 .foregroundColor(Color(hex: "2E3192"))
@@ -1093,6 +1973,48 @@ private struct ParticleOrbView: UIViewRepresentable {
 #Preview {
     NavigationStack {
         AIView()
+    }
+}
+
+// MARK: - Camera Image Picker
+
+struct CameraImagePicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    @Environment(\.dismiss) private var dismiss
+    
+    var sourceType: UIImagePickerController.SourceType = .camera
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = sourceType
+        picker.allowsEditing = false
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: CameraImagePicker
+        
+        init(_ parent: CameraImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.image = image
+            }
+            parent.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
 }
 

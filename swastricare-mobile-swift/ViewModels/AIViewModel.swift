@@ -22,11 +22,58 @@ final class AIViewModel: ObservableObject {
     @Published private(set) var conversations: [ConversationSummary] = []
     @Published private(set) var isLoadingConversations = false
     
+    // MARK: - AI Mode Selection
+    
+    @Published var selectedAIMode: AIMode = .general {
+        didSet {
+            // Persist mode selection
+            UserDefaults.standard.set(selectedAIMode.rawValue, forKey: "ai_selected_mode")
+        }
+    }
+    
+    // MARK: - MedGemma State
+    
+    @Published private(set) var lastResponseModel: String = "gemini"
+    @Published private(set) var lastResponseWasMedical: Bool = false
+    @Published var showEmergencyAlert: Bool = false
+    @Published var showMedicalDisclaimer: Bool = false
+    @Published var hasAcknowledgedMedicalDisclaimer: Bool = false
+    @Published private(set) var selectedImage: Data?
+    @Published private(set) var isAnalyzingImage: Bool = false
+    @Published private(set) var currentLoadingOperation: LoadingOperationType = .generalChat
+    @Published private(set) var currentErrorState: AIErrorState?
+    @Published private(set) var lastFailedMessage: String?
+    
     // MARK: - Computed Properties
     
     var isBusy: Bool { chatState.isBusy }
     var hasMessages: Bool { !messages.isEmpty }
     var canSend: Bool { !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !chatState.isBusy }
+    var isMedicalMode: Bool { selectedAIMode == .medical || lastResponseWasMedical }
+    
+    // MARK: - Medical Keywords Detection
+    
+    private static let medicalKeywords: Set<String> = [
+        // Symptoms
+        "symptom", "pain", "ache", "hurt", "sore", "fever", "nausea", "dizzy", "fatigue",
+        "headache", "migraine", "cough", "cold", "flu", "infection", "swelling", "rash",
+        "bleeding", "vomiting", "diarrhea", "constipation", "cramp", "numbness", "tingling",
+        // Medical terms
+        "medication", "medicine", "drug", "prescription", "dose", "dosage", "side effect",
+        "diagnosis", "condition", "disease", "illness", "disorder", "syndrome",
+        "treatment", "therapy", "surgery", "procedure", "test", "scan", "x-ray", "mri",
+        // Healthcare
+        "doctor", "physician", "hospital", "clinic", "specialist",
+        // Conditions
+        "diabetes", "hypertension", "asthma", "allergy", "arthritis", "cancer",
+        "depression", "anxiety", "insomnia", "anemia", "thyroid"
+    ]
+    
+    private static let emergencyKeywords: Set<String> = [
+        "chest pain", "heart attack", "stroke", "cant breathe", "cannot breathe",
+        "difficulty breathing", "unconscious", "seizure", "severe bleeding",
+        "overdose", "suicide", "suicidal", "dying", "emergency"
+    ]
     
     // MARK: - Dependencies
     
@@ -43,6 +90,12 @@ final class AIViewModel: ObservableObject {
          healthService: HealthKitServiceProtocol = HealthKitService.shared) {
         self.aiService = aiService
         self.healthService = healthService
+        
+        // Restore saved AI mode preference
+        if let savedMode = UserDefaults.standard.string(forKey: "ai_selected_mode"),
+           let mode = AIMode(rawValue: savedMode) {
+            self.selectedAIMode = mode
+        }
     }
     
     // MARK: - Lifecycle
@@ -82,6 +135,19 @@ final class AIViewModel: ObservableObject {
             shouldLoadHistory = true
         }
         
+        // Check for emergency before proceeding
+        if isEmergencyMessage(text) {
+            showEmergencyAlert = true
+            // Still proceed with the message but flag it
+        }
+        
+        // Check if medical disclaimer needed when in medical mode (first time)
+        if selectedAIMode == .medical && !hasAcknowledgedMedicalDisclaimer {
+            showMedicalDisclaimer = true
+            // Store input and wait for acknowledgment
+            return
+        }
+        
         // Add user message
         let userMessage = ChatMessage.userMessage(text)
         messages.append(userMessage)
@@ -91,6 +157,8 @@ final class AIViewModel: ObservableObject {
         let loadingMessage = ChatMessage.loadingMessage()
         messages.append(loadingMessage)
         
+        // Set loading operation type based on mode
+        currentLoadingOperation = selectedAIMode == .medical ? .medicalQuery : .generalChat
         chatState = .sending
         
         do {
@@ -98,11 +166,42 @@ final class AIViewModel: ObservableObject {
             let history = await healthService.fetchHealthMetricsHistory(days: 7)
             let systemContext = formatHealthHistoryForChat(history)
             
-            let response = try await aiService.sendChatMessage(text, context: messages.dropLast(), systemContext: systemContext)
+            let response: String
             
-            // Remove loading message and add response
+            // Route based on selected AI mode
+            switch selectedAIMode {
+            case .general:
+                // Use general chat (Gemini)
+                print("🤖 AI Mode: General (Swastri Assistant)")
+                response = try await aiService.sendChatMessage(text, context: Array(messages.dropLast()), systemContext: systemContext)
+                lastResponseModel = "gemini"
+                lastResponseWasMedical = false
+                
+            case .medical:
+                // TEMPORARY: Use ai-chat with medical prompt until medgemma-chat is fixed
+                print("🏥 AI Mode: Medical Expert (using ai-chat temporarily)")
+                
+                // Build medical-specific system context
+                var medicalContext = """
+                You are Swastrica Medical AI, a health assistant by Swastricare (Onwords). Provide accurate medical information with these guidelines:
+                - Always recommend consulting healthcare professionals
+                - Flag emergency symptoms immediately
+                - Use clear, empathetic language
+                - Never prescribe medications or dosages
+                - Include appropriate disclaimers
+                
+                """
+                medicalContext += systemContext
+                
+                response = try await aiService.sendChatMessage(text, context: Array(messages.dropLast()), systemContext: medicalContext)
+                lastResponseModel = "gemini-medical"
+                lastResponseWasMedical = true
+            }
+            
+            // Remove loading message and add response with mode badge
             messages.removeLast()
-            messages.append(ChatMessage.assistantMessage(response))
+            let responseMode: AIResponseMode = selectedAIMode == .medical ? .medical : .general
+            messages.append(ChatMessage.assistantMessage(response, mode: responseMode))
             chatState = .idle
             
             // Save chat history
@@ -183,9 +282,64 @@ final class AIViewModel: ObservableObject {
                 print("❌ Failed to save chat history: \(error.localizedDescription)")
             }
         } catch {
-            messages.removeLast()
-            chatState = .error(error.localizedDescription)
-            errorMessage = error.localizedDescription
+            messages.removeLast() // Remove loading message
+            messages.removeLast() // Remove user message (we'll restore it on retry)
+            lastFailedMessage = text
+            currentErrorState = AIErrorState.fromError(error, mode: selectedAIMode)
+            chatState = .error(currentErrorState?.message ?? error.localizedDescription)
+            // Don't set errorMessage to prevent alert popup - show inline instead
+        }
+    }
+    
+    /// Retry the last failed message
+    func retryLastMessage() async {
+        guard let message = lastFailedMessage else { return }
+        currentErrorState = nil
+        inputText = message
+        lastFailedMessage = nil
+        await sendMessage()
+    }
+    
+    /// Switch to general mode and retry
+    func switchToGeneralAndRetry() async {
+        selectedAIMode = .general
+        currentErrorState = nil
+        await retryLastMessage()
+    }
+    
+    /// Dismiss the current error
+    func dismissError() {
+        currentErrorState = nil
+        lastFailedMessage = nil
+        if case .error = chatState {
+            chatState = .idle
+        }
+    }
+    
+    /// Submit feedback for a message
+    func submitFeedback(messageId: UUID, feedback: MessageFeedback) {
+        // Update the message locally
+        if let index = messages.firstIndex(where: { $0.id == messageId }) {
+            // Create new message with feedback
+            let oldMessage = messages[index]
+            let updatedMessage = ChatMessage(
+                id: oldMessage.id,
+                content: oldMessage.content,
+                isUser: oldMessage.isUser,
+                timestamp: oldMessage.timestamp,
+                isLoading: oldMessage.isLoading,
+                responseMode: oldMessage.responseMode,
+                userFeedback: feedback
+            )
+            messages[index] = updatedMessage
+            
+            // Log feedback (could send to analytics or backend)
+            print("📊 User feedback: \(feedback.rawValue) for message: \(messageId)")
+            
+            // TODO: Send to Supabase for quality monitoring
+            // Task {
+            //     try? await aiService.logMessageFeedback(messageId: messageId, feedback: feedback)
+            // }
         }
     }
     
@@ -271,6 +425,7 @@ final class AIViewModel: ObservableObject {
         let loadingMessage = ChatMessage.loadingMessage()
         messages.append(loadingMessage)
         
+        currentLoadingOperation = .healthAnalysis
         chatState = .sending
         
         do {
@@ -285,9 +440,9 @@ final class AIViewModel: ObservableObject {
             
             let response = try await aiService.sendChatMessage(prompt, context: messages.dropLast(), systemContext: nil)
             
-            // Remove loading message and add response
+            // Remove loading message and add response with health analysis mode
             messages.removeLast()
-            messages.append(ChatMessage.assistantMessage(response))
+            messages.append(ChatMessage.assistantMessage(response, mode: .healthAnalysis))
             chatState = .idle
             
             // Save chat history
@@ -330,6 +485,97 @@ final class AIViewModel: ObservableObject {
     func startNewConversation() {
         // Allow history loading again when user starts a new conversation
         shouldLoadHistory = true
+    }
+    
+    // MARK: - Medical Disclaimer Acknowledgment
+    
+    func acknowledgeMedicalDisclaimer() {
+        hasAcknowledgedMedicalDisclaimer = true
+        showMedicalDisclaimer = false
+        
+        // Continue with the message if there was one pending
+        if !inputText.isEmpty {
+            Task {
+                await sendMessage()
+            }
+        }
+    }
+    
+    func dismissEmergencyAlert() {
+        showEmergencyAlert = false
+    }
+    
+    // MARK: - Image Analysis
+    
+    func setSelectedImage(_ imageData: Data?) {
+        selectedImage = imageData
+    }
+    
+    func analyzeSelectedImage(type: MedicalImageAnalysisType = .general, question: String? = nil) async {
+        guard let imageData = selectedImage else { return }
+        
+        isAnalyzingImage = true
+        
+        // Add user message
+        let typeDescription: String
+        switch type {
+        case .prescription: typeDescription = "Analyze this prescription"
+        case .labReport: typeDescription = "Analyze this lab report"
+        case .medicalDocument: typeDescription = "Analyze this medical document"
+        case .xray: typeDescription = "Analyze this X-ray/scan"
+        case .general: typeDescription = "Analyze this medical image"
+        }
+        
+        let userMessage = ChatMessage.userMessage(question ?? typeDescription)
+        messages.append(userMessage)
+        
+        // Add loading message
+        let loadingMessage = ChatMessage.loadingMessage()
+        messages.append(loadingMessage)
+        
+        currentLoadingOperation = .imageAnalysis
+        chatState = .sending
+        
+        do {
+            let aiResponse = try await aiService.analyzeMedicalImage(imageData, analysisType: type, question: question)
+            
+            // Update state
+            lastResponseModel = aiResponse.model
+            lastResponseWasMedical = true
+            
+            // Remove loading message and add response with image analysis mode
+            messages.removeLast()
+            messages.append(ChatMessage.assistantMessage(aiResponse.text, mode: .imageAnalysis))
+            chatState = .idle
+            
+            // Clear image after analysis
+            selectedImage = nil
+            isAnalyzingImage = false
+            
+            // Save chat history
+            do {
+                currentConversationId = try await aiService.saveChatHistory(messages, conversationId: currentConversationId)
+            } catch {
+                print("Failed to save chat history: \(error.localizedDescription)")
+            }
+        } catch {
+            messages.removeLast()
+            chatState = .error(error.localizedDescription)
+            errorMessage = error.localizedDescription
+            isAnalyzingImage = false
+        }
+    }
+    
+    // MARK: - Message Classification
+    
+    private func isMedicalMessage(_ text: String) -> Bool {
+        let lowercased = text.lowercased()
+        return Self.medicalKeywords.contains { lowercased.contains($0) }
+    }
+    
+    private func isEmergencyMessage(_ text: String) -> Bool {
+        let lowercased = text.lowercased()
+        return Self.emergencyKeywords.contains { lowercased.contains($0) }
     }
     
     // MARK: - Helpers

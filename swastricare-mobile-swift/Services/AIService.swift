@@ -13,6 +13,9 @@ import Supabase
 
 protocol AIServiceProtocol {
     func sendChatMessage(_ message: String, context: [ChatMessage], systemContext: String?) async throws -> String
+    func sendSmartMessage(_ message: String, context: [ChatMessage], systemContext: String?) async throws -> AIResponse
+    func sendMedicalQuery(_ message: String, context: [ChatMessage], healthContext: String?) async throws -> AIResponse
+    func analyzeMedicalImage(_ imageData: Data, analysisType: MedicalImageAnalysisType, question: String?) async throws -> AIResponse
     func analyzeHealth(_ metrics: HealthMetrics) async throws -> HealthAnalysisResponse
     func generateHealthSummary(_ metrics: HealthMetrics) async throws -> String
     func loadChatHistory() async throws -> (messages: [ChatMessage], conversationId: UUID?)
@@ -22,6 +25,43 @@ protocol AIServiceProtocol {
     func deleteConversation(id: UUID) async throws
     func archiveConversation(id: UUID) async throws
     func clearChatHistory() async throws
+}
+
+// MARK: - Medical Image Analysis Types
+
+enum MedicalImageAnalysisType: String {
+    case prescription = "prescription"
+    case labReport = "lab_report"
+    case medicalDocument = "medical_document"
+    case xray = "xray"
+    case general = "general"
+}
+
+// MARK: - AI Response Model
+
+struct AIResponse {
+    let text: String
+    let model: String
+    let isMedical: Bool
+    let isEmergency: Bool
+    let hasDisclaimer: Bool
+    let isImageAnalysis: Bool
+    
+    init(
+        text: String,
+        model: String = "gemini",
+        isMedical: Bool = false,
+        isEmergency: Bool = false,
+        hasDisclaimer: Bool = false,
+        isImageAnalysis: Bool = false
+    ) {
+        self.text = text
+        self.model = model
+        self.isMedical = isMedical
+        self.isEmergency = isEmergency
+        self.hasDisclaimer = hasDisclaimer
+        self.isImageAnalysis = isImageAnalysis
+    }
 }
 
 // MARK: - AI Service Implementation
@@ -37,6 +77,11 @@ final class AIService: AIServiceProtocol {
     // MARK: - Chat
     
     func sendChatMessage(_ message: String, context: [ChatMessage], systemContext: String? = nil) async throws -> String {
+        print("💬 === BASIC CHAT MESSAGE ===")
+        print("💬 User message: \(message.prefix(100))...")
+        print("💬 Has system context: \(systemContext != nil)")
+        print("💬 History length: \(context.count)")
+        
         // Format context for API
         // Backend expects 'conversationHistory' (not 'context')
         let conversationHistory = context.suffix(10).map { msg in
@@ -56,16 +101,227 @@ final class AIService: AIServiceProtocol {
             "conversationHistory": conversationHistory
         ]
         
+        print("💬 Calling Supabase function: ai-chat")
+        print("💬 Payload: message length = \(finalMessage.count) chars, history items = \(conversationHistory.count)")
+        
         let response = try await supabase.invokeFunction(
             name: "ai-chat",
             payload: payload
         )
         
+        print("💬 === AI CHAT RESPONSE ===")
+        
         guard let responseText = response["response"] as? String else {
+            print("❌ No 'response' field in response!")
             throw AIError.invalidResponse
         }
         
+        print("💬 Response length: \(responseText.count) characters")
+        print("💬 Response preview: \(responseText.prefix(200))...")
+        
         return responseText
+    }
+    
+    // MARK: - Smart Message (Auto-routes to appropriate AI)
+    
+    func sendSmartMessage(_ message: String, context: [ChatMessage], systemContext: String? = nil) async throws -> AIResponse {
+        print("🤖 === AI SMART MESSAGE ===")
+        print("🤖 User message: \(message.prefix(100))...")
+        print("🤖 Has context: \(systemContext != nil)")
+        print("🤖 History length: \(context.count)")
+        
+        // Format context for API
+        let conversationHistory = context.suffix(10).map { msg in
+            ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
+        }
+        
+        var finalMessage = message
+        if let systemContext = systemContext {
+            finalMessage = "CONTEXT_DATA:\n\(systemContext)\n\nUSER_QUERY:\n\(message)"
+        }
+        
+        let payload: [String: Any] = [
+            "message": finalMessage,
+            "conversationHistory": conversationHistory
+        ]
+        
+        print("🤖 Calling Supabase function: ai-router")
+        print("🤖 Payload: message length = \(finalMessage.count) chars, history items = \(conversationHistory.count)")
+        
+        let response = try await supabase.invokeFunction(
+            name: "ai-router",
+            payload: payload
+        )
+        
+        print("🤖 === AI ROUTER RESPONSE ===")
+        print("🤖 Raw response keys: \(response.keys.joined(separator: ", "))")
+        
+        guard let responseText = response["response"] as? String else {
+            print("❌ No 'response' field in response!")
+            throw AIError.invalidResponse
+        }
+        
+        let model = response["model"] as? String ?? "gemini"
+        let isMedical = response["isMedical"] as? Bool ?? false
+        let isEmergency = response["isEmergency"] as? Bool ?? false
+        let hasDisclaimer = response["hasDisclaimer"] as? Bool ?? isMedical
+        
+        print("🤖 Model used: \(model)")
+        print("🤖 Is medical: \(isMedical)")
+        print("🤖 Is emergency: \(isEmergency)")
+        print("🤖 Has disclaimer: \(hasDisclaimer)")
+        print("🤖 Response length: \(responseText.count) characters")
+        print("🤖 Response preview: \(responseText.prefix(200))...")
+        
+        return AIResponse(
+            text: responseText,
+            model: model,
+            isMedical: isMedical,
+            isEmergency: isEmergency,
+            hasDisclaimer: hasDisclaimer
+        )
+    }
+    
+    // MARK: - Medical Query (Direct to MedGemma)
+    
+    func sendMedicalQuery(_ message: String, context: [ChatMessage], healthContext: String? = nil) async throws -> AIResponse {
+        print("🏥 === MEDICAL QUERY ===")
+        print("🏥 User message: \(message.prefix(100))...")
+        print("🏥 Has health context: \(healthContext != nil)")
+        print("🏥 History length: \(context.count)")
+        
+        let conversationHistory = context.suffix(10).map { msg in
+            ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
+        }
+        
+        var payload: [String: Any] = [
+            "message": message,
+            "conversationHistory": conversationHistory
+        ]
+        
+        if let healthContext = healthContext {
+            payload["healthContext"] = healthContext
+            print("🏥 Health context: \(healthContext.prefix(100))...")
+        }
+        
+        print("🏥 Calling Supabase function: medgemma-chat")
+        
+        let response = try await supabase.invokeFunction(
+            name: "medgemma-chat",
+            payload: payload
+        )
+        
+        print("🏥 === MEDGEMMA RESPONSE ===")
+        print("🏥 Raw response keys: \(response.keys.joined(separator: ", "))")
+        
+        guard let responseText = response["response"] as? String else {
+            print("❌ No 'response' field in response!")
+            throw AIError.invalidResponse
+        }
+        
+        let model = response["model"] as? String ?? "medgemma-27b"
+        
+        print("🏥 Model used: \(model)")
+        print("🏥 Response length: \(responseText.count) characters")
+        print("🏥 Response preview: \(responseText.prefix(200))...")
+        
+        return AIResponse(
+            text: responseText,
+            model: model,
+            isMedical: true,
+            isEmergency: false,
+            hasDisclaimer: true
+        )
+    }
+    
+    // MARK: - Medical Image Analysis (MedGemma 4B Vision)
+    
+    func analyzeMedicalImage(_ imageData: Data, analysisType: MedicalImageAnalysisType = .general, question: String? = nil) async throws -> AIResponse {
+        print("📸 === MEDICAL IMAGE ANALYSIS ===")
+        print("📸 Analysis type: \(analysisType.rawValue)")
+        print("📸 Image data size: \(imageData.count) bytes")
+        print("📸 Has question: \(question != nil)")
+        if let question = question {
+            print("📸 Question: \(question.prefix(100))...")
+        }
+        
+        // Convert image data to base64
+        let base64String = imageData.base64EncodedString()
+        
+        // Detect image type from data
+        let imageType = detectImageType(from: imageData)
+        print("📸 Detected image type: \(imageType)")
+        print("📸 Base64 string length: \(base64String.count) characters")
+        
+        var payload: [String: Any] = [
+            "imageData": base64String,
+            "imageType": imageType,
+            "analysisType": analysisType.rawValue
+        ]
+        
+        if let question = question {
+            payload["message"] = question
+        }
+        
+        print("📸 Calling Supabase function: medgemma-vision")
+        
+        let response = try await supabase.invokeFunction(
+            name: "medgemma-vision",
+            payload: payload
+        )
+        
+        print("📸 === VISION RESPONSE ===")
+        print("📸 Raw response keys: \(response.keys.joined(separator: ", "))")
+        
+        guard let responseText = response["response"] as? String else {
+            print("❌ No 'response' field in response!")
+            throw AIError.invalidResponse
+        }
+        
+        let model = response["model"] as? String ?? "medgemma-4b"
+        
+        print("📸 Model used: \(model)")
+        print("📸 Response length: \(responseText.count) characters")
+        print("📸 Response preview: \(responseText.prefix(200))...")
+        
+        return AIResponse(
+            text: responseText,
+            model: model,
+            isMedical: true,
+            isEmergency: false,
+            hasDisclaimer: true,
+            isImageAnalysis: true
+        )
+    }
+    
+    // MARK: - Image Type Detection
+    
+    private func detectImageType(from data: Data) -> String {
+        guard data.count >= 4 else { return "jpeg" }
+        
+        let bytes = [UInt8](data.prefix(4))
+        
+        // JPEG: FF D8 FF
+        if bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
+            return "jpeg"
+        }
+        
+        // PNG: 89 50 4E 47
+        if bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 {
+            return "png"
+        }
+        
+        // WebP: RIFF....WEBP
+        if data.count >= 12 {
+            let webpBytes = [UInt8](data.prefix(12))
+            if webpBytes[0] == 0x52 && webpBytes[1] == 0x49 && webpBytes[2] == 0x46 && webpBytes[3] == 0x46 &&
+               webpBytes[8] == 0x57 && webpBytes[9] == 0x45 && webpBytes[10] == 0x42 && webpBytes[11] == 0x50 {
+                return "webp"
+            }
+        }
+        
+        // Default to JPEG
+        return "jpeg"
     }
     
     // MARK: - Health Analysis

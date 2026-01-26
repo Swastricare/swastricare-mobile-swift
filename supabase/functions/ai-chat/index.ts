@@ -119,7 +119,7 @@ INTERACTION GUIDELINES:
     
     // Add timeout to Gemini API call
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout (increased from 30s)
     
     try {
       const geminiResponse = await fetch(
@@ -129,7 +129,7 @@ INTERACTION GUIDELINES:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: fullPrompt }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 512 }
+            generationConfig: { temperature: 0.8, maxOutputTokens: 2048 } // Increased from 512 to 2048
           }),
           signal: controller.signal
         }

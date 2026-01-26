@@ -15,31 +15,80 @@ struct ChatMessage: Identifiable, Equatable {
     let isUser: Bool
     let timestamp: Date
     let isLoading: Bool
+    let responseMode: AIResponseMode?
+    var userFeedback: MessageFeedback?
     
     init(
         id: UUID = UUID(),
         content: String,
         isUser: Bool,
         timestamp: Date = Date(),
-        isLoading: Bool = false
+        isLoading: Bool = false,
+        responseMode: AIResponseMode? = nil,
+        userFeedback: MessageFeedback? = nil
     ) {
         self.id = id
         self.content = content
         self.isUser = isUser
         self.timestamp = timestamp
         self.isLoading = isLoading
+        self.responseMode = responseMode
+        self.userFeedback = userFeedback
     }
     
     static func userMessage(_ content: String) -> ChatMessage {
         ChatMessage(content: content, isUser: true)
     }
     
-    static func assistantMessage(_ content: String) -> ChatMessage {
-        ChatMessage(content: content, isUser: false)
+    static func assistantMessage(_ content: String, mode: AIResponseMode = .general) -> ChatMessage {
+        ChatMessage(content: content, isUser: false, responseMode: mode)
     }
     
     static func loadingMessage() -> ChatMessage {
         ChatMessage(content: "", isUser: false, isLoading: true)
+    }
+}
+
+// MARK: - Message Feedback
+
+enum MessageFeedback: String, Equatable {
+    case helpful
+    case notHelpful
+}
+
+// MARK: - AI Response Mode (for message badges)
+
+enum AIResponseMode: String, Equatable {
+    case general
+    case medical
+    case healthAnalysis
+    case imageAnalysis
+    
+    var badgeText: String {
+        switch self {
+        case .general: return "Swastri"
+        case .medical: return "Medical Expert"
+        case .healthAnalysis: return "Health Analysis"
+        case .imageAnalysis: return "Image Analysis"
+        }
+    }
+    
+    var badgeIcon: String {
+        switch self {
+        case .general: return "sparkles"
+        case .medical: return "stethoscope"
+        case .healthAnalysis: return "waveform.path.ecg"
+        case .imageAnalysis: return "doc.viewfinder"
+        }
+    }
+    
+    var badgeColor: String {
+        switch self {
+        case .general: return "2E3192"
+        case .medical: return "00A86B"
+        case .healthAnalysis: return "4A90E2"
+        case .imageAnalysis: return "8B5CF6"
+        }
     }
 }
 
@@ -78,6 +127,109 @@ enum AIChatState: Equatable {
         switch self {
         case .sending, .streaming: return true
         default: return false
+        }
+    }
+}
+
+// MARK: - AI Error State
+
+/// User-friendly error state with retry capability
+struct AIErrorState: Equatable {
+    let message: String
+    let errorType: AIErrorType
+    let canRetry: Bool
+    let canSwitchMode: Bool
+    
+    enum AIErrorType: Equatable {
+        case network
+        case timeout
+        case medicalServiceUnavailable
+        case imageProcessingFailed
+        case rateLimited
+        case unknown
+    }
+    
+    static func fromError(_ error: Error, mode: AIMode) -> AIErrorState {
+        let errorString = error.localizedDescription.lowercased()
+        
+        if errorString.contains("timeout") || errorString.contains("timed out") {
+            return AIErrorState(
+                message: "Request timed out. Please try again.",
+                errorType: .timeout,
+                canRetry: true,
+                canSwitchMode: mode == .medical
+            )
+        } else if errorString.contains("network") || errorString.contains("connection") || errorString.contains("offline") {
+            return AIErrorState(
+                message: "Unable to connect. Check your internet and try again.",
+                errorType: .network,
+                canRetry: true,
+                canSwitchMode: false
+            )
+        } else if errorString.contains("rate") || errorString.contains("limit") || errorString.contains("quota") {
+            return AIErrorState(
+                message: "Too many requests. Please wait a moment and try again.",
+                errorType: .rateLimited,
+                canRetry: true,
+                canSwitchMode: false
+            )
+        } else if mode == .medical && (errorString.contains("failed") || errorString.contains("unavailable")) {
+            return AIErrorState(
+                message: "Medical service temporarily unavailable.",
+                errorType: .medicalServiceUnavailable,
+                canRetry: true,
+                canSwitchMode: true
+            )
+        } else if errorString.contains("image") {
+            return AIErrorState(
+                message: "Couldn't process the image. Try a different one.",
+                errorType: .imageProcessingFailed,
+                canRetry: true,
+                canSwitchMode: false
+            )
+        } else {
+            return AIErrorState(
+                message: "Something went wrong. Please try again.",
+                errorType: .unknown,
+                canRetry: true,
+                canSwitchMode: mode == .medical
+            )
+        }
+    }
+}
+
+// MARK: - Loading Operation Type
+
+/// Tracks what kind of AI operation is in progress for contextual UI
+enum LoadingOperationType: Equatable {
+    case generalChat
+    case medicalQuery
+    case healthAnalysis
+    case imageAnalysis
+    
+    var loadingMessage: String {
+        switch self {
+        case .generalChat:
+            return "Thinking..."
+        case .medicalQuery:
+            return "Consulting medical database..."
+        case .healthAnalysis:
+            return "Analyzing your health data..."
+        case .imageAnalysis:
+            return "Processing image..."
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .generalChat:
+            return "sparkles"
+        case .medicalQuery:
+            return "stethoscope"
+        case .healthAnalysis:
+            return "waveform.path.ecg"
+        case .imageAnalysis:
+            return "doc.viewfinder"
         }
     }
 }
