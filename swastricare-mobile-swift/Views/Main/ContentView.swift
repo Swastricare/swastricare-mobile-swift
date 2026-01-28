@@ -14,7 +14,7 @@ enum Tab: String, CaseIterable {
     case vitals = "Vitals"
     case vault = "Vault"
     case ai = "AI"
-    case family = "Family"
+    case run = "Steps"
     case profile = "Profile"
     
     var icon: String {
@@ -22,7 +22,7 @@ enum Tab: String, CaseIterable {
         case .vitals: return "heart.text.square.fill"
         case .vault: return "lock.doc"
         case .ai: return "sparkles"
-        case .family: return "person.2"
+        case .run: return "figure.run"
         case .profile: return "person.circle"
         }
     }
@@ -85,15 +85,15 @@ struct ContentView: View {
             }
             .tag(Tab.ai)
             
-            // Family Tab
+            // Run Tab - Steps & Activity Tracking
             NavigationStack {
-                FamilyPlaceholderView()
+                RunActivityView()
                     .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {
-                Label(Tab.family.rawValue, systemImage: Tab.family.icon)
+                Label(Tab.run.rawValue, systemImage: Tab.run.icon)
             }
-            .tag(Tab.family)
+            .tag(Tab.run)
             
             // Profile Tab
             NavigationStack {
@@ -183,26 +183,6 @@ struct ToolbarBackgroundVisibilityModifier: ViewModifier {
     }
 }
 
-// MARK: - Family Placeholder View
-
-struct FamilyPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "person.2")
-                .font(.system(size: 80))
-                .foregroundColor(.blue)
-            
-            Text("Family")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("Coming Soon")
-                .font(.title3)
-                .foregroundColor(.secondary)
-        }
-        .navigationTitle("Family")
-    }
-}
 
 #Preview {
     ContentView()

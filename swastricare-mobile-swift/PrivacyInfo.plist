@@ -19,6 +19,10 @@
     <key>NSHealthUpdateUsageDescription</key>
     <string>SwasthiCare would like to write heart rate measurements and water intake data to Apple HealthKit to keep your health records synchronized and up-to-date.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>SwasthiCare needs access to your location to fetch local weather data, which helps personalize your daily hydration goals based on temperature and climate conditions.</string>
+    <string>SwasthiCare needs your location to track your walking, running, and cycling activities with GPS, calculate distance and route, and to fetch local weather data for personalized hydration recommendations.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>SwasthiCare needs continuous location access to accurately track your outdoor activities (walking, running, cycling) even when the app is in the background. This allows us to record your complete route, calculate accurate distance, and save your workout to Apple Health.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>SwasthiCare uses motion data to improve step counting accuracy, detect your activity type (walking, running, cycling), and provide more precise fitness metrics during workouts.</string>
 </dict>
 </plist>

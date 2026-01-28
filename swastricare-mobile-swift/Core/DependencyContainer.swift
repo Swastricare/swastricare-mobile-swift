@@ -28,6 +28,9 @@ final class DependencyContainer: ObservableObject {
     let hydrationService: HydrationServiceProtocol
     let weatherService: WeatherServiceProtocol
     let vitalSignsService: VitalSignsServiceProtocol
+    let runActivityService: RunActivityServiceProtocol
+    let locationTrackingService: LocationTrackingServiceProtocol
+    let workoutSessionManager: WorkoutSessionManagerProtocol
     
     // MARK: - ViewModels (Lazy initialized)
     
@@ -79,6 +82,17 @@ final class DependencyContainer: ObservableObject {
         HeartRateViewModel(vitalSignsService: vitalSignsService)
     }()
     
+    lazy var runActivityViewModel: RunActivityViewModel = {
+        RunActivityViewModel(healthService: healthService, activityService: runActivityService)
+    }()
+    
+    lazy var liveActivityViewModel: LiveActivityViewModel = {
+        LiveActivityViewModel(
+            workoutManager: workoutSessionManager,
+            locationService: locationTrackingService
+        )
+    }()
+    
     // MARK: - Init
     
     private init() {
@@ -91,6 +105,9 @@ final class DependencyContainer: ObservableObject {
         self.hydrationService = HydrationService.shared
         self.weatherService = WeatherService.shared
         self.vitalSignsService = VitalSignsService.shared
+        self.runActivityService = RunActivityService.shared
+        self.locationTrackingService = LocationTrackingService.shared
+        self.workoutSessionManager = WorkoutSessionManager.shared
     }
     
     // MARK: - Factory Methods (for creating new instances if needed)
@@ -125,6 +142,17 @@ final class DependencyContainer: ObservableObject {
     
     func makeHeartRateViewModel() -> HeartRateViewModel {
         HeartRateViewModel(vitalSignsService: vitalSignsService)
+    }
+    
+    func makeRunActivityViewModel() -> RunActivityViewModel {
+        RunActivityViewModel(healthService: healthService, activityService: runActivityService)
+    }
+    
+    func makeLiveActivityViewModel() -> LiveActivityViewModel {
+        LiveActivityViewModel(
+            workoutManager: workoutSessionManager,
+            locationService: locationTrackingService
+        )
     }
 }
 

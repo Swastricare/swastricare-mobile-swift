@@ -45,6 +45,7 @@ struct SwasthiCareWidgetsBundle: WidgetBundle {
     var body: some Widget {
         HydrationWidget()
         MedicationWidget()
+        WorkoutLiveActivityWidget()
     }
 }
 

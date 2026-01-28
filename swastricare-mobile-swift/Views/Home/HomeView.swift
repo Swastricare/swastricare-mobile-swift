@@ -26,7 +26,6 @@ struct HomeView: View {
     @State private var modelOpacity: Double = 0
     @State private var modelScale: CGFloat = 0.8
     @State private var quickActionsVisible = false
-    @State private var trackerVisible = false
     @State private var showHeartRateMeasurement = false
     @State private var showReminders = false
     
@@ -139,10 +138,6 @@ struct HomeView: View {
                         .padding(.top, 8)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                     
-                    // Tracker Section
-                    trackerSection
-                        .padding(.top, 16)
-                        .modifier(ScrollAnimationModifier(isVisible: $trackerVisible))
                 }
                 .padding(.top)
                 .padding(.bottom, 20)
@@ -446,149 +441,6 @@ struct HomeView: View {
     @State private var showMedications = false
     @State private var showHydration = false
 
-    private var trackerSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Date Selector
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(trackerViewModel.weekDates, id: \.self) { date in
-                        DateButton(
-                            date: date,
-                            isSelected: trackerViewModel.isSelected(date),
-                            dayName: trackerViewModel.dayName(for: date)
-                        ) {
-                            Task {
-                                await trackerViewModel.selectDate(date)
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal)
-            }
-            .opacity(trackerVisible ? 1 : 0)
-            .offset(y: trackerVisible ? 0 : 20)
-            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: trackerVisible)
-            
-            // Weekly Chart
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Weekly Steps")
-                    .font(.headline)
-                
-                HStack(alignment: .bottom, spacing: 8) {
-                    ForEach(trackerViewModel.weeklySteps) { metric in
-                        VStack(spacing: 4) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    Calendar.current.isDate(metric.date, inSameDayAs: trackerViewModel.selectedDate)
-                                        ? Color(hex: "2E3192")
-                                        : Color.gray.opacity(0.3)
-                                )
-                                .frame(
-                                    width: 30,
-                                    height: CGFloat(metric.steps) / CGFloat(max(trackerViewModel.maxWeeklySteps, 1)) * 120
-                                )
-                                .animation(.easeInOut, value: metric.steps)
-                            
-                            Text(metric.dayName)
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 150, alignment: .bottom)
-            }
-            .padding()
-            .glass(cornerRadius: 16)
-            .padding(.horizontal)
-            .opacity(trackerVisible ? 1 : 0)
-            .scaleEffect(trackerVisible ? 1 : 0.9)
-            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1), value: trackerVisible)
-            
-            // Detailed Metrics
-            VStack(alignment: .leading, spacing: 15) {
-                Text("Detailed Metrics")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal)
-                    .opacity(trackerVisible ? 1 : 0)
-                    .offset(y: trackerVisible ? 0 : -10)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: trackerVisible)
-                
-                VStack(spacing: 12) {
-                    MetricRow(icon: "figure.walk", title: "Steps", value: "\(trackerViewModel.stepCount)", color: .green)
-                        .opacity(trackerVisible ? 1 : 0)
-                        .offset(x: trackerVisible ? 0 : -20)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: trackerVisible)
-                    
-                    // Heart Rate row with measure button
-                    HStack {
-                        HStack {
-                            Image(systemName: "heart.fill")
-                                .foregroundColor(.red)
-                                .frame(width: 30)
-                            
-                            Text("Heart Rate")
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Text("\(trackerViewModel.heartRate) BPM")
-                                .fontWeight(.semibold)
-                        }
-                        
-                        Button(action: {
-                            showHeartRateMeasurement = true
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "camera.fill")
-                                    .font(.caption)
-                                Text("Measure")
-                            }
-                            .font(.caption)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.red)
-                            .cornerRadius(8)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    .opacity(trackerVisible ? 1 : 0)
-                    .offset(x: trackerVisible ? 0 : -20)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.4), value: trackerVisible)
-                    
-                    MetricRow(icon: "flame.fill", title: "Active Calories", value: "\(trackerViewModel.activeCalories) kcal", color: .orange)
-                        .opacity(trackerVisible ? 1 : 0)
-                        .offset(x: trackerVisible ? 0 : -20)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.5), value: trackerVisible)
-                    
-                    MetricRow(icon: "clock.fill", title: "Exercise", value: "\(trackerViewModel.exerciseMinutes) mins", color: .blue)
-                        .opacity(trackerVisible ? 1 : 0)
-                        .offset(x: trackerVisible ? 0 : -20)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.6), value: trackerVisible)
-                    
-                    MetricRow(icon: "figure.stand", title: "Stand Hours", value: "\(trackerViewModel.standHours) hrs", color: .purple)
-                        .opacity(trackerVisible ? 1 : 0)
-                        .offset(x: trackerVisible ? 0 : -20)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.7), value: trackerVisible)
-                    
-                    MetricRow(icon: "moon.fill", title: "Sleep", value: trackerViewModel.sleepHours, color: .indigo)
-                        .opacity(trackerVisible ? 1 : 0)
-                        .offset(x: trackerVisible ? 0 : -20)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.8), value: trackerVisible)
-                    
-                    MetricRow(icon: "arrow.left.and.right", title: "Distance", value: String(format: "%.2f km", trackerViewModel.distance), color: .cyan)
-                        .opacity(trackerVisible ? 1 : 0)
-                        .offset(x: trackerVisible ? 0 : -20)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.9), value: trackerVisible)
-                }
-                .padding()
-                .glass(cornerRadius: 16)
-                .padding(.horizontal)
-            }
-        }
-    }
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -712,24 +564,14 @@ struct HomeView: View {
                             .foregroundColor(.primary)
                     }
                     
-                    // Profile Image
-                    Button(action: {}) {
-                        Group {
-                            if let imageURL = userPhotoURL {
-                                AsyncImage(url: imageURL) { image in
-                                    image.resizable()
-                                } placeholder: {
-                                    Color.gray.opacity(0.3)
-                                }
-                            } else {
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                    // Track Button
+                    NavigationLink(destination: HealthAnalyticsView()) {
+                        Image(systemName: "target")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.primary)
+                            .frame(width: 40, height: 40)
+                            .background(Color.gray.opacity(0.1))
+                            .clipShape(Circle())
                     }
                 }
             }

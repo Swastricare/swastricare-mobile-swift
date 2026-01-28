@@ -226,10 +226,7 @@ struct AIView: View {
                     viewModel.dismissEmergencyAlert()
                 },
                 onCallEmergency: {
-                    // Call emergency services
-                    if let url = URL(string: "tel://911") {
-                        UIApplication.shared.open(url)
-                    }
+                    // Emergency call functionality removed
                 }
             )
             .presentationDetents([.medium])

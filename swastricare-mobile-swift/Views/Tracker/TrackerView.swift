@@ -28,7 +28,7 @@ struct TrackerView: View {
                     statsOverview
                     
                     // Weekly Chart
-                    weeklyChart
+                    // weeklyChart  // Temporarily commented out
                     
                     // Detailed Metrics
                     detailedMetrics
@@ -112,7 +112,7 @@ struct TrackerView: View {
     
     private var statsOverview: some View {
         HStack(spacing: 16) {
-            StatCard(
+            TrackerStatCard(
                 icon: "figure.walk",
                 title: "Steps",
                 value: "\(viewModel.stepCount)",
@@ -130,7 +130,7 @@ struct TrackerView: View {
             }
             .buttonStyle(PlainButtonStyle())
             
-            StatCard(
+            TrackerStatCard(
                 icon: "flame.fill",
                 title: "Calories",
                 value: "\(viewModel.activeCalories)",
@@ -140,50 +140,20 @@ struct TrackerView: View {
         .padding(.horizontal)
     }
     
+    // Temporarily commented out
+    /*
     private var weeklyChart: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Weekly Steps")
-                .font(.headline)
-            
-            HStack(alignment: .bottom, spacing: 8) {
-                ForEach(viewModel.weeklySteps) { metric in
-                    VStack(spacing: 4) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(
-                                Calendar.current.isDate(metric.date, inSameDayAs: viewModel.selectedDate)
-                                    ? Color(hex: "2E3192")
-                                    : Color.gray.opacity(0.3)
-                            )
-                            .frame(
-                                width: 30,
-                                height: CGFloat(metric.steps) / CGFloat(max(viewModel.maxWeeklySteps, 1)) * 120
-                            )
-                            .animation(.easeInOut, value: metric.steps)
-                        
-                        Text(metric.dayName)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 150, alignment: .bottom)
-        }
-        .padding()
-        .background(Color.white.opacity(0.05))
-        .cornerRadius(20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
-        .padding(.horizontal)
+        WeeklyChartCard(viewModel: viewModel)
+            .padding(.horizontal)
     }
+    */
     
     private var detailedMetrics: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Detailed Metrics")
                 .font(.title3)
                 .fontWeight(.semibold)
+                .foregroundColor(.primary)
                 .padding(.horizontal)
             
             VStack(spacing: 12) {
@@ -202,6 +172,7 @@ struct TrackerView: View {
                     
                     Text("\(viewModel.heartRate) BPM")
                         .fontWeight(.semibold)
+                        .foregroundColor(.primary)
                     
                     Button(action: {
                         showHeartRateMeasurement = true
@@ -215,7 +186,13 @@ struct TrackerView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Color.red)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.red, Color.red.opacity(0.8)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
                         .cornerRadius(8)
                     }
                 }
@@ -236,11 +213,62 @@ struct TrackerView: View {
 
 // MARK: - Supporting Views
 
+private struct WeeklyChartCard: View {
+    @ObservedObject var viewModel: TrackerViewModel
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Weekly Steps")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(viewModel.weeklySteps) { metric in
+                    VStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                Calendar.current.isDate(metric.date, inSameDayAs: viewModel.selectedDate)
+                                    ? Color(hex: "2E3192")
+                                    : (colorScheme == .dark ? Color.gray.opacity(0.4) : Color.gray.opacity(0.25))
+                            )
+                            .frame(
+                                width: 30,
+                                height: max(CGFloat(metric.steps) / CGFloat(max(viewModel.maxWeeklySteps, 1)) * 120, 4)
+                            )
+                            .animation(.easeInOut(duration: 0.3), value: metric.steps)
+                            .animation(.easeInOut(duration: 0.3), value: viewModel.selectedDate)
+                        
+                        Text(metric.dayName)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 150, alignment: .bottom)
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    colorScheme == .dark 
+                        ? Color.white.opacity(0.15) 
+                        : Color.black.opacity(0.08),
+                    lineWidth: 0.5
+                )
+        )
+    }
+}
+
 private struct DateButton: View {
     let date: Date
     let isSelected: Bool
     let dayName: String
     let action: () -> Void
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         Button(action: action) {
@@ -257,22 +285,28 @@ private struct DateButton: View {
             .background(
                 isSelected
                     ? Color(hex: "2E3192")
-                    : Color.clear
+                    : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
             )
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.clear : Color.gray.opacity(0.3), lineWidth: 1)
+                    .stroke(
+                        isSelected 
+                            ? Color.clear 
+                            : (colorScheme == .dark ? Color.white.opacity(0.15) : Color.black.opacity(0.1)),
+                        lineWidth: 1
+                    )
             )
         }
     }
 }
 
-private struct StatCard: View {
+private struct TrackerStatCard: View {
     let icon: String
     let title: String
     let value: String
     let color: Color
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -280,7 +314,7 @@ private struct StatCard: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(color)
                 .padding(10)
-                .background(color.opacity(0.2))
+                .background(color.opacity(0.15))
                 .clipShape(Circle())
             
             VStack(alignment: .leading, spacing: 4) {
@@ -296,11 +330,16 @@ private struct StatCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.white.opacity(0.05))
+        .background(.ultraThinMaterial)
         .cornerRadius(20)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(
+                    colorScheme == .dark 
+                        ? Color.white.opacity(0.15) 
+                        : Color.black.opacity(0.08),
+                    lineWidth: 0.5
+                )
         )
     }
 }
@@ -308,6 +347,7 @@ private struct StatCard: View {
 private struct HeartRateStatCard: View {
     let value: String
     let color: Color
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -316,7 +356,7 @@ private struct HeartRateStatCard: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(color)
                     .padding(10)
-                    .background(color.opacity(0.2))
+                    .background(color.opacity(0.15))
                     .clipShape(Circle())
                 
                 Spacer()
@@ -349,11 +389,16 @@ private struct HeartRateStatCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.white.opacity(0.05))
+        .background(.ultraThinMaterial)
         .cornerRadius(20)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(
+                    colorScheme == .dark 
+                        ? Color.white.opacity(0.15) 
+                        : Color.black.opacity(0.08),
+                    lineWidth: 0.5
+                )
         )
     }
 }
@@ -377,6 +422,7 @@ private struct MetricRow: View {
             
             Text(value)
                 .fontWeight(.semibold)
+                .foregroundColor(.primary)
         }
         .padding(.vertical, 4)
     }

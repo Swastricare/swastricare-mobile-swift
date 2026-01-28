@@ -319,6 +319,9 @@ struct swastricare_mobile_swiftApp: App {
                 lockViewModel.lock()
             }
             
+            // Note: Workout lifecycle monitoring is handled automatically by 
+            // WorkoutLifecycleHandler which observes UIApplication notifications
+            
         case .active:
             // Re-check app version periodically when becoming active
             Task {
@@ -352,6 +355,9 @@ struct swastricare_mobile_swiftApp: App {
             Task { @MainActor in
                 UIApplication.shared.applicationIconBadgeNumber = 0
             }
+            
+            // Note: Workout recovery is handled in LiveActivityViewModel init
+            // which checks for crashed workouts automatically
             
         case .inactive:
             break

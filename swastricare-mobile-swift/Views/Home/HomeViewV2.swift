@@ -145,15 +145,12 @@ struct HomeViewV2: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                     
-                    // Daily Activity Section
-                    dailyActivitySection
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 25)
+                    // Daily Activity Section - REMOVED (replaced with workout progress card in greeting section)
                     
-                    // Mood Question Section
-                    moodQuestionSection
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 16)
+                    // Mood Question Section - Heart Animation and AI Messages (COMMENTED OUT)
+                    // moodQuestionSection
+                    //     .padding(.horizontal, 20)
+                    //     .padding(.bottom, 16)
                     
                     // Heart Rate Waveform Card
                     // ECG waveform commented out
@@ -180,10 +177,10 @@ struct HomeViewV2: View {
                 moodOverlayView
             }
             
-            // Fill Overlay - synchronized with heartbeat steps
-            if showFillOverlay {
-                FillOverlay(opacity: fillOpacity)
-            }
+            // Fill Overlay - synchronized with heartbeat steps (COMMENTED OUT)
+            // if showFillOverlay {
+            //     FillOverlay(opacity: fillOpacity)
+            // }
         }
         .onAppear {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -195,12 +192,12 @@ struct HomeViewV2: View {
                 }
             }
             
-            // Start continuous small heartbeat animation
-            startContinuousHeartbeat()
+            // Start continuous small heartbeat animation (COMMENTED OUT)
+            // startContinuousHeartbeat()
         }
         .onDisappear {
-            // Stop continuous heartbeat when view disappears
-            stopContinuousHeartbeat()
+            // Stop continuous heartbeat when view disappears (COMMENTED OUT)
+            // stopContinuousHeartbeat()
         }
         .task {
             await viewModel.loadTodaysData()
@@ -208,25 +205,25 @@ struct HomeViewV2: View {
             await hydrationViewModel.loadData()
             await medicationViewModel.loadMedications()
             
-            // Start background task to generate AI suggestions
-            Task.detached(priority: .background) {
-                await generateHealthSuggestions()
-            }
+            // Start background task to generate AI suggestions (COMMENTED OUT)
+            // Task.detached(priority: .background) {
+            //     await generateHealthSuggestions()
+            // }
             
-            // Start timer to regenerate suggestions every 5 seconds
-            startSuggestionTimer()
+            // Start timer to regenerate suggestions every 5 seconds (COMMENTED OUT)
+            // startSuggestionTimer()
         }
         .onDisappear {
-            // Clean up timers when view disappears
-            suggestionTimer?.invalidate()
-            suggestionTimer = nil
-            stopContinuousHeartbeat()
+            // Clean up timers when view disappears (COMMENTED OUT)
+            // suggestionTimer?.invalidate()
+            // suggestionTimer = nil
+            // stopContinuousHeartbeat()
         }
         .onChange(of: viewModel.heartRate) { _, newValue in
-            // Restart heartbeat with new rate when heart rate changes
-            if hasAppeared {
-                startContinuousHeartbeat()
-            }
+            // Restart heartbeat with new rate when heart rate changes (COMMENTED OUT)
+            // if hasAppeared {
+            //     startContinuousHeartbeat()
+            // }
         }
         .refreshable {
             await viewModel.refresh()
@@ -234,10 +231,10 @@ struct HomeViewV2: View {
             await hydrationViewModel.refresh()
             await medicationViewModel.refresh()
             
-            // Regenerate suggestions after refresh
-            Task.detached(priority: .background) {
-                await generateHealthSuggestions()
-            }
+            // Regenerate suggestions after refresh (COMMENTED OUT)
+            // Task.detached(priority: .background) {
+            //     await generateHealthSuggestions()
+            // }
         }
         .sheet(isPresented: $showMedications) {
             MedicationsView(viewModel: medicationViewModel)
@@ -710,64 +707,227 @@ struct HomeViewV2: View {
     // MARK: - Subviews
     
     private var greetingSection: some View {
-        HStack(alignment: .center, spacing: 12) {
-            // Profile Picture
-            Group {
-                if let imageURL = authViewModel.userPhotoURL {
-                    AsyncImage(url: imageURL) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
+        VStack(alignment: .leading, spacing: 16) {
+            // User Greeting and Profile Row
+            HStack(alignment: .center, spacing: 12) {
+                // Profile Picture
+                Group {
+                    if let imageURL = authViewModel.userPhotoURL {
+                        AsyncImage(url: imageURL) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Image(systemName: "person.circle.fill")
+                                .resizable()
+                                .foregroundColor(.gray)
+                        }
+                    } else {
                         Image(systemName: "person.circle.fill")
                             .resizable()
                             .foregroundColor(.gray)
                     }
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .foregroundColor(.gray)
                 }
-            }
-            .frame(width: 50, height: 50)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Color.gray.opacity(0.2), lineWidth: 1))
-            
-            // Greeting Text
-            HStack(spacing: 4) {
-                Text("Hi")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.primary)
+                .frame(width: 50, height: 50)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.gray.opacity(0.2), lineWidth: 1))
                 
-                Text("\(userName)!")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.primary)
+                // Greeting Text
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(getGreeting())
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.primary.opacity(0.7))
+                    
+                    Text(authViewModel.userName)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.primary)
+                }
+                
+                Spacer()
+                
+                // Track Button
+                NavigationLink(destination: HealthAnalyticsView()) {
+                    Image(systemName: "target")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(.primary)
+                }
+                .buttonStyle(PlainButtonStyle())
             }
             
-            Spacer()
+            // Date Pill
+            HStack {
+                Text(getFormattedDate())
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(Color.gray.opacity(0.8))
+            )
             
-            // Reminder Button - Show Notification Settings
-            Button(action: {
-                showReminders = true
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }) {
-                ZStack {
+            // Main Heading
+            Text("Daily Activity")
+                .font(.system(size: 36, weight: .bold))
+                .foregroundColor(.primary)
+            
+            // Social/Community Section
+            HStack(spacing: 8) {
+                // Profile Icons
+                HStack(spacing: -8) {
                     Circle()
-                        .fill(Color.orange.opacity(0.1))
-                        .frame(width: 44, height: 44)
+                        .fill(Color.blue.opacity(0.2))
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.blue)
+                        )
                     
-                    Image(systemName: "bell.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.orange)
+                    Circle()
+                        .fill(Color.green.opacity(0.2))
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.green)
+                        )
+                }
+                
+                // Add More Button
+                // Button(action: {
+                //     // Add more people or view community
+                // }) {
+                //     Circle()
+                //         .strokeBorder(Color.gray.opacity(0.3), lineWidth: 2, antialiased: true)
+                //         .frame(width: 32, height: 32)
+                //         .overlay(
+                //             Image(systemName: "plus")
+                //                 .font(.system(size: 12, weight: .medium))
+                //                 .foregroundColor(.gray)
+                //         )
+                // }
+                // .buttonStyle(PlainButtonStyle())
+                
+                // Text("215 People Joined")
+                //     .font(.system(size: 14, weight: .medium))
+                //     .foregroundColor(.primary)
+                
+                // Spacer()
+            }
+            
+            // Workout Progress Card - Steps, Distance, Kcal
+            VStack(alignment: .leading, spacing: 12) {
+                // Text("Workout Progress")
+                //     .font(.system(size: 16, weight: .semibold))
+                //     .foregroundColor(.white)
+                
+                // Steps, Distance, Kcal Grid
+                HStack(spacing: 12) {
+                    // Steps
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "figure.walk")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.9))
+                            Text(formatSteps(viewModel.stepCount))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        Text("Steps")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    // Distance
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.left.and.right")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.9))
+                            Text(formatDistance(viewModel.distance))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        Text("Distance")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    // Kcal
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.9))
+                            Text("\(viewModel.activeCalories)")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        Text("Kcal")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(PlainButtonStyle())
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.gray.opacity(0.8))
+            )
         }
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : -20)
         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: hasAppeared)
     }
     
+    // Helper function to get greeting based on time
+    private func getGreeting() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<12:
+            return "Good Morning"
+        case 12..<17:
+            return "Good Afternoon"
+        case 17..<22:
+            return "Good Evening"
+        default:
+            return "Good Night"
+        }
+    }
+    
+    // Helper function to get formatted date
+    private func getFormattedDate() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, d MMM yyyy"
+        return formatter.string(from: Date())
+    }
+    
+    // Helper function to format steps
+    private func formatSteps(_ steps: Int) -> String {
+        if steps >= 1000 {
+            return String(format: "%.1fk", Double(steps) / 1000.0)
+        }
+        return "\(steps)"
+    }
+    
+    // Helper function to format distance
+    private func formatDistance(_ distance: Double) -> String {
+        if distance >= 1.0 {
+            return String(format: "%.1f km", distance)
+        } else {
+            let meters = Int(distance * 1000)
+            return "\(meters) m"
+        }
+    }
+    
+    // MARK: - Heart Animation and AI Messages Section (COMMENTED OUT)
+    
+    /*
     private var moodQuestionSection: some View {
         ZStack {
             // Heart Image - Centered with tap and hold gesture
@@ -884,6 +1044,7 @@ struct HomeViewV2: View {
             }
         }
     }
+    */
     
     // MARK: - Heart Rate Waveform Card
     // ECG waveform commented out

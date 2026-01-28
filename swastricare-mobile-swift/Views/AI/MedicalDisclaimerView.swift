@@ -74,7 +74,7 @@ struct MedicalDisclaimerView: View {
                         icon: "phone.fill",
                         iconColor: .red,
                         title: "Emergency Situations",
-                        content: "If you think you may have a medical emergency, call your doctor, go to the emergency department, or call emergency services (911) immediately. Do not rely on AI for emergency medical decisions."
+                        content: "If you think you may have a medical emergency, call your doctor, go to the emergency department, or call emergency services immediately. Do not rely on AI for emergency medical decisions."
                     )
                     
                     disclaimerSection(
@@ -199,23 +199,8 @@ struct EmergencyAlertView: View {
                 .padding(.horizontal, 20)
             
             VStack(spacing: 12) {
-                // Call Emergency Button
-                Button(action: onCallEmergency) {
-                    HStack {
-                        Image(systemName: "phone.fill")
-                        Text("Call Emergency Services")
-                    }
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.red)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                
                 // Emergency Numbers
                 VStack(spacing: 8) {
-                    emergencyNumber(country: "🇺🇸 USA", number: "911")
                     emergencyNumber(country: "🇮🇳 India", number: "108")
                     emergencyNumber(country: "🇪🇺 Europe", number: "112")
                     emergencyNumber(country: "🇬🇧 UK", number: "999")
@@ -343,14 +328,6 @@ struct MedicalDisclaimerBanner: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     
-                    HStack(alignment: .top, spacing: 6) {
-                        Image(systemName: "phone.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(.red)
-                        Text("Call 911 for emergencies")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
