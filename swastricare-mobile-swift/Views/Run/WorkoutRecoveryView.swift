@@ -62,19 +62,19 @@ struct WorkoutRecoveryView: View {
                     
                     // Stats Grid
                     HStack(spacing: 20) {
-                        StatItem(
+                        WorkoutStatItem(
                             icon: "timer",
                             label: "Duration",
                             value: formattedDuration
                         )
                         
-                        StatItem(
+                        WorkoutStatItem(
                             icon: "location.fill",
                             label: "Distance",
                             value: formattedDistance
                         )
                         
-                        StatItem(
+                        WorkoutStatItem(
                             icon: "flame.fill",
                             label: "Calories",
                             value: "\(Int(state.lastMetrics.calories))"
@@ -166,7 +166,7 @@ struct WorkoutRecoveryView: View {
 
 // MARK: - Stat Item
 
-private struct StatItem: View {
+private struct WorkoutStatItem: View {
     let icon: String
     let label: String
     let value: String

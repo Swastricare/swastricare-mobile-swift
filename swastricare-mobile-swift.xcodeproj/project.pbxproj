@@ -13,6 +13,8 @@
 		636C031B2F0E7E0A005CE638 /* GLTFKit2 in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF112F0D500000FAB1B5 /* GLTFKit2 */; };
 		636CFDA92F0D3FC8005CE638 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF0F2F0D400000FAB1B5 /* Supabase */; };
 		636CFDAB2F0D6000005CE638 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF132F0D600000FAB1B5 /* Lottie */; };
+		636CFDAC2F0D7000005CE638 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF142F0D700000FAB1B5 /* FirebaseAnalytics */; };
+		636CFDAD2F0D8000005CE638 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 63D3AF162F0D800000FAB1B5 /* FirebaseCrashlytics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -89,6 +91,8 @@
 				636C031B2F0E7E0A005CE638 /* GLTFKit2 in Frameworks */,
 				636CFDA92F0D3FC8005CE638 /* Supabase in Frameworks */,
 				636CFDAB2F0D6000005CE638 /* Lottie in Frameworks */,
+				636CFDAC2F0D7000005CE638 /* FirebaseAnalytics in Frameworks */,
+				636CFDAD2F0D8000005CE638 /* FirebaseCrashlytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -156,6 +160,7 @@
 				63D3AEEF2F0D386F00FAB1B5 /* Frameworks */,
 				63D3AEF02F0D386F00FAB1B5 /* Resources */,
 				635D9FF72F1150B3005F0CB6 /* Embed Foundation Extensions */,
+				636CFDAE2F0D8000005CE638 /* Run Script Crashlytics */,
 			);
 			buildRules = (
 			);
@@ -170,6 +175,8 @@
 				63D3AF0F2F0D400000FAB1B5 /* Supabase */,
 				63D3AF112F0D500000FAB1B5 /* GLTFKit2 */,
 				63D3AF132F0D600000FAB1B5 /* Lottie */,
+				63D3AF142F0D700000FAB1B5 /* FirebaseAnalytics */,
+				63D3AF162F0D800000FAB1B5 /* FirebaseCrashlytics */,
 			);
 			productName = "swastricare-mobile-swift";
 			productReference = 63D3AEF22F0D386F00FAB1B5 /* swastricare-mobile-swift.app */;
@@ -206,6 +213,7 @@
 				63D3AF0E2F0D400000FAB1B5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				63D3AF102F0D500000FAB1B5 /* XCRemoteSwiftPackageReference "GLTFKit2" */,
 				63D3AF122F0D600000FAB1B5 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+				63D3AF152F0D700000FAB1B5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 63D3AEF32F0D386F00FAB1B5 /* Products */;
@@ -234,6 +242,32 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		636CFDAE2F0D8000005CE638 /* Run Script Crashlytics */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+			);
+			name = "Run Script Crashlytics";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		635D9FD82F1150B2005F0CB6 /* Sources */ = {
@@ -268,7 +302,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = SwasthiCareWidgets/SwasthiCareWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 9TF7Y389MX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SwasthiCareWidgets/Info.plist;
@@ -280,7 +314,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swastricare.health.SwasthiCareWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -300,7 +334,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = SwasthiCareWidgets/SwasthiCareWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 9TF7Y389MX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SwasthiCareWidgets/Info.plist;
@@ -312,7 +346,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swastricare.health.SwasthiCareWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -455,7 +489,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "swastricare-mobile-swift/swastricare-mobile-swift.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 9TF7Y389MX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -481,7 +516,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.swastricare.health;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -506,7 +542,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "swastricare-mobile-swift/swastricare-mobile-swift.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 9TF7Y389MX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -532,7 +568,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.swastricare.health;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -607,6 +644,14 @@
 				minimumVersion = 4.3.0;
 			};
 		};
+		63D3AF152F0D700000FAB1B5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -624,6 +669,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 63D3AF122F0D600000FAB1B5 /* XCRemoteSwiftPackageReference "lottie-ios" */;
 			productName = Lottie;
+		};
+		63D3AF142F0D700000FAB1B5 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63D3AF152F0D700000FAB1B5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		63D3AF162F0D800000FAB1B5 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63D3AF152F0D700000FAB1B5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

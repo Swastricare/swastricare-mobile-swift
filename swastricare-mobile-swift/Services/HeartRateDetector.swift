@@ -293,20 +293,26 @@ class HeartRateDetector: NSObject {
         // Use observed frame rate
         let observedSampleRate = currentSampleRate(usable.timestamps)
         
-        // Apply bandpass filter
+        // Step 1: Remove spike noise with median filter (excellent for PPG)
+        let denoised = PPGSignalProcessor.medianFilter(signal: usable.red, windowSize: 3)
+        
+        // Step 2: Smooth the signal to reduce high-frequency noise
+        let smoothed = PPGSignalProcessor.smoothSignal(signal: denoised, windowSize: 3)
+        
+        // Step 3: Apply bandpass filter to isolate heart rate frequencies
         let filtered = PPGSignalProcessor.bandpassFilter(
-            signal: usable.red,
+            signal: smoothed,
             sampleRate: observedSampleRate
         )
         
         // Verify signal has sufficient variation (not flat)
         let signalRange = (filtered.max() ?? 0) - (filtered.min() ?? 0)
-        guard signalRange > 0.1 else { return nil }
+        guard signalRange > 0.08 else { return nil }  // Reduced threshold for better sensitivity
         
         // Method 1: Autocorrelation (most accurate for PPG)
         var acBPM: Int? = nil
         if let rawAC = PPGSignalProcessor.calculateBPMWithAutocorrelation(signal: filtered, sampleRate: observedSampleRate) {
-            if rawAC >= 45 && rawAC <= 180 {
+            if rawAC >= 40 && rawAC <= 200 {
                 acBPM = rawAC
             }
         }
@@ -314,17 +320,17 @@ class HeartRateDetector: NSObject {
         // Method 2: FFT-based BPM
         var fftBPM: Int? = nil
         if let rawFFT = PPGSignalProcessor.calculateBPMWithFFT(signal: filtered, sampleRate: observedSampleRate) {
-            if rawFFT >= 45 && rawFFT <= 180 {
+            if rawFFT >= 40 && rawFFT <= 200 {
                 fftBPM = rawFFT
             }
         }
         
         // Method 3: Peak detection with timestamp intervals
         var peakBPM: Int? = nil
-        let minPeakDistance = Int(observedSampleRate * 0.33)
+        let minPeakDistance = Int(observedSampleRate * 0.3)  // Increased from 0.33 for lower HR
         let peaks = PPGSignalProcessor.findPeaks(signal: filtered, minDistance: max(minPeakDistance, 1))
         
-        if peaks.count >= 4 {
+        if peaks.count >= 3 {  // Reduced from 4 for more flexibility
             var intervals: [Double] = []
             for i in 1..<peaks.count {
                 let prevIdx = peaks[i - 1]
@@ -336,57 +342,112 @@ class HeartRateDetector: NSObject {
                 }
             }
             
-            if !intervals.isEmpty {
-                let sorted = intervals.sorted()
-                let medianInterval = sorted[sorted.count / 2]
-                let bpm = Int((60.0 / medianInterval).rounded())
-                if bpm >= 45 && bpm <= 180 {
-                    peakBPM = bpm
+            if intervals.count >= 2 {  // Need at least 2 intervals
+                // Use IQR for outlier removal if enough data
+                var cleanedIntervals = intervals
+                if intervals.count >= 4 {
+                    let sorted = intervals.sorted()
+                    let q1 = sorted[sorted.count / 4]
+                    let q3 = sorted[(sorted.count * 3) / 4]
+                    let iqr = q3 - q1
+                    let lowerBound = q1 - (1.5 * iqr)
+                    let upperBound = q3 + (1.5 * iqr)
+                    cleanedIntervals = intervals.filter { $0 >= lowerBound && $0 <= upperBound }
+                }
+                
+                if !cleanedIntervals.isEmpty {
+                    let sorted = cleanedIntervals.sorted()
+                    let medianInterval = sorted[sorted.count / 2]
+                    let bpm = Int((60.0 / medianInterval).rounded())
+                    if bpm >= 40 && bpm <= 200 {
+                        peakBPM = bpm
+                    }
                 }
             }
         }
         
-        // PRODUCTION DECISION LOGIC:
-        // Tighter agreement threshold (6 BPM) for high accuracy
-        let agreementThreshold = 6
+        // IMPROVED DECISION LOGIC:
+        // Adaptive agreement threshold based on heart rate range
+        // Lower HR = stricter threshold, Higher HR = more flexible
+        let baseThreshold = 8  // Increased from 6 for more flexibility
         
         // Best case: All three methods agree (within threshold)
         if let ac = acBPM, let fft = fftBPM, let peak = peakBPM {
             let maxDiff = max(abs(ac - fft), max(abs(ac - peak), abs(fft - peak)))
-            if maxDiff <= agreementThreshold {
-                // High confidence: use median of three
+            let avgBPM = (ac + fft + peak) / 3
+            
+            // Adaptive threshold: ±8 for normal HR, ±10 for high HR
+            let adaptiveThreshold = avgBPM > 120 ? baseThreshold + 2 : baseThreshold
+            
+            if maxDiff <= adaptiveThreshold {
+                // High confidence: use weighted median (favor autocorrelation slightly)
                 let sorted = [ac, fft, peak].sorted()
-                return sorted[1]
+                return sorted[1]  // Median
+            }
+            
+            // Partial agreement: at least 2 methods within threshold
+            if abs(ac - fft) <= adaptiveThreshold && abs(ac - peak) <= adaptiveThreshold {
+                // AC agrees with both - very reliable
+                return ac
+            }
+            if abs(ac - fft) <= adaptiveThreshold {
+                // AC and FFT agree - good confidence
+                return (ac * 2 + fft) / 3  // Weight AC more
+            }
+            if abs(ac - peak) <= adaptiveThreshold {
+                // AC and Peak agree - good confidence
+                return (ac * 2 + peak) / 3  // Weight AC more
+            }
+            if abs(fft - peak) <= adaptiveThreshold {
+                // FFT and Peak agree - decent confidence
+                return (fft + peak) / 2
             }
         }
         
-        // Two methods agree: prefer autocorrelation combinations
+        // Two methods available: prefer autocorrelation combinations
         if let ac = acBPM {
-            if let fft = fftBPM, abs(ac - fft) <= agreementThreshold {
-                return (ac + fft) / 2
+            let adaptiveThreshold = ac > 120 ? baseThreshold + 2 : baseThreshold
+            
+            if let fft = fftBPM, abs(ac - fft) <= adaptiveThreshold {
+                return (ac * 2 + fft) / 3  // Weight AC more heavily
             }
-            if let peak = peakBPM, abs(ac - peak) <= agreementThreshold {
-                return (ac + peak) / 2
+            if let peak = peakBPM, abs(ac - peak) <= adaptiveThreshold {
+                return (ac * 2 + peak) / 3  // Weight AC more heavily
             }
         }
         
-        // FFT and Peak agree
-        if let fft = fftBPM, let peak = peakBPM, abs(fft - peak) <= agreementThreshold {
-            return (fft + peak) / 2
+        // FFT and Peak agree (no AC available)
+        if let fft = fftBPM, let peak = peakBPM {
+            let avgBPM = (fft + peak) / 2
+            let adaptiveThreshold = avgBPM > 120 ? baseThreshold + 2 : baseThreshold
+            
+            if abs(fft - peak) <= adaptiveThreshold {
+                return (fft + peak) / 2
+            }
         }
         
-        // No agreement - require at least autocorrelation for reliability
-        // Autocorrelation is most robust for PPG signals
+        // Single method available - use with caution
+        // Autocorrelation is most robust for PPG signals, so trust it more
         if let ac = acBPM {
+            // Autocorrelation alone is still fairly reliable for PPG
             return ac
         }
         
-        // Last resort: only return if FFT and Peak are close-ish (within 10)
-        if let fft = fftBPM, let peak = peakBPM, abs(fft - peak) <= 10 {
+        // Last resort: FFT or Peak alone (lower reliability)
+        // Only use if methods are within extended threshold
+        if let fft = fftBPM, let peak = peakBPM, abs(fft - peak) <= 15 {
             return (fft + peak) / 2
         }
         
-        // Methods disagree too much - don't return unreliable data
+        // Single FFT or Peak - use only if no other option
+        if let fft = fftBPM {
+            return fft
+        }
+        if let peak = peakBPM {
+            return peak
+        }
+        
+        // No valid readings available
         return nil
     }
     
@@ -409,27 +470,27 @@ class HeartRateDetector: NSObject {
         return (Array(redValues[start...]), Array(timestamps[start...]))
     }
     
-    // Improved Signal Quality Evaluation
+    // Improved Signal Quality Evaluation with better sensitivity
     // Returns quality based on current frame + buffer statistics (if available)
     func evaluateSignalQuality(red: Double, green: Double, blue: Double) -> SignalQuality {
         // STAGE 1: Basic frame checks (brightness + redness)
         // These determine if we should even collect this sample
         
-        // Basic brightness check - with torch ON, finger should be bright
-        if red < 50 {
+        // Basic brightness check - relaxed threshold for various lighting conditions
+        if red < 40 {  // Reduced from 50 for better sensitivity
             return .poor
         }
         
         // CRITICAL: Check for ambient light (all channels high = no finger)
         // If green and blue are also very bright, it's NOT a finger
-        if green > 100 && blue > 100 {
+        if green > 120 && blue > 120 {  // Increased from 100 to be less sensitive
             return .poor  // Ambient light, not finger
         }
         
         // Color dominance check - finger with blood should be RED dominant
         // When finger covers camera+torch: R>>G, R>>B (blood absorbs green/blue)
         let rednessRatio = red / max(green + blue, 1)
-        if rednessRatio < 0.6 {
+        if rednessRatio < 0.55 {  // Reduced from 0.6 for more flexibility
             return .poor
         }
         
@@ -455,12 +516,12 @@ class HeartRateDetector: NSObject {
         // This is just for user feedback (fair/good/excellent)
         
         // EXCELLENT: Good brightness, nice pulse amplitude, reasonably stable
-        if mean >= 100 && amplitude >= 2.0 && stdDev <= 30.0 {
+        if mean >= 90 && amplitude >= 1.8 && stdDev <= 35.0 {  // Relaxed thresholds
             return .excellent
         }
         
         // GOOD: Decent readings
-        if mean >= 80 && amplitude >= 1.0 {
+        if mean >= 70 && amplitude >= 1.0 {  // Relaxed from 80
             return .good
         }
         

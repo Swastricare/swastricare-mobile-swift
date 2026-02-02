@@ -94,7 +94,25 @@ final class HomeViewModel: ObservableObject {
         print("🏠 HomeVM: Loading today's data...")
         
         let today = Date()
-        healthMetrics = await healthService.fetchHealthMetrics(for: today)
+        var metrics = await healthService.fetchHealthMetrics(for: today)
+
+        // Fallback: if Apple Health returns no HR data (0), show last locally measured value.
+        if metrics.heartRate == 0, let fallbackBpm = HeartRateLocalStorage.shared.loadLastMeasuredBpmIfRecent() {
+            metrics = HealthMetrics(
+                steps: metrics.steps,
+                heartRate: fallbackBpm,
+                sleep: metrics.sleep,
+                activeCalories: metrics.activeCalories,
+                exerciseMinutes: metrics.exerciseMinutes,
+                standHours: metrics.standHours,
+                distance: metrics.distance,
+                bloodPressure: metrics.bloodPressure,
+                weight: metrics.weight,
+                timestamp: metrics.timestamp
+            )
+        }
+
+        healthMetrics = metrics
         weeklySteps = await healthService.fetchWeeklySteps()
         
         lastSyncTime = Date()

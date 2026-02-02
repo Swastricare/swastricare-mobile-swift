@@ -99,12 +99,12 @@ struct HeartRateWaveformView: View {
                 }
             }
         }
-        .frame(height: 80) // Slightly taller to accommodate the grid and peaks
-        .background(Color.black.opacity(0.2)) // Dark background for contrast
-        .cornerRadius(10)
+        .frame(height: 72)
+        .background(Color.black.opacity(0.15))
+        .cornerRadius(12)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }
     

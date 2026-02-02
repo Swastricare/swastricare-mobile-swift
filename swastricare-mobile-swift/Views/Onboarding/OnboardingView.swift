@@ -167,6 +167,7 @@ struct OnboardingView: View {
         if !AppConfig.isTestingMode {
             UserDefaults.standard.set(true, forKey: AppConfig.hasSeenOnboardingKey)
         }
+        AppAnalyticsService.shared.logOnboardingComplete()
         withAnimation(.linear(duration: 0.2)) {
             isOnboardingComplete = true
         }

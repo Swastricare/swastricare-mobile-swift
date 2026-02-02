@@ -50,6 +50,9 @@ struct ProfileView: View {
             }
             .scrollContentBackground(.hidden)
         }
+        .onAppear {
+            AppAnalyticsService.shared.logScreen("Profile")
+        }
         .alert(
             "Sign Out",
             isPresented: $viewModel.showSignOutConfirmation

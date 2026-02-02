@@ -557,6 +557,8 @@ enum NotificationAction: String {
 enum NotificationCategory: String {
     case hydrationReminder = "HYDRATION_REMINDER"
     case medicationReminder = "MEDICATION_REMINDER"
+    case dietReminder = "DIET_REMINDER"
+    case menstrualReminder = "MENSTRUAL_REMINDER"
     
     var identifier: String { rawValue }
 }

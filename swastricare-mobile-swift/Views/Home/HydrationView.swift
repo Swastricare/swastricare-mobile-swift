@@ -126,6 +126,9 @@ struct HydrationView: View {
                     .foregroundColor(.primary)
                 }
             }
+            .onAppear {
+                AppAnalyticsService.shared.logScreen("hydration")
+            }
             .task {
                 await viewModel.onAppear()
             }
@@ -400,6 +403,7 @@ struct HydrationView: View {
                     
                     Button("Add") {
                         if let amount = Int(customAmount), amount > 0 {
+                            AppAnalyticsService.shared.logHydrationButtonTap(amountMl: amount, button: "custom")
                             Task {
                                 await viewModel.addWaterIntake(
                                     amount: amount,
@@ -438,6 +442,7 @@ struct HydrationView: View {
     
     private func quickAddButton(_ preset: QuickAddPreset) -> some View {
         Button(action: {
+            AppAnalyticsService.shared.logHydrationButtonTap(amountMl: preset.amountMl, button: preset.label)
             Task {
                 await viewModel.addWaterIntake(
                     amount: preset.amountMl,

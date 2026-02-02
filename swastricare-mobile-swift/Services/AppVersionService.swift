@@ -122,15 +122,16 @@ final class AppVersionService: ObservableObject {
             
             let status: AppUpdateStatus
             
-            // ONLY force update if explicitly set by server OR truly below minimum
-            if record.forceUpdate {
-                // Server explicitly requires force update
-                status = .forceUpdateRequired(version: info.latestVersion ?? currentVersion)
-                print("📱 AppVersionService: ⚠️ FORCE UPDATE - server flag is true")
-            } else if info.isBelowMinimum {
+            // Force update ONLY when the installed app is actually behind.
+            // - Always force if below minimum supported version/build.
+            // - If server "force_update" is true, force ONLY when there's a newer version/build available.
+            if info.isBelowMinimum {
                 // App is below minimum supported version
                 status = .forceUpdateRequired(version: info.latestVersion ?? currentVersion)
                 print("📱 AppVersionService: ⚠️ FORCE UPDATE - below minimum version")
+            } else if record.forceUpdate && info.hasNewerVersion {
+                status = .forceUpdateRequired(version: info.latestVersion ?? currentVersion)
+                print("📱 AppVersionService: ⚠️ FORCE UPDATE - server flag is true and update exists")
             } else if info.hasNewerVersion && shouldShowUpdate {
                 // Optional update available
                 status = .updateAvailable(version: info.latestVersion ?? currentVersion, isForced: false)

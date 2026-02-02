@@ -46,6 +46,11 @@ protocol HealthKitServiceProtocol {
         calories: Double,
         routeLocations: [CLLocation]
     ) async throws -> HKWorkout
+    
+    /// Deletes health data that this app wrote to Apple Health (heart rate, water intake, workouts).
+    /// Only data saved by this app can be deleted; steps and other data from other sources are not affected.
+    /// Returns counts and the list of deleted workout UUIDs (for cleaning up run_activities in Supabase).
+    func deleteAppHealthDataFromAppleHealth() async throws -> (heartRateDeleted: Int, waterDeleted: Int, workoutsDeleted: Int, deletedWorkoutUUIDs: [String])
 }
 
 // MARK: - HealthKit Service Implementation
@@ -842,6 +847,89 @@ final class HealthKitService: HealthKitServiceProtocol {
         
         print("✅ Workout saved to HealthKit: \(workout.uuid)")
         return workout
+    }
+    
+    /// Deletes health data that this app wrote to Apple Health (heart rate, water intake, workouts).
+    func deleteAppHealthDataFromAppleHealth() async throws -> (heartRateDeleted: Int, waterDeleted: Int, workoutsDeleted: Int, deletedWorkoutUUIDs: [String]) {
+        guard isHealthDataAvailable else {
+            throw HealthKitError.notAvailable
+        }
+        
+        guard let appBundleId = Bundle.main.bundleIdentifier else {
+            throw HealthKitError.writeFailed
+        }
+        
+        let calendar = Calendar.current
+        let endDate = Date()
+        let startDate = calendar.date(byAdding: .year, value: -10, to: endDate) ?? endDate
+        let datePredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        
+        var heartRateDeleted = 0
+        var waterDeleted = 0
+        var workoutsDeleted = 0
+        var deletedWorkoutUUIDs: [String] = []
+        
+        // 1. Query and delete heart rate samples from this app
+        if let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) {
+            let samples: [HKSample] = await querySamples(type: heartRateType, predicate: datePredicate)
+            let ours = samples.filter { $0.sourceRevision.source.bundleIdentifier == appBundleId }
+            for sample in ours {
+                try await deleteSample(sample)
+                heartRateDeleted += 1
+            }
+        }
+        
+        // 2. Query and delete dietary water samples from this app
+        if let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) {
+            let samples: [HKSample] = await querySamples(type: waterType, predicate: datePredicate)
+            let ours = samples.filter { $0.sourceRevision.source.bundleIdentifier == appBundleId }
+            for sample in ours {
+                try await deleteSample(sample)
+                waterDeleted += 1
+            }
+        }
+        
+        // 3. Query workout routes from this app and delete them first (routes are linked to workouts)
+        if let routeType = HKSeriesType.workoutRoute() as? HKSampleType {
+            let routeSamples: [HKSample] = await querySamples(type: routeType, predicate: datePredicate)
+            let ourRoutes = routeSamples.filter { $0.sourceRevision.source.bundleIdentifier == appBundleId }
+            for sample in ourRoutes {
+                try? await deleteSample(sample)
+            }
+        }
+        
+        // 4. Query and delete workouts from this app; collect UUIDs for Supabase cleanup
+        let workoutSamples: [HKSample] = await querySamples(type: HKObjectType.workoutType(), predicate: datePredicate)
+        let ourWorkouts = workoutSamples.filter { $0.sourceRevision.source.bundleIdentifier == appBundleId }
+        for sample in ourWorkouts {
+            deletedWorkoutUUIDs.append(sample.uuid.uuidString)
+            try await deleteSample(sample)
+            workoutsDeleted += 1
+        }
+        
+        return (heartRateDeleted, waterDeleted, workoutsDeleted, deletedWorkoutUUIDs)
+    }
+    
+    private func querySamples(type: HKSampleType, predicate: NSPredicate?) async -> [HKSample] {
+        await withCheckedContinuation { continuation in
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sort]) { _, samples, _ in
+                continuation.resume(returning: samples ?? [])
+            }
+            healthStore.execute(query)
+        }
+    }
+    
+    private func deleteSample(_ sample: HKSample) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.delete(sample) { _, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
     }
     
     // MARK: - Helpers

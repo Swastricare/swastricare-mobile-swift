@@ -25,6 +25,95 @@ struct PremiumColor {
     }
 }
 
+// MARK: - App Design System Colors (Unified across all screens)
+/// Consistent color palette matching RunDetail/ActivityDetail screen styling
+
+struct AppColors {
+    // MARK: - Primary Accent Colors
+    /// Primary accent blue - used for main actions, distance, pace, selection states
+    static let accentBlue = Color(hex: "4F46E5")
+    
+    /// Success/positive green - used for steps, walking, start buttons, achievements
+    static let accentGreen = Color(hex: "22C55E")
+    
+    /// Danger/negative red - used for delete, errors, heart rate
+    static let accentRed = Color(hex: "EF4444")
+    
+    /// Warning orange - used for calories, attention needed
+    static let accentOrange = Color.orange
+    
+    /// Records/achievements yellow - used for personal records, trophies
+    static let accentYellow = Color.yellow
+    
+    /// Cadence/activity purple - used for cadence, cycle tracker
+    static let accentPurple = Color.purple
+    
+    // MARK: - Semantic Colors (by feature)
+    static let steps = Color.green
+    static let distance = accentBlue
+    static let pace = accentBlue
+    static let calories = Color.orange
+    static let heartRate = Color.red
+    static let sleep = Color.indigo
+    static let exercise = Color.blue
+    static let cadence = Color.purple
+    static let hydration = Color.cyan
+    static let medication = Color(hex: "5856D6") // iOS purple
+    static let diet = accentGreen
+    static let records = accentYellow
+    
+    // MARK: - Background Colors
+    static let cardBackground = Color(UIColor.secondarySystemBackground)
+    static let darkModeCard = Color.gray.opacity(0.05)
+    
+    // MARK: - Gradients
+    static let blueGradient = LinearGradient(
+        colors: [accentBlue, accentBlue.opacity(0.7)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    static let greenGradient = LinearGradient(
+        colors: [accentGreen, accentGreen.opacity(0.7)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+}
+
+// MARK: - App Design System Dimensions
+
+struct AppDimensions {
+    // MARK: - Corner Radius
+    /// Standard card corner radius
+    static let cardRadius: CGFloat = 16
+    
+    /// Large card/section corner radius
+    static let largeCardRadius: CGFloat = 20
+    
+    /// Tab/pill button corner radius
+    static let pillRadius: CGFloat = 20
+    
+    /// Quick action button corner radius
+    static let quickActionRadius: CGFloat = 24
+    
+    // MARK: - Spacing
+    /// Standard section spacing
+    static let sectionSpacing: CGFloat = 24
+    
+    /// Standard card internal padding
+    static let cardPadding: CGFloat = 16
+    
+    /// Large card internal padding
+    static let largeCardPadding: CGFloat = 20
+    
+    // MARK: - Heights
+    /// Quick action button height
+    static let quickActionHeight: CGFloat = 150
+    
+    /// Stat card minimum height
+    static let statCardHeight: CGFloat = 100
+}
+
 // MARK: - Liquid Glass View Modifiers
 
 struct GlassModifier: ViewModifier {

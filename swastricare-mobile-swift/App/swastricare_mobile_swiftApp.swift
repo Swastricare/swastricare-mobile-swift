@@ -10,6 +10,9 @@ import UIKit
 import WidgetKit
 import Supabase
 import Auth
+import FirebaseCore
+import FirebaseAnalytics
+import FirebaseCrashlytics
 
 @main
 struct swastricare_mobile_swiftApp: App {
@@ -349,6 +352,11 @@ struct swastricare_mobile_swiftApp: App {
                     await DependencyContainer.shared.hydrationViewModel.loadData()
                     await DependencyContainer.shared.medicationViewModel.refresh()
                 }
+                
+                // Refresh diet + menstrual notifications (local scheduling)
+                Task { @MainActor in
+                    await NotificationService.shared.refreshWellnessNotifications()
+                }
             }
             
             // Clear notification badge
@@ -404,6 +412,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
+        // Configure Firebase (reads GoogleService-Info.plist from app bundle)
+        FirebaseApp.configure()
+        
         // Initialize notification service (sets up delegate)
         _ = NotificationService.shared
         print("🔔 NotificationService initialized")

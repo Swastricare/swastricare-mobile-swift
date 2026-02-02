@@ -192,7 +192,7 @@ final class MedicationViewModel: ObservableObject {
     // MARK: - Adherence Actions
     
     /// Mark medication as taken
-    func markAsTaken(medicationId: UUID, scheduledTime: Date) async throws {
+    func markAsTaken(medicationId: UUID, scheduledTime: Date, source: String = "in_app") async throws {
         do {
             try await medicationService.markAsTaken(medicationId: medicationId, scheduledTime: scheduledTime)
             
@@ -207,6 +207,7 @@ final class MedicationViewModel: ObservableObject {
                 await syncAdherenceToCloud()
             }
             
+            AppAnalyticsService.shared.logMedicationTaken(medicationId: medicationId, source: source)
             print("💊 MedicationVM: Marked medication as taken")
         } catch {
             errorMessage = "Failed to mark as taken: \(error.localizedDescription)"
@@ -215,7 +216,7 @@ final class MedicationViewModel: ObservableObject {
     }
     
     /// Mark medication as skipped
-    func markAsSkipped(medicationId: UUID, scheduledTime: Date, notes: String?) async throws {
+    func markAsSkipped(medicationId: UUID, scheduledTime: Date, notes: String?, source: String = "in_app") async throws {
         do {
             try await medicationService.markAsSkipped(medicationId: medicationId, scheduledTime: scheduledTime, notes: notes)
             
@@ -230,6 +231,7 @@ final class MedicationViewModel: ObservableObject {
                 await syncAdherenceToCloud()
             }
             
+            AppAnalyticsService.shared.logMedicationSkipped(medicationId: medicationId)
             print("💊 MedicationVM: Marked medication as skipped")
         } catch {
             errorMessage = "Failed to mark as skipped: \(error.localizedDescription)"

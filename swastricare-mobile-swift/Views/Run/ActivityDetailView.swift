@@ -45,8 +45,8 @@ struct ActivityDetailView: View {
     @State private var analytics: ActivityAnalytics?
     @State private var isLoadingAnalytics = false
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentRed = Color(hex: "EF4444")
+    private let accentBlue = AppColors.accentBlue
+    private let accentRed = AppColors.accentRed
     private let analyticsService = RunAnalyticsService.shared
     
     // MARK: - Init
@@ -322,15 +322,21 @@ struct ActivityDetailView: View {
         
         Task {
             // Convert route coordinates to RouteCoordinate format
+            let isoFormatter = ISO8601DateFormatter()
             let routeCoords = activity.routeCoordinates.enumerated().map { index, coord -> RouteCoordinate in
-                // Estimate timestamps based on activity duration
-                let progress = Double(index) / Double(max(activity.routeCoordinates.count - 1, 1))
-                let timestamp = activity.startTime.addingTimeInterval(activity.duration * progress)
-                let isoFormatter = ISO8601DateFormatter()
+                // Use actual timestamp if available, otherwise estimate based on activity duration
+                let timestamp: Date
+                if let coordTimestamp = coord.timestamp {
+                    timestamp = coordTimestamp
+                } else {
+                    let progress = Double(index) / Double(max(activity.routeCoordinates.count - 1, 1))
+                    timestamp = activity.startTime.addingTimeInterval(activity.duration * progress)
+                }
+                
                 return RouteCoordinate(
                     lat: coord.latitude,
                     lng: coord.longitude,
-                    alt: nil,
+                    alt: coord.altitude,
                     ts: isoFormatter.string(from: timestamp)
                 )
             }
@@ -765,7 +771,7 @@ struct TabButton: View {
     let isSelected: Bool
     let action: () -> Void
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.accentBlue
     
     var body: some View {
         Button(action: action) {
@@ -805,8 +811,8 @@ struct TabButton: View {
 struct ActivityShareCardView: View {
     let activity: RouteActivity
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentGreen = Color(hex: "22C55E")
+    private let accentBlue = AppColors.accentBlue
+    private let accentGreen = AppColors.accentGreen
     
     var body: some View {
         VStack(spacing: 0) {
@@ -973,7 +979,7 @@ struct ShareStatItem: View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 16))
-                .foregroundColor(Color(hex: "4F46E5"))
+                .foregroundColor(AppColors.accentBlue)
             
             Text(value)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -996,8 +1002,8 @@ struct ActivityShareSheet: View {
     @State private var showCopiedToast = false
     @State private var showSavedToast = false
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentGreen = Color(hex: "22C55E")
+    private let accentBlue = AppColors.accentBlue
+    private let accentGreen = AppColors.accentGreen
     
     var body: some View {
         NavigationStack {

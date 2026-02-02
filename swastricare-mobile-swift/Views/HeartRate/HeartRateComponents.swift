@@ -72,7 +72,7 @@ struct HeartRateProgressOverlay: View {
     let signalQuality: SignalQuality
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             // Warning when signal is poor
             if signalQuality == .poor {
                 HStack(spacing: 6) {
@@ -83,50 +83,52 @@ struct HeartRateProgressOverlay: View {
                         .font(.caption.weight(.medium))
                         .foregroundColor(.orange)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 .background(
                     Capsule()
                         .fill(Color.orange.opacity(0.15))
                 )
             }
             
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 // Time remaining
-                VStack(spacing: 2) {
+                VStack(spacing: 3) {
                     Text(timeRemainingFormatted)
-                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(.primary)
                         .contentTransition(.numericText())
                     Text(signalQuality == .poor ? "paused" : "remaining")
-                        .font(.caption2)
+                        .font(.caption2.weight(.medium))
                         .foregroundColor(signalQuality == .poor ? .orange : .secondary)
                         .textCase(.uppercase)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .frame(minWidth: 80)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(Color(UIColor.secondarySystemBackground))
                 )
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("Time remaining: \(Int(timeRemaining)) seconds")
                 
                 // Progress percentage
-                VStack(spacing: 2) {
+                VStack(spacing: 3) {
                     Text("\(Int(progress * 100))%")
-                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(.red)
                         .contentTransition(.numericText())
                     Text("complete")
-                        .font(.caption2)
+                        .font(.caption2.weight(.medium))
                         .foregroundColor(.secondary)
                         .textCase(.uppercase)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .frame(minWidth: 80)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(Color(UIColor.secondarySystemBackground))
                 )
                 .accessibilityElement(children: .combine)
@@ -154,7 +156,7 @@ struct SignalQualityIndicator: View {
     let instructionText: String
     
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             // Signal bars
             HStack(spacing: 3) {
                 ForEach(0..<4, id: \.self) { index in
@@ -166,15 +168,15 @@ struct SignalQualityIndicator: View {
             .accessibilityHidden(true)
             
             Text(isRunning ? quality.description : instructionText)
-                .font(.subheadline)
+                .font(.subheadline.weight(.medium))
                 .foregroundColor(signalQualityColor)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
         .background(
             Capsule()
-                .fill(signalQualityColor.opacity(0.1))
+                .fill(signalQualityColor.opacity(0.12))
         )
         .animation(.easeInOut(duration: 0.3), value: quality)
         .accessibilityElement(children: .combine)
@@ -216,8 +218,8 @@ struct CameraPreviewCircle: View {
     let progress: Float
     @Binding var borderPulse: Bool
     
-    private let ringSize: CGFloat = 240
-    private let previewSize: CGFloat = 200
+    private let ringSize: CGFloat = 220
+    private let previewSize: CGFloat = 180
     
     var body: some View {
         ZStack {

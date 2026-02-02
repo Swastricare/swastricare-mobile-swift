@@ -151,6 +151,10 @@ final class AIViewModel: ObservableObject {
         // Add user message
         let userMessage = ChatMessage.userMessage(text)
         messages.append(userMessage)
+        if messages.count == 1 {
+            AppAnalyticsService.shared.logConversationStarted(mode: selectedAIMode.rawValue)
+        }
+        AppAnalyticsService.shared.logChatMessageSent(mode: selectedAIMode.rawValue)
         inputText = ""
         
         // Add loading message
@@ -287,6 +291,8 @@ final class AIViewModel: ObservableObject {
             lastFailedMessage = text
             currentErrorState = AIErrorState.fromError(error, mode: selectedAIMode)
             chatState = .error(currentErrorState?.message ?? error.localizedDescription)
+            AppAnalyticsService.shared.logFailure(context: "chat", type: "send_failed", message: error.localizedDescription)
+            AppAnalyticsService.shared.logError(error, context: "sendMessage")
             // Don't set errorMessage to prevent alert popup - show inline instead
         }
     }
@@ -417,6 +423,7 @@ final class AIViewModel: ObservableObject {
     }
     
     func analyzeCurrentHealth() async {
+        AppAnalyticsService.shared.logAIAnalysisRequest(type: "health")
         // Add user message
         let userMessage = ChatMessage.userMessage("Analyze my current health metrics")
         messages.append(userMessage)
@@ -515,6 +522,7 @@ final class AIViewModel: ObservableObject {
         guard let imageData = selectedImage else { return }
         
         isAnalyzingImage = true
+        AppAnalyticsService.shared.logAIAnalysisRequest(type: type.rawValue)
         
         // Add user message
         let typeDescription: String
@@ -563,6 +571,8 @@ final class AIViewModel: ObservableObject {
             chatState = .error(error.localizedDescription)
             errorMessage = error.localizedDescription
             isAnalyzingImage = false
+            AppAnalyticsService.shared.logFailure(context: "ai_image_analysis", type: "analysis_failed", message: error.localizedDescription)
+            AppAnalyticsService.shared.logError(error, context: "analyzeSelectedImage")
         }
     }
     

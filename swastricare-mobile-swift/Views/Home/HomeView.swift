@@ -17,6 +17,7 @@ struct HomeView: View {
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
+    @StateObject private var dietViewModel = DependencyContainer.shared.dietViewModel
     
     // MARK: - Local State
     
@@ -28,6 +29,7 @@ struct HomeView: View {
     @State private var quickActionsVisible = false
     @State private var showHeartRateMeasurement = false
     @State private var showReminders = false
+    @State private var showDiet = false
     
     // MARK: - Computed Properties
     
@@ -157,10 +159,11 @@ struct HomeView: View {
             RemindersView()
         }
         .onAppear {
+            AppAnalyticsService.shared.logScreen("Home")
             // Haptic feedback when opening vitals screen
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
-            
+
             // Trigger entrance animations with staggered delays for cards
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
@@ -178,12 +181,14 @@ struct HomeView: View {
             await trackerViewModel.loadData()
             await hydrationViewModel.loadData()
             await medicationViewModel.loadMedications()
+            await dietViewModel.loadData()
         }
         .refreshable {
             await viewModel.refresh()
             await trackerViewModel.refresh()
             await hydrationViewModel.refresh()
             await medicationViewModel.refresh()
+            await dietViewModel.refresh()
         }
         }
     }
@@ -386,7 +391,7 @@ struct HomeView: View {
         .padding(20)
         .background(PremiumColor.royalBlue.opacity(0.9))
         .cornerRadius(24)
-        .shadow(color: Color(hex: "2E3192").opacity(0.4), radius: 15, x: 0, y: 8)
+        .shadow(color: AppColors.accentBlue.opacity(0.4), radius: 15, x: 0, y: 8)
         .padding(.horizontal)
     }
     
@@ -440,10 +445,12 @@ struct HomeView: View {
     
     @State private var showMedications = false
     @State private var showHydration = false
+    @State private var showMenstrualCycle = false
 
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // First Row
             HStack(spacing: 12) {
                 MedicationQuickActionButton(
                     takenCount: medicationViewModel.takenCount,
@@ -466,12 +473,39 @@ struct HomeView: View {
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: quickActionsVisible)
             }
             .padding(.horizontal)
+            
+            // Second Row
+            HStack(spacing: 12) {
+                DietQuickActionButton(
+                    currentCalories: dietViewModel.totalCalories,
+                    dailyGoal: dietViewModel.dietGoals.dailyCalories
+                ) {
+                    showDiet = true
+                }
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.8)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: quickActionsVisible)
+                
+                CycleTrackerQuickActionButton {
+                    showMenstrualCycle = true
+                }
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.8)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.4), value: quickActionsVisible)
+            }
+            .padding(.horizontal)
         }
         .sheet(isPresented: $showMedications) {
             MedicationsView(viewModel: medicationViewModel)
         }
         .sheet(isPresented: $showHydration) {
             HydrationView(viewModel: hydrationViewModel)
+        }
+        .sheet(isPresented: $showDiet) {
+            DietView(viewModel: dietViewModel)
+        }
+        .sheet(isPresented: $showMenstrualCycle) {
+            MenstrualCycleView()
         }
     }
     
@@ -803,30 +837,6 @@ private struct VitalCard: View {
     }
 }
 
-private struct QuickActionButton: View {
-    let icon: String
-    let title: String
-    let color: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
-                
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .glass(cornerRadius: 12)
-        }
-    }
-}
-
 private struct HydrationQuickActionButton: View {
     let currentIntake: Int
     let dailyGoal: Int
@@ -955,6 +965,98 @@ private struct HydrationQuickActionButton: View {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                 visualProgress = newValue
             }
+        }
+    }
+}
+
+// MARK: - Cycle Tracker Quick Action Button
+
+private struct CycleTrackerQuickActionButton: View {
+    let action: () -> Void
+    
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var pulseAnimation = false
+    
+    private var isLight: Bool { colorScheme == .light }
+    private var textColor: Color { isLight ? .primary : .white }
+    private var secondaryTextOpacity: Double { isLight ? 0.75 : 0.9 }
+    private var tertiaryTextOpacity: Double { isLight ? 0.6 : 0.7 }
+    private var iconCircleFill: Color { isLight ? Color.primary.opacity(0.12) : Color.white.opacity(0.2) }
+    
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                // Background
+                GeometryReader { geo in
+                    ZStack(alignment: .bottom) {
+                        // Base background with gradient
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.pink.opacity(isLight ? 0.08 : 0.05),
+                                        Color.red.opacity(isLight ? 0.12 : 0.08)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                        
+                        // Subtle pulsing circle effect
+                        Circle()
+                            .fill(Color.pink.opacity(0.15))
+                            .frame(width: 100, height: 100)
+                            .scaleEffect(pulseAnimation ? 1.2 : 0.8)
+                            .opacity(pulseAnimation ? 0.3 : 0.6)
+                            .offset(x: 30, y: 20)
+                            .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: pulseAnimation)
+                    }
+                }
+                
+                // Content Overlay
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        ZStack {
+                            Circle()
+                                .fill(iconCircleFill)
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "drop.fill")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.pink)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(textColor.opacity(0.6))
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Cycle")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(textColor)
+                        
+                        Text("Tracker")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(textColor.opacity(secondaryTextOpacity))
+                    }
+                }
+                .padding(20)
+            }
+            .frame(height: 150)
+            .frame(maxWidth: .infinity)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.pink.opacity(0.2), lineWidth: 0.5)
+            )
+            .shadow(color: Color.pink.opacity(isLight ? 0.12 : 0.15), radius: 10, x: 0, y: 5)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            pulseAnimation = true
         }
     }
 }
@@ -1108,7 +1210,7 @@ private struct DateButton: View {
             .frame(width: 50, height: 60)
             .background(
                 isSelected
-                    ? Color(hex: "2E3192")
+                    ? AppColors.accentBlue
                     : Color.clear
             )
             .cornerRadius(12)
@@ -1199,7 +1301,7 @@ private struct AnalysisResultView: View {
                 .font(.system(size: 50))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                        colors: [AppColors.accentBlue, Color(hex: "4A90E2")],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -1210,7 +1312,7 @@ private struct AnalysisResultView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Overall Assessment", systemImage: "heart.text.square.fill")
                     .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .foregroundColor(AppColors.accentBlue)
                 
                 Text(result.analysis.assessment)
                     .font(.body)
@@ -1224,7 +1326,7 @@ private struct AnalysisResultView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Key Insights", systemImage: "lightbulb.fill")
                     .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .foregroundColor(AppColors.accentBlue)
                 
                 Text(result.analysis.insights)
                     .font(.body)
@@ -1238,14 +1340,14 @@ private struct AnalysisResultView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Recommendations", systemImage: "star.fill")
                     .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .foregroundColor(AppColors.accentBlue)
                 
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
                         HStack(alignment: .top, spacing: 10) {
                             Text("\(index + 1).")
                             .fontWeight(.semibold)
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .foregroundColor(AppColors.accentBlue)
                             Text(rec)
                                 .font(.body)
                                 .lineSpacing(4)
@@ -1283,7 +1385,7 @@ private struct AnalysisResultView: View {
                 onDismiss()
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color(hex: "2E3192"))
+            .tint(AppColors.accentBlue)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

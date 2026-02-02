@@ -64,6 +64,9 @@ struct MedicationsView: View {
                     }
                 }
             }
+            .onAppear {
+                AppAnalyticsService.shared.logScreen("medications")
+            }
             .navigationTitle("Medications")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {

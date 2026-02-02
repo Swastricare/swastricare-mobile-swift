@@ -647,6 +647,7 @@ final class VaultViewModel: ObservableObject {
                 )
                 
                 print("✅ Successfully uploaded: \(upload.fileName)")
+                AppAnalyticsService.shared.logVaultUpload(category: upload.category.rawValue)
                 
                 // Add to beginning of list and invalidate caches
                 documents.insert(document, at: 0)
@@ -722,6 +723,7 @@ final class VaultViewModel: ObservableObject {
             try await vaultService.deleteDocument(document)
             documents.removeAll { $0.id == document.id }
             invalidateCaches()
+            AppAnalyticsService.shared.logVaultDelete()
             isLoading = false
             return true
         } catch {

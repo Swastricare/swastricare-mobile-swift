@@ -89,6 +89,168 @@ class SupabaseManager {
         return json
     }
     
+    // MARK: - Diet Sync Methods
+    
+    /// Sync a diet log entry to Supabase
+    func syncDietLog(_ entry: DietLogEntry) async throws {
+        let healthProfileId = try await getHealthProfileId()
+        let record = DietLogRecord(from: entry, healthProfileId: healthProfileId)
+        
+        try await client
+            .from("diet_logs")
+            .upsert(record)
+            .execute()
+    }
+    
+    /// Sync multiple diet log entries
+    func syncDietLogs(_ entries: [DietLogEntry]) async throws {
+        let healthProfileId = try await getHealthProfileId()
+        let records = entries.map { DietLogRecord(from: $0, healthProfileId: healthProfileId) }
+        
+        try await client
+            .from("diet_logs")
+            .upsert(records)
+            .execute()
+    }
+    
+    /// Fetch diet logs for a specific date
+    func fetchDietLogs(for date: Date) async throws -> [DietLogEntry] {
+        let healthProfileId = try await getHealthProfileId()
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        let records: [DietLogRecord] = try await client
+            .from("diet_logs")
+            .select()
+            .eq("health_profile_id", value: healthProfileId.uuidString)
+            .gte("logged_at", value: startOfDay.ISO8601Format())
+            .lt("logged_at", value: endOfDay.ISO8601Format())
+            .order("logged_at", ascending: false)
+            .execute()
+            .value
+        
+        return records.map { $0.toDietLogEntry() }
+    }
+    
+    /// Delete a diet log entry
+    func deleteDietLog(id: UUID) async throws {
+        try await client
+            .from("diet_logs")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+    
+    /// Save diet goals
+    func saveDietGoals(_ goals: DietGoals) async throws {
+        let healthProfileId = try await getHealthProfileId()
+        
+        struct DietGoalsRecord: Encodable {
+            let healthProfileId: UUID
+            let dailyCalories: Int
+            let proteinPercent: Int
+            let carbsPercent: Int
+            let fatPercent: Int
+            let waterGoalMl: Int
+            let mealRemindersEnabled: Bool
+            let updatedAt: Date
+            
+            enum CodingKeys: String, CodingKey {
+                case healthProfileId = "health_profile_id"
+                case dailyCalories = "daily_calories"
+                case proteinPercent = "protein_percent"
+                case carbsPercent = "carbs_percent"
+                case fatPercent = "fat_percent"
+                case waterGoalMl = "water_goal_ml"
+                case mealRemindersEnabled = "meal_reminders_enabled"
+                case updatedAt = "updated_at"
+            }
+        }
+        
+        let record = DietGoalsRecord(
+            healthProfileId: healthProfileId,
+            dailyCalories: goals.dailyCalories,
+            proteinPercent: goals.proteinPercent,
+            carbsPercent: goals.carbsPercent,
+            fatPercent: goals.fatPercent,
+            waterGoalMl: goals.waterGoalMl,
+            mealRemindersEnabled: goals.mealRemindersEnabled,
+            updatedAt: Date()
+        )
+        
+        try await client
+            .from("diet_goals")
+            .upsert(record)
+            .execute()
+    }
+    
+    /// Fetch diet goals
+    func fetchDietGoals() async throws -> DietGoals? {
+        let healthProfileId = try await getHealthProfileId()
+        
+        struct DietGoalsRecord: Decodable {
+            let healthProfileId: UUID
+            let dailyCalories: Int
+            let proteinPercent: Int
+            let carbsPercent: Int
+            let fatPercent: Int
+            let waterGoalMl: Int
+            let mealRemindersEnabled: Bool
+            let updatedAt: Date?
+            
+            enum CodingKeys: String, CodingKey {
+                case healthProfileId = "health_profile_id"
+                case dailyCalories = "daily_calories"
+                case proteinPercent = "protein_percent"
+                case carbsPercent = "carbs_percent"
+                case fatPercent = "fat_percent"
+                case waterGoalMl = "water_goal_ml"
+                case mealRemindersEnabled = "meal_reminders_enabled"
+                case updatedAt = "updated_at"
+            }
+        }
+        
+        let records: [DietGoalsRecord] = try await client
+            .from("diet_goals")
+            .select()
+            .eq("health_profile_id", value: healthProfileId.uuidString)
+            .limit(1)
+            .execute()
+            .value
+        
+        guard let record = records.first else { return nil }
+        
+        return DietGoals(
+            dailyCalories: record.dailyCalories,
+            proteinPercent: record.proteinPercent,
+            carbsPercent: record.carbsPercent,
+            fatPercent: record.fatPercent,
+            waterGoalMl: record.waterGoalMl,
+            mealRemindersEnabled: record.mealRemindersEnabled,
+            updatedAt: record.updatedAt
+        )
+    }
+    
+    /// Fetch food items from database
+    func fetchFoodItems(query: String? = nil, limit: Int = 50) async throws -> [FoodItem] {
+        var queryBuilder = client
+            .from("food_items")
+            .select()
+        
+        if let query = query, !query.isEmpty {
+            queryBuilder = queryBuilder.ilike("name", pattern: "%\(query)%")
+        }
+        
+        let records: [FoodItemRecord] = try await queryBuilder
+            .limit(limit)
+            .order("name", ascending: true)
+            .execute()
+            .value
+        
+        return records.map { $0.toFoodItem() }
+    }
+    
     // MARK: - Health Data Sync
     // Note: Health metrics also need health_profile_id in the future, keeping as is for now if table uses user_id
     
@@ -167,6 +329,35 @@ class SupabaseManager {
             try await logSyncHistory(userId: userId, syncType: "health_insert", recordsCount: 1)
             
             return inserted
+        }
+    }
+    
+    /// Deletes health data (steps, heart rate, sleep, etc.) from Supabase for the current user.
+    /// - Parameter date: If provided, deletes only the record for that date; if nil, deletes all health_metrics for the user.
+    /// - Returns: Number of records deleted.
+    func deleteHealthData(forDate date: Date? = nil) async throws -> Int {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        if let date = date {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            let dateString = dateFormatter.string(from: Calendar.current.startOfDay(for: date))
+            try await client
+                .from("health_metrics")
+                .delete()
+                .eq("user_id", value: userId.uuidString)
+                .eq("metric_date", value: dateString)
+                .execute()
+            return 1
+        } else {
+            try await client
+                .from("health_metrics")
+                .delete()
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+            return 0
         }
     }
     
@@ -894,6 +1085,35 @@ class SupabaseManager {
             .execute()
             .value
     }
+
+    // MARK: - App Analytics
+
+    /// Inserts app analytics events (used by AppAnalyticsService). Does not require auth; events may have user_id null.
+    func insertAppEvents(_ events: [AppEvent]) async throws {
+        guard !events.isEmpty else { return }
+        struct InsertPayload: Encodable {
+            let user_id: UUID?
+            let event_name: String
+            let event_type: String
+            let properties: [String: String]
+            let device_info: [String: String]
+            let session_id: UUID?
+        }
+        let payloads = events.map { e in
+            InsertPayload(
+                user_id: e.userId,
+                event_name: e.eventName,
+                event_type: e.eventType,
+                properties: e.properties,
+                device_info: e.deviceInfo,
+                session_id: e.sessionId
+            )
+        }
+        _ = try await client
+            .from("app_events")
+            .insert(payloads)
+            .execute()
+    }
 }
 
 // MARK: - Data Models
@@ -1478,5 +1698,455 @@ extension SupabaseManager {
         }
         
         return result
+    }
+}
+
+// MARK: - Menstrual Cycle Sync
+
+extension SupabaseManager {
+    
+    // MARK: - Cycles
+    
+    /// Sync a menstrual cycle to Supabase
+    func syncMenstrualCycle(_ cycle: MenstrualCycle) async throws -> MenstrualCycleRecord {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let record = MenstrualCycleRecord(from: cycle, userId: userId)
+        
+        let inserted: MenstrualCycleRecord = try await client
+            .from("menstrual_cycles")
+            .upsert(record, onConflict: "id")
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        print("🩸 SupabaseManager: Synced menstrual cycle")
+        return inserted
+    }
+    
+    /// Sync multiple menstrual cycles
+    func syncMenstrualCycles(_ cycles: [MenstrualCycle]) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let records = cycles.map { MenstrualCycleRecord(from: $0, userId: userId) }
+        
+        try await client
+            .from("menstrual_cycles")
+            .upsert(records, onConflict: "id")
+            .execute()
+        
+        print("🩸 SupabaseManager: Synced \(cycles.count) menstrual cycles")
+    }
+    
+    /// Fetch user's menstrual cycles from Supabase
+    func fetchMenstrualCycles(limit: Int = 24) async throws -> [MenstrualCycle] {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let records: [MenstrualCycleRecord] = try await client
+            .from("menstrual_cycles")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .order("start_date", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        
+        print("🩸 SupabaseManager: Fetched \(records.count) menstrual cycles")
+        return records.map { $0.toMenstrualCycle() }
+    }
+    
+    /// Delete a menstrual cycle from Supabase
+    func deleteMenstrualCycle(id: UUID) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        try await client
+            .from("menstrual_cycles")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+        
+        print("🩸 SupabaseManager: Deleted menstrual cycle")
+    }
+    
+    // MARK: - Daily Logs
+    
+    /// Sync a menstrual daily log to Supabase
+    func syncMenstrualDailyLog(_ log: MenstrualDailyLog) async throws -> MenstrualDailyLogRecord {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let record = MenstrualDailyLogRecord(from: log, userId: userId)
+        
+        let inserted: MenstrualDailyLogRecord = try await client
+            .from("menstrual_daily_logs")
+            .upsert(record, onConflict: "user_id,log_date")
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        // Sync symptoms if present
+        if !log.symptoms.isEmpty {
+            let symptomRecords = log.symptoms.map { MenstrualSymptomRecord(from: $0, dailyLogId: inserted.id) }
+            try await client
+                .from("menstrual_symptoms")
+                .upsert(symptomRecords, onConflict: "id")
+                .execute()
+        }
+        
+        print("🩸 SupabaseManager: Synced menstrual daily log")
+        return inserted
+    }
+    
+    /// Fetch menstrual daily logs for a date range
+    func fetchMenstrualDailyLogs(from startDate: Date, to endDate: Date) async throws -> [MenstrualDailyLog] {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let fromString = dateFormatter.string(from: startDate)
+        let toString = dateFormatter.string(from: endDate)
+        
+        let records: [MenstrualDailyLogRecord] = try await client
+            .from("menstrual_daily_logs")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .gte("log_date", value: fromString)
+            .lte("log_date", value: toString)
+            .order("log_date", ascending: false)
+            .execute()
+            .value
+        
+        print("🩸 SupabaseManager: Fetched \(records.count) daily logs")
+        return records.map { $0.toMenstrualDailyLog() }
+    }
+    
+    /// Delete a menstrual daily log from Supabase
+    func deleteMenstrualDailyLog(id: UUID) async throws {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        try await client
+            .from("menstrual_daily_logs")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+        
+        print("🩸 SupabaseManager: Deleted menstrual daily log")
+    }
+    
+    // MARK: - Settings
+    
+    /// Save menstrual settings to Supabase
+    func saveMenstrualSettings(_ settings: MenstrualSettings) async throws -> MenstrualSettingsRecord {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let record = MenstrualSettingsRecord(from: settings, userId: userId)
+        
+        let inserted: MenstrualSettingsRecord = try await client
+            .from("menstrual_settings")
+            .upsert(record, onConflict: "user_id")
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        print("🩸 SupabaseManager: Saved menstrual settings")
+        return inserted
+    }
+    
+    /// Fetch menstrual settings from Supabase
+    func fetchMenstrualSettings() async throws -> MenstrualSettings? {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+        
+        let records: [MenstrualSettingsRecord] = try await client
+            .from("menstrual_settings")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .limit(1)
+            .execute()
+            .value
+        
+        return records.first?.toMenstrualSettings()
+    }
+}
+
+// MARK: - Menstrual Cycle Record (Database Model)
+
+struct MenstrualCycleRecord: Codable {
+    let id: UUID
+    let userId: UUID
+    let startDate: String
+    let endDate: String?
+    let cycleLength: Int?
+    let periodLength: Int?
+    let flowIntensity: String?
+    let isPredicted: Bool
+    let notes: String?
+    let createdAt: Date?
+    let updatedAt: Date?
+    let syncedAt: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case startDate = "start_date"
+        case endDate = "end_date"
+        case cycleLength = "cycle_length"
+        case periodLength = "period_length"
+        case flowIntensity = "flow_intensity"
+        case isPredicted = "is_predicted"
+        case notes
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case syncedAt = "synced_at"
+    }
+    
+    init(from cycle: MenstrualCycle, userId: UUID) {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        
+        self.id = cycle.id
+        self.userId = userId
+        self.startDate = dateFormatter.string(from: cycle.startDate)
+        self.endDate = cycle.endDate.map { dateFormatter.string(from: $0) }
+        self.cycleLength = cycle.cycleLength
+        self.periodLength = cycle.periodLength
+        self.flowIntensity = cycle.flowIntensity?.rawValue
+        self.isPredicted = cycle.isPredicted
+        self.notes = cycle.notes
+        self.createdAt = cycle.createdAt
+        self.updatedAt = cycle.updatedAt
+        self.syncedAt = Date()
+    }
+    
+    func toMenstrualCycle() -> MenstrualCycle {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        
+        return MenstrualCycle(
+            id: id,
+            userId: userId,
+            startDate: dateFormatter.date(from: startDate) ?? Date(),
+            endDate: endDate.flatMap { dateFormatter.date(from: $0) },
+            cycleLength: cycleLength,
+            periodLength: periodLength,
+            flowIntensity: flowIntensity.flatMap { FlowIntensity(rawValue: $0) },
+            isPredicted: isPredicted,
+            notes: notes,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            syncedAt: syncedAt
+        )
+    }
+}
+
+// MARK: - Menstrual Daily Log Record (Database Model)
+
+struct MenstrualDailyLogRecord: Codable {
+    let id: UUID
+    let userId: UUID
+    let logDate: String
+    let cycleId: UUID?
+    let flowLevel: String?
+    let painLevel: Int?
+    let mood: String?
+    let energyLevel: Int?
+    let sleepQuality: String?
+    let temperature: Double?
+    let weight: Double?
+    let cervicalMucus: String?
+    let sexualActivity: Bool?
+    let protectedSex: Bool?
+    let notes: String?
+    let createdAt: Date?
+    let updatedAt: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case logDate = "log_date"
+        case cycleId = "cycle_id"
+        case flowLevel = "flow_level"
+        case painLevel = "pain_level"
+        case mood
+        case energyLevel = "energy_level"
+        case sleepQuality = "sleep_quality"
+        case temperature
+        case weight
+        case cervicalMucus = "cervical_mucus"
+        case sexualActivity = "sexual_activity"
+        case protectedSex = "protected_sex"
+        case notes
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+    
+    init(from log: MenstrualDailyLog, userId: UUID) {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        
+        self.id = log.id
+        self.userId = userId
+        self.logDate = dateFormatter.string(from: log.logDate)
+        self.cycleId = log.cycleId
+        self.flowLevel = log.flowLevel?.rawValue
+        self.painLevel = log.painLevel
+        self.mood = log.mood?.rawValue
+        self.energyLevel = log.energyLevel
+        self.sleepQuality = log.sleepQuality?.rawValue
+        self.temperature = log.temperature
+        self.weight = log.weight
+        self.cervicalMucus = log.cervicalMucus?.rawValue
+        self.sexualActivity = log.sexualActivity
+        self.protectedSex = log.protectedSex
+        self.notes = log.notes
+        self.createdAt = log.createdAt
+        self.updatedAt = log.updatedAt
+    }
+    
+    func toMenstrualDailyLog() -> MenstrualDailyLog {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        
+        return MenstrualDailyLog(
+            id: id,
+            userId: userId,
+            logDate: dateFormatter.date(from: logDate) ?? Date(),
+            cycleId: cycleId,
+            flowLevel: flowLevel.flatMap { FlowLevel(rawValue: $0) },
+            painLevel: painLevel,
+            mood: mood.flatMap { CycleMood(rawValue: $0) },
+            energyLevel: energyLevel,
+            sleepQuality: sleepQuality.flatMap { SleepQuality(rawValue: $0) },
+            temperature: temperature,
+            weight: weight,
+            cervicalMucus: cervicalMucus.flatMap { CervicalMucus(rawValue: $0) },
+            sexualActivity: sexualActivity,
+            protectedSex: protectedSex,
+            notes: notes,
+            symptoms: []
+        )
+    }
+}
+
+// MARK: - Menstrual Symptom Record (Database Model)
+
+struct MenstrualSymptomRecord: Codable {
+    let id: UUID
+    let dailyLogId: UUID
+    let symptomType: String
+    let severity: Int
+    let createdAt: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case dailyLogId = "daily_log_id"
+        case symptomType = "symptom_type"
+        case severity
+        case createdAt = "created_at"
+    }
+    
+    init(from symptom: MenstrualSymptom, dailyLogId: UUID) {
+        self.id = symptom.id
+        self.dailyLogId = dailyLogId
+        self.symptomType = symptom.symptomType.rawValue
+        self.severity = symptom.severity
+        self.createdAt = symptom.createdAt
+    }
+    
+    func toMenstrualSymptom() -> MenstrualSymptom? {
+        guard let type = SymptomType(rawValue: symptomType) else { return nil }
+        return MenstrualSymptom(
+            id: id,
+            dailyLogId: dailyLogId,
+            symptomType: type,
+            severity: severity
+        )
+    }
+}
+
+// MARK: - Menstrual Settings Record (Database Model)
+
+struct MenstrualSettingsRecord: Codable {
+    let id: UUID
+    let userId: UUID
+    let averageCycleLength: Int
+    let averagePeriodLength: Int
+    let reminderEnabled: Bool
+    let reminderDaysBefore: Int
+    let fertileWindowTracking: Bool
+    let pmsTracking: Bool
+    let ovulationTracking: Bool
+    let lutealPhaseLength: Int
+    let lastUpdated: Date?
+    let createdAt: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case averageCycleLength = "average_cycle_length"
+        case averagePeriodLength = "average_period_length"
+        case reminderEnabled = "reminder_enabled"
+        case reminderDaysBefore = "reminder_days_before"
+        case fertileWindowTracking = "fertile_window_tracking"
+        case pmsTracking = "pms_tracking"
+        case ovulationTracking = "ovulation_tracking"
+        case lutealPhaseLength = "luteal_phase_length"
+        case lastUpdated = "last_updated"
+        case createdAt = "created_at"
+    }
+    
+    init(from settings: MenstrualSettings, userId: UUID) {
+        self.id = settings.id ?? UUID()
+        self.userId = userId
+        self.averageCycleLength = settings.averageCycleLength
+        self.averagePeriodLength = settings.averagePeriodLength
+        self.reminderEnabled = settings.reminderEnabled
+        self.reminderDaysBefore = settings.reminderDaysBefore
+        self.fertileWindowTracking = settings.fertileWindowTracking
+        self.pmsTracking = settings.pmsTracking
+        self.ovulationTracking = settings.ovulationTracking
+        self.lutealPhaseLength = settings.lutealPhaseLength
+        self.lastUpdated = Date()
+        self.createdAt = settings.createdAt
+    }
+    
+    func toMenstrualSettings() -> MenstrualSettings {
+        MenstrualSettings(
+            id: id,
+            userId: userId,
+            averageCycleLength: averageCycleLength,
+            averagePeriodLength: averagePeriodLength,
+            reminderEnabled: reminderEnabled,
+            reminderDaysBefore: reminderDaysBefore,
+            fertileWindowTracking: fertileWindowTracking,
+            pmsTracking: pmsTracking,
+            ovulationTracking: ovulationTracking,
+            lutealPhaseLength: lutealPhaseLength
+        )
     }
 }

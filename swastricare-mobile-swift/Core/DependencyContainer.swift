@@ -31,6 +31,7 @@ final class DependencyContainer: ObservableObject {
     let runActivityService: RunActivityServiceProtocol
     let locationTrackingService: LocationTrackingServiceProtocol
     let workoutSessionManager: WorkoutSessionManagerProtocol
+    let dietService: DietServiceProtocol
     
     // MARK: - ViewModels (Lazy initialized)
     
@@ -93,6 +94,10 @@ final class DependencyContainer: ObservableObject {
         )
     }()
     
+    lazy var dietViewModel: DietViewModel = {
+        DietViewModel(dietService: dietService)
+    }()
+    
     // MARK: - Init
     
     private init() {
@@ -108,6 +113,7 @@ final class DependencyContainer: ObservableObject {
         self.runActivityService = RunActivityService.shared
         self.locationTrackingService = LocationTrackingService.shared
         self.workoutSessionManager = WorkoutSessionManager.shared
+        self.dietService = DietService.shared
     }
     
     // MARK: - Factory Methods (for creating new instances if needed)
@@ -153,6 +159,10 @@ final class DependencyContainer: ObservableObject {
             workoutManager: workoutSessionManager,
             locationService: locationTrackingService
         )
+    }
+    
+    func makeDietViewModel() -> DietViewModel {
+        DietViewModel(dietService: dietService)
     }
 }
 

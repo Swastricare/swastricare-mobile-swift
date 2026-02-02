@@ -30,24 +30,26 @@ struct HeartRateView: View {
                 // Header
                 headerView
                     .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                    .padding(.top, 16)
                 
-                Spacer(minLength: 20)
+                Spacer(minLength: 16)
                 
                 // Main Measurement Area
                 measurementArea
+                    .padding(.horizontal, 20)
                 
-                Spacer(minLength: 30)
+                Spacer(minLength: 24)
                 
                 // BPM & Waveform Section
                 bpmSection
+                    .padding(.horizontal, 20)
                 
-                Spacer(minLength: 20)
+                Spacer(minLength: 16)
                 
                 // Bottom Action
                 actionSection
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 30)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 34)
             }
         }
         .navigationBarHidden(true)
@@ -120,23 +122,8 @@ struct HeartRateView: View {
     // MARK: - Header
     
     private var headerView: some View {
-        HStack {
-            Button(action: {
-                HapticManager.impact(.light)
-                viewModel.stopMeasurement()
-                dismiss()
-            }) {
-                Image(systemName: "chevron.left")
-                    .font(.title3.weight(.semibold))
-                    .foregroundColor(.primary)
-                    .frame(width: 44, height: 44)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .clipShape(Circle())
-            }
-            .accessibilityLabel("Go back")
-            
-            Spacer()
-            
+        ZStack {
+            // Center title
             VStack(spacing: 2) {
                 Text("Heart Rate")
                     .font(.headline)
@@ -149,20 +136,40 @@ struct HeartRateView: View {
             }
             .animation(.easeInOut, value: viewModel.isRunning)
             
-            Spacer()
-            
-            // Info button
-            Button(action: {
-                HapticManager.impact(.light)
-                viewModel.showDisclaimer = true
-            }) {
-                Image(systemName: "info.circle")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-                    .frame(width: 44, height: 44)
+            // Left and right buttons
+            HStack {
+                Button(action: {
+                    HapticManager.impact(.light)
+                    viewModel.stopMeasurement()
+                    dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(.primary)
+                        .frame(width: 40, height: 40)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .clipShape(Circle())
+                }
+                .accessibilityLabel("Go back")
+                
+                Spacer()
+                
+                // Info button
+                Button(action: {
+                    HapticManager.impact(.light)
+                    viewModel.showDisclaimer = true
+                }) {
+                    Image(systemName: "info.circle")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .frame(width: 40, height: 40)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .clipShape(Circle())
+                }
+                .accessibilityLabel("Show measurement instructions")
             }
-            .accessibilityLabel("Show measurement instructions")
         }
+        .frame(height: 44)
     }
     
     private var phaseDescription: String {
@@ -196,16 +203,16 @@ struct HeartRateView: View {
             )
             
             // Time/Progress overlay - positioned below camera
-            if viewModel.isRunning {
-                HeartRateProgressOverlay(
-                    progress: viewModel.progress,
-                    measurementDuration: measurementDuration,
-                    signalQuality: viewModel.signalQuality
-                )
-                .offset(y: 170)
+                if viewModel.isRunning {
+                    HeartRateProgressOverlay(
+                        progress: viewModel.progress,
+                        measurementDuration: measurementDuration,
+                        signalQuality: viewModel.signalQuality
+                    )
+                    .offset(y: 150)
+                }
             }
-        }
-        .frame(height: 320)
+            .frame(height: 300)
         .opacity(showContent ? 1 : 0)
         .scaleEffect(showContent ? 1 : 0.8)
         .animation(.spring(response: 0.5, dampingFraction: 0.7), value: showContent)
@@ -214,11 +221,11 @@ struct HeartRateView: View {
     // MARK: - BPM Section
     
     private var bpmSection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             // BPM Display with heartbeat animation
             HStack(alignment: .lastTextBaseline, spacing: 8) {
                 Text(viewModel.bpm > 0 ? "\(viewModel.bpm)" : "--")
-                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                     .contentTransition(.numericText())
                     .animation(.spring(response: 0.3), value: viewModel.bpm)
@@ -226,7 +233,7 @@ struct HeartRateView: View {
                 Text("BPM")
                     .font(.title3.weight(.medium))
                     .foregroundColor(.secondary)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 6)
             }
             .scaleEffect(heartbeatScale)
             .animation(.spring(response: 0.15, dampingFraction: 0.5), value: heartbeatScale)
@@ -235,9 +242,7 @@ struct HeartRateView: View {
             
             // Waveform
             HeartRateWaveformView(isRunning: viewModel.isRunning, bpm: viewModel.bpm)
-                .frame(height: 80)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
+                .frame(height: 72)
                 .accessibilityHidden(true)
             
             // Signal Quality Indicator
@@ -266,17 +271,17 @@ struct HeartRateView: View {
                 }
             }
         }) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 Image(systemName: viewModel.isRunning ? "stop.fill" : "heart.fill")
-                    .font(.title3)
+                    .font(.body.weight(.semibold))
                     .symbolEffect(.pulse, isActive: !viewModel.isRunning)
                 
                 Text(viewModel.isRunning ? "Stop Measurement" : "Start Measurement")
-                    .font(.headline)
+                    .font(.body.weight(.semibold))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
+            .frame(height: 54)
             .background(
                 Group {
                     if viewModel.isRunning {
@@ -291,7 +296,7 @@ struct HeartRateView: View {
                 }
             )
             .clipShape(Capsule())
-            .shadow(color: (viewModel.isRunning ? Color.gray : Color.red).opacity(0.3), radius: 15, x: 0, y: 8)
+            .shadow(color: (viewModel.isRunning ? Color.gray : Color.red).opacity(0.25), radius: 12, x: 0, y: 6)
         }
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)

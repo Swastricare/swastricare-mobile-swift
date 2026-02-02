@@ -288,7 +288,9 @@ extension WorkoutErrorHandler {
         
         print(logMessage)
         
-        // Could send to analytics service here
-        // Analytics.logError(error, category: category, severity: severity)
+        AppAnalyticsService.shared.logError(error, context: context, properties: [
+            "workout_category": String(describing: category),
+            "workout_severity": String(describing: severity)
+        ])
     }
 }

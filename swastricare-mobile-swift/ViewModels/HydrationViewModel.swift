@@ -178,7 +178,7 @@ final class HydrationViewModel: ObservableObject {
     // MARK: - Actions
     
     /// Add a hydration entry
-    func addWaterIntake(amount: Int, drinkType: DrinkType = .water, notes: String? = nil) async {
+    func addWaterIntake(amount: Int, drinkType: DrinkType = .water, notes: String? = nil, source: String = "in_app") async {
         let entry = HydrationEntry(
             timestamp: Date(),
             amountMl: amount,
@@ -195,6 +195,12 @@ final class HydrationViewModel: ObservableObject {
         
         // Recalculate insights
         calculateInsights()
+        
+        // Analytics
+        AppAnalyticsService.shared.logHydrationLogged(amountMl: amount, source: source)
+        if isGoalMet {
+            AppAnalyticsService.shared.logHydrationGoalMet(dailyGoalMl: dailyGoal, effectiveMl: effectiveIntake)
+        }
         
         // Update widget data
         updateWidgetData()
@@ -366,7 +372,7 @@ final class HydrationViewModel: ObservableObject {
     private func processPendingWidgetActions() async {
         await widgetService.processPendingActions(
             hydrationHandler: { [weak self] amount in
-                await self?.addWaterIntake(amount: amount, drinkType: .water, notes: "Added from widget")
+                await self?.addWaterIntake(amount: amount, drinkType: .water, notes: "Added from widget", source: "widget")
             },
             medicationHandler: nil
         )

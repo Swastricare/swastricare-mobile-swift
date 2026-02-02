@@ -15,19 +15,19 @@ class PPGSignalProcessor {
     // MARK: - Bandpass Filter
     
     /// Butterworth bandpass filter for isolating heart rate frequencies
-    /// Passband: 0.8 Hz - 3.0 Hz (48 - 180 BPM) - tighter range to reduce noise
+    /// Passband: 0.67 Hz - 3.5 Hz (40 - 210 BPM) - wider range for better accuracy
     static func bandpassFilter(signal: [Double], sampleRate: Double) -> [Double] {
         guard signal.count > 10 else { return signal }
         
-        // Remove DC component (mean)
+        // Remove DC component (mean) - critical for PPG
         let mean = signal.reduce(0, +) / Double(signal.count)
         let centered = signal.map { $0 - mean }
         
-        // Low-pass filter (cutoff: 3.0 Hz for up to 180 BPM)
-        let lowPassed = lowPassFilter(signal: centered, cutoff: 3.0, sampleRate: sampleRate)
+        // Low-pass filter (cutoff: 3.5 Hz for up to 210 BPM)
+        let lowPassed = lowPassFilter(signal: centered, cutoff: 3.5, sampleRate: sampleRate)
         
-        // High-pass filter (cutoff: 0.8 Hz for down to 48 BPM)
-        let bandPassed = highPassFilter(signal: lowPassed, cutoff: 0.8, sampleRate: sampleRate)
+        // High-pass filter (cutoff: 0.67 Hz for down to 40 BPM)
+        let bandPassed = highPassFilter(signal: lowPassed, cutoff: 0.67, sampleRate: sampleRate)
         
         return bandPassed
     }
@@ -64,7 +64,7 @@ class PPGSignalProcessor {
     
     // MARK: - Peak Detection
     
-    /// Find peaks in the filtered signal using adaptive threshold
+    /// Find peaks in the filtered signal using adaptive threshold with improved accuracy
     static func findPeaks(signal: [Double], minDistance: Int = 10) -> [Int] {
         guard signal.count > 2 else { return [] }
         
@@ -77,12 +77,31 @@ class PPGSignalProcessor {
         
         guard range > 0 else { return [] }
         
-        // Threshold at 50% of signal range above minimum
-        let threshold = minVal + (range * 0.5)
+        // Calculate mean for adaptive thresholding
+        let mean = signal.reduce(0, +) / Double(signal.count)
         
-        for i in 1..<(signal.count - 1) {
-            // Check if local maximum and above threshold
-            if signal[i] > signal[i-1] && signal[i] > signal[i+1] && signal[i] > threshold {
+        // Adaptive threshold: use mean + 30% of range (more sensitive to actual pulse peaks)
+        // This works better than fixed 50% threshold for varying signal amplitudes
+        let threshold = mean + (range * 0.3)
+        
+        // Use wider window for local maximum detection (more robust)
+        let lookAhead = 2
+        
+        for i in lookAhead..<(signal.count - lookAhead) {
+            // Check if local maximum in wider window and above threshold
+            var isLocalMax = signal[i] > threshold
+            
+            // Verify it's higher than all points in lookAhead window
+            if isLocalMax {
+                for j in 1...lookAhead {
+                    if signal[i] <= signal[i-j] || signal[i] <= signal[i+j] {
+                        isLocalMax = false
+                        break
+                    }
+                }
+            }
+            
+            if isLocalMax {
                 // Check minimum distance from last peak
                 if peaks.isEmpty || (i - peaks.last!) >= minDistance {
                     peaks.append(i)
@@ -98,7 +117,7 @@ class PPGSignalProcessor {
     
     // MARK: - Heart Rate Calculation
     
-    /// Calculate BPM from peak intervals
+    /// Calculate BPM from peak intervals with improved outlier rejection
     static func calculateBPM(peaks: [Int], sampleRate: Double) -> Int? {
         guard peaks.count >= 3 else { return nil }
         
@@ -109,16 +128,32 @@ class PPGSignalProcessor {
             intervals.append(interval)
         }
         
-        // Remove outliers (intervals outside physiological range)
+        // Remove outliers (intervals outside physiological range: 40-200 BPM)
         let validIntervals = intervals.filter { interval in
             let bpm = 60.0 / interval
             return bpm >= 40 && bpm <= 200
         }
         
-        guard !validIntervals.isEmpty else { return nil }
+        guard validIntervals.count >= 2 else { return nil }
         
-        // Calculate median interval (more robust than mean)
-        let sortedIntervals = validIntervals.sorted()
+        // Use IQR method for additional outlier removal if we have enough data
+        var cleanedIntervals = validIntervals
+        if validIntervals.count >= 5 {
+            let sorted = validIntervals.sorted()
+            let q1 = sorted[sorted.count / 4]
+            let q3 = sorted[(sorted.count * 3) / 4]
+            let iqr = q3 - q1
+            
+            let lowerBound = q1 - (1.5 * iqr)
+            let upperBound = q3 + (1.5 * iqr)
+            
+            cleanedIntervals = validIntervals.filter { $0 >= lowerBound && $0 <= upperBound }
+        }
+        
+        guard !cleanedIntervals.isEmpty else { return nil }
+        
+        // Calculate median interval (more robust than mean for PPG)
+        let sortedIntervals = cleanedIntervals.sorted()
         let medianInterval = sortedIntervals[sortedIntervals.count / 2]
         
         let bpm = 60.0 / medianInterval
@@ -166,10 +201,10 @@ class PPGSignalProcessor {
             }
         }
         
-        // Find peak frequency in heart rate range (0.8-3.0 Hz = 48-180 BPM)
+        // Find peak frequency in heart rate range (0.67-3.5 Hz = 40-210 BPM)
         let freqResolution = sampleRate / Double(n)
-        let minBin = max(1, Int(0.8 / freqResolution))
-        let maxBin = min(n / 2 - 1, Int(3.0 / freqResolution))
+        let minBin = max(1, Int(0.67 / freqResolution))
+        let maxBin = min(n / 2 - 1, Int(3.5 / freqResolution))
         
         guard minBin < maxBin else { return nil }
         
@@ -211,10 +246,10 @@ class PPGSignalProcessor {
         // Method 3: Autocorrelation (most accurate for PPG)
         let acBPM = calculateBPMWithAutocorrelation(signal: filtered, sampleRate: sampleRate)
         
-        // Validate all results (45-180 BPM range)
-        let validPeak = peakBPM.flatMap { ($0 >= 45 && $0 <= 180) ? $0 : nil }
-        let validFFT = fftBPM.flatMap { ($0 >= 45 && $0 <= 180) ? $0 : nil }
-        let validAC = acBPM.flatMap { ($0 >= 45 && $0 <= 180) ? $0 : nil }
+        // Validate all results (40-200 BPM range - wider for better coverage)
+        let validPeak = peakBPM.flatMap { ($0 >= 40 && $0 <= 200) ? $0 : nil }
+        let validFFT = fftBPM.flatMap { ($0 >= 40 && $0 <= 200) ? $0 : nil }
+        let validAC = acBPM.flatMap { ($0 >= 40 && $0 <= 200) ? $0 : nil }
         
         // Collect all valid results
         var validResults: [Int] = []
@@ -261,55 +296,87 @@ class PPGSignalProcessor {
     
     // MARK: - Autocorrelation BPM (Most Accurate for PPG)
     
-    /// Calculate BPM using autocorrelation - often more accurate than FFT for PPG
+    /// Calculate BPM using autocorrelation with improved accuracy
+    /// Uses proper normalization and parabolic interpolation for sub-sample precision
     static func calculateBPMWithAutocorrelation(signal: [Double], sampleRate: Double) -> Int? {
         guard signal.count >= 128 else { return nil }
         
-        // Normalize signal
+        // Normalize signal to zero mean, unit variance
         let mean = signal.reduce(0, +) / Double(signal.count)
         let centered = signal.map { $0 - mean }
         
-        // Calculate autocorrelation for lags corresponding to 45-180 BPM
-        let minLag = Int(sampleRate * 60.0 / 180.0)  // 180 BPM
-        let maxLag = Int(sampleRate * 60.0 / 45.0)   // 45 BPM
+        // Calculate standard deviation for normalization
+        let variance = centered.map { $0 * $0 }.reduce(0, +) / Double(centered.count)
+        let stdDev = sqrt(variance)
+        guard stdDev > 0 else { return nil }
         
-        guard maxLag < signal.count / 2 else { return nil }
+        let normalized = centered.map { $0 / stdDev }
         
-        var maxCorrelation: Double = 0
-        var bestLag = 0
+        // Calculate autocorrelation for lags corresponding to 40-200 BPM (wider range)
+        let minLag = Int(sampleRate * 60.0 / 200.0)  // 200 BPM
+        let maxLag = min(Int(sampleRate * 60.0 / 40.0), normalized.count / 2)  // 40 BPM
         
-        // Energy normalization
-        var energy: Double = 0
-        for i in 0..<centered.count {
-            energy += centered[i] * centered[i]
-        }
-        guard energy > 0 else { return nil }
+        guard maxLag > minLag else { return nil }
         
+        // Store correlation values for interpolation
+        var correlations = [Double](repeating: 0, count: maxLag - minLag + 1)
+        
+        // Calculate normalized autocorrelation
         for lag in minLag...maxLag {
             var correlation: Double = 0
-            let n = centered.count - lag
+            let n = normalized.count - lag
             
             for i in 0..<n {
-                correlation += centered[i] * centered[i + lag]
+                correlation += normalized[i] * normalized[i + lag]
             }
             
-            // Normalize by overlap length and energy
-            correlation = correlation / Double(n)
-            
-            if correlation > maxCorrelation {
-                maxCorrelation = correlation
+            // Biased autocorrelation (normalized by total length, not overlap)
+            // This gives better results for PPG signals
+            correlations[lag - minLag] = correlation / Double(normalized.count)
+        }
+        
+        // Find the peak correlation (ignoring first few lags which are always high)
+        let searchStart = max(0, minLag)
+        var maxCorrelation: Double = -1.0
+        var bestLag = 0
+        
+        for lag in searchStart...maxLag {
+            let corrValue = correlations[lag - minLag]
+            if corrValue > maxCorrelation {
+                maxCorrelation = corrValue
                 bestLag = lag
             }
         }
         
-        guard bestLag > 0 else { return nil }
+        guard bestLag > minLag && maxCorrelation > 0.1 else { return nil }
         
-        // Convert lag to BPM
-        let bpm = 60.0 * sampleRate / Double(bestLag)
+        // Parabolic interpolation for sub-sample accuracy
+        // This significantly improves BPM precision
+        var refinedLag = Double(bestLag)
+        
+        if bestLag > minLag && bestLag < maxLag {
+            let prevCorr = correlations[bestLag - minLag - 1]
+            let currCorr = correlations[bestLag - minLag]
+            let nextCorr = correlations[bestLag - minLag + 1]
+            
+            // Parabolic fit: y = a(x-p)^2 + b
+            // Peak at: p = 0.5 * (prev - next) / (prev - 2*curr + next)
+            let denominator = prevCorr - 2 * currCorr + nextCorr
+            if abs(denominator) > 0.001 {
+                let offset = 0.5 * (prevCorr - nextCorr) / denominator
+                // Clamp offset to reasonable range
+                if abs(offset) < 1.0 {
+                    refinedLag = Double(bestLag) + offset
+                }
+            }
+        }
+        
+        // Convert lag to BPM with refined value
+        let bpm = 60.0 * sampleRate / refinedLag
         let roundedBPM = Int(bpm.rounded())
         
-        // Validate result
-        if roundedBPM >= 45 && roundedBPM <= 180 {
+        // Validate result (wider range)
+        if roundedBPM >= 40 && roundedBPM <= 200 {
             return roundedBPM
         }
         
@@ -318,18 +385,46 @@ class PPGSignalProcessor {
     
     // MARK: - Signal Smoothing
     
-    /// Apply moving average smoothing
+    /// Apply moving average smoothing with edge preservation
+    /// Uses a smaller window to preserve signal shape while reducing noise
     static func smoothSignal(signal: [Double], windowSize: Int = 5) -> [Double] {
         guard signal.count > windowSize else { return signal }
         
+        // Use weighted moving average for better edge preservation
         var smoothed = [Double](repeating: 0, count: signal.count)
         let halfWindow = windowSize / 2
+        
+        // Gaussian-like weights for smoothing (center has more weight)
+        let weights: [Double]
+        switch windowSize {
+        case 3:
+            weights = [0.25, 0.5, 0.25]
+        case 5:
+            weights = [0.1, 0.2, 0.4, 0.2, 0.1]
+        case 7:
+            weights = [0.05, 0.1, 0.2, 0.3, 0.2, 0.1, 0.05]
+        default:
+            // Fallback to uniform weights
+            weights = [Double](repeating: 1.0 / Double(windowSize), count: windowSize)
+        }
         
         for i in 0..<signal.count {
             let start = max(0, i - halfWindow)
             let end = min(signal.count - 1, i + halfWindow)
             let window = Array(signal[start...end])
-            smoothed[i] = window.reduce(0, +) / Double(window.count)
+            
+            // Apply weighted average
+            var weightedSum = 0.0
+            var weightSum = 0.0
+            
+            for (j, value) in window.enumerated() {
+                let weightIdx = j + (start - (i - halfWindow))
+                let weight = (weightIdx >= 0 && weightIdx < weights.count) ? weights[weightIdx] : (1.0 / Double(windowSize))
+                weightedSum += value * weight
+                weightSum += weight
+            }
+            
+            smoothed[i] = weightedSum / weightSum
         }
         
         return smoothed
@@ -347,5 +442,27 @@ class PPGSignalProcessor {
         guard range > 0 else { return signal }
         
         return signal.map { ($0 - minVal) / range }
+    }
+    
+    // MARK: - Median Filter
+    
+    /// Apply median filter to remove spike noise (excellent for PPG signals)
+    /// More effective than moving average for removing outliers while preserving edges
+    static func medianFilter(signal: [Double], windowSize: Int = 3) -> [Double] {
+        guard signal.count > windowSize else { return signal }
+        
+        var filtered = [Double](repeating: 0, count: signal.count)
+        let halfWindow = windowSize / 2
+        
+        for i in 0..<signal.count {
+            let start = max(0, i - halfWindow)
+            let end = min(signal.count - 1, i + halfWindow)
+            let window = Array(signal[start...end]).sorted()
+            
+            // Take median value
+            filtered[i] = window[window.count / 2]
+        }
+        
+        return filtered
     }
 }

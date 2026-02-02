@@ -116,8 +116,10 @@ struct AppVersionInfo {
     
     /// Get the update status
     var updateStatus: AppUpdateStatus {
-        // Force update required if below minimum
-        if isBelowMinimum || forceUpdate {
+        // Force update required if:
+        // - below minimum supported version/build, OR
+        // - server requires force update AND there's actually a newer version/build available
+        if isBelowMinimum || (forceUpdate && hasNewerVersion) {
             return .forceUpdateRequired(version: latestVersion ?? currentVersion)
         }
         

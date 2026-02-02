@@ -120,18 +120,20 @@ final class AuthViewModel: ObservableObject {
                 password: formState.password
             )
             authState = .authenticated(user)
+            AppAnalyticsService.shared.logLoginSuccess(method: "email")
             // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
             // Fetch health profile
             await fetchHealthProfile()
             clearForm()
         } catch {
+            AppAnalyticsService.shared.logLoginFailed(method: "email", errorType: String(describing: type(of: error)))
             errorMessage = mapError(error)
         }
-        
+
         isLoading = false
     }
-    
+
     func signInWithGoogle() async {
         isLoading = true
         errorMessage = nil
@@ -139,17 +141,19 @@ final class AuthViewModel: ObservableObject {
         do {
             let user = try await authService.signInWithGoogle()
             authState = .authenticated(user)
+            AppAnalyticsService.shared.logLoginSuccess(method: "google")
             // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
             // Fetch health profile
             await fetchHealthProfile()
         } catch {
+            AppAnalyticsService.shared.logLoginFailed(method: "google", errorType: String(describing: type(of: error)))
             errorMessage = mapError(error)
         }
-        
+
         isLoading = false
     }
-    
+
     func signInWithApple() async {
         isLoading = true
         errorMessage = nil
@@ -157,33 +161,36 @@ final class AuthViewModel: ObservableObject {
         do {
             let user = try await authService.signInWithApple()
             authState = .authenticated(user)
+            AppAnalyticsService.shared.logLoginSuccess(method: "apple")
             // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
             // Fetch health profile
             await fetchHealthProfile()
         } catch {
+            AppAnalyticsService.shared.logLoginFailed(method: "apple", errorType: String(describing: type(of: error)))
             errorMessage = mapError(error)
         }
-        
+
         isLoading = false
     }
-    
+
     func signOut() async {
         isLoading = true
         errorMessage = nil
         
         do {
             try await authService.signOut()
+            AppAnalyticsService.shared.logLogout()
             authState = .unauthenticated
             healthProfile = nil
             clearForm()
         } catch {
             errorMessage = mapError(error)
         }
-        
+
         isLoading = false
     }
-    
+
     func resetPassword() async {
         guard formState.isValidEmail else {
             errorMessage = "Please enter a valid email address."

@@ -511,7 +511,7 @@ struct HealthAnalyticsView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color(hex: "2E3192"))
+                    .background(AppColors.accentBlue)
                     .cornerRadius(12)
                 }
                 .disabled(viewModel.analysisState.isAnalyzing)
@@ -547,7 +547,7 @@ private struct DateButton: View {
                     .foregroundColor(isSelected ? .white : .primary)
             }
             .frame(width: 50, height: 60)
-            .background(isSelected ? Color(hex: "2E3192") : Color.clear)
+            .background(isSelected ? AppColors.accentBlue : Color.clear)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -623,7 +623,7 @@ private struct MetricCard: View {
                     
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .foregroundColor(AppColors.accentBlue)
                             .font(.caption)
                     }
                     
@@ -661,7 +661,7 @@ private struct MetricCard: View {
             .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color(hex: "2E3192") : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? AppColors.accentBlue : Color.clear, lineWidth: 2)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -716,7 +716,7 @@ private struct FilterSheet: View {
                                 
                                 if selectedMetric == metric {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(Color(hex: "2E3192"))
+                                        .foregroundColor(AppColors.accentBlue)
                                 }
                             }
                         }
@@ -738,7 +738,7 @@ private struct FilterSheet: View {
                                 
                                 if selectedTimeRange == range {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(Color(hex: "2E3192"))
+                                        .foregroundColor(AppColors.accentBlue)
                                 }
                             }
                         }
@@ -783,7 +783,7 @@ private struct AnalysisResultSheet: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Label("Assessment", systemImage: "heart.text.square.fill")
                                 .font(.headline)
-                                .foregroundColor(Color(hex: "2E3192"))
+                                .foregroundColor(AppColors.accentBlue)
                             
                             Text(result.analysis.assessment)
                                 .font(.body)
@@ -795,7 +795,7 @@ private struct AnalysisResultSheet: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Label("Insights", systemImage: "lightbulb.fill")
                                 .font(.headline)
-                                .foregroundColor(Color(hex: "2E3192"))
+                                .foregroundColor(AppColors.accentBlue)
                             
                             Text(result.analysis.insights)
                                 .font(.body)
@@ -807,13 +807,13 @@ private struct AnalysisResultSheet: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Recommendations", systemImage: "star.fill")
                                 .font(.headline)
-                                .foregroundColor(Color(hex: "2E3192"))
+                                .foregroundColor(AppColors.accentBlue)
                             
                             ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
                                 HStack(alignment: .top, spacing: 10) {
                                     Text("\(index + 1).")
                                         .fontWeight(.semibold)
-                                        .foregroundColor(Color(hex: "2E3192"))
+                                        .foregroundColor(AppColors.accentBlue)
                                     Text(rec)
                                 }
                             }

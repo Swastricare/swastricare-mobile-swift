@@ -26,8 +26,8 @@ struct RunActivityView: View {
     
     // MARK: - Constants
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentGreen = Color(hex: "22C55E")
+    private let accentBlue = AppColors.accentBlue
+    private let accentGreen = AppColors.accentGreen
     private let backgroundGray = Color(hex: "F8F9FA")
     
     // MARK: - Body
@@ -93,6 +93,7 @@ struct RunActivityView: View {
             }
         }
         .onAppear {
+            AppAnalyticsService.shared.logScreen("Run")
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 isAnimating = true
             }
@@ -615,7 +616,7 @@ struct RouteOverlayView: View {
                         path.addLine(to: point)
                     }
                 }
-                .stroke(Color(hex: "4F46E5"), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                .stroke(AppColors.accentBlue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
             }
         }
     }
@@ -695,34 +696,58 @@ struct WeeklyComparisonBar: View {
 struct RunStatsAnalyticsView: View {
     @StateObject private var viewModel = DependencyContainer.shared.runActivityViewModel
     @State private var isAnimating = false
+    @State private var selectedTab: AnalyticsTab = .overview
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentGreen = Color(hex: "22C55E")
+    private let accentBlue = AppColors.accentBlue
+    private let accentGreen = AppColors.accentGreen
+    
+    enum AnalyticsTab: String, CaseIterable {
+        case overview = "Overview"
+        case performance = "Performance"
+        case calendar = "Calendar"
+        case activities = "Activities"
+        
+        var icon: String {
+            switch self {
+            case .overview: return "chart.bar.fill"
+            case .performance: return "bolt.fill"
+            case .calendar: return "calendar"
+            case .activities: return "list.bullet"
+            }
+        }
+    }
     
     var body: some View {
         ZStack {
             PremiumBackground()
                 .ignoresSafeArea()
             
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    // Stats Section
-                    statsSection
-                    
-                    // Calendar Section
-                    calendarSection
-                    
-                    // Analytics Section
-                    analyticsSection
-                    
-                    // All Activities List
-                    allActivitiesSection
+            VStack(spacing: 0) {
+                // Tab Selector
+                tabSelector
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+                
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        switch selectedTab {
+                        case .overview:
+                            overviewContent
+                        case .performance:
+                            performanceContent
+                        case .calendar:
+                            calendarContent
+                        case .activities:
+                            activitiesContent
+                        }
+                    }
+                    .padding(.top, 8)
+                    .padding(.bottom, 100)
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 100)
             }
         }
-        .navigationTitle("Run Stats & Analytics")
+        .navigationTitle("Stats & Analytics")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
@@ -734,168 +759,272 @@ struct RunStatsAnalyticsView: View {
         }
     }
     
-    // MARK: - Stats Section
+    // MARK: - Tab Selector
     
-    private var statsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Statistics")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-                .padding(.horizontal, 20)
-            
-            HStack(spacing: 12) {
-                RunStatCard(
+    private var tabSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(AnalyticsTab.allCases, id: \.self) { tab in
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) {
+                            selectedTab = tab
+                        }
+                        let generator = UISelectionFeedbackGenerator()
+                        generator.selectionChanged()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 12, weight: .semibold))
+                            
+                            Text(tab.rawValue)
+                                .font(.system(size: 14, weight: .semibold))
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .foregroundColor(selectedTab == tab ? .white : .primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(selectedTab == tab ? accentBlue : Color.clear)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(selectedTab == tab ? Color.clear : Color.primary.opacity(0.15), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.trailing, 20)
+        }
+    }
+    
+    // MARK: - Overview Content
+    
+    private var overviewContent: some View {
+        VStack(spacing: 24) {
+            // Enhanced Stats Grid
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                EnhancedStatCard(
                     title: "Total Steps",
                     value: "\(viewModel.totalSteps)",
+                    subtitle: "steps",
                     icon: "figure.walk",
-                    color: accentGreen
+                    color: accentGreen,
+                    trend: 12.5,
+                    // progress: viewModel.stepsGoalProgress
                 )
                 
-                RunStatCard(
+                EnhancedStatCard(
                     title: "Distance",
-                    value: String(format: "%.2f km", viewModel.totalDistance),
+                    value: String(format: "%.1f", viewModel.totalDistance),
+                    subtitle: "kilometers",
                     icon: "map",
-                    color: accentBlue
-                )
-            }
-            .padding(.horizontal, 20)
-            
-            HStack(spacing: 12) {
-                RunStatCard(
-                    title: "Calories",
-                    value: "\(viewModel.totalCalories)",
-                    icon: "flame.fill",
-                    color: .orange
+                    color: accentBlue,
+                    trend: 8.3
                 )
                 
-                RunStatCard(
+                EnhancedStatCard(
+                    title: "Calories",
+                    value: String(format: "%.0f", Double(viewModel.totalCalories)),
+                    subtitle: "kcal burned",
+                    icon: "flame.fill",
+                    color: .orange,
+                    trend: 15.7
+                )
+                
+                EnhancedStatCard(
                     title: "Points",
                     value: "\(viewModel.totalPoints)",
+                    subtitle: "activity points",
                     icon: "star.fill",
-                    color: .yellow
+                    color: .yellow,
+                    trend: -2.1
                 )
             }
             .padding(.horizontal, 20)
-        }
-        .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 20)
-    }
-    
-    // MARK: - Calendar Section
-    
-    private var calendarSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Calendar")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-                .padding(.horizontal, 20)
             
-            RunCalendarView(activities: viewModel.activities)
-                .padding(.horizontal, 20)
-        }
-        .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 30)
-        .animation(.spring(response: 0.5).delay(0.1), value: isAnimating)
-    }
-    
-    // MARK: - Analytics Section
-    
-    private var analyticsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Analytics")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-                .padding(.horizontal, 20)
+            // Weekly Distance Chart
+            WeeklyDistanceChart(
+                data: generateWeeklyData(),
+                color: accentBlue
+            )
+            .padding(.horizontal, 20)
             
-            VStack(spacing: 16) {
-                // Weekly Comparison
-                if let weeklyComparison = viewModel.weeklyComparison {
-                    VStack(alignment: .leading, spacing: 12) {
+            // Activity Streak
+            ActivityStreakCard(
+                currentStreak: calculateCurrentStreak(),
+                longestStreak: calculateLongestStreak(),
+                color: accentGreen
+            )
+            .padding(.horizontal, 20)
+            
+            // Quick Stats
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Quick Stats")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 20)
+                
+                QuickStatsGrid(
+                    avgPace: calculateAvgPace(),
+                    avgHeartRate: calculateAvgHeartRate(),
+                    totalTime: calculateTotalTime(),
+                    avgDistance: viewModel.totalDistance / Double(max(viewModel.activities.count, 1))
+                )
+                .padding(.horizontal, 20)
+            }
+            
+            // Weekly Comparison (if available)
+            if let weeklyComparison = viewModel.weeklyComparison {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(accentBlue)
+                        
                         Text("Weekly Comparison")
                             .font(.headline)
-                            .fontWeight(.semibold)
+                            .fontWeight(.bold)
                             .foregroundColor(.primary)
                         
-                        Text(weeklyComparison.insightText)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineSpacing(4)
-                        
-                        VStack(spacing: 12) {
-                            WeeklyComparisonBar(
-                                average: weeklyComparison.currentWeekAverage,
-                                dateRange: weeklyComparison.currentWeekDateRange,
-                                maxValue: max(weeklyComparison.currentWeekAverage, weeklyComparison.previousWeekAverage),
-                                isCurrent: true,
-                                accentColor: accentBlue
-                            )
-                            
-                            WeeklyComparisonBar(
-                                average: weeklyComparison.previousWeekAverage,
-                                dateRange: weeklyComparison.previousWeekDateRange,
-                                maxValue: max(weeklyComparison.currentWeekAverage, weeklyComparison.previousWeekAverage),
-                                isCurrent: false,
-                                accentColor: accentBlue
-                            )
-                        }
+                        Spacer()
                     }
-                    .padding(20)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                }
-                
-                // Activity Goals Progress
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Goals Progress")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
                     
-                    GoalProgressRow(
-                        title: "Steps",
-                        current: viewModel.activityGoal.currentSteps,
-                        goal: viewModel.activityGoal.dailyStepsGoal,
-                        color: accentGreen
-                    )
+                    Text(weeklyComparison.insightText)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineSpacing(4)
                     
-                    GoalProgressRow(
-                        title: "Distance",
-                        current: Int(viewModel.activityGoal.currentDistance * 1000),
-                        goal: Int(viewModel.activityGoal.dailyDistanceGoal * 1000),
-                        unit: "m",
-                        color: accentBlue
-                    )
-                    
-                    GoalProgressRow(
-                        title: "Calories",
-                        current: viewModel.activityGoal.currentCalories,
-                        goal: viewModel.activityGoal.dailyCaloriesGoal,
-                        color: .orange
-                    )
+                    VStack(spacing: 12) {
+                        WeeklyComparisonBar(
+                            average: weeklyComparison.currentWeekAverage,
+                            dateRange: weeklyComparison.currentWeekDateRange,
+                            maxValue: max(weeklyComparison.currentWeekAverage, weeklyComparison.previousWeekAverage),
+                            isCurrent: true,
+                            accentColor: accentBlue
+                        )
+                        
+                        WeeklyComparisonBar(
+                            average: weeklyComparison.previousWeekAverage,
+                            dateRange: weeklyComparison.previousWeekDateRange,
+                            maxValue: max(weeklyComparison.currentWeekAverage, weeklyComparison.previousWeekAverage),
+                            isCurrent: false,
+                            accentColor: accentBlue
+                        )
+                    }
                 }
                 .padding(20)
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 20)
             }
+        }
+        .opacity(isAnimating ? 1 : 0)
+        .offset(y: isAnimating ? 0 : 20)
+        .animation(.spring(response: 0.5), value: isAnimating)
+    }
+    
+    // MARK: - Performance Content
+    
+    private var performanceContent: some View {
+        VStack(spacing: 24) {
+            // Performance Insights
+            PerformanceInsightsCard(insights: generateInsights())
+                .padding(.horizontal, 20)
+            
+            // Personal Records
+            PersonalRecordsSection(records: generatePersonalRecords())
+                .padding(.horizontal, 20)
+            
+            // Pace Distribution
+            PaceDistributionChart(
+                paceRanges: generatePaceDistribution(),
+                color: accentBlue
+            )
+            .padding(.horizontal, 20)
+            
+            // Time of Day Analysis
+            TimeOfDayAnalysis(distribution: generateTimeDistribution())
+                .padding(.horizontal, 20)
+            
+            // Goals Progress
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "target")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(accentBlue)
+                    
+                    Text("Goals Progress")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                }
+                
+                GoalProgressRow(
+                    title: "Steps",
+                    current: viewModel.activityGoal.currentSteps,
+                    goal: viewModel.activityGoal.dailyStepsGoal,
+                    color: accentGreen
+                )
+                
+                GoalProgressRow(
+                    title: "Distance",
+                    current: Int(viewModel.activityGoal.currentDistance * 1000),
+                    goal: Int(viewModel.activityGoal.dailyDistanceGoal * 1000),
+                    unit: "m",
+                    color: accentBlue
+                )
+                
+                GoalProgressRow(
+                    title: "Calories",
+                    current: viewModel.activityGoal.currentCalories,
+                    goal: viewModel.activityGoal.dailyCaloriesGoal,
+                    color: .orange
+                )
+            }
+            .padding(20)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
             .padding(.horizontal, 20)
         }
         .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 40)
-        .animation(.spring(response: 0.5).delay(0.2), value: isAnimating)
+        .offset(y: isAnimating ? 0 : 20)
+        .animation(.spring(response: 0.5).delay(0.1), value: isAnimating)
     }
     
-    // MARK: - All Activities Section
+    // MARK: - Calendar Content
     
-    private var allActivitiesSection: some View {
+    private var calendarContent: some View {
+        VStack(spacing: 24) {
+            RunCalendarView(activities: viewModel.activities)
+        }
+        .opacity(isAnimating ? 1 : 0)
+        .offset(y: isAnimating ? 0 : 20)
+        .animation(.spring(response: 0.5).delay(0.1), value: isAnimating)
+    }
+    
+    // MARK: - Activities Content
+    
+    private var activitiesContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("All Activities")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-                .padding(.horizontal, 20)
+            HStack {
+                Text("All Activities")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                Text("\(viewModel.activities.count) total")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 20)
             
             if viewModel.activities.isEmpty {
                 VStack(spacing: 16) {
@@ -913,7 +1042,7 @@ struct RunStatsAnalyticsView: View {
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
+                .padding(.vertical, 60)
                 .padding(.horizontal, 20)
             } else {
                 ForEach(viewModel.activities) { activity in
@@ -926,8 +1055,228 @@ struct RunStatsAnalyticsView: View {
             }
         }
         .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 50)
-        .animation(.spring(response: 0.5).delay(0.3), value: isAnimating)
+        .offset(y: isAnimating ? 0 : 20)
+        .animation(.spring(response: 0.5).delay(0.1), value: isAnimating)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func generateWeeklyData() -> [(day: String, distance: Double)] {
+        let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let calendar = Calendar.current
+        let today = Date()
+        
+        return days.enumerated().map { index, day in
+            guard let date = calendar.date(byAdding: .day, value: -(6 - index), to: today) else {
+                return (day: day, distance: 0.0)
+            }
+            
+            let dayActivities = viewModel.activities.filter { activity in
+                calendar.isDate(activity.startTime, inSameDayAs: date)
+            }
+            
+            let distance = dayActivities.reduce(0.0) { $0 + $1.distance }
+            return (day: day, distance: distance)
+        }
+    }
+    
+    private func calculateCurrentStreak() -> Int {
+        guard !viewModel.activities.isEmpty else { return 0 }
+        
+        let calendar = Calendar.current
+        var streak = 0
+        var currentDate = Date()
+        
+        while true {
+            let hasActivity = viewModel.activities.contains { activity in
+                calendar.isDate(activity.startTime, inSameDayAs: currentDate)
+            }
+            
+            if hasActivity {
+                streak += 1
+                guard let previousDay = calendar.date(byAdding: .day, value: -1, to: currentDate) else { break }
+                currentDate = previousDay
+            } else {
+                break
+            }
+        }
+        
+        return streak
+    }
+    
+    private func calculateLongestStreak() -> Int {
+        guard !viewModel.activities.isEmpty else { return 0 }
+        
+        let calendar = Calendar.current
+        let sortedDates = viewModel.activities.map { $0.startTime }.sorted()
+        
+        var longestStreak = 1
+        var currentStreak = 1
+        
+        for i in 1..<sortedDates.count {
+            let previousDate = sortedDates[i - 1]
+            let currentDate = sortedDates[i]
+            
+            if let daysDifference = calendar.dateComponents([.day], from: previousDate, to: currentDate).day {
+                if daysDifference == 1 {
+                    currentStreak += 1
+                    longestStreak = max(longestStreak, currentStreak)
+                } else if daysDifference > 1 {
+                    currentStreak = 1
+                }
+            }
+        }
+        
+        return longestStreak
+    }
+    
+    private func calculateAvgPace() -> String {
+        let activities = viewModel.activities.filter { $0.distance > 0 }
+        guard !activities.isEmpty else { return "--:--" }
+        
+        let totalPace = activities.reduce(0.0) { result, activity in
+            let pace = activity.duration / 60.0 / activity.distance
+            return result + pace
+        }
+        
+        let avgPace = totalPace / Double(activities.count)
+        let mins = Int(avgPace)
+        let secs = Int((avgPace - Double(mins)) * 60)
+        
+        return String(format: "%d:%02d", mins, secs)
+    }
+    
+    private func calculateAvgHeartRate() -> Int {
+        let activities = viewModel.activities.filter { $0.averageBPM > 0 }
+        guard !activities.isEmpty else { return 0 }
+        
+        let total = activities.reduce(0) { $0 + $1.averageBPM }
+        return total / activities.count
+    }
+    
+    private func calculateTotalTime() -> String {
+        let totalSeconds = viewModel.activities.reduce(0.0) { $0 + $1.duration }
+        let hours = Int(totalSeconds) / 3600
+        let minutes = (Int(totalSeconds) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
+    private func generateInsights() -> [PerformanceInsight] {
+        var insights: [PerformanceInsight] = []
+        
+        // Consistency insight
+        let activeDays = Set(viewModel.activities.map { Calendar.current.startOfDay(for: $0.startTime) }).count
+        insights.append(PerformanceInsight(
+            icon: "checkmark.circle.fill",
+            title: "Consistency",
+            description: "You've been active on \(activeDays) different days",
+            color: accentGreen
+        ))
+        
+        // Distance progress
+        if viewModel.percentageChange > 0 {
+            insights.append(PerformanceInsight(
+                icon: "arrow.up.right.circle.fill",
+                title: "Distance Improved",
+                description: String(format: "Up %.1f%% compared to last period", viewModel.percentageChange),
+                color: accentBlue
+            ))
+        }
+        
+        // Best time of day
+        let morningCount = viewModel.activities.filter { Calendar.current.component(.hour, from: $0.startTime) < 12 }.count
+        if morningCount > viewModel.activities.count / 2 {
+            insights.append(PerformanceInsight(
+                icon: "sunrise.fill",
+                title: "Morning Person",
+                description: "Most of your workouts are in the morning",
+                color: .orange
+            ))
+        }
+        
+        return insights
+    }
+    
+    private func generatePersonalRecords() -> [PersonalRecord] {
+        var records: [PersonalRecord] = []
+        
+        if let longestRun = viewModel.activities.max(by: { $0.distance < $1.distance }) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d, yyyy"
+            records.append(PersonalRecord(
+                title: "Longest Distance",
+                value: String(format: "%.2f km", longestRun.distance),
+                date: formatter.string(from: longestRun.startTime),
+                icon: "map.fill"
+            ))
+        }
+        
+        if let longestDuration = viewModel.activities.max(by: { $0.duration < $1.duration }) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d, yyyy"
+            let hours = Int(longestDuration.duration) / 3600
+            let minutes = (Int(longestDuration.duration) % 3600) / 60
+            records.append(PersonalRecord(
+                title: "Longest Duration",
+                value: hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m",
+                date: formatter.string(from: longestDuration.startTime),
+                icon: "clock.fill"
+            ))
+        }
+        
+        if let mostSteps = viewModel.activities.max(by: { $0.steps < $1.steps }) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d, yyyy"
+            records.append(PersonalRecord(
+                title: "Most Steps",
+                value: "\(mostSteps.steps)",
+                date: formatter.string(from: mostSteps.startTime),
+                icon: "figure.walk"
+            ))
+        }
+        
+        return records
+    }
+    
+    private func generatePaceDistribution() -> [(range: String, count: Int)] {
+        let paceRanges = [
+            ("< 5:00", 0.0..<5.0),
+            ("5:00-6:00", 5.0..<6.0),
+            ("6:00-7:00", 6.0..<7.0),
+            ("7:00-8:00", 7.0..<8.0),
+            ("> 8:00", 8.0..<100.0)
+        ]
+        
+        return paceRanges.map { range in
+            let count = viewModel.activities.filter { activity in
+                guard activity.distance > 0 else { return false }
+                let pace = activity.duration / 60.0 / activity.distance
+                return pace >= range.1.lowerBound && pace < range.1.upperBound
+            }.count
+            return (range: range.0, count: count)
+        }
+    }
+    
+    private func generateTimeDistribution() -> [(time: String, count: Int)] {
+        let timeRanges = [
+            ("Morning", 5..<12),
+            ("Afternoon", 12..<17),
+            ("Evening", 17..<21),
+            ("Night", 21..<24)
+        ]
+        
+        return timeRanges.map { range in
+            let count = viewModel.activities.filter { activity in
+                let hour = Calendar.current.component(.hour, from: activity.startTime)
+                return range.1.contains(hour)
+            }.count
+            return (time: range.0, count: count)
+        }
     }
 }
 

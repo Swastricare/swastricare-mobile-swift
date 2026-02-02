@@ -237,8 +237,9 @@ class MotionDetector {
         let avgDerivative = derivatives.reduce(0, +) / Double(derivatives.count)
         
         // Threshold for excessive motion
-        // 15.0 is strict enough to filter noise but allows normal pulsation (~5-10)
-        return avgDerivative > 15.0
+        // 20.0 allows normal pulsation (~5-10) but filters out hand movement
+        // Increased from 15.0 to be less sensitive and avoid false rejections
+        return avgDerivative > 20.0
     }
     
     func reset() {

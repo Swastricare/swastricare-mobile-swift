@@ -34,6 +34,9 @@ final class RunActivityViewModel: ObservableObject {
     /// This prevents re-appearance across API-vs-HealthKit representations of the same workout.
     @Published private(set) var hiddenExternalIds: Set<String> = []
     
+    private static let hiddenActivityIdsKey = "RunActivityViewModel.hiddenActivityIds"
+    private static let hiddenExternalIdsKey = "RunActivityViewModel.hiddenExternalIds"
+    
     // MARK: - Computed Properties
     
     var totalSteps: Int { statistics.totalSteps }
@@ -49,8 +52,12 @@ final class RunActivityViewModel: ObservableObject {
         return formatter.string(from: NSNumber(value: statistics.totalSteps)) ?? "\(statistics.totalSteps)"
     }
     
+    /// Progress toward daily steps goal (0-1). Uses the best available steps count
+    /// so the progress ring stays consistent with the displayed total steps.
     var stepsGoalProgress: Double {
-        activityGoal.stepsProgress
+        guard activityGoal.dailyStepsGoal > 0 else { return 0 }
+        let steps = max(activityGoal.currentSteps, statistics.totalSteps)
+        return min(Double(steps) / Double(activityGoal.dailyStepsGoal), 1.0)
     }
     
     var hasActivities: Bool {
@@ -80,8 +87,33 @@ final class RunActivityViewModel: ObservableObject {
         self.activityService = activityService
         self.isAuthorized = UserDefaults.standard.bool(forKey: userDefaultsKey)
         self.lastSyncDate = UserDefaults.standard.object(forKey: lastSyncKey) as? Date
+        self.hiddenActivityIds = Self.loadHiddenActivityIds()
+        self.hiddenExternalIds = Self.loadHiddenExternalIds()
         
         setupBindings()
+    }
+    
+    private static func loadHiddenActivityIds() -> Set<UUID> {
+        guard let data = UserDefaults.standard.data(forKey: hiddenActivityIdsKey),
+              let strings = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+        return Set(strings.compactMap { UUID(uuidString: $0) })
+    }
+    
+    private static func loadHiddenExternalIds() -> Set<String> {
+        guard let data = UserDefaults.standard.data(forKey: hiddenExternalIdsKey),
+              let strings = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+        return Set(strings)
+    }
+    
+    private func persistHiddenIds() {
+        let activityStrings = hiddenActivityIds.map { $0.uuidString }
+        if let data = try? JSONEncoder().encode(activityStrings) {
+            UserDefaults.standard.set(data, forKey: Self.hiddenActivityIdsKey)
+        }
+        let externalStrings = Array(hiddenExternalIds)
+        if let data = try? JSONEncoder().encode(externalStrings) {
+            UserDefaults.standard.set(data, forKey: Self.hiddenExternalIdsKey)
+        }
     }
     
     // MARK: - Setup
@@ -376,6 +408,14 @@ final class RunActivityViewModel: ObservableObject {
         activities.sort { $0.startTime > $1.startTime }
     }
     
+    /// Call after deleting run activities from Apple Health (e.g. from Profile). Adds external IDs to hidden set and persists so they stay hidden after app restart; then refreshes the list.
+    func addHiddenExternalIdsAndRefresh(_ externalIds: Set<String>) {
+        guard !externalIds.isEmpty else { return }
+        hiddenExternalIds.formUnion(externalIds)
+        persistHiddenIds()
+        Task { await loadData() }
+    }
+    
     func getActivity(by id: UUID) -> RouteActivity? {
         activities.first { $0.id == id }
     }
@@ -412,11 +452,12 @@ final class RunActivityViewModel: ObservableObject {
         }
         // #endregion
         
-        // Remove from local list immediately
+        // Remove from local list immediately and persist so they stay hidden after app restart
         hiddenActivityIds.insert(activity.id)
         if let externalId = activity.externalId {
             hiddenExternalIds.insert(externalId)
         }
+        persistHiddenIds()
         let wasInList = activities.contains { $0.id == activity.id }
         activities.removeAll { $0.id == activity.id }
         

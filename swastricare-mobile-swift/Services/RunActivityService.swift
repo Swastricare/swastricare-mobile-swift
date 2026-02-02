@@ -19,6 +19,8 @@ protocol RunActivityServiceProtocol {
     func createActivity(_ activity: RunActivityRecord) async throws -> RunActivityRecord
     func updateActivity(_ activity: RunActivityRecord) async throws -> RunActivityRecord
     func deleteActivity(id: UUID) async throws
+    /// Deletes run activities from the backend where external_id is in the given set (e.g. HealthKit workout UUIDs).
+    func deleteActivitiesByExternalIds(_ externalIds: Set<String>) async throws
     func syncActivities(_ activities: [RunActivityRecord]) async throws -> SyncResult
     
     // Summaries
@@ -172,6 +174,23 @@ final class RunActivityService: RunActivityServiceProtocol {
             try? logFile.close()
         }
         // #endregion
+    }
+    
+    /// Deletes run activities from the backend where external_id is in the given set (e.g. after deleting from Apple Health).
+    func deleteActivitiesByExternalIds(_ externalIds: Set<String>) async throws {
+        guard !externalIds.isEmpty else { return }
+        let calendar = Calendar.current
+        let endDate = Date()
+        let startDate = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
+        let records = try await fetchActivities(startDate: startDate, endDate: endDate, activityType: nil, limit: 200)
+        let toDelete = records.filter { record in
+            guard let eid = record.externalId, record.id != nil else { return false }
+            return externalIds.contains(eid)
+        }
+        for record in toDelete {
+            guard let id = record.id else { continue }
+            try await deleteActivity(id: id)
+        }
     }
     
     func syncActivities(_ activities: [RunActivityRecord]) async throws -> SyncResult {

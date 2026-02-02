@@ -54,6 +54,15 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     weak var hydrationViewModel: HydrationViewModel?
     weak var medicationViewModel: MedicationViewModel?
     
+    // MARK: - Identifier prefixes
+    
+    private enum Prefix {
+        static let hydration = "hydration_"
+        static let medication = "medication_"
+        static let diet = "diet_"
+        static let menstrual = "cycle_"
+    }
+    
     // MARK: - Init
     
     override private init() {
@@ -794,12 +803,15 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         switch actionIdentifier {
         case NotificationAction.medicationTaken.rawValue:
             await markMedicationAsTaken(medicationId: medicationId, scheduledTime: scheduledTime)
+            AppAnalyticsService.shared.logMedicationReminderInteraction(action: "taken", medicationId: medicationId.uuidString)
             
         case NotificationAction.medicationSkip.rawValue:
             await markMedicationAsSkipped(medicationId: medicationId, scheduledTime: scheduledTime)
+            AppAnalyticsService.shared.logMedicationReminderInteraction(action: "skipped", medicationId: medicationId.uuidString)
             
         case NotificationAction.medicationSnooze.rawValue:
             await snoozeMedicationReminder(medicationId: medicationId, scheduledTime: scheduledTime, minutes: 15)
+            AppAnalyticsService.shared.logMedicationSnoozed(medicationId: medicationId, minutes: 15)
             
         case UNNotificationDefaultActionIdentifier:
             // User tapped the notification - open app
@@ -822,7 +834,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         }
         
         do {
-            try await viewModel.markAsTaken(medicationId: medicationId, scheduledTime: scheduledTime)
+            try await viewModel.markAsTaken(medicationId: medicationId, scheduledTime: scheduledTime, source: "notification")
             print("🔔 NotificationService: Marked medication as taken from notification")
         } catch {
             print("🔔 NotificationService: Failed to mark as taken - \(error.localizedDescription)")
@@ -836,7 +848,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         }
         
         do {
-            try await viewModel.markAsSkipped(medicationId: medicationId, scheduledTime: scheduledTime, notes: "Skipped from notification")
+            try await viewModel.markAsSkipped(medicationId: medicationId, scheduledTime: scheduledTime, notes: "Skipped from notification", source: "notification")
             print("🔔 NotificationService: Marked medication as skipped from notification")
         } catch {
             print("🔔 NotificationService: Failed to mark as skipped - \(error.localizedDescription)")
@@ -876,7 +888,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             return
         }
         
-        await viewModel.addWaterIntake(amount: amount, drinkType: .water, notes: "Added from notification")
+        await viewModel.addWaterIntake(amount: amount, drinkType: .water, notes: "Added from notification", source: "notification")
         print("🔔 NotificationService: Logged \(amount)ml from notification")
         
         // Clear badge
@@ -957,6 +969,18 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     /// Get today's notification history
     func getTodayNotificationHistory() -> [NotificationHistoryEntry] {
         return historyManager.getTodayHistory()
+    }
+
+    /// Get recent past notification history (already delivered or scheduled time passed)
+    func getRecentPastNotificationHistory(days: Int = 7) -> [NotificationHistoryEntry] {
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -days, to: calendar.startOfDay(for: endDate)) else {
+            return []
+        }
+        return historyManager.getHistory(from: startDate, to: endDate)
+            .filter { $0.scheduledTime <= endDate }
+            .sorted { $0.scheduledTime > $1.scheduledTime }
     }
     
     // MARK: - Settings Management
@@ -1078,13 +1102,411 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             options: [.customDismissAction, .allowInCarPlay]
         )
         
-        notificationCenter.setNotificationCategories([hydrationCategory, medicationCategory])
+        // Diet category (no custom actions for now)
+        let dietCategory = UNNotificationCategory(
+            identifier: NotificationCategory.dietReminder.identifier,
+            actions: [],
+            intentIdentifiers: [],
+            options: [.customDismissAction, .allowInCarPlay]
+        )
+        
+        // Menstrual category (no custom actions for now)
+        let menstrualCategory = UNNotificationCategory(
+            identifier: NotificationCategory.menstrualReminder.identifier,
+            actions: [],
+            intentIdentifiers: [],
+            options: [.customDismissAction, .allowInCarPlay]
+        )
+        
+        notificationCenter.setNotificationCategories([hydrationCategory, medicationCategory, dietCategory, menstrualCategory])
         print("🔔 NotificationService: Notification categories configured (snooze: \(settings.snoozeMinutes)m)")
     }
     
     /// Refresh notification categories when settings change (e.g., snooze duration)
     func refreshNotificationCategories() {
         setupNotificationCategories()
+    }
+}
+
+// MARK: - Diet + Menstrual Notifications (Local)
+
+extension NotificationService {
+    
+    /// Re-schedule all non-hydration wellness notifications (diet + menstrual).
+    /// Safe to call on app launch / when app becomes active.
+    func refreshWellnessNotifications() async {
+        await scheduleDietReminders()
+        await scheduleMenstrualCycleNotifications()
+    }
+    
+    // MARK: - Diet
+    
+    func scheduleDietReminders(daysAhead: Int = 2) async {
+        guard settings.enabled else {
+            await cancelPendingRequests(withPrefix: Prefix.diet)
+            return
+        }
+        
+        let status = await checkPermissionStatus()
+        guard status.canSchedule else { return }
+        
+        let goals = DietLocalStorage.shared.loadGoals()
+        guard goals.mealRemindersEnabled else {
+            await cancelPendingRequests(withPrefix: Prefix.diet)
+            return
+        }
+        
+        await cancelPendingRequests(withPrefix: Prefix.diet)
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        
+        // Default reminder times (can be made user-configurable later)
+        let mealSchedule: [(meal: MealType, hour: Int, minute: Int)] = [
+            (.breakfast, 9, 0),
+            (.lunch, 13, 0),
+            (.dinner, 20, 0)
+        ]
+        
+        for dayOffset in 0..<max(1, daysAhead) {
+            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: startOfToday) else { continue }
+            let logsForDay = DietLocalStorage.shared.getLogsForDate(day)
+            
+            for item in mealSchedule {
+                // Skip if meal already logged for that day
+                if logsForDay.contains(where: { $0.mealType == item.meal }) {
+                    continue
+                }
+                
+                var components = calendar.dateComponents([.year, .month, .day], from: day)
+                components.hour = item.hour
+                components.minute = item.minute
+                
+                guard let fireDate = calendar.date(from: components) else { continue }
+                guard fireDate > now else { continue }
+                
+                // Respect quiet hours
+                if settings.isInQuietHours(date: fireDate) {
+                    continue
+                }
+                
+                let (title, body) = DietNotificationMessageGenerator.message(
+                    meal: item.meal,
+                    fireDate: fireDate,
+                    dailyGoalCalories: goals.dailyCalories
+                )
+                
+                await scheduleSimpleLocalNotification(
+                    identifier: "\(Prefix.diet)\(item.meal.rawValue)_\(Int(fireDate.timeIntervalSince1970))",
+                    title: title,
+                    body: body,
+                    categoryIdentifier: NotificationCategory.dietReminder.identifier,
+                    userInfo: [
+                        "type": "diet_reminder",
+                        "meal_type": item.meal.rawValue,
+                        "scheduledTime": fireDate.timeIntervalSince1970
+                    ],
+                    fireDate: fireDate
+                )
+            }
+            
+            // Evening nudge: if nothing logged yet, remind once
+            if dayOffset == 0 {
+                let hasAnyLog = !logsForDay.isEmpty
+                if !hasAnyLog {
+                    var components = calendar.dateComponents([.year, .month, .day], from: day)
+                    components.hour = 18
+                    components.minute = 30
+                    
+                    if let nudgeDate = calendar.date(from: components),
+                       nudgeDate > now,
+                       !settings.isInQuietHours(date: nudgeDate) {
+                        
+                        await scheduleSimpleLocalNotification(
+                            identifier: "\(Prefix.diet)checkin_\(Int(nudgeDate.timeIntervalSince1970))",
+                            title: "Quick food check-in",
+                            body: "Logged anything today? Tap to add your meal and stay on track.",
+                            categoryIdentifier: NotificationCategory.dietReminder.identifier,
+                            userInfo: [
+                                "type": "diet_reminder",
+                                "context": "daily_checkin",
+                                "scheduledTime": nudgeDate.timeIntervalSince1970
+                            ],
+                            fireDate: nudgeDate
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Menstrual cycle
+    
+    func scheduleMenstrualCycleNotifications(daysAhead: Int = 2) async {
+        guard settings.enabled else {
+            await cancelPendingRequests(withPrefix: Prefix.menstrual)
+            return
+        }
+        
+        let status = await checkPermissionStatus()
+        guard status.canSchedule else { return }
+        
+        let service = MenstrualCycleService.shared
+        let menstrualSettings = service.loadSettings()
+        
+        guard menstrualSettings.reminderEnabled else {
+            await cancelPendingRequests(withPrefix: Prefix.menstrual)
+            return
+        }
+        
+        await cancelPendingRequests(withPrefix: Prefix.menstrual)
+        
+        let cycles = service.loadCycles()
+        let prediction = service.calculatePrediction(from: cycles, settings: menstrualSettings)
+        let (phase, dayOfCycle) = service.getCurrentPhase(from: cycles, settings: menstrualSettings)
+        let todayLog = service.loadDailyLog(for: Date())
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        
+        // Daily AI/fallback check-in at 9:00 AM (today + tomorrow)
+        for dayOffset in 0..<max(1, daysAhead) {
+            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: startOfToday) else { continue }
+            var components = calendar.dateComponents([.year, .month, .day], from: day)
+            components.hour = 9
+            components.minute = 0
+            
+            guard let fireDate = calendar.date(from: components) else { continue }
+            guard fireDate > now else { continue }
+            if settings.isInQuietHours(date: fireDate) { continue }
+            
+            let message = await MenstrualAIMessageGenerator.generate(
+                aiService: AIService.shared,
+                phase: phase,
+                dayOfCycle: dayOfCycle,
+                prediction: prediction,
+                todayLog: todayLog,
+                settings: menstrualSettings
+            )
+            
+            await scheduleSimpleLocalNotification(
+                identifier: "\(Prefix.menstrual)daily_\(Int(fireDate.timeIntervalSince1970))",
+                title: message.title,
+                body: message.body,
+                categoryIdentifier: NotificationCategory.menstrualReminder.identifier,
+                userInfo: [
+                    "type": "menstrual_reminder",
+                    "context": "daily_checkin",
+                    "phase": phase.rawValue,
+                    "scheduledTime": fireDate.timeIntervalSince1970
+                ],
+                fireDate: fireDate
+            )
+        }
+        
+        // Period reminder (days before)
+        if let prediction = prediction, menstrualSettings.reminderDaysBefore > 0 {
+            let daysBefore = menstrualSettings.reminderDaysBefore
+            if let reminderDate = calendar.date(byAdding: .day, value: -daysBefore, to: prediction.nextPeriodStart) {
+                // schedule at 9:00
+                var comps = calendar.dateComponents([.year, .month, .day], from: reminderDate)
+                comps.hour = 9
+                comps.minute = 0
+                if let fireDate = calendar.date(from: comps),
+                   fireDate > now,
+                   !settings.isInQuietHours(date: fireDate) {
+                    await scheduleSimpleLocalNotification(
+                        identifier: "\(Prefix.menstrual)period_\(Int(fireDate.timeIntervalSince1970))",
+                        title: "Period in \(daysBefore) day\(daysBefore == 1 ? "" : "s")",
+                        body: "Heads up — your next period is expected soon. Want to prep supplies?",
+                        categoryIdentifier: NotificationCategory.menstrualReminder.identifier,
+                        userInfo: [
+                            "type": "menstrual_reminder",
+                            "context": "period_reminder",
+                            "days_before": daysBefore,
+                            "scheduledTime": fireDate.timeIntervalSince1970
+                        ],
+                        fireDate: fireDate
+                    )
+                }
+            }
+        }
+        
+        // Ovulation reminder (if enabled)
+        if menstrualSettings.ovulationTracking, let prediction = prediction {
+            var comps = calendar.dateComponents([.year, .month, .day], from: prediction.ovulationDate)
+            comps.hour = 9
+            comps.minute = 0
+            if let fireDate = calendar.date(from: comps),
+               fireDate > now,
+               !settings.isInQuietHours(date: fireDate) {
+                await scheduleSimpleLocalNotification(
+                    identifier: "\(Prefix.menstrual)ovulation_\(Int(fireDate.timeIntervalSince1970))",
+                    title: "Ovulation day (predicted)",
+                    body: "Quick check-in: note your mood, energy, and any changes today.",
+                    categoryIdentifier: NotificationCategory.menstrualReminder.identifier,
+                    userInfo: [
+                        "type": "menstrual_reminder",
+                        "context": "ovulation_reminder",
+                        "scheduledTime": fireDate.timeIntervalSince1970
+                    ],
+                    fireDate: fireDate
+                )
+            }
+        }
+    }
+    
+    // MARK: - Shared helpers
+    
+    private func cancelPendingRequests(withPrefix prefix: String) async {
+        let requests = await notificationCenter.pendingNotificationRequests()
+        let ids = requests
+            .filter { $0.identifier.hasPrefix(prefix) }
+            .map { $0.identifier }
+        
+        if !ids.isEmpty {
+            notificationCenter.removePendingNotificationRequests(withIdentifiers: ids)
+        }
+    }
+    
+    private func scheduleSimpleLocalNotification(
+        identifier: String,
+        title: String,
+        body: String,
+        categoryIdentifier: String,
+        userInfo: [String: Any],
+        fireDate: Date
+    ) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.categoryIdentifier = categoryIdentifier
+        content.userInfo = userInfo
+        
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        
+        do {
+            try await notificationCenter.add(request)
+        } catch {
+            print("🔔 NotificationService: Failed to schedule \(identifier) - \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Diet Notification Message Generator
+
+private enum DietNotificationMessageGenerator {
+    static func message(meal: MealType, fireDate: Date, dailyGoalCalories: Int) -> (title: String, body: String) {
+        switch meal {
+        case .breakfast:
+            return ("Breakfast time", "Start strong. Tap to log your breakfast and stay on target.")
+        case .lunch:
+            return ("Lunch check", "Quick lunch log? It helps you stay close to \(dailyGoalCalories) cal today.")
+        case .dinner:
+            return ("Dinner reminder", "Wrap up your day — log dinner to see where you stand.")
+        default:
+            return ("Meal reminder", "Tap to log your meal.")
+        }
+    }
+}
+
+// MARK: - Menstrual AI Message Generator (with fallback)
+
+private enum MenstrualAIMessageGenerator {
+    
+    struct NotificationCopy: Codable {
+        let title: String
+        let body: String
+    }
+    
+    static func generate(
+        aiService: AIServiceProtocol,
+        phase: CyclePhase,
+        dayOfCycle: Int,
+        prediction: CyclePrediction?,
+        todayLog: MenstrualDailyLog?,
+        settings: MenstrualSettings
+    ) async -> (title: String, body: String) {
+        
+        // Fast fallback first (also used when AI fails)
+        let fallback = fallbackCopy(phase: phase, dayOfCycle: dayOfCycle, prediction: prediction, todayLog: todayLog)
+        
+        // Don’t call AI if we don’t have enough signal (keeps scheduling fast/offline-ish)
+        // We still try AI, but gracefully fall back.
+        do {
+            let phaseName = phase.rawValue
+            let daysUntilPeriod = prediction?.daysUntilPeriod
+            let daysUntilOvulation = prediction?.daysUntilOvulation
+            let hasLog = todayLog != nil
+            
+            let system = """
+            You write short, friendly push notifications for a menstrual cycle tracker app.
+            Requirements:
+            - Keep it non-medical and non-diagnostic (no treatment, no urgent advice).
+            - Title max 40 characters. Body max 110 characters.
+            - Tone: modern, supportive, “Flo-like”.
+            - No explicit sexual content.
+            - Output ONLY strict JSON: {"title":"...","body":"..."}
+            """
+            
+            var user = "Generate a push notification for today's cycle check-in.\n"
+            user += "phase=\(phaseName)\n"
+            user += "dayOfCycle=\(dayOfCycle)\n"
+            if let daysUntilPeriod = daysUntilPeriod { user += "daysUntilPeriod=\(daysUntilPeriod)\n" }
+            if let daysUntilOvulation = daysUntilOvulation { user += "daysUntilOvulation=\(daysUntilOvulation)\n" }
+            user += "hasDailyLog=\(hasLog)\n"
+            
+            let response = try await aiService.sendChatMessage(user, context: [], systemContext: system)
+            
+            // Parse JSON
+            if let data = response.data(using: .utf8),
+               let parsed = try? JSONDecoder().decode(NotificationCopy.self, from: data) {
+                let trimmedTitle = parsed.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedBody = parsed.body.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedTitle.isEmpty, !trimmedBody.isEmpty {
+                    return (trimmedTitle, trimmedBody)
+                }
+            }
+            
+            return fallback
+        } catch {
+            return fallback
+        }
+    }
+    
+    private static func fallbackCopy(
+        phase: CyclePhase,
+        dayOfCycle: Int,
+        prediction: CyclePrediction?,
+        todayLog: MenstrualDailyLog?
+    ) -> (title: String, body: String) {
+        let hasLog = todayLog != nil
+        let suffix = hasLog ? "Want to add anything else?" : "Tap to log mood & symptoms."
+        
+        switch phase {
+        case .menstrual:
+            return ("Period check-in", "Day \(max(1, dayOfCycle)). How are you feeling? \(suffix)")
+        case .follicular:
+            return ("Energy check", "Follicular phase today. Notice your mood & energy. \(suffix)")
+        case .ovulation:
+            return ("Today’s vibe check", "Ovulation phase. Any changes to note? \(suffix)")
+        case .luteal:
+            return ("Gentle check-in", "Luteal phase: check cravings, mood, and sleep. \(suffix)")
+        case .pms:
+            if let d = prediction?.daysUntilPeriod, d > 0 {
+                return ("PMS check-in", "Period may be in ~\(d) day\(d == 1 ? "" : "s"). \(suffix)")
+            }
+            return ("PMS check-in", "Noticing mood shifts? Log it here. \(suffix)")
+        case .unknown:
+            return ("Cycle check-in", "Log today’s details to improve predictions. \(suffix)")
+        }
     }
 }
 

@@ -256,6 +256,7 @@ struct ConsentView: View {
                     UserDefaults.standard.set(true, forKey: AppConfig.hasAcceptedConsentKey)
                     hasAcceptedConsent = true
                 }
+                AppAnalyticsService.shared.logConsentAccepted()
                 // Success haptic
                 let generator = UINotificationFeedbackGenerator()
                 generator.notificationOccurred(.success)

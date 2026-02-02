@@ -140,19 +140,25 @@ struct RouteActivity: Identifiable, Codable, Equatable {
 struct CoordinatePoint: Codable, Equatable, Hashable {
     let latitude: Double
     let longitude: Double
+    let timestamp: Date?
+    let altitude: Double?
     
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
     
-    init(latitude: Double, longitude: Double) {
+    init(latitude: Double, longitude: Double, timestamp: Date? = nil, altitude: Double? = nil) {
         self.latitude = latitude
         self.longitude = longitude
+        self.timestamp = timestamp
+        self.altitude = altitude
     }
     
-    init(coordinate: CLLocationCoordinate2D) {
+    init(coordinate: CLLocationCoordinate2D, timestamp: Date? = nil, altitude: Double? = nil) {
         self.latitude = coordinate.latitude
         self.longitude = coordinate.longitude
+        self.timestamp = timestamp
+        self.altitude = altitude
     }
 }
 
@@ -653,8 +659,20 @@ extension RouteActivity {
         self.averageBPM = record.avgHeartRate ?? 0
         self.steps = record.steps
         self.calories = record.caloriesBurned
-        self.routeCoordinates = record.routeCoordinates?.map { 
-            CoordinatePoint(latitude: $0.lat, longitude: $0.lng) 
+        
+        // Parse route coordinates with timestamps if available
+        let isoFormatter = ISO8601DateFormatter()
+        self.routeCoordinates = record.routeCoordinates?.map { coord in
+            let timestamp: Date? = {
+                guard let ts = coord.ts else { return nil }
+                return isoFormatter.date(from: ts)
+            }()
+            return CoordinatePoint(
+                latitude: coord.lat, 
+                longitude: coord.lng,
+                timestamp: timestamp,
+                altitude: coord.alt
+            ) 
         } ?? []
     }
     
@@ -673,13 +691,19 @@ extension RouteActivity {
         self.steps = 0 // HealthKit workouts don't directly include steps
         self.calories = Int(workout.totalEnergyBurned)
         self.routeCoordinates = workout.route.map { 
-            CoordinatePoint(latitude: $0.latitude, longitude: $0.longitude) 
+            CoordinatePoint(
+                latitude: $0.latitude, 
+                longitude: $0.longitude,
+                timestamp: $0.timestamp,
+                altitude: $0.altitude
+            ) 
         }
     }
     
     /// Converts to RunActivityRecord for API submission
     func toRecord(healthProfileId: UUID? = nil) -> RunActivityRecord {
-        RunActivityRecord(
+        let isoFormatter = ISO8601DateFormatter()
+        return RunActivityRecord(
             id: id,
             healthProfileId: healthProfileId,
             externalId: id.uuidString,
@@ -693,8 +717,13 @@ extension RouteActivity {
             steps: steps,
             caloriesBurned: calories,
             avgHeartRate: averageBPM > 0 ? averageBPM : nil,
-            routeCoordinates: routeCoordinates.map { 
-                RouteCoordinate(lat: $0.latitude, lng: $0.longitude, alt: nil, ts: nil) 
+            routeCoordinates: routeCoordinates.map { coord in
+                RouteCoordinate(
+                    lat: coord.latitude, 
+                    lng: coord.longitude, 
+                    alt: coord.altitude, 
+                    ts: coord.timestamp.map { isoFormatter.string(from: $0) }
+                ) 
             },
             startLatitude: routeCoordinates.first?.latitude,
             startLongitude: routeCoordinates.first?.longitude,
@@ -778,9 +807,18 @@ extension WeeklyComparison {
 extension ActivityGoal {
     /// Creates ActivityGoal from API response
     init(from record: ActivityGoalsRecord, currentStats: ActivityStatsResponse?) {
-        self.dailyStepsGoal = record.dailyStepsGoal
-        self.dailyDistanceGoal = Double(record.dailyDistanceMeters) / 1000.0
-        self.dailyCaloriesGoal = record.dailyCaloriesGoal
+        // Defensive: if backend returns 0/invalid goals, fall back to sensible defaults
+        // so UI (e.g. progress rings) doesn't show misleading "0%".
+        let sanitizedDailyStepsGoal =
+            record.dailyStepsGoal > 0 ? record.dailyStepsGoal : ActivityGoalsRecord.default.dailyStepsGoal
+        let sanitizedDailyDistanceMeters =
+            record.dailyDistanceMeters > 0 ? record.dailyDistanceMeters : ActivityGoalsRecord.default.dailyDistanceMeters
+        let sanitizedDailyCaloriesGoal =
+            record.dailyCaloriesGoal > 0 ? record.dailyCaloriesGoal : ActivityGoalsRecord.default.dailyCaloriesGoal
+        
+        self.dailyStepsGoal = sanitizedDailyStepsGoal
+        self.dailyDistanceGoal = Double(sanitizedDailyDistanceMeters) / 1000.0
+        self.dailyCaloriesGoal = sanitizedDailyCaloriesGoal
         self.currentSteps = currentStats?.today.steps ?? 0
         self.currentDistance = currentStats?.today.distance_km ?? 0
         self.currentCalories = currentStats?.today.calories ?? 0
@@ -827,21 +865,23 @@ struct MockRunActivityData {
         let calendar = Calendar.current
         let now = Date()
         
-        // Morning commute coordinates (sample route)
+        // Morning commute coordinates (sample route with timestamps)
+        let commuteStartTime = calendar.date(byAdding: .day, value: -2, to: now) ?? now
         let commuteCoordinates = [
-            CoordinatePoint(latitude: 12.9716, longitude: 77.5946),
-            CoordinatePoint(latitude: 12.9726, longitude: 77.5956),
-            CoordinatePoint(latitude: 12.9736, longitude: 77.5966),
-            CoordinatePoint(latitude: 12.9746, longitude: 77.5976),
-            CoordinatePoint(latitude: 12.9756, longitude: 77.5986)
+            CoordinatePoint(latitude: 12.9716, longitude: 77.5946, timestamp: commuteStartTime),
+            CoordinatePoint(latitude: 12.9726, longitude: 77.5956, timestamp: commuteStartTime.addingTimeInterval(120)),
+            CoordinatePoint(latitude: 12.9736, longitude: 77.5966, timestamp: commuteStartTime.addingTimeInterval(240)),
+            CoordinatePoint(latitude: 12.9746, longitude: 77.5976, timestamp: commuteStartTime.addingTimeInterval(360)),
+            CoordinatePoint(latitude: 12.9756, longitude: 77.5986, timestamp: commuteStartTime.addingTimeInterval(480))
         ]
         
-        // Park walk coordinates
+        // Park walk coordinates with timestamps
+        let parkStartTime = calendar.date(byAdding: .day, value: -1, to: now) ?? now
         let parkCoordinates = [
-            CoordinatePoint(latitude: 12.9816, longitude: 77.6046),
-            CoordinatePoint(latitude: 12.9826, longitude: 77.6056),
-            CoordinatePoint(latitude: 12.9836, longitude: 77.6066),
-            CoordinatePoint(latitude: 12.9846, longitude: 77.6076)
+            CoordinatePoint(latitude: 12.9816, longitude: 77.6046, timestamp: parkStartTime),
+            CoordinatePoint(latitude: 12.9826, longitude: 77.6056, timestamp: parkStartTime.addingTimeInterval(180)),
+            CoordinatePoint(latitude: 12.9836, longitude: 77.6066, timestamp: parkStartTime.addingTimeInterval(360)),
+            CoordinatePoint(latitude: 12.9846, longitude: 77.6076, timestamp: parkStartTime.addingTimeInterval(540))
         ]
         
         return [

@@ -19,7 +19,7 @@ struct HeartRateResultView: View {
                     .ignoresSafeArea()
                 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 24) {
+                    VStack(spacing: 20) {
                         heroSection
                             .scaleEffect(animateContent ? 1 : 0.9)
                             .opacity(animateContent ? 1 : 0)
@@ -42,7 +42,8 @@ struct HeartRateResultView: View {
                         
                         Spacer(minLength: 100)
                     }
-                    .padding()
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
                 }
                 
                 // Bottom buttons
@@ -95,12 +96,12 @@ struct HeartRateResultView: View {
     // MARK: - Hero Section
     
     private var heroSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             ZStack {
                 ForEach(0..<2, id: \.self) { i in
                     Circle()
                         .stroke(Color.red.opacity(0.1), lineWidth: 1)
-                        .frame(width: 140 + CGFloat(i * 30), height: 140 + CGFloat(i * 30))
+                        .frame(width: 120 + CGFloat(i * 24), height: 120 + CGFloat(i * 24))
                 }
                 
                 Circle()
@@ -111,10 +112,10 @@ struct HeartRateResultView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 120, height: 120)
+                    .frame(width: 100, height: 100)
                     .overlay(
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 50))
+                            .font(.system(size: 44))
                             .foregroundStyle(
                                 .linearGradient(
                                     colors: [.red, .orange],
@@ -122,42 +123,42 @@ struct HeartRateResultView: View {
                                     endPoint: .bottom
                                 )
                             )
-                            .shadow(color: .red.opacity(0.4), radius: 10, x: 0, y: 5)
+                            .shadow(color: .red.opacity(0.4), radius: 8, x: 0, y: 4)
                     )
             }
             
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text("\(viewModel.finalBPM ?? 0)")
-                    .font(.system(size: 80, weight: .bold, design: .rounded))
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
                     .accessibilityLabel("\(viewModel.finalBPM ?? 0) beats per minute")
                 
                 Text("BPM")
-                    .font(.title3.weight(.medium))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(.secondary)
                     .tracking(2)
             }
             
             if let category = viewModel.bpmCategory {
                 Text(category.description)
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
                     .background(
                         Capsule()
                             .fill(categoryColor(category))
-                            .shadow(color: categoryColor(category).opacity(0.4), radius: 8, y: 4)
+                            .shadow(color: categoryColor(category).opacity(0.3), radius: 6, y: 3)
                     )
                     .accessibilityLabel("Category: \(category.description)")
             }
         }
-        .padding(.top, 20)
+        .padding(.top, 12)
     }
     
     // MARK: - Health Zone Bar
     
     private var healthZoneBar: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Health Zone")
                 .font(.caption.weight(.semibold))
                 .textCase(.uppercase)
@@ -171,41 +172,41 @@ struct HeartRateResultView: View {
                         Rectangle().fill(Color.orange.opacity(0.3))
                         Rectangle().fill(Color.red.opacity(0.3))
                     }
-                    .frame(height: 12)
+                    .frame(height: 10)
                     .mask(Capsule())
                     
                     if let bpm = viewModel.finalBPM {
                         let normalized = min(max(Double(bpm - 40) / 140.0, 0), 1)
                         Circle()
                             .fill(Color.white)
-                            .frame(width: 20, height: 20)
-                            .shadow(color: .black.opacity(0.2), radius: 2)
+                            .frame(width: 18, height: 18)
+                            .shadow(color: .black.opacity(0.15), radius: 2)
                             .overlay(Circle().stroke(Color.primary, lineWidth: 2))
-                            .offset(x: (geo.size.width - 20) * normalized)
+                            .offset(x: (geo.size.width - 18) * normalized)
                     }
                 }
             }
-            .frame(height: 20)
+            .frame(height: 18)
             .accessibilityHidden(true)
             
             HStack {
-                Text("Resting").font(.caption2)
+                Text("Resting").font(.caption2.weight(.medium))
                 Spacer()
-                Text("Normal").font(.caption2)
+                Text("Normal").font(.caption2.weight(.medium))
                 Spacer()
-                Text("High").font(.caption2)
+                Text("High").font(.caption2.weight(.medium))
             }
             .foregroundColor(.secondary)
         }
-        .padding()
+        .padding(16)
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(14)
     }
     
     // MARK: - Stats Grid
     
     private var statsGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
             statCard(
                 title: "Confidence",
                 value: "\(Int(viewModel.confidence * 100))%",
@@ -234,20 +235,21 @@ struct HeartRateResultView: View {
     }
     
     private func statCard(title: String, value: String, icon: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Image(systemName: icon)
+                .font(.body)
                 .foregroundColor(color)
             
             Text(value)
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
             
             Text(title)
-                .font(.caption2)
+                .font(.caption2.weight(.medium))
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
+        .padding(14)
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .accessibilityElement(children: .combine)
@@ -257,32 +259,33 @@ struct HeartRateResultView: View {
     // MARK: - Trend Chart
     
     private var trendChart: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
                 Image(systemName: "waveform.path.ecg")
+                    .font(.body)
                     .foregroundColor(.red)
                 Text("Measurement Trend")
-                    .font(.subheadline.bold())
+                    .font(.subheadline.weight(.semibold))
             }
             
             HeartRateChartView(readings: viewModel.bpmReadings, animate: animateChart)
-                .frame(height: 80)
+                .frame(height: 72)
         }
-        .padding()
+        .padding(16)
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(14)
         .accessibilityLabel("Heart rate trend chart showing \(viewModel.bpmReadings.count) readings")
     }
     
     // MARK: - Status Messages
     
     private var statusMessages: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             if viewModel.saveSuccess {
                 Label("Reading saved successfully", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.medium))
                     .foregroundColor(.green)
-                    .padding()
+                    .padding(14)
                     .frame(maxWidth: .infinity)
                     .background(Color.green.opacity(0.1))
                     .cornerRadius(12)
@@ -290,9 +293,9 @@ struct HeartRateResultView: View {
             
             if let error = viewModel.saveError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.medium))
                     .foregroundColor(.red)
-                    .padding()
+                    .padding(14)
                     .frame(maxWidth: .infinity)
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(12)
@@ -303,38 +306,39 @@ struct HeartRateResultView: View {
     // MARK: - Action Buttons
     
     private var actionButtons: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             Button(action: { viewModel.dismissResult() }) {
                 Text("Discard")
-                    .font(.headline)
+                    .font(.body.weight(.semibold))
                     .foregroundColor(.red)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 56)
+                    .frame(height: 50)
                     .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(28)
+                    .cornerRadius(25)
             }
             .disabled(viewModel.isSaving)
             .accessibilityLabel("Discard reading")
             
             Button(action: { Task { await viewModel.saveReading() } }) {
-                HStack {
+                HStack(spacing: 8) {
                     if viewModel.isSaving {
                         ProgressView().tint(.white)
                     } else {
                         Text(viewModel.saveSuccess ? "Done" : "Save")
                     }
                 }
-                .font(.headline)
+                .font(.body.weight(.semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 56)
+                .frame(height: 50)
                 .background(viewModel.saveSuccess ? Color.green : Color.red)
-                .cornerRadius(28)
-                .shadow(color: (viewModel.saveSuccess ? Color.green : Color.red).opacity(0.3), radius: 8, y: 4)
+                .cornerRadius(25)
+                .shadow(color: (viewModel.saveSuccess ? Color.green : Color.red).opacity(0.25), radius: 6, y: 3)
             }
             .disabled(!viewModel.canSave || viewModel.saveSuccess)
             .accessibilityLabel(viewModel.saveSuccess ? "Done" : "Save reading")
         }
+        .padding(.horizontal, 20)
     }
     
     // MARK: - Helpers

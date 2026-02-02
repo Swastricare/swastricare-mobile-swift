@@ -270,6 +270,7 @@ final class LiveActivityViewModel: ObservableObject {
         do {
             try await workoutManager.startWorkout(activityType: selectedActivityType)
             viewState = .tracking
+            AppAnalyticsService.shared.logWorkoutStart(activityType: selectedActivityType.rawValue)
 
             // Start Live Activity (Dynamic Island) after workout begins
             let startTime = workoutManager.startTime ?? Date()
@@ -288,6 +289,7 @@ final class LiveActivityViewModel: ObservableObject {
         guard canPause else { return }
         workoutManager.pauseWorkout()
         viewState = .paused
+        AppAnalyticsService.shared.logWorkoutPause(activityType: selectedActivityType.rawValue)
 
         Task { [metrics = WorkoutMetrics(
             elapsedTime: elapsedTime,
@@ -307,6 +309,7 @@ final class LiveActivityViewModel: ObservableObject {
         guard canResume else { return }
         workoutManager.resumeWorkout()
         viewState = .tracking
+        AppAnalyticsService.shared.logWorkoutResume(activityType: selectedActivityType.rawValue)
 
         Task { [metrics = WorkoutMetrics(
             elapsedTime: elapsedTime,
@@ -331,6 +334,10 @@ final class LiveActivityViewModel: ObservableObject {
             let summary = try await workoutManager.endWorkout()
             workoutSummary = summary
             viewState = .summary(summary)
+            AppAnalyticsService.shared.logWorkoutComplete(
+                activityType: selectedActivityType.rawValue,
+                durationSeconds: Int(summary.duration)
+            )
 
             // End Live Activity
             let finalMetrics = WorkoutMetrics(

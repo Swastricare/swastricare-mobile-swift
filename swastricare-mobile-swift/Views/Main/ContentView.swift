@@ -110,24 +110,31 @@ struct ContentView: View {
             await DependencyContainer.shared.profileViewModel.loadUser()
             // Fetch vault documents once when main app appears; use cached data in Vault tab
             await DependencyContainer.shared.vaultViewModel.loadDocuments()
+            // Load hydration data and schedule reminders as soon as main app appears, so users
+            // get push notifications even if they never open the Vitals tab or add any hydration entry
+            await DependencyContainer.shared.hydrationViewModel.loadData()
         }
         .onAppear {
             configureAITabColor()
+            AppAnalyticsService.shared.log(eventName: "app_open", eventType: "action", properties: [:])
+            AppAnalyticsService.shared.logScreen(Tab.vitals.rawValue)
         }
         .onChange(of: currentTab) { oldTab, newTab in
+            AppAnalyticsService.shared.logTabSelected(tab: newTab.rawValue.lowercased())
             // Haptic feedback on tab change
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
-            
+
             // Re-apply green color to AI tab after switching
             DispatchQueue.main.async {
                 self.applyGreenToAITab()
             }
             
-            // Refresh health data when switching to vitals
+            // Refresh health data when switching to vitals (including hydration reminder scheduling)
             if homeViewModel.isAuthorized && newTab == .vitals {
                 Task {
                     await homeViewModel.loadTodaysData()
+                    await DependencyContainer.shared.hydrationViewModel.loadData()
                 }
             }
         }

@@ -144,17 +144,20 @@ final class HeartRateViewModel: ObservableObject {
             // Save to Supabase
             _ = try await vitalSignsService.saveHeartRate(reading)
             
-            // Optionally save to HealthKit
-            if UserDefaults.standard.bool(forKey: "syncHeartRateToHealthKit") {
-                do {
-                    try await vitalSignsService.saveToHealthKit(bpm: bpm, date: Date())
-                } catch {
-                    // Don't fail the whole save if HealthKit fails
-                    print("HealthKit save failed: \(error)")
-                }
+            // Always save to HealthKit so it appears in vitals (HomeView reads from HealthKit)
+            do {
+                try await vitalSignsService.saveToHealthKit(bpm: bpm, date: Date())
+            } catch {
+                // Don't fail the whole save if HealthKit fails (e.g. permission denied)
+                print("HealthKit save failed: \(error)")
             }
+
+            // Always persist the last measured value locally so we can show it
+            // on the Home/Vitals screen even when Apple Health has no data.
+            HeartRateLocalStorage.shared.saveLastMeasured(bpm: bpm, date: Date())
             
             saveSuccess = true
+            AppAnalyticsService.shared.logHeartbeatMeasurement(bpm: bpm, source: "camera")
             
             // Accessibility announcement
             announceForAccessibility("Heart rate reading saved successfully")
@@ -166,6 +169,7 @@ final class HeartRateViewModel: ObservableObject {
             
         } catch {
             saveError = error.localizedDescription
+            AppAnalyticsService.shared.logFailure(context: "heartbeat", type: "save_failed", message: error.localizedDescription)
             announceForAccessibility("Failed to save reading: \(error.localizedDescription)")
         }
         
