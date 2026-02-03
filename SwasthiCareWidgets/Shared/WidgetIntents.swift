@@ -7,6 +7,7 @@
 
 import AppIntents
 import WidgetKit
+import ActivityKit
 
 // MARK: - Log Water Intent
 
@@ -193,5 +194,115 @@ struct OpenMedicationsIntent: AppIntent {
     
     func perform() async throws -> some IntentResult {
         return .result()
+    }
+}
+
+// MARK: - Start Run Activity Intent
+
+@available(iOS 16.0, *)
+struct StartRunIntent: AppIntent {
+    static var title: LocalizedStringResource = "Start Run"
+    static var description = IntentDescription("Start a run activity in background")
+    static var openAppWhenRun: Bool = false // Don't open app
+    
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        // Check if there's already an active workout
+        if WidgetWorkoutManager.shared.hasActiveWorkout() {
+            return .result(dialog: "Workout already in progress 🏃")
+        }
+        
+        // Start workout in background with Live Activity
+        let success = WidgetWorkoutManager.shared.startWorkout(type: "run")
+        
+        if success {
+            return .result(dialog: "Run started! 🏃‍♂️")
+        } else {
+            return .result(dialog: "Run started! Open app to track.")
+        }
+    }
+}
+
+// MARK: - Start Walk Activity Intent
+
+@available(iOS 16.0, *)
+struct StartWalkIntent: AppIntent {
+    static var title: LocalizedStringResource = "Start Walk"
+    static var description = IntentDescription("Start a walk activity in background")
+    static var openAppWhenRun: Bool = false // Don't open app
+    
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        // Check if there's already an active workout
+        if WidgetWorkoutManager.shared.hasActiveWorkout() {
+            return .result(dialog: "Workout already in progress 🚶")
+        }
+        
+        // Start workout in background with Live Activity
+        let success = WidgetWorkoutManager.shared.startWorkout(type: "walk")
+        
+        if success {
+            return .result(dialog: "Walk started! 🚶‍♂️")
+        } else {
+            return .result(dialog: "Walk started! Open app to track.")
+        }
+    }
+}
+
+// MARK: - Start Activity Intent (Generic)
+
+@available(iOS 16.0, *)
+struct StartActivityIntent: AppIntent {
+    static var title: LocalizedStringResource = "Start Activity"
+    static var description = IntentDescription("Start a run or walk activity in background")
+    static var openAppWhenRun: Bool = false
+    
+    @Parameter(title: "Activity Type", default: "run")
+    var activityType: String
+    
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let type = activityType.lowercased()
+        let validType = ["run", "walk", "commute"].contains(type) ? type : "run"
+        
+        // Check if there's already an active workout
+        if WidgetWorkoutManager.shared.hasActiveWorkout() {
+            return .result(dialog: "Workout already in progress")
+        }
+        
+        // Start workout in background with Live Activity
+        let success = WidgetWorkoutManager.shared.startWorkout(type: validType)
+        
+        let emoji = validType == "run" ? "🏃‍♂️" : "🚶‍♂️"
+        if success {
+            return .result(dialog: "\(validType.capitalized) started! \(emoji)")
+        } else {
+            return .result(dialog: "\(validType.capitalized) started! Open app to track.")
+        }
+    }
+}
+
+// MARK: - Stop Workout Intent
+
+@available(iOS 16.0, *)
+struct StopWorkoutIntent: AppIntent {
+    static var title: LocalizedStringResource = "Stop Workout"
+    static var description = IntentDescription("Stop the current workout")
+    static var openAppWhenRun: Bool = false
+    
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard WidgetWorkoutManager.shared.hasActiveWorkout() else {
+            return .result(dialog: "No active workout")
+        }
+        
+        // Clear the workout state
+        WidgetWorkoutManager.shared.clearWorkoutState()
+        
+        // End all Live Activities
+        for activity in Activity<WorkoutActivityAttributes>.activities {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+        
+        // Refresh widget
+        WidgetDataManager.shared.refreshRunWidget()
+        
+        return .result(dialog: "Workout stopped ✓")
     }
 }

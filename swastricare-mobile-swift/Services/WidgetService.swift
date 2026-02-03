@@ -143,6 +143,37 @@ struct WidgetMedicationData: Codable {
     )
 }
 
+// MARK: - Steps / Run Widget Models (must match widget extension)
+
+struct WidgetStepsData: Codable {
+    let currentSteps: Int
+    let dailyGoal: Int
+    let distance: Double // in km
+    let calories: Int
+    let lastUpdated: Date
+}
+
+struct WidgetRunActivity: Codable {
+    let name: String
+    let type: String // "walk", "run", "commute"
+    let distance: Double // in km
+    let duration: TimeInterval // in seconds
+    let calories: Int
+    let date: Date
+}
+
+struct WidgetWeeklyRunStats: Codable {
+    let totalDistance: Double
+    let totalActivities: Int
+    let totalCalories: Int
+}
+
+struct WidgetRunData: Codable {
+    let lastActivity: WidgetRunActivity?
+    let weeklyStats: WidgetWeeklyRunStats?
+    let lastUpdated: Date
+}
+
 // MARK: - Pending Action Models
 
 struct PendingWaterLog: Codable {
@@ -168,6 +199,8 @@ final class WidgetService {
     private enum Keys {
         static let hydrationData = "widget_hydration_data"
         static let medicationData = "widget_medication_data"
+        static let stepsData = "widget_steps_data"
+        static let runData = "widget_run_data"
         static let pendingWaterLog = "widget_pending_water_log"
         static let pendingMedicationMarks = "widget_pending_medication_marks"
     }
@@ -274,6 +307,58 @@ final class WidgetService {
             print("⚠️ WidgetService: Failed to encode medication data - \(error)")
         }
     }
+
+    // MARK: - Steps Data
+
+    /// Save steps data for Steps widget consumption
+    func saveStepsData(currentSteps: Int, dailyGoal: Int = 10000, distanceKm: Double, calories: Int) {
+        guard let defaults = WidgetAppGroup.sharedDefaults else {
+            print("⚠️ WidgetService: Failed to access App Group")
+            return
+        }
+
+        let data = WidgetStepsData(
+            currentSteps: currentSteps,
+            dailyGoal: dailyGoal,
+            distance: distanceKm,
+            calories: calories,
+            lastUpdated: Date()
+        )
+
+        do {
+            let encoded = try encoder.encode(data)
+            defaults.set(encoded, forKey: Keys.stepsData)
+            defaults.synchronize()
+            WidgetCenter.shared.reloadTimelines(ofKind: "StepsWidget")
+        } catch {
+            print("⚠️ WidgetService: Failed to encode steps data - \(error)")
+        }
+    }
+
+    // MARK: - Run Data
+
+    /// Save run data for Run widget consumption
+    func saveRunData(lastActivity: WidgetRunActivity?, weeklyStats: WidgetWeeklyRunStats?) {
+        guard let defaults = WidgetAppGroup.sharedDefaults else {
+            print("⚠️ WidgetService: Failed to access App Group")
+            return
+        }
+
+        let data = WidgetRunData(
+            lastActivity: lastActivity,
+            weeklyStats: weeklyStats,
+            lastUpdated: Date()
+        )
+
+        do {
+            let encoded = try encoder.encode(data)
+            defaults.set(encoded, forKey: Keys.runData)
+            defaults.synchronize()
+            WidgetCenter.shared.reloadTimelines(ofKind: "RunWidget")
+        } catch {
+            print("⚠️ WidgetService: Failed to encode run data - \(error)")
+        }
+    }
     
     /// Load medication data
     func loadMedicationData() -> WidgetMedicationData {
@@ -346,6 +431,14 @@ final class WidgetService {
     /// Trigger refresh for medication widget only
     func refreshMedicationWidget() {
         WidgetCenter.shared.reloadTimelines(ofKind: "MedicationWidget")
+    }
+
+    func refreshStepsWidget() {
+        WidgetCenter.shared.reloadTimelines(ofKind: "StepsWidget")
+    }
+
+    func refreshRunWidget() {
+        WidgetCenter.shared.reloadTimelines(ofKind: "RunWidget")
     }
     
     // MARK: - Process Pending Actions

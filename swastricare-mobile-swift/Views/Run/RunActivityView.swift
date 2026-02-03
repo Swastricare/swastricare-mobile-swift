@@ -21,6 +21,7 @@ struct RunActivityView: View {
     @State private var showActivityDetail: RouteActivity? = nil
     @State private var showLiveTracking = false
     @State private var showFullCalendar = false
+    @State private var deepLinkWorkoutType: WorkoutActivityType? = nil
     
     @Namespace private var namespace
     
@@ -71,7 +72,7 @@ struct RunActivityView: View {
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $showLiveTracking) {
             NavigationStack {
-                LiveActivityTrackingView()
+                LiveActivityTrackingView(initialActivityType: deepLinkWorkoutType)
             }
         }
         .sheet(isPresented: $showFullCalendar) {
@@ -103,6 +104,27 @@ struct RunActivityView: View {
         }
         .refreshable {
             await viewModel.refresh()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .deepLinkOpenLiveTracking)) { notification in
+            if let typeString = notification.userInfo?[DeepLinkUserInfoKey.workoutType] as? String {
+                deepLinkWorkoutType = mapToWorkoutActivityType(typeString)
+            } else {
+                deepLinkWorkoutType = nil
+            }
+            showLiveTracking = true
+        }
+    }
+
+    private func mapToWorkoutActivityType(_ raw: String) -> WorkoutActivityType {
+        switch raw.lowercased() {
+        case "walk", "walking":
+            return .walking
+        case "commute", "cycle", "cycling":
+            return .cycling
+        case "hike", "hiking":
+            return .hiking
+        default:
+            return .running
         }
     }
     

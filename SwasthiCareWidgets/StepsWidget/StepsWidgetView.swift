@@ -1,8 +1,8 @@
 //
-//  HydrationWidgetView.swift
+//  StepsWidgetView.swift
 //  SwasthiCareWidgets
 //
-//  Widget views for hydration tracking (Small & Medium)
+//  Widget views for steps tracking (Small & Medium)
 //
 
 import SwiftUI
@@ -11,8 +11,8 @@ import AppIntents
 
 // MARK: - Small Widget View
 
-struct HydrationWidgetSmallView: View {
-    let entry: HydrationWidgetEntry
+struct StepsWidgetSmallView: View {
+    let entry: StepsWidgetEntry
     
     var body: some View {
         VStack(spacing: 8) {
@@ -31,7 +31,7 @@ struct HydrationWidgetSmallView: View {
                     .animation(.easeInOut(duration: 0.3), value: entry.percentage)
                 
                 VStack(spacing: 2) {
-                    Image(systemName: "drop.fill")
+                    Image(systemName: "figure.walk")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(progressColor)
                     
@@ -42,9 +42,9 @@ struct HydrationWidgetSmallView: View {
             }
             .frame(width: 70, height: 70)
             
-            // Intake text
+            // Steps count
             VStack(spacing: 2) {
-                Text(entry.formattedIntake)
+                Text(entry.formattedSteps)
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
                 
@@ -56,14 +56,13 @@ struct HydrationWidgetSmallView: View {
         .containerBackground(for: .widget) {
             Color(.systemBackground)
         }
-        .widgetURL(URL(string: "swastricareapp://hydration"))
     }
     
     private var progressColor: Color {
         switch entry.statusLevel {
-        case .critical:
+        case .low:
             return .red
-        case .warning:
+        case .moderate:
             return .orange
         case .good:
             return .yellow
@@ -85,11 +84,11 @@ struct HydrationWidgetSmallView: View {
 
 // MARK: - Medium Widget View
 
-struct HydrationWidgetMediumView: View {
-    let entry: HydrationWidgetEntry
+struct StepsWidgetMediumView: View {
+    let entry: StepsWidgetEntry
     
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             // Left side - Progress Ring
             ZStack {
                 Circle()
@@ -105,50 +104,61 @@ struct HydrationWidgetMediumView: View {
                     .animation(.easeInOut(duration: 0.3), value: entry.percentage)
                 
                 VStack(spacing: 4) {
-                    Image(systemName: "drop.fill")
-                        .font(.system(size: 20, weight: .semibold))
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(progressColor)
                     
                     Text("\(Int(entry.percentage * 100))%")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
                 }
             }
-            .frame(width: 90, height: 90)
+            .frame(width: 80, height: 80)
             
-            // Right side - Stats & Actions
-            VStack(alignment: .leading, spacing: 8) {
+            // Right side - Stats and button
+            VStack(alignment: .leading, spacing: 6) {
                 // Title
-                Text("Hydration")
-                    .font(.system(size: 14, weight: .semibold))
+                Text("Steps")
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
                 
                 // Stats
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .font(.system(size: 12))
-                        Text(entry.formattedIntake)
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "figure.walk.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.system(size: 10))
+                            Text(entry.formattedSteps)
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "flag.fill")
+                                .foregroundStyle(.blue)
+                                .font(.system(size: 10))
+                            Text("Goal: \(entry.formattedGoal)")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     
-                    HStack {
-                        Image(systemName: "flag.fill")
-                            .foregroundStyle(.blue)
-                            .font(.system(size: 12))
-                        Text("Goal: \(entry.formattedGoal)")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    if !entry.isGoalMet {
-                        HStack {
-                            Image(systemName: "arrow.right.circle.fill")
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "map.fill")
+                                .foregroundStyle(.purple)
+                                .font(.system(size: 10))
+                            Text(entry.formattedDistance)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "flame.fill")
                                 .foregroundStyle(.orange)
-                                .font(.system(size: 12))
-                            Text("\(entry.formattedRemaining) left")
-                                .font(.system(size: 13))
+                                .font(.system(size: 10))
+                            Text(entry.formattedCalories)
+                                .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -156,40 +166,38 @@ struct HydrationWidgetMediumView: View {
                 
                 Spacer()
                 
-                // Quick action buttons
+                // Start activity button
                 if #available(iOS 17.0, *) {
-                    HStack(spacing: 8) {
-                        Button(intent: QuickLog250mlIntent()) {
-                            Label("+250", systemImage: "plus.circle.fill")
-                                .font(.system(size: 12, weight: .medium))
+                    Button(intent: StartWalkIntent()) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 10))
+                            Text("Start Walk")
+                                .font(.system(size: 11, weight: .medium))
                         }
-                        .buttonStyle(.bordered)
-                        .tint(.cyan)
-                        
-                        Button(intent: QuickLog500mlIntent()) {
-                            Label("+500", systemImage: "plus.circle.fill")
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.cyan)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(Color.blue)
+                        .cornerRadius(8)
                     }
+                    .buttonStyle(.plain)
                 }
             }
             
             Spacer(minLength: 0)
         }
-        .padding()
+        .padding(12)
         .containerBackground(for: .widget) {
             Color(.systemBackground)
         }
-        .widgetURL(URL(string: "swastricareapp://hydration"))
     }
     
     private var progressColor: Color {
         switch entry.statusLevel {
-        case .critical:
+        case .low:
             return .red
-        case .warning:
+        case .moderate:
             return .orange
         case .good:
             return .yellow
@@ -211,38 +219,43 @@ struct HydrationWidgetMediumView: View {
 
 // MARK: - Main Widget View
 
-struct HydrationWidgetEntryView: View {
+struct StepsWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
-    let entry: HydrationWidgetEntry
+    let entry: StepsWidgetEntry
     
     var body: some View {
-        switch family {
-        case .systemSmall:
-            HydrationWidgetSmallView(entry: entry)
-        case .systemMedium:
-            HydrationWidgetMediumView(entry: entry)
-        default:
-            HydrationWidgetSmallView(entry: entry)
+        Group {
+            switch family {
+            case .systemSmall:
+                StepsWidgetSmallView(entry: entry)
+            case .systemMedium:
+                StepsWidgetMediumView(entry: entry)
+            default:
+                StepsWidgetSmallView(entry: entry)
+            }
         }
+        // Important: use the same scheme the main app supports.
+        .widgetURL(URL(string: "swastricareapp://steps"))
     }
 }
 
 // MARK: - Previews
 
 #Preview("Small", as: .systemSmall) {
-    HydrationWidget()
+    StepsWidget()
 } timeline: {
-    HydrationWidgetEntry.placeholder
-    HydrationWidgetEntry(date: Date(), hydrationData: WidgetHydrationData(
-        currentIntake: 500,
-        dailyGoal: 2500,
-        lastLoggedTime: Date(),
+    StepsWidgetEntry.placeholder
+    StepsWidgetEntry(date: Date(), stepsData: WidgetStepsData(
+        currentSteps: 7500,
+        dailyGoal: 10000,
+        distance: 5.2,
+        calories: 320,
         lastUpdated: Date()
     ))
 }
 
 #Preview("Medium", as: .systemMedium) {
-    HydrationWidget()
+    StepsWidget()
 } timeline: {
-    HydrationWidgetEntry.placeholder
+    StepsWidgetEntry.placeholder
 }

@@ -150,6 +150,91 @@ struct WidgetMedicationData: Codable {
     )
 }
 
+/// Simplified steps data for widget display
+struct WidgetStepsData: Codable {
+    let currentSteps: Int
+    let dailyGoal: Int
+    let distance: Double // in km
+    let calories: Int
+    let lastUpdated: Date
+    
+    var percentage: Double {
+        guard dailyGoal > 0 else { return 0 }
+        return min(1.0, Double(currentSteps) / Double(dailyGoal))
+    }
+    
+    var remainingSteps: Int {
+        max(0, dailyGoal - currentSteps)
+    }
+    
+    var isGoalMet: Bool {
+        currentSteps >= dailyGoal
+    }
+    
+    static let placeholder = WidgetStepsData(
+        currentSteps: 7500,
+        dailyGoal: 10000,
+        distance: 5.2,
+        calories: 320,
+        lastUpdated: Date()
+    )
+    
+    static let empty = WidgetStepsData(
+        currentSteps: 0,
+        dailyGoal: 10000,
+        distance: 0,
+        calories: 0,
+        lastUpdated: Date()
+    )
+}
+
+/// Simplified run activity for widget display
+struct WidgetRunActivity: Codable {
+    let name: String
+    let type: String // "walk", "run", "commute"
+    let distance: Double // in km
+    let duration: TimeInterval // in seconds
+    let calories: Int
+    let date: Date
+}
+
+/// Weekly run statistics for widget
+struct WidgetWeeklyRunStats: Codable {
+    let totalDistance: Double
+    let totalActivities: Int
+    let totalCalories: Int
+}
+
+/// Container for run widget data
+struct WidgetRunData: Codable {
+    let lastActivity: WidgetRunActivity?
+    let weeklyStats: WidgetWeeklyRunStats?
+    let lastUpdated: Date
+    
+    static let placeholder = WidgetRunData(
+        lastActivity: WidgetRunActivity(
+            name: "Morning Run",
+            type: "run",
+            distance: 5.2,
+            duration: 1800, // 30 minutes
+            calories: 380,
+            date: Date().addingTimeInterval(-3600)
+        ),
+        weeklyStats: WidgetWeeklyRunStats(
+            totalDistance: 25.6,
+            totalActivities: 5,
+            totalCalories: 1850
+        ),
+        lastUpdated: Date()
+    )
+    
+    static let empty = WidgetRunData(
+        lastActivity: nil,
+        weeklyStats: nil,
+        lastUpdated: Date()
+    )
+}
+
 // MARK: - Widget Data Manager
 
 final class WidgetDataManager {
@@ -163,6 +248,8 @@ final class WidgetDataManager {
     private enum Keys {
         static let hydrationData = "widget_hydration_data"
         static let medicationData = "widget_medication_data"
+        static let stepsData = "widget_steps_data"
+        static let runData = "widget_run_data"
         static let pendingWaterLog = "widget_pending_water_log"
         static let pendingMedicationMarks = "widget_pending_medication_marks"
     }
@@ -330,6 +417,74 @@ final class WidgetDataManager {
         return getPendingMedicationMarks().first
     }
     
+    // MARK: - Steps Data
+    
+    /// Save steps data for widget consumption
+    func saveStepsData(_ data: WidgetStepsData) {
+        guard let defaults = AppGroupConfig.sharedDefaults else {
+            print("⚠️ WidgetDataManager: Failed to access App Group")
+            return
+        }
+        
+        do {
+            let encoded = try encoder.encode(data)
+            defaults.set(encoded, forKey: Keys.stepsData)
+            defaults.synchronize()
+            print("👣 WidgetDataManager: Saved steps data - \(data.currentSteps)/\(data.dailyGoal) steps")
+        } catch {
+            print("⚠️ WidgetDataManager: Failed to encode steps data - \(error)")
+        }
+    }
+    
+    /// Load steps data for widget display
+    func loadStepsData() -> WidgetStepsData {
+        guard let defaults = AppGroupConfig.sharedDefaults,
+              let data = defaults.data(forKey: Keys.stepsData) else {
+            return .empty
+        }
+        
+        do {
+            return try decoder.decode(WidgetStepsData.self, from: data)
+        } catch {
+            print("⚠️ WidgetDataManager: Failed to decode steps data - \(error)")
+            return .empty
+        }
+    }
+    
+    // MARK: - Run Data
+    
+    /// Save run data for widget consumption
+    func saveRunData(_ data: WidgetRunData) {
+        guard let defaults = AppGroupConfig.sharedDefaults else {
+            print("⚠️ WidgetDataManager: Failed to access App Group")
+            return
+        }
+        
+        do {
+            let encoded = try encoder.encode(data)
+            defaults.set(encoded, forKey: Keys.runData)
+            defaults.synchronize()
+            print("🏃 WidgetDataManager: Saved run data - last activity: \(data.lastActivity?.name ?? "none")")
+        } catch {
+            print("⚠️ WidgetDataManager: Failed to encode run data - \(error)")
+        }
+    }
+    
+    /// Load run data for widget display
+    func loadRunData() -> WidgetRunData {
+        guard let defaults = AppGroupConfig.sharedDefaults,
+              let data = defaults.data(forKey: Keys.runData) else {
+            return .empty
+        }
+        
+        do {
+            return try decoder.decode(WidgetRunData.self, from: data)
+        } catch {
+            print("⚠️ WidgetDataManager: Failed to decode run data - \(error)")
+            return .empty
+        }
+    }
+    
     // MARK: - Widget Refresh
     
     /// Trigger widget timeline refresh
@@ -345,6 +500,14 @@ final class WidgetDataManager {
     
     func refreshMedicationWidget() {
         WidgetCenter.shared.reloadTimelines(ofKind: "MedicationWidget")
+    }
+    
+    func refreshStepsWidget() {
+        WidgetCenter.shared.reloadTimelines(ofKind: "StepsWidget")
+    }
+    
+    func refreshRunWidget() {
+        WidgetCenter.shared.reloadTimelines(ofKind: "RunWidget")
     }
 }
 

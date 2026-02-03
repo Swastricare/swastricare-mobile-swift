@@ -179,6 +179,9 @@ final class RunActivityViewModel: ObservableObject {
             // if statistics.totalSteps == 0 && activities.isEmpty {
             //     await loadMockData()
             // }
+
+            // Keep Run widget in sync with latest activities
+            updateRunWidgetSnapshot()
             
         } catch {
             errorMessage = error.localizedDescription
@@ -187,6 +190,31 @@ final class RunActivityViewModel: ObservableObject {
         }
         
         isLoading = false
+    }
+
+    private func updateRunWidgetSnapshot() {
+        let last = activities.sorted(by: { $0.startTime > $1.startTime }).first
+
+        let lastWidgetActivity: WidgetRunActivity? = last.map { activity in
+            WidgetRunActivity(
+                name: activity.name,
+                type: activity.type.rawValue.lowercased(),
+                distance: activity.distance,
+                duration: activity.duration,
+                calories: activity.calories,
+                date: activity.startTime
+            )
+        }
+
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let weekly = activities.filter { $0.startTime >= sevenDaysAgo }
+        let weeklyStats = WidgetWeeklyRunStats(
+            totalDistance: weekly.reduce(0.0) { $0 + $1.distance },
+            totalActivities: weekly.count,
+            totalCalories: weekly.reduce(0) { $0 + $1.calories }
+        )
+
+        WidgetService.shared.saveRunData(lastActivity: lastWidgetActivity, weeklyStats: weeklyStats)
     }
     
     func refresh() async {

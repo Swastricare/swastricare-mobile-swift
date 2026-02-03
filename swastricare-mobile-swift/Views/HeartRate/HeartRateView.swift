@@ -17,6 +17,7 @@ struct HeartRateView: View {
     @State private var heartbeatScale: CGFloat = 1.0
     @State private var borderPulse = false
     @State private var showError = false
+    @State private var showAnalytics = false
     
     // Measurement duration constant
     private let measurementDuration: TimeInterval = 30.0
@@ -91,6 +92,11 @@ struct HeartRateView: View {
         .sheet(isPresented: $viewModel.showDisclaimer) {
             HeartRateDisclaimerView(onAccept: viewModel.acceptDisclaimer)
         }
+        .sheet(isPresented: $showAnalytics) {
+            NavigationStack {
+                HeartRateAnalyticsView()
+            }
+        }
     }
     
     // MARK: - Background
@@ -154,19 +160,34 @@ struct HeartRateView: View {
                 
                 Spacer()
                 
-                // Info button
-                Button(action: {
-                    HapticManager.impact(.light)
-                    viewModel.showDisclaimer = true
-                }) {
-                    Image(systemName: "info.circle")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .frame(width: 40, height: 40)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .clipShape(Circle())
+                HStack(spacing: 10) {
+                    Button(action: {
+                        HapticManager.impact(.light)
+                        showAnalytics = true
+                    }) {
+                        Image(systemName: "chart.xyaxis.line")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(width: 40, height: 40)
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel("Show heart rate analytics and history")
+                    
+                    // Info button
+                    Button(action: {
+                        HapticManager.impact(.light)
+                        viewModel.showDisclaimer = true
+                    }) {
+                        Image(systemName: "info.circle")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(width: 40, height: 40)
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel("Show measurement instructions")
                 }
-                .accessibilityLabel("Show measurement instructions")
             }
         }
         .frame(height: 44)

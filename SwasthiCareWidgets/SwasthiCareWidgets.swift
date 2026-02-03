@@ -38,6 +38,36 @@ struct MedicationWidget: Widget {
     }
 }
 
+// MARK: - Steps Widget
+
+struct StepsWidget: Widget {
+    let kind: String = "StepsWidget"
+    
+    var body: some WidgetConfiguration {
+        return StaticConfiguration(kind: kind, provider: StepsWidgetProvider()) { entry in
+            StepsWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("Steps Tracker")
+        .description("Track your daily steps and distance toward your goal.")
+        .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
+// MARK: - Run Widget
+
+struct RunWidget: Widget {
+    let kind: String = "RunWidget"
+    
+    var body: some WidgetConfiguration {
+        return StaticConfiguration(kind: kind, provider: RunWidgetProvider()) { entry in
+            RunWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("Run Activity")
+        .description("View your latest run or walk activity stats.")
+        .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
 // MARK: - Widget Bundle
 
 @main
@@ -45,6 +75,8 @@ struct SwasthiCareWidgetsBundle: WidgetBundle {
     var body: some Widget {
         HydrationWidget()
         MedicationWidget()
+        StepsWidget()
+        RunWidget()
         WorkoutLiveActivityWidget()
     }
 }

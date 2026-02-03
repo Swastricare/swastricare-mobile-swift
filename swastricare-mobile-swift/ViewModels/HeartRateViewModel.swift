@@ -133,11 +133,23 @@ final class HeartRateViewModel: ObservableObject {
         
         isSaving = true
         saveError = nil
+        let timestamp = Date()
         
         let reading = HeartRateReading(
             bpm: bpm,
+            timestamp: timestamp,
             confidence: confidence,
             deviceUsed: "iPhone Camera (PPG)"
+        )
+        
+        // Always persist locally so History/Analytics can work offline.
+        HeartRateLocalStorage.shared.saveLastMeasured(bpm: bpm, date: timestamp)
+        HeartRateLocalStorage.shared.appendMeasurement(
+            bpm: bpm,
+            date: timestamp,
+            confidence: confidence,
+            deviceUsed: "iPhone Camera (PPG)",
+            source: "camera"
         )
         
         do {
@@ -152,10 +164,6 @@ final class HeartRateViewModel: ObservableObject {
                 print("HealthKit save failed: \(error)")
             }
 
-            // Always persist the last measured value locally so we can show it
-            // on the Home/Vitals screen even when Apple Health has no data.
-            HeartRateLocalStorage.shared.saveLastMeasured(bpm: bpm, date: Date())
-            
             saveSuccess = true
             AppAnalyticsService.shared.logHeartbeatMeasurement(bpm: bpm, source: "camera")
             

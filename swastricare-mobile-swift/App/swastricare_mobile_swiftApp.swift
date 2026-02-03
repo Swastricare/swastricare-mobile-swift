@@ -56,8 +56,8 @@ struct swastricare_mobile_swiftApp: App {
     
     @Environment(\.scenePhase) private var scenePhase
     
-    // Deep link handling for widgets
-    @State private var deepLinkDestination: DeepLinkDestination?
+    // Deep link handling (widgets + live activity)
+    @StateObject private var deepLinkHandler = DeepLinkHandler()
     
     // Notification delegate
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -161,6 +161,7 @@ struct swastricare_mobile_swiftApp: App {
             .animation(.easeInOut, value: hasCheckedAppVersion)
             .withDependencies()
             .environmentObject(appVersionService)
+            .environmentObject(deepLinkHandler)
             .onChange(of: authViewModel.isAuthenticated) { _, isAuthenticated in
                 if isAuthenticated {
                     // User just logged in - check if they have a health profile in DB
@@ -184,27 +185,10 @@ struct swastricare_mobile_swiftApp: App {
                 Task {
                     try? await SupabaseManager.shared.client.auth.session(from: url)
                 }
-                
-                handleDeepLink(url: url)
+
+                // Route widget/live-activity deep links
+                deepLinkHandler.handle(url)
             }
-        }
-    }
-    
-    // MARK: - Deep Link Handling
-    
-    private func handleDeepLink(url: URL) {
-        // Handle widget deep links
-        guard url.scheme == "swastricareapp" else { return }
-        
-        switch url.host {
-        case "hydration":
-            deepLinkDestination = .hydration
-            print("🔗 Deep link: Opening Hydration")
-        case "medications":
-            deepLinkDestination = .medications
-            print("🔗 Deep link: Opening Medications")
-        default:
-            break
         }
     }
     
@@ -358,6 +342,9 @@ struct swastricare_mobile_swiftApp: App {
                     await NotificationService.shared.refreshWellnessNotifications()
                 }
             }
+
+            // Pick up any workout started from widgets while app was backgrounded/terminated
+            deepLinkHandler.checkForPendingWidgetWorkout()
             
             // Clear notification badge
             Task { @MainActor in
@@ -395,13 +382,6 @@ struct swastricare_mobile_swiftApp: App {
         UIToolbar.appearance().standardAppearance = toolbarAppearance
         UIToolbar.appearance().scrollEdgeAppearance = toolbarAppearance
     }
-}
-
-// MARK: - Deep Link Destination
-
-enum DeepLinkDestination {
-    case hydration
-    case medications
 }
 
 // MARK: - App Delegate

@@ -80,7 +80,7 @@ struct MedicationWidgetSmallView: View {
         .containerBackground(for: .widget) {
             Color(.systemBackground)
         }
-        .widgetURL(URL(string: "swasthicare://medications"))
+        .widgetURL(URL(string: "swastricareapp://medications"))
     }
     
     private func statusColor(for med: WidgetMedicationItem) -> Color {
@@ -192,7 +192,7 @@ struct MedicationWidgetMediumView: View {
         .containerBackground(for: .widget) {
             Color(.systemBackground)
         }
-        .widgetURL(URL(string: "swasthicare://medications"))
+        .widgetURL(URL(string: "swastricareapp://medications"))
     }
     
     private var progressColor: Color {

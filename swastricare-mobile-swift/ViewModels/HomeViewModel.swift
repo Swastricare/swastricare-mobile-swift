@@ -114,6 +114,14 @@ final class HomeViewModel: ObservableObject {
 
         healthMetrics = metrics
         weeklySteps = await healthService.fetchWeeklySteps()
+
+        // Keep Steps widget in sync with latest HealthKit totals
+        WidgetService.shared.saveStepsData(
+            currentSteps: metrics.steps,
+            dailyGoal: 10000,
+            distanceKm: metrics.distance,
+            calories: metrics.activeCalories
+        )
         
         lastSyncTime = Date()
         isLoading = false

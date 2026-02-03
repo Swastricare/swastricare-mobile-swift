@@ -17,12 +17,19 @@ struct LiveActivityTrackingView: View {
     
     @StateObject private var viewModel = LiveActivityViewModel()
     @Environment(\.dismiss) private var dismiss
+
+    /// Optional pre-selected type when opened from a widget/live-activity deep link.
+    let initialActivityType: WorkoutActivityType?
     
     @State private var showDiscardConfirmation = false
     @State private var isMapExpanded = false
     
     private let accentGreen = Color(hex: "22C55E")
     private let accentBlue = Color(hex: "4F46E5")
+
+    init(initialActivityType: WorkoutActivityType? = nil) {
+        self.initialActivityType = initialActivityType
+    }
     
     // MARK: - Body
     
@@ -55,6 +62,11 @@ struct LiveActivityTrackingView: View {
             }
         }
         .navigationBarBackButtonHidden(viewModel.viewState.isTracking)
+        .onAppear {
+            if let initialActivityType, viewModel.viewState.canStart {
+                viewModel.selectActivityType(initialActivityType)
+            }
+        }
         .toolbar {
             if viewModel.viewState == .idle {
                 ToolbarItem(placement: .topBarLeading) {

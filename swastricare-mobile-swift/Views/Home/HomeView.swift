@@ -183,6 +183,15 @@ struct HomeView: View {
             await medicationViewModel.loadMedications()
             await dietViewModel.loadData()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .deepLinkOpenHydration)) { _ in
+            showHydration = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .deepLinkOpenMedications)) { _ in
+            showMedications = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .deepLinkOpenHeartRate)) { _ in
+            showHeartRateMeasurement = true
+        }
         .refreshable {
             await viewModel.refresh()
             await trackerViewModel.refresh()

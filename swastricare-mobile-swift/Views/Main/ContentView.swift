@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import Combine
 
 // MARK: - Tab Enum
 
@@ -37,6 +38,7 @@ struct ContentView: View {
     @State private var currentTab: Tab = .vitals
     @StateObject private var homeViewModel = DependencyContainer.shared.homeViewModel
     @State private var hasConfiguredTabBar = false
+    @EnvironmentObject private var deepLinkHandler: DeepLinkHandler
     
     // MARK: - Init
     
@@ -141,6 +143,81 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToAITab"))) { _ in
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 currentTab = .ai
+            }
+        }
+        .onReceive(deepLinkHandler.$currentDeepLink.compactMap { $0 }) { deepLink in
+            route(deepLink: deepLink)
+        }
+        .onReceive(deepLinkHandler.$pendingWorkout.compactMap { $0 }) { pending in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .run
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                NotificationCenter.default.post(
+                    name: .deepLinkOpenLiveTracking,
+                    object: nil,
+                    userInfo: [DeepLinkUserInfoKey.workoutType: pending.type]
+                )
+            }
+        }
+    }
+
+    // MARK: - Deep Link Routing
+
+    private func route(deepLink: DeepLink) {
+        switch deepLink {
+        case .home:
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .vitals
+            }
+
+        case .hydration:
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .vitals
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                NotificationCenter.default.post(name: .deepLinkOpenHydration, object: nil)
+            }
+
+        case .medications:
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .vitals
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                NotificationCenter.default.post(name: .deepLinkOpenMedications, object: nil)
+            }
+
+        case .heartRate:
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .vitals
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                NotificationCenter.default.post(name: .deepLinkOpenHeartRate, object: nil)
+            }
+
+        case .steps, .run:
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .run
+            }
+
+        case .activeWorkout:
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .run
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                NotificationCenter.default.post(name: .deepLinkOpenLiveTracking, object: nil)
+            }
+
+        case .startRun(let type):
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .run
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                NotificationCenter.default.post(
+                    name: .deepLinkOpenLiveTracking,
+                    object: nil,
+                    userInfo: [DeepLinkUserInfoKey.workoutType: type]
+                )
             }
         }
     }
