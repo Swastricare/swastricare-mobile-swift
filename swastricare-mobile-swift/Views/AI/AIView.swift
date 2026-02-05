@@ -130,7 +130,7 @@ struct AIView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: viewModel.selectedAIMode.icon)
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                                    .foregroundColor(Color(hex: viewModel.selectedAIMode.accentColor))
                                     .symbolEffect(.bounce, value: viewModel.selectedAIMode)
                                 Text(viewModel.selectedAIMode.displayName)
                                     .font(.system(size: 16, weight: .semibold))
@@ -143,7 +143,7 @@ struct AIView: View {
                             .padding(.vertical, 6)
                             .background(
                                 Capsule()
-                                    .fill(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B").opacity(0.1) : Color(hex: "2E3192").opacity(0.1))
+                                    .fill(Color(hex: viewModel.selectedAIMode.accentColor).opacity(0.1))
                             )
                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
                         }
@@ -572,7 +572,7 @@ struct AIView: View {
             // Show toast notification
             toastMessage = "Switched to \(mode.displayName)"
             toastIcon = mode.icon
-            toastColor = mode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")
+            toastColor = Color(hex: mode.accentColor)
             
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 showToast = true
@@ -657,32 +657,22 @@ struct AIView: View {
                             // Glow effect when recording
                             if speechManager.isRecording {
                                 Circle()
-                                    .fill(
-                                        viewModel.selectedAIMode == .medical
-                                            ? Color(hex: "00A86B").opacity(0.3)
-                                            : Color(hex: "2E3192").opacity(0.3)
-                                    )
+                                    .fill(Color(hex: viewModel.selectedAIMode.accentColor).opacity(0.3))
                                     .frame(width: 34, height: 34)
                                     .blur(radius: 4)
                             }
-                            
+
                             Image(systemName: speechManager.isRecording ? "stop.fill" : "mic.fill")
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundColor(
                                     speechManager.isRecording
                                         ? .white
-                                        : (viewModel.selectedAIMode == .medical
-                                            ? Color(hex: "00A86B")
-                                            : Color(hex: "2E3192"))
+                                        : Color(hex: viewModel.selectedAIMode.accentColor)
                                 )
                                 .padding(8)
                                 .background(
                                     speechManager.isRecording
-                                        ? AnyShapeStyle(
-                                            viewModel.selectedAIMode == .medical
-                                                ? Color(hex: "00A86B")
-                                                : Color(hex: "2E3192")
-                                        )
+                                        ? AnyShapeStyle(Color(hex: viewModel.selectedAIMode.accentColor))
                                         : AnyShapeStyle(Color.clear)
                                 )
                                 .clipShape(Circle())
@@ -728,7 +718,7 @@ struct AIView: View {
                 }) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 40))
-                        .foregroundColor(viewModel.canSend ? Color(hex: "2E3192") : .gray.opacity(0.3))
+                        .foregroundColor(viewModel.canSend ? Color(hex: viewModel.selectedAIMode.accentColor) : .gray.opacity(0.3))
                         .scaleEffect(sendButtonScale)
                 }
                 .disabled(!viewModel.canSend)
@@ -744,12 +734,12 @@ struct AIView: View {
                     Text("Listening in \(viewModel.selectedAIMode.displayName) mode")
                         .font(.system(size: 12, weight: .medium))
                 }
-                .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                .foregroundColor(Color(hex: viewModel.selectedAIMode.accentColor))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill((viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")).opacity(0.12))
+                        .fill(Color(hex: viewModel.selectedAIMode.accentColor).opacity(0.12))
                 )
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
                 .padding(.bottom, 8)
@@ -894,13 +884,21 @@ private struct ChatBubble: View {
 private struct TypingIndicator: View {
     let loadingOperation: LoadingOperationType
     @State private var isAnimating = false
-    
+
+    private var loadingOperationColor: Color {
+        switch loadingOperation {
+        case .medicalQuery: return Color(hex: "00A86B")
+        case .opusChat: return Color(hex: "D97706")
+        default: return Color(hex: "2E3192")
+        }
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             // Contextual icon
             Image(systemName: loadingOperation.icon)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(loadingOperation == .medicalQuery ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                .foregroundColor(loadingOperationColor)
                 .scaleEffect(isAnimating ? 1.1 : 0.9)
                 .animation(
                     .easeInOut(duration: 0.8)
@@ -917,7 +915,7 @@ private struct TypingIndicator: View {
             HStack(spacing: 4) {
                 ForEach(0..<3, id: \.self) { index in
                     Circle()
-                        .fill(loadingOperation == .medicalQuery ? Color(hex: "00A86B").opacity(0.6) : Color(hex: "2E3192").opacity(0.6))
+                        .fill(loadingOperationColor.opacity(0.6))
                         .frame(width: 6, height: 6)
                         .scaleEffect(isAnimating ? 1.0 : 0.5)
                         .opacity(isAnimating ? 1.0 : 0.3)
@@ -984,7 +982,7 @@ private struct ModeTooltipView: View {
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
-                    
+
                     HStack(spacing: 8) {
                         Image(systemName: "stethoscope")
                             .foregroundColor(Color(hex: "00A86B"))
@@ -992,6 +990,17 @@ private struct ModeTooltipView: View {
                         Text("Medical Expert")
                             .font(.system(size: 13, weight: .medium))
                         Text("- Health information")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "brain.head.profile")
+                            .foregroundColor(Color(hex: "D97706"))
+                            .frame(width: 20)
+                        Text("Opus 4.6")
+                            .font(.system(size: 13, weight: .medium))
+                        Text("- Advanced reasoning")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }

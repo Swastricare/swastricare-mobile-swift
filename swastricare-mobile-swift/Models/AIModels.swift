@@ -63,31 +63,35 @@ enum AIResponseMode: String, Equatable {
     case medical
     case healthAnalysis
     case imageAnalysis
-    
+    case opus
+
     var badgeText: String {
         switch self {
         case .general: return "Swastri"
         case .medical: return "Medical Expert"
         case .healthAnalysis: return "Health Analysis"
         case .imageAnalysis: return "Image Analysis"
+        case .opus: return "Opus 4.6"
         }
     }
-    
+
     var badgeIcon: String {
         switch self {
         case .general: return "sparkles"
         case .medical: return "stethoscope"
         case .healthAnalysis: return "waveform.path.ecg"
         case .imageAnalysis: return "doc.viewfinder"
+        case .opus: return "brain.head.profile"
         }
     }
-    
+
     var badgeColor: String {
         switch self {
         case .general: return "2E3192"
         case .medical: return "00A86B"
         case .healthAnalysis: return "4A90E2"
         case .imageAnalysis: return "8B5CF6"
+        case .opus: return "D97706"
         }
     }
 }
@@ -157,7 +161,7 @@ struct AIErrorState: Equatable {
                 message: "Request timed out. Please try again.",
                 errorType: .timeout,
                 canRetry: true,
-                canSwitchMode: mode == .medical
+                canSwitchMode: mode != .general
             )
         } else if errorString.contains("network") || errorString.contains("connection") || errorString.contains("offline") {
             return AIErrorState(
@@ -180,6 +184,13 @@ struct AIErrorState: Equatable {
                 canRetry: true,
                 canSwitchMode: true
             )
+        } else if mode == .opus && (errorString.contains("failed") || errorString.contains("unavailable")) {
+            return AIErrorState(
+                message: "Opus service temporarily unavailable.",
+                errorType: .unknown,
+                canRetry: true,
+                canSwitchMode: true
+            )
         } else if errorString.contains("image") {
             return AIErrorState(
                 message: "Couldn't process the image. Try a different one.",
@@ -192,7 +203,7 @@ struct AIErrorState: Equatable {
                 message: "Something went wrong. Please try again.",
                 errorType: .unknown,
                 canRetry: true,
-                canSwitchMode: mode == .medical
+                canSwitchMode: mode != .general
             )
         }
     }
@@ -206,7 +217,8 @@ enum LoadingOperationType: Equatable {
     case medicalQuery
     case healthAnalysis
     case imageAnalysis
-    
+    case opusChat
+
     var loadingMessage: String {
         switch self {
         case .generalChat:
@@ -217,9 +229,11 @@ enum LoadingOperationType: Equatable {
             return "Analyzing your health data..."
         case .imageAnalysis:
             return "Processing image..."
+        case .opusChat:
+            return "Deep reasoning with Opus..."
         }
     }
-    
+
     var icon: String {
         switch self {
         case .generalChat:
@@ -230,6 +244,8 @@ enum LoadingOperationType: Equatable {
             return "waveform.path.ecg"
         case .imageAnalysis:
             return "doc.viewfinder"
+        case .opusChat:
+            return "brain.head.profile"
         }
     }
 }

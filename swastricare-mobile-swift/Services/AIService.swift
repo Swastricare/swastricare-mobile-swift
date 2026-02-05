@@ -16,6 +16,7 @@ protocol AIServiceProtocol {
     func sendSmartMessage(_ message: String, context: [ChatMessage], systemContext: String?) async throws -> AIResponse
     func sendMedicalQuery(_ message: String, context: [ChatMessage], healthContext: String?) async throws -> AIResponse
     func analyzeMedicalImage(_ imageData: Data, analysisType: MedicalImageAnalysisType, question: String?) async throws -> AIResponse
+    func sendOpusMessage(_ message: String, context: [ChatMessage], systemContext: String?) async throws -> AIResponse
     func analyzeHealth(_ metrics: HealthMetrics) async throws -> HealthAnalysisResponse
     func generateHealthSummary(_ metrics: HealthMetrics) async throws -> String
     func loadChatHistory() async throws -> (messages: [ChatMessage], conversationId: UUID?)
@@ -233,6 +234,58 @@ final class AIService: AIServiceProtocol {
         )
     }
     
+    // MARK: - Claude Opus 4.6
+
+    func sendOpusMessage(_ message: String, context: [ChatMessage], systemContext: String? = nil) async throws -> AIResponse {
+        print("🧠 === CLAUDE OPUS 4.6 MESSAGE ===")
+        print("🧠 User message: \(message.prefix(100))...")
+        print("🧠 Has context: \(systemContext != nil)")
+        print("🧠 History length: \(context.count)")
+
+        let conversationHistory = context.suffix(10).map { msg in
+            ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
+        }
+
+        var finalMessage = message
+        if let systemContext = systemContext {
+            finalMessage = "CONTEXT_DATA:\n\(systemContext)\n\nUSER_QUERY:\n\(message)"
+        }
+
+        let payload: [String: Any] = [
+            "message": finalMessage,
+            "conversationHistory": conversationHistory
+        ]
+
+        print("🧠 Calling Supabase function: claude-opus-chat")
+
+        let response = try await supabase.invokeFunction(
+            name: "claude-opus-chat",
+            payload: payload
+        )
+
+        print("🧠 === CLAUDE OPUS RESPONSE ===")
+        print("🧠 Raw response keys: \(response.keys.joined(separator: ", "))")
+
+        guard let responseText = response["response"] as? String else {
+            print("❌ No 'response' field in response!")
+            throw AIError.invalidResponse
+        }
+
+        let model = response["model"] as? String ?? "claude-opus-4-6"
+
+        print("🧠 Model used: \(model)")
+        print("🧠 Response length: \(responseText.count) characters")
+        print("🧠 Response preview: \(responseText.prefix(200))...")
+
+        return AIResponse(
+            text: responseText,
+            model: model,
+            isMedical: false,
+            isEmergency: false,
+            hasDisclaimer: false
+        )
+    }
+
     // MARK: - Medical Image Analysis (MedGemma 4B Vision)
     
     func analyzeMedicalImage(_ imageData: Data, analysisType: MedicalImageAnalysisType = .general, question: String? = nil) async throws -> AIResponse {

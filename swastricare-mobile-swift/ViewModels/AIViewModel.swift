@@ -143,7 +143,11 @@ final class AIViewModel: ObservableObject {
         messages.append(loadingMessage)
         
         // Set loading operation type based on mode
-        currentLoadingOperation = selectedAIMode == .medical ? .medicalQuery : .generalChat
+        switch selectedAIMode {
+        case .medical: currentLoadingOperation = .medicalQuery
+        case .opus: currentLoadingOperation = .opusChat
+        case .general: currentLoadingOperation = .generalChat
+        }
         chatState = .sending
         
         do {
@@ -165,7 +169,7 @@ final class AIViewModel: ObservableObject {
             case .medical:
                 // TEMPORARY: Use ai-chat with medical prompt until medgemma-chat is fixed
                 print("🏥 AI Mode: Medical Expert (using ai-chat temporarily)")
-                
+
                 // Build medical-specific system context
                 var medicalContext = """
                 You are Swastrica Medical AI, a health assistant by Swastricare (Onwords). Provide accurate medical information with these guidelines:
@@ -174,18 +178,31 @@ final class AIViewModel: ObservableObject {
                 - Use clear, empathetic language
                 - Never prescribe medications or dosages
                 - Include appropriate disclaimers
-                
+
                 """
                 medicalContext += systemContext
-                
+
                 response = try await aiService.sendChatMessage(text, context: Array(messages.dropLast()), systemContext: medicalContext)
                 lastResponseModel = "gemini-medical"
                 lastResponseWasMedical = true
+
+            case .opus:
+                // Use Claude Opus 4.6 for advanced reasoning
+                print("🧠 AI Mode: Claude Opus 4.6")
+                let opusResponse = try await aiService.sendOpusMessage(text, context: Array(messages.dropLast()), systemContext: systemContext)
+                response = opusResponse.text
+                lastResponseModel = opusResponse.model
+                lastResponseWasMedical = false
             }
             
             // Remove loading message and add response with mode badge
             messages.removeLast()
-            let responseMode: AIResponseMode = selectedAIMode == .medical ? .medical : .general
+            let responseMode: AIResponseMode
+            switch selectedAIMode {
+            case .medical: responseMode = .medical
+            case .opus: responseMode = .opus
+            case .general: responseMode = .general
+            }
             messages.append(ChatMessage.assistantMessage(response, mode: responseMode))
             chatState = .idle
             

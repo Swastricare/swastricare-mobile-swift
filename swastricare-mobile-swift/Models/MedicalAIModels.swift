@@ -13,34 +13,39 @@ import Foundation
 enum AIMode: String, CaseIterable, Identifiable {
     case general = "general"
     case medical = "medical"
-    
+    case opus = "opus"
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .general: return "Swastri Assistant"
         case .medical: return "Medical Expert"
+        case .opus: return "Opus 4.6"
         }
     }
-    
+
     var description: String {
         switch self {
         case .general: return "General health & wellness companion"
         case .medical: return "Specialized medical information"
+        case .opus: return "Advanced reasoning by Claude"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .general: return "sparkles"
         case .medical: return "stethoscope"
+        case .opus: return "brain.head.profile"
         }
     }
-    
+
     var accentColor: String {
         switch self {
         case .general: return "2E3192"  // App primary blue
         case .medical: return "00A86B"  // Medical green
+        case .opus: return "D97706"     // Warm amber for Claude
         }
     }
 }
@@ -53,25 +58,27 @@ enum MedicalAIModel: String, Codable {
     case medgemma4B = "medgemma-4b"       // Multimodal (image + text)
     case geminiMedical = "gemini-medical" // Fallback with medical prompts
     case geminiFlash = "gemini-3-flash"   // General chat (non-medical)
-    
+    case claudeOpus = "claude-opus-4-6"   // Claude Opus 4.6 advanced reasoning
+
     var displayName: String {
         switch self {
         case .medgemma27B: return "MedGemma Medical AI"
         case .medgemma4B: return "MedGemma Vision"
         case .geminiMedical: return "Medical Assistant"
         case .geminiFlash: return "Swastri AI"
+        case .claudeOpus: return "Claude Opus 4.6"
         }
     }
-    
+
     var isMedical: Bool {
         switch self {
         case .medgemma27B, .medgemma4B, .geminiMedical:
             return true
-        case .geminiFlash:
+        case .geminiFlash, .claudeOpus:
             return false
         }
     }
-    
+
     var supportsImages: Bool {
         self == .medgemma4B
     }
