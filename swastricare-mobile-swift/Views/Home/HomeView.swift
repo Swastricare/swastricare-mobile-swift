@@ -504,6 +504,8 @@ struct HomeView: View {
     
     @State private var showMedications = false
     @State private var showHydration = false
+    @State private var showFoodTracking = false
+    @State private var showCycleTracking = false
 
     private var trackerSection: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -673,12 +675,83 @@ struct HomeView: View {
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: quickActionsVisible)
             }
             .padding(.horizontal)
+
+            HStack(spacing: 12) {
+                // Food Tracking Quick Action
+                Button(action: { showFoodTracking = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "fork.knife")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "FF6B35"))
+                            .frame(width: 36, height: 36)
+                            .background(Color(hex: "FF6B35").opacity(0.12))
+                            .clipShape(Circle())
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Food")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("Track meals")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(12)
+                    .glass(cornerRadius: 16)
+                }
+                .buttonStyle(.plain)
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.8)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: quickActionsVisible)
+
+                // Cycle Tracking Quick Action
+                Button(action: { showCycleTracking = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "leaf.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "E91E63"))
+                            .frame(width: 36, height: 36)
+                            .background(Color(hex: "E91E63").opacity(0.12))
+                            .clipShape(Circle())
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Cycle")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("Track periods")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(12)
+                    .glass(cornerRadius: 16)
+                }
+                .buttonStyle(.plain)
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.8)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.4), value: quickActionsVisible)
+            }
+            .padding(.horizontal)
         }
         .sheet(isPresented: $showMedications) {
             MedicationsView(viewModel: medicationViewModel)
         }
         .sheet(isPresented: $showHydration) {
             HydrationView(viewModel: hydrationViewModel)
+        }
+        .sheet(isPresented: $showFoodTracking) {
+            NavigationStack {
+                FoodTrackingView()
+            }
+        }
+        .sheet(isPresented: $showCycleTracking) {
+            NavigationStack {
+                MenstruationView()
+            }
         }
     }
     

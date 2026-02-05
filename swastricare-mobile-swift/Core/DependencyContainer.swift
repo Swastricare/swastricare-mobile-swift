@@ -29,6 +29,8 @@ final class DependencyContainer: ObservableObject {
     let weatherService: WeatherServiceProtocol
     let vitalSignsService: VitalSignsServiceProtocol
     let familyService: FamilyServiceProtocol
+    let foodTrackingService: FoodTrackingServiceProtocol
+    let menstruationService: MenstruationServiceProtocol
 
     // MARK: - ViewModels (Lazy initialized)
     
@@ -84,6 +86,14 @@ final class DependencyContainer: ObservableObject {
         FamilyViewModel(familyService: familyService)
     }()
 
+    lazy var foodTrackingViewModel: FoodTrackingViewModel = {
+        FoodTrackingViewModel(foodService: foodTrackingService)
+    }()
+
+    lazy var menstruationViewModel: MenstruationViewModel = {
+        MenstruationViewModel(service: menstruationService)
+    }()
+
     // MARK: - Init
     
     private init() {
@@ -97,6 +107,8 @@ final class DependencyContainer: ObservableObject {
         self.weatherService = WeatherService.shared
         self.vitalSignsService = VitalSignsService.shared
         self.familyService = FamilyService.shared
+        self.foodTrackingService = FoodTrackingService.shared
+        self.menstruationService = MenstruationService.shared
     }
     
     // MARK: - Factory Methods (for creating new instances if needed)
@@ -135,6 +147,14 @@ final class DependencyContainer: ObservableObject {
 
     func makeFamilyViewModel() -> FamilyViewModel {
         FamilyViewModel(familyService: familyService)
+    }
+
+    func makeFoodTrackingViewModel() -> FoodTrackingViewModel {
+        FoodTrackingViewModel(foodService: foodTrackingService)
+    }
+
+    func makeMenstruationViewModel() -> MenstruationViewModel {
+        MenstruationViewModel(service: menstruationService)
     }
 }
 
