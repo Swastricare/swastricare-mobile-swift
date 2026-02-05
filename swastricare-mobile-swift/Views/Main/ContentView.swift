@@ -87,7 +87,7 @@ struct ContentView: View {
             
             // Family Tab
             NavigationStack {
-                FamilyPlaceholderView()
+                FamilyView()
                     .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {
@@ -169,27 +169,6 @@ struct ToolbarBackgroundVisibilityModifier: ViewModifier {
         } else {
             content
         }
-    }
-}
-
-// MARK: - Family Placeholder View
-
-struct FamilyPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "person.2")
-                .font(.system(size: 80))
-                .foregroundColor(.blue)
-            
-            Text("Family")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("Coming Soon")
-                .font(.title3)
-                .foregroundColor(.secondary)
-        }
-        .navigationTitle("Family")
     }
 }
 
