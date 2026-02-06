@@ -475,6 +475,65 @@ struct ActivityRouteMapView: UIViewRepresentable {
     }
 }
 
+// MARK: - Activity Route Thumbnail Map View (for list card – same projection as detail)
+
+/// Small map thumbnail that draws the route with MKPolyline so the track layout matches the detail screen.
+struct ActivityRouteThumbnailMapView: UIViewRepresentable {
+    let routeCoordinates: [CoordinatePoint]
+    var size: CGSize = CGSize(width: 80, height: 80)
+    
+    func makeUIView(context: Context) -> MKMapView {
+        let mapView = MKMapView()
+        mapView.delegate = context.coordinator
+        mapView.showsUserLocation = false
+        mapView.isZoomEnabled = false
+        mapView.isScrollEnabled = false
+        mapView.isRotateEnabled = false
+        mapView.isPitchEnabled = false
+        mapView.mapType = .standard
+        return mapView
+    }
+    
+    func updateUIView(_ mapView: MKMapView, context: Context) {
+        mapView.removeOverlays(mapView.overlays)
+        mapView.removeAnnotations(mapView.annotations)
+        
+        guard routeCoordinates.count >= 2 else { return }
+        
+        let coordinates = routeCoordinates.map { $0.coordinate }
+        let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
+        mapView.addOverlay(polyline)
+        
+        var rect = MKMapRect.null
+        for coordinate in coordinates {
+            let point = MKMapPoint(coordinate)
+            let pointRect = MKMapRect(x: point.x, y: point.y, width: 0.1, height: 0.1)
+            rect = rect.union(pointRect)
+        }
+        let padding = Swift.max(rect.size.width, rect.size.height) * 0.2
+        let paddedRect = rect.insetBy(dx: -padding, dy: -padding)
+        mapView.setVisibleMapRect(paddedRect, edgePadding: .zero, animated: false)
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject, MKMapViewDelegate {
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let polyline = overlay as? MKPolyline {
+                let renderer = MKPolylineRenderer(polyline: polyline)
+                renderer.strokeColor = UIColor(red: 0.31, green: 0.275, blue: 0.898, alpha: 1.0)
+                renderer.lineWidth = 3
+                renderer.lineCap = .round
+                renderer.lineJoin = .round
+                return renderer
+            }
+            return MKOverlayRenderer(overlay: overlay)
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview {

@@ -1240,26 +1240,33 @@ private struct AddDocumentSheet: View {
     let onPhotoLibrary: () -> Void
     @Environment(\.dismiss) private var dismiss
     
+    private let horizontalInset: CGFloat = 20
+    private let cardPadding: CGFloat = AppDimensions.cardPadding
+    private let cardSpacing: CGFloat = 16
+    
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(spacing: 0) {
                 Text("Add Documents")
                     .font(.system(size: 22, weight: .bold))
-                    .padding(.top, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, horizontalInset)
+                    .padding(.top, 24)
+                    .padding(.bottom, 8)
                 
-                VStack(spacing: 14) {
+                VStack(spacing: cardSpacing) {
                     // Choose Files Button
                     Button {
                         dismiss()
                         onChooseFiles()
                     } label: {
-                    HStack(spacing: 16) {
+                        HStack(spacing: 16) {
                             ZStack {
                                 Circle()
                                     .fill(Color(hex: "2E3192").opacity(0.15))
                                     .frame(width: 52, height: 52)
                                 
-                        Image(systemName: "folder.fill")
+                                Image(systemName: "folder.fill")
                                     .font(.system(size: 22))
                                     .foregroundColor(Color(hex: "2E3192"))
                             }
@@ -1267,21 +1274,21 @@ private struct AddDocumentSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Browse Files")
                                     .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.primary)
+                                    .foregroundColor(.primary)
                                 
                                 Text("PDF, DOC, images and more")
                                     .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.secondary)
-                    }
-                        .padding(16)
-                        .glass(cornerRadius: 16)
+                        .padding(cardPadding)
+                        .glass(cornerRadius: AppDimensions.cardRadius)
                     }
                     .buttonStyle(ScaleButtonStyle())
                     
@@ -1290,7 +1297,7 @@ private struct AddDocumentSheet: View {
                         dismiss()
                         onPhotoLibrary()
                     } label: {
-                    HStack(spacing: 16) {
+                        HStack(spacing: 16) {
                             ZStack {
                                 Circle()
                                     .fill(Color(hex: "1BBBCE").opacity(0.15))
@@ -1302,29 +1309,30 @@ private struct AddDocumentSheet: View {
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
-                            Text("Photo Library")
+                                Text("Photo Library")
                                     .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.primary)
+                                    .foregroundColor(.primary)
                                 
-                            Text("Select photos from your library")
+                                Text("Select photos from your library")
                                     .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.secondary)
-                    }
-                        .padding(16)
-                        .glass(cornerRadius: 16)
+                        .padding(cardPadding)
+                        .glass(cornerRadius: AppDimensions.cardRadius)
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, horizontalInset)
+                .padding(.bottom, 24)
                 
-                Spacer()
+                Spacer(minLength: 0)
             }
         }
     }
@@ -1758,6 +1766,7 @@ private struct EditDocumentSheet: View {
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
                 }
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
                 
                 Section("Timeline") {
                     DatePicker("Document Date", selection: Binding(
@@ -1789,16 +1798,20 @@ private struct EditDocumentSheet: View {
                         ), displayedComponents: [.date, .hourAndMinute])
                     }
                 }
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
                 
                 Section("Provider Information") {
                     TextField("Doctor/Provider Name", text: $doctorName)
                     TextField("Location/Clinic", text: $location)
                 }
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
                 
                 Section("Tags") {
                     TextField("Tags (comma separated)", text: $tags)
                 }
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
             }
+            .listSectionSpacing(16)
             .navigationTitle("Edit Document")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

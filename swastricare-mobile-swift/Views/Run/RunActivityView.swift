@@ -497,36 +497,12 @@ struct MetricItem: View {
 struct RouteActivityCardContent: View {
     let activity: RouteActivity
     
-    @State private var mapRegion: MKCoordinateRegion
-    
-    init(activity: RouteActivity) {
-        self.activity = activity
-        
-        // Initialize map region based on all route coordinates (bounding box)
-        _mapRegion = State(initialValue: Self.calculateBoundingRegion(for: activity.routeCoordinates))
-    }
-    
     var body: some View {
         HStack(spacing: 12) {
-            // Map Preview
-            ZStack {
-                Map(coordinateRegion: $mapRegion, interactionModes: [])
-                    .frame(width: 80, height: 80)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        // Route overlay simulation
-                        RouteOverlayView(coordinates: activity.routeCoordinates)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    )
-            }
-            .onAppear {
-                // Update region when view appears to ensure correct display
-                mapRegion = Self.calculateBoundingRegion(for: activity.routeCoordinates)
-            }
-            .onChange(of: activity.routeCoordinates) { newCoordinates in
-                // Update region when coordinates change
-                mapRegion = Self.calculateBoundingRegion(for: newCoordinates)
-            }
+            // Map Preview – same MKMapView + polyline as detail screen so route layout matches
+            ActivityRouteThumbnailMapView(routeCoordinates: activity.routeCoordinates, size: CGSize(width: 80, height: 80))
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             
             VStack(alignment: .leading, spacing: 8) {
                 // Time Range with icon
@@ -570,98 +546,6 @@ struct RouteActivityCardContent: View {
         .padding(12)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-    
-    // MARK: - Helper Methods
-    
-    /// Calculates a bounding region that encompasses all route coordinates
-    static func calculateBoundingRegion(for coordinates: [CoordinatePoint]) -> MKCoordinateRegion {
-        guard !coordinates.isEmpty else {
-            // Default to a known location if no coordinates
-            return MKCoordinateRegion(
-                center: CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946),
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            )
-        }
-        
-        // If only one coordinate, center on it with a small span
-        guard coordinates.count > 1 else {
-            return MKCoordinateRegion(
-                center: coordinates[0].coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            )
-        }
-        
-        // Calculate bounding box from all coordinates
-        let lats = coordinates.map { $0.latitude }
-        let longs = coordinates.map { $0.longitude }
-        
-        guard let minLat = lats.min(),
-              let maxLat = lats.max(),
-              let minLong = longs.min(),
-              let maxLong = longs.max() else {
-            // Fallback if calculation fails
-            return MKCoordinateRegion(
-                center: coordinates[0].coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            )
-        }
-        
-        // Calculate center
-        let centerLat = (minLat + maxLat) / 2.0
-        let centerLong = (minLong + maxLong) / 2.0
-        
-        // Calculate span with padding (add 20% padding)
-        let latDelta = max((maxLat - minLat) * 1.2, 0.001) // Minimum span
-        let longDelta = max((maxLong - minLong) * 1.2, 0.001) // Minimum span
-        
-        return MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLong),
-            span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: longDelta)
-        )
-    }
-}
-
-// MARK: - Route Overlay View
-
-struct RouteOverlayView: View {
-    let coordinates: [CoordinatePoint]
-    
-    var body: some View {
-        GeometryReader { geometry in
-            if coordinates.count >= 2 {
-                Path { path in
-                    let points = normalizedPoints(in: geometry.size)
-                    guard let first = points.first else { return }
-                    path.move(to: first)
-                    for point in points.dropFirst() {
-                        path.addLine(to: point)
-                    }
-                }
-                .stroke(AppColors.accentBlue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            }
-        }
-    }
-    
-    private func normalizedPoints(in size: CGSize) -> [CGPoint] {
-        guard !coordinates.isEmpty else { return [] }
-        
-        let lats = coordinates.map { $0.latitude }
-        let longs = coordinates.map { $0.longitude }
-        
-        guard let minLat = lats.min(),
-              let maxLat = lats.max(),
-              let minLong = longs.min(),
-              let maxLong = longs.max() else { return [] }
-        
-        let latRange = max(maxLat - minLat, 0.001)
-        let longRange = max(maxLong - minLong, 0.001)
-        
-        return coordinates.map { coord in
-            let x = ((coord.longitude - minLong) / longRange) * (size.width - 20) + 10
-            let y = (1 - ((coord.latitude - minLat) / latRange)) * (size.height - 20) + 10
-            return CGPoint(x: x, y: y)
-        }
     }
 }
 
