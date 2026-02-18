@@ -552,7 +552,7 @@ struct GenderStepView: View {
     }
 }
 
-struct GenderOption: View {
+fileprivate struct GenderOption: View {
     let title: String
     let icon: String
     let isSelected: Bool

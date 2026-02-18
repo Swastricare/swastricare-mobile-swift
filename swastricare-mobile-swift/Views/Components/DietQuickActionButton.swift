@@ -12,120 +12,92 @@ struct DietQuickActionButton: View {
     let dailyGoal: Int
     let action: () -> Void
     
-    @State private var animateGradient = false
-    
     private var progress: Double {
         guard dailyGoal > 0 else { return 0 }
         return min(1.0, Double(currentCalories) / Double(dailyGoal))
     }
     
-    private var progressColor: Color {
-        if progress >= 1.0 {
-            return AppColors.accentGreen
-        } else if progress >= 0.7 {
-            return AppColors.accentOrange
-        } else {
-            return AppColors.diet
-        }
-    }
+    private let accent: Color = AppColors.accentOrange
     
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Background with gradient
-                RoundedRectangle(cornerRadius: AppDimensions.quickActionRadius)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColors.diet.opacity(0.15),
-                                AppColors.diet.opacity(0.08)
-                            ],
-                            startPoint: animateGradient ? .topLeading : .bottomLeading,
-                            endPoint: animateGradient ? .bottomTrailing : .topTrailing
-                        )
-                    )
-                    .overlay(
+                // Solid premium background + subtle highlight
+                GeometryReader { geo in
+                    ZStack(alignment: .bottom) {
                         RoundedRectangle(cornerRadius: AppDimensions.quickActionRadius)
-                            .stroke(
+                            .fill(accent)
+                            .overlay(
                                 LinearGradient(
-                                    colors: [
-                                        AppColors.diet.opacity(0.3),
-                                        AppColors.diet.opacity(0.1)
-                                    ],
+                                    colors: [Color.white.opacity(0.22), .clear],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: AppDimensions.quickActionRadius))
                             )
-                    )
+                        
+                        if progress > 0.01 {
+                            RoundedRectangle(cornerRadius: AppDimensions.quickActionRadius)
+                                .fill(Color.white.opacity(0.14))
+                                .frame(height: max(geo.size.height * progress, geo.size.height * 0.05))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                                .clipShape(RoundedRectangle(cornerRadius: AppDimensions.quickActionRadius))
+                        }
+                    }
+                }
                 
                 VStack(alignment: .leading, spacing: 12) {
                     // Header
                     HStack {
                         ZStack {
                             Circle()
-                                .fill(AppColors.diet.opacity(0.2))
+                                .fill(Color.white.opacity(0.18))
                                 .frame(width: 44, height: 44)
                             
                             Image(systemName: "fork.knife")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(AppColors.diet)
+                                .foregroundColor(.white)
                         }
                         
                         Spacer()
                         
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppColors.diet.opacity(0.6))
+                        Text("\(Int(progress * 100))%")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
                     }
                     
                     // Title
                     Text("Diet")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white.opacity(0.9))
                     
                     // Progress Info
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 0) {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text("\(currentCalories)")
                                 .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(progressColor)
+                                .foregroundColor(.white)
                             
                             Text("/ \(dailyGoal)")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white.opacity(0.8))
                             
                             Text("cal")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white.opacity(0.75))
                         }
-                        
-                        // Progress Bar
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.primary.opacity(0.08))
-                                    .frame(height: 6)
-                                
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(progressColor)
-                                    .frame(width: geometry.size.width * progress, height: 6)
-                                    .animation(.spring(response: 0.6), value: progress)
-                            }
-                        }
-                        .frame(height: 6)
                     }
                 }
                 .padding(AppDimensions.largeCardPadding)
             }
             .frame(height: AppDimensions.quickActionHeight)
+            .frame(maxWidth: .infinity)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppDimensions.quickActionRadius)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
+            )
         }
         .buttonStyle(.plain)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
-                animateGradient = true
-            }
-        }
     }
 }
 

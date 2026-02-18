@@ -491,6 +491,7 @@ struct ActivityRouteThumbnailMapView: UIViewRepresentable {
         mapView.isRotateEnabled = false
         mapView.isPitchEnabled = false
         mapView.mapType = .standard
+        mapView.clipsToBounds = true
         return mapView
     }
     
@@ -504,15 +505,37 @@ struct ActivityRouteThumbnailMapView: UIViewRepresentable {
         let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
         mapView.addOverlay(polyline)
         
-        var rect = MKMapRect.null
+        // Calculate bounding region for the route
+        var minLat = coordinates[0].latitude
+        var maxLat = coordinates[0].latitude
+        var minLon = coordinates[0].longitude
+        var maxLon = coordinates[0].longitude
+        
         for coordinate in coordinates {
-            let point = MKMapPoint(coordinate)
-            let pointRect = MKMapRect(x: point.x, y: point.y, width: 0.1, height: 0.1)
-            rect = rect.union(pointRect)
+            minLat = Swift.min(minLat, coordinate.latitude)
+            maxLat = Swift.max(maxLat, coordinate.latitude)
+            minLon = Swift.min(minLon, coordinate.longitude)
+            maxLon = Swift.max(maxLon, coordinate.longitude)
         }
-        let padding = Swift.max(rect.size.width, rect.size.height) * 0.2
-        let paddedRect = rect.insetBy(dx: -padding, dy: -padding)
-        mapView.setVisibleMapRect(paddedRect, edgePadding: .zero, animated: false)
+        
+        // Calculate center
+        let centerLat = (minLat + maxLat) / 2
+        let centerLon = (minLon + maxLon) / 2
+        let center = CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon)
+        
+        // Calculate span with extra padding for small thumbnails
+        let latDelta = (maxLat - minLat) * 1.5  // 50% padding
+        let lonDelta = (maxLon - minLon) * 1.5  // 50% padding
+        
+        // Ensure minimum span for very short routes
+        let minSpan = 0.002  // ~200 meters minimum span
+        let span = MKCoordinateSpan(
+            latitudeDelta: Swift.max(latDelta, minSpan),
+            longitudeDelta: Swift.max(lonDelta, minSpan)
+        )
+        
+        let region = MKCoordinateRegion(center: center, span: span)
+        mapView.setRegion(region, animated: false)
     }
     
     func makeCoordinator() -> Coordinator {

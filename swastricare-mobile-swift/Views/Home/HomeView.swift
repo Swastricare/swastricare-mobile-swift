@@ -18,7 +18,6 @@ struct HomeView: View {
     @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
     @StateObject private var dietViewModel = DependencyContainer.shared.dietViewModel
-    
     // MARK: - Local State
     
     @State private var showSyncAlert = false
@@ -256,15 +255,6 @@ struct HomeView: View {
                         )
                         
                         DailyActivityStatItem(
-                            icon: "figure.walk",
-                            color: .green,
-                            value: "\(viewModel.stepCount)",
-                            unit: "Step Count",
-                            animationDelay: 0.4,
-                            hasAppeared: hasAppeared
-                        )
-                        
-                        DailyActivityStatItem(
                             icon: "clock.fill",
                             color: .blue,
                             value: "\(viewModel.exerciseMinutes)",
@@ -326,84 +316,6 @@ struct HomeView: View {
         .padding(.horizontal)
     }
     
-    private var dailyActivityCard: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            HStack {
-                Text("Daily Activity")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                // Sync button
-                Button(action: {
-                    Task {
-                        await viewModel.syncToCloud()
-                        syncMessage = "Health data synced successfully!"
-                        showSyncAlert = true
-                    }
-                }) {
-                    HStack(spacing: 4) {
-                        if viewModel.isSyncing {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(0.7)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                        }
-                        Text(viewModel.formatSyncTime())
-                            .font(.caption2)
-                    }
-                    .foregroundColor(.primary.opacity(0.8))
-                }
-                .disabled(viewModel.isSyncing)
-            }
-            
-            HStack(alignment: .top, spacing: 20) {
-                // Progress Ring
-                ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.2), lineWidth: 8)
-                        .frame(width: 100, height: 100)
-                    
-                    Circle()
-                        .trim(from: 0, to: viewModel.stepProgress)
-                        .stroke(
-                            LinearGradient(colors: [.green, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .frame(width: 100, height: 100)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.5), value: viewModel.stepProgress)
-                    
-                    VStack(spacing: 2) {
-                        Text("\(Int(viewModel.stepProgress * 100))%")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                        Text("Goal")
-                            .font(.caption2)
-                            .opacity(0.8)
-                    }
-                    .foregroundColor(.primary)
-                }
-                
-                // Stats
-                VStack(alignment: .leading, spacing: 8) {
-                    StatRow(icon: "flame.fill", color: .orange, value: "\(viewModel.activeCalories)", unit: "kcal")
-                    StatRow(icon: "figure.walk", color: .green, value: "\(viewModel.stepCount)", unit: "steps")
-                    StatRow(icon: "clock.fill", color: .blue, value: "\(viewModel.exerciseMinutes)", unit: "mins")
-                    StatRow(icon: "figure.stand", color: .purple, value: "\(viewModel.standHours)", unit: "/ 12 hrs")
-                }
-                .foregroundColor(.white)
-            }
-        }
-        .padding(20)
-        .background(PremiumColor.royalBlue.opacity(0.9))
-        .cornerRadius(24)
-        .shadow(color: AppColors.accentBlue.opacity(0.4), radius: 15, x: 0, y: 8)
-        .padding(.horizontal)
-    }
-    
     private var healthVitalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             LazyVGrid(columns: [
@@ -459,8 +371,19 @@ struct HomeView: View {
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // First Row
-            HStack(spacing: 12) {
+            HStack {
+                Text("Quick Actions")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                alignment: .center,
+                spacing: 12
+            ) {
                 MedicationQuickActionButton(
                     takenCount: medicationViewModel.takenCount,
                     totalCount: medicationViewModel.totalCount
@@ -468,8 +391,8 @@ struct HomeView: View {
                     showMedications = true
                 }
                 .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.8)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1), value: quickActionsVisible)
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.05), value: quickActionsVisible)
                 
                 HydrationQuickActionButton(
                     currentIntake: hydrationViewModel.effectiveIntake,
@@ -478,13 +401,9 @@ struct HomeView: View {
                     showHydration = true
                 }
                 .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.8)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: quickActionsVisible)
-            }
-            .padding(.horizontal)
-            
-            // Second Row
-            HStack(spacing: 12) {
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.12), value: quickActionsVisible)
+                
                 DietQuickActionButton(
                     currentCalories: dietViewModel.totalCalories,
                     dailyGoal: dietViewModel.dietGoals.dailyCalories
@@ -492,15 +411,16 @@ struct HomeView: View {
                     showDiet = true
                 }
                 .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.8)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: quickActionsVisible)
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.19), value: quickActionsVisible)
                 
                 CycleTrackerQuickActionButton {
                     showMenstrualCycle = true
                 }
+                .gridCellColumns(2)
                 .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.8)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.4), value: quickActionsVisible)
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.26), value: quickActionsVisible)
             }
             .padding(.horizontal)
         }
@@ -851,8 +771,6 @@ private struct HydrationQuickActionButton: View {
     let dailyGoal: Int
     let action: () -> Void
     
-    @Environment(\.colorScheme) private var colorScheme
-    
     // Start at 1.0 (100%)
     @State private var visualProgress: Double = 1.0
     @State private var wavePhase: Double = 0.0
@@ -862,13 +780,13 @@ private struct HydrationQuickActionButton: View {
         return min(1.0, Double(currentIntake) / Double(dailyGoal))
     }
     
-    private var isLight: Bool { colorScheme == .light }
-    private var textColor: Color { isLight ? .primary : .white }
-    private var secondaryTextOpacity: Double { isLight ? 0.75 : 0.9 }
-    private var tertiaryTextOpacity: Double { isLight ? 0.6 : 0.7 }
-    private var iconCircleFill: Color { isLight ? Color.primary.opacity(0.12) : Color.white.opacity(0.2) }
-    private var waveBackOpacity: Double { isLight ? 0.2 : 0.3 }
-    private var waveFrontOpacities: (Double, Double) { isLight ? (0.35, 0.35) : (0.6, 0.6) }
+    private let accent: Color = AppColors.hydration
+    private let textColor: Color = .white
+    private let secondaryTextOpacity: Double = 0.9
+    private let tertiaryTextOpacity: Double = 0.75
+    private let iconCircleFill: Color = Color.white.opacity(0.18)
+    private let waveBackOpacity: Double = 0.14
+    private let waveFrontOpacities: (Double, Double) = (0.12, 0.10)
     
     var body: some View {
         Button(action: action) {
@@ -878,7 +796,15 @@ private struct HydrationQuickActionButton: View {
                     ZStack(alignment: .bottom) {
                         // Base background
                         RoundedRectangle(cornerRadius: 24)
-                            .fill(Color.blue.opacity(isLight ? 0.08 : 0.05))
+                            .fill(accent)
+                            .overlay(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.22), .clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                            )
                         
                         // Water Waves — same geometry as Medication card (RoundedRectangle, bottom-aligned fill)
                         if visualProgress > 0.01 {
@@ -887,13 +813,13 @@ private struct HydrationQuickActionButton: View {
                             let ampFront = min(geo.size.height * 0.03, waveHeight * 0.35)
                             ZStack {
                                 WaterWave(amplitude: amp, offset: wavePhase)
-                                    .fill(Color.cyan.opacity(waveBackOpacity))
+                                    .fill(Color.white.opacity(waveBackOpacity))
                                     .frame(height: waveHeight)
                                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                                 
                                 WaterWave(amplitude: ampFront, offset: wavePhase + 1.5)
                                     .fill(LinearGradient(
-                                        colors: [.cyan.opacity(waveFrontOpacities.0), .blue.opacity(waveFrontOpacities.1)],
+                                        colors: [.white.opacity(waveFrontOpacities.0), .white.opacity(waveFrontOpacities.1)],
                                         startPoint: .top,
                                         endPoint: .bottom
                                     ))
@@ -922,7 +848,6 @@ private struct HydrationQuickActionButton: View {
                         Text("\(Int(visualProgress * 100))%")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(textColor)
-                            .shadow(color: (isLight ? Color.clear : Color.black).opacity(0.1), radius: 2, x: 0, y: 1)
                             .contentTransition(.numericText(value: visualProgress))
                     }
                     
@@ -951,9 +876,8 @@ private struct HydrationQuickActionButton: View {
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
             )
-            .shadow(color: Color.blue.opacity(isLight ? 0.12 : 0.15), radius: 10, x: 0, y: 5)
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {
@@ -982,38 +906,34 @@ private struct HydrationQuickActionButton: View {
 
 private struct CycleTrackerQuickActionButton: View {
     let action: () -> Void
-    
-    @Environment(\.colorScheme) private var colorScheme
     @State private var pulseAnimation = false
     
-    private var isLight: Bool { colorScheme == .light }
-    private var textColor: Color { isLight ? .primary : .white }
-    private var secondaryTextOpacity: Double { isLight ? 0.75 : 0.9 }
-    private var tertiaryTextOpacity: Double { isLight ? 0.6 : 0.7 }
-    private var iconCircleFill: Color { isLight ? Color.primary.opacity(0.12) : Color.white.opacity(0.2) }
+    private let accent: Color = AppColors.accentPurple
+    private let textColor: Color = .white
+    private let secondaryTextOpacity: Double = 0.9
+    private let iconCircleFill: Color = Color.white.opacity(0.18)
     
     var body: some View {
         Button(action: action) {
             ZStack {
                 // Background
-                GeometryReader { geo in
+                GeometryReader { _ in
                     ZStack(alignment: .bottom) {
-                        // Base background with gradient
+                        // Solid premium background
                         RoundedRectangle(cornerRadius: 24)
-                            .fill(
+                            .fill(accent)
+                            .overlay(
                                 LinearGradient(
-                                    colors: [
-                                        Color.pink.opacity(isLight ? 0.08 : 0.05),
-                                        Color.red.opacity(isLight ? 0.12 : 0.08)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
+                                    colors: [Color.white.opacity(0.22), .clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
                                 )
+                                .clipShape(RoundedRectangle(cornerRadius: 24))
                             )
                         
                         // Subtle pulsing circle effect
                         Circle()
-                            .fill(Color.pink.opacity(0.15))
+                            .fill(Color.white.opacity(0.16))
                             .frame(width: 100, height: 100)
                             .scaleEffect(pulseAnimation ? 1.2 : 0.8)
                             .opacity(pulseAnimation ? 0.3 : 0.6)
@@ -1031,14 +951,14 @@ private struct CycleTrackerQuickActionButton: View {
                                 .frame(width: 44, height: 44)
                             Image(systemName: "drop.fill")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.pink)
+                                .foregroundColor(.white)
                         }
                         
                         Spacer()
                         
                         Image(systemName: "calendar.badge.clock")
                             .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(textColor.opacity(0.6))
+                            .foregroundColor(textColor.opacity(0.75))
                     }
                     
                     Spacer()
@@ -1059,9 +979,8 @@ private struct CycleTrackerQuickActionButton: View {
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.pink.opacity(0.2), lineWidth: 0.5)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
             )
-            .shadow(color: Color.pink.opacity(isLight ? 0.12 : 0.15), radius: 10, x: 0, y: 5)
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {
@@ -1075,8 +994,6 @@ private struct MedicationQuickActionButton: View {
     let totalCount: Int
     let action: () -> Void
     
-    @Environment(\.colorScheme) private var colorScheme
-    
     // Start at 0%
     @State private var visualProgress: Double = 0.0
     
@@ -1085,13 +1002,13 @@ private struct MedicationQuickActionButton: View {
         return min(1.0, Double(takenCount) / Double(totalCount))
     }
     
-    private var isLight: Bool { colorScheme == .light }
-    private var textColor: Color { isLight ? .primary : .white }
-    private var secondaryTextOpacity: Double { isLight ? 0.75 : 0.9 }
-    private var tertiaryTextOpacity: Double { isLight ? 0.6 : 0.7 }
-    private var iconCircleFill: Color { isLight ? Color.primary.opacity(0.12) : Color.white.opacity(0.2) }
-    private var liquidOpacity: Double { isLight ? 0.35 : 0.6 }
-    private var bubblesColor: Color { isLight ? Color.primary.opacity(0.2) : Color.white.opacity(0.3) }
+    private let accent: Color = AppColors.medication
+    private let textColor: Color = .white
+    private let secondaryTextOpacity: Double = 0.9
+    private let tertiaryTextOpacity: Double = 0.75
+    private let iconCircleFill: Color = Color.white.opacity(0.18)
+    private let liquidOpacity: Double = 0.14
+    private let bubblesColor: Color = Color.white.opacity(0.22)
     
     var body: some View {
         Button(action: action) {
@@ -1100,7 +1017,15 @@ private struct MedicationQuickActionButton: View {
                 GeometryReader { geo in
                     ZStack(alignment: .bottom) {
                         RoundedRectangle(cornerRadius: 24)
-                            .fill(Color(hex: "5856D6").opacity(isLight ? 0.08 : 0.05))
+                            .fill(accent)
+                            .overlay(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.22), .clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                            )
                         
                         if visualProgress > 0.01 {
                             ZStack {
@@ -1108,8 +1033,8 @@ private struct MedicationQuickActionButton: View {
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color(hex: "AF52DE").opacity(liquidOpacity),
-                                                Color(hex: "5856D6").opacity(liquidOpacity)
+                                                Color.white.opacity(liquidOpacity + 0.04),
+                                                Color.white.opacity(liquidOpacity)
                                             ],
                                             startPoint: .top,
                                             endPoint: .bottom
@@ -1149,7 +1074,6 @@ private struct MedicationQuickActionButton: View {
                         Text("\(Int(visualProgress * 100))%")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(textColor)
-                            .shadow(color: (isLight ? Color.clear : Color.black).opacity(0.1), radius: 2, x: 0, y: 1)
                             .contentTransition(.numericText(value: visualProgress))
                     }
                     
@@ -1178,9 +1102,8 @@ private struct MedicationQuickActionButton: View {
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
             )
-            .shadow(color: Color(hex: "5856D6").opacity(isLight ? 0.12 : 0.15), radius: 10, x: 0, y: 5)
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {

@@ -94,6 +94,9 @@ struct SettingsView: View {
                     // Health Profile Section
                     healthProfileSection
                     
+                    // Family Section
+                    familySection
+                    
                     // Hydration Section
                     hydrationSection
                     
@@ -331,6 +334,59 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Family Section
+    
+    private var familySection: some View {
+        Section {
+            NavigationLink(destination: FamilyView()) {
+                HStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "FF6B6B").opacity(0.2), Color(hex: "FF8E53").opacity(0.2)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 44, height: 44)
+                        
+                        Image(systemName: "person.3.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "FF6B6B"), Color(hex: "FF8E53")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Family")
+                            .font(.headline)
+                        
+                        Text("Manage family members' health")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+        } header: {
+            Text("Family")
+        } footer: {
+            Text("Track and manage health profiles for your family members")
+                .font(.caption)
         }
     }
     

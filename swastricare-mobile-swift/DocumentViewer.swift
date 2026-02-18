@@ -494,7 +494,7 @@ struct DocumentInfoSheet: View {
     }
 }
 
-struct InfoRow: View {
+fileprivate struct InfoRow: View {
     let label: String
     let value: String
     

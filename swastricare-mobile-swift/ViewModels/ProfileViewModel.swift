@@ -191,6 +191,7 @@ final class ProfileViewModel: ObservableObject {
         healthProfile = nil
         hasLoadedUserOnce = false
         DependencyContainer.shared.vaultViewModel.clearOnSignOut()
+        DependencyContainer.shared.aiViewModel.clearOnSignOut()
         
         isLoading = false
     }
@@ -204,6 +205,7 @@ final class ProfileViewModel: ObservableObject {
             healthProfile = nil
             hasLoadedUserOnce = false
             DependencyContainer.shared.vaultViewModel.clearOnSignOut()
+            DependencyContainer.shared.aiViewModel.clearOnSignOut()
             // Update auth state to trigger navigation back to auth screen
             await DependencyContainer.shared.authViewModel.signOut()
         } catch {

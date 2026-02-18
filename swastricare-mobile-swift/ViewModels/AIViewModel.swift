@@ -488,6 +488,42 @@ final class AIViewModel: ObservableObject {
             }
         }
     }
+
+    /// Clear local AI/chat state on sign out so the next user doesn't see previous user's chats.
+    /// This intentionally avoids any network calls.
+    func clearOnSignOut() {
+        // Conversation state
+        messages = []
+        conversations = []
+        currentConversationId = nil
+        chatState = .idle
+        errorMessage = nil
+        inputText = ""
+
+        // Loading/UI state
+        isLoadingHistory = false
+        showHistorySheet = false
+        isLoadingConversations = false
+
+        // Error + retry state
+        currentErrorState = nil
+        lastFailedMessage = nil
+
+        // Medical/emergency state
+        showEmergencyAlert = false
+        showMedicalDisclaimer = false
+        hasAcknowledgedMedicalDisclaimer = false
+        lastResponseModel = "gemini"
+        lastResponseWasMedical = false
+
+        // Image state
+        selectedImage = nil
+        isAnalyzingImage = false
+        currentLoadingOperation = .generalChat
+
+        // Ensure we can load history for the next authenticated session.
+        shouldLoadHistory = true
+    }
     
     func startNewConversation() {
         // Allow history loading again when user starts a new conversation

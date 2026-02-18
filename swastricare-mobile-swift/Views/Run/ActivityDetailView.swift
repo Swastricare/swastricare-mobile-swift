@@ -39,6 +39,7 @@ struct ActivityDetailView: View {
     @State private var showDeleteAlert = false
     @State private var isDeleting = false
     @State private var shareImage: UIImage?
+    @State private var isGeneratingShare = false
     
     // Analytics state
     @State private var selectedTab: ActivityDetailTab = .overview
@@ -97,10 +98,16 @@ struct ActivityDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: shareActivity) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.primary)
+                    if isGeneratingShare {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
                 }
+                .disabled(isGeneratingShare)
             }
         }
         .alert("Delete Activity", isPresented: $showDeleteAlert) {
@@ -365,18 +372,156 @@ struct ActivityDetailView: View {
     // MARK: - Actions
     
     private func shareActivity() {
+        guard !isGeneratingShare else { return }
+        
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
-        // Generate share image
-        let shareView = ActivityShareCardView(activity: activity)
-        let renderer = ImageRenderer(content: shareView.frame(width: 400))
-        renderer.scale = 3.0
+        isGeneratingShare = true
         
-        if let image = renderer.uiImage {
-            shareImage = image
-            showShareSheet = true
+        // Generate map snapshot first, then create share image
+        Task {
+            let mapSnapshot = await generateRouteMapSnapshot()
+            
+            await MainActor.run {
+                // Generate share card image with map
+                let shareView = ActivityShareCardView(activity: activity, mapSnapshot: mapSnapshot)
+                let renderer = ImageRenderer(content: shareView.frame(width: 400))
+                renderer.scale = 3.0
+                
+                if let image = renderer.uiImage {
+                    shareImage = image
+                    showShareSheet = true
+                }
+                
+                isGeneratingShare = false
+            }
         }
+    }
+    
+    // MARK: - Generate Route Map Snapshot
+    
+    private func generateRouteMapSnapshot() async -> UIImage? {
+        let routeCoordinates = activity.routeCoordinates.map { $0.coordinate }
+        
+        guard routeCoordinates.count >= 2 else {
+            // No route data, return nil
+            return nil
+        }
+        
+        let options = MKMapSnapshotter.Options()
+        
+        // Calculate bounding region for the route using coordinate-based approach
+        var minLat = routeCoordinates[0].latitude
+        var maxLat = routeCoordinates[0].latitude
+        var minLon = routeCoordinates[0].longitude
+        var maxLon = routeCoordinates[0].longitude
+        
+        for coordinate in routeCoordinates {
+            minLat = Swift.min(minLat, coordinate.latitude)
+            maxLat = Swift.max(maxLat, coordinate.latitude)
+            minLon = Swift.min(minLon, coordinate.longitude)
+            maxLon = Swift.max(maxLon, coordinate.longitude)
+        }
+        
+        // Calculate center
+        let centerLat = (minLat + maxLat) / 2
+        let centerLon = (minLon + maxLon) / 2
+        let center = CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon)
+        
+        // Calculate span with padding (40% extra on each side)
+        let latDelta = (maxLat - minLat) * 1.4
+        let lonDelta = (maxLon - minLon) * 1.4
+        
+        // Ensure minimum span for very short routes (~300 meters)
+        let minSpan = 0.003
+        let span = MKCoordinateSpan(
+            latitudeDelta: Swift.max(latDelta, minSpan),
+            longitudeDelta: Swift.max(lonDelta, minSpan)
+        )
+        
+        options.region = MKCoordinateRegion(center: center, span: span)
+        options.size = CGSize(width: 360, height: 180)
+        options.scale = UIScreen.main.scale
+        options.mapType = .standard
+        options.showsBuildings = true
+        options.pointOfInterestFilter = .excludingAll
+        
+        let snapshotter = MKMapSnapshotter(options: options)
+        
+        return await withCheckedContinuation { continuation in
+            snapshotter.start { snapshot, error in
+                guard let snapshot = snapshot, error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                
+                // Draw route on snapshot
+                UIGraphicsBeginImageContextWithOptions(snapshot.image.size, true, snapshot.image.scale)
+                snapshot.image.draw(at: .zero)
+                
+                guard let context = UIGraphicsGetCurrentContext() else {
+                    let finalImage = UIGraphicsGetImageFromCurrentImageContext()
+                    UIGraphicsEndImageContext()
+                    continuation.resume(returning: finalImage)
+                    return
+                }
+                
+                // Draw route polyline
+                let routeColor = UIColor(activity.type.color)
+                context.setStrokeColor(routeColor.cgColor)
+                context.setLineWidth(4)
+                context.setLineCap(.round)
+                context.setLineJoin(.round)
+                
+                var isFirst = true
+                for coordinate in routeCoordinates {
+                    let point = snapshot.point(for: coordinate)
+                    if isFirst {
+                        context.move(to: point)
+                        isFirst = false
+                    } else {
+                        context.addLine(to: point)
+                    }
+                }
+                context.strokePath()
+                
+                // Draw start marker (green)
+                if let startCoord = routeCoordinates.first {
+                    let startPoint = snapshot.point(for: startCoord)
+                    drawRouteMarker(at: startPoint, color: .systemGreen, in: context)
+                }
+                
+                // Draw end marker (red)
+                if let endCoord = routeCoordinates.last {
+                    let endPoint = snapshot.point(for: endCoord)
+                    drawRouteMarker(at: endPoint, color: .systemRed, in: context)
+                }
+                
+                let finalImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                continuation.resume(returning: finalImage)
+            }
+        }
+    }
+    
+    private func drawRouteMarker(at point: CGPoint, color: UIColor, in context: CGContext) {
+        let markerSize: CGFloat = 14
+        let rect = CGRect(
+            x: point.x - markerSize/2,
+            y: point.y - markerSize/2,
+            width: markerSize,
+            height: markerSize
+        )
+        
+        // Draw filled circle
+        context.setFillColor(color.cgColor)
+        context.fillEllipse(in: rect)
+        
+        // Draw white border
+        context.setStrokeColor(UIColor.white.cgColor)
+        context.setLineWidth(2.5)
+        context.strokeEllipse(in: rect.insetBy(dx: 1.25, dy: 1.25))
     }
     
     private func deleteActivity() {
@@ -620,10 +765,16 @@ struct ActivityDetailView: View {
             // Share Button
             Button(action: shareActivity) {
                 HStack(spacing: 8) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 16, weight: .semibold))
+                    if isGeneratingShare {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .tint(.white)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
                     
-                    Text("Share Activity")
+                    Text(isGeneratingShare ? "Generating..." : "Share Activity")
                         .font(.headline)
                         .fontWeight(.semibold)
                 }
@@ -634,6 +785,7 @@ struct ActivityDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             }
             .buttonStyle(ScaleButtonStyle())
+            .disabled(isGeneratingShare)
             
             // Delete Button
             Button(action: {
@@ -810,85 +962,150 @@ struct TabButton: View {
 
 struct ActivityShareCardView: View {
     let activity: RouteActivity
+    var mapSnapshot: UIImage? = nil
     
     private let accentBlue = AppColors.accentBlue
     private let accentGreen = AppColors.accentGreen
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header with gradient
-            ZStack(alignment: .topLeading) {
-                // Gradient background
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        activity.type.color,
-                        activity.type.color.opacity(0.7)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(height: 160)
-                
-                // Overlay pattern
-                GeometryReader { geo in
-                    Path { path in
-                        let width = geo.size.width
-                        let height = geo.size.height
-                        path.move(to: CGPoint(x: width * 0.7, y: 0))
-                        path.addLine(to: CGPoint(x: width, y: 0))
-                        path.addLine(to: CGPoint(x: width, y: height * 0.6))
-                        path.closeSubpath()
-                    }
-                    .fill(Color.white.opacity(0.1))
-                }
-                .frame(height: 160)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: activity.type.icon)
-                            .font(.system(size: 24, weight: .semibold))
+            // Map section with route (if available)
+            if let mapImage = mapSnapshot {
+                ZStack(alignment: .topLeading) {
+                    // Map snapshot as background
+                    Image(uiImage: mapImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 180)
+                        .clipped()
+                    
+                    // Header overlay
+                    VStack {
+                        HStack {
+                            // Activity type badge
+                            HStack(spacing: 6) {
+                                Image(systemName: activity.type.icon)
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text(activity.type.rawValue)
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
                             .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(activity.type.color)
+                            .clipShape(Capsule())
+                            
+                            Spacer()
+                            
+                            // App branding
+                            HStack(spacing: 4) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 10))
+                                Text("SwasthiCare")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Capsule())
+                        }
+                        .padding(16)
+                        
+                        Spacer()
+                    }
+                }
+                .frame(height: 180)
+            } else {
+                // Fallback: Header with gradient (no map)
+                ZStack(alignment: .topLeading) {
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            activity.type.color,
+                            activity.type.color.opacity(0.7)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(height: 140)
+                    
+                    // Overlay pattern
+                    GeometryReader { geo in
+                        Path { path in
+                            let width = geo.size.width
+                            let height = geo.size.height
+                            path.move(to: CGPoint(x: width * 0.7, y: 0))
+                            path.addLine(to: CGPoint(x: width, y: 0))
+                            path.addLine(to: CGPoint(x: width, y: height * 0.6))
+                            path.closeSubpath()
+                        }
+                        .fill(Color.white.opacity(0.1))
+                    }
+                    .frame(height: 140)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: activity.type.icon)
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            // App branding
+                            HStack(spacing: 4) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 12))
+                                Text("SwasthiCare")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundColor(.white.opacity(0.9))
+                        }
                         
                         Spacer()
                         
-                        // App branding
-                        HStack(spacing: 4) {
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 12))
-                            Text("SwastricCare")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundColor(.white.opacity(0.9))
+                        Text(activity.name)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        Text(formattedDate)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
                     }
-                    
-                    Spacer()
-                    
-                    Text(activity.name)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    Text(formattedDate)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                    .padding(20)
                 }
-                .padding(20)
+                .frame(height: 140)
             }
-            .frame(height: 160)
             
             // Stats section
-            VStack(spacing: 20) {
+            VStack(spacing: 16) {
+                // Activity name and date (when map is shown)
+                if mapSnapshot != nil {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(activity.name)
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.primary)
+                        
+                        Text(formattedDate)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                }
+                
                 // Main stat - Distance
                 VStack(spacing: 4) {
                     Text(activity.formattedDistance)
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
                     
                     Text("DISTANCE")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)
                         .tracking(1.5)
                 }
-                .padding(.top, 24)
+                .padding(.top, mapSnapshot != nil ? 8 : 20)
                 
                 // Stats grid
                 HStack(spacing: 0) {
@@ -942,8 +1159,8 @@ struct ActivityShareCardView: View {
                             .foregroundColor(.primary)
                     }
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.top, 4)
+                .padding(.bottom, 20)
             }
             .background(Color(UIColor.systemBackground))
         }

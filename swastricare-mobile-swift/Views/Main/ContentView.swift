@@ -219,6 +219,20 @@ struct ContentView: View {
                     userInfo: [DeepLinkUserInfoKey.workoutType: type]
                 )
             }
+        case .familyJoin(code: let code):
+            // Family lives under Profile → Family. Route user to Profile,
+            // then broadcast the invite code so Family UI can present Join flow.
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .profile
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                deepLinkHandler.pendingFamilyInviteCode = code
+                NotificationCenter.default.post(
+                    name: .deepLinkFamilyJoin,
+                    object: nil,
+                    userInfo: [DeepLinkUserInfoKey.familyInviteCode: code]
+                ) 
+            }
         }
     }
     

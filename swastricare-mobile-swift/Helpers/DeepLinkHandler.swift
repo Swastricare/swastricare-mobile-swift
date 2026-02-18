@@ -19,13 +19,15 @@ enum DeepLink: Equatable {
     case startRun(type: String)
     case heartRate
     case activeWorkout
+    case familyJoin(code: String)
     
     init?(url: URL) {
         // Supported schemes:
         // - swastricareapp://... (primary, also used for OAuth redirect)
         // - swasthicare://...    (legacy widget scheme)
+        // - swastricare://...    (family invite links)
         guard let scheme = url.scheme else { return nil }
-        guard scheme == "swastricareapp" || scheme == "swasthicare" else { return nil }
+        guard scheme == "swastricareapp" || scheme == "swasthicare" || scheme == "swastricare" else { return nil }
         
         let host = url.host ?? ""
         let path = url.path
@@ -56,6 +58,17 @@ enum DeepLink: Equatable {
         case "workout":
             // e.g. swastricareapp://workout/live
             self = .activeWorkout
+        case "family":
+            // e.g. swastricare://family/join?code=ABC12345
+            if path == "/join" || path.hasPrefix("/join") {
+                if let code = queryItems?.first(where: { $0.name == "code" })?.value, !code.isEmpty {
+                    self = .familyJoin(code: code)
+                } else {
+                    return nil
+                }
+            } else {
+                return nil
+            }
         default:
             return nil
         }
@@ -69,10 +82,12 @@ extension Notification.Name {
     static let deepLinkOpenMedications = Notification.Name("DeepLink.OpenMedications")
     static let deepLinkOpenHeartRate = Notification.Name("DeepLink.OpenHeartRate")
     static let deepLinkOpenLiveTracking = Notification.Name("DeepLink.OpenLiveTracking")
+    static let deepLinkFamilyJoin = Notification.Name("DeepLink.FamilyJoin")
 }
 
 enum DeepLinkUserInfoKey {
     static let workoutType = "workoutType" // String: "run" | "walk" | "commute" | etc.
+    static let familyInviteCode = "familyInviteCode" // String: invite code
 }
 
 // MARK: - Pending Workout from Widget
@@ -89,6 +104,7 @@ struct PendingWidgetWorkout {
 class DeepLinkHandler: ObservableObject {
     @Published var currentDeepLink: DeepLink?
     @Published var pendingWorkout: PendingWidgetWorkout?
+    @Published var pendingFamilyInviteCode: String?
     
     private let appGroupSuiteName = "group.com.swasthicare.shared"
     
@@ -100,7 +116,22 @@ class DeepLinkHandler: ObservableObject {
             return
         }
         
+        // Handle family invite deep link specially
+        if case .familyJoin(let code) = deepLink {
+            print("👨‍👩‍👧‍👦 Family invite deep link with code: \(code)")
+            pendingFamilyInviteCode = code
+            NotificationCenter.default.post(
+                name: .deepLinkFamilyJoin,
+                object: nil,
+                userInfo: [DeepLinkUserInfoKey.familyInviteCode: code]
+            )
+        }
+        
         currentDeepLink = deepLink
+    }
+    
+    func clearFamilyInviteCode() {
+        pendingFamilyInviteCode = nil
     }
     
     /// Check for workouts started from widget (call on app launch/foreground)
