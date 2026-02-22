@@ -131,8 +131,8 @@ final class AIViewModel: ObservableObject {
         let lower = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         let wordCount = lower.split(separator: " ").count
 
-        // Only rewrite very short/vague queries (1-3 words)
-        guard wordCount <= 3 else { return text }
+        // Only rewrite very short/vague queries (1-4 words)
+        guard wordCount <= 4 else { return text }
 
         switch lower {
         case "help", "help me":
@@ -155,11 +155,11 @@ final class AIViewModel: ObservableObject {
     // MARK: - Chat Actions
 
     func sendMessage() async {
-        var text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
-        // Smart prompt rewrite for vague queries
-        text = enrichPromptIfVague(text)
+        // Smart prompt rewrite: enrich vague queries for the API, but show original to user
+        let enrichedText = enrichPromptIfVague(text)
         
         // If this is a new conversation after clearing, allow history loading
         if !shouldLoadHistory && messages.isEmpty {
@@ -208,14 +208,14 @@ final class AIViewModel: ObservableObject {
             case .general:
                 // Use general chat (Gemini)
                 print("🤖 AI Mode: General (Swastri Assistant)")
-                response = try await aiService.sendChatMessage(text, context: Array(messages.dropLast()), systemContext: systemContext)
+                response = try await aiService.sendChatMessage(enrichedText, context: Array(messages.dropLast()), systemContext: systemContext)
                 lastResponseModel = "gemini"
                 lastResponseWasMedical = false
-                
+
             case .medical:
                 // TEMPORARY: Use ai-chat with medical prompt until medgemma-chat is fixed
                 print("🏥 AI Mode: Medical Expert (using ai-chat temporarily)")
-                
+
                 // Build medical-specific system context
                 var medicalContext = """
                 You are Swastrica Medical AI, a health assistant by Swastricare (Onwords). Provide accurate medical information with these guidelines:
@@ -224,11 +224,11 @@ final class AIViewModel: ObservableObject {
                 - Use clear, empathetic language
                 - Never prescribe medications or dosages
                 - Include appropriate disclaimers
-                
+
                 """
                 medicalContext += systemContext
-                
-                response = try await aiService.sendChatMessage(text, context: Array(messages.dropLast()), systemContext: medicalContext)
+
+                response = try await aiService.sendChatMessage(enrichedText, context: Array(messages.dropLast()), systemContext: medicalContext)
                 lastResponseModel = "gemini-medical"
                 lastResponseWasMedical = true
             }

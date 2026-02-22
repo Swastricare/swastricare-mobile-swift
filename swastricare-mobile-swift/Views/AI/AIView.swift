@@ -1094,12 +1094,12 @@ private struct TypewriterMarkdownView: View {
 
     @State private var visibleWordCount: Int = 0
     @State private var isComplete = false
+    @State private var wordChunks: [String] = []
 
-    private var words: [String] {
-        // Split into word-like chunks preserving whitespace for natural feel
+    private static func splitIntoWords(_ text: String) -> [String] {
         var result: [String] = []
         var current = ""
-        for char in content {
+        for char in text {
             current.append(char)
             if char == " " || char == "\n" {
                 result.append(current)
@@ -1115,7 +1115,7 @@ private struct TypewriterMarkdownView: View {
             if isComplete {
                 MarkdownTextView(content: content)
             } else {
-                Text(words.prefix(visibleWordCount).joined())
+                Text(wordChunks.prefix(visibleWordCount).joined())
                     .font(.system(size: 15))
             }
         }
@@ -1125,7 +1125,8 @@ private struct TypewriterMarkdownView: View {
                 onComplete()
                 return
             }
-            let allWords = words
+            let allWords = Self.splitIntoWords(content)
+            wordChunks = allWords
             let total = allWords.count
 
             // Word-by-word streaming with variable delays for natural feel
@@ -1140,12 +1141,13 @@ private struct TypewriterMarkdownView: View {
                 let isPunctuation = lastWord.last == "." || lastWord.last == "!" || lastWord.last == "?" || lastWord.last == ":"
                 let isNewline = lastWord.contains("\n")
 
-                let delay: UInt64 = if isPunctuation || isNewline {
-                    UInt64.random(in: 40_000_000...80_000_000)  // 40-80ms pause at sentences
+                let delay: UInt64
+                if isPunctuation || isNewline {
+                    delay = UInt64.random(in: 40_000_000...80_000_000)  // 40-80ms pause at sentences
                 } else if total > 100 {
-                    UInt64.random(in: 12_000_000...25_000_000)  // 12-25ms for long responses
+                    delay = UInt64.random(in: 12_000_000...25_000_000)  // 12-25ms for long responses
                 } else {
-                    UInt64.random(in: 20_000_000...40_000_000)  // 20-40ms for short responses
+                    delay = UInt64.random(in: 20_000_000...40_000_000)  // 20-40ms for short responses
                 }
                 try? await Task.sleep(nanoseconds: delay)
             }
@@ -2085,7 +2087,7 @@ private struct AIOnboardingOverlay: View {
     @Binding var step: Int
     let onDismiss: () -> Void
 
-    private let steps: [(icon: String, title: String, description: String)] = [
+    private let tourSteps: [(icon: String, title: String, description: String)] = [
         ("bubble.left.and.bubble.right.fill", "Chat with Swastri AI", "Ask any health question. I use your real health data to give personalised advice."),
         ("stethoscope", "Switch Modes", "Tap the mode selector at the top to switch between General and Medical Expert mode."),
         ("mic.fill", "Voice Input", "Tap the mic icon to ask questions with your voice. I'll listen and respond."),
@@ -2105,7 +2107,7 @@ private struct AIOnboardingOverlay: View {
                 VStack(spacing: 16) {
                     // Step indicator
                     HStack(spacing: 6) {
-                        ForEach(0..<steps.count, id: \.self) { i in
+                        ForEach(0..<tourSteps.count, id: \.self) { i in
                             Capsule()
                                 .fill(i == step ? Color(hex: "2E3192") : Color.white.opacity(0.3))
                                 .frame(width: i == step ? 24 : 8, height: 4)
@@ -2117,16 +2119,16 @@ private struct AIOnboardingOverlay: View {
                         Circle()
                             .fill(Color(hex: "2E3192").opacity(0.15))
                             .frame(width: 64, height: 64)
-                        Image(systemName: steps[step].icon)
+                        Image(systemName: tourSteps[step].icon)
                             .font(.system(size: 28, weight: .semibold))
                             .foregroundColor(Color(hex: "2E3192"))
                     }
 
-                    Text(steps[step].title)
+                    Text(tourSteps[step].title)
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
 
-                    Text(steps[step].description)
+                    Text(tourSteps[step].description)
                         .font(.system(size: 15))
                         .foregroundColor(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
@@ -2138,7 +2140,7 @@ private struct AIOnboardingOverlay: View {
                             .foregroundColor(.white.opacity(0.6))
 
                         Button(action: { advanceOrDismiss() }) {
-                            Text(step < steps.count - 1 ? "Next" : "Get Started")
+                            Text(step < tourSteps.count - 1 ? "Next" : "Get Started")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 24)
@@ -2160,7 +2162,7 @@ private struct AIOnboardingOverlay: View {
     }
 
     private func advanceOrDismiss() {
-        if step < steps.count - 1 {
+        if step < tourSteps.count - 1 {
             withAnimation(.spring(response: 0.3)) { step += 1 }
         } else {
             onDismiss()
