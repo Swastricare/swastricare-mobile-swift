@@ -308,12 +308,49 @@ struct QuickAction: Identifiable, Equatable {
     let icon: String
     let prompt: String
     
-    static let suggestions: [QuickAction] = [
-        QuickAction(title: "Analyze My Health", icon: "waveform.path.ecg", prompt: "Analyze my current health metrics and give me insights"),
-        QuickAction(title: "Sleep Tips", icon: "moon.fill", prompt: "How can I improve my sleep quality?"),
-        QuickAction(title: "Exercise Ideas", icon: "figure.run", prompt: "What exercises are good for beginners?"),
-        QuickAction(title: "Nutrition", icon: "leaf.fill", prompt: "What should I eat for better heart health?")
-    ]
+    static let suggestions: [QuickAction] = contextualSuggestions
+
+    static var contextualSuggestions: [QuickAction] {
+        let hour = Calendar.current.component(.hour, from: Date())
+
+        // Always include health analysis first
+        var actions: [QuickAction] = [
+            QuickAction(title: "Analyze My Health", icon: "waveform.path.ecg", prompt: "Analyze my current health metrics and give me insights")
+        ]
+
+        switch hour {
+        case 5..<12:
+            // Morning suggestions
+            actions += [
+                QuickAction(title: "Sleep Review", icon: "bed.double.fill", prompt: "How was my sleep last night? Any tips to improve it?"),
+                QuickAction(title: "Morning Routine", icon: "sunrise.fill", prompt: "Suggest a healthy morning routine based on my health profile"),
+                QuickAction(title: "Breakfast Ideas", icon: "cup.and.saucer.fill", prompt: "What should I eat for a healthy breakfast today?")
+            ]
+        case 12..<17:
+            // Afternoon suggestions
+            actions += [
+                QuickAction(title: "Midday Check-in", icon: "heart.text.square.fill", prompt: "How am I doing today? Review my steps, hydration, and activity so far."),
+                QuickAction(title: "Exercise Ideas", icon: "figure.run", prompt: "Suggest a workout I can do this afternoon based on my fitness level"),
+                QuickAction(title: "Nutrition", icon: "leaf.fill", prompt: "What should I eat for a balanced lunch?")
+            ]
+        case 17..<22:
+            // Evening suggestions
+            actions += [
+                QuickAction(title: "Day Summary", icon: "chart.bar.fill", prompt: "Summarize my health metrics for today. How did I do?"),
+                QuickAction(title: "Wind Down", icon: "moon.stars.fill", prompt: "Help me create a relaxing evening routine for better sleep"),
+                QuickAction(title: "Dinner Tips", icon: "fork.knife", prompt: "What should I eat for a light, healthy dinner?")
+            ]
+        default:
+            // Late night suggestions
+            actions += [
+                QuickAction(title: "Sleep Help", icon: "moon.zzz.fill", prompt: "I can't sleep. What relaxation techniques can help me fall asleep?"),
+                QuickAction(title: "Stress Relief", icon: "sparkles", prompt: "Guide me through a quick breathing exercise to relax"),
+                QuickAction(title: "Tomorrow Plan", icon: "calendar", prompt: "Help me plan a healthy day for tomorrow based on my health data")
+            ]
+        }
+
+        return actions
+    }
 }
 
 // MARK: - Conversation Summary

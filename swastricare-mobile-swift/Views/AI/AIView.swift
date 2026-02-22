@@ -14,9 +14,10 @@ import PhotosUI
 struct AIView: View {
     
     // MARK: - ViewModel
-    
+
     @StateObject private var viewModel = DependencyContainer.shared.aiViewModel
     @StateObject private var trackerViewModel = DependencyContainer.shared.trackerViewModel
+    @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     
     // MARK: - Local State
     
@@ -375,6 +376,10 @@ struct AIView: View {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                 proxy.scrollTo(lastMessage.id, anchor: .bottom)
                             }
+                            // Subtle haptic when AI responds
+                            if !lastMessage.isUser && !lastMessage.isLoading {
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                            }
                         }
                     }
                 }
@@ -443,6 +448,29 @@ struct AIView: View {
     
     // MARK: - Intro View
     
+    // MARK: - Greeting Helpers
+
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let firstName = authViewModel.userName.components(separatedBy: " ").first ?? "there"
+        switch hour {
+        case 5..<12: return "Good morning, \(firstName)"
+        case 12..<17: return "Good afternoon, \(firstName)"
+        case 17..<22: return "Good evening, \(firstName)"
+        default: return "Hey, \(firstName)"
+        }
+    }
+
+    private var greetingSubtitle: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return "How are you feeling today?\nLet's check in on your health."
+        case 12..<17: return "Need a midday health check?\nI'm here to help."
+        case 17..<22: return "Let's review your day.\nAsk me anything about your health."
+        default: return "Can't sleep?\nI'm here if you need health advice."
+        }
+    }
+
     private var introView: some View {
         VStack(spacing: 24) {
             // Particle Orb
@@ -451,14 +479,14 @@ struct AIView: View {
                 .scaleEffect(showEmptyState ? 1 : 0.8)
                 .opacity(showEmptyState ? 1 : 0)
                 .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showEmptyState)
-            
-            VStack(spacing: 12) {
-                Text("Swastri AI")
-                    .font(.system(size: 28, weight: .bold))
+
+            VStack(spacing: 8) {
+                Text(greeting)
+                    .font(.system(size: 26, weight: .bold))
                     .foregroundColor(.primary)
-                
-                Text("Your personal health assistant.\nAsk me anything about your vitals, diet, or fitness.")
-                    .font(.system(size: 16))
+
+                Text(greetingSubtitle)
+                    .font(.system(size: 15))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
@@ -467,7 +495,7 @@ struct AIView: View {
             .offset(y: showEmptyState ? 0 : 20)
             .opacity(showEmptyState ? 1 : 0)
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
-            
+
             // Analyze Health Button
             Button(action: {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -532,19 +560,38 @@ struct AIView: View {
                             await viewModel.sendQuickAction(action)
                         }
                     }) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(action.title)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.primary)
-                            
-                            Text(action.prompt.prefix(35) + "...")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
+                        HStack(spacing: 12) {
+                            // Icon circle
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "4A90E2").opacity(0.08)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 36, height: 36)
+
+                                Image(systemName: action.icon)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(Color(hex: "2E3192"))
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(action.title)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.primary)
+
+                                Text(action.prompt.prefix(30) + "...")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .frame(width: 220, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .frame(width: 230, alignment: .leading)
                         .glass(cornerRadius: 16)
                     }
                     .buttonStyle(QuickActionButtonStyle())
@@ -780,6 +827,23 @@ struct AIView: View {
     
 }
 
+// MARK: - Markdown Text View
+
+private struct MarkdownTextView: View {
+    let content: String
+
+    var body: some View {
+        if let attributed = try? AttributedString(markdown: content, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+            Text(attributed)
+                .font(.system(size: 15))
+                .tint(Color(hex: "2E3192"))
+        } else {
+            Text(content)
+                .font(.system(size: 15))
+        }
+    }
+}
+
 // MARK: - Chat Bubble
 
 private struct ChatBubble: View {
@@ -818,23 +882,36 @@ private struct ChatBubble: View {
                     TypingIndicator(loadingOperation: loadingOperation)
                 } else {
                     VStack(alignment: message.isUser ? .trailing : .leading, spacing: 6) {
-                        Text(message.content)
-                            .font(.system(size: 15))
-                            .lineLimit(nil)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                message.isUser
-                                    ? Color(UIColor.secondarySystemBackground)
-                                    : Color(UIColor.secondarySystemBackground)
-                            )
-                            .foregroundColor(.primary)
-                            .cornerRadius(16)
-                            .scaleEffect(appeared ? 1 : 0.5)
-                            .opacity(appeared ? 1 : 0)
+                        Group {
+                            if message.isUser {
+                                Text(message.content)
+                                    .font(.system(size: 15))
+                            } else {
+                                MarkdownTextView(content: message.content)
+                            }
+                        }
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            message.isUser
+                                ? Color(UIColor.secondarySystemBackground)
+                                : Color(hex: "2E3192").opacity(0.06)
+                        )
+                        .foregroundColor(.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    message.isUser ? Color.clear : Color(hex: "2E3192").opacity(0.08),
+                                    lineWidth: 0.5
+                                )
+                        )
+                        .scaleEffect(appeared ? 1 : 0.5)
+                        .opacity(appeared ? 1 : 0)
                         
                         HStack(spacing: 8) {
                             // Mode badge for AI responses
@@ -943,50 +1020,68 @@ private struct ChatBubble: View {
 private struct TypingIndicator: View {
     let loadingOperation: LoadingOperationType
     @State private var isAnimating = false
-    
+    @State private var shimmerOffset: CGFloat = -200
+
+    private var accentColor: Color {
+        loadingOperation == .medicalQuery ? Color(hex: "00A86B") : Color(hex: "2E3192")
+    }
+
     var body: some View {
         HStack(spacing: 10) {
-            // Contextual icon
-            Image(systemName: loadingOperation.icon)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(loadingOperation == .medicalQuery ? Color(hex: "00A86B") : Color(hex: "2E3192"))
-                .scaleEffect(isAnimating ? 1.1 : 0.9)
-                .animation(
-                    .easeInOut(duration: 0.8)
-                        .repeatForever(autoreverses: true),
-                    value: isAnimating
-                )
-            
+            // Mini orb instead of plain icon
+            MiniAIOrb(size: 20)
+
             // Loading message
             Text(loadingOperation.loadingMessage)
-                .font(.system(size: 14))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.secondary)
-            
-            // Animated dots
-            HStack(spacing: 4) {
+
+            // Animated wave dots
+            HStack(spacing: 5) {
                 ForEach(0..<3, id: \.self) { index in
                     Circle()
-                        .fill(loadingOperation == .medicalQuery ? Color(hex: "00A86B").opacity(0.6) : Color(hex: "2E3192").opacity(0.6))
-                        .frame(width: 6, height: 6)
-                        .scaleEffect(isAnimating ? 1.0 : 0.5)
-                        .opacity(isAnimating ? 1.0 : 0.3)
+                        .fill(accentColor)
+                        .frame(width: 7, height: 7)
+                        .offset(y: isAnimating ? -4 : 4)
                         .animation(
-                            .easeInOut(duration: 0.5)
+                            .easeInOut(duration: 0.45)
                                 .repeatForever(autoreverses: true)
-                                .delay(Double(index) * 0.15),
+                                .delay(Double(index) * 0.12),
                             value: isAnimating
                         )
                 }
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.secondarySystemBackground))
+                .fill(accentColor.opacity(0.06))
+                .overlay(
+                    // Shimmer sweep
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: [.clear, accentColor.opacity(0.08), .clear],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .offset(x: shimmerOffset)
+                        .animation(
+                            .linear(duration: 1.5).repeatForever(autoreverses: false),
+                            value: shimmerOffset
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(accentColor.opacity(0.1), lineWidth: 0.5)
         )
         .onAppear {
             isAnimating = true
+            shimmerOffset = 400
         }
     }
 }
