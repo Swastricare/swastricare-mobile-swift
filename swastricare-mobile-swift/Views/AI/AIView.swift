@@ -62,6 +62,14 @@ struct AIView: View {
     // MARK: - Health Context Badge
     @State private var showHealthContextBadge = false
     @State private var hasShownHealthBadge = false
+
+    // MARK: - Onboarding Tour
+    @State private var showOnboardingTour = false
+    @State private var onboardingStep = 0
+
+    // MARK: - Feedback Reaction
+    @State private var showHelpfulReaction = false
+    @State private var reactionMessageId: UUID?
     
     // MARK: - Body
     
@@ -165,19 +173,27 @@ struct AIView: View {
                     }
                     
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                viewModel.clearChat()
-                                showEmptyState = false
-                                // Re-trigger landing animation
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                                        showEmptyState = true
+                        Menu {
+                            Button(action: {
+                                viewModel.showBookmarksSheet = true
+                            }) {
+                                Label("Saved Advice", systemImage: "bookmark.fill")
+                            }
+                            Button(role: .destructive, action: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    viewModel.clearChat()
+                                    showEmptyState = false
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                                            showEmptyState = true
+                                        }
                                     }
                                 }
+                            }) {
+                                Label("Clear Chat", systemImage: "xmark")
                             }
-                        }) {
-                            Image(systemName: "xmark")
+                        } label: {
+                            Image(systemName: "ellipsis")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.primary)
                                 .clipShape(Circle())
@@ -219,6 +235,9 @@ struct AIView: View {
             set: { viewModel.showHistorySheet = $0 }
         )) {
             ConversationHistoryView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $viewModel.showBookmarksSheet) {
+            BookmarkedMessagesView(viewModel: viewModel)
         }
         // Medical Disclaimer Sheet
         .sheet(isPresented: $viewModel.showMedicalDisclaimer) {
@@ -361,6 +380,14 @@ struct AIView: View {
                                         shouldTypewrite: !message.isUser && !message.isLoading && !typewriterAnimatedIds.contains(message.id),
                                         onFeedback: { feedback in
                                             viewModel.submitFeedback(messageId: message.id, feedback: feedback)
+                                            if feedback == .helpful {
+                                                reactionMessageId = message.id
+                                                withAnimation(.spring(response: 0.3)) { showHelpfulReaction = true }
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                                                    withAnimation { showHelpfulReaction = false }
+                                                    reactionMessageId = nil
+                                                }
+                                            }
                                         },
                                         onTypewriteComplete: {
                                             typewriterAnimatedIds.insert(message.id)
@@ -528,6 +555,36 @@ struct AIView: View {
             }
             // Check if we should show the tooltip
             checkFirstTimeTooltip()
+            // Check if we should show onboarding tour
+            if !UserDefaults.standard.bool(forKey: "ai_onboarding_completed") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation(.spring(response: 0.4)) {
+                        showOnboardingTour = true
+                        onboardingStep = 0
+                    }
+                }
+            }
+        }
+        // Onboarding tour overlay
+        .overlay {
+            if showOnboardingTour {
+                AIOnboardingOverlay(
+                    step: $onboardingStep,
+                    onDismiss: {
+                        withAnimation(.easeOut(duration: 0.3)) { showOnboardingTour = false }
+                        UserDefaults.standard.set(true, forKey: "ai_onboarding_completed")
+                    }
+                )
+                .transition(.opacity)
+            }
+        }
+        // Helpful reaction overlay
+        .overlay {
+            if showHelpfulReaction {
+                HelpfulReactionView()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
         }
     }
     
@@ -621,6 +678,21 @@ struct AIView: View {
             }
             .offset(y: showEmptyState ? 0 : 20)
             .opacity(showEmptyState ? 1 : 0)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
+
+            // Daily Health Digest
+            DailyDigestCard(
+                steps: trackerViewModel.stepCount,
+                heartRate: trackerViewModel.heartRate,
+                calories: trackerViewModel.activeCalories,
+                onAskAI: {
+                    viewModel.inputText = "Give me a detailed analysis of my health today with personalised recommendations."
+                    Task { await viewModel.sendMessage() }
+                }
+            )
+            .padding(.horizontal, 16)
+            .opacity(showEmptyState ? 1 : 0)
+            .offset(y: showEmptyState ? 0 : 15)
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
 
             // Proactive Health Nudges
@@ -1020,15 +1092,30 @@ private struct TypewriterMarkdownView: View {
     let content: String
     let onComplete: () -> Void
 
-    @State private var visibleCharCount: Int = 0
+    @State private var visibleWordCount: Int = 0
     @State private var isComplete = false
+
+    private var words: [String] {
+        // Split into word-like chunks preserving whitespace for natural feel
+        var result: [String] = []
+        var current = ""
+        for char in content {
+            current.append(char)
+            if char == " " || char == "\n" {
+                result.append(current)
+                current = ""
+            }
+        }
+        if !current.isEmpty { result.append(current) }
+        return result
+    }
 
     var body: some View {
         Group {
             if isComplete {
                 MarkdownTextView(content: content)
             } else {
-                Text(String(content.prefix(visibleCharCount)))
+                Text(words.prefix(visibleWordCount).joined())
                     .font(.system(size: 15))
             }
         }
@@ -1038,19 +1125,29 @@ private struct TypewriterMarkdownView: View {
                 onComplete()
                 return
             }
-            let total = content.count
+            let allWords = words
+            let total = allWords.count
 
-            // Adaptive speed: faster ticks and bigger steps for longer messages
-            // Short (<200): ~15ms, 1-2 chars = ~1.5s
-            // Medium (200-500): ~10ms, 1-4 chars = ~1.5s
-            // Long (>500): ~8ms, 2-6 chars = ~2-3s
-            let tickDelay: UInt64 = total > 500 ? 8_000_000 : total > 200 ? 10_000_000 : 15_000_000
-            let maxStep = total > 500 ? 6 : total > 200 ? 4 : 2
+            // Word-by-word streaming with variable delays for natural feel
+            // Simulates real API token streaming
+            while visibleWordCount < total && !Task.isCancelled {
+                // Burst 1-3 words at a time (like token chunks from API)
+                let burst = min(Int.random(in: 1...3), total - visibleWordCount)
+                visibleWordCount += burst
 
-            while visibleCharCount < total && !Task.isCancelled {
-                let step = min(Int.random(in: 1...maxStep), total - visibleCharCount)
-                visibleCharCount += step
-                try? await Task.sleep(nanoseconds: tickDelay)
+                // Variable delay: shorter for mid-sentence, longer at punctuation
+                let lastWord = allWords[min(visibleWordCount - 1, total - 1)]
+                let isPunctuation = lastWord.last == "." || lastWord.last == "!" || lastWord.last == "?" || lastWord.last == ":"
+                let isNewline = lastWord.contains("\n")
+
+                let delay: UInt64 = if isPunctuation || isNewline {
+                    UInt64.random(in: 40_000_000...80_000_000)  // 40-80ms pause at sentences
+                } else if total > 100 {
+                    UInt64.random(in: 12_000_000...25_000_000)  // 12-25ms for long responses
+                } else {
+                    UInt64.random(in: 20_000_000...40_000_000)  // 20-40ms for short responses
+                }
+                try? await Task.sleep(nanoseconds: delay)
             }
             if !Task.isCancelled {
                 isComplete = true
@@ -1158,7 +1255,24 @@ private struct ChatBubble: View {
                         }
                         .scaleEffect(appeared ? 1 : 0.5)
                         .opacity(appeared ? 1 : 0)
-                        
+
+                        // Rich health metric cards (inline)
+                        if !message.isUser && !message.isLoading {
+                            let metrics = Self.detectHealthMetrics(in: message.content)
+                            if !metrics.isEmpty {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        ForEach(metrics, id: \.label) { metric in
+                                            InlineHealthMetricCard(icon: metric.icon, label: metric.label, value: metric.value, color: metric.color)
+                                        }
+                                    }
+                                }
+                                .scaleEffect(appeared ? 1 : 0.8)
+                                .opacity(appeared ? 1 : 0)
+                                .animation(.spring(response: 0.5).delay(0.3), value: appeared)
+                            }
+                        }
+
                         HStack(spacing: 8) {
                             // Mode badge for AI responses
                             if !message.isUser, let mode = message.responseMode {
@@ -1302,6 +1416,48 @@ private struct ChatBubble: View {
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .short
         return dateFormatter.string(from: date)
+    }
+
+    struct DetectedMetric {
+        let icon: String
+        let label: String
+        let value: String
+        let color: String
+    }
+
+    static func detectHealthMetrics(in text: String) -> [DetectedMetric] {
+        var metrics: [DetectedMetric] = []
+        let lower = text.lowercased()
+
+        // Detect step counts (e.g., "5,000 steps", "8000 steps")
+        if let range = lower.range(of: #"[\d,]+\s*steps"#, options: .regularExpression) {
+            let match = String(lower[range]).replacingOccurrences(of: " ", with: "")
+            let value = match.replacingOccurrences(of: "steps", with: "").trimmingCharacters(in: .whitespace)
+            metrics.append(DetectedMetric(icon: "figure.walk", label: "Steps", value: value, color: "22C55E"))
+        }
+
+        // Detect heart rate (e.g., "72 bpm", "heart rate of 80")
+        if let range = lower.range(of: #"\d+\s*bpm"#, options: .regularExpression) {
+            let match = String(lower[range])
+            let value = match.replacingOccurrences(of: "bpm", with: "").trimmingCharacters(in: .whitespace)
+            metrics.append(DetectedMetric(icon: "heart.fill", label: "Heart Rate", value: "\(value) bpm", color: "EF4444"))
+        }
+
+        // Detect calories (e.g., "300 calories", "250 kcal")
+        if let range = lower.range(of: #"\d+\s*(calories|kcal)"#, options: .regularExpression) {
+            let match = String(lower[range])
+            let value = match.replacingOccurrences(of: "calories", with: "").replacingOccurrences(of: "kcal", with: "").trimmingCharacters(in: .whitespace)
+            metrics.append(DetectedMetric(icon: "flame.fill", label: "Calories", value: "\(value) kcal", color: "F97316"))
+        }
+
+        // Detect sleep (e.g., "7 hours of sleep", "8h sleep")
+        if let range = lower.range(of: #"\d+\.?\d*\s*(hours? of sleep|h\s*sleep|hours? sleep)"#, options: .regularExpression) {
+            let match = String(lower[range])
+            let value = match.components(separatedBy: CharacterSet.letters).first?.trimmingCharacters(in: .whitespace) ?? ""
+            metrics.append(DetectedMetric(icon: "moon.zzz.fill", label: "Sleep", value: "\(value)h", color: "6366F1"))
+        }
+
+        return metrics
     }
 }
 
@@ -1657,6 +1813,396 @@ private struct ProactiveNudgeCard: View {
             )
         }
         .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Daily Digest Card
+
+private struct DailyDigestCard: View {
+    let steps: Int
+    let heartRate: Int
+    let calories: Int
+    let onAskAI: () -> Void
+
+    private var timeOfDay: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return "Morning"
+        case 12..<17: return "Afternoon"
+        case 17..<22: return "Evening"
+        default: return "Night"
+        }
+    }
+
+    private var overallScore: String {
+        var score = 0
+        if steps >= 5000 { score += 1 }
+        if steps >= 8000 { score += 1 }
+        if heartRate >= 55 && heartRate <= 85 { score += 2 }
+        if calories >= 150 { score += 1 }
+        switch score {
+        case 4...5: return "Great"
+        case 2...3: return "Good"
+        default: return "Needs attention"
+        }
+    }
+
+    private var scoreColor: String {
+        switch overallScore {
+        case "Great": return "22C55E"
+        case "Good": return "F59E0B"
+        default: return "EF4444"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(timeOfDay) Digest")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.primary)
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(hex: scoreColor))
+                            .frame(width: 8, height: 8)
+                        Text(overallScore)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(hex: scoreColor))
+                    }
+                }
+                Spacer()
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onAskAI()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("Deep Dive")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(Color(hex: "2E3192"))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(hex: "2E3192").opacity(0.1))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+
+            HStack(spacing: 16) {
+                DigestMetric(icon: "figure.walk", value: steps.formatted(), unit: "steps", color: "22C55E")
+                DigestMetric(icon: "heart.fill", value: heartRate > 0 ? "\(heartRate)" : "--", unit: "bpm", color: "EF4444")
+                DigestMetric(icon: "flame.fill", value: "\(calories)", unit: "kcal", color: "F97316")
+            }
+        }
+        .padding(16)
+        .glass(cornerRadius: 16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: "2E3192").opacity(0.12), Color(hex: "4A90E2").opacity(0.06)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+    }
+}
+
+private struct DigestMetric: View {
+    let icon: String
+    let value: String
+    let unit: String
+    let color: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color(hex: color))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.primary)
+                Text(unit)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Bookmarked Messages View
+
+struct BookmarkedMessagesView: View {
+    @ObservedObject var viewModel: AIViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                PremiumBackground()
+
+                if viewModel.bookmarkedMessages.isEmpty {
+                    VStack(spacing: 20) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: "F59E0B").opacity(0.1))
+                                .frame(width: 80, height: 80)
+                            Image(systemName: "bookmark")
+                                .font(.system(size: 36))
+                                .foregroundColor(Color(hex: "F59E0B").opacity(0.5))
+                        }
+                        VStack(spacing: 6) {
+                            Text("No Saved Advice")
+                                .font(.title3.weight(.semibold))
+                                .foregroundColor(.primary)
+                            Text("Tap the bookmark icon on any AI response to save it here.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                        }
+                    }
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(viewModel.bookmarkedMessages) { message in
+                                BookmarkedMessageCard(message: message, onRemove: {
+                                    viewModel.toggleBookmark(messageId: message.id)
+                                })
+                            }
+                        }
+                        .padding(16)
+                    }
+                }
+            }
+            .navigationTitle("Saved Advice")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
+private struct BookmarkedMessageCard: View {
+    let message: ChatMessage
+    let onRemove: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let mode = message.responseMode {
+                HStack(spacing: 4) {
+                    Image(systemName: mode.badgeIcon)
+                        .font(.system(size: 9, weight: .semibold))
+                    Text(mode.badgeText)
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundColor(Color(hex: mode.badgeColor))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Color(hex: mode.badgeColor).opacity(0.12)))
+            }
+
+            MarkdownTextView(content: message.content)
+                .lineLimit(6)
+
+            HStack {
+                Text(message.timestamp, style: .date)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button(action: {
+                    UIPasteboard.general.string = message.content
+                }) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onRemove()
+                }) {
+                    Image(systemName: "bookmark.slash.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                }
+            }
+        }
+        .padding(14)
+        .glass(cornerRadius: 14)
+    }
+}
+
+// MARK: - Rich Health Card (Inline in AI response)
+
+private struct InlineHealthMetricCard: View {
+    let icon: String
+    let label: String
+    let value: String
+    let color: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(Color(hex: color))
+                .frame(width: 28, height: 28)
+                .background(Color(hex: color).opacity(0.12))
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary)
+                Text(value)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.primary)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color(hex: color).opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(hex: color).opacity(0.12), lineWidth: 0.5)
+        )
+    }
+}
+
+// MARK: - AI Onboarding Overlay
+
+private struct AIOnboardingOverlay: View {
+    @Binding var step: Int
+    let onDismiss: () -> Void
+
+    private let steps: [(icon: String, title: String, description: String)] = [
+        ("bubble.left.and.bubble.right.fill", "Chat with Swastri AI", "Ask any health question. I use your real health data to give personalised advice."),
+        ("stethoscope", "Switch Modes", "Tap the mode selector at the top to switch between General and Medical Expert mode."),
+        ("mic.fill", "Voice Input", "Tap the mic icon to ask questions with your voice. I'll listen and respond."),
+        ("doc.viewfinder", "Image Analysis", "Upload prescriptions, lab reports, or X-rays for AI-powered analysis."),
+        ("bookmark.fill", "Save Advice", "Bookmark important AI responses to review them later from the menu.")
+    ]
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.5)
+                .ignoresSafeArea()
+                .onTapGesture { advanceOrDismiss() }
+
+            VStack(spacing: 20) {
+                Spacer()
+
+                VStack(spacing: 16) {
+                    // Step indicator
+                    HStack(spacing: 6) {
+                        ForEach(0..<steps.count, id: \.self) { i in
+                            Capsule()
+                                .fill(i == step ? Color(hex: "2E3192") : Color.white.opacity(0.3))
+                                .frame(width: i == step ? 24 : 8, height: 4)
+                                .animation(.spring(response: 0.3), value: step)
+                        }
+                    }
+
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "2E3192").opacity(0.15))
+                            .frame(width: 64, height: 64)
+                        Image(systemName: steps[step].icon)
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundColor(Color(hex: "2E3192"))
+                    }
+
+                    Text(steps[step].title)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+
+                    Text(steps[step].description)
+                        .font(.system(size: 15))
+                        .foregroundColor(.white.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+
+                    HStack(spacing: 12) {
+                        Button("Skip") { onDismiss() }
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+
+                        Button(action: { advanceOrDismiss() }) {
+                            Text(step < steps.count - 1 ? "Next" : "Get Started")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 10)
+                                .background(Color(hex: "2E3192"))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                .padding(28)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .padding(.horizontal, 24)
+
+                Spacer()
+            }
+        }
+    }
+
+    private func advanceOrDismiss() {
+        if step < steps.count - 1 {
+            withAnimation(.spring(response: 0.3)) { step += 1 }
+        } else {
+            onDismiss()
+        }
+    }
+}
+
+// MARK: - Helpful Reaction View
+
+private struct HelpfulReactionView: View {
+    @State private var particles: [(offset: CGSize, opacity: Double, scale: CGFloat)] = []
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<8, id: \.self) { i in
+                Text(["✨", "🎉", "💚", "⭐️", "✨", "💪", "🌟", "💚"][i])
+                    .font(.system(size: 24))
+                    .offset(particles.indices.contains(i) ? particles[i].offset : .zero)
+                    .opacity(particles.indices.contains(i) ? particles[i].opacity : 0)
+                    .scaleEffect(particles.indices.contains(i) ? particles[i].scale : 0.5)
+            }
+        }
+        .onAppear {
+            particles = (0..<8).map { _ in
+                (
+                    offset: .zero,
+                    opacity: 1.0,
+                    scale: CGFloat(0.5)
+                )
+            }
+            withAnimation(.easeOut(duration: 1.0)) {
+                particles = (0..<8).map { i in
+                    let angle = Double(i) * .pi / 4
+                    let distance = CGFloat.random(in: 60...120)
+                    return (
+                        offset: CGSize(width: cos(angle) * distance, height: sin(angle) * distance - 40),
+                        opacity: 0.0,
+                        scale: CGFloat.random(in: 0.8...1.4)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -2090,12 +2636,23 @@ struct ConversationHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var conversationToDelete: ConversationSummary?
     @State private var showDeleteConfirmation = false
-    
+    @State private var searchText = ""
+
+    private var filteredConversations: [ConversationSummary] {
+        guard !searchText.isEmpty else { return viewModel.conversations }
+        let query = searchText.lowercased()
+        return viewModel.conversations.filter {
+            $0.title.lowercased().contains(query) ||
+            $0.lastMessage.lowercased().contains(query) ||
+            $0.topic.label.lowercased().contains(query)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 PremiumBackground()
-                
+
                 if viewModel.isLoadingConversations {
                     ProgressView()
                         .scaleEffect(1.5)
@@ -2107,6 +2664,7 @@ struct ConversationHistoryView: View {
             }
             .navigationTitle("Chat History")
             .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search conversations")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
@@ -2162,7 +2720,7 @@ struct ConversationHistoryView: View {
     
     private var conversationListView: some View {
         List {
-            ForEach(viewModel.conversations) { conversation in
+            ForEach(filteredConversations) { conversation in
                 ConversationRow(
                     conversation: conversation,
                     onTap: {

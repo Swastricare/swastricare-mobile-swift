@@ -43,7 +43,8 @@ final class AIViewModel: ObservableObject {
     @Published private(set) var currentLoadingOperation: LoadingOperationType = .generalChat
     @Published private(set) var currentErrorState: AIErrorState?
     @Published private(set) var lastFailedMessage: String?
-    
+    @Published var showBookmarksSheet = false
+
     // MARK: - Computed Properties
     
     var isBusy: Bool { chatState.isBusy }
@@ -124,11 +125,41 @@ final class AIViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Smart Prompt Rewrite
+
+    private func enrichPromptIfVague(_ text: String) -> String {
+        let lower = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let wordCount = lower.split(separator: " ").count
+
+        // Only rewrite very short/vague queries (1-3 words)
+        guard wordCount <= 3 else { return text }
+
+        switch lower {
+        case "help", "help me":
+            return "I need health advice. Based on my recent health data, what should I focus on improving?"
+        case "how am i", "how am i doing", "how am i?":
+            return "How am I doing health-wise today? Review my current health metrics and give me a quick assessment."
+        case "tips", "health tips":
+            return "Give me personalised health tips based on my recent health data and activity levels."
+        case "what should i do", "what to do":
+            return "Based on my health data, what should I prioritise today to improve my wellbeing?"
+        case "summary", "my summary":
+            return "Give me a comprehensive summary of my health metrics today with actionable insights."
+        case "hello", "hi", "hey":
+            return "Hi! Can you give me a quick health check-in based on my current data?"
+        default:
+            return text
+        }
+    }
+
     // MARK: - Chat Actions
-    
+
     func sendMessage() async {
-        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        var text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+
+        // Smart prompt rewrite for vague queries
+        text = enrichPromptIfVague(text)
         
         // If this is a new conversation after clearing, allow history loading
         if !shouldLoadHistory && messages.isEmpty {
