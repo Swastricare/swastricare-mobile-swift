@@ -78,6 +78,7 @@ struct SwasthiCareWidgetsBundle: WidgetBundle {
         StepsWidget()
         RunWidget()
         WorkoutLiveActivityWidget()
+        HealthLiveActivityWidget()
     }
 }
 

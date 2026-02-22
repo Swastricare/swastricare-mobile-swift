@@ -125,7 +125,19 @@ final class HomeViewModel: ObservableObject {
         
         lastSyncTime = Date()
         isLoading = false
-        
+
+        // Update Health Dynamic Island if active
+        if HealthLiveActivityManager.shared.isActive {
+            await HealthLiveActivityManager.shared.update(
+                steps: metrics.steps,
+                heartRate: metrics.heartRate,
+                calories: metrics.activeCalories,
+                hydrationMl: 0, // Hydration is updated separately
+                hydrationGoalMl: 2500,
+                stepGoal: 10000
+            )
+        }
+
         print("🏠 HomeVM: Data loaded - Steps: \(healthMetrics.steps), HR: \(healthMetrics.heartRate)")
     }
     

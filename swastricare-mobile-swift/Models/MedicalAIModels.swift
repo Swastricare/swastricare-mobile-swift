@@ -45,6 +45,85 @@ enum AIMode: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - AI Personality Roster
+
+/// Selectable AI personality within General mode
+enum AIPersonality: String, CaseIterable, Identifiable {
+    case assistant = "assistant"
+    case coach = "coach"
+    case nutritionist = "nutritionist"
+    case therapist = "therapist"
+    case sleep = "sleep"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .assistant: return "Swastri"
+        case .coach: return "Coach"
+        case .nutritionist: return "Nutri"
+        case .therapist: return "Zen"
+        case .sleep: return "Luna"
+        }
+    }
+
+    var fullTitle: String {
+        switch self {
+        case .assistant: return "Swastri Assistant"
+        case .coach: return "Fitness Coach"
+        case .nutritionist: return "Nutritionist"
+        case .therapist: return "Wellness Therapist"
+        case .sleep: return "Sleep Specialist"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .assistant: return "sparkles"
+        case .coach: return "figure.run"
+        case .nutritionist: return "leaf.fill"
+        case .therapist: return "brain.head.profile"
+        case .sleep: return "moon.stars.fill"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .assistant: return "2E3192"
+        case .coach: return "EF4444"
+        case .nutritionist: return "22C55E"
+        case .therapist: return "8B5CF6"
+        case .sleep: return "6366F1"
+        }
+    }
+
+    var tagline: String {
+        switch self {
+        case .assistant: return "Your all-round health companion"
+        case .coach: return "Push harder, recover smarter"
+        case .nutritionist: return "Eat well, feel great"
+        case .therapist: return "Breathe, reflect, grow"
+        case .sleep: return "Better nights, brighter days"
+        }
+    }
+
+    /// System prompt personality layer injected before the health context
+    var systemPrompt: String {
+        switch self {
+        case .assistant:
+            return "You are Swastri, a friendly and knowledgeable health companion by Swastricare. Be warm, concise, and helpful."
+        case .coach:
+            return "You are Coach, a high-energy fitness coach by Swastricare. Be motivational, direct, and action-oriented. Use encouraging language. Focus on exercise, movement, recovery, and physical performance. Push the user to do better while respecting their limits."
+        case .nutritionist:
+            return "You are Nutri, a calm and evidence-based nutritionist by Swastricare. Focus on balanced eating, meal planning, macros, hydration, and dietary habits. Give practical food suggestions. Avoid prescribing specific diets without context."
+        case .therapist:
+            return "You are Zen, a gentle wellness therapist by Swastricare. Focus on mental health, stress management, mindfulness, breathing exercises, and emotional wellbeing. Be empathetic, non-judgmental, and soothing. Never diagnose conditions."
+        case .sleep:
+            return "You are Luna, a sleep specialist by Swastricare. Focus on sleep hygiene, bedtime routines, circadian rhythm, insomnia tips, and rest quality. Be calming and reassuring. Use sleep science to give practical advice."
+        }
+    }
+}
+
 // MARK: - Medical AI Model Types
 
 /// Available medical AI models

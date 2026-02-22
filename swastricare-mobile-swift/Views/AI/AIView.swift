@@ -680,6 +680,14 @@ struct AIView: View {
             .opacity(showEmptyState ? 1 : 0)
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
 
+            // AI Personality Roster (only in General mode)
+            if viewModel.selectedAIMode == .general {
+                AIRosterPicker(selected: $viewModel.selectedPersonality)
+                    .opacity(showEmptyState ? 1 : 0)
+                    .offset(y: showEmptyState ? 0 : 15)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.25), value: showEmptyState)
+            }
+
             // Daily Health Digest
             DailyDigestCard(
                 steps: trackerViewModel.stepCount,
@@ -1815,6 +1823,67 @@ private struct ProactiveNudgeCard: View {
             )
         }
         .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - AI Roster Picker
+
+private struct AIRosterPicker: View {
+    @Binding var selected: AIPersonality
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Talk to")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.secondary)
+                .padding(.leading, 20)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(AIPersonality.allCases) { personality in
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selected = personality
+                            }
+                        }) {
+                            HStack(spacing: 8) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(hex: personality.color).opacity(selected == personality ? 0.2 : 0.08))
+                                        .frame(width: 32, height: 32)
+                                    Image(systemName: personality.icon)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(Color(hex: personality.color))
+                                }
+
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(personality.displayName)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(selected == personality ? Color(hex: personality.color) : .primary)
+                                    Text(personality.tagline)
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .glass(cornerRadius: 14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        selected == personality ? Color(hex: personality.color).opacity(0.4) : Color.clear,
+                                        lineWidth: 1.5
+                                    )
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
     }
 }
 

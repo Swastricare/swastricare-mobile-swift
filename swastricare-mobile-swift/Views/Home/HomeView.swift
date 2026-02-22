@@ -134,6 +134,16 @@ struct HomeView: View {
                     healthVitalsSection
                         .padding(.top, 8)
                     
+                    // Dynamic Island Health Tracker
+                    HealthLiveActivityToggle(
+                        userName: userName,
+                        steps: viewModel.stepCount,
+                        heartRate: viewModel.heartRate,
+                        calories: viewModel.activeCalories
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
                     // Quick Actions
                     quickActionsSection
                         .padding(.top, 8)
@@ -1466,6 +1476,75 @@ struct BottomRoundedRectangle: Shape {
         path.closeSubpath()
         
         return path
+    }
+}
+
+// MARK: - Health Live Activity Toggle
+
+private struct HealthLiveActivityToggle: View {
+    let userName: String
+    let steps: Int
+    let heartRate: Int
+    let calories: Int
+
+    @StateObject private var manager = HealthLiveActivityManager.shared
+
+    var body: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            Task {
+                if manager.isActive {
+                    await manager.endHealthTracking()
+                } else {
+                    await manager.startHealthTracking(userName: userName)
+                    await manager.update(
+                        steps: steps,
+                        heartRate: heartRate,
+                        calories: calories,
+                        hydrationMl: 0,
+                        hydrationGoalMl: 2500,
+                        stepGoal: 10000
+                    )
+                }
+            }
+        }) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(manager.isActive ? Color.green.opacity(0.15) : Color(hex: "2E3192").opacity(0.1))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: manager.isActive ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(manager.isActive ? .green : Color(hex: "2E3192"))
+                        .symbolEffect(.bounce, value: manager.isActive)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Dynamic Island")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.primary)
+                    Text(manager.isActive ? "Health tracking live on your island" : "Show health stats on Dynamic Island")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Text(manager.isActive ? "ON" : "OFF")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(manager.isActive ? .green : .secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule()
+                            .fill(manager.isActive ? Color.green.opacity(0.12) : Color.secondary.opacity(0.08))
+                    )
+            }
+            .padding(14)
+            .glass(cornerRadius: 16)
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .disabled(!manager.canStartActivities)
     }
 }
 

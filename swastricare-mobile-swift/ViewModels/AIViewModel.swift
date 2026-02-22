@@ -30,7 +30,21 @@ final class AIViewModel: ObservableObject {
             UserDefaults.standard.set(selectedAIMode.rawValue, forKey: "ai_selected_mode")
         }
     }
-    
+
+    // MARK: - AI Personality Roster
+
+    @Published var selectedPersonality: AIPersonality = {
+        if let saved = UserDefaults.standard.string(forKey: "ai_selected_personality"),
+           let personality = AIPersonality(rawValue: saved) {
+            return personality
+        }
+        return .assistant
+    }() {
+        didSet {
+            UserDefaults.standard.set(selectedPersonality.rawValue, forKey: "ai_selected_personality")
+        }
+    }
+
     // MARK: - MedGemma State
     
     @Published private(set) var lastResponseModel: String = "gemini"
@@ -206,9 +220,10 @@ final class AIViewModel: ObservableObject {
             // Route based on selected AI mode
             switch selectedAIMode {
             case .general:
-                // Use general chat (Gemini)
-                print("🤖 AI Mode: General (Swastri Assistant)")
-                response = try await aiService.sendChatMessage(enrichedText, context: Array(messages.dropLast()), systemContext: systemContext)
+                // Use general chat (Gemini) with personality-specific prompt
+                print("🤖 AI Mode: General (\(selectedPersonality.fullTitle))")
+                let personalityContext = selectedPersonality.systemPrompt + "\n\n" + systemContext
+                response = try await aiService.sendChatMessage(enrichedText, context: Array(messages.dropLast()), systemContext: personalityContext)
                 lastResponseModel = "gemini"
                 lastResponseWasMedical = false
 
