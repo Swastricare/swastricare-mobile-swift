@@ -260,6 +260,7 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
     let captureSession = AVCaptureSession()
     private let bodyPoseRequest = VNDetectHumanBodyPoseRequest()
     private var videoOutput = AVCaptureVideoDataOutput()
+    private var outputAdded = false
     private let processingQueue = DispatchQueue(label: "com.swasthicare.bodyscan", qos: .userInteractive)
 
     func startSession() {
@@ -297,13 +298,14 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
     }
 
     private func setupCamera() {
+        let isFront = usingFrontCamera // capture on MainActor
         processingQueue.async { [weak self] in
             guard let self else { return }
             self.captureSession.beginConfiguration()
             self.captureSession.sessionPreset = .high
 
             // Camera input
-            let position: AVCaptureDevice.Position = self.usingFrontCamera ? .front : .back
+            let position: AVCaptureDevice.Position = isFront ? .front : .back
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
                   let input = try? AVCaptureDeviceInput(device: device) else {
                 self.captureSession.commitConfiguration()
@@ -314,20 +316,25 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
                 self.captureSession.addInput(input)
             }
 
-            // Video output for Vision processing
-            self.videoOutput.setSampleBufferDelegate(self, queue: self.processingQueue)
-            self.videoOutput.alwaysDiscardsLateVideoFrames = true
+            // Video output for Vision processing — only add once
+            if !self.outputAdded {
+                self.videoOutput.setSampleBufferDelegate(self, queue: self.processingQueue)
+                self.videoOutput.alwaysDiscardsLateVideoFrames = true
 
-            if self.captureSession.canAddOutput(self.videoOutput) {
-                self.captureSession.addOutput(self.videoOutput)
+                if self.captureSession.canAddOutput(self.videoOutput) {
+                    self.captureSession.addOutput(self.videoOutput)
+                    self.outputAdded = true
+                }
             }
 
             // Set video orientation
             if let connection = self.videoOutput.connection(with: .video) {
-                connection.videoOrientation = .portrait
-                if self.usingFrontCamera {
-                    connection.isVideoMirrored = true
+                if #available(iOS 17.0, *) {
+                    connection.videoRotationAngle = 90 // portrait
+                } else {
+                    connection.videoOrientation = .portrait
                 }
+                connection.isVideoMirrored = isFront
             }
 
             self.captureSession.commitConfiguration()
@@ -340,6 +347,7 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
     }
 
     private func reconfigureCamera() {
+        let isFront = usingFrontCamera // capture on MainActor
         processingQueue.async { [weak self] in
             guard let self else { return }
             self.captureSession.beginConfiguration()
@@ -349,7 +357,7 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
                 self.captureSession.removeInput(input)
             }
 
-            let position: AVCaptureDevice.Position = self.usingFrontCamera ? .front : .back
+            let position: AVCaptureDevice.Position = isFront ? .front : .back
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
                   let input = try? AVCaptureDeviceInput(device: device) else {
                 self.captureSession.commitConfiguration()
@@ -361,10 +369,12 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
             }
 
             if let connection = self.videoOutput.connection(with: .video) {
-                connection.videoOrientation = .portrait
-                if self.usingFrontCamera {
-                    connection.isVideoMirrored = true
+                if #available(iOS 17.0, *) {
+                    connection.videoRotationAngle = 90
+                } else {
+                    connection.videoOrientation = .portrait
                 }
+                connection.isVideoMirrored = isFront
             }
 
             self.captureSession.commitConfiguration()
@@ -420,18 +430,18 @@ extension ARBodyScanViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
-        let request = VNDetectHumanBodyPoseRequest()
+        let request = self.bodyPoseRequest // reuse stored request
 
         do {
             try handler.perform([request])
             if let observation = request.results?.first {
-                Task { @MainActor in
-                    self.processBodyPose(observation)
+                Task { @MainActor [weak self] in
+                    self?.processBodyPose(observation)
                 }
             } else {
-                Task { @MainActor in
-                    self.bodyDetected = false
-                    self.visibleOrgans = []
+                Task { @MainActor [weak self] in
+                    self?.bodyDetected = false
+                    self?.visibleOrgans = []
                 }
             }
         } catch {
