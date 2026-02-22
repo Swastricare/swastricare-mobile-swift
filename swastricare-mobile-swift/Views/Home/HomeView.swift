@@ -1560,7 +1560,7 @@ private struct HealthLiveActivityToggle: View {
     let heartRate: Int
     let calories: Int
 
-    @StateObject private var manager = HealthLiveActivityManager.shared
+    @ObservedObject private var manager = HealthLiveActivityManager.shared
 
     var body: some View {
         Button(action: {
