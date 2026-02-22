@@ -29,6 +29,7 @@ struct HomeView: View {
     @State private var showHeartRateMeasurement = false
     @State private var showReminders = false
     @State private var showDiet = false
+    @State private var showARBodyScan = false
     
     // MARK: - Computed Properties
     
@@ -134,6 +135,75 @@ struct HomeView: View {
                     healthVitalsSection
                         .padding(.top, 8)
                     
+                    // AR Body Scan Entry
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        showARBodyScan = true
+                    }) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "1BFFFF").opacity(0.1)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 40, height: 40)
+                                Image(systemName: "figure.stand")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(Color(hex: "2E3192"))
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text("AR Body Scan")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(.primary)
+                                    Text("NEW")
+                                        .font(.system(size: 9, weight: .heavy))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(
+                                            LinearGradient(
+                                                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .clipShape(Capsule())
+                                }
+                                Text("Point camera at yourself to explore your body")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(14)
+                        .glass(cornerRadius: 16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "1BFFFF").opacity(0.1)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 0.5
+                                )
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
                     // Dynamic Island Health Tracker
                     HealthLiveActivityToggle(
                         userName: userName,
@@ -166,6 +236,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showReminders) {
             RemindersView()
+        }
+        .fullScreenCover(isPresented: $showARBodyScan) {
+            ARBodyScanView()
         }
         .onAppear {
             AppAnalyticsService.shared.logScreen("Home")
