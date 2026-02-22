@@ -153,8 +153,8 @@ struct HealthLiveActivityWidget: Widget {
 private struct HealthLiveActivityLockScreenView: View {
     let context: ActivityViewContext<HealthActivityAttributes>
 
-    private let primaryText = Color(uiColor: .label)
-    private let secondaryText = Color(uiColor: .secondaryLabel)
+    private let primaryText = Color.primary
+    private let secondaryText = Color.secondary
 
     var body: some View {
         VStack(spacing: 0) {
@@ -193,7 +193,7 @@ private struct HealthLiveActivityLockScreenView: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color(uiColor: .secondarySystemBackground))
+                    .background(Color(.secondarySystemBackground))
                     .clipShape(Capsule())
                 }
             }
@@ -249,7 +249,7 @@ private struct HealthLiveActivityLockScreenView: View {
             .padding(.bottom, 20)
         }
         .background {
-            Color(uiColor: .systemBackground)
+            Color(.systemBackground)
         }
         .applyHealthContainerBackground()
         .widgetURL(URL(string: "swastricareapp://health/live"))
@@ -261,10 +261,10 @@ private extension View {
     func applyHealthContainerBackground() -> some View {
         if #available(iOS 17.0, *) {
             self.containerBackground(for: .widget) {
-                Color(uiColor: .systemBackground)
+                Color(.systemBackground)
             }
         } else {
-            self.background(Color(uiColor: .systemBackground))
+            self.background(Color(.systemBackground))
         }
     }
 }
