@@ -202,7 +202,10 @@ struct AIView: View {
                 }
         }
         // Only show alert for non-chat errors (like history loading failures)
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil && viewModel.currentErrorState == nil)) {
+        .alert("Error", isPresented: Binding(
+            get: { viewModel.errorMessage != nil && viewModel.currentErrorState == nil },
+            set: { if !$0 { viewModel.clearError() } }
+        )) {
             Button("OK") { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
@@ -316,11 +319,23 @@ struct AIView: View {
         )
         .onChange(of: selectedPhotoItem) { _, newItem in
             Task {
-                if let newItem = newItem,
-                   let data = try? await newItem.loadTransferable(type: Data.self) {
+                guard let newItem = newItem else { return }
+                defer { selectedPhotoItem = nil }
+                do {
+                    guard let data = try await newItem.loadTransferable(type: Data.self) else {
+                        toastMessage = "Could not load image"
+                        toastIcon = "exclamationmark.triangle"
+                        toastColor = .orange
+                        withAnimation { showToast = true }
+                        return
+                    }
                     viewModel.setSelectedImage(data)
                     await viewModel.analyzeSelectedImage(type: selectedImageType)
-                    selectedPhotoItem = nil
+                } catch {
+                    toastMessage = "Failed to load image"
+                    toastIcon = "exclamationmark.triangle"
+                    toastColor = .orange
+                    withAnimation { showToast = true }
                 }
             }
         }
@@ -1128,9 +1143,11 @@ private struct TypewriterMarkdownView: View {
             }
         }
         .task {
-            guard !content.isEmpty else {
+            defer {
                 isComplete = true
                 onComplete()
+            }
+            guard !content.isEmpty else {
                 return
             }
             let allWords = Self.splitIntoWords(content)
@@ -1158,10 +1175,6 @@ private struct TypewriterMarkdownView: View {
                     delay = UInt64.random(in: 20_000_000...40_000_000)  // 20-40ms for short responses
                 }
                 try? await Task.sleep(nanoseconds: delay)
-            }
-            if !Task.isCancelled {
-                isComplete = true
-                onComplete()
             }
         }
     }
@@ -3022,6 +3035,18 @@ private struct ParticleOrbView: UIViewRepresentable {
            let particleSystem = context.coordinator.particleSystem {
             updateOrbState(orbNode: orbNode, particleSystem: particleSystem, pointLight: context.coordinator.pointLight, state: state, isMedical: isMedicalMode)
         }
+    }
+
+    static func dismantleUIView(_ uiView: SCNView, coordinator: Coordinator) {
+        uiView.scene?.rootNode.enumerateChildNodes { node, _ in
+            node.removeAllParticleSystems()
+            node.removeAllActions()
+        }
+        uiView.scene = nil
+        coordinator.orbNode = nil
+        coordinator.particleSystem = nil
+        coordinator.sceneView = nil
+        coordinator.pointLight = nil
     }
 
     private func updateOrbState(orbNode: SCNNode, particleSystem: SCNParticleSystem, pointLight: SCNNode?, state: OrbState, isMedical: Bool = false) {
