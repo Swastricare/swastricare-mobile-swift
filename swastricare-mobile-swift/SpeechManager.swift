@@ -17,6 +17,7 @@ class SpeechManager: NSObject, ObservableObject {
     // MARK: - Published Properties
     @Published var isRecording = false
     @Published var isSpeaking = false
+    @Published private(set) var lastSpokenText: String = ""
     @Published var recognizedText = ""
     @Published var errorMessage: String?
     @Published var authorizationStatus: SFSpeechRecognizerAuthorizationStatus = .notDetermined
@@ -217,14 +218,16 @@ class SpeechManager: NSObject, ObservableObject {
         }
         
         isSpeaking = true
+        lastSpokenText = text
         synthesizer.speak(utterance)
-        
+
         print("🔊 Speaking: \(text.prefix(50))...")
     }
     
     func stopSpeaking() {
         synthesizer.stopSpeaking(at: .immediate)
         isSpeaking = false
+        lastSpokenText = ""
         print("🔊 Stopped speaking")
     }
     

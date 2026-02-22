@@ -61,6 +61,7 @@ struct AIView: View {
 
     // MARK: - Health Context Badge
     @State private var showHealthContextBadge = false
+    @State private var hasShownHealthBadge = false
     
     // MARK: - Body
     
@@ -324,10 +325,13 @@ struct AIView: View {
             await viewModel.loadHistory()
             // Mark loaded history messages as already animated (no typewriter for history)
             typewriterAnimatedIds = Set(viewModel.messages.map(\.id))
-            // Show health context badge briefly
-            withAnimation(.easeIn(duration: 0.3).delay(0.5)) { showHealthContextBadge = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                withAnimation(.easeOut(duration: 0.3)) { showHealthContextBadge = false }
+            // Show health context badge briefly (once per session)
+            if !hasShownHealthBadge {
+                hasShownHealthBadge = true
+                withAnimation(.easeIn(duration: 0.3).delay(0.5)) { showHealthContextBadge = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    withAnimation(.easeOut(duration: 0.3)) { showHealthContextBadge = false }
+                }
             }
         }
     }
@@ -367,10 +371,18 @@ struct AIView: View {
                                         onSpeak: !message.isUser && !message.isLoading ? { text in
                                             if speechManager.isSpeaking {
                                                 speechManager.stopSpeaking()
+                                                // If tapping the same message that's speaking, just stop
+                                                // If tapping a different message, switch to it
+                                                if speechManager.lastSpokenText != text {
+                                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                                        speechManager.speak(text)
+                                                    }
+                                                }
                                             } else {
                                                 speechManager.speak(text)
                                             }
-                                        } : nil
+                                        } : nil,
+                                        isSpeaking: speechManager.isSpeaking && !message.isUser && !message.isLoading
                                     )
                                     .id(message.id)
                                     .transition(
@@ -1058,11 +1070,12 @@ private struct ChatBubble: View {
     let onTypewriteComplete: (() -> Void)?
     let onBookmark: (() -> Void)?
     let onSpeak: ((String) -> Void)?
+    let isSpeaking: Bool
     @State private var appeared = false
     @State private var showFeedbackButtons = false
     @State private var showCopied = false
 
-    init(message: ChatMessage, loadingOperation: LoadingOperationType, shouldTypewrite: Bool = false, onFeedback: ((MessageFeedback) -> Void)? = nil, onTypewriteComplete: (() -> Void)? = nil, onBookmark: (() -> Void)? = nil, onSpeak: ((String) -> Void)? = nil) {
+    init(message: ChatMessage, loadingOperation: LoadingOperationType, shouldTypewrite: Bool = false, onFeedback: ((MessageFeedback) -> Void)? = nil, onTypewriteComplete: (() -> Void)? = nil, onBookmark: (() -> Void)? = nil, onSpeak: ((String) -> Void)? = nil, isSpeaking: Bool = false) {
         self.message = message
         self.loadingOperation = loadingOperation
         self.shouldTypewrite = shouldTypewrite
@@ -1070,6 +1083,7 @@ private struct ChatBubble: View {
         self.onTypewriteComplete = onTypewriteComplete
         self.onBookmark = onBookmark
         self.onSpeak = onSpeak
+        self.isSpeaking = isSpeaking
     }
     
     var body: some View {
@@ -1225,9 +1239,9 @@ private struct ChatBubble: View {
                                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                             onSpeak(message.content)
                                         }) {
-                                            Image(systemName: "speaker.wave.2.fill")
+                                            Image(systemName: isSpeaking ? "stop.fill" : "speaker.wave.2.fill")
                                                 .font(.system(size: 12))
-                                                .foregroundColor(.secondary)
+                                                .foregroundColor(isSpeaking ? Color(hex: "2E3192") : .secondary)
                                         }
                                     }
                                 }
