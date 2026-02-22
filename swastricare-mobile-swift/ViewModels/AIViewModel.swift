@@ -262,8 +262,8 @@ final class AIViewModel: ObservableObject {
                 print("❌ Failed to save chat history: \(error.localizedDescription)")
             }
         } catch {
-            messages.removeLast() // Remove loading message
-            messages.removeLast() // Remove user message (we'll restore it on retry)
+            if !messages.isEmpty { messages.removeLast() } // Remove loading message
+            if !messages.isEmpty { messages.removeLast() } // Remove user message (we'll restore it on retry)
             lastFailedMessage = text
             currentErrorState = AIErrorState.fromError(error, mode: selectedAIMode)
             chatState = .error(currentErrorState?.message ?? error.localizedDescription)
@@ -433,13 +433,13 @@ final class AIViewModel: ObservableObject {
             // Send to AI with health context
             let prompt = "Here are my current health metrics:\n\n\(metricsContext)\n\nPlease analyze my health and provide insights and recommendations."
             
-            let response = try await aiService.sendChatMessage(prompt, context: messages.dropLast(), systemContext: nil)
-            
+            let response = try await aiService.sendChatMessage(prompt, context: Array(messages.dropLast()), systemContext: nil)
+
             // Remove loading message and add response with health analysis mode
-            messages.removeLast()
+            if !messages.isEmpty { messages.removeLast() }
             messages.append(ChatMessage.assistantMessage(response, mode: .healthAnalysis))
             chatState = .idle
-            
+
             // Save chat history
             do {
                 currentConversationId = try await aiService.saveChatHistory(messages, conversationId: currentConversationId)
@@ -447,13 +447,16 @@ final class AIViewModel: ObservableObject {
                 print("Failed to save chat history: \(error.localizedDescription)")
             }
         } catch {
-            messages.removeLast()
+            if !messages.isEmpty { messages.removeLast() } // Remove loading message
+            if !messages.isEmpty { messages.removeLast() } // Remove user message
             chatState = .error(error.localizedDescription)
             errorMessage = error.localizedDescription
         }
     }
     
     func clearChat() {
+        // Prevent clearing during in-flight requests to avoid race conditions
+        guard !chatState.isBusy else { return }
         let conversationIdToArchive = currentConversationId
         messages = []
         chatState = .idle
@@ -508,6 +511,10 @@ final class AIViewModel: ObservableObject {
         selectedImage = nil
         isAnalyzingImage = false
         currentLoadingOperation = .generalChat
+
+        // Clear persisted preferences so next user doesn't inherit them
+        UserDefaults.standard.removeObject(forKey: "ai_selected_mode")
+        UserDefaults.standard.removeObject(forKey: "ai_selected_personality")
 
         // Ensure we can load history for the next authenticated session.
         shouldLoadHistory = true
@@ -591,7 +598,8 @@ final class AIViewModel: ObservableObject {
                 print("Failed to save chat history: \(error.localizedDescription)")
             }
         } catch {
-            messages.removeLast()
+            if !messages.isEmpty { messages.removeLast() } // Remove loading message
+            if !messages.isEmpty { messages.removeLast() } // Remove user message
             chatState = .error(error.localizedDescription)
             errorMessage = error.localizedDescription
             isAnalyzingImage = false
