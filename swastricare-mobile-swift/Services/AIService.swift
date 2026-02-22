@@ -611,29 +611,6 @@ final class AIService: AIServiceProtocol {
     }
     
     func saveChatHistory(_ messages: [ChatMessage], conversationId: UUID?) async throws -> UUID {
-        // #region agent log
-        do {
-            let logData: [String: Any] = [
-                "sessionId": "debug-session",
-                "runId": "run1",
-                "hypothesisId": "A",
-                "location": "AIService.swift:354",
-                "message": "saveChatHistory entry",
-                "data": [
-                    "hasConversationId": conversationId != nil,
-                    "messageCount": messages.count
-                ],
-                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-            ]
-            if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
-                try? logFile.seekToEnd()
-                try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
-                try? logFile.write(Data("\n".utf8))
-                try? logFile.close()
-            }
-        } catch {}
-        // #endregion
-        
         guard let userId = try? await supabase.client.auth.session.user.id else {
             print("❌ No user ID - not authenticated")
             throw AIError.networkError
@@ -641,31 +618,7 @@ final class AIService: AIServiceProtocol {
         
         // Try to get health profile ID, but it's optional
         let profileId = try? await getHealthProfileId()
-        
-        // #region agent log
-        do {
-            let logData: [String: Any] = [
-                "sessionId": "debug-session",
-                "runId": "run1",
-                "hypothesisId": "A",
-                "location": "AIService.swift:361",
-                "message": "profileId check",
-                "data": [
-                    "userId": userId.uuidString,
-                    "hasProfileId": profileId != nil,
-                    "profileId": profileId?.uuidString ?? "nil"
-                ],
-                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-            ]
-            if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
-                try? logFile.seekToEnd()
-                try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
-                try? logFile.write(Data("\n".utf8))
-                try? logFile.close()
-            }
-        } catch {}
-        // #endregion
-        
+
         // Convert ChatMessage array to JSON format
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -744,30 +697,6 @@ final class AIService: AIServiceProtocol {
                 let model_used: String
             }
             
-            // #region agent log
-            do {
-                let logData: [String: Any] = [
-                    "sessionId": "debug-session",
-                    "runId": "post-fix",
-                    "hypothesisId": "B",
-                    "location": "AIService.swift:441",
-                    "message": "before insert (post-fix)",
-                    "data": [
-                        "hasProfileId": profileId != nil,
-                        "profileId": profileId?.uuidString ?? "nil",
-                        "userId": userId.uuidString
-                    ],
-                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                ]
-                if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
-                    try? logFile.seekToEnd()
-                    try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
-                    try? logFile.write(Data("\n".utf8))
-                    try? logFile.close()
-                }
-            } catch {}
-            // #endregion
-            
             // health_profile_id is now nullable in database, so we can insert even without a profile
             let insert = ConversationInsertOptional(
                 health_profile_id: profileId,
@@ -786,28 +715,6 @@ final class AIService: AIServiceProtocol {
                 .single()
                 .execute()
                 .value
-            
-            // #region agent log
-            do {
-                let logData: [String: Any] = [
-                    "sessionId": "debug-session",
-                    "runId": "run1",
-                    "hypothesisId": "B",
-                    "location": "AIService.swift:490",
-                    "message": "insert success",
-                    "data": [
-                        "conversationId": created.id.uuidString
-                    ],
-                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                ]
-                if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
-                    try? logFile.seekToEnd()
-                    try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
-                    try? logFile.write(Data("\n".utf8))
-                    try? logFile.close()
-                }
-            } catch {}
-            // #endregion
             
             return created.id
         }

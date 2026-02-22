@@ -456,30 +456,6 @@ final class RunActivityViewModel: ObservableObject {
     // MARK: - Delete Activity
     
     func deleteActivity(_ activity: RouteActivity) async -> Bool {
-        // #region agent log
-        let logData: [String: Any] = [
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "A",
-            "location": "RunActivityViewModel.swift:390",
-            "message": "deleteActivity called",
-            "data": [
-                "activityId": activity.id.uuidString,
-                "apiId": activity.apiId?.uuidString ?? "nil",
-                "externalId": activity.externalId ?? "nil",
-                "source": activity.source ?? "nil"
-            ],
-            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-        ]
-        if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-           let jsonData = try? JSONSerialization.data(withJSONObject: logData),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            try? logFile.seekToEnd()
-            try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-            try? logFile.close()
-        }
-        // #endregion
-        
         // Remove from local list immediately and persist so they stay hidden after app restart
         hiddenActivityIds.insert(activity.id)
         if let externalId = activity.externalId {
@@ -488,174 +464,27 @@ final class RunActivityViewModel: ObservableObject {
         persistHiddenIds()
         let wasInList = activities.contains { $0.id == activity.id }
         activities.removeAll { $0.id == activity.id }
-        
-        // #region agent log
-        let logData2: [String: Any] = [
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "B",
-            "location": "RunActivityViewModel.swift:410",
-            "message": "Before backend delete check",
-            "data": [
-                "hasApiId": activity.apiId != nil,
-                "wasInList": wasInList,
-                "hiddenIdsCount": hiddenActivityIds.count,
-                "hiddenExternalIdsCount": hiddenExternalIds.count
-            ],
-            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-        ]
-        if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-           let jsonData = try? JSONSerialization.data(withJSONObject: logData2),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            try? logFile.seekToEnd()
-            try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-            try? logFile.close()
-        }
-        // #endregion
-        
+
         // Only attempt backend delete for activities that have a backend id.
         // HealthKit-only activities won't have an API record to delete.
         if let apiId = activity.apiId {
             do {
-                // #region agent log
-                let logData3: [String: Any] = [
-                    "sessionId": "debug-session",
-                    "runId": "pre-fix",
-                    "hypothesisId": "C",
-                    "location": "RunActivityViewModel.swift:425",
-                    "message": "Calling activityService.deleteActivity",
-                    "data": ["apiId": apiId.uuidString],
-                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                ]
-                if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-                   let jsonData = try? JSONSerialization.data(withJSONObject: logData3),
-                   let jsonString = String(data: jsonData, encoding: .utf8) {
-                    try? logFile.seekToEnd()
-                    try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                    try? logFile.close()
-                }
-                // #endregion
-                
                 try await activityService.deleteActivity(id: apiId)
-                
-                // #region agent log
-                let logData4: [String: Any] = [
-                    "sessionId": "debug-session",
-                    "runId": "pre-fix",
-                    "hypothesisId": "D",
-                    "location": "RunActivityViewModel.swift:443",
-                    "message": "Successfully deleted from API",
-                    "data": ["apiId": apiId.uuidString],
-                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                ]
-                if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-                   let jsonData = try? JSONSerialization.data(withJSONObject: logData4),
-                   let jsonString = String(data: jsonData, encoding: .utf8) {
-                    try? logFile.seekToEnd()
-                    try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                    try? logFile.close()
-                }
-                // #endregion
-                
+
                 print("✅ Successfully deleted activity from API: \(apiId)")
             } catch {
-                // #region agent log
-                let logData5: [String: Any] = [
-                    "sessionId": "debug-session",
-                    "runId": "pre-fix",
-                    "hypothesisId": "E",
-                    "location": "RunActivityViewModel.swift:459",
-                    "message": "Delete failed with error",
-                    "data": [
-                        "apiId": apiId.uuidString,
-                        "error": error.localizedDescription,
-                        "errorType": String(describing: type(of: error))
-                    ],
-                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                ]
-                if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-                   let jsonData = try? JSONSerialization.data(withJSONObject: logData5),
-                   let jsonString = String(data: jsonData, encoding: .utf8) {
-                    try? logFile.seekToEnd()
-                    try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                    try? logFile.close()
-                }
-                // #endregion
-                
                 print("❌ Failed to delete activity from API: \(error.localizedDescription)")
                 // Surface the error (helps debug "delete not working")
                 errorMessage = "Delete failed: \(error.localizedDescription)"
                 return false
             }
         } else {
-            // #region agent log
-            let logData6: [String: Any] = [
-                "sessionId": "debug-session",
-                "runId": "pre-fix",
-                "hypothesisId": "A",
-                "location": "RunActivityViewModel.swift:477",
-                "message": "Skipping backend delete - no apiId",
-                "data": [
-                    "activityId": activity.id.uuidString,
-                    "externalId": activity.externalId ?? "nil"
-                ],
-                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-            ]
-            if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-               let jsonData = try? JSONSerialization.data(withJSONObject: logData6),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                try? logFile.seekToEnd()
-                try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                try? logFile.close()
-            }
-            // #endregion
         }
         
         // Reload data to update statistics (only if we actually had the activity)
         // NOTE: With `hiddenActivityIds`, the deleted activity won't reappear after reload.
         if wasInList {
-            // #region agent log
-            let logData7: [String: Any] = [
-                "sessionId": "debug-session",
-                "runId": "pre-fix",
-                "hypothesisId": "C",
-                "location": "RunActivityViewModel.swift:496",
-                "message": "Reloading data after delete",
-                "data": ["wasInList": wasInList],
-                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-            ]
-            if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-               let jsonData = try? JSONSerialization.data(withJSONObject: logData7),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                try? logFile.seekToEnd()
-                try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                try? logFile.close()
-            }
-            // #endregion
-            
             await loadData()
-            
-            // #region agent log
-            let logData8: [String: Any] = [
-                "sessionId": "debug-session",
-                "runId": "pre-fix",
-                "hypothesisId": "C",
-                "location": "RunActivityViewModel.swift:512",
-                "message": "Data reloaded after delete",
-                "data": [
-                    "activitiesCount": activities.count,
-                    "hiddenIdsCount": hiddenActivityIds.count
-                ],
-                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-            ]
-            if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-               let jsonData = try? JSONSerialization.data(withJSONObject: logData8),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                try? logFile.seekToEnd()
-                try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                try? logFile.close()
-            }
-            // #endregion
         }
         
         return true

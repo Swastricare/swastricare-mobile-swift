@@ -256,79 +256,9 @@ final class AIViewModel: ObservableObject {
             
             // Save chat history
             do {
-                // #region agent log
-                do {
-                    let logData: [String: Any] = [
-                        "sessionId": "debug-session",
-                        "runId": "verify-storage",
-                        "hypothesisId": "E",
-                        "location": "AIViewModel.swift:94",
-                        "message": "calling saveChatHistory",
-                        "data": [
-                            "messageCount": messages.count,
-                            "hasConversationId": currentConversationId != nil
-                        ],
-                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                    ]
-                    if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
-                        try? logFile.seekToEnd()
-                        try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
-                        try? logFile.write(Data("\n".utf8))
-                        try? logFile.close()
-                    }
-                } catch {}
-                // #endregion
-                
                 currentConversationId = try await aiService.saveChatHistory(messages, conversationId: currentConversationId)
-                
-                // #region agent log
-                do {
-                    let logData: [String: Any] = [
-                        "sessionId": "debug-session",
-                        "runId": "verify-storage",
-                        "hypothesisId": "E",
-                        "location": "AIViewModel.swift:115",
-                        "message": "saveChatHistory completed",
-                        "data": [
-                            "conversationId": currentConversationId?.uuidString ?? "nil",
-                            "saveSuccess": true
-                        ],
-                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                    ]
-                    if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
-                        try? logFile.seekToEnd()
-                        try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
-                        try? logFile.write(Data("\n".utf8))
-                        try? logFile.close()
-                    }
-                } catch {}
-                // #endregion
-                
                 print("✅ Chat history saved successfully")
             } catch {
-                // #region agent log
-                do {
-                    let logData: [String: Any] = [
-                        "sessionId": "debug-session",
-                        "runId": "verify-storage",
-                        "hypothesisId": "E",
-                        "location": "AIViewModel.swift:132",
-                        "message": "saveChatHistory failed",
-                        "data": [
-                            "error": error.localizedDescription,
-                            "saveSuccess": false
-                        ],
-                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                    ]
-                    if let logFile = FileHandle(forWritingAtPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log") {
-                        try? logFile.seekToEnd()
-                        try? logFile.write(Data((try? JSONSerialization.data(withJSONObject: logData)) ?? Data()))
-                        try? logFile.write(Data("\n".utf8))
-                        try? logFile.close()
-                    }
-                } catch {}
-                // #endregion
-                
                 print("❌ Failed to save chat history: \(error.localizedDescription)")
             }
         } catch {

@@ -110,70 +110,11 @@ final class RunActivityService: RunActivityServiceProtocol {
     }
     
     func deleteActivity(id: UUID) async throws {
-        // #region agent log
-        let logData: [String: Any] = [
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "B",
-            "location": "RunActivityService.swift:110",
-            "message": "deleteActivity service called",
-            "data": ["id": id.uuidString],
-            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-        ]
-        if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-           let jsonData = try? JSONSerialization.data(withJSONObject: logData),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            try? logFile.seekToEnd()
-            try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-            try? logFile.close()
-        }
-        // #endregion
-        
-        let urlString = "\(SupabaseConfig.projectURL)/functions/v1/\(functionName)?id=\(id.uuidString)"
-        
-        // #region agent log
-        let logData2: [String: Any] = [
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "B",
-            "location": "RunActivityService.swift:125",
-            "message": "DELETE URL constructed",
-            "data": ["url": urlString],
-            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-        ]
-        if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-           let jsonData = try? JSONSerialization.data(withJSONObject: logData2),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            try? logFile.seekToEnd()
-            try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-            try? logFile.close()
-        }
-        // #endregion
-        
         let result: SuccessResponse = try await invokeFunction(
             action: "",
             method: "DELETE",
             queryParams: ["id": id.uuidString]
         )
-        
-        // #region agent log
-        let logData3: [String: Any] = [
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "D",
-            "location": "RunActivityService.swift:145",
-            "message": "Delete response received",
-            "data": ["success": result.success],
-            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-        ]
-        if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-           let jsonData = try? JSONSerialization.data(withJSONObject: logData3),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            try? logFile.seekToEnd()
-            try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-            try? logFile.close()
-        }
-        // #endregion
     }
     
     /// Deletes run activities from the backend where external_id is in the given set (e.g. after deleting from Apple Health).
@@ -283,29 +224,6 @@ final class RunActivityService: RunActivityServiceProtocol {
             urlString += "?\(queryString)"
         }
         
-        // #region agent log
-        let logData: [String: Any] = [
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "B",
-            "location": "RunActivityService.swift:208",
-            "message": "invokeFunction - before request",
-            "data": [
-                "method": method,
-                "url": urlString,
-                "hasAuth": (try? await supabase.client.auth.session) != nil
-            ],
-            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-        ]
-        if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-           let jsonData = try? JSONSerialization.data(withJSONObject: logData),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            try? logFile.seekToEnd()
-            try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-            try? logFile.close()
-        }
-        // #endregion
-        
         guard let url = URL(string: urlString) else {
             throw RunActivityError.invalidURL
         }
@@ -344,29 +262,6 @@ final class RunActivityService: RunActivityServiceProtocol {
             throw RunActivityError.networkError
         }
         
-        // #region agent log
-        let logData2: [String: Any] = [
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "E",
-            "location": "RunActivityService.swift:260",
-            "message": "HTTP response received",
-            "data": [
-                "statusCode": httpResponse.statusCode,
-                "method": method,
-                "dataLength": data.count
-            ],
-            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-        ]
-        if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-           let jsonData = try? JSONSerialization.data(withJSONObject: logData2),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            try? logFile.seekToEnd()
-            try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-            try? logFile.close()
-        }
-        // #endregion
-        
         if httpResponse.statusCode >= 400 {
             // Try to parse error message
             let errorMessage: String
@@ -375,29 +270,6 @@ final class RunActivityService: RunActivityServiceProtocol {
             } else {
                 errorMessage = "HTTP \(httpResponse.statusCode)"
             }
-            
-            // #region agent log
-            let logData3: [String: Any] = [
-                "sessionId": "debug-session",
-                "runId": "pre-fix",
-                "hypothesisId": "E",
-                "location": "RunActivityService.swift:285",
-                "message": "HTTP error response",
-                "data": [
-                    "statusCode": httpResponse.statusCode,
-                    "error": errorMessage,
-                    "responseBody": String(data: data, encoding: .utf8) ?? "nil"
-                ],
-                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-            ]
-            if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-               let jsonData = try? JSONSerialization.data(withJSONObject: logData3),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                try? logFile.seekToEnd()
-                try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                try? logFile.close()
-            }
-            // #endregion
             
             throw RunActivityError.serverError(errorMessage)
         }
@@ -409,28 +281,6 @@ final class RunActivityService: RunActivityServiceProtocol {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            // #region agent log
-            let logData4: [String: Any] = [
-                "sessionId": "debug-session",
-                "runId": "pre-fix",
-                "hypothesisId": "E",
-                "location": "RunActivityService.swift:310",
-                "message": "Decoding error",
-                "data": [
-                    "error": error.localizedDescription,
-                    "responseBody": String(data: data, encoding: .utf8) ?? "nil"
-                ],
-                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-            ]
-            if let logFile = try? FileHandle(forWritingTo: URL(fileURLWithPath: "/Users/syamsundar/Onwords/swastricare-mobile-swift/.cursor/debug.log")),
-               let jsonData = try? JSONSerialization.data(withJSONObject: logData4),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                try? logFile.seekToEnd()
-                try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                try? logFile.close()
-            }
-            // #endregion
-            
             print("Decoding error: \(error)")
             throw RunActivityError.decodingError
         }

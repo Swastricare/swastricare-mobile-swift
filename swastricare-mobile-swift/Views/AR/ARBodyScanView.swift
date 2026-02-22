@@ -14,7 +14,7 @@ import Vision
 
 struct ARBodyScanView: View {
     @StateObject private var viewModel = ARBodyScanViewModel()
-    @StateObject private var homeViewModel = DependencyContainer.shared.homeViewModel
+    @ObservedObject private var homeViewModel = DependencyContainer.shared.homeViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedOrgan: OrganOverlay?
     @State private var showInfoCard = true
@@ -258,20 +258,23 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
     @Published private(set) var usingFrontCamera = false
 
     let captureSession = AVCaptureSession()
-    private let bodyPoseRequest = VNDetectHumanBodyPoseRequest()
-    private var videoOutput = AVCaptureVideoDataOutput()
+    private let videoOutput = AVCaptureVideoDataOutput()
     private var outputAdded = false
+    private var sessionStarted = false
     private let processingQueue = DispatchQueue(label: "com.swasthicare.bodyscan", qos: .userInteractive)
+    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
 
     func startSession() {
+        guard !sessionStarted else { return }
+        sessionStarted = true
+        feedbackGenerator.prepare()
         checkPermission()
     }
 
     func stopSession() {
-        if captureSession.isRunning {
-            processingQueue.async { [weak self] in
-                self?.captureSession.stopRunning()
-            }
+        sessionStarted = false
+        processingQueue.async { [weak self] in
+            self?.captureSession.stopRunning()
         }
     }
 
@@ -303,6 +306,11 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
             guard let self else { return }
             self.captureSession.beginConfiguration()
             self.captureSession.sessionPreset = .high
+
+            // Remove existing inputs to prevent duplicates
+            for input in self.captureSession.inputs {
+                self.captureSession.removeInput(input)
+            }
 
             // Camera input
             let position: AVCaptureDevice.Position = isFront ? .front : .back
@@ -340,8 +348,8 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
             self.captureSession.commitConfiguration()
             self.captureSession.startRunning()
 
-            DispatchQueue.main.async {
-                self.isDetecting = true
+            DispatchQueue.main.async { [weak self] in
+                self?.isDetecting = true
             }
         }
     }
@@ -403,22 +411,20 @@ final class ARBodyScanViewModel: NSObject, ObservableObject {
             }
         }
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            let wasDetected = self.bodyDetected
-            self.bodyPoints = points
+        // Already on MainActor — update state directly
+        let wasDetected = bodyDetected
+        bodyPoints = points
 
-            // Need at least shoulders + hips to consider body detected
-            let hasUpperBody = points[.leftShoulder] != nil && points[.rightShoulder] != nil
-            let hasLowerBody = points[.leftHip] != nil || points[.rightHip] != nil
-            self.bodyDetected = hasUpperBody && hasLowerBody
+        // Need at least shoulders + hips to consider body detected
+        let hasUpperBody = points[.leftShoulder] != nil && points[.rightShoulder] != nil
+        let hasLowerBody = points[.leftHip] != nil || points[.rightHip] != nil
+        bodyDetected = hasUpperBody && hasLowerBody
 
-            if self.bodyDetected && !wasDetected {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                self.visibleOrgans = OrganOverlay.allOrgans
-            } else if !self.bodyDetected {
-                self.visibleOrgans = []
-            }
+        if bodyDetected && !wasDetected {
+            feedbackGenerator.impactOccurred()
+            visibleOrgans = OrganOverlay.allOrgans
+        } else if !bodyDetected {
+            visibleOrgans = []
         }
     }
 }
@@ -430,7 +436,7 @@ extension ARBodyScanViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
-        let request = self.bodyPoseRequest // reuse stored request
+        let request = VNDetectHumanBodyPoseRequest() // new per frame — VNRequest is not thread-safe
 
         do {
             try handler.perform([request])
