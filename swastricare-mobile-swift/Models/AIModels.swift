@@ -17,7 +17,8 @@ struct ChatMessage: Identifiable, Equatable {
     let isLoading: Bool
     let responseMode: AIResponseMode?
     var userFeedback: MessageFeedback?
-    
+    var isBookmarked: Bool
+
     init(
         id: UUID = UUID(),
         content: String,
@@ -25,7 +26,8 @@ struct ChatMessage: Identifiable, Equatable {
         timestamp: Date = Date(),
         isLoading: Bool = false,
         responseMode: AIResponseMode? = nil,
-        userFeedback: MessageFeedback? = nil
+        userFeedback: MessageFeedback? = nil,
+        isBookmarked: Bool = false
     ) {
         self.id = id
         self.content = content
@@ -34,6 +36,7 @@ struct ChatMessage: Identifiable, Equatable {
         self.isLoading = isLoading
         self.responseMode = responseMode
         self.userFeedback = userFeedback
+        self.isBookmarked = isBookmarked
     }
     
     static func userMessage(_ content: String) -> ChatMessage {
@@ -399,35 +402,189 @@ struct ConversationSummary: Identifiable, Equatable {
     let updatedAt: Date
     let messageCount: Int
     let status: String
-    
+
     var formattedDate: String {
         let calendar = Calendar.current
         let now = Date()
-        
+
         // Check if it's today
         if calendar.isDateInToday(updatedAt) {
             let timeFormatter = DateFormatter()
             timeFormatter.timeStyle = .short
             return timeFormatter.string(from: updatedAt)
         }
-        
+
         // Check if it's yesterday
         if calendar.isDateInYesterday(updatedAt) {
             return "Yesterday"
         }
-        
+
         // Check if it's within the last week
         if let daysAgo = calendar.dateComponents([.day], from: updatedAt, to: now).day, daysAgo < 7 {
             let weekdayFormatter = DateFormatter()
             weekdayFormatter.dateFormat = "EEEE"
             return weekdayFormatter.string(from: updatedAt)
         }
-        
+
         // For older dates, show the date
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .none
         return dateFormatter.string(from: updatedAt)
+    }
+
+    var topic: ConversationTopic {
+        let combined = (title + " " + lastMessage).lowercased()
+        if combined.contains("sleep") || combined.contains("insomnia") || combined.contains("rest") || combined.contains("bed") {
+            return .sleep
+        } else if combined.contains("diet") || combined.contains("nutrition") || combined.contains("eat") || combined.contains("food") || combined.contains("meal") || combined.contains("breakfast") || combined.contains("lunch") || combined.contains("dinner") {
+            return .nutrition
+        } else if combined.contains("exercise") || combined.contains("workout") || combined.contains("run") || combined.contains("walk") || combined.contains("steps") || combined.contains("fitness") || combined.contains("active") {
+            return .fitness
+        } else if combined.contains("doctor") || combined.contains("medication") || combined.contains("symptom") || combined.contains("pain") || combined.contains("medical") || combined.contains("diagnosis") || combined.contains("treatment") {
+            return .medical
+        } else if combined.contains("heart") || combined.contains("blood pressure") || combined.contains("pulse") || combined.contains("bpm") {
+            return .vitals
+        } else if combined.contains("water") || combined.contains("hydrat") || combined.contains("drink") {
+            return .hydration
+        } else if combined.contains("stress") || combined.contains("anxiety") || combined.contains("mental") || combined.contains("mood") || combined.contains("meditation") {
+            return .mental
+        }
+        return .general
+    }
+}
+
+// MARK: - Conversation Topic
+
+enum ConversationTopic: String, Equatable {
+    case sleep
+    case nutrition
+    case fitness
+    case medical
+    case vitals
+    case hydration
+    case mental
+    case general
+
+    var label: String {
+        switch self {
+        case .sleep: return "Sleep"
+        case .nutrition: return "Nutrition"
+        case .fitness: return "Fitness"
+        case .medical: return "Medical"
+        case .vitals: return "Vitals"
+        case .hydration: return "Hydration"
+        case .mental: return "Mental"
+        case .general: return "General"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .sleep: return "moon.zzz.fill"
+        case .nutrition: return "leaf.fill"
+        case .fitness: return "figure.run"
+        case .medical: return "stethoscope"
+        case .vitals: return "heart.fill"
+        case .hydration: return "drop.fill"
+        case .mental: return "brain.head.profile"
+        case .general: return "sparkles"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .sleep: return "6366F1"
+        case .nutrition: return "22C55E"
+        case .fitness: return "F97316"
+        case .medical: return "00A86B"
+        case .vitals: return "EF4444"
+        case .hydration: return "3B82F6"
+        case .mental: return "A855F7"
+        case .general: return "2E3192"
+        }
+    }
+}
+
+// MARK: - Proactive Health Nudge
+
+struct HealthNudge: Identifiable, Equatable {
+    var id: String { type.rawValue }
+    let type: NudgeType
+    let message: String
+    let icon: String
+    let color: String
+    let prompt: String
+
+    enum NudgeType: String, Equatable {
+        case hydration
+        case steps
+        case heartRate
+        case sleep
+        case activity
+    }
+
+    static func generate(steps: Int, heartRate: Int, calories: Int, lastWaterLog: Date?) -> [HealthNudge] {
+        var nudges: [HealthNudge] = []
+        let hour = Calendar.current.component(.hour, from: Date())
+
+        // Hydration nudge: no water logged in 2+ hours
+        if let lastWater = lastWaterLog {
+            let hoursSinceWater = Date().timeIntervalSince(lastWater) / 3600
+            if hoursSinceWater >= 2 {
+                nudges.append(HealthNudge(
+                    type: .hydration,
+                    message: "You haven't logged water in \(Int(hoursSinceWater))h",
+                    icon: "drop.fill",
+                    color: "3B82F6",
+                    prompt: "I haven't had water in a while. How much water should I drink now and any hydration tips?"
+                ))
+            }
+        } else if hour >= 9 {
+            nudges.append(HealthNudge(
+                type: .hydration,
+                message: "Don't forget to stay hydrated today",
+                icon: "drop.fill",
+                color: "3B82F6",
+                prompt: "Remind me about healthy hydration habits. How much water should I drink today?"
+            ))
+        }
+
+        // Steps nudge: behind pace for the day
+        let expectedSteps = (hour * 10000) / 16 // Assume 10k goal spread over 16 waking hours
+        if hour >= 10 && steps < expectedSteps / 2 {
+            nudges.append(HealthNudge(
+                type: .steps,
+                message: "Only \(steps.formatted()) steps so far — let's move!",
+                icon: "figure.walk",
+                color: "22C55E",
+                prompt: "I only have \(steps) steps today. Suggest ways to get more steps in and help me reach my goal."
+            ))
+        }
+
+        // Heart rate nudge: elevated resting heart rate
+        if heartRate > 100 {
+            nudges.append(HealthNudge(
+                type: .heartRate,
+                message: "Your heart rate is elevated at \(heartRate) bpm",
+                icon: "heart.fill",
+                color: "EF4444",
+                prompt: "My resting heart rate is \(heartRate) bpm which seems high. Should I be concerned? What can I do to lower it?"
+            ))
+        }
+
+        // Low activity nudge
+        if hour >= 14 && calories < 100 {
+            nudges.append(HealthNudge(
+                type: .activity,
+                message: "Low activity today — a short walk could help",
+                icon: "flame.fill",
+                color: "F97316",
+                prompt: "I've been inactive today with only \(calories) calories burned. Suggest a quick activity I can do right now."
+            ))
+        }
+
+        return nudges
     }
 }
 

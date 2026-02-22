@@ -1228,6 +1228,59 @@ struct HomeViewV2: View {
                 .buttonStyle(PlainButtonStyle())
                 .frame(maxWidth: .infinity)
             }
+
+            // Ask Swastri AI Card
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                NotificationCenter.default.post(name: NSNotification.Name("SwitchToAITab"), object: nil)
+            }) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "4A90E2").opacity(0.1)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(Color(hex: "2E3192"))
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ask Swastri AI")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.primary)
+                        Text("Get personalised health insights")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(Color(hex: "2E3192").opacity(0.6))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .glass(cornerRadius: 16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color(hex: "2E3192").opacity(0.2), Color(hex: "4A90E2").opacity(0.1)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ),
+                            lineWidth: 0.5
+                        )
+                )
+            }
+            .buttonStyle(ScaleButtonStyle())
         }
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : 20)

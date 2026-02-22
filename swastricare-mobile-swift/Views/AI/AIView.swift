@@ -18,6 +18,7 @@ struct AIView: View {
     @StateObject private var viewModel = DependencyContainer.shared.aiViewModel
     @StateObject private var trackerViewModel = DependencyContainer.shared.trackerViewModel
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
+    @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     
     // MARK: - Local State
     
@@ -53,6 +54,13 @@ struct AIView: View {
 
     // MARK: - Typewriter Animation Tracking
     @State private var typewriterAnimatedIds: Set<UUID> = []
+
+    // MARK: - Mode Transition Animation
+    @State private var modeTransitionProgress: CGFloat = 0
+    @State private var modeTransitionColor: Color = .clear
+
+    // MARK: - Health Context Badge
+    @State private var showHealthContextBadge = false
     
     // MARK: - Body
     
@@ -312,9 +320,15 @@ struct AIView: View {
         }
         .task {
             await trackerViewModel.loadData()
+            await hydrationViewModel.loadData()
             await viewModel.loadHistory()
             // Mark loaded history messages as already animated (no typewriter for history)
             typewriterAnimatedIds = Set(viewModel.messages.map(\.id))
+            // Show health context badge briefly
+            withAnimation(.easeIn(duration: 0.3).delay(0.5)) { showHealthContextBadge = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                withAnimation(.easeOut(duration: 0.3)) { showHealthContextBadge = false }
+            }
         }
     }
     
@@ -346,7 +360,17 @@ struct AIView: View {
                                         },
                                         onTypewriteComplete: {
                                             typewriterAnimatedIds.insert(message.id)
-                                        }
+                                        },
+                                        onBookmark: !message.isUser && !message.isLoading ? {
+                                            viewModel.toggleBookmark(messageId: message.id)
+                                        } : nil,
+                                        onSpeak: !message.isUser && !message.isLoading ? { text in
+                                            if speechManager.isSpeaking {
+                                                speechManager.stopSpeaking()
+                                            } else {
+                                                speechManager.speak(text)
+                                            }
+                                        } : nil
                                     )
                                     .id(message.id)
                                     .transition(
@@ -439,6 +463,49 @@ struct AIView: View {
                 ))
             }
         }
+        // Mode transition color wave overlay
+        .overlay {
+            if modeTransitionProgress > 0 {
+                Circle()
+                    .fill(modeTransitionColor.opacity(0.15))
+                    .scaleEffect(modeTransitionProgress * 4)
+                    .opacity(1 - modeTransitionProgress)
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea()
+            }
+        }
+        // Health context badge
+        .overlay(alignment: .bottom) {
+            if showHealthContextBadge {
+                HStack(spacing: 6) {
+                    Image(systemName: "heart.text.square.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Using your 7-day health data")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundColor(Color(hex: "2E3192"))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color(hex: "2E3192").opacity(0.08))
+                        .overlay(Capsule().stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5))
+                )
+                .padding(.bottom, 120)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onChange(of: viewModel.selectedAIMode) { _, newMode in
+            // Trigger mode transition color wave
+            modeTransitionColor = newMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")
+            modeTransitionProgress = 0
+            withAnimation(.easeOut(duration: 0.6)) {
+                modeTransitionProgress = 1
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                modeTransitionProgress = 0
+            }
+        }
         .onAppear {
             AppAnalyticsService.shared.logScreen("AI")
             // Trigger landing animation
@@ -495,6 +562,30 @@ struct AIView: View {
         }
     }
 
+    @ViewBuilder
+    private var proactiveNudgesView: some View {
+        let nudges = HealthNudge.generate(
+            steps: trackerViewModel.stepCount,
+            heartRate: trackerViewModel.heartRate,
+            calories: trackerViewModel.activeCalories,
+            lastWaterLog: hydrationViewModel.todaysEntries.first?.timestamp
+        )
+        if !nudges.isEmpty {
+            VStack(spacing: 8) {
+                ForEach(nudges) { nudge in
+                    ProactiveNudgeCard(nudge: nudge) {
+                        viewModel.inputText = nudge.prompt
+                        Task { await viewModel.sendMessage() }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .opacity(showEmptyState ? 1 : 0)
+            .offset(y: showEmptyState ? 0 : 15)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.22), value: showEmptyState)
+        }
+    }
+
     private var introView: some View {
         VStack(spacing: 24) {
             // Particle Orb
@@ -519,6 +610,9 @@ struct AIView: View {
             .offset(y: showEmptyState ? 0 : 20)
             .opacity(showEmptyState ? 1 : 0)
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
+
+            // Proactive Health Nudges
+            proactiveNudgesView
 
             // Health Snapshot Cards
             HStack(spacing: 12) {
@@ -962,16 +1056,20 @@ private struct ChatBubble: View {
     let onFeedback: ((MessageFeedback) -> Void)?
     let shouldTypewrite: Bool
     let onTypewriteComplete: (() -> Void)?
+    let onBookmark: (() -> Void)?
+    let onSpeak: ((String) -> Void)?
     @State private var appeared = false
     @State private var showFeedbackButtons = false
     @State private var showCopied = false
 
-    init(message: ChatMessage, loadingOperation: LoadingOperationType, shouldTypewrite: Bool = false, onFeedback: ((MessageFeedback) -> Void)? = nil, onTypewriteComplete: (() -> Void)? = nil) {
+    init(message: ChatMessage, loadingOperation: LoadingOperationType, shouldTypewrite: Bool = false, onFeedback: ((MessageFeedback) -> Void)? = nil, onTypewriteComplete: (() -> Void)? = nil, onBookmark: (() -> Void)? = nil, onSpeak: ((String) -> Void)? = nil) {
         self.message = message
         self.loadingOperation = loadingOperation
         self.shouldTypewrite = shouldTypewrite
         self.onFeedback = onFeedback
         self.onTypewriteComplete = onTypewriteComplete
+        self.onBookmark = onBookmark
+        self.onSpeak = onSpeak
     }
     
     var body: some View {
@@ -1107,6 +1205,30 @@ private struct ChatBubble: View {
                                         Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
                                             .font(.system(size: 12))
                                             .foregroundColor(showCopied ? Color(hex: "00A86B") : .secondary)
+                                    }
+
+                                    // Bookmark button
+                                    if let onBookmark {
+                                        Button(action: {
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            onBookmark()
+                                        }) {
+                                            Image(systemName: message.isBookmarked ? "bookmark.fill" : "bookmark")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(message.isBookmarked ? Color(hex: "F59E0B") : .secondary)
+                                        }
+                                    }
+
+                                    // Speaker button (TTS)
+                                    if let onSpeak {
+                                        Button(action: {
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            onSpeak(message.content)
+                                        }) {
+                                            Image(systemName: "speaker.wave.2.fill")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.secondary)
+                                        }
                                     }
                                 }
                                 .padding(.horizontal, 8)
@@ -1474,6 +1596,50 @@ private struct HealthSnapshotCard: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(color.opacity(0.15), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Proactive Nudge Card
+
+private struct ProactiveNudgeCard: View {
+    let nudge: HealthNudge
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onTap()
+        }) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: nudge.color).opacity(0.15))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: nudge.icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: nudge.color))
+                }
+
+                Text(nudge.message)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary.opacity(0.4))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .glass(cornerRadius: 12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color(hex: nudge.color).opacity(0.15), lineWidth: 0.5)
             )
         }
         .buttonStyle(ScaleButtonStyle())
@@ -2019,25 +2185,27 @@ private struct ConversationRow: View {
     let conversation: ConversationSummary
     let onTap: () -> Void
     let onDelete: () -> Void
-    
+
+    private var topic: ConversationTopic { conversation.topic }
+
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .center, spacing: 16) {
-                // Icon with gradient
+                // Topic-colored icon
                 ZStack {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "4A90E2").opacity(0.1)],
+                                colors: [Color(hex: topic.color).opacity(0.15), Color(hex: topic.color).opacity(0.08)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 52, height: 52)
-                    
-                    Image(systemName: "bubble.left.and.bubble.right.fill")
+
+                    Image(systemName: topic.icon)
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(Color(hex: "2E3192"))
+                        .foregroundColor(Color(hex: topic.color))
                 }
                 .frame(width: 52, height: 52)
                 
@@ -2080,7 +2248,20 @@ private struct ConversationRow: View {
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                         }
-                        
+
+                        // Topic tag
+                        HStack(spacing: 3) {
+                            Image(systemName: topic.icon)
+                                .font(.system(size: 8, weight: .semibold))
+                            Text(topic.label)
+                                .font(.system(size: 10, weight: .medium))
+                        }
+                        .foregroundColor(Color(hex: topic.color))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color(hex: topic.color).opacity(0.1))
+                        .clipShape(Capsule())
+
                         if conversation.status == "archived" {
                             Spacer()
                             Text("Archived")

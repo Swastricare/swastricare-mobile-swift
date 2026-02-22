@@ -96,6 +96,32 @@ struct HydrationView: View {
                         
                         // Today's Entries
                         entriesSection
+
+                        // Ask AI about hydration
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                NotificationCenter.default.post(name: NSNotification.Name("SwitchToAITab"), object: nil)
+                            }
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Ask AI about my hydration")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(Color(hex: "2E3192"))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(hex: "2E3192").opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5)
+                            )
+                        }
+                        .padding(.horizontal, 16)
                     }
                     .padding(.bottom, 20)
                 }

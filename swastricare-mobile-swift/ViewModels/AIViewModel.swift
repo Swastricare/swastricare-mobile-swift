@@ -335,7 +335,8 @@ final class AIViewModel: ObservableObject {
                 timestamp: oldMessage.timestamp,
                 isLoading: oldMessage.isLoading,
                 responseMode: oldMessage.responseMode,
-                userFeedback: feedback
+                userFeedback: feedback,
+                isBookmarked: oldMessage.isBookmarked
             )
             messages[index] = updatedMessage
             
@@ -349,6 +350,17 @@ final class AIViewModel: ObservableObject {
         }
     }
     
+    func toggleBookmark(messageId: UUID) {
+        if let index = messages.firstIndex(where: { $0.id == messageId }) {
+            messages[index].isBookmarked.toggle()
+            print("🔖 Bookmark toggled for message: \(messageId) → \(messages[index].isBookmarked)")
+        }
+    }
+
+    var bookmarkedMessages: [ChatMessage] {
+        messages.filter { $0.isBookmarked }
+    }
+
     func sendQuickAction(_ action: QuickAction) async {
         // Check if this is the health analysis quick action
         if action.title == "Analyze My Health" {

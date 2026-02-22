@@ -39,7 +39,31 @@ struct HeartRateResultView: View {
                         }
                         
                         statusMessages
-                        
+
+                        // Ask AI about heart rate
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            NotificationCenter.default.post(name: NSNotification.Name("SwitchToAITab"), object: nil)
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Ask Swastri AI about this")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(Color(hex: "2E3192"))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(hex: "2E3192").opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5)
+                            )
+                        }
+                        .offset(y: animateContent ? 0 : 40)
+                        .opacity(animateContent ? 1 : 0)
+
                         Spacer(minLength: 100)
                     }
                     .padding(.horizontal, 20)
