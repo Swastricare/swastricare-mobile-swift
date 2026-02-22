@@ -92,6 +92,43 @@ enum AIResponseMode: String, Equatable {
     }
 }
 
+// MARK: - Follow-up Suggestions
+
+struct FollowUpSuggestion: Identifiable {
+    let id = UUID()
+    let label: String
+    let prompt: String
+
+    static func suggestions(for mode: AIResponseMode?) -> [FollowUpSuggestion] {
+        switch mode {
+        case .medical:
+            return [
+                FollowUpSuggestion(label: "When to see a doctor?", prompt: "When should I see a doctor about this?"),
+                FollowUpSuggestion(label: "Any precautions?", prompt: "What precautions should I take?"),
+                FollowUpSuggestion(label: "Explain simply", prompt: "Can you explain that in simpler terms?")
+            ]
+        case .healthAnalysis:
+            return [
+                FollowUpSuggestion(label: "Compare to last week", prompt: "How does this compare to my health data from last week?"),
+                FollowUpSuggestion(label: "Set a goal", prompt: "Based on this analysis, suggest a health goal for me"),
+                FollowUpSuggestion(label: "Detailed breakdown", prompt: "Give me a more detailed breakdown of each metric")
+            ]
+        case .imageAnalysis:
+            return [
+                FollowUpSuggestion(label: "Explain findings", prompt: "Can you explain the key findings in more detail?"),
+                FollowUpSuggestion(label: "Next steps?", prompt: "What should my next steps be based on this?"),
+                FollowUpSuggestion(label: "Anything concerning?", prompt: "Is there anything concerning I should be aware of?")
+            ]
+        default:
+            return [
+                FollowUpSuggestion(label: "Tell me more", prompt: "Can you tell me more about this?"),
+                FollowUpSuggestion(label: "How to improve?", prompt: "What can I do to improve in this area?"),
+                FollowUpSuggestion(label: "Make a plan", prompt: "Help me create an actionable plan based on this advice")
+            ]
+        }
+    }
+}
+
 // MARK: - AI Feature Type
 
 enum AIFeature: String, CaseIterable, Identifiable {

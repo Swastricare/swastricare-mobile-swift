@@ -50,6 +50,9 @@ struct AIView: View {
     
     // MARK: - First-time Tooltip
     @State private var showModeTooltip = false
+
+    // MARK: - Typewriter Animation Tracking
+    @State private var typewriterAnimatedIds: Set<UUID> = []
     
     // MARK: - Body
     
@@ -310,6 +313,8 @@ struct AIView: View {
         .task {
             await trackerViewModel.loadData()
             await viewModel.loadHistory()
+            // Mark loaded history messages as already animated (no typewriter for history)
+            typewriterAnimatedIds = Set(viewModel.messages.map(\.id))
         }
     }
     
@@ -335,8 +340,12 @@ struct AIView: View {
                                     ChatBubble(
                                         message: message,
                                         loadingOperation: viewModel.currentLoadingOperation,
+                                        shouldTypewrite: !message.isUser && !message.isLoading && !typewriterAnimatedIds.contains(message.id),
                                         onFeedback: { feedback in
                                             viewModel.submitFeedback(messageId: message.id, feedback: feedback)
+                                        },
+                                        onTypewriteComplete: {
+                                            typewriterAnimatedIds.insert(message.id)
                                         }
                                     )
                                     .id(message.id)
@@ -350,6 +359,21 @@ struct AIView: View {
                                         )
                                 }
                                 
+                                // Follow-up suggestions after last AI response
+                                if let lastMessage = viewModel.messages.last,
+                                   !lastMessage.isUser,
+                                   !lastMessage.isLoading,
+                                   !viewModel.chatState.isBusy {
+                                    FollowUpSuggestionsView(
+                                        suggestions: FollowUpSuggestion.suggestions(for: lastMessage.responseMode),
+                                        onSelect: { suggestion in
+                                            viewModel.inputText = suggestion.prompt
+                                            Task { await viewModel.sendMessage() }
+                                        }
+                                    )
+                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                }
+
                                 // Inline error view
                                 if let errorState = viewModel.currentErrorState {
                                     InlineErrorView(
@@ -474,7 +498,7 @@ struct AIView: View {
     private var introView: some View {
         VStack(spacing: 24) {
             // Particle Orb
-            ParticleOrbView(state: orbState)
+            ParticleOrbView(state: orbState, isMedicalMode: viewModel.selectedAIMode == .medical)
                 .frame(width: 200, height: 200)
                 .scaleEffect(showEmptyState ? 1 : 0.8)
                 .opacity(showEmptyState ? 1 : 0)
@@ -495,6 +519,46 @@ struct AIView: View {
             .offset(y: showEmptyState ? 0 : 20)
             .opacity(showEmptyState ? 1 : 0)
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
+
+            // Health Snapshot Cards
+            HStack(spacing: 12) {
+                HealthSnapshotCard(
+                    icon: "figure.walk",
+                    label: "Steps",
+                    value: "\(trackerViewModel.stepCount.formatted())",
+                    color: Color(hex: "22C55E"),
+                    onTap: {
+                        viewModel.inputText = "How are my steps today? Am I on track?"
+                        Task { await viewModel.sendMessage() }
+                    }
+                )
+
+                HealthSnapshotCard(
+                    icon: "heart.fill",
+                    label: "Heart",
+                    value: trackerViewModel.heartRate > 0 ? "\(trackerViewModel.heartRate) bpm" : "--",
+                    color: Color(hex: "EF4444"),
+                    onTap: {
+                        viewModel.inputText = "Analyze my heart rate. Is it healthy?"
+                        Task { await viewModel.sendMessage() }
+                    }
+                )
+
+                HealthSnapshotCard(
+                    icon: "flame.fill",
+                    label: "Calories",
+                    value: "\(trackerViewModel.activeCalories)",
+                    color: Color(hex: "F97316"),
+                    onTap: {
+                        viewModel.inputText = "Review my calorie burn today. How can I improve?"
+                        Task { await viewModel.sendMessage() }
+                    }
+                )
+            }
+            .padding(.horizontal, 16)
+            .opacity(showEmptyState ? 1 : 0)
+            .offset(y: showEmptyState ? 0 : 15)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.25), value: showEmptyState)
 
             // Analyze Health Button
             Button(action: {
@@ -844,19 +908,62 @@ private struct MarkdownTextView: View {
     }
 }
 
+// MARK: - Typewriter Markdown View
+
+private struct TypewriterMarkdownView: View {
+    let content: String
+    let onComplete: () -> Void
+
+    @State private var visibleCharCount: Int = 0
+    @State private var isComplete = false
+
+    var body: some View {
+        Group {
+            if isComplete {
+                MarkdownTextView(content: content)
+            } else {
+                Text(String(content.prefix(visibleCharCount)))
+                    .font(.system(size: 15))
+            }
+        }
+        .task {
+            guard !content.isEmpty else {
+                isComplete = true
+                onComplete()
+                return
+            }
+            let total = content.count
+            while visibleCharCount < total && !Task.isCancelled {
+                let step = min(Int.random(in: 1...3), total - visibleCharCount)
+                visibleCharCount += step
+                try? await Task.sleep(nanoseconds: 12_000_000) // ~12ms per tick
+            }
+            if !Task.isCancelled {
+                isComplete = true
+                onComplete()
+            }
+        }
+    }
+}
+
 // MARK: - Chat Bubble
 
 private struct ChatBubble: View {
     let message: ChatMessage
     let loadingOperation: LoadingOperationType
     let onFeedback: ((MessageFeedback) -> Void)?
+    let shouldTypewrite: Bool
+    let onTypewriteComplete: (() -> Void)?
     @State private var appeared = false
     @State private var showFeedbackButtons = false
-    
-    init(message: ChatMessage, loadingOperation: LoadingOperationType, onFeedback: ((MessageFeedback) -> Void)? = nil) {
+    @State private var showCopied = false
+
+    init(message: ChatMessage, loadingOperation: LoadingOperationType, shouldTypewrite: Bool = false, onFeedback: ((MessageFeedback) -> Void)? = nil, onTypewriteComplete: (() -> Void)? = nil) {
         self.message = message
         self.loadingOperation = loadingOperation
+        self.shouldTypewrite = shouldTypewrite
         self.onFeedback = onFeedback
+        self.onTypewriteComplete = onTypewriteComplete
     }
     
     var body: some View {
@@ -886,6 +993,10 @@ private struct ChatBubble: View {
                             if message.isUser {
                                 Text(message.content)
                                     .font(.system(size: 15))
+                            } else if shouldTypewrite {
+                                TypewriterMarkdownView(content: message.content) {
+                                    onTypewriteComplete?()
+                                }
                             } else {
                                 MarkdownTextView(content: message.content)
                             }
@@ -910,6 +1021,21 @@ private struct ChatBubble: View {
                                     lineWidth: 0.5
                                 )
                         )
+                        .contextMenu {
+                            if !message.isUser {
+                                Button {
+                                    UIPasteboard.general.string = message.content
+                                    showCopied = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showCopied = false }
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
+
+                                ShareLink(item: message.content) {
+                                    Label("Share", systemImage: "square.and.arrow.up")
+                                }
+                            }
+                        }
                         .scaleEffect(appeared ? 1 : 0.5)
                         .opacity(appeared ? 1 : 0)
                         
@@ -934,25 +1060,45 @@ private struct ChatBubble: View {
                                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: appeared)
                             }
                             
-                            // Feedback buttons for AI responses
-                            if !message.isUser && !message.isLoading && onFeedback != nil {
+                            // Action buttons for AI responses (feedback + copy)
+                            if !message.isUser && !message.isLoading {
                                 HStack(spacing: 6) {
-                                    Button(action: {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        onFeedback?(.helpful)
-                                    }) {
-                                        Image(systemName: message.userFeedback == .helpful ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(message.userFeedback == .helpful ? Color(hex: "00A86B") : .secondary)
+                                    if let onFeedback {
+                                        Button(action: {
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            onFeedback(.helpful)
+                                        }) {
+                                            Image(systemName: message.userFeedback == .helpful ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(message.userFeedback == .helpful ? Color(hex: "00A86B") : .secondary)
+                                        }
+
+                                        Button(action: {
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            onFeedback(.notHelpful)
+                                        }) {
+                                            Image(systemName: message.userFeedback == .notHelpful ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(message.userFeedback == .notHelpful ? .orange : .secondary)
+                                        }
+
+                                        Rectangle()
+                                            .fill(Color.secondary.opacity(0.2))
+                                            .frame(width: 1, height: 12)
                                     }
-                                    
+
+                                    // Copy button
                                     Button(action: {
                                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        onFeedback?(.notHelpful)
+                                        UIPasteboard.general.string = message.content
+                                        withAnimation(.spring(response: 0.3)) { showCopied = true }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                            withAnimation { showCopied = false }
+                                        }
                                     }) {
-                                        Image(systemName: message.userFeedback == .notHelpful ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                                        Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
                                             .font(.system(size: 12))
-                                            .foregroundColor(message.userFeedback == .notHelpful ? .orange : .secondary)
+                                            .foregroundColor(showCopied ? Color(hex: "00A86B") : .secondary)
                                     }
                                 }
                                 .padding(.horizontal, 8)
@@ -1282,6 +1428,93 @@ private struct InlineErrorView: View {
                 )
         )
         .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Health Snapshot Card
+
+private struct HealthSnapshotCard: View {
+    let icon: String
+    let label: String
+    let value: String
+    let color: Color
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onTap()
+        }) {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(color)
+
+                Text(value)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .glass(cornerRadius: 14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(color.opacity(0.15), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Follow-Up Suggestions View
+
+private struct FollowUpSuggestionsView: View {
+    let suggestions: [FollowUpSuggestion]
+    let onSelect: (FollowUpSuggestion) -> Void
+    @State private var appeared = false
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(suggestions.enumerated()), id: \.element.id) { index, suggestion in
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onSelect(suggestion)
+                    }) {
+                        Text(suggestion.label)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(Color(hex: "2E3192"))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(Color(hex: "2E3192").opacity(0.08))
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5)
+                            )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 10)
+                    .animation(
+                        .spring(response: 0.4, dampingFraction: 0.7).delay(Double(index) * 0.08 + 0.3),
+                        value: appeared
+                    )
+                }
+            }
+            .padding(.horizontal, 4)
+        }
+        .onAppear {
+            withAnimation { appeared = true }
+        }
     }
 }
 
@@ -1881,8 +2114,9 @@ private struct ParticleOrbView: UIViewRepresentable {
     enum OrbState {
         case idle, listening, thinking
     }
-    
+
     var state: OrbState
+    var isMedicalMode: Bool = false
     
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
@@ -1946,7 +2180,7 @@ private struct ParticleOrbView: UIViewRepresentable {
         context.coordinator.sceneView = scnView
         
         // Initial state
-        updateOrbState(orbNode: orbNode, particleSystem: particleSystem, pointLight: pointLight, state: state)
+        updateOrbState(orbNode: orbNode, particleSystem: particleSystem, pointLight: pointLight, state: state, isMedical: isMedicalMode)
         
         return scnView
     }
@@ -1954,28 +2188,32 @@ private struct ParticleOrbView: UIViewRepresentable {
     func updateUIView(_ uiView: SCNView, context: Context) {
         if let orbNode = context.coordinator.orbNode,
            let particleSystem = context.coordinator.particleSystem {
-            updateOrbState(orbNode: orbNode, particleSystem: particleSystem, pointLight: context.coordinator.pointLight, state: state)
+            updateOrbState(orbNode: orbNode, particleSystem: particleSystem, pointLight: context.coordinator.pointLight, state: state, isMedical: isMedicalMode)
         }
     }
-    
-    private func updateOrbState(orbNode: SCNNode, particleSystem: SCNParticleSystem, pointLight: SCNNode?, state: OrbState) {
+
+    private func updateOrbState(orbNode: SCNNode, particleSystem: SCNParticleSystem, pointLight: SCNNode?, state: OrbState, isMedical: Bool = false) {
         // Remove all actions
         orbNode.removeAllActions()
         orbNode.position = SCNVector3Zero
         orbNode.scale = SCNVector3(1, 1, 1)
         orbNode.eulerAngles = SCNVector3Zero
-        
+
+        // Mode-based color palettes
+        let idleColor = isMedical ? "0B4D2C" : "1A1F6B"      // Dark green vs Dark blue
+        let activeColor = isMedical ? "00A86B" : "2E3192"     // Green vs Royal blue
+        let thinkColor = isMedical ? "064A2B" : "0F1345"      // Deep green vs Very dark blue
+
         // Horizontal rotation animation (around Y-axis)
         let rotateAction = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 8.0)
         orbNode.runAction(SCNAction.repeatForever(rotateAction))
-        
+
         switch state {
         case .idle:
-            // Darker blue for idle state
-            particleSystem.particleColor = hexToUIColor("1A1F6B") // Darker blue
+            particleSystem.particleColor = hexToUIColor(idleColor)
             particleSystem.speedFactor = 0.5
-            pointLight?.light?.color = hexToUIColor("1A1F6B")
-            
+            pointLight?.light?.color = hexToUIColor(idleColor)
+
             // Heartbeat animation: double pulse pattern (lub-dub)
             let pulse1 = SCNAction.scale(to: 1.08, duration: 0.15)  // First beat
             let pause1 = SCNAction.wait(duration: 0.1)
@@ -1984,13 +2222,12 @@ private struct ParticleOrbView: UIViewRepresentable {
             let pause2 = SCNAction.wait(duration: 0.7)              // Rest period (heartbeat frequency ~60 bpm)
             let heartbeat = SCNAction.sequence([pulse1, pause1, pulse2, rest, pause2])
             orbNode.runAction(SCNAction.repeatForever(heartbeat))
-            
+
         case .listening:
-            // Darker blue variant for listening (active state)
-            particleSystem.particleColor = hexToUIColor("2E3192") // Royal blue
+            particleSystem.particleColor = hexToUIColor(activeColor)
             particleSystem.speedFactor = 2.5
-            pointLight?.light?.color = hexToUIColor("2E3192")
-            
+            pointLight?.light?.color = hexToUIColor(activeColor)
+
             // Faster heartbeat (like increased heart rate)
             let pulse1 = SCNAction.scale(to: 1.1, duration: 0.1)
             let pause1 = SCNAction.wait(duration: 0.08)
@@ -1999,12 +2236,11 @@ private struct ParticleOrbView: UIViewRepresentable {
             let pause2 = SCNAction.wait(duration: 0.3)
             let heartbeat = SCNAction.sequence([pulse1, pause1, pulse2, rest, pause2])
             orbNode.runAction(SCNAction.repeatForever(heartbeat))
-            
+
         case .thinking:
-            // Darker blue for thinking state
-            particleSystem.particleColor = hexToUIColor("0F1345") // Very dark blue
+            particleSystem.particleColor = hexToUIColor(thinkColor)
             particleSystem.speedFactor = 2
-            pointLight?.light?.color = hexToUIColor("0F1345")
+            pointLight?.light?.color = hexToUIColor(thinkColor)
             
             // Moderate heartbeat
             let pulse1 = SCNAction.scale(to: 1.06, duration: 0.12)
