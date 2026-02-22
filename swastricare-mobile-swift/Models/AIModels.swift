@@ -95,7 +95,7 @@ enum AIResponseMode: String, Equatable {
 // MARK: - Follow-up Suggestions
 
 struct FollowUpSuggestion: Identifiable {
-    let id = UUID()
+    var id: String { label }
     let label: String
     let prompt: String
 
@@ -340,12 +340,12 @@ enum AnalysisState: Equatable {
 // MARK: - Quick Action
 
 struct QuickAction: Identifiable, Equatable {
-    let id = UUID()
+    var id: String { title }
     let title: String
     let icon: String
     let prompt: String
-    
-    static let suggestions: [QuickAction] = contextualSuggestions
+
+    static var suggestions: [QuickAction] { contextualSuggestions }
 
     static var contextualSuggestions: [QuickAction] {
         let hour = Calendar.current.component(.hour, from: Date())

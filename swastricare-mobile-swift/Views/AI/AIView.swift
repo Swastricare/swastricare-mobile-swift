@@ -933,10 +933,18 @@ private struct TypewriterMarkdownView: View {
                 return
             }
             let total = content.count
+
+            // Adaptive speed: faster ticks and bigger steps for longer messages
+            // Short (<200): ~15ms, 1-2 chars = ~1.5s
+            // Medium (200-500): ~10ms, 1-4 chars = ~1.5s
+            // Long (>500): ~8ms, 2-6 chars = ~2-3s
+            let tickDelay: UInt64 = total > 500 ? 8_000_000 : total > 200 ? 10_000_000 : 15_000_000
+            let maxStep = total > 500 ? 6 : total > 200 ? 4 : 2
+
             while visibleCharCount < total && !Task.isCancelled {
-                let step = min(Int.random(in: 1...3), total - visibleCharCount)
+                let step = min(Int.random(in: 1...maxStep), total - visibleCharCount)
                 visibleCharCount += step
-                try? await Task.sleep(nanoseconds: 12_000_000) // ~12ms per tick
+                try? await Task.sleep(nanoseconds: tickDelay)
             }
             if !Task.isCancelled {
                 isComplete = true
