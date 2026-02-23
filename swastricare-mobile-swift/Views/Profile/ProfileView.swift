@@ -35,8 +35,8 @@ struct ProfileView: View {
                 // Health Profile Section
                 healthProfileSection
                 
-                // Family Section
-                familySection
+                // Family Section (temporarily disabled)
+                // familySection
                 
                 // Hydration Section
                 hydrationSection

@@ -18,6 +18,8 @@ struct HomeView: View {
     @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
     @StateObject private var dietViewModel = DependencyContainer.shared.dietViewModel
+    @ObservedObject private var activeProfileManager = ActiveProfileManager.shared
+    
     // MARK: - Local State
     
     @State private var showSyncAlert = false
@@ -124,6 +126,11 @@ struct HomeView: View {
                     // Health Authorization Banner
                     if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
                         authorizationBanner
+                    }
+                    
+                    // Family Member Profile Banner
+                    if activeProfileManager.isViewingFamilyMember {
+                        familyMemberBanner
                     }
                     
                     // Human Body Image with Daily Activity Details
@@ -314,6 +321,65 @@ struct HomeView: View {
         .padding()
         .glass(cornerRadius: 16)
         .padding(.horizontal)
+    }
+    
+    private var familyMemberBanner: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [AppColors.accentBlue, AppColors.accentPurple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 40, height: 40)
+                
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Viewing Family Member")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Text(activeProfileManager.activeProfileName)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+            }
+            
+            Spacer()
+            
+            Button {
+                activeProfileManager.switchToOwnProfile()
+            } label: {
+                Text("Switch Back")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(AppColors.accentBlue, in: Capsule())
+            }
+        }
+        .padding()
+        .background(
+            LinearGradient(
+                colors: [AppColors.accentBlue.opacity(0.1), AppColors.accentPurple.opacity(0.1)],
+                startPoint: .leading,
+                endPoint: .trailing
+            ),
+            in: RoundedRectangle(cornerRadius: 16)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(AppColors.accentBlue.opacity(0.3), lineWidth: 1)
+        )
+        .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     private var healthVitalsSection: some View {

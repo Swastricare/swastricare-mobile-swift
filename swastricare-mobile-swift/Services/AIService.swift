@@ -876,7 +876,10 @@ final class AIService: AIServiceProtocol {
     // MARK: - Helpers
     
     private func getHealthProfileId() async throws -> UUID {
-        // Check authentication first
+        if let activeId = await ActiveProfileManager.shared.activeHealthProfileId {
+            return activeId
+        }
+        
         do {
             let session = try await supabase.client.auth.session
             guard !session.isExpired else {
@@ -898,7 +901,6 @@ final class AIService: AIServiceProtocol {
         }
         
         do {
-            // First, try to get primary profile
             var profiles: [ProfileId] = try await supabase.client
                 .from("health_profiles")
                 .select("id")
@@ -908,7 +910,6 @@ final class AIService: AIServiceProtocol {
                 .execute()
                 .value
             
-            // If no primary profile found, fall back to any profile for this user
             if profiles.isEmpty {
                 profiles = try await supabase.client
                     .from("health_profiles")

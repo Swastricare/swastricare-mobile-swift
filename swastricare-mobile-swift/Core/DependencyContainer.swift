@@ -33,6 +33,7 @@ final class DependencyContainer: ObservableObject {
     let workoutSessionManager: WorkoutSessionManagerProtocol
     let dietService: DietServiceProtocol
     let familyService: FamilyServiceProtocol
+    let activeProfileManager: ActiveProfileManager
     
     // MARK: - ViewModels (Lazy initialized)
     
@@ -99,10 +100,6 @@ final class DependencyContainer: ObservableObject {
         DietViewModel(dietService: dietService)
     }()
     
-    lazy var stepsViewModel: StepsViewModel = {
-        StepsViewModel(stepsService: StepsService.shared, healthKitService: healthService)
-    }()
-    
     lazy var familyViewModel: FamilyViewModel = {
         FamilyViewModel(familyService: familyService)
     }()
@@ -124,6 +121,7 @@ final class DependencyContainer: ObservableObject {
         self.workoutSessionManager = WorkoutSessionManager.shared
         self.dietService = DietService.shared
         self.familyService = FamilyService.shared
+        self.activeProfileManager = ActiveProfileManager.shared
     }
     
     // MARK: - Factory Methods (for creating new instances if needed)
@@ -173,10 +171,6 @@ final class DependencyContainer: ObservableObject {
     
     func makeDietViewModel() -> DietViewModel {
         DietViewModel(dietService: dietService)
-    }
-    
-    func makeStepsViewModel() -> StepsViewModel {
-        StepsViewModel(stepsService: StepsService.shared, healthKitService: healthService)
     }
     
     func makeFamilyViewModel() -> FamilyViewModel {

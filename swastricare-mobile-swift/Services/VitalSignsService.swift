@@ -134,11 +134,14 @@ final class VitalSignsService: VitalSignsServiceProtocol {
     // MARK: - Helpers
     
     private func getHealthProfileId() async throws -> UUID? {
+        if let activeId = await ActiveProfileManager.shared.activeHealthProfileId {
+            return activeId
+        }
+        
         guard let userId = try? await supabaseManager.client.auth.session.user.id else {
             return nil
         }
         
-        // Fetch health profile for user
         struct HealthProfile: Codable {
             let id: UUID
         }

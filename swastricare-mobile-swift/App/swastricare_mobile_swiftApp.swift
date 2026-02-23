@@ -169,12 +169,20 @@ struct swastricare_mobile_swiftApp: App {
                     hasCompletedHealthProfile = false  // Reset until DB confirms
                     hasCheckedHealthProfile = false    // Force a DB check for this session
                     isCheckingHealthProfile = false    // Let the view trigger the check task
+                    
+                    // Load own profile for ActiveProfileManager
+                    Task {
+                        await ActiveProfileManager.shared.loadOwnProfile()
+                    }
                 } else {
                     // User logged out - reset state completely
                     print("🔐 User logged out - resetting health profile state")
                     hasCompletedHealthProfile = false
                     isCheckingHealthProfile = false  // Don't check until next login
                     hasCheckedHealthProfile = false
+                    
+                    // Reset active profile
+                    ActiveProfileManager.shared.reset()
                 }
             }
             .onChange(of: scenePhase) { oldPhase, newPhase in
