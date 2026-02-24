@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 #if canImport(ActivityKit)
 import ActivityKit

@@ -3,7 +3,7 @@
 //  swastricare-mobile-swift
 //
 //  Steps & Walk/Run Activity Tracking View
-//  Designed following iOS-style minimal, clean UI
+//  Redesigned with Movements+ UI - Lime Green, Dark Theme, Geometric Patterns
 //
 
 import SwiftUI
@@ -11,65 +11,49 @@ import MapKit
 
 struct RunActivityView: View {
     
+    enum PresentationStyle {
+        case navigation
+        case movementsModal
+    }
+    
     // MARK: - ViewModel
     
     @StateObject private var viewModel = DependencyContainer.shared.runActivityViewModel
+    @Environment(\.colorScheme) private var colorScheme
     
     // MARK: - State
+    
+    @Environment(\.dismiss) private var dismiss
     
     @State private var isAnimating = false
     @State private var showActivityDetail: RouteActivity? = nil
     @State private var showLiveTracking = false
     @State private var showFullCalendar = false
     @State private var deepLinkWorkoutType: WorkoutActivityType? = nil
+    private let presentationStyle: PresentationStyle
     
     @Namespace private var namespace
     
-    // MARK: - Constants
+    // MARK: - Design Constants
     
-    private let accentBlue = AppColors.accentBlue
-    private let accentGreen = AppColors.accentGreen
-    private let backgroundGray = Color(hex: "F8F9FA")
+    private let limeGreen = MovementsColors.limeGreen
+    private let darkGreen = MovementsColors.darkGreen
+    
+    init(presentationStyle: PresentationStyle = .navigation) {
+        self.presentationStyle = presentationStyle
+    }
     
     // MARK: - Body
     
     var body: some View {
-        ZStack {
-            PremiumBackground()
-                .ignoresSafeArea()
-            
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    // Walk & Run Activity Header
-                    walkRunActivityHeader
-                    
-                    // Start Workout Button
-                    startWorkoutButton
-                    
-                    // Time Range Selector
-                    timeRangeSelector
-                    
-                    // Metrics Row
-                    metricsRow
-                    
-                    // Weekly Progress Chart
-                    // weeklyProgressSection
-                    
-                    // Run Calendar (compact)
-//                    runCalendarSection
-                    
-                    // Route Activities
-                    routeActivitiesSection
-                    
-                    // Highlights Section
-                    highlightsSection
-                }
-                .padding(.top, 8)
-                .padding(.bottom, 100)
+        Group {
+            switch presentationStyle {
+            case .navigation:
+                navigationBody
+            case .movementsModal:
+                movementsModalBody
             }
         }
-        .navigationTitle("Steps")
-        .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $showLiveTracking) {
             NavigationStack {
                 LiveActivityTrackingView(initialActivityType: deepLinkWorkoutType)
@@ -89,6 +73,7 @@ struct RunActivityView: View {
                             showFullCalendar = false
                         }
                         .fontWeight(.semibold)
+                        .foregroundColor(limeGreen)
                     }
                 }
             }
@@ -114,6 +99,97 @@ struct RunActivityView: View {
             showLiveTracking = true
         }
     }
+    
+    private var navigationBody: some View {
+        ZStack {
+            (colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
+                .ignoresSafeArea()
+            
+            mainScrollContent
+        }
+        .navigationTitle("Running")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private var movementsModalBody: some View {
+        ZStack {
+            (colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                movementsModalHeader
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                
+                mainScrollContent
+            }
+        }
+        .navigationBarHidden(true)
+    }
+    
+    private var mainScrollContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                // Hero Stats Card
+                heroStatsCard
+                
+                // Quick Actions Grid
+                quickActionsGrid
+                
+                // Time Range Selector
+                timeRangeSelector
+                
+                // Today's Progress Card
+                todayProgressCard
+                
+                // Weekly Chart
+                weeklyChartCard
+                
+                // Recent Activities
+                recentActivitiesSection
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 100)
+        }
+    }
+    
+    private var movementsModalHeader: some View {
+        HStack {
+            Button(action: { dismiss() }) {
+                ZStack {
+                    Circle()
+                        .fill(MovementsColors.card(for: colorScheme))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.primary)
+                }
+            }
+            .buttonStyle(ScaleButtonStyle())
+            
+            Spacer()
+            
+            Text("Running")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            Button(action: { showFullCalendar = true }) {
+                ZStack {
+                    Circle()
+                        .fill(MovementsColors.card(for: colorScheme))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "calendar")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(limeGreen)
+                }
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+    }
 
     private func mapToWorkoutActivityType(_ raw: String) -> WorkoutActivityType {
         switch raw.lowercased() {
@@ -128,93 +204,201 @@ struct RunActivityView: View {
         }
     }
     
-    // MARK: - Walk & Run Activity Header
+    // MARK: - Hero Stats Card
     
-    private var walkRunActivityHeader: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Walk & Run Activity")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
+    private var heroStatsCard: some View {
+        ZStack {
+            // Background with geometric pattern
+            RoundedRectangle(cornerRadius: 28)
+                .fill(limeGreen)
             
-            HStack(alignment: .lastTextBaseline, spacing: 12) {
-                // Running Icon
-                Image(systemName: "figure.run")
-                    .font(.system(size: 32, weight: .medium))
-                    .foregroundColor(accentBlue)
-                
-                // Step Count
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text("\(viewModel.totalSteps)")
-                        .font(.system(size: 56, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .contentTransition(.numericText())
+            // Geometric lines pattern
+            GeometryReader { geo in
+                Path { path in
+                    let spacing: CGFloat = 14
+                    let startX = geo.size.width * 0.4
                     
-                    Text("Steps")
-                        .font(.title3)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
-                        .padding(.bottom, 8)
+                    for i in 0..<12 {
+                        let x = startX + CGFloat(i) * spacing
+                        path.move(to: CGPoint(x: x, y: 0))
+                        path.addLine(to: CGPoint(x: x - geo.size.height * 0.6, y: geo.size.height))
+                    }
                 }
+                .stroke(Color.black.opacity(0.08), lineWidth: 2)
             }
+            .clipShape(RoundedRectangle(cornerRadius: 28))
+            
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Today's Steps")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.black.opacity(0.6))
+                        
+                        HStack(alignment: .lastTextBaseline, spacing: 8) {
+                            Text("\(viewModel.totalSteps)")
+                                .font(.system(size: 52, weight: .bold, design: .rounded))
+                                .foregroundColor(.black)
+                                .contentTransition(.numericText())
+                            
+                            Image(systemName: "figure.run")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(.black.opacity(0.7))
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Circular Progress
+                    ZStack {
+                        Circle()
+                            .stroke(Color.black.opacity(0.15), lineWidth: 8)
+                            .frame(width: 80, height: 80)
+                        
+                        Circle()
+                            .trim(from: 0, to: min(Double(viewModel.totalSteps) / 10000.0, 1.0))
+                            .stroke(Color.black, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .frame(width: 80, height: 80)
+                            .rotationEffect(.degrees(-90))
+                        
+                        VStack(spacing: 0) {
+                            Text("\(Int(min(Double(viewModel.totalSteps) / 10000.0, 1.0) * 100))%")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundColor(.black)
+                        }
+                    }
+                }
+                
+                // Stats Row
+                HStack(spacing: 0) {
+                    RunHeroStatItem(
+                        value: String(format: "%.2f", viewModel.totalDistance),
+                        unit: "km",
+                        label: "Distance"
+                    )
+                    
+                    Rectangle()
+                        .fill(Color.black.opacity(0.15))
+                        .frame(width: 1, height: 40)
+                    
+                    RunHeroStatItem(
+                        value: "\(viewModel.totalCalories)",
+                        unit: "kcal",
+                        label: "Calories"
+                    )
+                    
+                    Rectangle()
+                        .fill(Color.black.opacity(0.15))
+                        .frame(width: 1, height: 40)
+                    
+                    RunHeroStatItem(
+                        value: "\(viewModel.totalPoints)",
+                        unit: "pts",
+                        label: "Points"
+                    )
+                }
+                .padding(.top, 8)
+            }
+            .padding(24)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 220)
         .padding(.horizontal, 20)
         .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 20)
+        .offset(y: isAnimating ? 0 : 30)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isAnimating)
     }
     
-    // MARK: - Start Workout Button
+    // MARK: - Quick Actions Grid
     
-    private var startWorkoutButton: some View {
-        Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-            showLiveTracking = true
-        }) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(accentGreen.opacity(0.15))
-                        .frame(width: 48, height: 48)
+    private var quickActionsGrid: some View {
+        HStack(spacing: 12) {
+            // Start Run Button
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                showLiveTracking = true
+            }) {
+                VStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(limeGreen)
+                            .frame(width: 56, height: 56)
+                        
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.black)
+                    }
                     
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(accentGreen)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Start Workout")
-                        .font(.system(size: 17, weight: .semibold))
+                    Text("Start Run")
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.primary)
-                    
-                    Text("Track GPS, distance, and route")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(accentGreen)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(MovementsColors.card(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
             }
-            .padding(16)
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [accentGreen.opacity(0.1), accentGreen.opacity(0.1)]),
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: accentGreen.opacity(0.18), radius: 14, x: 0, y: 8)
+            .buttonStyle(ScaleButtonStyle())
+            
+            // Walk Button
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                deepLinkWorkoutType = .walking
+                showLiveTracking = true
+            }) {
+                VStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "5AC8FA").opacity(0.2))
+                            .frame(width: 56, height: 56)
+                        
+                        Image(systemName: "figure.walk")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(Color(hex: "5AC8FA"))
+                    }
+                    
+                    Text("Walk")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(MovementsColors.card(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+            }
+            .buttonStyle(ScaleButtonStyle())
+            
+            // Hike Button
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                deepLinkWorkoutType = .hiking
+                showLiveTracking = true
+            }) {
+                VStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(darkGreen.opacity(0.2))
+                            .frame(width: 56, height: 56)
+                        
+                        Image(systemName: "mountain.2.fill")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(darkGreen)
+                    }
+                    
+                    Text("Hike")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(MovementsColors.card(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+            }
+            .buttonStyle(ScaleButtonStyle())
         }
-        .buttonStyle(ScaleButtonStyle())
         .padding(.horizontal, 20)
         .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.08), value: isAnimating)
+        .offset(y: isAnimating ? 0 : 25)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.05), value: isAnimating)
     }
     
     // MARK: - Time Range Selector
@@ -226,20 +410,19 @@ struct RunActivityView: View {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                         viewModel.selectTimeRange(range)
                     }
-                    let generator = UISelectionFeedbackGenerator()
-                    generator.selectionChanged()
+                    UISelectionFeedbackGenerator().selectionChanged()
                 }) {
                     Text(range.rawValue)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(viewModel.selectedTimeRange == range ? .white : .primary.opacity(0.6))
-                        .padding(.vertical, 10)
+                        .foregroundColor(viewModel.selectedTimeRange == range ? .black : .primary.opacity(0.5))
+                        .padding(.vertical, 12)
                         .padding(.horizontal, 16)
                         .frame(maxWidth: .infinity)
                         .background(
                             ZStack {
                                 if viewModel.selectedTimeRange == range {
                                     Capsule()
-                                        .fill(Color(hex: "1F2937"))
+                                        .fill(limeGreen)
                                         .matchedGeometryEffect(id: "TIME_RANGE_TAB", in: namespace)
                                 }
                             }
@@ -248,216 +431,372 @@ struct RunActivityView: View {
             }
         }
         .padding(4)
-        .background(Color(UIColor.systemGray6))
+        .background(MovementsColors.card(for: colorScheme))
         .clipShape(Capsule())
         .padding(.horizontal, 20)
         .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.1), value: isAnimating)
+        .offset(y: isAnimating ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAnimating)
     }
     
-    // MARK: - Metrics Row
+    // MARK: - Today's Progress Card
     
-    private var metricsRow: some View {
-        HStack(spacing: 0) {
-            MetricItem(
-                title: "Distance",
-                value: String(format: "%.3f", viewModel.totalDistance),
-                unit: "m",
-                isLarge: true
-            )
+    private var todayProgressCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Today's Progress")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                Text(formattedDate)
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
             
-            Divider()
-                .frame(height: 50)
-            
-            MetricItem(
-                title: "Calories",
-                value: String(format: "%.3f", Double(viewModel.totalCalories) / 1000.0),
-                unit: "Kcal",
-                isLarge: true
-            )
-            
-            Divider()
-                .frame(height: 50)
-            
-            MetricItem(
-                title: "Points",
-                value: String(format: "%.3f", Double(viewModel.totalPoints) / 1000.0),
-                unit: "",
-                isLarge: true
-            )
+            HStack(spacing: 16) {
+                RunProgressMetricCard(
+                    icon: "figure.walk",
+                    iconColor: limeGreen,
+                    value: "\(viewModel.totalSteps)",
+                    label: "Steps",
+                    progress: min(Double(viewModel.totalSteps) / 10000.0, 1.0),
+                    progressColor: limeGreen,
+                    colorScheme: colorScheme
+                )
+                
+                RunProgressMetricCard(
+                    icon: "flame.fill",
+                    iconColor: .orange,
+                    value: "\(viewModel.totalCalories)",
+                    label: "Calories",
+                    progress: min(Double(viewModel.totalCalories) / 500.0, 1.0),
+                    progressColor: .orange,
+                    colorScheme: colorScheme
+                )
+                
+                RunProgressMetricCard(
+                    icon: "map.fill",
+                    iconColor: Color(hex: "5AC8FA"),
+                    value: String(format: "%.1f", viewModel.totalDistance),
+                    label: "km",
+                    progress: min(viewModel.totalDistance / 5.0, 1.0),
+                    progressColor: Color(hex: "5AC8FA"),
+                    colorScheme: colorScheme
+                )
+            }
         }
-        .padding(.vertical, 16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(20)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
         .padding(.horizontal, 20)
         .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 25)
-        .animation(.spring(response: 0.5).delay(0.2), value: isAnimating)
+        .offset(y: isAnimating ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: isAnimating)
     }
     
-    // MARK: - Route Activities Section
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMM d"
+        return formatter.string(from: Date())
+    }
     
-    private var routeActivitiesSection: some View {
-        VStack(spacing: 12) {
+    // MARK: - Weekly Chart Card
+    
+    private var weeklyChartCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("This Week")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(limeGreen)
+                        .frame(width: 8, height: 8)
+                    
+                    Text("Active")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Weekly Bar Chart
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(weeklyData, id: \.day) { data in
+                    VStack(spacing: 8) {
+                        ZStack(alignment: .bottom) {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.primary.opacity(0.1))
+                                .frame(width: 36, height: 100)
+                            
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(
+                                    data.isToday
+                                        ? limeGreen
+                                        : limeGreen.opacity(0.4)
+                                )
+                                .frame(width: 36, height: max(CGFloat(data.steps) / 10000.0 * 100, 8))
+                        }
+                        
+                        Text(data.day)
+                            .font(.system(size: 12, weight: data.isToday ? .bold : .medium))
+                            .foregroundColor(data.isToday ? limeGreen : .secondary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(20)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .padding(.horizontal, 20)
+        .opacity(isAnimating ? 1 : 0)
+        .offset(y: isAnimating ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: isAnimating)
+    }
+    
+    private var weeklyData: [(day: String, steps: Int, isToday: Bool)] {
+        let calendar = Calendar.current
+        let today = Date()
+        let weekday = calendar.component(.weekday, from: today)
+        let days = ["S", "M", "T", "W", "T", "F", "S"]
+        
+        return (0..<7).map { index in
+            let dayIndex = (index + 1) % 7
+            let isToday = dayIndex == (weekday - 1)
+            let steps = isToday ? viewModel.totalSteps : Int.random(in: 2000...8000)
+            return (day: days[dayIndex], steps: steps, isToday: isToday)
+        }
+    }
+    
+    // MARK: - Recent Activities Section
+    
+    private var recentActivitiesSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Recent Activities")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                if viewModel.activities.count > 3 {
+                    NavigationLink(destination: RunStatsAnalyticsView()) {
+                        HStack(spacing: 4) {
+                            Text("See All")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(limeGreen)
+                            
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(limeGreen)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            
             if viewModel.activities.isEmpty {
                 // Empty state
                 VStack(spacing: 16) {
-                    Image(systemName: "figure.walk.circle")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary.opacity(0.5))
+                    ZStack {
+                        Circle()
+                            .fill(limeGreen.opacity(0.15))
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: "figure.run")
+                            .font(.system(size: 32, weight: .medium))
+                            .foregroundColor(limeGreen)
+                    }
                     
                     Text("No activities yet")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
                     
-                    Text("Start a workout to track your activities")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary.opacity(0.8))
+                    Text("Start your first workout to track your progress")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
+                    
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        showLiveTracking = true
+                    }) {
+                        Text("Start Running")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 14)
+                            .background(limeGreen)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.top, 8)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal, 20)
+                .background(MovementsColors.card(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .padding(.horizontal, 20)
             } else {
-                // Section Header
-                HStack {
-                    Text("Recent Activities")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    
-                    Spacer()
-                    
-                    if viewModel.activities.count > 5 {
-                        NavigationLink(destination: RunStatsAnalyticsView()) {
-                            HStack(spacing: 4) {
-                                Text("See All")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(accentBlue)
-                                
-                                Image(systemName: "arrow.right.circle.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(accentBlue)
-                            }
-                        }
-                    } else {
-                        Text("\(viewModel.activities.count) activities")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(.horizontal, 4)
-                
-                ForEach(Array(viewModel.activities.prefix(5))) { activity in
-                    ZStack(alignment: .topTrailing) {
+                VStack(spacing: 12) {
+                    ForEach(Array(viewModel.activities.prefix(3))) { activity in
                         NavigationLink(destination: ActivityDetailView(activity: activity)) {
-                            RouteActivityCardContent(activity: activity)
+                            RunActivityCard(activity: activity, colorScheme: colorScheme)
                         }
                         .buttonStyle(ScaleButtonStyle())
                     }
                 }
-            }
-        }
-        .padding(.horizontal, 20)
-        .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 30)
-        .animation(.spring(response: 0.5).delay(0.25), value: isAnimating)
-    }
-    
-    // MARK: - Weekly Progress Section
-    
-    private var weeklyProgressSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            CompactWeeklyProgressView(
-                dailySummaries: viewModel.dailySummaries,
-                goalDistanceKm: viewModel.activityGoal.dailyDistanceGoal * 7 // Weekly goal
-            )
-        }
-        .padding(.horizontal, 20)
-        .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 32)
-        .animation(.spring(response: 0.5).delay(0.27), value: isAnimating)
-    }
-    
-    // MARK: - Run Calendar Section
-    
-    private var runCalendarSection: some View {
-        CompactRunCalendarView(
-            activities: viewModel.activities,
-            onViewFullCalendar: {
-                showFullCalendar = true
-            }
-        )
-        .padding(.horizontal, 20)
-        .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 34)
-        .animation(.spring(response: 0.5).delay(0.29), value: isAnimating)
-    }
-    
-    // MARK: - Highlights Section
-    
-    private var highlightsSection: some View {
-        Group {
-            if let weeklyComparison = viewModel.weeklyComparison {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Text("Highlights")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.impactOccurred()
-                        }) {
-                            Text("See All")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(accentBlue)
-                        }
-                    }
-                    
-                    // Insight Text
-                    Text(weeklyComparison.insightText)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineSpacing(4)
-                    
-                    // Weekly Comparison Bars
-                    VStack(spacing: 12) {
-                        // Current Week
-                        WeeklyComparisonBar(
-                            average: weeklyComparison.currentWeekAverage,
-                            dateRange: weeklyComparison.currentWeekDateRange,
-                            maxValue: max(weeklyComparison.currentWeekAverage, weeklyComparison.previousWeekAverage),
-                            isCurrent: true,
-                            accentColor: accentBlue
-                        )
-                        
-                        // Previous Week
-                        WeeklyComparisonBar(
-                            average: weeklyComparison.previousWeekAverage,
-                            dateRange: weeklyComparison.previousWeekDateRange,
-                            maxValue: max(weeklyComparison.currentWeekAverage, weeklyComparison.previousWeekAverage),
-                            isCurrent: false,
-                            accentColor: accentBlue
-                        )
-                    }
-                }
-                .padding(20)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
                 .padding(.horizontal, 20)
             }
         }
         .opacity(isAnimating ? 1 : 0)
-        .offset(y: isAnimating ? 0 : 35)
-        .animation(.spring(response: 0.5).delay(0.3), value: isAnimating)
+        .offset(y: isAnimating ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: isAnimating)
+    }
+}
+
+// MARK: - Hero Stat Item
+
+private struct RunHeroStatItem: View {
+    let value: String
+    let unit: String
+    let label: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(alignment: .lastTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(.black)
+                
+                Text(unit)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.black.opacity(0.6))
+            }
+            
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(.black.opacity(0.5))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Progress Metric Card
+
+private struct RunProgressMetricCard: View {
+    let icon: String
+    let iconColor: Color
+    let value: String
+    let label: String
+    let progress: Double
+    let progressColor: Color
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .stroke(progressColor.opacity(0.2), lineWidth: 4)
+                    .frame(width: 52, height: 52)
+                
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(progressColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 52, height: 52)
+                    .rotationEffect(.degrees(-90))
+                
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(iconColor)
+            }
+            
+            VStack(spacing: 2) {
+                Text(value)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                
+                Text(label)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+// MARK: - Run Activity Card (New Design)
+
+private struct RunActivityCard: View {
+    let activity: RouteActivity
+    let colorScheme: ColorScheme
+    
+    private let limeGreen = MovementsColors.limeGreen
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Activity Type Icon
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(activity.type.color.opacity(0.15))
+                    .frame(width: 56, height: 56)
+                
+                Image(systemName: activity.type.icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(activity.type.color)
+            }
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Text(activity.name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                
+                HStack(spacing: 12) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "map")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        
+                        Text(activity.formattedDistance)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        
+                        Text(activity.formattedDuration)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Text(activity.formattedTimeRange)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary.opacity(0.7))
+            }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.secondary)
+        }
+        .padding(16)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -495,104 +834,118 @@ struct MetricItem: View {
 // MARK: - Route Activity Card Content
 
 struct RouteActivityCardContent: View {
+    @Environment(\.colorScheme) private var colorScheme
     let activity: RouteActivity
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        HStack(spacing: 12) {
-            // Map Preview – same MKMapView + polyline as detail screen so route layout matches
-            ActivityRouteThumbnailMapView(routeCoordinates: activity.routeCoordinates, size: CGSize(width: 80, height: 80))
-                .frame(width: 80, height: 80)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+        HStack(spacing: 14) {
+            // Activity Type Badge
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(activity.type.color.opacity(0.15))
+                    .frame(width: 60, height: 60)
+                
+                Image(systemName: activity.type.icon)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(activity.type.color)
+            }
             
-            VStack(alignment: .leading, spacing: 8) {
-                // Time Range with icon
-                HStack(spacing: 4) {
-                    Image(systemName: activity.type.icon)
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                    
-                    Text(activity.formattedTimeRange)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                // Activity Name
+            VStack(alignment: .leading, spacing: 6) {
                 Text(activity.name)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.primary)
+                    .lineLimit(1)
                 
-                // BPM and Distance
-                HStack(spacing: 8) {
-                    Text("AVG \(activity.averageBPM) BPM")
-                        .font(.caption)
+                HStack(spacing: 12) {
+                    Label(activity.formattedDistance, systemImage: "map")
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                     
-                    Text("-")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text(activity.formattedDistance)
-                        .font(.caption)
+                    Label(activity.formattedDuration, systemImage: "clock")
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
+                
+                Text(activity.formattedTimeRange)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary.opacity(0.7))
             }
             
             Spacer()
             
+            VStack(alignment: .trailing, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.red)
+                    
+                    Text("\(activity.averageBPM)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+                
+                Text("BPM")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+            
             Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.secondary)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.secondary.opacity(0.5))
         }
-        .padding(12)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(14)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 
 // MARK: - Weekly Comparison Bar
 
 struct WeeklyComparisonBar: View {
+    @Environment(\.colorScheme) private var colorScheme
     let average: Double
     let dateRange: String
     let maxValue: Double
     let isCurrent: Bool
     let accentColor: Color
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
         HStack(spacing: 12) {
-            // Average value
             HStack(alignment: .lastTextBaseline, spacing: 2) {
                 Text(String(format: "%.1f", average))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                 
-                Text("Km / day")
-                    .font(.caption2)
+                Text("km/day")
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.secondary)
             }
-            .frame(width: 90, alignment: .leading)
+            .frame(width: 85, alignment: .leading)
             
-            // Progress Bar
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    // Background
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color(UIColor.systemGray5))
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.primary.opacity(0.1))
                     
-                    // Fill
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(isCurrent ? accentColor : accentColor.opacity(0.4))
-                        .frame(width: max(geometry.size.width * (average / maxValue), 0))
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            isCurrent
+                                ? limeGreen
+                                : limeGreen.opacity(0.4)
+                        )
+                        .frame(width: max(geometry.size.width * (average / max(maxValue, 1)), 20))
                     
-                    // Date Range Label
                     Text(dateRange)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(isCurrent ? .black : .white)
+                        .padding(.horizontal, 10)
                 }
             }
-            .frame(height: 32)
+            .frame(height: 28)
         }
     }
 }
@@ -601,11 +954,12 @@ struct WeeklyComparisonBar: View {
 
 struct RunStatsAnalyticsView: View {
     @StateObject private var viewModel = DependencyContainer.shared.runActivityViewModel
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isAnimating = false
     @State private var selectedTab: AnalyticsTab = .overview
     
-    private let accentBlue = AppColors.accentBlue
-    private let accentGreen = AppColors.accentGreen
+    private let limeGreen = MovementsColors.limeGreen
+    private let darkGreen = MovementsColors.darkGreen
     
     enum AnalyticsTab: String, CaseIterable {
         case overview = "Overview"
@@ -625,15 +979,14 @@ struct RunStatsAnalyticsView: View {
     
     var body: some View {
         ZStack {
-            PremiumBackground()
+            (colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Tab Selector
                 tabSelector
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, 16)
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
@@ -669,37 +1022,32 @@ struct RunStatsAnalyticsView: View {
     
     private var tabSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 ForEach(AnalyticsTab.allCases, id: \.self) { tab in
                     Button(action: {
                         withAnimation(.spring(response: 0.3)) {
                             selectedTab = tab
                         }
-                        let generator = UISelectionFeedbackGenerator()
-                        generator.selectionChanged()
+                        UISelectionFeedbackGenerator().selectionChanged()
                     }) {
                         HStack(spacing: 6) {
                             Image(systemName: tab.icon)
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: 12, weight: .bold))
                             
                             Text(tab.rawValue)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 14, weight: .bold))
                                 .lineLimit(1)
                                 .fixedSize(horizontal: true, vertical: false)
                         }
-                        .foregroundColor(selectedTab == tab ? .white : .primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                        .foregroundColor(selectedTab == tab ? .black : .primary.opacity(0.6))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
                         .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(selectedTab == tab ? accentBlue : Color.clear)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(selectedTab == tab ? Color.clear : Color.primary.opacity(0.15), lineWidth: 1)
+                            Capsule()
+                                .fill(selectedTab == tab ? limeGreen : MovementsColors.card(for: colorScheme))
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScaleButtonStyle())
                 }
             }
             .padding(.trailing, 20)
@@ -709,198 +1057,392 @@ struct RunStatsAnalyticsView: View {
     // MARK: - Overview Content
     
     private var overviewContent: some View {
-        VStack(spacing: 24) {
-            // Enhanced Stats Grid
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                EnhancedStatCard(
+        VStack(spacing: 20) {
+            // Summary Hero Card
+            summaryHeroCard
+            
+            // Stats Grid
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                RunAnalyticsStatCard(
                     title: "Total Steps",
                     value: "\(viewModel.totalSteps)",
-                    subtitle: "steps",
                     icon: "figure.walk",
-                    color: accentGreen,
+                    color: limeGreen,
                     trend: 12.5,
-                    // progress: viewModel.stepsGoalProgress
+                    colorScheme: colorScheme
                 )
                 
-                EnhancedStatCard(
+                RunAnalyticsStatCard(
                     title: "Distance",
-                    value: String(format: "%.1f", viewModel.totalDistance),
-                    subtitle: "kilometers",
-                    icon: "map",
-                    color: accentBlue,
-                    trend: 8.3
+                    value: String(format: "%.1f km", viewModel.totalDistance),
+                    icon: "map.fill",
+                    color: Color(hex: "5AC8FA"),
+                    trend: 8.3,
+                    colorScheme: colorScheme
                 )
                 
-                EnhancedStatCard(
+                RunAnalyticsStatCard(
                     title: "Calories",
-                    value: String(format: "%.0f", Double(viewModel.totalCalories)),
-                    subtitle: "kcal burned",
+                    value: "\(viewModel.totalCalories)",
                     icon: "flame.fill",
                     color: .orange,
-                    trend: 15.7
+                    trend: 15.7,
+                    colorScheme: colorScheme
                 )
                 
-                EnhancedStatCard(
+                RunAnalyticsStatCard(
                     title: "Points",
                     value: "\(viewModel.totalPoints)",
-                    subtitle: "activity points",
                     icon: "star.fill",
                     color: .yellow,
-                    trend: -2.1
+                    trend: -2.1,
+                    colorScheme: colorScheme
                 )
             }
             .padding(.horizontal, 20)
             
-            // Weekly Distance Chart
-            WeeklyDistanceChart(
-                data: generateWeeklyData(),
-                color: accentBlue
-            )
-            .padding(.horizontal, 20)
+            // Weekly Chart
+            weeklyDistanceChartCard
             
-            // Activity Streak
-            ActivityStreakCard(
-                currentStreak: calculateCurrentStreak(),
-                longestStreak: calculateLongestStreak(),
-                color: accentGreen
-            )
-            .padding(.horizontal, 20)
+            // Streak Card
+            streakCard
             
             // Quick Stats
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Quick Stats")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                    .padding(.horizontal, 20)
-                
-                QuickStatsGrid(
-                    avgPace: calculateAvgPace(),
-                    avgHeartRate: calculateAvgHeartRate(),
-                    totalTime: calculateTotalTime(),
-                    avgDistance: viewModel.totalDistance / Double(max(viewModel.activities.count, 1))
-                )
-                .padding(.horizontal, 20)
-            }
-            
-            // Weekly Comparison (if available)
-            if let weeklyComparison = viewModel.weeklyComparison {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(accentBlue)
-                        
-                        Text("Weekly Comparison")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                    }
-                    
-                    Text(weeklyComparison.insightText)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineSpacing(4)
-                    
-                    VStack(spacing: 12) {
-                        WeeklyComparisonBar(
-                            average: weeklyComparison.currentWeekAverage,
-                            dateRange: weeklyComparison.currentWeekDateRange,
-                            maxValue: max(weeklyComparison.currentWeekAverage, weeklyComparison.previousWeekAverage),
-                            isCurrent: true,
-                            accentColor: accentBlue
-                        )
-                        
-                        WeeklyComparisonBar(
-                            average: weeklyComparison.previousWeekAverage,
-                            dateRange: weeklyComparison.previousWeekDateRange,
-                            maxValue: max(weeklyComparison.currentWeekAverage, weeklyComparison.previousWeekAverage),
-                            isCurrent: false,
-                            accentColor: accentBlue
-                        )
-                    }
-                }
-                .padding(20)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .padding(.horizontal, 20)
-            }
+            quickStatsSection
         }
         .opacity(isAnimating ? 1 : 0)
         .offset(y: isAnimating ? 0 : 20)
         .animation(.spring(response: 0.5), value: isAnimating)
     }
     
+    private var summaryHeroCard: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24)
+                .fill(darkGreen)
+            
+            // Geometric pattern
+            GeometryReader { geo in
+                Path { path in
+                    for i in 0..<8 {
+                        let x = CGFloat(i) * 20 + geo.size.width * 0.5
+                        path.move(to: CGPoint(x: x, y: 0))
+                        path.addLine(to: CGPoint(x: x - 60, y: geo.size.height))
+                    }
+                }
+                .stroke(Color.white.opacity(0.05), lineWidth: 2)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            
+            VStack(spacing: 16) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Total Activity")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                        
+                        Text("\(viewModel.activities.count) workouts")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    Spacer()
+                    
+                    ZStack {
+                        Circle()
+                            .fill(limeGreen)
+                            .frame(width: 56, height: 56)
+                        
+                        Image(systemName: "figure.run")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.black)
+                    }
+                }
+                
+                HStack(spacing: 0) {
+                    VStack(spacing: 4) {
+                        Text(String(format: "%.1f", viewModel.totalDistance))
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundColor(limeGreen)
+                        Text("km total")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 1, height: 36)
+                    
+                    VStack(spacing: 4) {
+                        Text(calculateTotalTime())
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundColor(limeGreen)
+                        Text("active time")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 1, height: 36)
+                    
+                    VStack(spacing: 4) {
+                        Text("\(viewModel.totalCalories)")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundColor(limeGreen)
+                        Text("kcal burned")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(20)
+        }
+        .frame(height: 160)
+        .padding(.horizontal, 20)
+    }
+    
+    private var weeklyDistanceChartCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Weekly Distance")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                Text(String(format: "%.1f km total", generateWeeklyData().reduce(0) { $0 + $1.distance }))
+                    .font(.system(size: 13))
+                    .foregroundColor(limeGreen)
+            }
+            
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(Array(generateWeeklyData().enumerated()), id: \.offset) { index, data in
+                    VStack(spacing: 8) {
+                        ZStack(alignment: .bottom) {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.primary.opacity(0.1))
+                                .frame(height: 120)
+                            
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [limeGreen, limeGreen.opacity(0.6)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .frame(height: max(CGFloat(data.distance) / 10.0 * 120, 8))
+                        }
+                        
+                        Text(data.day)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(20)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .padding(.horizontal, 20)
+    }
+    
+    private var streakCard: some View {
+        HStack(spacing: 20) {
+            // Current Streak
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(limeGreen.opacity(0.15))
+                        .frame(width: 64, height: 64)
+                    
+                    VStack(spacing: 2) {
+                        Text("\(calculateCurrentStreak())")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(limeGreen)
+                        
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(limeGreen)
+                    }
+                }
+                
+                Text("Current\nStreak")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            
+            Rectangle()
+                .fill(Color.primary.opacity(0.1))
+                .frame(width: 1, height: 60)
+            
+            // Best Streak
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 64, height: 64)
+                    
+                    VStack(spacing: 2) {
+                        Text("\(calculateLongestStreak())")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(.orange)
+                        
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.orange)
+                    }
+                }
+                
+                Text("Best\nStreak")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .leading, spacing: 4) {
+                if calculateCurrentStreak() > 0 {
+                    Text("Keep it up!")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.primary)
+                    
+                    Text("You're on a roll")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("Start today!")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.primary)
+                    
+                    Text("Build your streak")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(20)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .padding(.horizontal, 20)
+    }
+    
+    private var quickStatsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick Stats")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.primary)
+                .padding(.horizontal, 20)
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                RunQuickStatItem(
+                    icon: "speedometer",
+                    iconColor: limeGreen,
+                    value: calculateAvgPace(),
+                    label: "Avg Pace",
+                    colorScheme: colorScheme
+                )
+                
+                RunQuickStatItem(
+                    icon: "heart.fill",
+                    iconColor: .red,
+                    value: "\(calculateAvgHeartRate())",
+                    label: "Avg HR",
+                    colorScheme: colorScheme
+                )
+                
+                RunQuickStatItem(
+                    icon: "clock.fill",
+                    iconColor: .orange,
+                    value: calculateTotalTime(),
+                    label: "Total Time",
+                    colorScheme: colorScheme
+                )
+                
+                RunQuickStatItem(
+                    icon: "map.fill",
+                    iconColor: Color(hex: "5AC8FA"),
+                    value: String(format: "%.1f km", viewModel.totalDistance / Double(max(viewModel.activities.count, 1))),
+                    label: "Avg Distance",
+                    colorScheme: colorScheme
+                )
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+    
     // MARK: - Performance Content
     
     private var performanceContent: some View {
         VStack(spacing: 24) {
-            // Performance Insights
             PerformanceInsightsCard(insights: generateInsights())
                 .padding(.horizontal, 20)
             
-            // Personal Records
             PersonalRecordsSection(records: generatePersonalRecords())
                 .padding(.horizontal, 20)
             
-            // Pace Distribution
             PaceDistributionChart(
                 paceRanges: generatePaceDistribution(),
-                color: accentBlue
+                color: limeGreen
             )
             .padding(.horizontal, 20)
             
-            // Time of Day Analysis
             TimeOfDayAnalysis(distribution: generateTimeDistribution())
                 .padding(.horizontal, 20)
             
-            // Goals Progress
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "target")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(accentBlue)
-                    
-                    Text("Goals Progress")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    
-                    Spacer()
-                }
-                
-                GoalProgressRow(
-                    title: "Steps",
-                    current: viewModel.activityGoal.currentSteps,
-                    goal: viewModel.activityGoal.dailyStepsGoal,
-                    color: accentGreen
-                )
-                
-                GoalProgressRow(
-                    title: "Distance",
-                    current: Int(viewModel.activityGoal.currentDistance * 1000),
-                    goal: Int(viewModel.activityGoal.dailyDistanceGoal * 1000),
-                    unit: "m",
-                    color: accentBlue
-                )
-                
-                GoalProgressRow(
-                    title: "Calories",
-                    current: viewModel.activityGoal.currentCalories,
-                    goal: viewModel.activityGoal.dailyCaloriesGoal,
-                    color: .orange
-                )
-            }
-            .padding(20)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .padding(.horizontal, 20)
+            goalsProgressSection
         }
         .opacity(isAnimating ? 1 : 0)
         .offset(y: isAnimating ? 0 : 20)
         .animation(.spring(response: 0.5).delay(0.1), value: isAnimating)
+    }
+    
+    private var goalsProgressSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "target")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(limeGreen)
+                
+                Text("Goals Progress")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+            }
+            
+            GoalProgressRow(
+                title: "Steps",
+                current: viewModel.activityGoal.currentSteps,
+                goal: viewModel.activityGoal.dailyStepsGoal,
+                color: limeGreen
+            )
+            
+            GoalProgressRow(
+                title: "Distance",
+                current: Int(viewModel.activityGoal.currentDistance * 1000),
+                goal: Int(viewModel.activityGoal.dailyDistanceGoal * 1000),
+                unit: "m",
+                color: Color(hex: "5AC8FA")
+            )
+            
+            GoalProgressRow(
+                title: "Calories",
+                current: viewModel.activityGoal.currentCalories,
+                goal: viewModel.activityGoal.dailyCaloriesGoal,
+                color: .orange
+            )
+        }
+        .padding(20)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .padding(.horizontal, 20)
     }
     
     // MARK: - Calendar Content
@@ -917,34 +1459,39 @@ struct RunStatsAnalyticsView: View {
     // MARK: - Activities Content
     
     private var activitiesContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("All Activities")
-                    .font(.title3)
-                    .fontWeight(.bold)
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Text("\(viewModel.activities.count) total")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 14))
+                    .foregroundColor(limeGreen)
             }
             .padding(.horizontal, 20)
             
             if viewModel.activities.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "figure.walk.circle")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary.opacity(0.5))
+                VStack(spacing: 20) {
+                    ZStack {
+                        Circle()
+                            .fill(limeGreen.opacity(0.15))
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: "figure.run")
+                            .font(.system(size: 32, weight: .medium))
+                            .foregroundColor(limeGreen)
+                    }
                     
                     Text("No activities yet")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.primary)
                     
                     Text("Start a workout to track your activities")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary.opacity(0.8))
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
@@ -1075,26 +1622,23 @@ struct RunStatsAnalyticsView: View {
     private func generateInsights() -> [PerformanceInsight] {
         var insights: [PerformanceInsight] = []
         
-        // Consistency insight
         let activeDays = Set(viewModel.activities.map { Calendar.current.startOfDay(for: $0.startTime) }).count
         insights.append(PerformanceInsight(
             icon: "checkmark.circle.fill",
             title: "Consistency",
             description: "You've been active on \(activeDays) different days",
-            color: accentGreen
+            color: limeGreen
         ))
         
-        // Distance progress
         if viewModel.percentageChange > 0 {
             insights.append(PerformanceInsight(
                 icon: "arrow.up.right.circle.fill",
                 title: "Distance Improved",
                 description: String(format: "Up %.1f%% compared to last period", viewModel.percentageChange),
-                color: accentBlue
+                color: Color(hex: "5AC8FA")
             ))
         }
         
-        // Best time of day
         let morningCount = viewModel.activities.filter { Calendar.current.component(.hour, from: $0.startTime) < 12 }.count
         if morningCount > viewModel.activities.count / 2 {
             insights.append(PerformanceInsight(
@@ -1183,6 +1727,95 @@ struct RunStatsAnalyticsView: View {
             }.count
             return (time: range.0, count: count)
         }
+    }
+}
+
+// MARK: - Run Analytics Stat Card
+
+private struct RunAnalyticsStatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    let trend: Double
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(color)
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 3) {
+                    Image(systemName: trend >= 0 ? "arrow.up.right" : "arrow.down.right")
+                        .font(.system(size: 9, weight: .bold))
+                    
+                    Text(String(format: "%.1f%%", abs(trend)))
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundColor(trend >= 0 ? MovementsColors.limeGreen : .red)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill((trend >= 0 ? MovementsColors.limeGreen : Color.red).opacity(0.15))
+                )
+            }
+            
+            Text(value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+            
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .padding(16)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+// MARK: - Run Quick Stat Item
+
+private struct RunQuickStatItem: View {
+    let icon: String
+    let iconColor: Color
+    let value: String
+    let label: String
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(iconColor)
+                .frame(width: 28)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                
+                Text(label)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(14)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 

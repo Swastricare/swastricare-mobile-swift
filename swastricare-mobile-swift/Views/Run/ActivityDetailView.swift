@@ -3,6 +3,7 @@
 //  swastricare-mobile-swift
 //
 //  Detailed view for a single walking/running activity with analytics
+//  Redesigned with Movements+ UI - Lime Green, Dark Theme
 //
 
 import SwiftUI
@@ -32,6 +33,7 @@ struct ActivityDetailView: View {
     
     let activity: RouteActivity
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = DependencyContainer.shared.runActivityViewModel
     @State private var isAnimating = false
     @State private var mapRegion: MKCoordinateRegion
@@ -46,8 +48,8 @@ struct ActivityDetailView: View {
     @State private var analytics: ActivityAnalytics?
     @State private var isLoadingAnalytics = false
     
-    private let accentBlue = AppColors.accentBlue
-    private let accentRed = AppColors.accentRed
+    private let limeGreen = MovementsColors.limeGreen
+    private let darkGreen = MovementsColors.darkGreen
     private let analyticsService = RunAnalyticsService.shared
     
     // MARK: - Init
@@ -72,14 +74,14 @@ struct ActivityDetailView: View {
     
     var body: some View {
         ZStack {
-            PremiumBackground()
+            (colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
                 .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    // Map View (compact when not on overview)
+                    // Map View
                     mapSection
-                        .frame(height: selectedTab == .overview ? 280 : 160)
+                        .frame(height: selectedTab == .overview ? 260 : 140)
                     
                     // Activity Info Header
                     activityHeader
@@ -101,10 +103,11 @@ struct ActivityDetailView: View {
                     if isGeneratingShare {
                         ProgressView()
                             .scaleEffect(0.8)
+                            .tint(limeGreen)
                     } else {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(limeGreen)
                     }
                 }
                 .disabled(isGeneratingShare)
@@ -156,19 +159,30 @@ struct ActivityDetailView: View {
     
     private var tabSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 ForEach(ActivityDetailTab.allCases, id: \.self) { tab in
-                    TabButton(
-                        tab: tab,
-                        isSelected: selectedTab == tab,
-                        action: {
-                            withAnimation(.spring(response: 0.3)) {
-                                selectedTab = tab
-                            }
-                            let generator = UISelectionFeedbackGenerator()
-                            generator.selectionChanged()
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) {
+                            selectedTab = tab
                         }
-                    )
+                        UISelectionFeedbackGenerator().selectionChanged()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 12, weight: .bold))
+                            
+                            Text(tab.rawValue)
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundColor(selectedTab == tab ? .black : .primary.opacity(0.6))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule()
+                                .fill(selectedTab == tab ? limeGreen : MovementsColors.card(for: colorScheme))
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
                 }
             }
             .padding(.horizontal, 20)
@@ -287,9 +301,10 @@ struct ActivityDetailView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
+                .tint(limeGreen)
             
             Text("Loading analytics...")
-                .font(.subheadline)
+                .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -299,26 +314,32 @@ struct ActivityDetailView: View {
     // MARK: - Empty Analytics View
     
     private func emptyAnalyticsView(icon: String, title: String, message: String) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 48))
-                .foregroundColor(.secondary.opacity(0.5))
+        VStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .fill(limeGreen.opacity(0.15))
+                    .frame(width: 72, height: 72)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundColor(limeGreen)
+            }
             
             Text(title)
-                .font(.headline)
-                .foregroundColor(.secondary)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(.primary)
             
             Text(message)
-                .font(.caption)
-                .foregroundColor(.secondary.opacity(0.8))
+                .font(.system(size: 14))
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
+        .padding(.vertical, 50)
         .padding(.horizontal, 20)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .padding(.horizontal, 20)
     }
     
@@ -560,25 +581,21 @@ struct ActivityDetailView: View {
     private var mapSection: some View {
         ZStack(alignment: .bottomTrailing) {
             ActivityRouteMapView(routeCoordinates: activity.routeCoordinates)
-                .clipShape(RoundedRectangle(cornerRadius: selectedTab == .overview ? 24 : 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: selectedTab == .overview ? 24 : 16)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                )
+                .clipShape(RoundedRectangle(cornerRadius: 22))
             
-            // Expand Button (only show on overview)
             if selectedTab == .overview {
-                Button(action: {
-                    // Expand map action
-                }) {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .padding(10)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
+                Button(action: {}) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.black.opacity(0.6))
+                            .frame(width: 40, height: 40)
+                        
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                    }
                 }
-                .padding(16)
+                .padding(14)
             }
         }
         .padding(.horizontal, 20)
@@ -591,39 +608,35 @@ struct ActivityDetailView: View {
     
     private var activityHeader: some View {
         HStack(spacing: 16) {
-            // Activity Type Icon
             ZStack {
-                Circle()
+                RoundedRectangle(cornerRadius: 16)
                     .fill(activity.type.color.opacity(0.15))
-                    .frame(width: 56, height: 56)
+                    .frame(width: 60, height: 60)
                 
                 Image(systemName: activity.type.icon)
-                    .font(.system(size: 24, weight: .medium))
+                    .font(.system(size: 26, weight: .bold))
                     .foregroundColor(activity.type.color)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(activity.name)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Text(activity.formattedTimeRange)
-                    .font(.subheadline)
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
             }
             
             Spacer()
             
-            // Duration Badge
             VStack(alignment: .trailing, spacing: 4) {
                 Text(activity.formattedDuration)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(accentBlue)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(limeGreen)
                 
                 Text("Duration")
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -636,30 +649,29 @@ struct ActivityDetailView: View {
     // MARK: - Main Stats Grid
     
     private var mainStatsGrid: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: 16) {
-            StatCard(
+        HStack(spacing: 12) {
+            ActivityDetailStatCard(
                 icon: "figure.walk",
-                iconColor: .green,
+                iconColor: limeGreen,
                 value: "\(activity.steps)",
-                label: "Steps"
+                label: "Steps",
+                colorScheme: colorScheme
             )
             
-            StatCard(
-                icon: "map",
-                iconColor: accentBlue,
+            ActivityDetailStatCard(
+                icon: "map.fill",
+                iconColor: Color(hex: "5AC8FA"),
                 value: activity.formattedDistance,
-                label: "Distance"
+                label: "Distance",
+                colorScheme: colorScheme
             )
             
-            StatCard(
+            ActivityDetailStatCard(
                 icon: "flame.fill",
                 iconColor: .orange,
                 value: "\(activity.calories)",
-                label: "Calories"
+                label: "Calories",
+                colorScheme: colorScheme
             )
         }
         .padding(.horizontal, 20)
@@ -673,15 +685,18 @@ struct ActivityDetailView: View {
     private var detailedMetricsSection: some View {
         VStack(spacing: 16) {
             HStack {
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(limeGreen)
+                
                 Text("Activity Metrics")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
             }
             
-            VStack(spacing: 12) {
+            VStack(spacing: 0) {
                 DetailedMetricRow(
                     icon: "heart.fill",
                     iconColor: .red,
@@ -689,25 +704,25 @@ struct ActivityDetailView: View {
                     value: "\(activity.averageBPM) BPM"
                 )
                 
-                Divider()
+                Divider().padding(.leading, 52)
                 
                 DetailedMetricRow(
                     icon: "speedometer",
-                    iconColor: accentBlue,
+                    iconColor: limeGreen,
                     title: "Average Pace",
                     value: calculatePace()
                 )
                 
-                Divider()
+                Divider().padding(.leading, 52)
                 
                 DetailedMetricRow(
                     icon: "arrow.up.right",
-                    iconColor: .green,
+                    iconColor: Color(hex: "5AC8FA"),
                     title: "Elevation Gain",
                     value: "12 m"
                 )
                 
-                Divider()
+                Divider().padding(.leading, 52)
                 
                 DetailedMetricRow(
                     icon: "figure.run",
@@ -717,8 +732,8 @@ struct ActivityDetailView: View {
                 )
             }
             .padding(16)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .background(MovementsColors.card(for: colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .padding(.horizontal, 20)
         .opacity(isAnimating ? 1 : 0)
@@ -731,26 +746,29 @@ struct ActivityDetailView: View {
     private var timeAnalysisSection: some View {
         VStack(spacing: 16) {
             HStack {
+                Image(systemName: "clock.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.orange)
+                
                 Text("Time Analysis")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
             }
             
-            VStack(spacing: 12) {
+            VStack(spacing: 0) {
                 TimeAnalysisRow(title: "Start Time", value: formatTime(activity.startTime))
-                Divider()
+                Divider().padding(.leading, 16)
                 TimeAnalysisRow(title: "End Time", value: formatTime(activity.endTime))
-                Divider()
+                Divider().padding(.leading, 16)
                 TimeAnalysisRow(title: "Active Time", value: activity.formattedDuration)
-                Divider()
+                Divider().padding(.leading, 16)
                 TimeAnalysisRow(title: "Rest Time", value: "0 min")
             }
             .padding(16)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .background(MovementsColors.card(for: colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .padding(.horizontal, 20)
         .opacity(isAnimating ? 1 : 0)
@@ -761,28 +779,27 @@ struct ActivityDetailView: View {
     // MARK: - Action Buttons Section
     
     private var actionButtonsSection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             // Share Button
             Button(action: shareActivity) {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     if isGeneratingShare {
                         ProgressView()
                             .scaleEffect(0.8)
-                            .tint(.white)
+                            .tint(.black)
                     } else {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 16, weight: .bold))
                     }
                     
                     Text(isGeneratingShare ? "Generating..." : "Share Activity")
-                        .font(.headline)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 16, weight: .bold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(accentBlue)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .padding(.vertical, 18)
+                .background(limeGreen)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
             }
             .buttonStyle(ScaleButtonStyle())
             .disabled(isGeneratingShare)
@@ -791,23 +808,18 @@ struct ActivityDetailView: View {
             Button(action: {
                 showDeleteAlert = true
             }) {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Image(systemName: "trash")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 16, weight: .bold))
                     
                     Text("Delete Activity")
-                        .font(.headline)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 16, weight: .bold))
                 }
-                .foregroundColor(accentRed)
+                .foregroundColor(.red)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(accentRed.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(accentRed.opacity(0.3), lineWidth: 1)
-                )
+                .padding(.vertical, 18)
+                .background(Color.red.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
             }
             .buttonStyle(ScaleButtonStyle())
         }
@@ -834,34 +846,41 @@ struct ActivityDetailView: View {
     }
 }
 
-// MARK: - Stat Card
+// MARK: - Activity Detail Stat Card
 
-struct StatCard: View {
+struct ActivityDetailStatCard: View {
     let icon: String
     let iconColor: Color
     let value: String
     let label: String
+    let colorScheme: ColorScheme
     
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 24, weight: .medium))
-                .foregroundColor(iconColor)
+        VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(iconColor)
+            }
             
             VStack(spacing: 4) {
                 Text(value)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                 
                 Text(label)
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.vertical, 18)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 
@@ -874,23 +893,28 @@ struct DetailedMetricRow: View {
     let value: String
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundColor(iconColor)
-                .frame(width: 24)
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(iconColor)
+            }
             
             Text(title)
-                .font(.subheadline)
+                .font(.system(size: 15))
                 .foregroundColor(.secondary)
             
             Spacer()
             
             Text(value)
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.primary)
         }
+        .padding(.vertical, 10)
     }
 }
 
@@ -903,16 +927,16 @@ struct TimeAnalysisRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.subheadline)
+                .font(.system(size: 15))
                 .foregroundColor(.secondary)
             
             Spacer()
             
             Text(value)
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.primary)
         }
+        .padding(.vertical, 10)
     }
 }
 
@@ -922,31 +946,28 @@ struct TabButton: View {
     let tab: ActivityDetailTab
     let isSelected: Bool
     let action: () -> Void
+    let colorScheme: ColorScheme
     
-    private let accentBlue = AppColors.accentBlue
+    private let limeGreen = MovementsColors.limeGreen
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: tab.icon)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12, weight: .bold))
                 
                 Text(tab.rawValue)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .bold))
             }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .foregroundColor(isSelected ? .black : .primary.opacity(0.6))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(isSelected ? accentBlue : Color.clear)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.clear : Color.primary.opacity(0.15), lineWidth: 1)
+                Capsule()
+                    .fill(isSelected ? limeGreen : MovementsColors.card(for: colorScheme))
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
@@ -964,150 +985,135 @@ struct ActivityShareCardView: View {
     let activity: RouteActivity
     var mapSnapshot: UIImage? = nil
     
-    private let accentBlue = AppColors.accentBlue
-    private let accentGreen = AppColors.accentGreen
+    private let limeGreen = MovementsColors.limeGreen
+    private let darkGreen = MovementsColors.darkGreen
     
     var body: some View {
         VStack(spacing: 0) {
-            // Map section with route (if available)
             if let mapImage = mapSnapshot {
                 ZStack(alignment: .topLeading) {
-                    // Map snapshot as background
                     Image(uiImage: mapImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(height: 180)
+                        .frame(height: 200)
                         .clipped()
                     
-                    // Header overlay
                     VStack {
                         HStack {
-                            // Activity type badge
                             HStack(spacing: 6) {
                                 Image(systemName: activity.type.icon)
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.system(size: 14, weight: .bold))
                                 Text(activity.type.rawValue)
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.system(size: 12, weight: .bold))
+                            }
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(limeGreen)
+                            .clipShape(Capsule())
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 5) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 11))
+                                Text("SwasthiCare")
+                                    .font(.system(size: 12, weight: .bold))
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(activity.type.color)
-                            .clipShape(Capsule())
-                            
-                            Spacer()
-                            
-                            // App branding
-                            HStack(spacing: 4) {
-                                Image(systemName: "heart.fill")
-                                    .font(.system(size: 10))
-                                Text("SwasthiCare")
-                                    .font(.system(size: 11, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.black.opacity(0.5))
+                            .background(Color.black.opacity(0.6))
                             .clipShape(Capsule())
                         }
-                        .padding(16)
+                        .padding(18)
                         
                         Spacer()
                     }
                 }
-                .frame(height: 180)
+                .frame(height: 200)
             } else {
-                // Fallback: Header with gradient (no map)
                 ZStack(alignment: .topLeading) {
                     LinearGradient(
-                        gradient: Gradient(colors: [
-                            activity.type.color,
-                            activity.type.color.opacity(0.7)
-                        ]),
+                        gradient: Gradient(colors: [darkGreen, limeGreen]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    .frame(height: 140)
+                    .frame(height: 160)
                     
-                    // Overlay pattern
                     GeometryReader { geo in
                         Path { path in
                             let width = geo.size.width
                             let height = geo.size.height
-                            path.move(to: CGPoint(x: width * 0.7, y: 0))
+                            path.move(to: CGPoint(x: width * 0.65, y: 0))
                             path.addLine(to: CGPoint(x: width, y: 0))
-                            path.addLine(to: CGPoint(x: width, y: height * 0.6))
+                            path.addLine(to: CGPoint(x: width, y: height * 0.7))
                             path.closeSubpath()
                         }
-                        .fill(Color.white.opacity(0.1))
+                        .fill(Color.white.opacity(0.15))
                     }
-                    .frame(height: 140)
+                    .frame(height: 160)
                     
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Image(systemName: activity.type.icon)
-                                .font(.system(size: 24, weight: .semibold))
-                                .foregroundColor(.white)
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(.black)
                             
                             Spacer()
                             
-                            // App branding
-                            HStack(spacing: 4) {
+                            HStack(spacing: 5) {
                                 Image(systemName: "heart.fill")
                                     .font(.system(size: 12))
                                 Text("SwasthiCare")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.system(size: 13, weight: .bold))
                             }
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(.black.opacity(0.8))
                         }
                         
                         Spacer()
                         
                         Text(activity.name)
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.black)
                         
                         Text(formattedDate)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.black.opacity(0.7))
                     }
-                    .padding(20)
+                    .padding(22)
                 }
-                .frame(height: 140)
+                .frame(height: 160)
             }
             
-            // Stats section
-            VStack(spacing: 16) {
-                // Activity name and date (when map is shown)
+            VStack(spacing: 18) {
                 if mapSnapshot != nil {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(activity.name)
-                            .font(.system(size: 20, weight: .bold))
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.primary)
                         
                         Text(formattedDate)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(.horizontal, 22)
+                    .padding(.top, 18)
                 }
                 
-                // Main stat - Distance
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
                     Text(activity.formattedDistance)
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .foregroundColor(limeGreen)
                     
                     Text("DISTANCE")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.secondary)
-                        .tracking(1.5)
+                        .tracking(2)
                 }
-                .padding(.top, mapSnapshot != nil ? 8 : 20)
+                .padding(.top, mapSnapshot != nil ? 10 : 22)
                 
-                // Stats grid
                 HStack(spacing: 0) {
                     ShareStatItem(
                         icon: "clock.fill",
@@ -1116,8 +1122,8 @@ struct ActivityShareCardView: View {
                     )
                     
                     Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 1, height: 50)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 1, height: 55)
                     
                     ShareStatItem(
                         icon: "figure.walk",
@@ -1126,8 +1132,8 @@ struct ActivityShareCardView: View {
                     )
                     
                     Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 1, height: 50)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 1, height: 55)
                     
                     ShareStatItem(
                         icon: "flame.fill",
@@ -1135,38 +1141,37 @@ struct ActivityShareCardView: View {
                         label: "Calories"
                     )
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 18)
                 
-                // Additional stats row
-                HStack(spacing: 24) {
+                HStack(spacing: 28) {
                     HStack(spacing: 8) {
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 14))
+                            .font(.system(size: 15))
                             .foregroundColor(.red)
                         
                         Text("\(activity.averageBPM) BPM")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.primary)
                     }
                     
                     HStack(spacing: 8) {
                         Image(systemName: "speedometer")
-                            .font(.system(size: 14))
-                            .foregroundColor(accentBlue)
+                            .font(.system(size: 15))
+                            .foregroundColor(limeGreen)
                         
                         Text(calculatePace())
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.primary)
                     }
                 }
-                .padding(.top, 4)
-                .padding(.bottom, 20)
+                .padding(.top, 6)
+                .padding(.bottom, 24)
             }
             .background(Color(UIColor.systemBackground))
         }
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 10)
-        .padding(20)
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .shadow(color: .black.opacity(0.2), radius: 24, x: 0, y: 12)
+        .padding(22)
         .background(Color(UIColor.secondarySystemBackground))
     }
     
@@ -1192,18 +1197,20 @@ struct ShareStatItem: View {
     let value: String
     let label: String
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(AppColors.accentBlue)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(limeGreen)
             
             Text(value)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.system(size: 19, weight: .bold, design: .rounded))
                 .foregroundColor(.primary)
             
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -1219,143 +1226,131 @@ struct ActivityShareSheet: View {
     @State private var showCopiedToast = false
     @State private var showSavedToast = false
     
-    private let accentBlue = AppColors.accentBlue
-    private let accentGreen = AppColors.accentGreen
+    private let limeGreen = MovementsColors.limeGreen
+    private let darkGreen = MovementsColors.darkGreen
     
     var body: some View {
         NavigationStack {
             ZStack {
-                VStack(spacing: 24) {
-                    // Preview of the share card
+                VStack(spacing: 26) {
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: 320)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        .padding(.top, 20)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.15), radius: 14, x: 0, y: 8)
+                        .padding(.top, 22)
                     
                     Text("Share your achievement!")
-                        .font(.headline)
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.primary)
                     
-                    // Share options
-                    VStack(spacing: 12) {
-                        // Share to social
+                    VStack(spacing: 14) {
                         Button(action: shareToSocial) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 14) {
                                 Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.system(size: 18, weight: .bold))
                                 
                                 Text("Share to...")
-                                    .font(.headline)
+                                    .font(.system(size: 16, weight: .bold))
                                 
                                 Spacer()
                                 
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.black.opacity(0.5))
                             }
-                            .foregroundColor(.white)
-                            .padding(16)
-                            .background(accentBlue)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .foregroundColor(.black)
+                            .padding(18)
+                            .background(limeGreen)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
                         
-                        // Save to photos
                         Button(action: saveToPhotos) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 14) {
                                 Image(systemName: "photo.on.rectangle.angled")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(accentGreen)
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(limeGreen)
                                 
                                 Text("Save to Photos")
-                                    .font(.headline)
+                                    .font(.system(size: 16, weight: .bold))
                                 
                                 Spacer()
                                 
                                 if showSavedToast {
-                                    HStack(spacing: 4) {
+                                    HStack(spacing: 5) {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 14))
+                                            .font(.system(size: 15))
                                         Text("Saved!")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
+                                            .font(.system(size: 13, weight: .bold))
                                     }
-                                    .foregroundColor(accentGreen)
+                                    .foregroundColor(limeGreen)
                                 } else {
                                     Image(systemName: "arrow.down.circle")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(accentGreen)
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundColor(limeGreen)
                                 }
                             }
                             .foregroundColor(.primary)
-                            .padding(16)
-                            .background(accentGreen.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(accentGreen.opacity(0.3), lineWidth: 1)
-                            )
+                            .padding(18)
+                            .background(limeGreen.opacity(0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
                         
-                        // Copy stats
                         Button(action: copyStats) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 14) {
                                 Image(systemName: "doc.on.doc")
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.system(size: 18, weight: .bold))
                                 
                                 Text("Copy Stats")
-                                    .font(.headline)
+                                    .font(.system(size: 16, weight: .bold))
                                 
                                 Spacer()
                                 
                                 if showCopiedToast {
-                                    HStack(spacing: 4) {
+                                    HStack(spacing: 5) {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 14))
+                                            .font(.system(size: 15))
                                         Text("Copied!")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
+                                            .font(.system(size: 13, weight: .bold))
                                     }
-                                    .foregroundColor(accentGreen)
+                                    .foregroundColor(limeGreen)
                                 } else {
                                     Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .medium))
+                                        .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(.secondary)
                                 }
                             }
                             .foregroundColor(.primary)
-                            .padding(16)
+                            .padding(18)
                             .background(Color(UIColor.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 22)
                     
                     Spacer()
                 }
                 
-                // Success Toast Overlay
                 if showSavedToast {
                     VStack {
                         Spacer()
                         
-                        HStack(spacing: 12) {
+                        HStack(spacing: 14) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.white)
+                                .foregroundColor(.black)
                             
                             Text("Saved to Photos")
-                                .font(.headline)
-                                .foregroundColor(.white)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.black)
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
-                        .background(accentGreen)
+                        .padding(.horizontal, 26)
+                        .padding(.vertical, 18)
+                        .background(limeGreen)
                         .clipShape(Capsule())
-                        .shadow(color: accentGreen.opacity(0.4), radius: 10, x: 0, y: 5)
-                        .padding(.bottom, 40)
+                        .shadow(color: limeGreen.opacity(0.5), radius: 14, x: 0, y: 6)
+                        .padding(.bottom, 44)
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -1367,7 +1362,8 @@ struct ActivityShareSheet: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(limeGreen)
                 }
             }
         }

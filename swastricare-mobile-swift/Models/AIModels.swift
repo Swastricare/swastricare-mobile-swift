@@ -353,10 +353,7 @@ struct QuickAction: Identifiable, Equatable {
     static var contextualSuggestions: [QuickAction] {
         let hour = Calendar.current.component(.hour, from: Date())
 
-        // Always include health analysis first
-        var actions: [QuickAction] = [
-            QuickAction(title: "Analyze My Health", icon: "waveform.path.ecg", prompt: "Analyze my current health metrics and give me insights")
-        ]
+        var actions: [QuickAction] = []
 
         switch hour {
         case 5..<12:
@@ -374,12 +371,8 @@ struct QuickAction: Identifiable, Equatable {
                 QuickAction(title: "Nutrition", icon: "leaf.fill", prompt: "What should I eat for a balanced lunch?")
             ]
         case 17..<22:
-            // Evening suggestions
-            actions += [
-                QuickAction(title: "Day Summary", icon: "chart.bar.fill", prompt: "Summarize my health metrics for today. How did I do?"),
-                QuickAction(title: "Wind Down", icon: "moon.stars.fill", prompt: "Help me create a relaxing evening routine for better sleep"),
-                QuickAction(title: "Dinner Tips", icon: "fork.knife", prompt: "What should I eat for a light, healthy dinner?")
-            ]
+            // Evening suggestions (Day Summary, Wind Down, Dinner Tips removed)
+            break
         default:
             // Late night suggestions
             actions += [

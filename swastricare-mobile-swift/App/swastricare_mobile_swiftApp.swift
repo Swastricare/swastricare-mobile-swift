@@ -62,6 +62,17 @@ struct swastricare_mobile_swiftApp: App {
     // Notification delegate
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
+    /// User preference: system, light, or dark. Applied app-wide via preferredColorScheme.
+    @AppStorage(AppConfig.appThemeKey) private var appThemeRaw: String = AppTheme.system.rawValue
+    
+    private var resolvedColorScheme: ColorScheme? {
+        switch AppTheme(rawValue: appThemeRaw) ?? .system {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+    
     // MARK: - Init
     
     init() {
@@ -159,6 +170,7 @@ struct swastricare_mobile_swiftApp: App {
             .animation(.easeInOut, value: hasAcceptedConsent)
             .animation(.easeInOut, value: hasCompletedHealthProfile)
             .animation(.easeInOut, value: hasCheckedAppVersion)
+            .preferredColorScheme(resolvedColorScheme)
             .withDependencies()
             .environmentObject(appVersionService)
             .environmentObject(deepLinkHandler)

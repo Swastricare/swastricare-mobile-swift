@@ -2,13 +2,14 @@
 //  HydrationSettingsView.swift
 //  swastricare-mobile-swift
 //
-//  Hydration preferences configuration
+//  Hydration preferences with Movements+ Design
 //
 
 import SwiftUI
 
 struct HydrationSettingsView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var viewModel: HydrationViewModel
     
     @State private var weightText: String = ""
@@ -22,46 +23,91 @@ struct HydrationSettingsView: View {
     @State private var syncToHealthKit = true
     @State private var showAboutCalculation = false
     @State private var showNotificationSettings = false
+    @State private var hasAppeared = false
+    
+    // MARK: - Theme Colors
+    
+    private var hydrationBlue: Color { Color(hex: "5AC8FA") }
+    private var hydrationTeal: Color { Color(hex: "4ECDC4") }
     
     var body: some View {
         NavigationView {
-            Form {
-                // Personal Info Section
-                personalInfoSection
+            ZStack {
+                (colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
+                    .ignoresSafeArea()
                 
-                // Activity Level Section
-                activitySection
-                
-                // Special Conditions Section
-                specialConditionsSection
-                
-                // Notifications Section
-                notificationsSection
-                
-                // Advanced Section
-                advancedSection
-                
-                // About the Calculation
-                aboutSection
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        personalInfoSection
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: hasAppeared)
+                        
+                        activitySection
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
+                        
+                        specialConditionsSection
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: hasAppeared)
+                        
+                        notificationsSection
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
+                        
+                        advancedSection
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: hasAppeared)
+                        
+                        aboutSection
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 40)
+                }
             }
-            .navigationTitle("Hydration Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Hydration Settings")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.primary)
+                }
+                
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                    Button(action: { dismiss() }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.primary.opacity(0.08))
+                                .frame(width: 36, height: 36)
+                            
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.primary)
+                        }
                     }
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
-                        savePreferences()
+                    Button(action: { savePreferences() }) {
+                        Text("Save")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(hydrationBlue)
                     }
-                    .fontWeight(.semibold)
                 }
             }
             .onAppear {
                 loadCurrentPreferences()
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+                    hasAppeared = true
+                }
             }
             .sheet(isPresented: $showNotificationSettings) {
                 NotificationSettingsView(viewModel: viewModel)
@@ -72,211 +118,259 @@ struct HydrationSettingsView: View {
     // MARK: - Personal Info Section
     
     private var personalInfoSection: some View {
-        Section {
-            Toggle(isOn: $useHealthKitWeight) {
-                Label("Auto from HealthKit", systemImage: "heart.fill")
-            }
-            .tint(Color.cyan)
+        VStack(alignment: .leading, spacing: 16) {
+            SectionHeaderView(title: "Personal Info", icon: "person.fill", color: hydrationBlue)
             
-            if !useHealthKitWeight {
-                HStack {
-                    Label("Weight", systemImage: "scalemass.fill")
-                    Spacer()
-                    TextField("kg", text: $weightText)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                    Text("kg")
-                        .foregroundColor(.secondary)
+            VStack(spacing: 12) {
+                SettingsToggleRow(
+                    icon: "heart.fill",
+                    iconColor: .red,
+                    title: "Auto from HealthKit",
+                    subtitle: "Sync weight automatically",
+                    isOn: $useHealthKitWeight,
+                    colorScheme: colorScheme
+                )
+                
+                if !useHealthKitWeight {
+                    SettingsInputRow(
+                        icon: "scalemass.fill",
+                        iconColor: hydrationBlue,
+                        title: "Weight",
+                        value: $weightText,
+                        unit: "kg",
+                        placeholder: "Enter weight",
+                        colorScheme: colorScheme
+                    )
+                } else if let weight = viewModel.preferences.weightKg {
+                    SettingsInfoRow(
+                        icon: "scalemass.fill",
+                        iconColor: hydrationBlue,
+                        title: "Current Weight",
+                        value: String(format: "%.1f kg", weight),
+                        colorScheme: colorScheme
+                    )
                 }
-            } else if let weight = viewModel.preferences.weightKg {
-                HStack {
-                    Label("Current Weight", systemImage: "scalemass.fill")
-                    Spacer()
-                    Text(String(format: "%.1f kg", weight))
-                        .foregroundColor(.secondary)
-                }
+                
+                SettingsInputRow(
+                    icon: "ruler.fill",
+                    iconColor: hydrationTeal,
+                    title: "Height",
+                    value: $heightText,
+                    unit: "cm",
+                    placeholder: "Enter height",
+                    colorScheme: colorScheme
+                )
             }
             
-            HStack {
-                Label("Height", systemImage: "ruler.fill")
-                Spacer()
-                TextField("cm", text: $heightText)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-                Text("cm")
-                    .foregroundColor(.secondary)
-            }
-        } header: {
-            Text("Personal Info")
-        } footer: {
             Text("Your daily water goal is calculated based on your weight (33ml per kg)")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 4)
         }
     }
     
     // MARK: - Activity Section
     
     private var activitySection: some View {
-        Section {
-            Picker("Activity Level", selection: $activityLevel) {
-                ForEach(ActivityLevel.allCases) { level in
-                    HStack {
-                        Image(systemName: level.icon)
-                        Text(level.displayName)
-                    }
-                    .tag(level)
-                }
-            }
-            .pickerStyle(.navigationLink)
+        VStack(alignment: .leading, spacing: 16) {
+            SectionHeaderView(title: "Activity Level", icon: "figure.run", color: MovementsColors.limeGreen)
             
-            // Activity level description
-            HStack {
-                Image(systemName: activityLevel.icon)
-                    .foregroundColor(.cyan)
-                    .frame(width: 30)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(activityLevel.displayName)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    Text(activityLevel.description)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            VStack(spacing: 10) {
+                ForEach(ActivityLevel.allCases) { level in
+                    ActivityLevelCard(
+                        level: level,
+                        isSelected: activityLevel == level,
+                        colorScheme: colorScheme
+                    ) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            activityLevel = level
+                        }
+                    }
                 }
             }
-        } header: {
-            Text("Activity Level")
-        } footer: {
+            
             Text("Higher activity levels increase your hydration goal. Multiplier: \(String(format: "%.2fx", activityLevel.multiplier))")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 4)
         }
     }
     
     // MARK: - Special Conditions Section
     
     private var specialConditionsSection: some View {
-        Section {
-            Toggle(isOn: $isPregnant) {
-                HStack {
-                    Image(systemName: "figure.and.child.holdinghands")
-                        .foregroundColor(.pink)
-                    VStack(alignment: .leading) {
-                        Text("Pregnant")
-                        Text("+300ml daily")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .tint(Color.pink)
+        VStack(alignment: .leading, spacing: 16) {
+            SectionHeaderView(title: "Special Conditions", icon: "heart.circle.fill", color: .pink)
             
-            Toggle(isOn: $isBreastfeeding) {
-                HStack {
-                    Image(systemName: "heart.circle.fill")
-                        .foregroundColor(.purple)
-                    VStack(alignment: .leading) {
-                        Text("Breastfeeding")
-                        Text("+700ml daily")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
+            VStack(spacing: 12) {
+                SpecialConditionToggle(
+                    icon: "figure.and.child.holdinghands",
+                    iconColor: .pink,
+                    title: "Pregnant",
+                    subtitle: "+300ml daily",
+                    isOn: $isPregnant,
+                    colorScheme: colorScheme
+                )
+                
+                SpecialConditionToggle(
+                    icon: "heart.circle.fill",
+                    iconColor: .purple,
+                    title: "Breastfeeding",
+                    subtitle: "+700ml daily",
+                    isOn: $isBreastfeeding,
+                    colorScheme: colorScheme
+                )
             }
-            .tint(Color.purple)
-        } header: {
-            Text("Special Conditions")
         }
     }
     
     // MARK: - Notifications Section
     
     private var notificationsSection: some View {
-        Section {
-            Button(action: {
-                showNotificationSettings = true
-            }) {
-                HStack {
-                    Label("Notification Settings", systemImage: "bell.badge.fill")
-                        .foregroundColor(.primary)
+        VStack(alignment: .leading, spacing: 16) {
+            SectionHeaderView(title: "Reminders", icon: "bell.badge.fill", color: .orange)
+            
+            Button(action: { showNotificationSettings = true }) {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.15))
+                            .frame(width: 44, height: 44)
+                        
+                        Image(systemName: "bell.badge.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.orange)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Notification Settings")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                        
+                        Text("Configure reminders and quiet hours")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                    
                     Spacer()
+                    
                     Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
-                        .font(.caption)
                 }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(MovementsColors.card(for: colorScheme))
+                )
             }
-        } header: {
-            Text("Reminders")
-        } footer: {
-            Text("Configure hydration reminders, quiet hours, and notification preferences.")
+            .buttonStyle(ScaleButtonStyle())
         }
     }
     
     // MARK: - Advanced Section
     
     private var advancedSection: some View {
-        Section {
-            HStack {
-                Label("Custom Goal", systemImage: "target")
-                Spacer()
-                TextField("ml", text: $customGoalText)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-                Text("ml")
-                    .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            SectionHeaderView(title: "Advanced", icon: "slider.horizontal.3", color: hydrationTeal)
+            
+            VStack(spacing: 12) {
+                SettingsInputRow(
+                    icon: "target",
+                    iconColor: hydrationBlue,
+                    title: "Custom Goal",
+                    value: $customGoalText,
+                    unit: "ml",
+                    placeholder: "Override calculated",
+                    colorScheme: colorScheme
+                )
+                
+                SettingsToggleRow(
+                    icon: "heart.text.square.fill",
+                    iconColor: .red,
+                    title: "Sync to HealthKit",
+                    subtitle: "Save hydration data",
+                    isOn: $syncToHealthKit,
+                    colorScheme: colorScheme
+                )
+                
+                SettingsToggleRow(
+                    icon: "sun.max.fill",
+                    iconColor: .orange,
+                    title: "Weather Adjustments",
+                    subtitle: "Increase goal on hot days",
+                    isOn: $useWeatherAdjustment,
+                    colorScheme: colorScheme
+                )
             }
             
-            Toggle(isOn: $syncToHealthKit) {
-                Label("Sync to HealthKit", systemImage: "heart.text.square.fill")
-            }
-            .tint(Color.red)
-            
-            Toggle(isOn: $useWeatherAdjustment) {
-                Label("Weather Adjustments", systemImage: "sun.max.fill")
-            }
-            .tint(Color.orange)
-        } header: {
-            Text("Advanced")
-        } footer: {
             Text("Custom goal overrides the calculated value. Weather adjustments increase your goal on hot days (>30°C).")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 4)
         }
     }
     
     // MARK: - About Section
     
     private var aboutSection: some View {
-        Section {
-            DisclosureGroup(isExpanded: $showAboutCalculation) {
-                VStack(alignment: .leading, spacing: 12) {
-                    calculationRow("Base Formula", "Weight (kg) × 33ml")
-                    calculationRow("Sedentary", "×0.9 multiplier")
-                    calculationRow("Moderate", "×1.0 multiplier")
-                    calculationRow("High Activity", "×1.15 multiplier")
-                    calculationRow("Hot Climate", "×1.2 multiplier")
-                    calculationRow("Pregnancy", "+300ml")
-                    calculationRow("Breastfeeding", "+700ml")
-                    calculationRow("Exercise", "+500ml per hour")
-                    
-                    Text("This calculation is based on evidence-based hydration science. Individual needs may vary.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 8)
+        VStack(alignment: .leading, spacing: 16) {
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    showAboutCalculation.toggle()
                 }
-                .padding(.vertical, 8)
-            } label: {
-                Label("About the Calculation", systemImage: "info.circle.fill")
+            }) {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(hydrationBlue.opacity(0.15))
+                            .frame(width: 44, height: 44)
+                        
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(hydrationBlue)
+                    }
+                    
+                    Text("About the Calculation")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: showAboutCalculation ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(MovementsColors.card(for: colorScheme))
+                )
             }
-        }
-    }
-    
-    private func calculationRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.subheadline)
-            Spacer()
-            Text(value)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            .buttonStyle(ScaleButtonStyle())
+            
+            if showAboutCalculation {
+                VStack(spacing: 10) {
+                    CalculationRow(label: "Base Formula", value: "Weight (kg) × 33ml")
+                    CalculationRow(label: "Sedentary", value: "×0.9 multiplier")
+                    CalculationRow(label: "Moderate", value: "×1.0 multiplier")
+                    CalculationRow(label: "High Activity", value: "×1.15 multiplier")
+                    CalculationRow(label: "Hot Climate", value: "×1.2 multiplier")
+                    CalculationRow(label: "Pregnancy", value: "+300ml")
+                    CalculationRow(label: "Breastfeeding", value: "+700ml")
+                    CalculationRow(label: "Exercise", value: "+500ml per hour")
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(MovementsColors.card(for: colorScheme))
+                )
+                
+                Text("This calculation is based on evidence-based hydration science. Individual needs may vary.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 4)
+            }
         }
     }
     
@@ -331,11 +425,306 @@ struct HydrationSettingsView: View {
         
         prefs.updatedAt = Date()
         
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        
         Task {
             await viewModel.updatePreferences(prefs)
         }
         
         dismiss()
+    }
+}
+
+// MARK: - Supporting Views
+
+struct SectionHeaderView: View {
+    let title: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 32, height: 32)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(color)
+            }
+            
+            Text(title)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.primary)
+        }
+    }
+}
+
+struct SettingsToggleRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let subtitle: String
+    @Binding var isOn: Bool
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(iconColor)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Text(subtitle)
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .tint(iconColor)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(MovementsColors.card(for: colorScheme))
+        )
+    }
+}
+
+struct SettingsInputRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    @Binding var value: String
+    let unit: String
+    let placeholder: String
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(iconColor)
+            }
+            
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            HStack(spacing: 6) {
+                TextField(placeholder, text: $value)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(.system(size: 16, weight: .medium))
+                    .frame(width: 80)
+                
+                Text(unit)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(MovementsColors.card(for: colorScheme))
+        )
+    }
+}
+
+struct SettingsInfoRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let value: String
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(iconColor)
+            }
+            
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            Text(value)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(MovementsColors.card(for: colorScheme))
+        )
+    }
+}
+
+struct ActivityLevelCard: View {
+    let level: ActivityLevel
+    let isSelected: Bool
+    let colorScheme: ColorScheme
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? MovementsColors.limeGreen.opacity(0.15) : Color.primary.opacity(0.08))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: level.icon)
+                        .font(.system(size: 18))
+                        .foregroundColor(isSelected ? MovementsColors.limeGreen : .secondary)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(level.displayName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Text(level.description)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                ZStack {
+                    Circle()
+                        .stroke(isSelected ? MovementsColors.limeGreen : Color.primary.opacity(0.2), lineWidth: 2)
+                        .frame(width: 24, height: 24)
+                    
+                    if isSelected {
+                        Circle()
+                            .fill(MovementsColors.limeGreen)
+                            .frame(width: 14, height: 14)
+                    }
+                }
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(MovementsColors.card(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(isSelected ? MovementsColors.limeGreen.opacity(0.5) : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+struct SpecialConditionToggle: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let subtitle: String
+    @Binding var isOn: Bool
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                isOn.toggle()
+            }
+        }) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(isOn ? iconColor.opacity(0.15) : Color.primary.opacity(0.08))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundColor(isOn ? iconColor : .secondary)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isOn ? iconColor : Color.primary.opacity(0.1))
+                        .frame(width: 44, height: 26)
+                    
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 22, height: 22)
+                        .offset(x: isOn ? 9 : -9)
+                }
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(MovementsColors.card(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(isOn ? iconColor.opacity(0.3) : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+struct CalculationRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            Text(value)
+                .font(.system(size: 14))
+                .foregroundColor(.secondary)
+        }
     }
 }
 

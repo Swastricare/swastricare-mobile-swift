@@ -1599,7 +1599,7 @@ private struct StressLevelCard: View {
 
 // MARK: - Activity Card
 
-private struct ActivityCard: View {
+private struct HomeV2ActivityCard: View {
     let distance: String
     let hasAppeared: Bool
     

@@ -4,6 +4,7 @@
 //
 //  Native MapKit implementation for proper route rendering
 //  Routes scale correctly with map zoom/pan
+//  Updated with Movements+ UI design - lime green accent
 //
 
 import SwiftUI
@@ -100,11 +101,11 @@ struct RouteMapView: UIViewRepresentable {
             self.parent = parent
         }
         
-        // Render polyline
+        // Render polyline with lime green color
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                renderer.strokeColor = UIColor(red: 0.133, green: 0.773, blue: 0.369, alpha: 1.0) // Green color
+                renderer.strokeColor = UIColor(red: 0.8, green: 1.0, blue: 0.0, alpha: 1.0) // Lime green
                 renderer.lineWidth = 5
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
@@ -234,7 +235,7 @@ struct LiveTrackingMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                renderer.strokeColor = UIColor(red: 0.133, green: 0.773, blue: 0.369, alpha: 1.0)
+                renderer.strokeColor = UIColor(red: 0.8, green: 1.0, blue: 0.0, alpha: 1.0) // Lime green
                 renderer.lineWidth = 5
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
@@ -259,12 +260,12 @@ struct LiveTrackingMapView: UIViewRepresentable {
                 annotationView = MKAnnotationView(annotation: annotation, reuseIdentifier: identifier)
                 annotationView?.canShowCallout = false
                 
-                // Create green start marker
+                // Create lime green start marker
                 let size: CGFloat = 20
                 let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
                 let image = renderer.image { context in
                     let rect = CGRect(x: 0, y: 0, width: size, height: size)
-                    UIColor.systemGreen.setFill()
+                    UIColor(red: 0.8, green: 1.0, blue: 0.0, alpha: 1.0).setFill()
                     context.cgContext.fillEllipse(in: rect.insetBy(dx: 2, dy: 2))
                     UIColor.white.setStroke()
                     context.cgContext.setLineWidth(2)
@@ -297,26 +298,21 @@ struct SummaryRouteMapView: UIViewRepresentable {
     }
     
     func updateUIView(_ mapView: MKMapView, context: Context) {
-        // Clear existing
         mapView.removeOverlays(mapView.overlays)
         mapView.removeAnnotations(mapView.annotations)
         
         guard routePoints.count >= 2 else { return }
         
-        // Convert to coordinates
         let coordinates = routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
         
-        // Add polyline
         let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
         mapView.addOverlay(polyline)
         
-        // Add start/end markers
         let startAnnotation = RouteAnnotation(coordinate: coordinates.first!, type: .start)
         let endAnnotation = RouteAnnotation(coordinate: coordinates.last!, type: .end)
         mapView.addAnnotation(startAnnotation)
         mapView.addAnnotation(endAnnotation)
         
-        // Fit map to route
         var rect = MKMapRect.null
         for coordinate in coordinates {
             let point = MKMapPoint(coordinate)
@@ -336,7 +332,7 @@ struct SummaryRouteMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                renderer.strokeColor = UIColor(red: 0.133, green: 0.773, blue: 0.369, alpha: 1.0)
+                renderer.strokeColor = UIColor(red: 0.8, green: 1.0, blue: 0.0, alpha: 1.0) // Lime green
                 renderer.lineWidth = 4
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
@@ -361,7 +357,9 @@ struct SummaryRouteMapView: UIViewRepresentable {
                 let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
                 let image = renderer.image { context in
                     let rect = CGRect(x: 0, y: 0, width: size, height: size)
-                    let color: UIColor = routeAnnotation.type == .start ? .systemGreen : .systemRed
+                    let color: UIColor = routeAnnotation.type == .start 
+                        ? UIColor(red: 0.8, green: 1.0, blue: 0.0, alpha: 1.0) // Lime green
+                        : .systemRed
                     color.setFill()
                     context.cgContext.fillEllipse(in: rect.insetBy(dx: 2, dy: 2))
                     UIColor.white.setStroke()
@@ -434,8 +432,7 @@ struct ActivityRouteMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                // Use blue color for activity detail (matching original design)
-                renderer.strokeColor = UIColor(red: 0.31, green: 0.275, blue: 0.898, alpha: 1.0) // #4F46E5
+                renderer.strokeColor = UIColor(red: 0.8, green: 1.0, blue: 0.0, alpha: 1.0) // Lime green
                 renderer.lineWidth = 4
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
@@ -460,7 +457,9 @@ struct ActivityRouteMapView: UIViewRepresentable {
                 let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
                 let image = renderer.image { context in
                     let rect = CGRect(x: 0, y: 0, width: size, height: size)
-                    let color: UIColor = routeAnnotation.type == .start ? .systemGreen : .systemRed
+                    let color: UIColor = routeAnnotation.type == .start 
+                        ? UIColor(red: 0.8, green: 1.0, blue: 0.0, alpha: 1.0) // Lime green
+                        : .systemRed
                     color.setFill()
                     context.cgContext.fillEllipse(in: rect.insetBy(dx: 2, dy: 2))
                     UIColor.white.setStroke()
@@ -477,7 +476,6 @@ struct ActivityRouteMapView: UIViewRepresentable {
 
 // MARK: - Activity Route Thumbnail Map View (for list card – same projection as detail)
 
-/// Small map thumbnail that draws the route with MKPolyline so the track layout matches the detail screen.
 struct ActivityRouteThumbnailMapView: UIViewRepresentable {
     let routeCoordinates: [CoordinatePoint]
     var size: CGSize = CGSize(width: 80, height: 80)
@@ -505,7 +503,6 @@ struct ActivityRouteThumbnailMapView: UIViewRepresentable {
         let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
         mapView.addOverlay(polyline)
         
-        // Calculate bounding region for the route
         var minLat = coordinates[0].latitude
         var maxLat = coordinates[0].latitude
         var minLon = coordinates[0].longitude
@@ -518,17 +515,14 @@ struct ActivityRouteThumbnailMapView: UIViewRepresentable {
             maxLon = Swift.max(maxLon, coordinate.longitude)
         }
         
-        // Calculate center
         let centerLat = (minLat + maxLat) / 2
         let centerLon = (minLon + maxLon) / 2
         let center = CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon)
         
-        // Calculate span with extra padding for small thumbnails
-        let latDelta = (maxLat - minLat) * 1.5  // 50% padding
-        let lonDelta = (maxLon - minLon) * 1.5  // 50% padding
+        let latDelta = (maxLat - minLat) * 1.5
+        let lonDelta = (maxLon - minLon) * 1.5
         
-        // Ensure minimum span for very short routes
-        let minSpan = 0.002  // ~200 meters minimum span
+        let minSpan = 0.002
         let span = MKCoordinateSpan(
             latitudeDelta: Swift.max(latDelta, minSpan),
             longitudeDelta: Swift.max(lonDelta, minSpan)
@@ -546,7 +540,7 @@ struct ActivityRouteThumbnailMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                renderer.strokeColor = UIColor(red: 0.31, green: 0.275, blue: 0.898, alpha: 1.0)
+                renderer.strokeColor = UIColor(red: 0.8, green: 1.0, blue: 0.0, alpha: 1.0) // Lime green
                 renderer.lineWidth = 3
                 renderer.lineCap = .round
                 renderer.lineJoin = .round

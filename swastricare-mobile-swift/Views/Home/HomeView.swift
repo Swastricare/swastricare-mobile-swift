@@ -407,10 +407,10 @@ struct HomeView: View {
                 GridItem(.flexible())
             ], spacing: 12) {
                 // Heart Rate card - tappable to measure
-                Button(action: {
+                Button(role: nil, action: {
                     showHeartRateMeasurement = true
                 }) {
-                    VitalCard(
+                    HomeVitalCard(
                         icon: "heart.fill",
                         title: "Heart Rate",
                         value: "\(viewModel.heartRate)",
@@ -423,7 +423,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                VitalCard(
+                HomeVitalCard(
                     icon: "bed.double.fill",
                     title: "Sleep",
                     value: viewModel.sleepHours,
@@ -433,7 +433,7 @@ struct HomeView: View {
                     hasAppeared: hasAppeared
                 )
                 
-                VitalCard(
+                HomeVitalCard(
                     icon: "figure.walk",
                     title: "Distance",
                     value: String(format: "%.1f", viewModel.distance),
@@ -743,7 +743,7 @@ private struct StatRow: View {
     }
 }
 
-private struct VitalCard: View {
+private struct HomeVitalCard: View {
     let icon: String
     let title: String
     let value: String

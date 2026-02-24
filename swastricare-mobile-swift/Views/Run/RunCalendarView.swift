@@ -3,11 +3,13 @@
 //  swastricare-mobile-swift
 //
 //  Calendar view showing running activity dates
+//  Updated with Movements+ UI design - lime green accent, dark theme
 //
 
 import SwiftUI
 
 struct RunCalendarView: View {
+    @Environment(\.colorScheme) var colorScheme
     
     let activities: [RouteActivity]
     @State private var selectedMonth: Date = Date()
@@ -15,8 +17,8 @@ struct RunCalendarView: View {
     @State private var calendarData: [CalendarRunData] = []
     @State private var isAnimating = false
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentGreen = Color(hex: "22C55E")
+    private let limeGreen = MovementsColors.limeGreen
+    private let darkGreen = MovementsColors.darkGreen
     private let analyticsService = RunAnalyticsService.shared
     
     private let calendar = Calendar.current
@@ -56,34 +58,33 @@ struct RunCalendarView: View {
         HStack {
             Button(action: previousMonth) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(accentBlue)
-                    .frame(width: 40, height: 40)
-                    .background(accentBlue.opacity(0.1))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(limeGreen)
+                    .frame(width: 44, height: 44)
+                    .background(limeGreen.opacity(0.15))
                     .clipShape(Circle())
             }
             
             Spacer()
             
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Text(monthYearString)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Text("\(activeDaysInMonth) active days")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(limeGreen)
             }
             
             Spacer()
             
             Button(action: nextMonth) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(canGoToNextMonth ? accentBlue : .gray)
-                    .frame(width: 40, height: 40)
-                    .background((canGoToNextMonth ? accentBlue : Color.gray).opacity(0.1))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(canGoToNextMonth ? limeGreen : .gray)
+                    .frame(width: 44, height: 44)
+                    .background((canGoToNextMonth ? limeGreen : Color.gray).opacity(0.15))
                     .clipShape(Circle())
             }
             .disabled(!canGoToNextMonth)
@@ -95,21 +96,18 @@ struct RunCalendarView: View {
     // MARK: - Calendar Grid
     
     private var calendarGrid: some View {
-        VStack(spacing: 8) {
-            // Day of week headers
+        VStack(spacing: 10) {
             HStack(spacing: 0) {
                 ForEach(daysOfWeek, id: \.self) { day in
                     Text(day)
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 10)
             
-            // Calendar days
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 8) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 10) {
                 ForEach(daysInMonth, id: \.self) { date in
                     if let date = date {
                         CalendarDayCell(
@@ -117,6 +115,7 @@ struct RunCalendarView: View {
                             calendarData: calendarDataForDate(date),
                             isSelected: isDateSelected(date),
                             isToday: calendar.isDateInToday(date),
+                            colorScheme: colorScheme,
                             action: {
                                 withAnimation(.spring(response: 0.3)) {
                                     if selectedDate == date {
@@ -130,16 +129,15 @@ struct RunCalendarView: View {
                             }
                         )
                     } else {
-                        // Empty cell for padding
                         Color.clear
-                            .frame(height: 44)
+                            .frame(height: 48)
                     }
                 }
             }
         }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(18)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
         .opacity(isAnimating ? 1 : 0)
         .offset(y: isAnimating ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.1), value: isAnimating)
@@ -151,91 +149,104 @@ struct RunCalendarView: View {
     private func selectedDateActivities(for date: Date) -> some View {
         let dayData = calendarDataForDate(date)
         
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(formattedSelectedDate(date))
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 if dayData?.hasActivity == true {
                     Text(String(format: "%.1f km", dayData?.totalDistance ?? 0))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(accentBlue)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(limeGreen)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(limeGreen.opacity(0.15))
+                        .clipShape(Capsule())
                 }
             }
             
             if let dayData = dayData, dayData.hasActivity {
                 ForEach(dayData.activities) { activity in
                     NavigationLink(destination: ActivityDetailView(activity: activity)) {
-                        SelectedDateActivityRow(activity: activity)
+                        SelectedDateActivityRow(activity: activity, colorScheme: colorScheme)
                     }
                     .buttonStyle(.plain)
                 }
             } else {
-                HStack {
-                    Image(systemName: "figure.run")
-                        .font(.system(size: 24))
-                        .foregroundColor(.secondary.opacity(0.5))
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.1))
+                            .frame(width: 44, height: 44)
+                        
+                        Image(systemName: "figure.run")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
+                    }
                     
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("No activities")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.secondary)
                         
                         Text("Rest day or no tracked runs")
-                            .font(.caption)
-                            .foregroundColor(.secondary.opacity(0.8))
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary.opacity(0.7))
                     }
                     
                     Spacer()
                 }
-                .padding(12)
+                .padding(14)
             }
         }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(18)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
     
     // MARK: - Month Summary Section
     
     private var monthSummarySection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             HStack {
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(limeGreen)
+                
                 Text("Monthly Summary")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
             }
             
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 MonthSummaryCard(
                     title: "Total Distance",
                     value: String(format: "%.1f km", totalDistanceInMonth),
-                    icon: "map",
-                    color: accentBlue
+                    icon: "map.fill",
+                    color: limeGreen,
+                    colorScheme: colorScheme
                 )
                 
                 MonthSummaryCard(
                     title: "Activities",
                     value: "\(totalActivitiesInMonth)",
                     icon: "figure.run",
-                    color: accentGreen
+                    color: Color(hex: "5AC8FA"),
+                    colorScheme: colorScheme
                 )
                 
                 MonthSummaryCard(
                     title: "Active Days",
                     value: "\(activeDaysInMonth)",
                     icon: "calendar",
-                    color: .orange
+                    color: .orange,
+                    colorScheme: colorScheme
                 )
             }
         }
@@ -340,38 +351,37 @@ struct CalendarDayCell: View {
     let calendarData: CalendarRunData?
     let isSelected: Bool
     let isToday: Bool
+    let colorScheme: ColorScheme
     let action: () -> Void
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentGreen = Color(hex: "22C55E")
+    private let limeGreen = MovementsColors.limeGreen
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 Text(dayNumber)
-                    .font(.system(size: 14, weight: isToday ? .bold : .medium))
+                    .font(.system(size: 15, weight: isToday || isSelected ? .bold : .medium))
                     .foregroundColor(textColor)
                 
-                // Activity indicator
                 if let data = calendarData, data.hasActivity {
                     Circle()
                         .fill(intensityColor(data.intensityLevel))
-                        .frame(width: 6, height: 6)
+                        .frame(width: 7, height: 7)
                 } else {
                     Circle()
                         .fill(Color.clear)
-                        .frame(width: 6, height: 6)
+                        .frame(width: 7, height: 7)
                 }
             }
-            .frame(width: 40, height: 44)
+            .frame(width: 42, height: 48)
             .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(isToday && !isSelected ? accentBlue.opacity(0.5) : Color.clear, lineWidth: 2)
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isToday && !isSelected ? limeGreen.opacity(0.6) : Color.clear, lineWidth: 2)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
     }
     
     private var dayNumber: String {
@@ -382,9 +392,9 @@ struct CalendarDayCell: View {
     
     private var textColor: Color {
         if isSelected {
-            return .white
+            return .black
         } else if isToday {
-            return accentBlue
+            return limeGreen
         } else if Calendar.current.isDate(date, equalTo: Date(), toGranularity: .month) {
             return .primary
         } else {
@@ -394,7 +404,7 @@ struct CalendarDayCell: View {
     
     private var backgroundColor: Color {
         if isSelected {
-            return accentBlue
+            return limeGreen
         } else {
             return Color.clear
         }
@@ -403,11 +413,11 @@ struct CalendarDayCell: View {
     private func intensityColor(_ level: Int) -> Color {
         switch level {
         case 0: return .clear
-        case 1: return accentGreen.opacity(0.3)
-        case 2: return accentGreen.opacity(0.5)
-        case 3: return accentGreen.opacity(0.7)
-        case 4: return accentGreen.opacity(0.85)
-        default: return accentGreen
+        case 1: return limeGreen.opacity(0.3)
+        case 2: return limeGreen.opacity(0.5)
+        case 3: return limeGreen.opacity(0.7)
+        case 4: return limeGreen.opacity(0.85)
+        default: return limeGreen
         }
     }
 }
@@ -416,53 +426,51 @@ struct CalendarDayCell: View {
 
 struct SelectedDateActivityRow: View {
     let activity: RouteActivity
+    let colorScheme: ColorScheme
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let limeGreen = MovementsColors.limeGreen
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Activity icon
+        HStack(spacing: 14) {
             ZStack {
-                Circle()
+                RoundedRectangle(cornerRadius: 14)
                     .fill(activity.type.color.opacity(0.15))
-                    .frame(width: 40, height: 40)
+                    .frame(width: 46, height: 46)
                 
                 Image(systemName: activity.type.icon)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(activity.type.color)
             }
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(activity.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Text(activity.formattedTimeRange)
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
             
             Spacer()
             
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: 4) {
                 Text(activity.formattedDistance)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(accentBlue)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(limeGreen)
                 
                 Text(activity.formattedDuration)
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
             
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.secondary)
         }
-        .padding(12)
-        .background(Color.primary.opacity(0.03))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(14)
+        .background(MovementsColors.card(for: colorScheme).opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
@@ -473,64 +481,74 @@ struct MonthSummaryCard: View {
     let value: String
     let icon: String
     let color: Color
+    let colorScheme: ColorScheme
     
     var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(color)
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 38, height: 38)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(color)
+            }
             
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(.primary)
             
             Text(title)
-                .font(.caption2)
+                .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 16)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
 // MARK: - Compact Calendar View (for embedding)
 
 struct CompactRunCalendarView: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let activities: [RouteActivity]
     let onViewFullCalendar: () -> Void
     
     @State private var calendarData: [CalendarRunData] = []
     @State private var isAnimating = false
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentGreen = Color(hex: "22C55E")
+    private let limeGreen = MovementsColors.limeGreen
     private let analyticsService = RunAnalyticsService.shared
     private let calendar = Calendar.current
     
     var body: some View {
-        VStack(spacing: 12) {
-            // Header
+        VStack(spacing: 14) {
             HStack {
-                Text("Run Calendar")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                HStack(spacing: 8) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(limeGreen)
+                    
+                    Text("Run Calendar")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.primary)
+                }
                 
                 Spacer()
                 
                 Button(action: onViewFullCalendar) {
                     Text("View All")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(accentBlue)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(limeGreen)
                 }
             }
             
-            // Last 14 days mini view
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 ForEach(last14Days, id: \.self) { date in
                     MiniCalendarDayCell(
                         date: date,
@@ -540,18 +558,17 @@ struct CompactRunCalendarView: View {
                 }
             }
             
-            // Summary
             HStack {
                 Text("\(activeDaysLast14) active days in the last 2 weeks")
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 
                 Spacer()
             }
         }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(18)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .onAppear {
             generateCalendarData()
         }
@@ -585,21 +602,20 @@ struct MiniCalendarDayCell: View {
     let hasActivity: Bool
     let isToday: Bool
     
-    private let accentBlue = Color(hex: "4F46E5")
-    private let accentGreen = Color(hex: "22C55E")
+    private let limeGreen = MovementsColors.limeGreen
     
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
             Text(dayLetter)
-                .font(.system(size: 8, weight: .medium))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(.secondary)
             
             Circle()
                 .fill(circleColor)
-                .frame(width: 16, height: 16)
+                .frame(width: 18, height: 18)
                 .overlay(
                     Circle()
-                        .stroke(isToday ? accentBlue : Color.clear, lineWidth: 1.5)
+                        .stroke(isToday ? limeGreen : Color.clear, lineWidth: 2)
                 )
         }
         .frame(maxWidth: .infinity)
@@ -613,7 +629,7 @@ struct MiniCalendarDayCell: View {
     
     private var circleColor: Color {
         if hasActivity {
-            return accentGreen
+            return limeGreen
         } else {
             return Color.gray.opacity(0.2)
         }

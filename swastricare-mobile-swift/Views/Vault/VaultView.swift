@@ -3,7 +3,7 @@
 //  swastricare-mobile-swift
 //
 //  MVVM Architecture - Views Layer
-//  Medical Vault with modern UI design
+//  Medical Vault with Movements+ UI design
 //
 
 import SwiftUI
@@ -11,15 +11,33 @@ import UIKit
 import UniformTypeIdentifiers
 import PhotosUI
 
+// MARK: - Vault Design Colors
+
+struct VaultColors {
+    static let primary = Color(hex: "C6FF00") // Lime green
+    static let secondary = Color(hex: "4ECDC4") // Teal
+    static let accent = Color(hex: "45B7D1") // Blue
+    static let purple = Color(hex: "AF52DE")
+    static let coral = Color(hex: "FF6B6B")
+    static let darkCard = Color(hex: "1C1C1E")
+    static let darkCardSecondary = Color(hex: "2C2C2E")
+    
+    static func card(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? darkCardSecondary : Color(UIColor.secondarySystemBackground)
+    }
+    
+    static func background(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? Color.black : Color(UIColor.systemBackground)
+    }
+}
+
 // MARK: - Main Vault View
 
 struct VaultView: View {
     
-    // MARK: - ViewModel
-    // Use ObservedObject since ViewModel is shared/owned by DependencyContainer
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var viewModel = DependencyContainer.shared.vaultViewModel
     
-    // MARK: - Local State
     @State private var showAddOptions = false
     @State private var showDocumentPicker = false
     @State private var showPhotoPicker = false
@@ -29,42 +47,63 @@ struct VaultView: View {
     @State private var showDeleteConfirmation = false
     @State private var documentToDelete: MedicalDocument?
     @State private var selectedFolder: DocumentFolder?
-    @State private var showFilterSheet = false
+    @State private var hasAppeared = false
     
-    // MARK: - Body
     var body: some View {
-        ZStack {
-            // Premium Background
-            PremiumBackground()
-            
-            VStack(spacing: 0) {
-                // Custom App Bar
-                vaultAppBar
+        GeometryReader { geo in
+            ZStack {
+                VaultColors.background(for: colorScheme)
+                    .ignoresSafeArea()
                 
-                // Content Area
-                contentArea
-            }
-            
-            // Floating Add Button
-            if !viewModel.isSelectionMode {
-                VStack {
-                    Spacer()
-                    HStack {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        headerSection
+                            .padding(.top, 8)
+                        
+                        storageOverviewSection
+                            .padding(.top, 24)
+                        
+                        searchSection
+                            .padding(.top, 20)
+                        
+                        categoryChipsSection
+                            .padding(.top, 16)
+                        
+                        quickActionsSection
+                            .padding(.top, 24)
+                        
+                        contentSection
+                            .padding(.top, 24)
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 100 + geo.safeAreaInsets.bottom)
+                }
+                
+                // Floating Add Button
+                if !viewModel.isSelectionMode {
+                    VStack {
                         Spacer()
-                floatingAddButton
-            }
-        }
+                        HStack {
+                            Spacer()
+                            floatingAddButton
+                        }
+                    }
+                }
             }
         }
         .onAppear {
             AppAnalyticsService.shared.logScreen("Vault")
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+                hasAppeared = true
+            }
         }
-        // Documents loaded once in ContentView; use cached data. Pull-to-refresh for manual reload.
         .refreshable {
             await viewModel.loadDocuments(forceRefresh: true)
         }
         .sheet(isPresented: $showAddOptions) {
-            AddDocumentSheet(
+            VaultAddDocumentSheet(
                 onChooseFiles: {
                     showAddOptions = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -78,11 +117,11 @@ struct VaultView: View {
                     }
                 }
             )
-            .presentationDetents([.height(300)])
+            .presentationDetents([.height(340)])
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showDocumentPicker) {
-            MultiDocumentPickerView { files in
+            VaultDocumentPickerView { files in
                 viewModel.prepareMultipleUploads(files: files)
             }
         }
@@ -96,13 +135,13 @@ struct VaultView: View {
             Task { await handleSelectedPhotos(newValue) }
         }
         .sheet(isPresented: $viewModel.showUploadSheet) {
-            BatchUploadSheet(viewModel: viewModel)
+            VaultBatchUploadSheet(viewModel: viewModel)
         }
         .sheet(item: $selectedDocument) { document in
             DocumentViewer(document: document)
         }
         .sheet(item: $documentForDetails) { document in
-            DocumentDetailSheet(
+            VaultDocumentDetailSheet(
                 document: document,
                 viewModel: viewModel,
                 onView: {
@@ -118,7 +157,7 @@ struct VaultView: View {
             )
         }
         .sheet(item: $selectedFolder) { folder in
-            FolderDetailSheet(
+            VaultFolderDetailSheet(
                 folder: folder,
                 viewModel: viewModel,
                 onViewDocument: { doc in
@@ -150,155 +189,82 @@ struct VaultView: View {
             Text("Are you sure you want to delete this document? This action cannot be undone.")
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") {
-                viewModel.clearError()
-            }
+            Button("OK") { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
     }
     
-    // MARK: - App Bar
-    private var vaultAppBar: some View {
-        VStack(spacing: 12) {
-            // Top Row - Title and Actions
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Medical Vault")
-                        .font(.system(size: 28, weight: .bold))
-                    
-                    Text("\(viewModel.totalDocuments) documents • \(viewModel.totalStorageFormatted)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+    // MARK: - Header Section
+    
+    private var headerSection: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Medical Vault")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(.primary)
                 
-                Spacer()
-                
-                // Two Round Buttons
-                HStack(spacing: 12) {
-                    // View By Button
-                    Menu {
-                        Button {
-                            viewModel.setViewMode(.folders)
-                        } label: {
-                            Label("Folders", systemImage: "folder.fill")
-                            if viewModel.viewMode == .folders {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                        
-                        Button {
-                            viewModel.setViewMode(.timeline)
-                        } label: {
-                            Label("Timeline", systemImage: "calendar")
-                            if viewModel.viewMode == .timeline {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                        
-                        Button {
-                            viewModel.setViewMode(.list)
-                        } label: {
-                            Label("List", systemImage: "list.bullet")
-                            if viewModel.viewMode == .list {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: viewModeIcon)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
-                            .frame(width: 40, height: 40)
-                            .background(Circle().fill(Color(UIColor.secondarySystemBackground)))
-                    }
-                    
-                    // Sort & More Button
-                    Menu {
-                        // Sort Options
-                        Section("Sort By") {
-                            Button {
-                                viewModel.setSortOrder(.dateDescending)
-                            } label: {
-                                Label("Newest First", systemImage: "arrow.down")
-                            }
-                            
-                            Button {
-                                viewModel.setSortOrder(.dateAscending)
-                            } label: {
-                                Label("Oldest First", systemImage: "arrow.up")
-                            }
-                            
-                            Button {
-                                viewModel.setSortOrder(.nameAscending)
-                            } label: {
-                                Label("Name (A-Z)", systemImage: "textformat.abc")
-                            }
-                            
-                            Button {
-                                viewModel.setSortOrder(.sizeDescending)
-                            } label: {
-                                Label("File Size", systemImage: "doc.fill")
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        // Select & Delete
-                        Button {
-                            withAnimation(.spring(response: 0.3)) {
-                                viewModel.toggleSelectionMode()
-                            }
-                        } label: {
-                            Label(viewModel.isSelectionMode ? "Cancel Selection" : "Select Documents", systemImage: "checkmark.circle")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
-                            .frame(width: 40, height: 40)
-                            .background(Circle().fill(Color(UIColor.secondarySystemBackground)))
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            
-            // Search Bar
-            HStack(spacing: 12) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16))
+                Text("Your secure health records")
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
-                
-                TextField("Search documents...", text: $viewModel.searchQuery)
-                    .font(.system(size: 16))
-                
-                if !viewModel.searchQuery.isEmpty {
-                    Button {
-                        viewModel.searchQuery = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // View Mode Toggle
+            Menu {
+                Button {
+                    viewModel.setViewMode(.folders)
+                } label: {
+                    Label("Folders", systemImage: "folder.fill")
+                    if viewModel.viewMode == .folders {
+                        Image(systemName: "checkmark")
                     }
                 }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .glass(cornerRadius: 14)
-            .padding(.horizontal, 20)
-            
-            // Category Filter Pills
-            categoryFilterPills
-            
-            // Selection Bar (if in selection mode)
-            if viewModel.isSelectionMode {
-                selectionBar
+                
+                Button {
+                    viewModel.setViewMode(.timeline)
+                } label: {
+                    Label("Timeline", systemImage: "calendar")
+                    if viewModel.viewMode == .timeline {
+                        Image(systemName: "checkmark")
+                    }
+                }
+                
+                Button {
+                    viewModel.setViewMode(.list)
+                } label: {
+                    Label("List", systemImage: "list.bullet")
+                    if viewModel.viewMode == .list {
+                        Image(systemName: "checkmark")
+                    }
+                }
+                
+                Divider()
+                
+                Button {
+                    withAnimation(.spring(response: 0.3)) {
+                        viewModel.toggleSelectionMode()
+                    }
+                } label: {
+                    Label(viewModel.isSelectionMode ? "Cancel Selection" : "Select", systemImage: "checkmark.circle")
+                }
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(VaultColors.card(for: colorScheme))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: viewModeIcon)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.primary)
+                }
             }
         }
-        .padding(.bottom, 8)
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : -20)
     }
     
-    // View mode icon helper
     private var viewModeIcon: String {
         switch viewModel.viewMode {
         case .folders: return "folder.fill"
@@ -307,25 +273,85 @@ struct VaultView: View {
         }
     }
     
-    // MARK: - Category Filter Pills
-    private var categoryFilterPills: some View {
+    // MARK: - Storage Overview Section
+    
+    private var storageOverviewSection: some View {
+        HStack(spacing: 16) {
+            // Documents Count Card
+            VaultStatCard(
+                title: "Documents",
+                value: "\(viewModel.totalDocuments)",
+                icon: "doc.fill",
+                color: VaultColors.primary
+            )
+            
+            // Storage Used Card
+            VaultStatCard(
+                title: "Storage",
+                value: viewModel.totalStorageFormatted,
+                icon: "externaldrive.fill",
+                color: VaultColors.secondary
+            )
+        }
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
+    }
+    
+    // MARK: - Search Section
+    
+    private var searchSection: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.secondary)
+            
+            TextField("Search documents...", text: $viewModel.searchQuery)
+                .font(.system(size: 16))
+            
+            if !viewModel.searchQuery.isEmpty {
+                Button {
+                    viewModel.searchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(VaultColors.card(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(VaultColors.primary.opacity(0.3), lineWidth: 1)
+        )
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: hasAppeared)
+    }
+    
+    // MARK: - Category Chips Section
+    
+    private var categoryChipsSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                // All Category
-                FilterPill(
+                VaultCategoryChip(
                     title: "All",
                     count: viewModel.totalDocuments,
                     isSelected: viewModel.selectedCategory == nil,
-                    color: Color(hex: "2E3192")
+                    color: VaultColors.primary
                 ) {
                     withAnimation(.spring(response: 0.3)) {
                         viewModel.setCategory(nil)
                     }
                 }
                 
-                // Category Pills
                 ForEach(VaultCategory.allCases) { category in
-                    FilterPill(
+                    VaultCategoryChip(
                         title: category.rawValue,
                         count: viewModel.documentsByCategory[category] ?? 0,
                         isSelected: viewModel.selectedCategory == category,
@@ -338,81 +364,107 @@ struct VaultView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
         }
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
     }
     
-    // MARK: - Selection Bar
-    private var selectionBar: some View {
-        HStack(spacing: 16) {
-            Text("\(viewModel.selectedDocuments.count) selected")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
+    // MARK: - Quick Actions Section
+    
+    private var quickActionsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick Actions")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.primary)
             
-            Spacer()
-            
-            Button {
-                viewModel.selectAllDocuments()
-            } label: {
-                Text("Select All")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "2E3192"))
-            }
-            
-            Button(role: .destructive) {
-                Task { await deleteSelectedDocuments() }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "trash")
-                    Text("Delete")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    VaultQuickActionCard(
+                        title: "Upload",
+                        subtitle: "Add new files",
+                        icon: "arrow.up.doc.fill",
+                        backgroundColor: VaultColors.primary,
+                        contentColor: .black
+                    ) {
+                        showAddOptions = true
+                    }
+                    
+                    VaultQuickActionCard(
+                        title: "Scan",
+                        subtitle: "Scan document",
+                        icon: "doc.text.viewfinder",
+                        backgroundColor: VaultColors.secondary,
+                        contentColor: .white
+                    ) {
+                        showAddOptions = true
+                    }
+                    
+                    VaultQuickActionCard(
+                        title: "Photos",
+                        subtitle: "From gallery",
+                        icon: "photo.on.rectangle",
+                        backgroundColor: VaultColors.accent,
+                        contentColor: .white
+                    ) {
+                        showPhotoPicker = true
+                    }
                 }
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.red)
             }
-            .disabled(viewModel.selectedDocuments.isEmpty)
-            .opacity(viewModel.selectedDocuments.isEmpty ? 0.5 : 1)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .glass(cornerRadius: 16)
-        .padding(.horizontal, 20)
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: hasAppeared)
     }
     
-    // MARK: - Content Area
-    private var contentArea: some View {
+    // MARK: - Content Section
+    
+    private var contentSection: some View {
         Group {
             if viewModel.isLoading && viewModel.documents.isEmpty {
-                loadingView
+                vaultLoadingView
             } else if let error = viewModel.errorMessage, viewModel.documents.isEmpty {
-                errorView(error)
+                vaultErrorView(error)
             } else if viewModel.filteredDocuments.isEmpty {
-                emptyStateView
+                vaultEmptyStateView
             } else {
-                documentsContent
+                documentsContentView
             }
         }
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
     }
     
-    // MARK: - Documents Content
-    private var documentsContent: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                switch viewModel.viewMode {
-                case .folders:
-                    foldersGridView
-                case .timeline:
-                    timelineView
-                case .list:
-                    documentListView
+    // MARK: - Documents Content View
+    
+    private var documentsContentView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(viewModel.viewMode == .folders ? "Folders" : (viewModel.viewMode == .timeline ? "Timeline" : "All Documents"))
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                if viewModel.isSelectionMode {
+                    selectionBar
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 100)
+            
+            switch viewModel.viewMode {
+            case .folders:
+                foldersGridView
+            case .timeline:
+                timelineView
+            case .list:
+                documentListView
+            }
         }
     }
     
     // MARK: - Folders Grid View
+    
     private var foldersGridView: some View {
         let columns = [
             GridItem(.flexible(), spacing: 16),
@@ -421,7 +473,7 @@ struct VaultView: View {
         
         return LazyVGrid(columns: columns, spacing: 16) {
             ForEach(viewModel.groupedDocuments) { folder in
-                FolderCard(folder: folder) {
+                VaultFolderCard(folder: folder, colorScheme: colorScheme) {
                     selectedFolder = folder
                 }
             }
@@ -429,15 +481,17 @@ struct VaultView: View {
     }
     
     // MARK: - Timeline View
+    
     private var timelineView: some View {
         let grouped = groupTimelineItemsByDate(viewModel.timelineItems)
         let sortedDates = grouped.keys.sorted(by: >)
         
         return LazyVStack(spacing: 24) {
             ForEach(sortedDates, id: \.self) { date in
-                TimelineDateSection(
+                VaultTimelineDateSection(
                     date: date,
                     items: grouped[date] ?? [],
+                    colorScheme: colorScheme,
                     onDocumentTap: { doc in selectedDocument = doc },
                     onDocumentInfo: { doc in documentForDetails = doc }
                 )
@@ -446,12 +500,14 @@ struct VaultView: View {
     }
     
     // MARK: - Document List View
+    
     private var documentListView: some View {
         LazyVStack(spacing: 12) {
             ForEach(viewModel.filteredDocuments) { document in
-                DocumentCard(
+                VaultDocumentCard(
                     document: document,
                     viewModel: viewModel,
+                    colorScheme: colorScheme,
                     isSelectionMode: viewModel.isSelectionMode,
                     isSelected: viewModel.selectedDocuments.contains(document.id ?? UUID()),
                     onTap: {
@@ -470,19 +526,49 @@ struct VaultView: View {
         }
     }
     
-    // MARK: - Loading View
-    private var loadingView: some View {
-        VStack(spacing: 20) {
-            Spacer()
+    // MARK: - Selection Bar
+    
+    private var selectionBar: some View {
+        HStack(spacing: 12) {
+            Text("\(viewModel.selectedDocuments.count)")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(VaultColors.primary))
             
+            Button {
+                viewModel.selectAllDocuments()
+            } label: {
+                Text("All")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(VaultColors.primary)
+            }
+            
+            Button(role: .destructive) {
+                Task { await deleteSelectedDocuments() }
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 14))
+                    .foregroundColor(.red)
+            }
+            .disabled(viewModel.selectedDocuments.isEmpty)
+            .opacity(viewModel.selectedDocuments.isEmpty ? 0.5 : 1)
+        }
+    }
+    
+    // MARK: - Loading View
+    
+    private var vaultLoadingView: some View {
+        VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: "2E3192").opacity(0.1))
+                    .fill(VaultColors.primary.opacity(0.15))
                     .frame(width: 100, height: 100)
                 
                 ProgressView()
                     .scaleEffect(1.5)
-                    .tint(Color(hex: "2E3192"))
+                    .tint(VaultColors.primary)
             }
             
             VStack(spacing: 8) {
@@ -490,30 +576,27 @@ struct VaultView: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.primary)
                 
-                Text("Please wait while we fetch your medical records")
+                Text("Please wait...")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
             }
-            
-            Spacer()
         }
-        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
     }
     
     // MARK: - Error View
-    private func errorView(_ error: String) -> some View {
+    
+    private func vaultErrorView(_ error: String) -> some View {
         VStack(spacing: 24) {
-            Spacer()
-            
             ZStack {
                 Circle()
-                    .fill(Color.red.opacity(0.1))
+                    .fill(VaultColors.coral.opacity(0.15))
                     .frame(width: 100, height: 100)
                 
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 40))
-                    .foregroundColor(.red)
+                    .foregroundColor(VaultColors.coral)
             }
             
             VStack(spacing: 8) {
@@ -525,8 +608,8 @@ struct VaultView: View {
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    }
-                    
+            }
+            
             Button {
                 Task { await viewModel.loadDocuments(forceRefresh: true) }
             } label: {
@@ -535,31 +618,29 @@ struct VaultView: View {
                     Text("Try Again")
                 }
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.black)
                 .padding(.horizontal, 32)
                 .padding(.vertical, 14)
-                .background(Color(hex: "2E3192"))
+                .background(VaultColors.primary)
                 .clipShape(Capsule())
             }
-            
-            Spacer()
         }
-        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
     }
     
     // MARK: - Empty State View
-    private var emptyStateView: some View {
+    
+    private var vaultEmptyStateView: some View {
         VStack(spacing: 24) {
-            Spacer()
-            
             ZStack {
                 Circle()
-                    .fill(Color(hex: "2E3192").opacity(0.1))
+                    .fill(VaultColors.primary.opacity(0.15))
                     .frame(width: 120, height: 120)
                 
                 Image(systemName: "folder.badge.plus")
                     .font(.system(size: 50))
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .foregroundColor(VaultColors.primary)
             }
             
             VStack(spacing: 8) {
@@ -573,46 +654,49 @@ struct VaultView: View {
                     .multilineTextAlignment(.center)
             }
             
-            // Button {
-            //     showAddOptions = true
-            // } label: {
-            //     HStack(spacing: 8) {
-            //         Image(systemName: "plus")
-            //         Text("Add Your First Document")
-            //     }
-            //     .font(.system(size: 16, weight: .semibold))
-            //     .foregroundColor(.white)
-            //     .padding(.horizontal, 32)
-            //     .padding(.vertical, 14)
-            //     .background(Color(hex: "2E3192"))
-            //     .clipShape(Capsule())
-            // }
-            
-            Spacer()
+            Button {
+                showAddOptions = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                    Text("Add Your First Document")
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.black)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 14)
+                .background(VaultColors.primary)
+                .clipShape(Capsule())
+            }
         }
-        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
     }
     
     // MARK: - Floating Add Button
+    
     private var floatingAddButton: some View {
         Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             showAddOptions = true
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold))
                 Text("Add")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold))
             }
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .background(Color(hex: "4D9E9E9E"))
-            .clipShape(Capsule())
-            .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 8, x: 0, y: 4)
+            .foregroundColor(.black)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+            .background(
+                Capsule()
+                    .fill(VaultColors.primary)
+                    .shadow(color: VaultColors.primary.opacity(0.4), radius: 12, x: 0, y: 6)
+            )
         }
         .padding(.trailing, 20)
-        .padding(.bottom, 20)
+        .padding(.bottom, 100)
     }
     
     // MARK: - Helper Functions
@@ -662,9 +746,52 @@ struct VaultView: View {
     }
 }
 
-// MARK: - Filter Pill Component
+// MARK: - Vault Stat Card
 
-private struct FilterPill: View {
+private struct VaultStatCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.2))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                
+                Text(value)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+            }
+            
+            Spacer()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(VaultColors.card(for: colorScheme))
+        )
+    }
+}
+
+// MARK: - Vault Category Chip
+
+private struct VaultCategoryChip: View {
     let title: String
     let count: Int
     var isSelected: Bool
@@ -681,19 +808,19 @@ private struct FilterPill: View {
                 }
                 
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 14, weight: .semibold))
                 
                 Text("\(count)")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 11, weight: .bold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
                         Capsule()
-                            .fill(isSelected ? Color.white.opacity(0.25) : Color.secondary.opacity(0.15))
+                            .fill(isSelected ? Color.black.opacity(0.2) : Color.secondary.opacity(0.15))
                     )
             }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 14)
+            .foregroundColor(isSelected ? .black : .primary)
+            .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(
                 Capsule()
@@ -701,57 +828,101 @@ private struct FilterPill: View {
             )
             .overlay(
                 Capsule()
-                    .stroke(isSelected ? Color.clear : Color.secondary.opacity(0.2), lineWidth: 1)
+                    .stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
-// MARK: - Folder Card Component
+// MARK: - Vault Quick Action Card
 
-private struct FolderCard: View {
+private struct VaultQuickActionCard: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let backgroundColor: Color
+    let contentColor: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
+            VStack(alignment: .leading, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(contentColor.opacity(0.2))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(contentColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(contentColor)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(contentColor.opacity(0.7))
+                }
+            }
+            .padding(16)
+            .frame(width: 130, height: 130)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(backgroundColor)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Vault Folder Card
+
+private struct VaultFolderCard: View {
     let folder: DocumentFolder
+    let colorScheme: ColorScheme
     let onTap: () -> Void
     
     private var folderColor: Color {
         let stableHash = abs(folder.id.hashValue)
-        return stableHash % 2 == 0 ? Color(hex: "2E3192") : Color(hex: "1BBBCE")
+        let colors: [Color] = [VaultColors.primary, VaultColors.secondary, VaultColors.accent, VaultColors.purple]
+        return colors[stableHash % colors.count]
     }
     
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
-                // Folder Icon with Badge
                 ZStack(alignment: .topTrailing) {
                     ZStack {
-                        // Shadow folder
                         Image(systemName: "folder.fill")
-                            .font(.system(size: 56))
-                            .foregroundStyle(folderColor.opacity(0.2))
+                            .font(.system(size: 48))
+                            .foregroundStyle(folderColor.opacity(0.3))
                             .offset(x: 2, y: 2)
                         
-                        // Main folder
                         Image(systemName: "folder.fill")
-                            .font(.system(size: 56))
+                            .font(.system(size: 48))
                             .foregroundStyle(folderColor)
                     }
                     
-                    // File count badge
                     if folder.fileCount > 0 {
                         Text("\(folder.fileCount)")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .frame(minWidth: 22, minHeight: 22)
                             .background(
                                 Circle()
-                                    .fill(Color(hex: "2E3192"))
+                                    .fill(VaultColors.primary)
                             )
                             .offset(x: 8, y: -4)
                     }
                 }
                 
-                // Folder Info
                 VStack(spacing: 4) {
                     Text(folder.folderTitle)
                         .font(.system(size: 14, weight: .semibold))
@@ -766,19 +937,23 @@ private struct FolderCard: View {
                 }
             }
             .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
+            .padding(.vertical, 20)
             .padding(.horizontal, 12)
-            .glass(cornerRadius: 20)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(VaultColors.card(for: colorScheme))
+            )
         }
         .buttonStyle(ScaleButtonStyle())
     }
 }
 
-// MARK: - Document Card Component
+// MARK: - Vault Document Card
 
-private struct DocumentCard: View {
+private struct VaultDocumentCard: View {
     let document: MedicalDocument
     @ObservedObject var viewModel: VaultViewModel
+    let colorScheme: ColorScheme
     let isSelectionMode: Bool
     let isSelected: Bool
     let onTap: () -> Void
@@ -794,27 +969,22 @@ private struct DocumentCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 14) {
-                // Selection or Thumbnail
                 if isSelectionMode {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 24))
-                        .foregroundColor(isSelected ? Color(hex: "2E3192") : .secondary)
+                        .foregroundColor(isSelected ? VaultColors.primary : .secondary)
                         .frame(width: 44, height: 44)
                 } else {
                     thumbnailView
                 }
                 
-                // Document Info
                 VStack(alignment: .leading, spacing: 6) {
-                    // Title
                     Text(document.title)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.primary)
                         .lineLimit(1)
                     
-                    // Category and Date
                     HStack(spacing: 8) {
-                        // Category badge
                         Text(document.category)
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(categoryColor(document.category))
@@ -825,7 +995,6 @@ private struct DocumentCard: View {
                                     .fill(categoryColor(document.category).opacity(0.15))
                             )
                         
-                        // Date
                         if let docDate = document.documentDate {
                             Text(formatDate(docDate))
                                 .font(.system(size: 12))
@@ -833,34 +1002,32 @@ private struct DocumentCard: View {
                         }
                     }
                     
-                    // Metadata (Doctor, Location)
                     HStack(spacing: 12) {
                         if let doctor = document.doctorName, !doctor.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 10))
+                            HStack(spacing: 4) {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 10))
                                 Text(doctor)
                                     .font(.system(size: 11))
                             }
-                                .foregroundColor(.secondary)
-                    }
-                    
-                    if let location = document.location, !location.isEmpty {
-                        HStack(spacing: 4) {
+                            .foregroundColor(.secondary)
+                        }
+                        
+                        if let location = document.location, !location.isEmpty {
+                            HStack(spacing: 4) {
                                 Image(systemName: "mappin")
-                                .font(.system(size: 10))
-                            Text(location)
+                                    .font(.system(size: 10))
+                                Text(location)
                                     .font(.system(size: 11))
                             }
-                                        .foregroundColor(.secondary)
-                                }
-                            }
+                            .foregroundColor(.secondary)
+                        }
+                    }
                     .lineLimit(1)
                 }
                 
                 Spacer()
                 
-                // Info Button
                 if !isSelectionMode {
                     Button(action: onInfo) {
                         Image(systemName: "info.circle")
@@ -871,33 +1038,21 @@ private struct DocumentCard: View {
                 }
             }
             .padding(16)
-            .glass(cornerRadius: 16)
-                    .overlay(
+            .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color(hex: "2E3192") : Color.clear, lineWidth: 2)
+                    .fill(VaultColors.card(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? VaultColors.primary : Color.clear, lineWidth: 2)
             )
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button {
-                onTap()
-            } label: {
-                Label("Open", systemImage: "eye")
-            }
-            
-            Button {
-                onInfo()
-            } label: {
-                Label("Details", systemImage: "info.circle")
-            }
-            
+            Button { onTap() } label: { Label("Open", systemImage: "eye") }
+            Button { onInfo() } label: { Label("Details", systemImage: "info.circle") }
             Divider()
-            
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
+            Button(role: .destructive) { onDelete() } label: { Label("Delete", systemImage: "trash") }
         }
         .task(id: document.id) {
             if isImage {
@@ -938,7 +1093,7 @@ private struct DocumentCard: View {
     }
     
     private var fileIcon: some View {
-            Image(systemName: document.icon)
+        Image(systemName: document.icon)
             .font(.system(size: 24))
             .foregroundColor(document.iconColor.opacity(0.8))
     }
@@ -953,15 +1108,16 @@ private struct DocumentCard: View {
         if let vaultCategory = VaultCategory.allCases.first(where: { $0.rawValue == category }) {
             return vaultCategory.color
         }
-        return Color(hex: "2E3192")
+        return VaultColors.primary
     }
 }
 
-// MARK: - Timeline Date Section
+// MARK: - Vault Timeline Date Section
 
-private struct TimelineDateSection: View {
+private struct VaultTimelineDateSection: View {
     let date: Date
     let items: [TimelineItem]
+    let colorScheme: ColorScheme
     let onDocumentTap: (MedicalDocument) -> Void
     let onDocumentInfo: (MedicalDocument) -> Void
     
@@ -978,22 +1134,35 @@ private struct TimelineDateSection: View {
         }
     }
     
+    private var dayOfMonth: String {
+        let calendar = Calendar.current
+        let day = calendar.component(.day, from: date)
+        return "\(day)"
+    }
+    
+    private var monthAbbr: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM"
+        return formatter.string(from: date).uppercased()
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Date Header
             HStack(spacing: 12) {
-                // Date Circle
                 VStack(spacing: 2) {
                     Text(dayOfMonth)
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(Color(hex: "2E3192"))
+                        .foregroundColor(VaultColors.primary)
                     
                     Text(monthAbbr)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(.secondary)
                 }
                 .frame(width: 50, height: 50)
-                .glass(cornerRadius: 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(VaultColors.card(for: colorScheme))
+                )
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(relativeDateText)
@@ -1008,12 +1177,12 @@ private struct TimelineDateSection: View {
                 Spacer()
             }
             
-            // Timeline Items
             VStack(spacing: 12) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    TimelineItemCard(
+                    VaultTimelineItemCard(
                         item: item,
                         isLast: index == items.count - 1,
+                        colorScheme: colorScheme,
                         onDocumentTap: onDocumentTap,
                         onDocumentInfo: onDocumentInfo
                     )
@@ -1021,39 +1190,27 @@ private struct TimelineDateSection: View {
             }
         }
     }
-    
-    private var dayOfMonth: String {
-        let calendar = Calendar.current
-        let day = calendar.component(.day, from: date)
-        return "\(day)"
-    }
-    
-    private var monthAbbr: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM"
-        return formatter.string(from: date).uppercased()
-    }
 }
 
-// MARK: - Timeline Item Card
+// MARK: - Vault Timeline Item Card
 
-private struct TimelineItemCard: View {
+private struct VaultTimelineItemCard: View {
     let item: TimelineItem
     let isLast: Bool
+    let colorScheme: ColorScheme
     let onDocumentTap: (MedicalDocument) -> Void
     let onDocumentInfo: (MedicalDocument) -> Void
     
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            // Timeline connector
             VStack(spacing: 0) {
                 Circle()
-                    .fill(Color(hex: "2E3192"))
+                    .fill(VaultColors.primary)
                     .frame(width: 10, height: 10)
                 
                 if !isLast {
                     Rectangle()
-                        .fill(Color(hex: "2E3192").opacity(0.2))
+                        .fill(VaultColors.primary.opacity(0.3))
                         .frame(width: 2)
                         .frame(maxHeight: .infinity)
                 }
@@ -1061,7 +1218,6 @@ private struct TimelineItemCard: View {
             .frame(width: 10)
             .padding(.leading, 20)
             
-            // Content Card
             VStack(alignment: .leading, spacing: 10) {
                 switch item.type {
                 case .document(let document):
@@ -1076,7 +1232,10 @@ private struct TimelineItemCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .glass(cornerRadius: 16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(VaultColors.card(for: colorScheme))
+            )
         }
     }
     
@@ -1086,7 +1245,7 @@ private struct TimelineItemCard: View {
             onDocumentTap(document)
         } label: {
             VStack(alignment: .leading, spacing: 8) {
-                            HStack {
+                HStack {
                     Text(document.folderName ?? document.title)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.primary)
@@ -1099,7 +1258,7 @@ private struct TimelineItemCard: View {
                     } label: {
                         Image(systemName: "info.circle")
                             .font(.system(size: 16))
-                                        .foregroundColor(.secondary)
+                            .foregroundColor(.secondary)
                     }
                 }
                 
@@ -1122,16 +1281,6 @@ private struct TimelineItemCard: View {
                         Image(systemName: "person.fill")
                             .font(.system(size: 10))
                         Text(doctor)
-                            .font(.system(size: 12))
-                    }
-                                        .foregroundColor(.secondary)
-                }
-                
-                if let location = item.location, !location.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin")
-                            .font(.system(size: 10))
-                        Text(location)
                             .font(.system(size: 12))
                     }
                     .foregroundColor(.secondary)
@@ -1180,7 +1329,7 @@ private struct TimelineItemCard: View {
                         .font(.system(size: 12, weight: .medium))
                 }
                 .foregroundColor(categoryColor(document.category))
-                                    .padding(.horizontal, 10)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(
                     Capsule()
@@ -1196,15 +1345,15 @@ private struct TimelineItemCard: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: "1BBBCE").opacity(0.15))
+                    .fill(VaultColors.secondary.opacity(0.15))
                     .frame(width: 44, height: 44)
                 
                 Image(systemName: "stethoscope")
                     .font(.system(size: 20))
-                    .foregroundColor(Color(hex: "1BBBCE"))
+                    .foregroundColor(VaultColors.secondary)
             }
             
-                        VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Consultation")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
@@ -1212,7 +1361,7 @@ private struct TimelineItemCard: View {
                 if let doc = doctor, !doc.isEmpty {
                     Text(doc)
                         .font(.system(size: 13))
-                                .foregroundColor(.secondary)
+                        .foregroundColor(.secondary)
                 }
             }
         }
@@ -1229,33 +1378,36 @@ private struct TimelineItemCard: View {
         if let vaultCategory = VaultCategory.allCases.first(where: { $0.rawValue == category }) {
             return vaultCategory.color
         }
-        return Color(hex: "2E3192")
+        return VaultColors.primary
     }
 }
 
-// MARK: - Add Document Sheet
+// MARK: - Vault Add Document Sheet
 
-private struct AddDocumentSheet: View {
+private struct VaultAddDocumentSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
     let onChooseFiles: () -> Void
     let onPhotoLibrary: () -> Void
     @Environment(\.dismiss) private var dismiss
-    
-    private let horizontalInset: CGFloat = 20
-    private let cardPadding: CGFloat = AppDimensions.cardPadding
-    private let cardSpacing: CGFloat = 16
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 Text("Add Documents")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 24, weight: .bold))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, horizontalInset)
+                    .padding(.horizontal, 20)
                     .padding(.top, 24)
                     .padding(.bottom, 8)
                 
-                VStack(spacing: cardSpacing) {
-                    // Choose Files Button
+                Text("Choose how you want to add your documents")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+                
+                VStack(spacing: 12) {
                     Button {
                         dismiss()
                         onChooseFiles()
@@ -1263,12 +1415,12 @@ private struct AddDocumentSheet: View {
                         HStack(spacing: 16) {
                             ZStack {
                                 Circle()
-                                    .fill(Color(hex: "2E3192").opacity(0.15))
+                                    .fill(VaultColors.primary.opacity(0.2))
                                     .frame(width: 52, height: 52)
                                 
                                 Image(systemName: "folder.fill")
                                     .font(.system(size: 22))
-                                    .foregroundColor(Color(hex: "2E3192"))
+                                    .foregroundColor(VaultColors.primary)
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
@@ -1287,12 +1439,14 @@ private struct AddDocumentSheet: View {
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
-                        .padding(cardPadding)
-                        .glass(cornerRadius: AppDimensions.cardRadius)
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(VaultColors.card(for: colorScheme))
+                        )
                     }
                     .buttonStyle(ScaleButtonStyle())
                     
-                    // Photo Library Button
                     Button {
                         dismiss()
                         onPhotoLibrary()
@@ -1300,12 +1454,12 @@ private struct AddDocumentSheet: View {
                         HStack(spacing: 16) {
                             ZStack {
                                 Circle()
-                                    .fill(Color(hex: "1BBBCE").opacity(0.15))
+                                    .fill(VaultColors.secondary.opacity(0.2))
                                     .frame(width: 52, height: 52)
                                 
                                 Image(systemName: "photo.on.rectangle")
                                     .font(.system(size: 22))
-                                    .foregroundColor(Color(hex: "1BBBCE"))
+                                    .foregroundColor(VaultColors.secondary)
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
@@ -1324,13 +1478,15 @@ private struct AddDocumentSheet: View {
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
-                        .padding(cardPadding)
-                        .glass(cornerRadius: AppDimensions.cardRadius)
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(VaultColors.card(for: colorScheme))
+                        )
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
-                .padding(.horizontal, horizontalInset)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 20)
                 
                 Spacer(minLength: 0)
             }
@@ -1338,11 +1494,12 @@ private struct AddDocumentSheet: View {
     }
 }
 
-// MARK: - Batch Upload Sheet
+// MARK: - Vault Batch Upload Sheet
 
-private struct BatchUploadSheet: View {
+private struct VaultBatchUploadSheet: View {
     @ObservedObject var viewModel: VaultViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     @State private var folderName: String = ""
     @State private var category: VaultCategory = .labReports
@@ -1359,14 +1516,18 @@ private struct BatchUploadSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Files Section
                 Section {
                     ForEach(viewModel.pendingUploads, id: \.fileName) { upload in
                         HStack(spacing: 12) {
-                            Image(systemName: upload.icon)
-                                .font(.system(size: 20))
-                                .foregroundColor(Color(hex: "2E3192"))
-                                .frame(width: 32)
+                            ZStack {
+                                Circle()
+                                    .fill(VaultColors.primary.opacity(0.2))
+                                    .frame(width: 40, height: 40)
+                                
+                                Image(systemName: upload.icon)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(VaultColors.primary)
+                            }
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(upload.fileName)
@@ -1401,7 +1562,6 @@ private struct BatchUploadSheet: View {
                     }
                 }
                 
-                // Folder Name
                 Section {
                     TextField("e.g., Annual Checkup, Lab Results", text: $folderName)
                         .textInputAutocapitalization(.words)
@@ -1411,7 +1571,6 @@ private struct BatchUploadSheet: View {
                     Text("Group these documents under a common name")
                 }
                 
-                // Category
                 Section("Category") {
                     Picker("Category", selection: $category) {
                         ForEach(VaultCategory.allCases) { cat in
@@ -1420,49 +1579,50 @@ private struct BatchUploadSheet: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .tint(VaultColors.primary)
                 }
                 
-                // Details
                 Section("Details") {
                     TextField("Description (optional)", text: $description, axis: .vertical)
                         .lineLimit(2...4)
                     
                     DatePicker("Document Date", selection: $documentDate, displayedComponents: .date)
+                        .tint(VaultColors.primary)
                 }
                 
-                // Provider
                 Section("Provider Information") {
                     TextField("Doctor/Provider Name", text: $doctorName)
                     TextField("Hospital/Clinic", text: $location)
                 }
                 
-                // Reminders
                 Section("Reminders") {
                     Toggle("Set Reminder", isOn: $hasReminder)
+                        .tint(VaultColors.primary)
                     if hasReminder {
                         DatePicker("Reminder", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
+                            .tint(VaultColors.primary)
                     }
                     
                     Toggle("Set Appointment", isOn: $hasAppointment)
+                        .tint(VaultColors.primary)
                     if hasAppointment {
                         DatePicker("Appointment", selection: $appointmentDate, displayedComponents: [.date, .hourAndMinute])
+                            .tint(VaultColors.primary)
                     }
                 }
                 
-                // Tags
                 Section {
                     TextField("Tags (comma separated)", text: $tags)
                 } footer: {
                     Text("e.g., urgent, follow-up, annual")
                 }
                 
-                // Upload Progress
                 if viewModel.uploadState.isUploading {
                     Section {
                         VStack(spacing: 12) {
                             ProgressView(value: viewModel.uploadState.progress)
                                 .progressViewStyle(.linear)
-                                .tint(Color(hex: "2E3192"))
+                                .tint(VaultColors.primary)
                             
                             Text("Uploading \(viewModel.currentUploadIndex + 1) of \(viewModel.totalUploadFiles)...")
                                 .font(.caption)
@@ -1486,6 +1646,7 @@ private struct BatchUploadSheet: View {
                         Task { await uploadAll() }
                     }
                     .fontWeight(.semibold)
+                    .foregroundColor(VaultColors.primary)
                     .disabled(viewModel.pendingUploads.isEmpty || viewModel.uploadState.isUploading)
                 }
             }
@@ -1520,14 +1681,15 @@ private struct BatchUploadSheet: View {
     }
 }
 
-// MARK: - Document Detail Sheet
+// MARK: - Vault Document Detail Sheet
 
-private struct DocumentDetailSheet: View {
+private struct VaultDocumentDetailSheet: View {
     let document: MedicalDocument
     @ObservedObject var viewModel: VaultViewModel
     let onView: () -> Void
     let onDelete: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     @State private var fileURL: URL?
     @State private var showEditSheet = false
@@ -1535,7 +1697,6 @@ private struct DocumentDetailSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                // Preview Section
                 Section {
                     VStack(spacing: 16) {
                         filePreviewView
@@ -1547,29 +1708,27 @@ private struct DocumentDetailSheet: View {
                             
                             Text(document.category)
                                 .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                }
+                                .foregroundColor(.secondary)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                 }
                 
-                // Timeline
                 if document.documentDate != nil || document.reminderDate != nil || document.appointmentDate != nil {
                     Section("Timeline") {
                         if let date = document.documentDate {
-                            LabeledRow(icon: "calendar", iconColor: .blue, label: "Document Date", value: formatDate(date))
+                            VaultLabeledRow(icon: "calendar", iconColor: VaultColors.primary, label: "Document Date", value: formatDate(date))
                         }
                         if let date = document.reminderDate {
-                            LabeledRow(icon: "bell.fill", iconColor: .orange, label: "Reminder", value: formatDateTime(date))
+                            VaultLabeledRow(icon: "bell.fill", iconColor: .orange, label: "Reminder", value: formatDateTime(date))
                         }
                         if let date = document.appointmentDate {
-                            LabeledRow(icon: "calendar.badge.clock", iconColor: .purple, label: "Appointment", value: formatDateTime(date))
+                            VaultLabeledRow(icon: "calendar.badge.clock", iconColor: VaultColors.purple, label: "Appointment", value: formatDateTime(date))
                         }
                     }
-                    }
-                    
-                    // Description
+                }
+                
                 if let desc = document.description, !desc.isEmpty {
                     Section("Description") {
                         Text(desc)
@@ -1577,7 +1736,6 @@ private struct DocumentDetailSheet: View {
                     }
                 }
                 
-                // Provider
                 if document.doctorName != nil || document.location != nil {
                     Section("Provider Information") {
                         if let doctor = document.doctorName, !doctor.isEmpty {
@@ -1589,37 +1747,35 @@ private struct DocumentDetailSheet: View {
                     }
                 }
                 
-                // Tags
                 if let tags = document.tags, !tags.isEmpty {
                     Section("Tags") {
                         FlowLayout(spacing: 8) {
                             ForEach(tags, id: \.self) { tag in
                                 Text(tag)
-                            .font(.caption)
+                                    .font(.caption)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
-                                    .background(Color(hex: "2E3192").opacity(0.1))
-                                    .foregroundColor(Color(hex: "2E3192"))
+                                    .background(VaultColors.primary.opacity(0.2))
+                                    .foregroundColor(VaultColors.primary)
                                     .cornerRadius(8)
                             }
                         }
                     }
                 }
                 
-                // File Details
                 Section("File Details") {
                     LabeledContent("Type", value: document.fileType.uppercased())
                     LabeledContent("Size", value: document.formattedFileSize)
                     LabeledContent("Uploaded", value: document.formattedDate)
                 }
                 
-                // Actions
                 Section {
                     Button {
                         dismiss()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onView() }
                     } label: {
                         Label("View Document", systemImage: "eye.fill")
+                            .foregroundColor(VaultColors.primary)
                     }
                     
                     Button {
@@ -1639,7 +1795,7 @@ private struct DocumentDetailSheet: View {
             .navigationTitle("Document Details")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showEditSheet) {
-                EditDocumentSheet(document: document, viewModel: viewModel)
+                VaultEditDocumentSheet(document: document, viewModel: viewModel)
             }
             .task {
                 fileURL = await viewModel.getDocumentURL(document)
@@ -1701,9 +1857,9 @@ private struct DocumentDetailSheet: View {
     }
 }
 
-// MARK: - Labeled Row
+// MARK: - Vault Labeled Row
 
-private struct LabeledRow: View {
+private struct VaultLabeledRow: View {
     let icon: String
     let iconColor: Color
     let label: String
@@ -1727,9 +1883,9 @@ private struct LabeledRow: View {
     }
 }
 
-// MARK: - Edit Document Sheet
+// MARK: - Vault Edit Document Sheet
 
-private struct EditDocumentSheet: View {
+private struct VaultEditDocumentSheet: View {
     let document: MedicalDocument
     @ObservedObject var viewModel: VaultViewModel
     @Environment(\.dismiss) private var dismiss
@@ -1766,52 +1922,52 @@ private struct EditDocumentSheet: View {
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
                 }
-                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
                 
                 Section("Timeline") {
                     DatePicker("Document Date", selection: Binding(
                         get: { documentDate ?? Date() },
                         set: { documentDate = $0 }
                     ), displayedComponents: .date)
+                    .tint(VaultColors.primary)
                     
                     Toggle("Set Reminder", isOn: Binding(
                         get: { reminderDate != nil },
                         set: { reminderDate = $0 ? Date() : nil }
                     ))
+                    .tint(VaultColors.primary)
                     
                     if reminderDate != nil {
                         DatePicker("Reminder", selection: Binding(
                             get: { reminderDate ?? Date() },
                             set: { reminderDate = $0 }
                         ), displayedComponents: [.date, .hourAndMinute])
+                        .tint(VaultColors.primary)
                     }
                     
                     Toggle("Set Appointment", isOn: Binding(
                         get: { appointmentDate != nil },
                         set: { appointmentDate = $0 ? Date() : nil }
                     ))
+                    .tint(VaultColors.primary)
                     
                     if appointmentDate != nil {
                         DatePicker("Appointment", selection: Binding(
                             get: { appointmentDate ?? Date() },
                             set: { appointmentDate = $0 }
                         ), displayedComponents: [.date, .hourAndMinute])
+                        .tint(VaultColors.primary)
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
                 
                 Section("Provider Information") {
                     TextField("Doctor/Provider Name", text: $doctorName)
                     TextField("Location/Clinic", text: $location)
                 }
-                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
                 
                 Section("Tags") {
                     TextField("Tags (comma separated)", text: $tags)
                 }
-                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
             }
-            .listSectionSpacing(16)
             .navigationTitle("Edit Document")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1822,6 +1978,7 @@ private struct EditDocumentSheet: View {
                     Button("Save") {
                         Task { await saveChanges() }
                     }
+                    .foregroundColor(VaultColors.primary)
                     .disabled(isSaving || name.isEmpty)
                 }
             }
@@ -1858,34 +2015,33 @@ private struct EditDocumentSheet: View {
     }
 }
 
-// MARK: - Folder Detail Sheet
+// MARK: - Vault Folder Detail Sheet
 
-private struct FolderDetailSheet: View {
+private struct VaultFolderDetailSheet: View {
     let folder: DocumentFolder
     @ObservedObject var viewModel: VaultViewModel
     let onViewDocument: (MedicalDocument) -> Void
     let onDocumentInfo: (MedicalDocument) -> Void
     let onDeleteDocument: (MedicalDocument) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     private var folderColor: Color {
         let hash = abs(folder.id.hashValue)
-        return hash % 2 == 0 ? Color(hex: "2E3192") : Color(hex: "1BBBCE")
+        let colors: [Color] = [VaultColors.primary, VaultColors.secondary, VaultColors.accent, VaultColors.purple]
+        return colors[hash % colors.count]
     }
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Folder Header
                     folderHeader
-                    
-                    // Files Grid
                     filesGrid
                 }
                 .padding(20)
             }
-            .background(PremiumBackground())
+            .background(VaultColors.background(for: colorScheme))
             .navigationTitle(folder.folderTitle)
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -1937,7 +2093,10 @@ private struct FolderDetailSheet: View {
         }
         .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
-        .glass(cornerRadius: 20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(VaultColors.card(for: colorScheme))
+        )
     }
     
     private var filesGrid: some View {
@@ -1947,9 +2106,10 @@ private struct FolderDetailSheet: View {
         
         return LazyVGrid(columns: columns, spacing: 16) {
             ForEach(folder.documents) { document in
-                FileGridItem(
+                VaultFileGridItem(
                     document: document,
                     viewModel: viewModel,
+                    colorScheme: colorScheme,
                     onTap: { onViewDocument(document) },
                     onInfo: { onDocumentInfo(document) },
                     onDelete: { onDeleteDocument(document) }
@@ -1965,11 +2125,12 @@ private struct FolderDetailSheet: View {
     }
 }
 
-// MARK: - File Grid Item
+// MARK: - Vault File Grid Item
 
-private struct FileGridItem: View {
+private struct VaultFileGridItem: View {
     let document: MedicalDocument
     @ObservedObject var viewModel: VaultViewModel
+    let colorScheme: ColorScheme
     let onTap: () -> Void
     let onInfo: () -> Void
     let onDelete: () -> Void
@@ -1983,10 +2144,9 @@ private struct FileGridItem: View {
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 8) {
-                // Thumbnail
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(UIColor.secondarySystemBackground))
+                        .fill(VaultColors.card(for: colorScheme))
                         .frame(width: 80, height: 80)
                     
                     if isImage, let url = thumbnailURL {
@@ -2011,7 +2171,6 @@ private struct FileGridItem: View {
                     }
                 }
                 
-                // File Name
                 Text(document.title)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.primary)
@@ -2026,16 +2185,10 @@ private struct FileGridItem: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button { onTap() } label: {
-                Label("Open", systemImage: "eye")
-            }
-            Button { onInfo() } label: {
-                Label("Info", systemImage: "info.circle")
-            }
+            Button { onTap() } label: { Label("Open", systemImage: "eye") }
+            Button { onInfo() } label: { Label("Info", systemImage: "info.circle") }
             Divider()
-            Button(role: .destructive) { onDelete() } label: {
-                Label("Delete", systemImage: "trash")
-            }
+            Button(role: .destructive) { onDelete() } label: { Label("Delete", systemImage: "trash") }
         }
         .task(id: document.id) {
             if isImage {
@@ -2051,9 +2204,9 @@ private struct FileGridItem: View {
     }
 }
 
-// MARK: - Multi Document Picker
+// MARK: - Vault Document Picker
 
-private struct MultiDocumentPickerView: UIViewControllerRepresentable {
+private struct VaultDocumentPickerView: UIViewControllerRepresentable {
     let onPick: ([(String, Data)]) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
@@ -2090,7 +2243,6 @@ private struct MultiDocumentPickerView: UIViewControllerRepresentable {
                 
                 if let data = try? Data(contentsOf: url), !data.isEmpty {
                     files.append((url.lastPathComponent, data))
-                    print("✅ Loaded: \(url.lastPathComponent) (\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)))")
                 }
             }
             

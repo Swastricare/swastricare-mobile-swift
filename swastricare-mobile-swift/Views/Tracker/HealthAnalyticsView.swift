@@ -9,6 +9,7 @@ import SwiftUI
 import Charts
 
 struct HealthAnalyticsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = DependencyContainer.shared.trackerViewModel
     @State private var selectedTimeRange: TimeRange = .week
     @State private var selectedMetric: HealthMetricType = .steps
@@ -43,12 +44,23 @@ struct HealthAnalyticsView: View {
         
         var color: Color {
             switch self {
-            case .steps: return .green
-            case .activeCalories: return .orange
-            case .heartRate: return .red
-            case .sleep: return .indigo
-            case .exercise: return .blue
-            case .distance: return .cyan
+            case .steps: return MovementsColors.limeGreen
+            case .activeCalories: return Color(hex: "FF9F43")
+            case .heartRate: return Color(hex: "FF6B6B")
+            case .sleep: return Color(hex: "5856D6")
+            case .exercise: return Color(hex: "4ECDC4")
+            case .distance: return Color(hex: "45B7D1")
+            }
+        }
+        
+        var gradient: [Color] {
+            switch self {
+            case .steps: return [MovementsColors.limeGreen, Color(hex: "4ECDC4")]
+            case .activeCalories: return [Color(hex: "FF9F43"), Color(hex: "FFB976")]
+            case .heartRate: return [Color(hex: "FF6B6B"), Color(hex: "FF8E8E")]
+            case .sleep: return [Color(hex: "5856D6"), Color(hex: "7B79E8")]
+            case .exercise: return [Color(hex: "4ECDC4"), Color(hex: "7EDCD6")]
+            case .distance: return [Color(hex: "45B7D1"), Color(hex: "6DCDE3")]
             }
         }
         
@@ -66,7 +78,7 @@ struct HealthAnalyticsView: View {
     
     var body: some View {
         ZStack {
-            PremiumBackground()
+            analyticsBackground
                 .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
@@ -115,18 +127,53 @@ struct HealthAnalyticsView: View {
         }
     }
     
+    // MARK: - Background
+    
+    private var analyticsBackground: some View {
+        ZStack {
+            (colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
+            
+            if colorScheme == .dark {
+                LinearGradient(
+                    colors: [
+                        MovementsColors.darkGreen.opacity(0.3),
+                        Color.clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                
+                RadialGradient(
+                    colors: [
+                        selectedMetric.color.opacity(0.1),
+                        Color.clear
+                    ],
+                    center: .topTrailing,
+                    startRadius: 50,
+                    endRadius: 350
+                )
+            }
+        }
+    }
+    
     // MARK: - Header
     
     private var headerView: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Health Analytics")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.primary)
                 
-                Text(viewModel.isSelectedDateToday ? "Today" : formattedSelectedDate)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(MovementsColors.limeGreen)
+                        .frame(width: 8, height: 8)
+                    
+                    Text(viewModel.isSelectedDateToday ? "Today" : formattedSelectedDate)
+                        .font(.system(size: 14))
+                        .foregroundColor(MovementsColors.textSecondary)
+                }
             }
             
             Spacer()
@@ -136,13 +183,17 @@ struct HealthAnalyticsView: View {
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
             }) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.title2)
-                    .foregroundColor(.primary)
-                    .padding(10)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
+                ZStack {
+                    Circle()
+                        .fill(MovementsColors.card(for: colorScheme))
+                        .frame(width: 48, height: 48)
+                    
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(MovementsColors.limeGreen)
+                }
             }
+            .buttonStyle(ScaleButtonStyle())
         }
         .padding(.horizontal)
         .opacity(isAnimating ? 1 : 0)
@@ -159,12 +210,13 @@ struct HealthAnalyticsView: View {
     
     private var dateSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 ForEach(viewModel.weekDates, id: \.self) { date in
-                    DateButton(
+                    AnalyticsDateButton(
                         date: date,
                         isSelected: viewModel.isSelected(date),
-                        dayName: viewModel.dayName(for: date)
+                        dayName: viewModel.dayName(for: date),
+                        colorScheme: colorScheme
                     ) {
                         var transaction = Transaction(animation: .spring(response: 0.3, dampingFraction: 0.7))
                         transaction.disablesAnimations = false
@@ -188,28 +240,31 @@ struct HealthAnalyticsView: View {
     
     private var summaryCards: some View {
         HStack(spacing: 12) {
-            SummaryCard(
+            AnalyticsSummaryCard(
                 title: "Steps",
                 value: "\(viewModel.stepCount)",
                 icon: "figure.walk",
-                color: .green,
-                progress: Double(viewModel.stepCount) / 10000.0
+                color: MovementsColors.limeGreen,
+                progress: Double(viewModel.stepCount) / 10000.0,
+                colorScheme: colorScheme
             )
             
-            SummaryCard(
+            AnalyticsSummaryCard(
                 title: "Calories",
                 value: "\(viewModel.activeCalories)",
                 icon: "flame.fill",
-                color: .orange,
-                progress: Double(viewModel.activeCalories) / 500.0
+                color: Color(hex: "FF9F43"),
+                progress: Double(viewModel.activeCalories) / 500.0,
+                colorScheme: colorScheme
             )
             
-            SummaryCard(
+            AnalyticsSummaryCard(
                 title: "Exercise",
                 value: "\(viewModel.exerciseMinutes)",
                 icon: "clock.fill",
-                color: .blue,
-                progress: Double(viewModel.exerciseMinutes) / 30.0
+                color: Color(hex: "4ECDC4"),
+                progress: Double(viewModel.exerciseMinutes) / 30.0,
+                colorScheme: colorScheme
             )
         }
         .padding(.horizontal)
@@ -222,31 +277,35 @@ struct HealthAnalyticsView: View {
     private var mainChartSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(selectedMetric.rawValue)
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: selectedMetric.icon)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(selectedMetric.color)
+                        
+                        Text(selectedMetric.rawValue)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(MovementsColors.textSecondary)
+                    }
                     
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(currentMetricValue)
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
                             .contentTransition(.numericText())
                         
                         Text(selectedMetric.unit)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(MovementsColors.textSecondary)
                     }
                 }
                 
                 Spacer()
                 
-                // Trend indicator
                 trendIndicator
             }
             .padding(.horizontal)
             
-            // Chart
             Chart {
                 ForEach(viewModel.weeklySteps) { metric in
                     BarMark(
@@ -254,7 +313,7 @@ struct HealthAnalyticsView: View {
                         y: .value("Value", chartValue(for: metric))
                     )
                     .foregroundStyle(barColor(for: metric))
-                    .cornerRadius(6)
+                    .cornerRadius(8)
                 }
             }
             .chartYAxis {
@@ -262,42 +321,51 @@ struct HealthAnalyticsView: View {
                     AxisValueLabel {
                         if let intValue = value.as(Int.self) {
                             Text(formatAxisValue(intValue))
-                                .font(.caption2)
+                                .font(.system(size: 10))
+                                .foregroundColor(MovementsColors.textSecondary)
                         }
                     }
                 }
             }
             .chartXAxis {
-                AxisMarks(position: .bottom)
+                AxisMarks(position: .bottom) { _ in
+                    AxisValueLabel()
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(MovementsColors.textSecondary)
+                }
             }
             .frame(height: 200)
-            .padding()
-            .background(.ultraThinMaterial)
-            .cornerRadius(20)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(MovementsColors.card(for: colorScheme))
+            )
             .padding(.horizontal)
             .id(chartAnimationKey)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: chartAnimationKey)
             
-            // Average & Total Stats
-            HStack(spacing: 16) {
-                StatBadge(
+            HStack(spacing: 12) {
+                AnalyticsStatBadge(
                     title: "Weekly Avg",
                     value: weeklyAverage,
-                    color: selectedMetric.color
+                    color: selectedMetric.color,
+                    colorScheme: colorScheme
                 )
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedMetric)
                 
-                StatBadge(
+                AnalyticsStatBadge(
                     title: "Weekly Total",
                     value: weeklyTotal,
-                    color: selectedMetric.color
+                    color: selectedMetric.color,
+                    colorScheme: colorScheme
                 )
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedMetric)
                 
-                StatBadge(
+                AnalyticsStatBadge(
                     title: "Best Day",
                     value: bestDayValue,
-                    color: selectedMetric.color
+                    color: selectedMetric.color,
+                    colorScheme: colorScheme
                 )
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedMetric)
             }
@@ -321,18 +389,22 @@ struct HealthAnalyticsView: View {
     
     private var trendIndicator: some View {
         let trend = calculateTrend()
-        return HStack(spacing: 4) {
-            Image(systemName: trend >= 0 ? "arrow.up.right" : "arrow.down.right")
-                .font(.caption)
+        let isPositive = trend >= 0
+        let trendColor = isPositive ? MovementsColors.limeGreen : Color(hex: "FF6B6B")
+        
+        return HStack(spacing: 6) {
+            Image(systemName: isPositive ? "arrow.up.right" : "arrow.down.right")
+                .font(.system(size: 12, weight: .bold))
             Text("\(abs(trend))%")
-                .font(.caption)
-                .fontWeight(.semibold)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
         }
-        .foregroundColor(trend >= 0 ? .green : .red)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background((trend >= 0 ? Color.green : Color.red).opacity(0.1))
-        .cornerRadius(8)
+        .foregroundColor(isPositive ? .black : .white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(trendColor)
+        )
     }
     
     private func calculateTrend() -> Int {
@@ -461,40 +533,69 @@ struct HealthAnalyticsView: View {
     private var aiInsightsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("AI Insights", systemImage: "sparkles")
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                HStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                AngularGradient(
+                                    colors: [MovementsColors.limeGreen, Color(hex: "4ECDC4"), Color(hex: "45B7D1"), MovementsColors.limeGreen],
+                                    center: .center
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                        
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    Text("AI Insights")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.primary)
+                }
                 
                 Spacer()
                 
                 if viewModel.analysisState.isAnalyzing {
                     ProgressView()
                         .scaleEffect(0.8)
+                        .tint(MovementsColors.limeGreen)
                 }
             }
             .padding(.horizontal)
             
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 if let analysis = viewModel.analysisState.result?.analysis {
                     Text(analysis.assessment)
-                        .font(.subheadline)
+                        .font(.system(size: 14))
                         .lineLimit(4)
                         .foregroundColor(.primary)
                     
                     if !analysis.recommendations.isEmpty {
-                        Text("Top Recommendation:")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.secondary)
+                        HStack(spacing: 8) {
+                            Image(systemName: "lightbulb.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(MovementsColors.limeGreen)
+                            
+                            Text("Top Recommendation")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(MovementsColors.limeGreen)
+                        }
                         
                         Text(analysis.recommendations.first ?? "")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 13))
+                            .foregroundColor(MovementsColors.textSecondary)
                     }
                 } else {
-                    Text("Tap to generate personalized health insights based on your data.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 12) {
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 24))
+                            .foregroundColor(MovementsColors.limeGreen.opacity(0.6))
+                        
+                        Text("Tap to generate personalized health insights based on your data.")
+                            .font(.system(size: 14))
+                            .foregroundColor(MovementsColors.textSecondary)
+                    }
                 }
                 
                 Button(action: {
@@ -502,23 +603,28 @@ struct HealthAnalyticsView: View {
                     let generator = UIImpactFeedbackGenerator(style: .medium)
                     generator.impactOccurred()
                 }) {
-                    HStack {
+                    HStack(spacing: 8) {
                         Image(systemName: "sparkles")
+                            .font(.system(size: 14, weight: .semibold))
                         Text(viewModel.analysisState.result != nil ? "Refresh Analysis" : "Generate Analysis")
+                            .font(.system(size: 14, weight: .semibold))
                     }
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(AppColors.accentBlue)
-                    .cornerRadius(12)
+                    .padding(.vertical, 14)
+                    .background(
+                        Capsule()
+                            .fill(MovementsColors.limeGreen)
+                    )
                 }
+                .buttonStyle(ScaleButtonStyle())
                 .disabled(viewModel.analysisState.isAnalyzing)
             }
-            .padding()
-            .background(.ultraThinMaterial)
-            .cornerRadius(20)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(MovementsColors.card(for: colorScheme))
+            )
             .padding(.horizontal)
         }
         .opacity(isAnimating ? 1 : 0)
@@ -529,79 +635,113 @@ struct HealthAnalyticsView: View {
 
 // MARK: - Supporting Views
 
-private struct DateButton: View {
+private struct AnalyticsDateButton: View {
     let date: Date
     let isSelected: Bool
     let dayName: String
+    let colorScheme: ColorScheme
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Text(dayName)
-                    .font(.caption)
-                    .foregroundColor(isSelected ? .white : .secondary)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(isSelected ? .black : MovementsColors.textSecondary)
                 
                 Text("\(Calendar.current.component(.day, from: date))")
-                    .font(.headline)
-                    .foregroundColor(isSelected ? .white : .primary)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(isSelected ? .black : .primary)
+                
+                if isSelected {
+                    Circle()
+                        .fill(Color.black.opacity(0.3))
+                        .frame(width: 4, height: 4)
+                }
             }
-            .frame(width: 50, height: 60)
-            .background(isSelected ? AppColors.accentBlue : Color.clear)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.clear : Color.gray.opacity(0.3), lineWidth: 1)
+            .frame(width: 52, height: 68)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected ? MovementsColors.limeGreen : MovementsColors.card(for: colorScheme))
             )
         }
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
-private struct SummaryCard: View {
+private struct AnalyticsSummaryCard: View {
     let title: String
     let value: String
     let icon: String
     let color: Color
     let progress: Double
+    let colorScheme: ColorScheme
+    
+    @State private var animatedProgress: Double = 0
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: icon)
-                    .foregroundColor(color)
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 32, height: 32)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(color)
+                }
+                
                 Spacer()
+                
                 Text("\(Int(min(progress, 1.0) * 100))%")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(color)
             }
             
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
             
             Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.system(size: 12))
+                .foregroundColor(MovementsColors.textSecondary)
             
-            // Progress bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(color.opacity(0.2))
+                    Capsule()
+                        .fill(colorScheme == .dark ? MovementsColors.progressBackground : color.opacity(0.15))
+                        .frame(height: 6)
                     
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(color)
-                        .frame(width: geo.size.width * min(progress, 1.0))
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [color, color.opacity(0.7)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * animatedProgress, height: 6)
                 }
             }
-            .frame(height: 4)
+            .frame(height: 6)
         }
-        .padding(12)
-        .background(.ultraThinMaterial)
-        .cornerRadius(16)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(MovementsColors.card(for: colorScheme))
+        )
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.8).delay(0.3)) {
+                animatedProgress = min(progress, 1.0)
+            }
+        }
     }
 }
 
 private struct MetricCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let metric: HealthAnalyticsView.HealthMetricType
     let value: String
     let isSelected: Bool
@@ -612,80 +752,102 @@ private struct MetricCard: View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Image(systemName: metric.icon)
-                        .font(.title3)
-                        .foregroundColor(metric.color)
-                        .padding(8)
-                        .background(metric.color.opacity(0.1))
-                        .clipShape(Circle())
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(
+                                LinearGradient(
+                                    colors: [metric.color.opacity(0.2), metric.color.opacity(0.1)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 40, height: 40)
+                        
+                        Image(systemName: metric.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(metric.color)
+                    }
                     
                     Spacer()
                     
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                            .font(.caption)
+                            .foregroundColor(MovementsColors.limeGreen)
+                            .font(.system(size: 16))
                     }
                     
                     if let onMeasure = onMeasure {
                         Button(action: onMeasure) {
                             Image(systemName: "camera.fill")
-                                .font(.caption)
+                                .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(.white)
-                                .padding(6)
-                                .background(metric.color)
-                                .clipShape(Circle())
+                                .padding(8)
+                                .background(
+                                    Circle()
+                                        .fill(metric.color)
+                                )
                         }
+                        .buttonStyle(ScaleButtonStyle())
                     }
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
                         Text(value)
-                            .font(.title2)
-                            .fontWeight(.bold)
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
                         
                         Text(metric.unit)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(MovementsColors.textSecondary)
                     }
                     
                     Text(metric.rawValue)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 12))
+                        .foregroundColor(MovementsColors.textSecondary)
                 }
             }
-            .padding()
-            .background(.ultraThinMaterial)
-            .cornerRadius(20)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(MovementsColors.card(for: colorScheme))
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? AppColors.accentBlue : Color.clear, lineWidth: 2)
+                    .stroke(
+                        isSelected 
+                            ? LinearGradient(colors: metric.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                            : LinearGradient(colors: [Color.clear], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        lineWidth: 2
+                    )
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
-private struct StatBadge: View {
+private struct AnalyticsStatBadge: View {
     let title: String
     let value: String
     let color: Color
+    let colorScheme: ColorScheme
     
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundColor(color)
             
             Text(title)
-                .font(.caption2)
-                .foregroundColor(.secondary)
+                .font(.system(size: 10))
+                .foregroundColor(MovementsColors.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(MovementsColors.card(for: colorScheme))
+        )
     }
 }
 
@@ -693,6 +855,7 @@ private struct FilterSheet: View {
     @Binding var selectedMetric: HealthAnalyticsView.HealthMetricType
     @Binding var selectedTimeRange: HealthAnalyticsView.TimeRange
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         NavigationStack {
@@ -704,19 +867,27 @@ private struct FilterSheet: View {
                             let generator = UISelectionFeedbackGenerator()
                             generator.selectionChanged()
                         }) {
-                            HStack {
-                                Image(systemName: metric.icon)
-                                    .foregroundColor(metric.color)
-                                    .frame(width: 30)
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(metric.color.opacity(0.15))
+                                        .frame(width: 36, height: 36)
+                                    
+                                    Image(systemName: metric.icon)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(metric.color)
+                                }
                                 
                                 Text(metric.rawValue)
+                                    .font(.system(size: 15))
                                     .foregroundColor(.primary)
                                 
                                 Spacer()
                                 
                                 if selectedMetric == metric {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(AppColors.accentBlue)
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(MovementsColors.limeGreen)
+                                        .font(.system(size: 18))
                                 }
                             }
                         }
@@ -732,13 +903,15 @@ private struct FilterSheet: View {
                         }) {
                             HStack {
                                 Text(range.rawValue)
+                                    .font(.system(size: 15))
                                     .foregroundColor(.primary)
                                 
                                 Spacer()
                                 
                                 if selectedTimeRange == range {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(AppColors.accentBlue)
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(MovementsColors.limeGreen)
+                                        .font(.system(size: 18))
                                 }
                             }
                         }
@@ -752,7 +925,8 @@ private struct FilterSheet: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(MovementsColors.limeGreen)
                 }
             }
         }
@@ -760,6 +934,8 @@ private struct FilterSheet: View {
 }
 
 private struct AnalysisResultSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let state: AnalysisState
     let onDismiss: () -> Void
     @Environment(\.dismiss) private var dismiss
@@ -769,68 +945,139 @@ private struct AnalysisResultSheet: View {
             ScrollView {
                 VStack(spacing: 20) {
                     if state.isAnalyzing {
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .scaleEffect(1.5)
+                        VStack(spacing: 20) {
+                            ZStack {
+                                Circle()
+                                    .stroke(MovementsColors.limeGreen.opacity(0.2), lineWidth: 4)
+                                    .frame(width: 60, height: 60)
+                                
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                    .tint(MovementsColors.limeGreen)
+                            }
+                            
                             Text("Analyzing your health data...")
-                                .font(.headline)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.primary)
+                            
                             Text("This may take a moment")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .font(.system(size: 14))
+                                .foregroundColor(MovementsColors.textSecondary)
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else if let result = state.result {
                         VStack(alignment: .leading, spacing: 16) {
-                            Label("Assessment", systemImage: "heart.text.square.fill")
-                                .font(.headline)
-                                .foregroundColor(AppColors.accentBlue)
+                            HStack(spacing: 10) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(MovementsColors.limeGreen.opacity(0.15))
+                                        .frame(width: 36, height: 36)
+                                    
+                                    Image(systemName: "heart.text.square.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(MovementsColors.limeGreen)
+                                }
+                                
+                                Text("Assessment")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.primary)
+                            }
                             
                             Text(result.analysis.assessment)
-                                .font(.body)
+                                .font(.system(size: 14))
+                                .foregroundColor(.primary)
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(16)
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(MovementsColors.card(for: colorScheme))
+                        )
                         
                         VStack(alignment: .leading, spacing: 16) {
-                            Label("Insights", systemImage: "lightbulb.fill")
-                                .font(.headline)
-                                .foregroundColor(AppColors.accentBlue)
+                            HStack(spacing: 10) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(hex: "4ECDC4").opacity(0.15))
+                                        .frame(width: 36, height: 36)
+                                    
+                                    Image(systemName: "lightbulb.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(Color(hex: "4ECDC4"))
+                                }
+                                
+                                Text("Insights")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.primary)
+                            }
                             
                             Text(result.analysis.insights)
-                                .font(.body)
+                                .font(.system(size: 14))
+                                .foregroundColor(.primary)
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(16)
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(MovementsColors.card(for: colorScheme))
+                        )
                         
-                        VStack(alignment: .leading, spacing: 12) {
-                            Label("Recommendations", systemImage: "star.fill")
-                                .font(.headline)
-                                .foregroundColor(AppColors.accentBlue)
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack(spacing: 10) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(hex: "FF9F43").opacity(0.15))
+                                        .frame(width: 36, height: 36)
+                                    
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(Color(hex: "FF9F43"))
+                                }
+                                
+                                Text("Recommendations")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.primary)
+                            }
                             
                             ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
-                                HStack(alignment: .top, spacing: 10) {
-                                    Text("\(index + 1).")
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(AppColors.accentBlue)
+                                HStack(alignment: .top, spacing: 12) {
+                                    Text("\(index + 1)")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(width: 24, height: 24)
+                                        .background(
+                                            Circle()
+                                                .fill(MovementsColors.limeGreen)
+                                        )
+                                    
                                     Text(rec)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.primary)
                                 }
                             }
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(16)
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(MovementsColors.card(for: colorScheme))
+                        )
                     } else if case .error(let message) = state {
-                        VStack(spacing: 16) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(.orange)
+                        VStack(spacing: 20) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(hex: "FF9F43").opacity(0.15))
+                                    .frame(width: 80, height: 80)
+                                
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(Color(hex: "FF9F43"))
+                            }
+                            
                             Text("Analysis Error")
-                                .font(.headline)
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.primary)
+                            
                             Text(message)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .font(.system(size: 14))
+                                .foregroundColor(MovementsColors.textSecondary)
                                 .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
@@ -846,7 +1093,8 @@ private struct AnalysisResultSheet: View {
                         onDismiss()
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(MovementsColors.limeGreen)
                 }
             }
         }

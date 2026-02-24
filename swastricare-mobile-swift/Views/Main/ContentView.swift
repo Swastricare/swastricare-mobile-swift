@@ -9,21 +9,19 @@ import SwiftUI
 import UIKit
 import Combine
 
-// MARK: - Tab Enum
+// MARK: - App Tab Enum
 
-enum Tab: String, CaseIterable {
-    case vitals = "Vitals"
-    case vault = "Vault"
+enum AppTab: String, CaseIterable {
+    case home = "Home"
     case ai = "AI"
-    case run = "Steps"
+    case vault = "Vault"
     case profile = "Profile"
     
     var icon: String {
         switch self {
-        case .vitals: return "heart.text.square.fill"
-        case .vault: return "lock.doc"
+        case .home: return "house.fill"
         case .ai: return "sparkles"
-        case .run: return "figure.run"
+        case .vault: return "lock.doc"
         case .profile: return "person.circle"
         }
     }
@@ -35,7 +33,7 @@ struct ContentView: View {
     
     // MARK: - State
     
-    @State private var currentTab: Tab = .vitals
+    @State private var currentTab: AppTab = .home
     @StateObject private var homeViewModel = DependencyContainer.shared.homeViewModel
     @State private var hasConfiguredTabBar = false
     @EnvironmentObject private var deepLinkHandler: DeepLinkHandler
@@ -55,58 +53,61 @@ struct ContentView: View {
     
     // MARK: - Body
     
-    var body: some View {
-        TabView(selection: $currentTab) {
-            // Vitals Tab
+  var body: some View {
+    TabView(selection: $currentTab) {
+        
+        // Home
+        Tab(AppTab.home.rawValue,
+            systemImage: AppTab.home.icon,
+            value: AppTab.home) {
+            
             NavigationStack {
-                HomeView()
+                MovementsHomeView()
                     .modifier(ToolbarBackgroundVisibilityModifier())
             }
-            .tabItem {
-                Label(Tab.vitals.rawValue, systemImage: Tab.vitals.icon)
-            }
-            .tag(Tab.vitals)
+        }
+        
+        // AI
+       
+        
+        // Vault
+        Tab(AppTab.vault.rawValue,
+            systemImage: AppTab.vault.icon,
+            value: AppTab.vault) {
             
-            // Vault Tab
             NavigationStack {
                 VaultView()
                     .modifier(ToolbarBackgroundVisibilityModifier())
             }
-            .tabItem {
-                Label(Tab.vault.rawValue, systemImage: Tab.vault.icon)
-            }
-            .tag(Tab.vault)
+        }
+        
+        // Profile
+        Tab(AppTab.profile.rawValue,
+            systemImage: AppTab.profile.icon,
+            value: AppTab.profile) {
             
-            // AI Tab - Center of Attraction
-            NavigationStack {
-                AIView()
-                    .modifier(ToolbarBackgroundVisibilityModifier())
-            }
-            .tabItem {
-                Label(Tab.ai.rawValue, systemImage: Tab.ai.icon)
-            }
-            .tag(Tab.ai)
-            
-            // Run Tab - Steps & Activity Tracking
-            NavigationStack {
-                RunActivityView()
-                    .modifier(ToolbarBackgroundVisibilityModifier())
-            }
-            .tabItem {
-                Label(Tab.run.rawValue, systemImage: Tab.run.icon)
-            }
-            .tag(Tab.run)
-            
-            // Profile Tab
             NavigationStack {
                 ProfileView()
                     .modifier(ToolbarBackgroundVisibilityModifier())
             }
-            .tabItem {
-                Label(Tab.profile.rawValue, systemImage: Tab.profile.icon)
-            }
-            .tag(Tab.profile)
         }
+         Tab(AppTab.ai.rawValue,
+            systemImage: AppTab.ai.icon,
+            value: AppTab.ai,
+            role: .search) {
+            
+            NavigationStack {
+                AIView(onBack: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        currentTab = .home
+                    }
+                })
+                    .modifier(ToolbarBackgroundVisibilityModifier())
+                    .toolbar(.hidden, for: .tabBar) // 👈 hides tab bar
+            }
+        }
+    }
+
         .task {
             // Fetch user + health profile once when main app appears (shared by Profile/Settings)
             await DependencyContainer.shared.profileViewModel.loadUser()
@@ -119,7 +120,7 @@ struct ContentView: View {
         .onAppear {
             configureAITabColor()
             AppAnalyticsService.shared.log(eventName: "app_open", eventType: "action", properties: [:])
-            AppAnalyticsService.shared.logScreen(Tab.vitals.rawValue)
+            AppAnalyticsService.shared.logScreen(AppTab.home.rawValue)
         }
         .onChange(of: currentTab) { oldTab, newTab in
             AppAnalyticsService.shared.logTabSelected(tab: newTab.rawValue.lowercased())
@@ -132,8 +133,8 @@ struct ContentView: View {
                 self.applyGreenToAITab()
             }
             
-            // Refresh health data when switching to vitals (including hydration reminder scheduling)
-            if homeViewModel.isAuthorized && newTab == .vitals {
+            // Refresh health data when switching to home (including hydration reminder scheduling)
+            if homeViewModel.isAuthorized && newTab == .home {
                 Task {
                     await homeViewModel.loadTodaysData()
                     await DependencyContainer.shared.hydrationViewModel.loadData()
@@ -150,7 +151,7 @@ struct ContentView: View {
         }
         .onReceive(deepLinkHandler.$pendingWorkout.compactMap { $0 }) { pending in
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                currentTab = .run
+                currentTab = .home
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 NotificationCenter.default.post(
@@ -168,12 +169,12 @@ struct ContentView: View {
         switch deepLink {
         case .home:
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                currentTab = .vitals
+                currentTab = .home
             }
 
         case .hydration:
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                currentTab = .vitals
+                currentTab = .home
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 NotificationCenter.default.post(name: .deepLinkOpenHydration, object: nil)
@@ -181,7 +182,7 @@ struct ContentView: View {
 
         case .medications:
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                currentTab = .vitals
+                currentTab = .home
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 NotificationCenter.default.post(name: .deepLinkOpenMedications, object: nil)
@@ -189,7 +190,7 @@ struct ContentView: View {
 
         case .heartRate:
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                currentTab = .vitals
+                currentTab = .home
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 NotificationCenter.default.post(name: .deepLinkOpenHeartRate, object: nil)
@@ -197,12 +198,12 @@ struct ContentView: View {
 
         case .steps, .run:
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                currentTab = .run
+                currentTab = .home
             }
 
         case .activeWorkout:
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                currentTab = .run
+                currentTab = .home
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 NotificationCenter.default.post(name: .deepLinkOpenLiveTracking, object: nil)
@@ -210,7 +211,7 @@ struct ContentView: View {
 
         case .startRun(let type):
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                currentTab = .run
+                currentTab = .home
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 NotificationCenter.default.post(
@@ -256,15 +257,15 @@ struct ContentView: View {
            let window = windowScene.windows.first,
            let tabBarController = window.rootViewController?.children.first as? UITabBarController,
            let items = tabBarController.tabBar.items,
-           items.count > 2 {
+           items.count > 1 {
             
             // Create green icon that stays green always
-            let greenIcon = UIImage(systemName: Tab.ai.icon)?
+            let greenIcon = UIImage(systemName: AppTab.ai.icon)?
                 .withTintColor(.systemGreen, renderingMode: .alwaysOriginal)
             
-            // Apply to both selected and unselected states
-            items[2].image = greenIcon
-            items[2].selectedImage = greenIcon
+            // Apply to both selected and unselected states (AI is now at index 1)
+            items[1].image = greenIcon
+            items[1].selectedImage = greenIcon
         }
     }
 }

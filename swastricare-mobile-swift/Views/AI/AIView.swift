@@ -12,7 +12,15 @@ import Combine
 import PhotosUI
 
 struct AIView: View {
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    var onBack: (() -> Void)?
     
+    init(onBack: (() -> Void)? = nil) {
+        self.onBack = onBack
+    }
+
     // MARK: - ViewModel
 
     @StateObject private var viewModel = DependencyContainer.shared.aiViewModel
@@ -73,40 +81,58 @@ struct AIView: View {
     
     // MARK: - Body
     
+    // MARK: - Computed Colors (Movements+ Design)
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color.black : Color(UIColor.systemBackground)
+    }
+    
+    private var buttonBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05)
+    }
+    
+    private var buttonForeground: Color {
+        colorScheme == .dark ? .white : .primary
+    }
+    
+    private var accentColor: Color {
+        MovementsColors.limeGreen
+    }
+    
     var body: some View {
         NavigationStack {
             chatView
+                .background(backgroundColor.ignoresSafeArea())
                 .navigationBarTitleDisplayMode(.inline)
-                .navigationTitle("Swastri AI")
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button(action: {
-                            // Only show history if no other sheet is showing
-                            guard !trackerViewModel.showAnalysisSheet else { return }
-                            Task {
-                                await viewModel.loadAllConversations()
-                                // Use a small delay to ensure any other presentations are complete
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    viewModel.showHistorySheet = true
-                                }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            if let onBack {
+                                onBack()
+                            } else {
+                                dismiss()
                             }
                         }) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.primary)
-
-                                .background(.ultraThinMaterial)
-                                .clipShape(Circle())
+                            ZStack {
+                                Circle()
+                                    .fill(buttonBackground)
+                                    .frame(width: 40, height: 40)
+                                
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(buttonForeground)
+                            }
                         }
+                        .buttonStyle(ScaleButtonStyle())
                     }
-                    
-                    // AI Mode Selector (center)
+
+                    // AI Mode Selector (center) - Movements+ Style
                     ToolbarItem(placement: .principal) {
                         Menu {
                             ForEach(AIMode.allCases) { mode in
                                 Button(action: {
-                                    // Prevent switching if sheets are active
                                     guard !viewModel.showMedicalDisclaimer,
                                           !viewModel.showEmergencyAlert,
                                           !showCamera,
@@ -114,17 +140,14 @@ struct AIView: View {
                                         return
                                     }
                                     
-                                    // Prevent switching if already the current mode
                                     guard mode != viewModel.selectedAIMode else {
                                         return
                                     }
                                     
-                                    // Prevent rapid successive switches (debounce)
                                     guard !isModeSwitching else {
                                         return
                                     }
                                     
-                                    // If there are messages, show confirmation dialog
                                     if !viewModel.messages.isEmpty {
                                         pendingModeSwitch = mode
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -133,7 +156,6 @@ struct AIView: View {
                                         return
                                     }
                                     
-                                    // No messages, switch directly
                                     performModeSwitch(to: mode)
                                 }) {
                                     Label {
@@ -149,25 +171,31 @@ struct AIView: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: viewModel.selectedAIMode.icon)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
-                                    .symbolEffect(.bounce, value: viewModel.selectedAIMode)
-                                Text(viewModel.selectedAIMode.displayName)
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.primary)
+                            HStack(spacing: 8) {
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [accentColor, Color(hex: "4ECDC4")],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 28, height: 28)
+                                    
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.black)
+                                }
+                                
+                                Text("Swastri AI")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(buttonForeground)
+                                
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(buttonForeground.opacity(0.6))
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .fill(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B").opacity(0.1) : Color(hex: "2E3192").opacity(0.1))
-                            )
-                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
                         }
                         .disabled(viewModel.showMedicalDisclaimer || viewModel.showEmergencyAlert || showCamera || trackerViewModel.showAnalysisSheet || isModeSwitching)
                     }
@@ -175,11 +203,27 @@ struct AIView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                guard !trackerViewModel.showAnalysisSheet else { return }
+                                Task {
+                                    await viewModel.loadAllConversations()
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        viewModel.showHistorySheet = true
+                                    }
+                                }
+                            }) {
+                                Label("History", systemImage: "clock.arrow.circlepath")
+                            }
+
+                            Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 viewModel.showBookmarksSheet = true
                             }) {
                                 Label("Saved Advice", systemImage: "bookmark.fill")
                             }
+                            
                             Button(role: .destructive, action: {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                     viewModel.clearChat()
                                     showEmptyState = false
@@ -193,11 +237,17 @@ struct AIView: View {
                                 Label("Clear Chat", systemImage: "xmark")
                             }
                         } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.primary)
-                                .clipShape(Circle())
+                            ZStack {
+                                Circle()
+                                    .fill(buttonBackground)
+                                    .frame(width: 40, height: 40)
+                                
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(buttonForeground)
+                            }
                         }
+                        .buttonStyle(ScaleButtonStyle())
                     }
                 }
         }
@@ -1455,28 +1505,28 @@ private struct ChatBubble: View {
         // Detect step counts (e.g., "5,000 steps", "8000 steps")
         if let range = lower.range(of: #"[\d,]+\s*steps"#, options: .regularExpression) {
             let match = String(lower[range]).replacingOccurrences(of: " ", with: "")
-            let value = match.replacingOccurrences(of: "steps", with: "").trimmingCharacters(in: .whitespace)
+            let value = match.replacingOccurrences(of: "steps", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
             metrics.append(DetectedMetric(icon: "figure.walk", label: "Steps", value: value, color: "22C55E"))
         }
 
         // Detect heart rate (e.g., "72 bpm", "heart rate of 80")
         if let range = lower.range(of: #"\d+\s*bpm"#, options: .regularExpression) {
             let match = String(lower[range])
-            let value = match.replacingOccurrences(of: "bpm", with: "").trimmingCharacters(in: .whitespace)
+            let value = match.replacingOccurrences(of: "bpm", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
             metrics.append(DetectedMetric(icon: "heart.fill", label: "Heart Rate", value: "\(value) bpm", color: "EF4444"))
         }
 
         // Detect calories (e.g., "300 calories", "250 kcal")
         if let range = lower.range(of: #"\d+\s*(calories|kcal)"#, options: .regularExpression) {
             let match = String(lower[range])
-            let value = match.replacingOccurrences(of: "calories", with: "").replacingOccurrences(of: "kcal", with: "").trimmingCharacters(in: .whitespace)
+            let value = match.replacingOccurrences(of: "calories", with: "").replacingOccurrences(of: "kcal", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
             metrics.append(DetectedMetric(icon: "flame.fill", label: "Calories", value: "\(value) kcal", color: "F97316"))
         }
 
         // Detect sleep (e.g., "7 hours of sleep", "8h sleep")
         if let range = lower.range(of: #"\d+\.?\d*\s*(hours? of sleep|h\s*sleep|hours? sleep)"#, options: .regularExpression) {
             let match = String(lower[range])
-            let value = match.components(separatedBy: CharacterSet.letters).first?.trimmingCharacters(in: .whitespace) ?? ""
+            let value = match.components(separatedBy: CharacterSet.letters).first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             metrics.append(DetectedMetric(icon: "moon.zzz.fill", label: "Sleep", value: "\(value)h", color: "6366F1"))
         }
 

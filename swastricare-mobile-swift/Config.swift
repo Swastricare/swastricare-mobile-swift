@@ -14,12 +14,39 @@ struct SupabaseConfig {
     static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsdW1iZXl1a3BudWljeXh6dnJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2Nzc2MzAsImV4cCI6MjA4MzI1MzYzMH0.JYn8tZGP5OomXh968K4zV7L9h7Gam1zVW5YZ81DLC98"
 }
 
+/// User preference: follow system, or force light/dark.
+enum AppTheme: String, CaseIterable {
+    case system = "system"
+    case light = "light"
+    case dark = "dark"
+    
+    var displayName: String {
+        switch self {
+        case .system: return "System"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+    
+    /// Icon for settings UI.
+    var iconName: String {
+        switch self {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.fill"
+        }
+    }
+}
+
 struct AppConfig {
     // Onboarding Configuration
     static let isTestingMode = false // Set to false for production to show onboarding only once
     static let hasSeenOnboardingKey = "hasSeenOnboarding"
     static let hasLoggedInBeforeKey = "hasLoggedInBefore" // Track if user has logged in before
     static let hasAcceptedConsentKey = "hasAcceptedConsent" // Track if user has accepted terms & privacy policy
+    
+    // Appearance
+    static let appThemeKey = "appTheme"
 }
 
 // MARK: - Usage Instructions

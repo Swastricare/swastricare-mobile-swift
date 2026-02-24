@@ -3,55 +3,63 @@
 //  swastricare-mobile-swift
 //
 //  UI for recovering crashed workouts
+//  Updated with Movements+ UI design - lime green accent, dark theme
 //
 
 import SwiftUI
 
 struct WorkoutRecoveryView: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let state: WorkoutState
     let onRecover: () -> Void
     let onDiscard: () -> Void
     
     @Environment(\.dismiss) private var dismiss
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        VStack(spacing: 24) {
-            // Icon
+        VStack(spacing: 28) {
             ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.15))
-                    .frame(width: 80, height: 80)
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(limeGreen.opacity(0.15))
+                    .frame(width: 88, height: 88)
                 
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 36))
-                    .foregroundColor(.orange)
+                    .font(.system(size: 38, weight: .bold))
+                    .foregroundColor(limeGreen)
             }
-            .padding(.top, 40)
+            .padding(.top, 44)
             
-            // Title
             Text("Recover Workout?")
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.primary)
             
-            // Description
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 Text("We found an unfinished workout session:")
-                    .font(.body)
+                    .font(.system(size: 15))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                 
-                // Workout Details Card
-                VStack(spacing: 16) {
+                VStack(spacing: 18) {
                     HStack {
-                        Image(systemName: activityIcon)
-                            .font(.title2)
-                            .foregroundColor(.green)
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(limeGreen.opacity(0.15))
+                                .frame(width: 48, height: 48)
+                            
+                            Image(systemName: activityIcon)
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(limeGreen)
+                        }
                         
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 5) {
                             Text(state.activityType.capitalized)
-                                .font(.headline)
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundColor(.primary)
                             Text(formattedStartTime)
-                                .font(.caption)
+                                .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                         }
                         
@@ -60,8 +68,7 @@ struct WorkoutRecoveryView: View {
                     
                     Divider()
                     
-                    // Stats Grid
-                    HStack(spacing: 20) {
+                    HStack(spacing: 24) {
                         WorkoutStatItem(
                             icon: "timer",
                             label: "Duration",
@@ -81,51 +88,52 @@ struct WorkoutRecoveryView: View {
                         )
                     }
                 }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(16)
+                .padding(18)
+                .background(MovementsColors.card(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
                 .padding(.horizontal)
             }
             .padding(.horizontal)
             
             Spacer()
             
-            // Actions
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 Button(action: {
                     dismiss()
                     onRecover()
                 }) {
-                    HStack {
+                    HStack(spacing: 10) {
                         Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 16, weight: .bold))
                         Text("Recover Workout")
-                            .fontWeight(.semibold)
+                            .font(.system(size: 16, weight: .bold))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                    .padding(.vertical, 18)
+                    .background(limeGreen)
+                    .foregroundColor(.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
                 
                 Button(action: {
                     dismiss()
                     onDiscard()
                 }) {
-                    HStack {
+                    HStack(spacing: 10) {
                         Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .bold))
                         Text("Discard")
-                            .fontWeight(.medium)
+                            .font(.system(size: 16, weight: .bold))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(.systemGray5))
+                    .padding(.vertical, 18)
+                    .background(Color.red.opacity(0.1))
                     .foregroundColor(.red)
-                    .cornerRadius(12)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            .padding(.horizontal, 22)
+            .padding(.bottom, 36)
         }
     }
     
@@ -171,18 +179,20 @@ private struct WorkoutStatItem: View {
     let label: String
     let value: String
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(limeGreen)
             
             Text(value)
-                .font(.headline)
-                .fontWeight(.bold)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(.primary)
             
             Text(label)
-                .font(.caption2)
+                .font(.system(size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

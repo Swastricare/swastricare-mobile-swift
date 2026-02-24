@@ -591,6 +591,95 @@ extension View {
     }
 }
 
+// MARK: - Family
+
+struct FamilyView: View {
+    var initialInviteCode: String? = nil
+
+    @StateObject private var viewModel = FamilyViewModel()
+    @State private var newMemberName: String = ""
+    @State private var newMemberRelationship: String = ""
+
+    var body: some View {
+        List {
+            Section("Join with invite code") {
+                TextField("Invite code", text: $viewModel.inviteCode)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+
+                Button {
+                    Task { await viewModel.joinFamily() }
+                } label: {
+                    if viewModel.isJoining {
+                        HStack {
+                            ProgressView()
+                            Text("Joining…")
+                        }
+                    } else {
+                        Text("Join family")
+                    }
+                }
+                .disabled(viewModel.inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isJoining)
+
+                if let msg = viewModel.lastErrorMessage {
+                    Text(msg)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+            }
+
+            Section("Members") {
+                if viewModel.members.isEmpty {
+                    Text("No family members yet.")
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(viewModel.members) { member in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(member.name)
+                                .font(.headline)
+                            Text(member.relationship)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .onDelete { indexSet in
+                        for idx in indexSet {
+                            viewModel.removeMember(id: viewModel.members[idx].id)
+                        }
+                    }
+                }
+            }
+
+            Section("Add a member (local placeholder)") {
+                TextField("Name", text: $newMemberName)
+                TextField("Relationship (e.g. Mom)", text: $newMemberRelationship)
+
+                Button("Add") {
+                    let name = newMemberName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let relationship = newMemberRelationship.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !name.isEmpty, !relationship.isEmpty else { return }
+                    viewModel.addMember(name: name, relationship: relationship)
+                    newMemberName = ""
+                    newMemberRelationship = ""
+                }
+                .disabled(
+                    newMemberName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                    newMemberRelationship.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
+            }
+        }
+        .navigationTitle("Family")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.reload()
+            if let code = initialInviteCode?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !code.isEmpty {
+                viewModel.inviteCode = code
+            }
+        }
+    }
+}
+
 #Preview {
     NavigationStack {
         ProfileView()

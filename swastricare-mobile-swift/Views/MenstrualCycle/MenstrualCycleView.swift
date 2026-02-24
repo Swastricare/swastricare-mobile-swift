@@ -7,9 +7,18 @@
 
 import SwiftUI
 
+@MainActor
 struct MenstrualCycleView: View {
-    @StateObject private var viewModel = MenstrualCycleViewModel()
+    @StateObject private var viewModel: MenstrualCycleViewModel
     @Environment(\.dismiss) private var dismiss
+    
+    init() {
+        _viewModel = StateObject(wrappedValue: MenstrualCycleViewModel())
+    }
+    
+    init(viewModel: MenstrualCycleViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
     
     var body: some View {
         NavigationStack {

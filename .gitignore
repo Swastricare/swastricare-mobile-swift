@@ -5,6 +5,8 @@ android/.idea/
 android/local.properties
 
 # Xcode
+.DerivedData/
+.xcodebuild-deriveddata/
 *.pbxuser
 !default.pbxuser
 *.mode1v3

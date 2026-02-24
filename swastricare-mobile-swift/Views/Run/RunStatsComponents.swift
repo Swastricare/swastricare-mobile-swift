@@ -3,6 +3,7 @@
 //  swastricare-mobile-swift
 //
 //  Enhanced components for run stats & analytics
+//  Updated with Movements+ UI design - lime green accent, dark theme, geometric patterns
 //
 
 import SwiftUI
@@ -11,13 +12,17 @@ import Charts
 // MARK: - Enhanced Stat Card with Trend
 
 struct EnhancedStatCard: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let title: String
     let value: String
     let subtitle: String?
     let icon: String
     let color: Color
-    let trend: Double? // Percentage change
-    let progress: Double? // 0-1 for progress ring
+    let trend: Double?
+    let progress: Double?
+    
+    private let limeGreen = MovementsColors.limeGreen
     
     init(
         title: String,
@@ -38,16 +43,15 @@ struct EnhancedStatCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
+        VStack(alignment: .leading, spacing: 18) {
             HStack {
                 ZStack {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 14)
                         .fill(color.opacity(0.15))
-                        .frame(width: 44, height: 44)
+                        .frame(width: 48, height: 48)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundColor(color)
                 }
                 
@@ -58,44 +62,37 @@ struct EnhancedStatCard: View {
                 }
             }
             
-            // Value with progress ring
             ZStack(alignment: .leading) {
                 if let progress = progress {
                     HStack(spacing: 0) {
                         Spacer()
-                        ProgressRing(progress: progress, color: color, lineWidth: 6)
-                            .frame(width: 60, height: 60)
-                            .padding(.trailing, 8)
+                        ProgressRing(progress: progress, color: color, lineWidth: 7)
+                            .frame(width: 64, height: 64)
+                            .padding(.trailing, 10)
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(value)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
                         .contentTransition(.numericText())
                     
                     if let subtitle = subtitle {
                         Text(subtitle)
-                            .font(.caption)
+                            .font(.system(size: 13))
                             .foregroundColor(.secondary)
                     }
                 }
             }
             
-            // Title
             Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(.secondary)
         }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(color.opacity(0.1), lineWidth: 1)
-        )
+        .padding(22)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
@@ -104,20 +101,22 @@ struct EnhancedStatCard: View {
 struct TrendBadge: View {
     let trend: Double
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             Image(systemName: trend >= 0 ? "arrow.up.right" : "arrow.down.right")
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 11, weight: .bold))
             
             Text(String(format: "%.1f%%", abs(trend)))
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 13, weight: .bold))
         }
-        .foregroundColor(trend >= 0 ? .green : .red)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .foregroundColor(trend >= 0 ? limeGreen : .red)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill((trend >= 0 ? Color.green : Color.red).opacity(0.15))
+            Capsule()
+                .fill((trend >= 0 ? limeGreen : Color.red).opacity(0.15))
         )
     }
 }
@@ -131,11 +130,9 @@ struct ProgressRing: View {
     
     var body: some View {
         ZStack {
-            // Background circle
             Circle()
-                .stroke(color.opacity(0.15), lineWidth: lineWidth)
+                .stroke(color.opacity(0.2), lineWidth: lineWidth)
             
-            // Progress circle
             Circle()
                 .trim(from: 0, to: min(progress, 1.0))
                 .stroke(
@@ -145,9 +142,8 @@ struct ProgressRing: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.spring(response: 0.6), value: progress)
             
-            // Percentage text
             Text("\(Int(progress * 100))%")
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 13, weight: .bold))
                 .foregroundColor(color)
         }
     }
@@ -156,22 +152,35 @@ struct ProgressRing: View {
 // MARK: - Weekly Distance Chart
 
 struct WeeklyDistanceChart: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let data: [(day: String, distance: Double)]
     let color: Color
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Text("Weekly Distance")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(limeGreen)
+                    
+                    Text("Weekly Distance")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.primary)
+                }
                 
                 Spacer()
                 
-                Text(String(format: "%.1f km total", data.reduce(0) { $0 + $1.distance }))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Text(String(format: "%.1f km", data.reduce(0) { $0 + $1.distance }))
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(limeGreen)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(limeGreen.opacity(0.15))
+                    .clipShape(Capsule())
             }
             
             Chart {
@@ -182,188 +191,189 @@ struct WeeklyDistanceChart: View {
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [color, color.opacity(0.6)],
+                            colors: [limeGreen, limeGreen.opacity(0.5)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
-                    .cornerRadius(8)
+                    .cornerRadius(10)
                 }
             }
-            .frame(height: 180)
+            .frame(height: 200)
             .chartXAxis {
                 AxisMarks(values: .automatic) { _ in
                     AxisValueLabel()
-                        .font(.caption)
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
                     AxisValueLabel()
-                        .font(.caption)
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                        .foregroundStyle(.secondary.opacity(0.2))
+                        .foregroundStyle(.secondary.opacity(0.15))
                 }
             }
         }
-        .padding(20)
-        .padding(.bottom, 24)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(22)
+        .padding(.bottom, 8)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
 // MARK: - Activity Streak Card
 
 struct ActivityStreakCard: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let currentStreak: Int
     let longestStreak: Int
     let color: Color
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        HStack(spacing: 20) {
-            // Current streak
-            VStack(spacing: 8) {
+        HStack(spacing: 24) {
+            VStack(spacing: 10) {
                 ZStack {
-                    Circle()
-                        .fill(color.opacity(0.15))
-                        .frame(width: 64, height: 64)
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(limeGreen.opacity(0.15))
+                        .frame(width: 68, height: 68)
                     
-                    VStack(spacing: 2) {
+                    VStack(spacing: 3) {
                         Text("\(currentStreak)")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                            .foregroundColor(color)
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundColor(limeGreen)
                         
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(color)
+                            .font(.system(size: 13))
+                            .foregroundColor(limeGreen)
                     }
                 }
                 
-                VStack(spacing: 2) {
+                VStack(spacing: 3) {
                     Text("Current")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.primary)
                     
                     Text("Streak")
-                        .font(.caption2)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
             }
             
-            Divider()
-                .frame(height: 60)
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 1, height: 70)
             
-            // Longest streak
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 ZStack {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 18)
                         .fill(Color.orange.opacity(0.15))
-                        .frame(width: 64, height: 64)
+                        .frame(width: 68, height: 68)
                     
-                    VStack(spacing: 2) {
+                    VStack(spacing: 3) {
                         Text("\(longestStreak)")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
                             .foregroundColor(.orange)
                         
                         Image(systemName: "trophy.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: 13))
                             .foregroundColor(.orange)
                     }
                 }
                 
-                VStack(spacing: 2) {
+                VStack(spacing: 3) {
                     Text("Best")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.primary)
                     
                     Text("Streak")
-                        .font(.caption2)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
             }
             
             Spacer()
             
-            // Motivation text
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 if currentStreak > 0 {
-                    Text("🔥 Keep it up!")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
+                    Text("Keep it up!")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(limeGreen)
                     
                     Text("You're on a roll")
-                        .font(.caption)
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
                 } else {
                     Text("Start a streak")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.primary)
                     
                     Text("Exercise today")
-                        .font(.caption)
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
                 }
             }
         }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(22)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
 // MARK: - Performance Insights Card
 
 struct PerformanceInsightsCard: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let insights: [PerformanceInsight]
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.purple)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(limeGreen)
                 
                 Text("Performance Insights")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
             }
             
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 ForEach(insights) { insight in
                     InsightRow(insight: insight)
                     
                     if insight.id != insights.last?.id {
-                        Divider()
+                        Divider().padding(.leading, 52)
                     }
                 }
             }
         }
-        .padding(20)
+        .padding(22)
         .background(
-            LinearGradient(
-                colors: [
-                    Color.purple.opacity(0.05),
-                    Color.purple.opacity(0.02)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            ZStack {
+                MovementsColors.card(for: colorScheme)
+                
+                LinearGradient(
+                    colors: [
+                        limeGreen.opacity(0.08),
+                        limeGreen.opacity(0.02)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.purple.opacity(0.15), lineWidth: 1)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
@@ -379,52 +389,61 @@ struct InsightRow: View {
     let insight: PerformanceInsight
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             ZStack {
-                Circle()
+                RoundedRectangle(cornerRadius: 12)
                     .fill(insight.color.opacity(0.15))
-                    .frame(width: 40, height: 40)
+                    .frame(width: 44, height: 44)
                 
                 Image(systemName: insight.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(insight.color)
             }
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(insight.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Text(insight.description)
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
             
             Spacer()
         }
+        .padding(.vertical, 4)
     }
 }
 
 // MARK: - Pace Distribution Chart
 
 struct PaceDistributionChart: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let paceRanges: [(range: String, count: Int)]
     let color: Color
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Text("Pace Distribution")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                HStack(spacing: 8) {
+                    Image(systemName: "speedometer")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(limeGreen)
+                    
+                    Text("Pace Distribution")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.primary)
+                }
                 
                 Spacer()
                 
                 Text("\(paceRanges.reduce(0) { $0 + $1.count }) activities")
-                    .font(.caption)
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.secondary)
             }
             
@@ -434,72 +453,78 @@ struct PaceDistributionChart: View {
                         x: .value("Count", item.count),
                         y: .value("Pace", item.range)
                     )
-                    .foregroundStyle(color.gradient)
-                    .cornerRadius(6)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [limeGreen, limeGreen.opacity(0.6)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(8)
                 }
             }
-            .frame(height: 200)
+            .frame(height: 220)
             .chartXAxis {
                 AxisMarks(position: .bottom) { _ in
                     AxisValueLabel()
-                        .font(.caption)
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { _ in
                     AxisValueLabel()
-                        .font(.caption)
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
             }
         }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(22)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
 // MARK: - Time of Day Analysis
 
 struct TimeOfDayAnalysis: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let distribution: [(time: String, count: Int)]
     
-    private let accentBlue = AppColors.accentBlue
+    private let limeGreen = MovementsColors.limeGreen
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack {
                 Image(systemName: "clock.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(accentBlue)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.orange)
                 
                 Text("Preferred Workout Time")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
             }
             
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 ForEach(Array(distribution.enumerated()), id: \.offset) { index, item in
-                    HStack(spacing: 12) {
+                    HStack(spacing: 14) {
                         Text(item.time)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.primary)
-                            .frame(width: 80, alignment: .leading)
+                            .frame(width: 85, alignment: .leading)
                         
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 6)
+                                RoundedRectangle(cornerRadius: 8)
                                     .fill(Color.gray.opacity(0.15))
                                 
-                                RoundedRectangle(cornerRadius: 6)
+                                RoundedRectangle(cornerRadius: 8)
                                     .fill(
                                         LinearGradient(
-                                            colors: [accentBlue, accentBlue.opacity(0.7)],
+                                            colors: [limeGreen, limeGreen.opacity(0.6)],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
@@ -507,20 +532,19 @@ struct TimeOfDayAnalysis: View {
                                     .frame(width: geometry.size.width * percentage(for: item.count))
                             }
                         }
-                        .frame(height: 32)
+                        .frame(height: 36)
                         
                         Text("\(item.count)")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.secondary)
-                            .frame(width: 30, alignment: .trailing)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(limeGreen)
+                            .frame(width: 32, alignment: .trailing)
                     }
                 }
             }
         }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(22)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
     
     private func percentage(for count: Int) -> Double {
@@ -532,47 +556,50 @@ struct TimeOfDayAnalysis: View {
 // MARK: - Quick Stats Grid
 
 struct QuickStatsGrid: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let avgPace: String
     let avgHeartRate: Int
     let totalTime: String
     let avgDistance: Double
     
-    private let accentBlue = AppColors.accentBlue
-    private let accentRed = Color.red
-    private let accentGreen = AppColors.accentGreen
-    private let accentOrange = Color.orange
+    private let limeGreen = MovementsColors.limeGreen
     
     var body: some View {
         LazyVGrid(columns: [
             GridItem(.flexible()),
             GridItem(.flexible())
-        ], spacing: 12) {
+        ], spacing: 14) {
             QuickStatItem(
                 icon: "speedometer",
-                iconColor: accentBlue,
+                iconColor: limeGreen,
                 value: avgPace,
-                label: "Avg Pace"
+                label: "Avg Pace",
+                colorScheme: colorScheme
             )
             
             QuickStatItem(
                 icon: "heart.fill",
-                iconColor: accentRed,
+                iconColor: .red,
                 value: "\(avgHeartRate)",
-                label: "Avg HR"
+                label: "Avg HR",
+                colorScheme: colorScheme
             )
             
             QuickStatItem(
                 icon: "clock.fill",
-                iconColor: accentOrange,
+                iconColor: .orange,
                 value: totalTime,
-                label: "Total Time"
+                label: "Total Time",
+                colorScheme: colorScheme
             )
             
             QuickStatItem(
                 icon: "map.fill",
-                iconColor: accentGreen,
+                iconColor: Color(hex: "5AC8FA"),
                 value: String(format: "%.1f km", avgDistance),
-                label: "Avg Distance"
+                label: "Avg Distance",
+                colorScheme: colorScheme
             )
         }
     }
@@ -583,78 +610,87 @@ struct QuickStatItem: View {
     let iconColor: Color
     let value: String
     let label: String
+    let colorScheme: ColorScheme
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(iconColor)
-                .frame(width: 32)
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(iconColor)
+            }
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(value)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                 
                 Text(label)
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
             
             Spacer()
         }
-        .padding(12)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(14)
+        .background(MovementsColors.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
 // MARK: - Personal Records Section
 
 struct PersonalRecordsSection: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let records: [PersonalRecord]
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack {
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.yellow)
                 
                 Text("Personal Records")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
             }
             
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 ForEach(records) { record in
                     PersonalRecordRow(record: record)
                     
                     if record.id != records.last?.id {
-                        Divider()
+                        Divider().padding(.leading, 48)
                     }
                 }
             }
         }
-        .padding(20)
+        .padding(22)
         .background(
-            LinearGradient(
-                colors: [
-                    Color.yellow.opacity(0.08),
-                    Color.yellow.opacity(0.03)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            ZStack {
+                MovementsColors.card(for: colorScheme)
+                
+                LinearGradient(
+                    colors: [
+                        Color.yellow.opacity(0.1),
+                        Color.yellow.opacity(0.03)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.yellow.opacity(0.2), lineWidth: 1)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
@@ -669,21 +705,27 @@ struct PersonalRecord: Identifiable {
 struct PersonalRecordRow: View {
     let record: PersonalRecord
     
+    private let limeGreen = MovementsColors.limeGreen
+    
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: record.icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.yellow)
-                .frame(width: 32)
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.yellow.opacity(0.15))
+                    .frame(width: 38, height: 38)
+                
+                Image(systemName: record.icon)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.yellow)
+            }
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(record.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Text(record.date)
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -691,7 +733,8 @@ struct PersonalRecordRow: View {
             
             Text(record.value)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
+                .foregroundColor(limeGreen)
         }
+        .padding(.vertical, 4)
     }
 }

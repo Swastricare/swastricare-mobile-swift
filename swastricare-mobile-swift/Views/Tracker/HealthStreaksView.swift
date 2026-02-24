@@ -8,149 +8,261 @@
 import SwiftUI
 
 struct HealthStreaksView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedDay: Int = 1
+    @State private var hasAppeared = false
     
-    // Mock data for the days
     let days = Array(1...30)
     
     var body: some View {
         ZStack {
-            // Background Gradient
+            streaksBackground
+            
+            VStack(spacing: 20) {
+                headerSection
+                
+                Spacer()
+                
+                welcomeSection
+                
+                Spacer()
+                
+                mainStreakIcon
+                
+                streakInfoSection
+                
+                faqButton
+                
+                Spacer()
+                
+                dayCarousel
+            }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+                hasAppeared = true
+            }
+        }
+    }
+    
+    // MARK: - Background
+    
+    private var streaksBackground: some View {
+        ZStack {
             LinearGradient(
                 colors: [
-                    Color(hex: "4A90E2"), // Light Blue
-                    Color(hex: "2E3192")  // Dark Blue
+                    MovementsColors.darkGreen,
+                    Color.black
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
             
-            // City Silhouette Background (Placeholder)
-            VStack {
-                Spacer()
-                Image(systemName: "building.2.fill") // Placeholder for city silhouette
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: UIScreen.main.bounds.width)
-                    .foregroundColor(.black.opacity(0.1))
-                    .offset(y: 50)
-            }
-            .ignoresSafeArea()
+            StreaksGeometricPattern()
+                .ignoresSafeArea()
             
-            VStack(spacing: 20) {
-                // Header
-                HStack {
-                    Button(action: {
-                        // Back action if needed
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .opacity(0) // Hidden for main tab
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        // Info action
-                    }) {
-                        Image(systemName: "info.circle")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                    }
-                }
-                .padding(.horizontal)
-                
-                Spacer()
-                
-                // Welcome Text
-                Text("Welcome to Health Streaks!")
-                    .font(.title2)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                // Main Hexagon Icon (Top Center)
+            RadialGradient(
+                colors: [
+                    MovementsColors.limeGreen.opacity(0.15),
+                    Color.clear
+                ],
+                center: .top,
+                startRadius: 50,
+                endRadius: 400
+            )
+            .ignoresSafeArea()
+        }
+    }
+    
+    // MARK: - Header
+    
+    private var headerSection: some View {
+        HStack {
+            Spacer()
+            
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }) {
                 ZStack {
-                    HexagonShape()
-                        .fill(Color.white)
-                        .frame(width: 120, height: 120)
-                        .shadow(color: .white.opacity(0.5), radius: 20, x: 0, y: 0)
+                    Circle()
+                        .fill(Color.white.opacity(0.1))
+                        .frame(width: 44, height: 44)
                     
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(Color(hex: "2E3192"))
-                }
-                .padding(.bottom, 10)
-                
-                // Streak Text
-                VStack(spacing: 8) {
-                    Text("Restart your Streak")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.white)
-                    
-                    Text("Start tracking again to earn points")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
                 }
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+        .padding(.horizontal, 20)
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : -20)
+    }
+    
+    // MARK: - Welcome Section
+    
+    private var welcomeSection: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 16))
+                    .foregroundColor(MovementsColors.limeGreen)
                 
-                // FAQ Button
-                Button(action: {
-                    // FAQ Action
-                }) {
-                    Text("FAQ")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "2E3192"))
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .clipShape(Capsule())
-                }
-                .padding(.top, 10)
+                Text("Health Streaks")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(MovementsColors.limeGreen)
+            }
+            
+            Text("Welcome to Health Streaks!")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(.white)
+        }
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
+    }
+    
+    // MARK: - Main Streak Icon
+    
+    private var mainStreakIcon: some View {
+        ZStack {
+            Circle()
+                .fill(MovementsColors.limeGreen)
+                .frame(width: 130, height: 130)
+                .shadow(color: MovementsColors.limeGreen.opacity(0.5), radius: 30, x: 0, y: 0)
+            
+            Circle()
+                .stroke(Color.white.opacity(0.3), lineWidth: 3)
+                .frame(width: 130, height: 130)
+            
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 56, weight: .bold))
+                .foregroundColor(.black)
+        }
+        .padding(.bottom, 10)
+        .opacity(hasAppeared ? 1 : 0)
+        .scaleEffect(hasAppeared ? 1 : 0.8)
+        .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: hasAppeared)
+    }
+    
+    // MARK: - Streak Info Section
+    
+    private var streakInfoSection: some View {
+        VStack(spacing: 10) {
+            Text("Restart your Streak")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
+            
+            Text("Start tracking again to earn points")
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.7))
+        }
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
+    }
+    
+    // MARK: - FAQ Button
+    
+    private var faqButton: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 14, weight: .semibold))
                 
-                Spacer()
+                Text("FAQ")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundColor(.black)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 12)
+            .background(
+                Capsule()
+                    .fill(MovementsColors.limeGreen)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .padding(.top, 10)
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: hasAppeared)
+    }
+    
+    // MARK: - Day Carousel
+    
+    private var dayCarousel: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 0) {
+                Color.clear.frame(height: 100)
                 
-                // Vertical Carousel
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 0) {
-                        // Add some padding at the top so the first item can be centered
-                        Color.clear.frame(height: 100)
-                        
-                        ForEach(days, id: \.self) { day in
-                            DayItemView(day: day, isSelected: day == selectedDay, isLocked: day > 1)
-                                .frame(height: 180) // Increased height for better spacing
-                                .scrollTransition { content, phase in
-                                    content
-                                        .scaleEffect(phase.isIdentity ? 1.0 : 0.6)
-                                        .opacity(phase.isIdentity ? 1.0 : 0.5)
-                                        .blur(radius: phase.isIdentity ? 0 : 2)
-                                }
-                                .onTapGesture {
-                                    withAnimation {
-                                        selectedDay = day
-                                    }
-                                }
+                ForEach(days, id: \.self) { day in
+                    StreakDayItemView(day: day, isSelected: day == selectedDay, isLocked: day > 1)
+                        .frame(height: 180)
+                        .scrollTransition { content, phase in
+                            content
+                                .scaleEffect(phase.isIdentity ? 1.0 : 0.6)
+                                .opacity(phase.isIdentity ? 1.0 : 0.5)
+                                .blur(radius: phase.isIdentity ? 0 : 2)
                         }
-                        
-                        // Add padding at bottom
-                        Color.clear.frame(height: 100)
+                        .onTapGesture {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                selectedDay = day
+                            }
+                        }
+                }
+                
+                Color.clear.frame(height: 100)
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.viewAligned)
+        .frame(height: 350)
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 20)
+        }
+        .opacity(hasAppeared ? 1 : 0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
+    }
+}
+
+// MARK: - Streaks Geometric Pattern
+
+struct StreaksGeometricPattern: View {
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Path { path in
+                    let spacing: CGFloat = 20
+                    let startX = geometry.size.width * 0.3
+                    
+                    for i in 0..<12 {
+                        let x = startX + CGFloat(i) * spacing
+                        path.move(to: CGPoint(x: x, y: 0))
+                        path.addLine(to: CGPoint(x: x - geometry.size.height * 0.4, y: geometry.size.height))
                     }
-                    .scrollTargetLayout()
                 }
-                .scrollTargetBehavior(.viewAligned)
-                .frame(height: 350) // Adjust height to show ~3 items
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 20)
-                }
+                .stroke(Color.white.opacity(0.03), lineWidth: 2)
+                
+                Circle()
+                    .fill(MovementsColors.limeGreen.opacity(0.05))
+                    .frame(width: 300, height: 300)
+                    .offset(x: geometry.size.width * 0.3, y: geometry.size.height * 0.2)
+                
+                Circle()
+                    .fill(Color(hex: "4ECDC4").opacity(0.03))
+                    .frame(width: 200, height: 200)
+                    .offset(x: -geometry.size.width * 0.3, y: geometry.size.height * 0.6)
             }
         }
     }
 }
 
-struct DayItemView: View {
+struct StreakDayItemView: View {
     let day: Int
     let isSelected: Bool
     let isLocked: Bool
@@ -158,47 +270,55 @@ struct DayItemView: View {
     var body: some View {
         VStack(spacing: 16) {
             ZStack {
-                // Background Circle for Selected Item
                 if isSelected {
                     Circle()
-                        .fill(Color.white.opacity(0.9))
+                        .fill(Color.white.opacity(0.95))
                         .frame(width: 140, height: 140)
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        .shadow(color: MovementsColors.limeGreen.opacity(0.3), radius: 20, x: 0, y: 5)
                 }
                 
-                // Hexagon
                 if isLocked {
-                    HexagonShape()
-                        .fill(Color(hex: "F5A623")) // Orange for locked
-                        .frame(width: 70, height: 70)
-                        .overlay(
-                            Image(systemName: "lock.fill")
-                                .foregroundColor(.white)
-                                .font(.title2)
-                        )
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "FF9F43"), Color(hex: "FFB976")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 70, height: 70)
+                        
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 24, weight: .semibold))
+                    }
                 } else {
-                    HexagonShape()
-                        .stroke(Color(hex: "2E3192"), lineWidth: 3)
-                        .background(HexagonShape().fill(Color.white))
-                        .frame(width: 70, height: 70)
-                        .overlay(
-                            Image(systemName: "bolt.fill")
-                                .foregroundColor(Color(hex: "2E3192"))
-                                .font(.title2)
-                        )
+                    ZStack {
+                        Circle()
+                            .fill(MovementsColors.limeGreen)
+                            .frame(width: 70, height: 70)
+                        
+                        Circle()
+                            .stroke(Color.white.opacity(0.5), lineWidth: 2)
+                            .frame(width: 70, height: 70)
+                        
+                        Image(systemName: "bolt.fill")
+                            .foregroundColor(.black)
+                            .font(.system(size: 28, weight: .bold))
+                    }
                 }
             }
             
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Text("Day \(day)")
-                    .font(.title3)
-                    .fontWeight(.bold)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(isSelected ? .black : .white)
                 
                 if isSelected {
                     Text("Keep tracking to unlock your streak")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                        .font(.system(size: 12))
+                        .foregroundColor(MovementsColors.textSecondary)
                         .multilineTextAlignment(.center)
                         .frame(width: 200)
                 }
