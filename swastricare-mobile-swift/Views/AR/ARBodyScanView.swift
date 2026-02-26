@@ -9,6 +9,7 @@
 import SwiftUI
 import AVFoundation
 import Vision
+import Combine
 
 // MARK: - AR Body Scan View
 

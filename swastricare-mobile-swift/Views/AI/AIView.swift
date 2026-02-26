@@ -1455,28 +1455,28 @@ private struct ChatBubble: View {
         // Detect step counts (e.g., "5,000 steps", "8000 steps")
         if let range = lower.range(of: #"[\d,]+\s*steps"#, options: .regularExpression) {
             let match = String(lower[range]).replacingOccurrences(of: " ", with: "")
-            let value = match.replacingOccurrences(of: "steps", with: "").trimmingCharacters(in: .whitespace)
+            let value = match.replacingOccurrences(of: "steps", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
             metrics.append(DetectedMetric(icon: "figure.walk", label: "Steps", value: value, color: "22C55E"))
         }
 
         // Detect heart rate (e.g., "72 bpm", "heart rate of 80")
         if let range = lower.range(of: #"\d+\s*bpm"#, options: .regularExpression) {
             let match = String(lower[range])
-            let value = match.replacingOccurrences(of: "bpm", with: "").trimmingCharacters(in: .whitespace)
+            let value = match.replacingOccurrences(of: "bpm", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
             metrics.append(DetectedMetric(icon: "heart.fill", label: "Heart Rate", value: "\(value) bpm", color: "EF4444"))
         }
 
         // Detect calories (e.g., "300 calories", "250 kcal")
         if let range = lower.range(of: #"\d+\s*(calories|kcal)"#, options: .regularExpression) {
             let match = String(lower[range])
-            let value = match.replacingOccurrences(of: "calories", with: "").replacingOccurrences(of: "kcal", with: "").trimmingCharacters(in: .whitespace)
+            let value = match.replacingOccurrences(of: "calories", with: "").replacingOccurrences(of: "kcal", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
             metrics.append(DetectedMetric(icon: "flame.fill", label: "Calories", value: "\(value) kcal", color: "F97316"))
         }
 
         // Detect sleep (e.g., "7 hours of sleep", "8h sleep")
         if let range = lower.range(of: #"\d+\.?\d*\s*(hours? of sleep|h\s*sleep|hours? sleep)"#, options: .regularExpression) {
             let match = String(lower[range])
-            let value = match.components(separatedBy: CharacterSet.letters).first?.trimmingCharacters(in: .whitespace) ?? ""
+            let value = match.components(separatedBy: CharacterSet.letters).first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             metrics.append(DetectedMetric(icon: "moon.zzz.fill", label: "Sleep", value: "\(value)h", color: "6366F1"))
         }
 
