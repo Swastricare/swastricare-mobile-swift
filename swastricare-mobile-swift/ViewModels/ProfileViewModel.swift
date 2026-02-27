@@ -44,8 +44,25 @@ final class ProfileViewModel: ObservableObject {
         user?.email ?? ""
     }
     
+    var userPhone: String {
+        user?.phone ?? ""
+    }
+    
+    var hasPhone: Bool {
+        guard let phone = user?.phone else { return false }
+        return !phone.isEmpty
+    }
+    
+    var userBio: String {
+        user?.bio ?? ""
+    }
+    
     var userAvatarURL: URL? {
         user?.avatarURL
+    }
+    
+    var profileCity: String {
+        healthProfile?.city ?? ""
     }
     
     var memberSince: String {
@@ -180,6 +197,48 @@ final class ProfileViewModel: ObservableObject {
     
     func refreshHealthProfile() async {
         await loadHealthProfile()
+    }
+    
+    func updateUserProfile(fullName: String, phone: String, bio: String) async throws {
+        try await authService.updateUserProfile(fullName: fullName, phone: phone, bio: bio)
+        hasLoadedUserOnce = false
+        await loadUser()
+    }
+    
+    func updateFullProfile(
+        fullName: String,
+        phone: String,
+        bio: String,
+        gender: Gender,
+        dateOfBirth: Date,
+        heightCm: Double,
+        weightKg: Double,
+        bloodType: String,
+        city: String
+    ) async throws {
+        // Update user account data (name, phone, bio)
+        try await authService.updateUserProfile(fullName: fullName, phone: phone, bio: bio)
+        
+        // Update health profile data (gender, DOB, height, weight, blood type, city)
+        if let existing = healthProfile {
+            let updated = HealthProfile(
+                id: existing.id,
+                userId: existing.userId,
+                fullName: fullName,
+                gender: gender,
+                dateOfBirth: dateOfBirth,
+                heightCm: heightCm,
+                weightKg: weightKg,
+                bloodType: bloodType.isEmpty ? nil : bloodType,
+                city: city.isEmpty ? nil : city,
+                createdAt: existing.createdAt,
+                updatedAt: Date()
+            )
+            try await healthProfileService.saveHealthProfile(updated)
+        }
+        
+        hasLoadedUserOnce = false
+        await loadUser()
     }
     
     func signOut() async {

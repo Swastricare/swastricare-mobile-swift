@@ -45,6 +45,7 @@ final class HealthProfileService: HealthProfileServiceProtocol {
             heightCm: profile.heightCm,
             weightKg: profile.weightKg,
             bloodType: profile.bloodType,
+            city: profile.city,
             createdAt: profile.createdAt ?? Date(),
             updatedAt: Date()
         )
@@ -68,29 +69,39 @@ final class HealthProfileService: HealthProfileServiceProtocol {
                 .execute()
                 .value
         } else {
-            // Update existing profile - use the existing ID
-            let existingProfile = existing.first!
-            let updatedProfile = HealthProfile(
-                id: existingProfile.id,
-                userId: userId,
-                fullName: profileToSave.fullName,
-                gender: profileToSave.gender,
-                dateOfBirth: profileToSave.dateOfBirth,
-                heightCm: profileToSave.heightCm,
-                weightKg: profileToSave.weightKg,
-                bloodType: profileToSave.bloodType,
-                createdAt: existingProfile.createdAt,
-                updatedAt: Date()
+            // Update existing profile -- use a lightweight struct that excludes
+            // id/user_id/created_at to avoid primary-key conflicts in PostgREST.
+            struct HealthProfileUpdate: Encodable {
+                let full_name: String
+                let gender: String
+                let date_of_birth: String
+                let height_cm: Double
+                let weight_kg: Double
+                let blood_type: String?
+                let city: String?
+                let updated_at: Date
+            }
+            
+            let dobFormatter = DateFormatter()
+            dobFormatter.dateFormat = "yyyy-MM-dd"
+            dobFormatter.timeZone = TimeZone(identifier: "UTC")
+            
+            let updatePayload = HealthProfileUpdate(
+                full_name: profileToSave.fullName,
+                gender: profileToSave.gender.rawValue,
+                date_of_birth: dobFormatter.string(from: profileToSave.dateOfBirth),
+                height_cm: profileToSave.heightCm,
+                weight_kg: profileToSave.weightKg,
+                blood_type: profileToSave.bloodType,
+                city: profileToSave.city,
+                updated_at: Date()
             )
             
-            let _: HealthProfile = try await client
+            try await client
                 .from("health_profiles")
-                .update(updatedProfile)
+                .update(updatePayload)
                 .eq("user_id", value: userId.uuidString)
-                .select()
-                .single()
                 .execute()
-                .value
         }
         
         // CRITICAL: Also update the users table with full_name and mark onboarding complete

@@ -36,18 +36,18 @@ struct SplashView: View {
             // Clean background
             PremiumBackground()
 
-            // Pulse rings behind logo
-            if showPulseRings {
-                PulseRingsView()
-                    .frame(width: 240, height: 240)
-                    .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height * 0.38)
-            }
-
             VStack(spacing: 0) {
                 Spacer()
 
                 // Logo with glow
                 ZStack {
+                    // Pulse rings behind logo (aligned to logo center)
+                    if showPulseRings {
+                        PulseRingsView()
+                            .frame(width: 240, height: 240)
+                            .allowsHitTesting(false)
+                    }
+
                     // Soft glow behind logo
                     Circle()
                         .fill(

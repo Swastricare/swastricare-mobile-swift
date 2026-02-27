@@ -59,10 +59,6 @@ struct AIView: View {
     @State private var modeTransitionProgress: CGFloat = 0
     @State private var modeTransitionColor: Color = .clear
 
-    // MARK: - Health Context Badge
-    @State private var showHealthContextBadge = false
-    @State private var hasShownHealthBadge = false
-
     // MARK: - Onboarding Tour
     @State private var showOnboardingTour = false
     @State private var onboardingStep = 0
@@ -77,54 +73,39 @@ struct AIView: View {
         NavigationStack {
             chatView
                 .navigationBarTitleDisplayMode(.inline)
-                .navigationTitle("Swastri AI")
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button(action: {
-                            // Only show history if no other sheet is showing
                             guard !trackerViewModel.showAnalysisSheet else { return }
                             Task {
                                 await viewModel.loadAllConversations()
-                                // Use a small delay to ensure any other presentations are complete
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                     viewModel.showHistorySheet = true
                                 }
                             }
                         }) {
                             Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(.primary)
-
+                                .frame(width: 34, height: 34)
                                 .background(.ultraThinMaterial)
                                 .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.primary.opacity(0.06), lineWidth: 0.5))
                         }
                     }
-                    
-                    // AI Mode Selector (center)
+
                     ToolbarItem(placement: .principal) {
                         Menu {
                             ForEach(AIMode.allCases) { mode in
                                 Button(action: {
-                                    // Prevent switching if sheets are active
                                     guard !viewModel.showMedicalDisclaimer,
                                           !viewModel.showEmergencyAlert,
                                           !showCamera,
-                                          !trackerViewModel.showAnalysisSheet else {
-                                        return
-                                    }
-                                    
-                                    // Prevent switching if already the current mode
-                                    guard mode != viewModel.selectedAIMode else {
-                                        return
-                                    }
-                                    
-                                    // Prevent rapid successive switches (debounce)
-                                    guard !isModeSwitching else {
-                                        return
-                                    }
-                                    
-                                    // If there are messages, show confirmation dialog
+                                          !trackerViewModel.showAnalysisSheet else { return }
+                                    guard mode != viewModel.selectedAIMode else { return }
+                                    guard !isModeSwitching else { return }
+
                                     if !viewModel.messages.isEmpty {
                                         pendingModeSwitch = mode
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -132,8 +113,6 @@ struct AIView: View {
                                         }
                                         return
                                     }
-                                    
-                                    // No messages, switch directly
                                     performModeSwitch(to: mode)
                                 }) {
                                     Label {
@@ -149,29 +128,47 @@ struct AIView: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 5) {
                                 Image(systemName: viewModel.selectedAIMode.icon)
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
                                     .symbolEffect(.bounce, value: viewModel.selectedAIMode)
                                 Text(viewModel.selectedAIMode.displayName)
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.primary)
                                 Image(systemName: "chevron.down")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.secondary.opacity(0.5))
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
                             .background(
                                 Capsule()
-                                    .fill(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B").opacity(0.1) : Color(hex: "2E3192").opacity(0.1))
+                                    .fill(.ultraThinMaterial)
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(
+                                        viewModel.selectedAIMode == .medical
+                                            ? Color(hex: "00A86B").opacity(0.2)
+                                            : Color(hex: "2E3192").opacity(0.15),
+                                        lineWidth: 0.5
+                                    )
                             )
                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
                         }
                         .disabled(viewModel.showMedicalDisclaimer || viewModel.showEmergencyAlert || showCamera || trackerViewModel.showAnalysisSheet || isModeSwitching)
                     }
-                    
+
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            isInputFocused = false
+                        }
+                        .fontWeight(.semibold)
+                        .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                    }
+
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button(action: {
@@ -190,13 +187,16 @@ struct AIView: View {
                                     }
                                 }
                             }) {
-                                Label("Clear Chat", systemImage: "xmark")
+                                Label("Clear Chat", systemImage: "trash")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.primary)
+                                .frame(width: 34, height: 34)
+                                .background(.ultraThinMaterial)
                                 .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.primary.opacity(0.06), lineWidth: 0.5))
                         }
                     }
                 }
@@ -269,14 +269,14 @@ struct AIView: View {
         // Image Source Selection Sheet (Camera or Library)
         .confirmationDialog("Choose Image Source", isPresented: $showImageSourceSheet, titleVisibility: .visible) {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button("📷 Take Photo") {
+                Button("Take Photo") {
                     useCamera = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         showImageTypeSheet = true
                     }
                 }
             }
-            Button("🖼️ Choose from Library") {
+            Button("Choose from Library") {
                 useCamera = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     showImageTypeSheet = true
@@ -286,23 +286,23 @@ struct AIView: View {
         }
         // Image Type Selection Sheet
         .confirmationDialog("Select Document Type", isPresented: $showImageTypeSheet, titleVisibility: .visible) {
-            Button("📋 Prescription") {
+            Button("Prescription") {
                 selectedImageType = .prescription
                 openImageSource()
             }
-            Button("🔬 Lab Report") {
+            Button("Lab Report") {
                 selectedImageType = .labReport
                 openImageSource()
             }
-            Button("📄 Medical Document") {
+            Button("Medical Document") {
                 selectedImageType = .medicalDocument
                 openImageSource()
             }
-            Button("🩻 X-Ray / Scan") {
+            Button("X-Ray / Scan") {
                 selectedImageType = .xray
                 openImageSource()
             }
-            Button("📷 Other Medical Image") {
+            Button("Other Medical Image") {
                 selectedImageType = .general
                 openImageSource()
             }
@@ -359,14 +359,6 @@ struct AIView: View {
             await viewModel.loadHistory()
             // Mark loaded history messages as already animated (no typewriter for history)
             typewriterAnimatedIds = Set(viewModel.messages.map(\.id))
-            // Show health context badge briefly (once per session)
-            if !hasShownHealthBadge {
-                hasShownHealthBadge = true
-                withAnimation(.easeIn(duration: 0.3).delay(0.5)) { showHealthContextBadge = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                    withAnimation(.easeOut(duration: 0.3)) { showHealthContextBadge = false }
-                }
-            }
         }
     }
     
@@ -470,6 +462,11 @@ struct AIView: View {
                                 }
                             }
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            isInputFocused = false
+                        }
                         .padding()
                         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.messages.count)
                     }
@@ -526,27 +523,6 @@ struct AIView: View {
                     .opacity(1 - modeTransitionProgress)
                     .allowsHitTesting(false)
                     .ignoresSafeArea()
-            }
-        }
-        // Health context badge
-        .overlay(alignment: .bottom) {
-            if showHealthContextBadge {
-                HStack(spacing: 6) {
-                    Image(systemName: "heart.text.square.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text("Using your 7-day health data")
-                        .font(.system(size: 11, weight: .medium))
-                }
-                .foregroundColor(Color(hex: "2E3192"))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule()
-                        .fill(Color(hex: "2E3192").opacity(0.08))
-                        .overlay(Capsule().stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5))
-                )
-                .padding(.bottom, 120)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .onChange(of: viewModel.selectedAIMode) { _, newMode in
@@ -671,129 +647,101 @@ struct AIView: View {
     }
 
     private var introView: some View {
-        VStack(spacing: 24) {
-            // Particle Orb
+        VStack(spacing: 0) {
+            // Particle Orb - Hero element
             ParticleOrbView(state: orbState, isMedicalMode: viewModel.selectedAIMode == .medical)
-                .frame(width: 200, height: 200)
-                .scaleEffect(showEmptyState ? 1 : 0.8)
+                .frame(width: 160, height: 160)
+                .scaleEffect(showEmptyState ? 1 : 0.6)
                 .opacity(showEmptyState ? 1 : 0)
-                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showEmptyState)
+                .animation(.spring(response: 0.7, dampingFraction: 0.6).delay(0.05), value: showEmptyState)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Text(greeting)
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
 
                 Text(greetingSubtitle)
-                    .font(.system(size: 15))
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                    .lineSpacing(4)
+                    .padding(.horizontal, 40)
+                    .lineSpacing(3)
             }
             .offset(y: showEmptyState ? 0 : 20)
             .opacity(showEmptyState ? 1 : 0)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.15), value: showEmptyState)
+            .padding(.bottom, 20)
 
-            // AI Personality Roster (only in General mode)
-            if viewModel.selectedAIMode == .general {
-                AIRosterPicker(selected: $viewModel.selectedPersonality)
-                    .opacity(showEmptyState ? 1 : 0)
-                    .offset(y: showEmptyState ? 0 : 15)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.25), value: showEmptyState)
-            }
+            // AI Personality Roster (Swastri, Coach, Nutri, Zen, Luna) - commented out
+            // if viewModel.selectedAIMode == .general {
+            //     AIRosterPicker(selected: $viewModel.selectedPersonality)
+            //         .opacity(showEmptyState ? 1 : 0)
+            //         .offset(y: showEmptyState ? 0 : 12)
+            //         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
+            //         .padding(.bottom, 16)
+            // }
 
-            // Daily Health Digest
-            DailyDigestCard(
+            // Health Vitals Strip
+            HealthVitalsStrip(
                 steps: trackerViewModel.stepCount,
                 heartRate: trackerViewModel.heartRate,
                 calories: trackerViewModel.activeCalories,
-                onAskAI: {
-                    viewModel.inputText = "Give me a detailed analysis of my health today with personalised recommendations."
+                onTapMetric: { prompt in
+                    viewModel.inputText = prompt
                     Task { await viewModel.sendMessage() }
                 }
             )
             .padding(.horizontal, 16)
             .opacity(showEmptyState ? 1 : 0)
-            .offset(y: showEmptyState ? 0 : 15)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
+            .offset(y: showEmptyState ? 0 : 12)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.22), value: showEmptyState)
+            .padding(.bottom, 14)
 
             // Proactive Health Nudges
             proactiveNudgesView
+                .padding(.bottom, 14)
 
-            // Health Snapshot Cards
-            HStack(spacing: 12) {
-                HealthSnapshotCard(
-                    icon: "figure.walk",
-                    label: "Steps",
-                    value: "\(trackerViewModel.stepCount.formatted())",
-                    color: Color(hex: "22C55E"),
-                    onTap: {
-                        viewModel.inputText = "How are my steps today? Am I on track?"
-                        Task { await viewModel.sendMessage() }
-                    }
-                )
-
-                HealthSnapshotCard(
-                    icon: "heart.fill",
-                    label: "Heart",
-                    value: trackerViewModel.heartRate > 0 ? "\(trackerViewModel.heartRate) bpm" : "--",
-                    color: Color(hex: "EF4444"),
-                    onTap: {
-                        viewModel.inputText = "Analyze my heart rate. Is it healthy?"
-                        Task { await viewModel.sendMessage() }
-                    }
-                )
-
-                HealthSnapshotCard(
-                    icon: "flame.fill",
-                    label: "Calories",
-                    value: "\(trackerViewModel.activeCalories)",
-                    color: Color(hex: "F97316"),
-                    onTap: {
-                        viewModel.inputText = "Review my calorie burn today. How can I improve?"
-                        Task { await viewModel.sendMessage() }
-                    }
-                )
-            }
+            // Quick Action Grid
+            QuickActionGrid(
+                actions: Array(QuickAction.suggestions.prefix(4)),
+                showEmptyState: showEmptyState,
+                onAction: { action in
+                    Task { await viewModel.sendQuickAction(action) }
+                }
+            )
             .padding(.horizontal, 16)
-            .opacity(showEmptyState ? 1 : 0)
-            .offset(y: showEmptyState ? 0 : 15)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.25), value: showEmptyState)
+            .padding(.bottom, 16)
 
-            // Analyze Health Button
+            // Deep Dive CTA
             Button(action: {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                Task {
-                    await trackerViewModel.requestAIAnalysis()
-                }
+                Task { await trackerViewModel.requestAIAnalysis() }
             }) {
                 HStack(spacing: 8) {
                     Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Analyse Health")
                         .font(.system(size: 15, weight: .semibold))
+                    Text("Deep Health Analysis")
+                        .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(Color(hex: "2E3192"))
                 .padding(.horizontal, 20)
-                .padding(.vertical, 12)
+                .padding(.vertical, 11)
                 .background(
-                    LinearGradient(
-                        colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    Capsule()
+                        .fill(Color(hex: "2E3192").opacity(0.1))
                 )
-                .clipShape(Capsule())
-                .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 8, x: 0, y: 4)
+                .overlay(
+                    Capsule()
+                        .stroke(Color(hex: "2E3192").opacity(0.2), lineWidth: 1)
+                )
             }
             .buttonStyle(ScaleButtonStyle())
             .disabled(trackerViewModel.analysisState.isAnalyzing)
             .opacity(showEmptyState ? 1 : 0)
-            .offset(y: showEmptyState ? 0 : 20)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: showEmptyState)
+            .offset(y: showEmptyState ? 0 : 15)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.35), value: showEmptyState)
         }
-        .padding(.bottom, 40)
+        .padding(.bottom, 20)
     }
     
     // MARK: - Orb State Determination
@@ -817,54 +765,36 @@ struct AIView: View {
     
     private var suggestionsScroll: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(Array(QuickAction.suggestions.enumerated()), id: \.element.id) { index, action in
+            HStack(spacing: 8) {
+                ForEach(Array(QuickAction.suggestions.prefix(5).enumerated()), id: \.element.id) { index, action in
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        Task {
-                            await viewModel.sendQuickAction(action)
-                        }
+                        Task { await viewModel.sendQuickAction(action) }
                     }) {
-                        HStack(spacing: 12) {
-                            // Icon circle
-                            ZStack {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "4A90E2").opacity(0.08)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 36, height: 36)
-
-                                Image(systemName: action.icon)
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(Color(hex: "2E3192"))
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(action.title)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.primary)
-
-                                Text(action.prompt.prefix(30) + "...")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                            }
+                        HStack(spacing: 8) {
+                            Image(systemName: action.icon)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color(hex: "2E3192"))
+                            Text(action.title)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.primary)
                         }
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .frame(width: 230, alignment: .leading)
-                        .glass(cornerRadius: 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule()
+                                .fill(Color(hex: "2E3192").opacity(0.06))
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(Color(hex: "2E3192").opacity(0.12), lineWidth: 0.5)
+                        )
                     }
-                    .buttonStyle(QuickActionButtonStyle())
+                    .buttonStyle(ScaleButtonStyle())
                     .opacity(showEmptyState ? 1 : 0)
-                    .offset(y: showEmptyState ? 0 : 20)
+                    .offset(y: showEmptyState ? 0 : 12)
                     .animation(
-                        .spring(response: 0.5, dampingFraction: 0.7)
-                            .delay(Double(index) * 0.1 + 0.4),
+                        .spring(response: 0.4, dampingFraction: 0.7).delay(Double(index) * 0.06 + 0.3),
                         value: showEmptyState
                     )
                 }
@@ -920,167 +850,130 @@ struct AIView: View {
     }
     
     private var chatInputBar: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             // Medical disclaimer banner when in Medical Expert mode
             if viewModel.selectedAIMode == .medical {
                 MedicalDisclaimerBanner()
                     .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            
-            // Horizontal scrolling suggestions only on landing screen (when no messages)
-            if viewModel.messages.isEmpty {
-                suggestionsScroll
-            }
-            
-            // Input field with mic and image buttons
-            HStack(alignment: .center, spacing: 8) {
-                // Image upload button
-                Button(action: {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    showImageSourceSheet = true
-                }) {
-                    Image(systemName: "doc.viewfinder")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(viewModel.isAnalyzingImage ? Color(hex: "2E3192") : .secondary)
-                        .padding(12)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                        )
+
+            // Voice recording status badge
+            if speechManager.isRecording {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 6, height: 6)
+                    Text("Listening...")
+                        .font(.system(size: 12, weight: .medium))
                 }
-                .disabled(viewModel.isAnalyzingImage)
-                
-                // Text Field with mic button inside
-                HStack(spacing: 8) {
-                    TextField("Ask Swastri", text: $viewModel.inputText, axis: .vertical)
+                .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill((viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")).opacity(0.1))
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                .padding(.bottom, 8)
+            }
+
+            // Modern floating input container
+            VStack(spacing: 0) {
+                HStack(alignment: .bottom, spacing: 0) {
+                    // Attachment + Mic row (left side)
+                    HStack(spacing: 4) {
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            showImageSourceSheet = true
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 30))
+                                .foregroundColor(viewModel.isAnalyzingImage ? Color(hex: "2E3192") : .secondary.opacity(0.6))
+                        }
+                        .disabled(viewModel.isAnalyzingImage)
+
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            Task {
+                                if speechManager.isRecording {
+                                    speechManager.stopRecording()
+                                } else {
+                                    do {
+                                        try await speechManager.startRecording()
+                                    } catch {
+                                        print("Voice input error: \(error)")
+                                    }
+                                }
+                            }
+                        }) {
+                            Image(systemName: speechManager.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                                .font(.system(size: 30))
+                                .foregroundColor(
+                                    speechManager.isRecording
+                                        ? (viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                                        : .secondary.opacity(0.6)
+                                )
+                                .symbolEffect(.bounce, value: speechManager.isRecording)
+                        }
+                    }
+                    .padding(.leading, 8)
+                    .padding(.bottom, 8)
+
+                    // Text input
+                    TextField("Ask anything...", text: $viewModel.inputText, axis: .vertical)
                         .font(.system(size: 15))
                         .focused($isInputFocused)
                         .lineLimit(1...5)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 15)
                         .onChange(of: speechManager.recognizedText) { _, newValue in
                             if speechManager.isRecording {
                                 viewModel.inputText = newValue
                             }
                         }
-                    
-                    // Mic button inside the field
+
+                    // Send button
                     Button(action: {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        Task {
-                            if speechManager.isRecording {
-                                speechManager.stopRecording()
-                            } else {
-                                do {
-                                    try await speechManager.startRecording()
-                                } catch {
-                                    print("Voice input error: \(error)")
-                                }
-                            }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        if speechManager.isRecording { speechManager.stopRecording() }
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) { sendButtonScale = 0.8 }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) { sendButtonScale = 1.0 }
                         }
+                        Task { await viewModel.sendMessage() }
+                        isInputFocused = false
                     }) {
-                        ZStack {
-                            // Glow effect when recording
-                            if speechManager.isRecording {
-                                Circle()
-                                    .fill(
-                                        viewModel.selectedAIMode == .medical
-                                            ? Color(hex: "00A86B").opacity(0.3)
-                                            : Color(hex: "2E3192").opacity(0.3)
-                                    )
-                                    .frame(width: 34, height: 34)
-                                    .blur(radius: 4)
-                            }
-                            
-                            Image(systemName: speechManager.isRecording ? "stop.fill" : "mic.fill")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(
-                                    speechManager.isRecording
-                                        ? .white
-                                        : (viewModel.selectedAIMode == .medical
-                                            ? Color(hex: "00A86B")
-                                            : Color(hex: "2E3192"))
-                                )
-                                .padding(8)
-                                .background(
-                                    speechManager.isRecording
-                                        ? AnyShapeStyle(
-                                            viewModel.selectedAIMode == .medical
-                                                ? Color(hex: "00A86B")
-                                                : Color(hex: "2E3192")
-                                        )
-                                        : AnyShapeStyle(Color.clear)
-                                )
-                                .clipShape(Circle())
-                        }
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(viewModel.canSend ? Color(hex: "2E3192") : .gray.opacity(0.25))
+                            .scaleEffect(sendButtonScale)
                     }
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: speechManager.isRecording)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
+                    .disabled(!viewModel.canSend)
+                    .padding(.trailing, 6)
+                    .padding(.bottom, 5)
+                    .padding(.top, 5)
                 }
-                .padding(.leading, 16)
-                .padding(.trailing, 8)
-                .padding(.vertical, 8)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                )
-                
-                // Send button beside the field
-                Button(action: {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    
-                    // Stop mic recording if active
-                    if speechManager.isRecording {
-                        speechManager.stopRecording()
-                    }
-                    
-                    // Animate button press
-                    withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
-                        sendButtonScale = 0.8
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                            sendButtonScale = 1.0
-                        }
-                    }
-                    
-                    // Send message and clear
-                    Task {
-                        await viewModel.sendMessage()
-                    }
-                    isInputFocused = false
-                }) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(viewModel.canSend ? Color(hex: "2E3192") : .gray.opacity(0.3))
-                        .scaleEffect(sendButtonScale)
-                }
-                .disabled(!viewModel.canSend)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 12)
-            
-            // Voice recording status badge
-            if speechManager.isRecording {
-                HStack(spacing: 6) {
-                    Image(systemName: viewModel.selectedAIMode.icon)
-                        .font(.system(size: 11, weight: .semibold))
-                    Text("Listening in \(viewModel.selectedAIMode.displayName) mode")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
                 .background(
-                    Capsule()
-                        .fill((viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")).opacity(0.12))
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(.ultraThinMaterial)
                 )
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-                .padding(.bottom, 8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(
+                            isInputFocused
+                                ? Color(hex: "2E3192").opacity(0.3)
+                                : Color.primary.opacity(0.08),
+                            lineWidth: isInputFocused ? 1 : 0.5
+                        )
+                )
+                .animation(.easeOut(duration: 0.2), value: isInputFocused)
             }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 10)
+            .padding(.top, 10)
+
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
         .onChange(of: speechManager.isRecording) { _, isRecording in
@@ -1207,28 +1100,35 @@ private struct ChatBubble: View {
     }
     
     var body: some View {
-        VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
+        VStack(alignment: message.isUser ? .trailing : .leading, spacing: 6) {
             if !message.isUser {
-                // AI Header with formatted timestamp
-                HStack(spacing: 6) {
-                    MiniAIOrb(size: 14)
+                HStack(spacing: 5) {
+                    MiniAIOrb(size: 16)
                     Text("Swastri")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color(hex: "2E3192"))
+                    if let mode = message.responseMode {
+                        Text("·")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary.opacity(0.4))
+                        Text(mode.badgeText)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(Color(hex: mode.badgeColor))
+                    }
                     Text(formatMessageTime(message.timestamp))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary.opacity(0.5))
                 }
-                .padding(.leading, 4)
+                .padding(.leading, 2)
             }
-            
+
             HStack {
-                if message.isUser { Spacer(minLength: 40) }
-                
+                if message.isUser { Spacer(minLength: 60) }
+
                 if message.isLoading {
                     TypingIndicator(loadingOperation: loadingOperation)
                 } else {
-                    VStack(alignment: message.isUser ? .trailing : .leading, spacing: 6) {
+                    VStack(alignment: message.isUser ? .trailing : .leading, spacing: 8) {
                         Group {
                             if message.isUser {
                                 Text(message.content)
@@ -1245,41 +1145,41 @@ private struct ChatBubble: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .foregroundColor(message.isUser ? .white : .primary)
                         .background(
-                            message.isUser
-                                ? Color(UIColor.secondarySystemBackground)
-                                : Color(hex: "2E3192").opacity(0.06)
-                        )
-                        .foregroundColor(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(
-                                    message.isUser ? Color.clear : Color(hex: "2E3192").opacity(0.08),
-                                    lineWidth: 0.5
-                                )
-                        )
-                        .contextMenu {
-                            if !message.isUser {
-                                Button {
-                                    UIPasteboard.general.string = message.content
-                                    showCopied = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showCopied = false }
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
-                                }
-
-                                ShareLink(item: message.content) {
-                                    Label("Share", systemImage: "square.and.arrow.up")
+                            Group {
+                                if message.isUser {
+                                    LinearGradient(
+                                        colors: [Color(hex: "2E3192"), Color(hex: "4A5FD5")],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                } else {
+                                    Color(UIColor.secondarySystemBackground).opacity(0.8)
                                 }
                             }
+                        )
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: 18)
+                        )
+                        .contextMenu {
+                            Button {
+                                UIPasteboard.general.string = message.content
+                                showCopied = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showCopied = false }
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                            ShareLink(item: message.content) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
                         }
-                        .scaleEffect(appeared ? 1 : 0.5)
+                        .scaleEffect(appeared ? 1 : 0.85)
                         .opacity(appeared ? 1 : 0)
 
-                        // Rich health metric cards (inline)
+                        // Inline health metric pills
                         if !message.isUser && !message.isLoading {
                             let metrics = Self.detectHealthMetrics(in: message.content)
                             if !metrics.isEmpty {
@@ -1290,118 +1190,88 @@ private struct ChatBubble: View {
                                         }
                                     }
                                 }
-                                .scaleEffect(appeared ? 1 : 0.8)
+                                .scaleEffect(appeared ? 1 : 0.9)
                                 .opacity(appeared ? 1 : 0)
-                                .animation(.spring(response: 0.5).delay(0.3), value: appeared)
+                                .animation(.spring(response: 0.5).delay(0.2), value: appeared)
                             }
                         }
 
-                        HStack(spacing: 8) {
-                            // Mode badge for AI responses
-                            if !message.isUser, let mode = message.responseMode {
-                                HStack(spacing: 4) {
-                                    Image(systemName: mode.badgeIcon)
-                                        .font(.system(size: 9, weight: .semibold))
-                                    Text(mode.badgeText)
-                                        .font(.system(size: 10, weight: .medium))
-                                }
-                                .foregroundColor(Color(hex: mode.badgeColor))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule()
-                                        .fill(Color(hex: mode.badgeColor).opacity(0.12))
-                                )
-                                .scaleEffect(appeared ? 1 : 0.5)
-                                .opacity(appeared ? 1 : 0)
-                                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: appeared)
-                            }
-                            
-                            // Action buttons for AI responses (feedback + copy)
-                            if !message.isUser && !message.isLoading {
-                                HStack(spacing: 6) {
-                                    if let onFeedback {
-                                        Button(action: {
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                            onFeedback(.helpful)
-                                        }) {
-                                            Image(systemName: message.userFeedback == .helpful ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(message.userFeedback == .helpful ? Color(hex: "00A86B") : .secondary)
-                                        }
-
-                                        Button(action: {
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                            onFeedback(.notHelpful)
-                                        }) {
-                                            Image(systemName: message.userFeedback == .notHelpful ? "hand.thumbsdown.fill" : "hand.thumbsdown")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(message.userFeedback == .notHelpful ? .orange : .secondary)
-                                        }
-
-                                        Rectangle()
-                                            .fill(Color.secondary.opacity(0.2))
-                                            .frame(width: 1, height: 12)
-                                    }
-
-                                    // Copy button
+                        // Action toolbar for AI messages
+                        if !message.isUser && !message.isLoading {
+                            HStack(spacing: 2) {
+                                if let onFeedback {
                                     Button(action: {
                                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        UIPasteboard.general.string = message.content
-                                        withAnimation(.spring(response: 0.3)) { showCopied = true }
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                            withAnimation { showCopied = false }
-                                        }
+                                        onFeedback(.helpful)
                                     }) {
-                                        Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(showCopied ? Color(hex: "00A86B") : .secondary)
+                                        Image(systemName: message.userFeedback == .helpful ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(message.userFeedback == .helpful ? Color(hex: "00A86B") : .secondary.opacity(0.5))
+                                            .frame(width: 28, height: 28)
                                     }
 
-                                    // Bookmark button
-                                    if let onBookmark {
-                                        Button(action: {
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                            onBookmark()
-                                        }) {
-                                            Image(systemName: message.isBookmarked ? "bookmark.fill" : "bookmark")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(message.isBookmarked ? Color(hex: "F59E0B") : .secondary)
-                                        }
-                                    }
-
-                                    // Speaker button (TTS)
-                                    if let onSpeak {
-                                        Button(action: {
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                            onSpeak(message.content)
-                                        }) {
-                                            Image(systemName: isSpeaking ? "stop.fill" : "speaker.wave.2.fill")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(isSpeaking ? Color(hex: "2E3192") : .secondary)
-                                        }
+                                    Button(action: {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        onFeedback(.notHelpful)
+                                    }) {
+                                        Image(systemName: message.userFeedback == .notHelpful ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(message.userFeedback == .notHelpful ? .orange : .secondary.opacity(0.5))
+                                            .frame(width: 28, height: 28)
                                     }
                                 }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule()
-                                        .fill(Color(UIColor.tertiarySystemFill))
-                                )
-                                .scaleEffect(appeared ? 1 : 0.5)
-                                .opacity(appeared ? 1 : 0)
-                                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.25), value: appeared)
+
+                                Button(action: {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    UIPasteboard.general.string = message.content
+                                    withAnimation(.spring(response: 0.3)) { showCopied = true }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                        withAnimation { showCopied = false }
+                                    }
+                                }) {
+                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(showCopied ? Color(hex: "00A86B") : .secondary.opacity(0.5))
+                                        .frame(width: 28, height: 28)
+                                }
+
+                                if let onBookmark {
+                                    Button(action: {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        onBookmark()
+                                    }) {
+                                        Image(systemName: message.isBookmarked ? "bookmark.fill" : "bookmark")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(message.isBookmarked ? Color(hex: "F59E0B") : .secondary.opacity(0.5))
+                                            .frame(width: 28, height: 28)
+                                    }
+                                }
+
+                                if let onSpeak {
+                                    Button(action: {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        onSpeak(message.content)
+                                    }) {
+                                        Image(systemName: isSpeaking ? "stop.fill" : "speaker.wave.2.fill")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(isSpeaking ? Color(hex: "2E3192") : .secondary.opacity(0.5))
+                                            .frame(width: 28, height: 28)
+                                    }
+                                }
                             }
+                            .padding(.horizontal, 2)
+                            .scaleEffect(appeared ? 1 : 0.8)
+                            .opacity(appeared ? 1 : 0)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.15), value: appeared)
                         }
-                        .padding(.leading, 4)
                     }
                 }
-                
-                if !message.isUser { Spacer(minLength: 40) }
+
+                if !message.isUser { Spacer(minLength: 60) }
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1)) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.75).delay(0.05)) {
                 appeared = true
             }
         }
@@ -1489,7 +1359,6 @@ private struct ChatBubble: View {
 private struct TypingIndicator: View {
     let loadingOperation: LoadingOperationType
     @State private var isAnimating = false
-    @State private var shimmerOffset: CGFloat = -200
 
     private var accentColor: Color {
         loadingOperation == .medicalQuery ? Color(hex: "00A86B") : Color(hex: "2E3192")
@@ -1497,61 +1366,30 @@ private struct TypingIndicator: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            // Mini orb instead of plain icon
-            MiniAIOrb(size: 20)
-
-            // Loading message
             Text(loadingOperation.loadingMessage)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
 
-            // Animated wave dots
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 ForEach(0..<3, id: \.self) { index in
                     Circle()
-                        .fill(accentColor)
-                        .frame(width: 7, height: 7)
-                        .offset(y: isAnimating ? -4 : 4)
+                        .fill(accentColor.opacity(0.6))
+                        .frame(width: 5, height: 5)
+                        .offset(y: isAnimating ? -3 : 3)
                         .animation(
-                            .easeInOut(duration: 0.45)
+                            .easeInOut(duration: 0.4)
                                 .repeatForever(autoreverses: true)
-                                .delay(Double(index) * 0.12),
+                                .delay(Double(index) * 0.1),
                             value: isAnimating
                         )
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(accentColor.opacity(0.06))
-                .overlay(
-                    // Shimmer sweep
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [.clear, accentColor.opacity(0.08), .clear],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .offset(x: shimmerOffset)
-                        .animation(
-                            .linear(duration: 1.5).repeatForever(autoreverses: false),
-                            value: shimmerOffset
-                        )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(accentColor.opacity(0.1), lineWidth: 0.5)
-        )
-        .onAppear {
-            isAnimating = true
-            shimmerOffset = 400
-        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color(UIColor.secondarySystemBackground).opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .onAppear { isAnimating = true }
     }
 }
 
@@ -1754,13 +1592,54 @@ private struct InlineErrorView: View {
     }
 }
 
-// MARK: - Health Snapshot Card
+// MARK: - Health Vitals Strip
 
-private struct HealthSnapshotCard: View {
+private struct HealthVitalsStrip: View {
+    let steps: Int
+    let heartRate: Int
+    let calories: Int
+    let onTapMetric: (String) -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            VitalPill(
+                icon: "figure.walk",
+                value: steps >= 1000 ? String(format: "%.1fk", Double(steps) / 1000.0) : "\(steps)",
+                label: "Steps",
+                color: "22C55E",
+                onTap: { onTapMetric("How are my steps today? Am I on track?") }
+            )
+
+            Divider().frame(height: 28).opacity(0.2)
+
+            VitalPill(
+                icon: "heart.fill",
+                value: heartRate > 0 ? "\(heartRate)" : "--",
+                label: "BPM",
+                color: "EF4444",
+                onTap: { onTapMetric("Analyze my heart rate. Is it healthy?") }
+            )
+
+            Divider().frame(height: 28).opacity(0.2)
+
+            VitalPill(
+                icon: "flame.fill",
+                value: "\(calories)",
+                label: "kcal",
+                color: "F97316",
+                onTap: { onTapMetric("Review my calorie burn today. How can I improve?") }
+            )
+        }
+        .padding(.vertical, 12)
+        .glass(cornerRadius: 16)
+    }
+}
+
+private struct VitalPill: View {
     let icon: String
-    let label: String
     let value: String
-    let color: Color
+    let label: String
+    let color: String
     let onTap: () -> Void
 
     var body: some View {
@@ -1768,30 +1647,71 @@ private struct HealthSnapshotCard: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             onTap()
         }) {
-            VStack(spacing: 6) {
+            HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(color)
-
-                Text(value)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-
-                Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(hex: color))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(value)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                    Text(label)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .glass(cornerRadius: 14)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(color.opacity(0.15), lineWidth: 0.5)
-            )
         }
         .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Quick Action Grid
+
+private struct QuickActionGrid: View {
+    let actions: [QuickAction]
+    let showEmptyState: Bool
+    let onAction: (QuickAction) -> Void
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onAction(action)
+                }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: action.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "2E3192"))
+                            .frame(width: 32, height: 32)
+                            .background(Color(hex: "2E3192").opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        Text(action.title)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .glass(cornerRadius: 14)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .opacity(showEmptyState ? 1 : 0)
+                .offset(y: showEmptyState ? 0 : 12)
+                .animation(
+                    .spring(response: 0.45, dampingFraction: 0.7).delay(Double(index) * 0.06 + 0.28),
+                    value: showEmptyState
+                )
+            }
+        }
     }
 }
 
@@ -1806,15 +1726,13 @@ private struct ProactiveNudgeCard: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             onTap()
         }) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: nudge.color).opacity(0.15))
-                        .frame(width: 32, height: 32)
-                    Image(systemName: nudge.icon)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: nudge.color))
-                }
+            HStack(spacing: 10) {
+                Image(systemName: nudge.icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(hex: nudge.color))
+                    .frame(width: 28, height: 28)
+                    .background(Color(hex: nudge.color).opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
 
                 Text(nudge.message)
                     .font(.system(size: 13, weight: .medium))
@@ -1823,16 +1741,17 @@ private struct ProactiveNudgeCard: View {
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary.opacity(0.4))
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(Color(hex: nudge.color).opacity(0.5))
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .glass(cornerRadius: 12)
+            .background(Color(hex: nudge.color).opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(hex: nudge.color).opacity(0.15), lineWidth: 0.5)
+                    .stroke(Color(hex: nudge.color).opacity(0.1), lineWidth: 0.5)
             )
         }
         .buttonStyle(ScaleButtonStyle())
@@ -1845,62 +1764,47 @@ private struct AIRosterPicker: View {
     @Binding var selected: AIPersonality
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Talk to")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.secondary)
-                .padding(.leading, 20)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(AIPersonality.allCases) { personality in
-                        Button(action: {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                selected = personality
-                            }
-                        }) {
-                            HStack(spacing: 8) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(hex: personality.color).opacity(selected == personality ? 0.2 : 0.08))
-                                        .frame(width: 32, height: 32)
-                                    Image(systemName: personality.icon)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(Color(hex: personality.color))
-                                }
-
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(personality.displayName)
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(selected == personality ? Color(hex: personality.color) : .primary)
-                                    Text(personality.tagline)
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .glass(cornerRadius: 14)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(
-                                        selected == personality ? Color(hex: personality.color).opacity(0.4) : Color.clear,
-                                        lineWidth: 1.5
-                                    )
-                            )
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(AIPersonality.allCases) { personality in
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selected = personality
                         }
-                        .buttonStyle(ScaleButtonStyle())
+                    }) {
+                        VStack(spacing: 6) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(hex: personality.color).opacity(selected == personality ? 0.18 : 0.08))
+                                    .frame(width: 44, height: 44)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(
+                                                selected == personality ? Color(hex: personality.color).opacity(0.4) : Color.clear,
+                                                lineWidth: 2
+                                            )
+                                    )
+                                Image(systemName: personality.icon)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(Color(hex: personality.color))
+                            }
+
+                            Text(personality.displayName)
+                                .font(.system(size: 11, weight: selected == personality ? .bold : .medium))
+                                .foregroundColor(selected == personality ? Color(hex: personality.color) : .secondary)
+                        }
+                        .frame(width: 64)
                     }
+                    .buttonStyle(ScaleButtonStyle())
                 }
-                .padding(.horizontal, 16)
             }
+            .padding(.horizontal, 20)
         }
     }
 }
 
-// MARK: - Daily Digest Card
+// MARK: - Daily Digest Card (used in history context)
 
 private struct DailyDigestCard: View {
     let steps: Int
@@ -1908,116 +1812,50 @@ private struct DailyDigestCard: View {
     let calories: Int
     let onAskAI: () -> Void
 
-    private var timeOfDay: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<12: return "Morning"
-        case 12..<17: return "Afternoon"
-        case 17..<22: return "Evening"
-        default: return "Night"
-        }
-    }
-
-    private var overallScore: String {
-        var score = 0
-        if steps >= 5000 { score += 1 }
-        if steps >= 8000 { score += 1 }
-        if heartRate >= 55 && heartRate <= 85 { score += 2 }
-        if calories >= 150 { score += 1 }
-        switch score {
-        case 4...5: return "Great"
-        case 2...3: return "Good"
-        default: return "Needs attention"
-        }
-    }
-
-    private var scoreColor: String {
-        switch overallScore {
-        case "Great": return "22C55E"
-        case "Good": return "F59E0B"
-        default: return "EF4444"
-        }
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(timeOfDay) Digest")
-                        .font(.system(size: 15, weight: .semibold))
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onAskAI()
+        }) {
+            HStack(spacing: 14) {
+                HStack(spacing: 6) {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color(hex: "22C55E"))
+                    Text(steps.formatted())
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color(hex: scoreColor))
-                            .frame(width: 8, height: 8)
-                        Text(overallScore)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(hex: scoreColor))
-                    }
                 }
+
+                HStack(spacing: 6) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color(hex: "EF4444"))
+                    Text(heartRate > 0 ? "\(heartRate)" : "--")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                }
+
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color(hex: "F97316"))
+                    Text("\(calories)")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                }
+
                 Spacer()
-                Button(action: {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    onAskAI()
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text("Deep Dive")
-                            .font(.system(size: 11, weight: .semibold))
-                    }
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(Color(hex: "2E3192"))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color(hex: "2E3192").opacity(0.1))
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(ScaleButtonStyle())
             }
-
-            HStack(spacing: 16) {
-                DigestMetric(icon: "figure.walk", value: steps.formatted(), unit: "steps", color: "22C55E")
-                DigestMetric(icon: "heart.fill", value: heartRate > 0 ? "\(heartRate)" : "--", unit: "bpm", color: "EF4444")
-                DigestMetric(icon: "flame.fill", value: "\(calories)", unit: "kcal", color: "F97316")
-            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .glass(cornerRadius: 12)
         }
-        .padding(16)
-        .glass(cornerRadius: 16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color(hex: "2E3192").opacity(0.12), Color(hex: "4A90E2").opacity(0.06)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.5
-                )
-        )
-    }
-}
-
-private struct DigestMetric: View {
-    let icon: String
-    let value: String
-    let unit: String
-    let color: String
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(Color(hex: color))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.primary)
-                Text(unit)
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
@@ -2136,29 +1974,24 @@ private struct InlineHealthMetricCard: View {
     let color: String
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(Color(hex: color))
-                .frame(width: 28, height: 28)
-                .background(Color(hex: color).opacity(0.12))
-                .clipShape(Circle())
-            VStack(alignment: .leading, spacing: 1) {
-                Text(label)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                Text(value)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.primary)
-            }
+            Text(value)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(Color(hex: color).opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 6)
+        .background(Color(hex: color).opacity(0.06))
+        .clipShape(Capsule())
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color(hex: color).opacity(0.12), lineWidth: 0.5)
+            Capsule()
+                .stroke(Color(hex: color).opacity(0.1), lineWidth: 0.5)
         )
     }
 }
@@ -2299,31 +2132,31 @@ private struct FollowUpSuggestionsView: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 ForEach(Array(suggestions.enumerated()), id: \.element.id) { index, suggestion in
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         onSelect(suggestion)
                     }) {
                         Text(suggestion.label)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(Color(hex: "2E3192"))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
                             .background(
                                 Capsule()
-                                    .fill(Color(hex: "2E3192").opacity(0.08))
+                                    .fill(Color(hex: "2E3192").opacity(0.06))
                             )
                             .overlay(
                                 Capsule()
-                                    .stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5)
+                                    .stroke(Color(hex: "2E3192").opacity(0.1), lineWidth: 0.5)
                             )
                     }
                     .buttonStyle(ScaleButtonStyle())
                     .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 10)
+                    .offset(y: appeared ? 0 : 8)
                     .animation(
-                        .spring(response: 0.4, dampingFraction: 0.7).delay(Double(index) * 0.08 + 0.3),
+                        .spring(response: 0.35, dampingFraction: 0.7).delay(Double(index) * 0.06 + 0.15),
                         value: appeared
                     )
                 }

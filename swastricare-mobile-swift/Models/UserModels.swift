@@ -13,13 +13,17 @@ struct AppUser: Identifiable, Equatable {
     let id: String
     let email: String?
     let fullName: String?
+    let phone: String?
+    let bio: String?
     let avatarURL: URL?
     let createdAt: Date?
     
-    init(id: String, email: String?, fullName: String? = nil, avatarURL: URL? = nil, createdAt: Date? = nil) {
+    init(id: String, email: String?, fullName: String? = nil, phone: String? = nil, bio: String? = nil, avatarURL: URL? = nil, createdAt: Date? = nil) {
         self.id = id
         self.email = email
         self.fullName = fullName
+        self.phone = phone
+        self.bio = bio
         self.avatarURL = avatarURL
         self.createdAt = createdAt
     }
@@ -49,11 +53,17 @@ struct AuthFormState: Equatable {
     var email: String = ""
     var password: String = ""
     var fullName: String = ""
+    var phoneNumber: String = ""
     var confirmPassword: String = ""
     
     var isValidEmail: Bool {
         let emailRegex = #"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#
         return email.range(of: emailRegex, options: .regularExpression) != nil
+    }
+    
+    var isValidPhone: Bool {
+        let digitsOnly = phoneNumber.filter { $0.isNumber }
+        return digitsOnly.count >= 10
     }
     
     var isValidPassword: Bool {
@@ -69,7 +79,7 @@ struct AuthFormState: Equatable {
     }
     
     var isValidForSignUp: Bool {
-        isValidEmail && isValidPassword && passwordsMatch && !fullName.isEmpty
+        isValidEmail && isValidPassword && passwordsMatch && !fullName.isEmpty && isValidPhone
     }
 }
 

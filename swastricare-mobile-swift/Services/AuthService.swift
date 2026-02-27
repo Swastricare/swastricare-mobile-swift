@@ -13,13 +13,14 @@ import Supabase
 
 protocol AuthServiceProtocol {
     func checkSession() async throws -> AppUser?
-    func signUp(email: String, password: String, fullName: String) async throws -> AppUser?
+    func signUp(email: String, password: String, fullName: String, phone: String) async throws -> AppUser?
     func signIn(email: String, password: String) async throws -> AppUser
     func signInWithGoogle() async throws -> AppUser
     func signInWithApple() async throws -> AppUser
     func signOut() async throws
     func resetPassword(email: String) async throws
     func deleteAccount() async throws
+    func updateUserProfile(fullName: String, phone: String, bio: String) async throws
 }
 
 // MARK: - Auth Service Implementation
@@ -76,11 +77,14 @@ final class AuthService: AuthServiceProtocol {
     
     // MARK: - Sign Up
     
-    func signUp(email: String, password: String, fullName: String) async throws -> AppUser? {
+    func signUp(email: String, password: String, fullName: String, phone: String) async throws -> AppUser? {
         let response = try await client.auth.signUp(
             email: email,
             password: password,
-            data: ["full_name": .string(fullName)]
+            data: [
+                "full_name": .string(fullName),
+                "phone": .string(phone)
+            ]
         )
         
         // If session is nil, user needs to verify email
@@ -88,7 +92,23 @@ final class AuthService: AuthServiceProtocol {
             return nil
         }
         
+        // Store phone in public.users table
+        let userId = response.user.id
+        try await updatePublicUserPhone(userId: userId, phone: phone)
+        
         return mapUser(response.user)
+    }
+    
+    private func updatePublicUserPhone(userId: UUID, phone: String) async throws {
+        struct PhoneUpdate: Encodable {
+            let phone: String
+            let updated_at: Date
+        }
+        try await client
+            .from("users")
+            .update(PhoneUpdate(phone: phone, updated_at: Date()))
+            .eq("id", value: userId.uuidString)
+            .execute()
     }
     
     // MARK: - Sign In
@@ -143,11 +163,43 @@ final class AuthService: AuthServiceProtocol {
         defaults.synchronize()
     }
     
+    // MARK: - Update User Profile
+    
+    func updateUserProfile(fullName: String, phone: String, bio: String) async throws {
+        // Update auth user metadata
+        try await client.auth.update(user: .init(
+            data: [
+                "full_name": .string(fullName),
+                "phone": .string(phone),
+                "bio": .string(bio)
+            ]
+        ))
+        
+        // Update public.users table
+        let session = try await client.auth.session
+        let userId = session.user.id
+        
+        struct ProfileUpdate: Encodable {
+            let full_name: String
+            let phone: String
+            let bio: String
+            let updated_at: Date
+        }
+        
+        try await client
+            .from("users")
+            .update(ProfileUpdate(full_name: fullName, phone: phone, bio: bio, updated_at: Date()))
+            .eq("id", value: userId.uuidString)
+            .execute()
+    }
+    
     // MARK: - Helpers
     
     private func mapUser(_ user: User) -> AppUser {
         var avatarURL: URL?
         var fullName: String?
+        var phone: String?
+        var bio: String?
         
         let metadata = user.userMetadata
         if let avatar = metadata["avatar_url"], case .string(let urlString) = avatar {
@@ -160,10 +212,22 @@ final class AuthService: AuthServiceProtocol {
             fullName = nameString
         }
         
+        if let p = user.phone, !p.isEmpty {
+            phone = p
+        } else if let p = metadata["phone"], case .string(let phoneString) = p, !phoneString.isEmpty {
+            phone = phoneString
+        }
+        
+        if let b = metadata["bio"], case .string(let bioString) = b, !bioString.isEmpty {
+            bio = bioString
+        }
+        
         return AppUser(
             id: user.id.uuidString,
             email: user.email,
             fullName: fullName,
+            phone: phone,
+            bio: bio,
             avatarURL: avatarURL,
             createdAt: user.createdAt
         )

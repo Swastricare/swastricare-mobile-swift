@@ -1001,7 +1001,7 @@ struct ActivityShareCardView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "heart.fill")
                                     .font(.system(size: 10))
-                                Text("SwasthiCare")
+                                Text("SwastriCare")
                                     .font(.system(size: 11, weight: .semibold))
                             }
                             .foregroundColor(.white)
@@ -1055,7 +1055,7 @@ struct ActivityShareCardView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "heart.fill")
                                     .font(.system(size: 12))
-                                Text("SwasthiCare")
+                                Text("SwastriCare")
                                     .font(.system(size: 12, weight: .semibold))
                             }
                             .foregroundColor(.white.opacity(0.9))

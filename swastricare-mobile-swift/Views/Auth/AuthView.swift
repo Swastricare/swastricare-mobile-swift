@@ -167,7 +167,7 @@ struct SignUpView: View {
     @FocusState private var focusedField: Field?
     
     enum Field {
-        case name, email, password, confirm
+        case name, phone, email, password, confirm
     }
     
     var body: some View {
@@ -198,6 +198,16 @@ struct SignUpView: View {
                                 text: $viewModel.formState.fullName
                             )
                             .focused($focusedField, equals: .name)
+                            .submitLabel(.next)
+                            .onSubmit { focusedField = .phone }
+                            
+                            AuthTextField(
+                                title: "Phone Number",
+                                icon: "phone.fill",
+                                text: $viewModel.formState.phoneNumber,
+                                keyboardType: .phonePad
+                            )
+                            .focused($focusedField, equals: .phone)
                             .submitLabel(.next)
                             .onSubmit { focusedField = .email }
                             

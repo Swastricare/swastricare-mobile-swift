@@ -87,7 +87,8 @@ final class AuthViewModel: ObservableObject {
             if let user = try await authService.signUp(
                 email: formState.email,
                 password: formState.password,
-                fullName: formState.fullName
+                fullName: formState.fullName,
+                phone: formState.phoneNumber
             ) {
                 authState = .authenticated(user)
                 // Mark that user has logged in before (for onboarding logic)

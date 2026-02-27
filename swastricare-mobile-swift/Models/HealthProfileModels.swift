@@ -19,6 +19,7 @@ struct HealthProfile: Codable {
     var heightCm: Double
     var weightKg: Double
     var bloodType: String?
+    var city: String?
     var createdAt: Date?
     var updatedAt: Date?
     
@@ -31,6 +32,7 @@ struct HealthProfile: Codable {
         case heightCm = "height_cm"
         case weightKg = "weight_kg"
         case bloodType = "blood_type"
+        case city
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -44,6 +46,7 @@ struct HealthProfile: Codable {
         heightCm: Double,
         weightKg: Double,
         bloodType: String? = nil,
+        city: String? = nil,
         createdAt: Date? = nil,
         updatedAt: Date? = nil
     ) {
@@ -55,6 +58,7 @@ struct HealthProfile: Codable {
         self.heightCm = heightCm
         self.weightKg = weightKg
         self.bloodType = bloodType
+        self.city = city
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -71,6 +75,7 @@ struct HealthProfile: Codable {
         heightCm = try container.decode(Double.self, forKey: .heightCm)
         weightKg = try container.decode(Double.self, forKey: .weightKg)
         bloodType = try container.decodeIfPresent(String.self, forKey: .bloodType)
+        city = try container.decodeIfPresent(String.self, forKey: .city)
         
         // Decode dates with flexible format handling
         dateOfBirth = Self.decodeFlexibleDate(from: container, forKey: .dateOfBirth) ?? Date()
@@ -90,6 +95,7 @@ struct HealthProfile: Codable {
         try container.encode(heightCm, forKey: .heightCm)
         try container.encode(weightKg, forKey: .weightKg)
         try container.encodeIfPresent(bloodType, forKey: .bloodType)
+        try container.encodeIfPresent(city, forKey: .city)
         
         // Encode dateOfBirth as date-only string (PostgreSQL date type)
         let formatter = DateFormatter()
