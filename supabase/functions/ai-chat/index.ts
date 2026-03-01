@@ -47,7 +47,7 @@ serve(async (req) => {
   if (corsResponse) return corsResponse
 
   try {
-    const { message, conversationHistory } = await req.json()
+    const { message, conversationHistory, systemContext } = await req.json()
 
     // Input validation
     if (!message || typeof message !== 'string') {
@@ -97,8 +97,14 @@ serve(async (req) => {
     }
 
     // Build messages array for MiniMax
+    // Base system prompt + personality/health context from iOS (if present)
+    let systemContent = SYSTEM_PROMPT
+    if (systemContext && typeof systemContext === 'string') {
+      systemContent += '\n\n' + systemContext
+    }
+
     const messages: MiniMaxMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemContent },
     ]
 
     // Append conversation history as alternating user/assistant messages

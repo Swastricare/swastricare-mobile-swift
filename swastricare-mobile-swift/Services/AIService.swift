@@ -84,13 +84,9 @@ final class AIService: AIServiceProtocol {
         print("💬 Has system context: \(systemContext != nil)")
         print("💬 History length: \(context.count)")
         
-        // Format context for API
-        // Backend expects 'conversationHistory' (not 'context')
-        let conversationHistory = context.suffix(10).map { msg in
-            ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
-        }
-        
-        // Build payload — the backend now supports proper system/user role separation
+        // Build conversation history with first-message retention
+        let conversationHistory = buildConversationHistory(from: context)
+
         var payload: [String: Any] = [
             "message": message,
             "conversationHistory": conversationHistory
@@ -130,10 +126,8 @@ final class AIService: AIServiceProtocol {
         print("🤖 Force model: \(forceModel ?? "auto")")
         print("🤖 History length: \(context.count)")
 
-        // Format context for API — proper messages array with roles
-        let conversationHistory = context.suffix(10).map { msg in
-            ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
-        }
+        // Build conversation history with first-message retention
+        let conversationHistory = buildConversationHistory(from: context)
 
         var payload: [String: Any] = [
             "message": message,
@@ -192,15 +186,13 @@ final class AIService: AIServiceProtocol {
         print("🏥 Has health context: \(healthContext != nil)")
         print("🏥 History length: \(context.count)")
         
-        let conversationHistory = context.suffix(10).map { msg in
-            ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
-        }
-        
+        let conversationHistory = buildConversationHistory(from: context)
+
         var payload: [String: Any] = [
             "message": message,
             "conversationHistory": conversationHistory
         ]
-        
+
         if let healthContext = healthContext {
             payload["healthContext"] = healthContext
             print("🏥 Health context: \(healthContext.prefix(100))...")
@@ -911,6 +903,32 @@ final class AIService: AIServiceProtocol {
         }
     }
     
+    /// Build conversation history with first-message retention for topic awareness.
+    /// Keeps the first user message + last 19 messages (up to 20 total).
+    private func buildConversationHistory(from context: [ChatMessage]) -> [[String: String]] {
+        let allMessages = context.filter { !$0.isLoading }
+
+        if allMessages.count > 20 {
+            var truncated: [[String: String]] = []
+
+            // Always include the first user message for topic awareness
+            if let firstUser = allMessages.first(where: { $0.isUser }) {
+                truncated.append(["role": "user", "content": firstUser.content])
+            }
+
+            // Then add the most recent 19
+            truncated += allMessages.suffix(19).map { msg in
+                ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
+            }
+
+            return truncated
+        } else {
+            return allMessages.map { msg in
+                ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
+            }
+        }
+    }
+
     private func parseSleepHours(_ sleepString: String) -> Double {
         // Parse "7h 30m" format
         let components = sleepString.components(separatedBy: " ")

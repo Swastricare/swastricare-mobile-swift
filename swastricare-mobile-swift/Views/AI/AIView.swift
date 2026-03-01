@@ -2565,6 +2565,32 @@ struct ConversationHistoryView: View {
         }
     }
 
+    /// Group conversations by date category (Today, Yesterday, This Week, This Month, Older)
+    private var groupedConversations: [(key: String, conversations: [ConversationSummary])] {
+        let calendar = Calendar.current
+        let now = Date()
+
+        let grouped = Dictionary(grouping: filteredConversations) { conv -> String in
+            if calendar.isDateInToday(conv.updatedAt) {
+                return "Today"
+            } else if calendar.isDateInYesterday(conv.updatedAt) {
+                return "Yesterday"
+            } else if let daysAgo = calendar.dateComponents([.day], from: conv.updatedAt, to: now).day, daysAgo < 7 {
+                return "This Week"
+            } else if calendar.isDate(conv.updatedAt, equalTo: now, toGranularity: .month) {
+                return "This Month"
+            } else {
+                return "Older"
+            }
+        }
+
+        let order = ["Today", "Yesterday", "This Week", "This Month", "Older"]
+        return order.compactMap { key in
+            guard let convs = grouped[key], !convs.isEmpty else { return nil }
+            return (key: key, conversations: convs)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -2637,29 +2663,38 @@ struct ConversationHistoryView: View {
     
     private var conversationListView: some View {
         List {
-            ForEach(filteredConversations) { conversation in
-                ConversationRow(
-                    conversation: conversation,
-                    onTap: {
-                        Task {
-                            await viewModel.loadConversation(id: conversation.id)
+            ForEach(groupedConversations, id: \.key) { group in
+                Section {
+                    ForEach(group.conversations) { conversation in
+                        ConversationRow(
+                            conversation: conversation,
+                            onTap: {
+                                Task {
+                                    await viewModel.loadConversation(id: conversation.id)
+                                }
+                            },
+                            onDelete: {
+                                conversationToDelete = conversation
+                                showDeleteConfirmation = true
+                            }
+                        )
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                conversationToDelete = conversation
+                                showDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash.fill")
+                            }
                         }
-                    },
-                    onDelete: {
-                        conversationToDelete = conversation
-                        showDeleteConfirmation = true
                     }
-                )
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        conversationToDelete = conversation
-                        showDeleteConfirmation = true
-                    } label: {
-                        Label("Delete", systemImage: "trash.fill")
-                    }
+                } header: {
+                    Text(group.key)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .textCase(nil)
                 }
             }
         }

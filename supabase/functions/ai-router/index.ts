@@ -58,7 +58,7 @@ serve(async (req) => {
     if (corsResponse) return corsResponse
 
     const payload = await req.json()
-    const { message, conversationHistory, imageData, forceModel } = payload
+    const { message, conversationHistory, imageData, forceModel, systemContext } = payload
 
     console.log('=== AI ROUTER ===')
     console.log('Incoming payload:', {
@@ -140,6 +140,7 @@ serve(async (req) => {
       message,
       conversationHistory,
       ...(imageData && { imageData }),
+      ...(systemContext && { systemContext }),
       routedFrom: 'ai-router',
       originalModel: targetModel
     }

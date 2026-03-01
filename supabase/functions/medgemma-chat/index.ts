@@ -39,7 +39,7 @@ serve(async (req) => {
     const corsResponse = handleCors(req)
     if (corsResponse) return corsResponse
 
-    const { message, conversationHistory, healthContext } = await req.json()
+    const { message, conversationHistory, healthContext, systemContext } = await req.json()
 
     console.log('📥 MEDGEMMA CHAT REQUEST')
     console.log('Message:', message?.substring(0, 100))
@@ -86,8 +86,11 @@ serve(async (req) => {
     // Build the messages array for MiniMax
     const messages: MiniMaxMessage[] = []
 
-    // System message: base prompt + optional health context
+    // System message: base prompt + optional contexts from iOS
     let systemContent = MEDICAL_SYSTEM_PROMPT
+    if (systemContext && typeof systemContext === 'string') {
+      systemContent += '\n\n' + systemContext
+    }
     if (healthContext) {
       systemContent += `\n\nHealth Context: ${healthContext}`
     }
