@@ -53,6 +53,7 @@ struct swastricare_mobile_swiftApp: App {
     
     // Splash screen minimum duration state
     @State private var isSplashDelayComplete: Bool = false
+    @State private var splashFadeOut: Bool = false
     
     @Environment(\.scenePhase) private var scenePhase
     
@@ -80,33 +81,39 @@ struct swastricare_mobile_swiftApp: App {
                                      (authViewModel.isAuthenticated && (!hasCheckedHealthProfile || isCheckingHealthProfile))
                 
                 if isInitializing {
-                    SplashView()
+                    SplashView(fadeOut: $splashFadeOut)
                         .task {
-                            // Start minimum splash timer (1.5 seconds)
+                            // Start minimum splash timer (5 seconds — matches video duration)
                             let splashMinDuration = Task {
-                                try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+                                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
                             }
-                            
+
                             // Check app version first
                             if !hasCheckedAppVersion {
                                 await checkAppVersion()
                                 await requestNotificationPermissionIfNeeded()
                             }
-                            
+
                             // Wait for auth to complete
                             while authViewModel.authState == .unknown {
                                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
                             }
-                            
+
                             // If authenticated, check health profile
                             if authViewModel.isAuthenticated && !hasCheckedHealthProfile {
                                 await checkHealthProfileFromDB()
                             }
-                            
+
                             // Wait for minimum splash duration
                             _ = await splashMinDuration.value
-                            
-                            // Signal that splash delay is complete
+
+                            // Phase 1: Fade splash to black (0.4s)
+                            await MainActor.run {
+                                splashFadeOut = true
+                            }
+                            try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s
+
+                            // Phase 2: Swap to next screen (fades in via .transition)
                             await MainActor.run {
                                 isSplashDelayComplete = true
                             }
@@ -154,6 +161,7 @@ struct swastricare_mobile_swiftApp: App {
                     LoginView()
                 }
             }
+            .animation(.easeInOut(duration: 0.4), value: isSplashDelayComplete)
             .animation(.easeInOut, value: authViewModel.authState)
             .animation(.easeInOut, value: hasCompletedOnboarding)
             .animation(.easeInOut, value: hasAcceptedConsent)
