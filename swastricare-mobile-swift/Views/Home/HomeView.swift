@@ -112,6 +112,10 @@ struct HomeView: View {
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
+                    if viewModel.isLoading && !hasAppeared {
+                        homeSkeletonView
+                    }
+
                     // Living Status Header
                     LivingStatusHeader(
                         userName: userName,
@@ -120,8 +124,10 @@ struct HomeView: View {
                         greeting: timeBasedGreeting,
                         showReminders: $showReminders
                     )
-                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
-                    
+                    .opacity(hasAppeared ? 1 : 0)
+                    .offset(y: hasAppeared ? 0 : 18)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.05), value: hasAppeared)
+
                     // Proactive AI Nudges
                     if !viewModel.serverNudges.isEmpty {
                         NudgeCardsView(
@@ -137,20 +143,29 @@ struct HomeView: View {
                             }
                         )
                         .padding(.top, 4)
+                        .opacity(hasAppeared ? 1 : 0)
+                        .offset(y: hasAppeared ? 0 : 18)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
                     }
 
                     // Health Authorization Banner
                     if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
                         authorizationBanner
                     }
-                    
+
                     // Human Body Image with Daily Activity Details
                     humanBodyImageWithDetails
                         .padding(.top, 0)
-                    
+                        .opacity(hasAppeared ? 1 : 0)
+                        .offset(y: hasAppeared ? 0 : 24)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
+
                     // Health Vitals Grid
                     healthVitalsSection
                         .padding(.top, 8)
+                        .opacity(hasAppeared ? 1 : 0)
+                        .offset(y: hasAppeared ? 0 : 24)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
                     
                     // AR Body Scan Entry
                     Button(action: {
@@ -220,6 +235,9 @@ struct HomeView: View {
                     .buttonStyle(ScaleButtonStyle())
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
+                    .opacity(hasAppeared ? 1 : 0)
+                    .offset(y: hasAppeared ? 0 : 24)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
 
                     // Dynamic Island Health Tracker
                     HealthLiveActivityToggle(
@@ -230,11 +248,17 @@ struct HomeView: View {
                     )
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
+                    .opacity(hasAppeared ? 1 : 0)
+                    .offset(y: hasAppeared ? 0 : 24)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: hasAppeared)
 
                     // Quick Actions
                     quickActionsSection
                         .padding(.top, 8)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
+                        .opacity(hasAppeared ? 1 : 0)
+                        .offset(y: hasAppeared ? 0 : 30)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.45), value: hasAppeared)
                     
                 }
                 .padding(.top)
@@ -263,8 +287,8 @@ struct HomeView: View {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
 
-            // Trigger entrance animations with staggered delays for cards
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Trigger entrance animations with staggered cascade
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     hasAppeared = true
                 }
@@ -348,25 +372,25 @@ struct HomeView: View {
                         DailyActivityStatItem(
                             icon: "flame.fill",
                             color: .orange,
-                            value: "\(viewModel.activeCalories)",
+                            value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
                             unit: "Active Calories",
                             animationDelay: 0.3,
                             hasAppeared: hasAppeared
                         )
-                        
+
                         DailyActivityStatItem(
                             icon: "clock.fill",
                             color: .blue,
-                            value: "\(viewModel.exerciseMinutes)",
+                            value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
                             unit: "Exercise Min",
                             animationDelay: 0.5,
                             hasAppeared: hasAppeared
                         )
-                        
+
                         DailyActivityStatItem(
                             icon: "figure.stand",
                             color: .purple,
-                            value: "\(viewModel.standHours)",
+                            value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
                             unit: "Stand Hours",
                             animationDelay: 0.6,
                             hasAppeared: hasAppeared
@@ -416,6 +440,73 @@ struct HomeView: View {
         .padding(.horizontal)
     }
     
+    // MARK: - Skeleton Loading
+
+    private var homeSkeletonView: some View {
+        VStack(spacing: 16) {
+            // Header skeleton
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    SkeletonShape(width: 100, height: 14)
+                    SkeletonShape(width: 140, height: 20)
+                }
+                Spacer()
+                SkeletonCircle(size: 36)
+            }
+            .padding(.horizontal)
+
+            // Activity stats skeleton
+            HStack(spacing: 12) {
+                ForEach(0..<3, id: \.self) { _ in
+                    HStack(spacing: 10) {
+                        SkeletonCircle(size: 35)
+                        VStack(alignment: .leading, spacing: 4) {
+                            SkeletonShape(width: 40, height: 18)
+                            SkeletonShape(width: 60, height: 10)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .glass(cornerRadius: 16)
+                }
+            }
+            .padding(.horizontal)
+
+            // Vitals grid skeleton
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 12) {
+                ForEach(0..<3, id: \.self) { _ in
+                    VStack(alignment: .leading, spacing: 10) {
+                        SkeletonCircle(size: 32)
+                        VStack(alignment: .leading, spacing: 4) {
+                            SkeletonShape(width: 50, height: 10)
+                            SkeletonShape(width: 40, height: 22)
+                        }
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .glass(cornerRadius: 20)
+                }
+            }
+            .padding(.horizontal)
+
+            // Quick actions skeleton
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 12),
+                GridItem(.flexible(), spacing: 12)
+            ], spacing: 12) {
+                ForEach(0..<4, id: \.self) { _ in
+                    SkeletonShape(height: 150, cornerRadius: 24)
+                }
+            }
+            .padding(.horizontal)
+        }
+        .padding(.top, 8)
+    }
+
     private var healthVitalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             LazyVGrid(columns: [
@@ -430,8 +521,8 @@ struct HomeView: View {
                     VitalCard(
                         icon: "heart.fill",
                         title: "Heart Rate",
-                        value: "\(viewModel.heartRate)",
-                        unit: "BPM",
+                        value: viewModel.heartRate > 0 ? "\(viewModel.heartRate)" : "—",
+                        unit: viewModel.heartRate > 0 ? "BPM" : "",
                         color: .red,
                         animationDelay: 0.8,
                         hasAppeared: hasAppeared,
@@ -439,22 +530,22 @@ struct HomeView: View {
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
-                
+
                 VitalCard(
                     icon: "bed.double.fill",
                     title: "Sleep",
-                    value: viewModel.sleepHours,
+                    value: viewModel.sleepHours == "0h 0m" ? "—" : viewModel.sleepHours,
                     unit: "",
                     color: .indigo,
                     animationDelay: 0.9,
                     hasAppeared: hasAppeared
                 )
-                
+
                 VitalCard(
                     icon: "figure.walk",
                     title: "Distance",
-                    value: String(format: "%.1f", viewModel.distance),
-                    unit: "km",
+                    value: viewModel.distance > 0 ? String(format: "%.1f", viewModel.distance) : "—",
+                    unit: viewModel.distance > 0 ? "km" : "",
                     color: .green,
                     animationDelay: 1.0,
                     hasAppeared: hasAppeared
@@ -727,14 +818,14 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            // .background(
-            //     RoundedRectangle(cornerRadius: 16)
-            //         .fill(Color.white.opacity(0.05)) // Subtle glass effect
-            // )
-            // .overlay(
-            //     RoundedRectangle(cornerRadius: 16)
-            //         .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-            // )
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            )
             .opacity(hasAppeared ? 1 : 0)
             .offset(x: hasAppeared ? 0 : -20)
             .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(animationDelay), value: hasAppeared)
