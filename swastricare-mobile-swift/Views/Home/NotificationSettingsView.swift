@@ -6,19 +6,25 @@
 //
 
 import SwiftUI
+import Supabase
 
 struct NotificationSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var viewModel: HydrationViewModel
-    
+
     @State private var settings: NotificationSettings
     @State private var permissionStatus: NotificationPermissionStatus = .notDetermined
     @State private var showPermissionAlert = false
     @State private var quietHoursStart: Date
     @State private var quietHoursEnd: Date
     @State private var isTestingNotification = false
-    
+    @State private var whatsAppNudgesEnabled = false
+    @State private var isSavingWhatsApp = false
+    @State private var userPhone: String? = nil
+    @State private var showPhoneRequiredAlert = false
+
     private let notificationService = NotificationService.shared
+    private let supabase = SupabaseManager.shared
     
     init(viewModel: HydrationViewModel) {
         self.viewModel = viewModel
@@ -54,11 +60,16 @@ struct NotificationSettingsView: View {
                     contentSection
                 }
                 
+                // WhatsApp Nudges Section
+                if settings.enabled && permissionStatus.canSchedule {
+                    whatsAppSection
+                }
+
                 // Test Section
                 if settings.enabled && permissionStatus.canSchedule {
                     testSection
                 }
-                
+
                 // About Section
                 aboutSection
             }
@@ -80,6 +91,7 @@ struct NotificationSettingsView: View {
             }
             .task {
                 await checkPermissionStatus()
+                await loadWhatsAppSettings()
             }
             .alert("Notifications Disabled", isPresented: $showPermissionAlert) {
                 Button("Open Settings", role: .none) {
@@ -88,6 +100,11 @@ struct NotificationSettingsView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Please enable notifications in Settings to receive hydration reminders.")
+            }
+            .alert("Phone Number Required", isPresented: $showPhoneRequiredAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("A phone number is required for WhatsApp nudges. Please add your phone number in your profile settings.")
             }
         }
     }
@@ -304,6 +321,51 @@ struct NotificationSettingsView: View {
         }
     }
     
+    // MARK: - WhatsApp Section
+
+    private var whatsAppSection: some View {
+        Section {
+            Toggle(isOn: $whatsAppNudgesEnabled) {
+                HStack {
+                    Image(systemName: "message.fill")
+                        .foregroundColor(.green)
+                    VStack(alignment: .leading) {
+                        Text("WhatsApp Nudges")
+                            .fontWeight(.medium)
+                        Text("Receive health nudges via WhatsApp")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .tint(.green)
+            .disabled(isSavingWhatsApp)
+            .onChange(of: whatsAppNudgesEnabled) { newValue in
+                Task { await saveWhatsAppSetting(enabled: newValue) }
+            }
+
+            if whatsAppNudgesEnabled {
+                HStack {
+                    Image(systemName: "phone.fill")
+                        .foregroundColor(.secondary)
+                        .frame(width: 20)
+                    if let phone = userPhone, !phone.isEmpty {
+                        Text(phone)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("No phone number on file")
+                            .foregroundColor(.orange)
+                    }
+                }
+                .font(.caption)
+            }
+        } header: {
+            Text("WhatsApp")
+        } footer: {
+            Text("Health nudges will also be sent to your WhatsApp. Requires a phone number on your account.")
+        }
+    }
+
     // MARK: - Test Section
     
     private var testSection: some View {
@@ -463,6 +525,73 @@ struct NotificationSettingsView: View {
         }
     }
     
+    // MARK: - WhatsApp Settings
+
+    private func loadWhatsAppSettings() async {
+        guard let userId = try? await supabase.client.auth.session.user.id else { return }
+
+        // Load toggle state from user_settings
+        struct WhatsAppRow: Decodable {
+            let whatsapp_nudges_enabled: Bool?
+        }
+        if let row: WhatsAppRow = try? await supabase.client
+            .from("user_settings")
+            .select("whatsapp_nudges_enabled")
+            .eq("user_id", value: userId.uuidString)
+            .single()
+            .execute()
+            .value {
+            whatsAppNudgesEnabled = row.whatsapp_nudges_enabled ?? false
+        }
+
+        // Load phone number
+        struct PhoneRow: Decodable {
+            let phone: String?
+        }
+        if let row: PhoneRow = try? await supabase.client
+            .from("users")
+            .select("phone")
+            .eq("id", value: userId.uuidString)
+            .single()
+            .execute()
+            .value {
+            userPhone = row.phone
+        }
+    }
+
+    private func saveWhatsAppSetting(enabled: Bool) async {
+        // If enabling, check phone number first
+        if enabled {
+            let phone = userPhone?.replacingOccurrences(of: "\\D", with: "", options: .regularExpression) ?? ""
+            if phone.count < 10 {
+                whatsAppNudgesEnabled = false
+                showPhoneRequiredAlert = true
+                return
+            }
+        }
+
+        isSavingWhatsApp = true
+        defer { isSavingWhatsApp = false }
+
+        guard let userId = try? await supabase.client.auth.session.user.id else { return }
+
+        struct WhatsAppUpdate: Encodable {
+            let whatsapp_nudges_enabled: Bool
+        }
+
+        do {
+            try await supabase.client
+                .from("user_settings")
+                .update(WhatsAppUpdate(whatsapp_nudges_enabled: enabled))
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+        } catch {
+            // Revert on failure
+            whatsAppNudgesEnabled = !enabled
+            print("Failed to save WhatsApp setting: \(error)")
+        }
+    }
+
     private func openAppSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)

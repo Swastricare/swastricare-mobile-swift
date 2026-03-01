@@ -3,6 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { callMiniMax, type MiniMaxMessage } from '../_shared/minimax.ts'
 import { handleCors, corsHeaders } from '../_shared/cors.ts'
 
+const WASENDER_API_KEY = Deno.env.get('WASENDER_API_KEY') ?? ''
+
 const NUDGE_SYSTEM_PROMPT = `You are a health nudge generator. Given a user's recent health data and a nudge trigger, generate a brief, warm, actionable nudge message.
 
 Rules:
@@ -63,6 +65,11 @@ serve(async (req) => {
         const pushNudges = nudges.filter((n: any) => n.priority !== 'low')
         for (const nudge of pushNudges) {
           await sendPushNotification(supabase, profile.user_id, nudge)
+        }
+
+        // Send WhatsApp for all nudges (if user opted in)
+        for (const nudge of nudges) {
+          await sendWhatsAppNudge(supabase, profile.user_id, nudge)
         }
       }
     }
@@ -181,6 +188,71 @@ async function generateNudgeMessage(nudgeType: string, context: string): Promise
   } catch {
     // Fallback to static message
     return { title: 'Health Reminder', message: context }
+  }
+}
+
+async function sendWhatsAppNudge(supabase: any, userId: string, nudge: any) {
+  if (!WASENDER_API_KEY) return
+
+  try {
+    // Check if user opted in and has a phone number
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('whatsapp_nudges_enabled')
+      .eq('user_id', userId)
+      .single()
+
+    if (!settings?.whatsapp_nudges_enabled) return
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('phone')
+      .eq('id', userId)
+      .single()
+
+    const phone = user?.phone?.replace(/\D/g, '')
+    if (!phone || phone.length < 10) return
+
+    const jid = `${phone}@s.whatsapp.net`
+    const text = `${nudge.title}\n${nudge.message}`
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+    const response = await fetch('https://wasenderapi.com/api/send-message', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WASENDER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ jid, message: text }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (response.ok) {
+      // Mark WhatsApp as sent on the nudge record
+      await supabase
+        .from('ai_nudges')
+        .update({ whatsapp_sent: true })
+        .eq('user_id', userId)
+        .eq('nudge_type', nudge.nudge_type)
+        .eq('title', nudge.title)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      console.log(`📱 WhatsApp sent to ${userId}: ${nudge.title}`)
+    } else {
+      const errorText = await response.text()
+      console.log(`📱 WhatsApp failed for ${userId}: ${response.status} ${errorText}`)
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      console.log(`📱 WhatsApp timeout for ${userId}`)
+    } else {
+      console.log('📱 WhatsApp error:', e.message)
+    }
   }
 }
 
