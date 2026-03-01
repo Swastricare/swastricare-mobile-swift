@@ -11,7 +11,7 @@ import CoreLocation
 // MARK: - Question 1: Full Name
 
 struct FullNameQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     @FocusState private var isFocused: Bool
     var onNext: (() -> Void)?
     
@@ -55,7 +55,7 @@ struct FullNameQuestionView: View {
 // MARK: - Question 2: Gender
 
 struct GenderQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -88,7 +88,7 @@ struct GenderQuestionView: View {
 // MARK: - Question 3: Date of Birth
 
 struct DateOfBirthQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -114,7 +114,7 @@ struct DateOfBirthQuestionView: View {
 // MARK: - Question 4: Height
 
 struct HeightQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(spacing: 40) {
@@ -184,7 +184,7 @@ struct HeightQuestionView: View {
 // MARK: - Question 6: Weight
 
 struct WeightQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(spacing: 40) {
@@ -243,7 +243,7 @@ struct WeightQuestionView: View {
 // MARK: - Question 7: Primary Goal
 
 struct PrimaryGoalQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -277,7 +277,7 @@ struct PrimaryGoalQuestionView: View {
 // MARK: - Question 9: Tracking Preferences
 
 struct TrackingPreferencesQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -315,7 +315,7 @@ struct TrackingPreferencesQuestionView: View {
 // MARK: - Question 10: Activity Level
 
 struct ActivityLevelQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -349,7 +349,7 @@ struct ActivityLevelQuestionView: View {
 // MARK: - Question 11: Sleep Duration
 
 struct SleepDurationQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -383,7 +383,7 @@ struct SleepDurationQuestionView: View {
 // MARK: - Question 12: Diet Type
 
 struct DietTypeQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -417,7 +417,7 @@ struct DietTypeQuestionView: View {
 // MARK: - Question 13: Water Intake
 
 struct WaterIntakeQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -451,7 +451,7 @@ struct WaterIntakeQuestionView: View {
 // MARK: - Question 13: Blood Group
 
 struct EmergencyContactNameQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     @FocusState private var isFocused: Bool
     
     var body: some View {
@@ -488,7 +488,7 @@ struct EmergencyContactNameQuestionView: View {
 // MARK: - Question 22: Emergency Contact Phone
 
 struct EmergencyContactPhoneQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     @FocusState private var isFocused: Bool
     
     var body: some View {
@@ -527,7 +527,7 @@ struct EmergencyContactPhoneQuestionView: View {
 // MARK: - Question 13: Blood Group
 
 struct BloodGroupQuestionView: View {
-    @ObservedObject var formState: ComprehensiveOnboardingFormState
+    @ObservedObject var formState: OnboardingFormState
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {

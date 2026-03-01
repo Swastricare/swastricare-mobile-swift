@@ -1,8 +1,8 @@
 //
-//  ComprehensiveOnboardingModels.swift
+//  OnboardingModels.swift
 //  swastricare-mobile-swift
 //
-//  Comprehensive Onboarding Models - All 24 Questions
+//  Onboarding Data Models
 //
 
 import Foundation
@@ -12,7 +12,7 @@ import CoreLocation
 // MARK: - Onboarding Form State
 
 @MainActor
-class ComprehensiveOnboardingFormState: ObservableObject {
+class OnboardingFormState: ObservableObject {
     // A) Profile Setup
     @Published var fullName: String = ""
     @Published var gender: Gender?
@@ -482,7 +482,7 @@ enum MedicalAlert: String, Codable, CaseIterable, Hashable {
     case heartCondition = "heart_condition"
     case diabetes = "diabetes"
     case none = "none"
-    
+
     var displayName: String {
         switch self {
         case .asthma: return "Asthma"
@@ -491,6 +491,25 @@ enum MedicalAlert: String, Codable, CaseIterable, Hashable {
         case .heartCondition: return "Heart condition"
         case .diabetes: return "Diabetes"
         case .none: return "None"
+        }
+    }
+}
+
+// MARK: - Onboarding Errors
+
+enum OnboardingError: LocalizedError {
+    case notAuthenticated
+    case userCreationFailed
+    case saveFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notAuthenticated:
+            return "User not authenticated"
+        case .userCreationFailed:
+            return "Failed to create user record"
+        case .saveFailed(let message):
+            return "Failed to save onboarding data: \(message)"
         }
     }
 }

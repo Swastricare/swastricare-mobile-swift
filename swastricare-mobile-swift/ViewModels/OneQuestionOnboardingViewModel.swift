@@ -55,7 +55,7 @@ final class OneQuestionOnboardingViewModel: ObservableObject {
     
     // MARK: - Published State
     
-    @Published var formState = ComprehensiveOnboardingFormState() {
+    @Published var formState = OnboardingFormState() {
         didSet {
             // Trigger UI update when formState changes
             objectWillChange.send()
@@ -73,13 +73,13 @@ final class OneQuestionOnboardingViewModel: ObservableObject {
     
     // MARK: - Dependencies
     
-    private let onboardingService: ComprehensiveOnboardingServiceProtocol
+    private let onboardingService: OnboardingServiceProtocol
     private let healthProfileService: HealthProfileServiceProtocol
     
     // MARK: - Init
     
     init(
-        onboardingService: ComprehensiveOnboardingServiceProtocol = ComprehensiveOnboardingService.shared,
+        onboardingService: OnboardingServiceProtocol = OnboardingService.shared,
         healthProfileService: HealthProfileServiceProtocol = HealthProfileService.shared
     ) {
         self.onboardingService = onboardingService
@@ -176,7 +176,7 @@ final class OneQuestionOnboardingViewModel: ObservableObject {
         
         do {
             guard let userId = try? await SupabaseManager.shared.client.auth.session.user.id else {
-                throw ComprehensiveOnboardingError.notAuthenticated
+                throw OnboardingError.notAuthenticated
             }
             
             let healthProfile = formState.toHealthProfile(userId: userId)

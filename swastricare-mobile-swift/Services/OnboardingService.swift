@@ -1,8 +1,8 @@
 //
-//  ComprehensiveOnboardingService.swift
+//  OnboardingService.swift
 //  swastricare-mobile-swift
 //
-//  Comprehensive Onboarding Service
+//  Onboarding Service
 //
 
 import Foundation
@@ -10,16 +10,16 @@ import Supabase
 
 // MARK: - Protocol
 
-protocol ComprehensiveOnboardingServiceProtocol {
+protocol OnboardingServiceProtocol {
     func saveOnboardingData(_ data: [String: Any]) async throws
     func fetchOnboardingData() async throws -> [String: Any]?
 }
 
 // MARK: - Implementation
 
-final class ComprehensiveOnboardingService: ComprehensiveOnboardingServiceProtocol {
+final class OnboardingService: OnboardingServiceProtocol {
     
-    static let shared = ComprehensiveOnboardingService()
+    static let shared = OnboardingService()
     
     private let client: SupabaseClient
     
@@ -31,7 +31,7 @@ final class ComprehensiveOnboardingService: ComprehensiveOnboardingServiceProtoc
     
     func saveOnboardingData(_ data: [String: Any]) async throws {
         guard let session = try? await client.auth.session else {
-            throw ComprehensiveOnboardingError.notAuthenticated
+            throw OnboardingError.notAuthenticated
         }
         
         let userId = session.user.id
@@ -223,14 +223,14 @@ final class ComprehensiveOnboardingService: ComprehensiveOnboardingServiceProtoc
             }
         }
         
-        print("✅ ComprehensiveOnboardingService: Saved onboarding data to health_profiles for user \(userId)")
+        print("✅ OnboardingService: Saved onboarding data to health_profiles for user \(userId)")
     }
     
     // MARK: - Fetch Onboarding Data
     
     func fetchOnboardingData() async throws -> [String: Any]? {
         guard let userId = try? await client.auth.session.user.id else {
-            throw ComprehensiveOnboardingError.notAuthenticated
+            throw OnboardingError.notAuthenticated
         }
         
         // Fetch onboarding data from health_profiles
@@ -347,10 +347,10 @@ final class ComprehensiveOnboardingService: ComprehensiveOnboardingServiceProtoc
                     .insert(newUser)
                     .execute()
 
-                print("✅ ComprehensiveOnboardingService: Created user record for \(userId)")
+                print("✅ OnboardingService: Created user record for \(userId)")
             } catch {
                 // If insert fails (e.g., user was created by another process), verify
-                print("⚠️ ComprehensiveOnboardingService: User insert failed, verifying: \(error)")
+                print("⚠️ OnboardingService: User insert failed, verifying: \(error)")
                 
                 // Verify user exists now (might have been created by another process)
                 let verify: [UserRow] = try await client
@@ -363,14 +363,14 @@ final class ComprehensiveOnboardingService: ComprehensiveOnboardingServiceProtoc
 
                 if verify.isEmpty {
                     // User still doesn't exist, this is a real error
-                    print("❌ ComprehensiveOnboardingService: User creation failed and user still doesn't exist")
-                    throw ComprehensiveOnboardingError.userCreationFailed
+                    print("❌ OnboardingService: User creation failed and user still doesn't exist")
+                    throw OnboardingError.userCreationFailed
                 } else {
-                    print("✅ ComprehensiveOnboardingService: User exists (created by another process)")
+                    print("✅ OnboardingService: User exists (created by another process)")
                 }
             }
         } else {
-            print("✅ ComprehensiveOnboardingService: User \(userId) already exists")
+            print("✅ OnboardingService: User \(userId) already exists")
         }
     }
 }
