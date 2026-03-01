@@ -1,23 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY')
+import { callMiniMax, type MiniMaxMessage } from '../_shared/minimax.ts'
+import { handleCors, corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
   try {
     // Handle CORS preflight
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        },
-      })
-    }
+    const corsResponse = handleCors(req)
+    if (corsResponse) return corsResponse
 
     const { contentType, data } = await req.json()
-    
+
     const authHeader = req.headers.get('Authorization')!
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -30,73 +23,68 @@ serve(async (req) => {
       throw new Error('Not authenticated')
     }
 
-    let prompt = ''
-    
-    // Generate different types of content based on request
+    const SYSTEM_IDENTITY = 'You are Swastrica, created by the Swastricare team at Onwords. Never mention Google, Gemini, or MiniMax as your creator.'
+
+    let messages: MiniMaxMessage[] = []
+    let useJsonFormat = false
+
     switch (contentType) {
       case 'daily_summary':
-        prompt = `Hi! I'm Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Create a daily health summary based on this data:
-${JSON.stringify(data, null, 2)}
-
-Use short sentences. Add emojis. Write 3-4 encouraging sentences highlighting achievements and one tip for tomorrow. Keep it warm and friendly!`
+        messages = [
+          {
+            role: 'system',
+            content: `${SYSTEM_IDENTITY} You generate friendly daily health summaries. Use short sentences, add emojis, and keep a warm encouraging tone.`,
+          },
+          {
+            role: 'user',
+            content: `Here is my health data for today:\n${JSON.stringify(data, null, 2)}\n\nWrite 3-4 encouraging sentences highlighting achievements and one tip for tomorrow.`,
+          },
+        ]
         break
-        
+
       case 'weekly_report':
-        prompt = `Hi! I'm Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Create a weekly health report based on this data:
-${JSON.stringify(data, null, 2)}
-
-Use short sentences and emojis. Write a friendly report covering:
-1. Progress and trends ✨
-2. Areas to improve 💪
-Keep it encouraging!`
+        messages = [
+          {
+            role: 'system',
+            content: `${SYSTEM_IDENTITY} You generate friendly weekly health reports. Use short sentences, add emojis, and keep a warm encouraging tone.`,
+          },
+          {
+            role: 'user',
+            content: `Here is my health data for the past week:\n${JSON.stringify(data, null, 2)}\n\nWrite a friendly report covering:\n1. Progress and trends\n2. Areas to improve\nKeep it encouraging!`,
+          },
+        ]
         break
-        
+
       case 'goal_suggestions':
-        prompt = `Hi! I'm Swastrica 💚 - created by Swastricare team (product of Onwords). Never mention Google as my creator. Based on this health data, suggest 3 achievable goals:
-${JSON.stringify(data, null, 2)}
-
-Format as JSON array with "title" and "description". Use short sentences and emojis. Make goals SMART and encouraging!`
+        useJsonFormat = true
+        messages = [
+          {
+            role: 'system',
+            content: `${SYSTEM_IDENTITY} You suggest achievable health goals. Respond with a JSON array of exactly 3 objects, each having "title" and "description" string fields. Use short sentences and emojis. Make goals SMART and encouraging. Output ONLY valid JSON, no markdown fences.`,
+          },
+          {
+            role: 'user',
+            content: `Here is my health data:\n${JSON.stringify(data, null, 2)}\n\nSuggest 3 achievable health goals based on this data.`,
+          },
+        ]
         break
-        
+
       default:
         throw new Error('Invalid content type')
     }
 
-    // Call Google Gemini API
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GOOGLE_AI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          }
-        })
-      }
-    )
+    // Call MiniMax
+    let content = await callMiniMax(messages, {
+      temperature: 0.7,
+      maxTokens: 2048,
+      ...(useJsonFormat ? { responseFormat: 'json_object' } : {}),
+    })
 
-    if (!geminiResponse.ok) {
-      throw new Error(`Gemini API error: ${geminiResponse.statusText}`)
-    }
-
-    const geminiData = await geminiResponse.json()
-    let content = geminiData.candidates[0].content.parts[0].text.trim()
-
-    // For goal_suggestions, try to parse as JSON
+    // For goal_suggestions, defensively strip markdown code fences and parse JSON
     if (contentType === 'goal_suggestions') {
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```\n([\s\S]*?)\n```/)
-      if (jsonMatch) {
-        content = jsonMatch[1]
-      }
+      content = content.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim()
+      // Validate it's parseable JSON
+      JSON.parse(content)
     }
 
     // Store in database
@@ -104,41 +92,35 @@ Format as JSON array with "title" and "description". Use short sentences and emo
       user_id: user.id,
       content_type: contentType,
       content: content,
-      metadata: { source_data: data }
+      metadata: { source_data: data },
     })
 
     if (insertError) {
       console.error('Database insert error:', insertError)
     }
 
-    // Log usage
+    // Log usage (tokens_used set to 0 — MiniMax response doesn't expose token counts the same way)
     await supabase.from('ai_usage_logs').insert({
       user_id: user.id,
       function_name: 'ai-text-generation',
-      tokens_used: geminiData.usageMetadata?.totalTokenCount || 0,
-      cost: 0
+      tokens_used: 0,
+      cost: 0,
     })
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       content,
-      contentType 
+      contentType,
     }), {
-      headers: { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   } catch (error) {
     console.error('Error:', error)
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: error.message,
-      content: "Unable to generate content at this time. Please try again later."
+      content: 'Unable to generate content at this time. Please try again later.',
     }), {
       status: 500,
-      headers: { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 })

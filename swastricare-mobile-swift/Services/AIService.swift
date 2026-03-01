@@ -13,7 +13,7 @@ import Supabase
 
 protocol AIServiceProtocol {
     func sendChatMessage(_ message: String, context: [ChatMessage], systemContext: String?) async throws -> String
-    func sendSmartMessage(_ message: String, context: [ChatMessage], systemContext: String?) async throws -> AIResponse
+    func sendSmartMessage(_ message: String, context: [ChatMessage], systemContext: String?, forceModel: String?) async throws -> AIResponse
     func sendMedicalQuery(_ message: String, context: [ChatMessage], healthContext: String?) async throws -> AIResponse
     func analyzeMedicalImage(_ imageData: Data, analysisType: MedicalImageAnalysisType, question: String?) async throws -> AIResponse
     func analyzeHealth(_ metrics: HealthMetrics) async throws -> HealthAnalysisResponse
@@ -25,6 +25,8 @@ protocol AIServiceProtocol {
     func deleteConversation(id: UUID) async throws
     func archiveConversation(id: UUID) async throws
     func clearChatHistory() async throws
+    func saveMedicalConsent() async throws
+    func checkMedicalConsent() async -> Bool
 }
 
 // MARK: - Medical Image Analysis Types
@@ -49,7 +51,7 @@ struct AIResponse {
     
     init(
         text: String,
-        model: String = "gemini",
+        model: String = "minimax",
         isMedical: Bool = false,
         isEmergency: Bool = false,
         hasDisclaimer: Bool = false,
@@ -88,21 +90,18 @@ final class AIService: AIServiceProtocol {
             ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
         }
         
-        // Prepare the message payload
-        // We prepend the system context to the message because the backend 
-        // treats 'message' as the user's prompt and doesn't support a separate system role.
-        var finalMessage = message
-        if let systemContext = systemContext {
-            finalMessage = "CONTEXT_DATA:\n\(systemContext)\n\nUSER_QUERY:\n\(message)"
-        }
-        
-        let payload: [String: Any] = [
-            "message": finalMessage,
+        // Build payload — the backend now supports proper system/user role separation
+        var payload: [String: Any] = [
+            "message": message,
             "conversationHistory": conversationHistory
         ]
-        
+
+        if let systemContext = systemContext {
+            payload["systemContext"] = systemContext
+        }
+
         print("💬 Calling Supabase function: ai-chat")
-        print("💬 Payload: message length = \(finalMessage.count) chars, history items = \(conversationHistory.count)")
+        print("💬 Payload: message length = \(message.count) chars, history items = \(conversationHistory.count)")
         
         let response = try await supabase.invokeFunction(
             name: "ai-chat",
@@ -124,30 +123,34 @@ final class AIService: AIServiceProtocol {
     
     // MARK: - Smart Message (Auto-routes to appropriate AI)
     
-    func sendSmartMessage(_ message: String, context: [ChatMessage], systemContext: String? = nil) async throws -> AIResponse {
+    func sendSmartMessage(_ message: String, context: [ChatMessage], systemContext: String? = nil, forceModel: String? = nil) async throws -> AIResponse {
         print("🤖 === AI SMART MESSAGE ===")
         print("🤖 User message: \(message.prefix(100))...")
         print("🤖 Has context: \(systemContext != nil)")
+        print("🤖 Force model: \(forceModel ?? "auto")")
         print("🤖 History length: \(context.count)")
-        
-        // Format context for API
+
+        // Format context for API — proper messages array with roles
         let conversationHistory = context.suffix(10).map { msg in
             ["role": msg.isUser ? "user" : "assistant", "content": msg.content]
         }
-        
-        var finalMessage = message
-        if let systemContext = systemContext {
-            finalMessage = "CONTEXT_DATA:\n\(systemContext)\n\nUSER_QUERY:\n\(message)"
-        }
-        
-        let payload: [String: Any] = [
-            "message": finalMessage,
+
+        var payload: [String: Any] = [
+            "message": message,
             "conversationHistory": conversationHistory
         ]
-        
+
+        if let systemContext = systemContext {
+            payload["systemContext"] = systemContext
+        }
+
+        if let forceModel = forceModel {
+            payload["forceModel"] = forceModel
+        }
+
         print("🤖 Calling Supabase function: ai-router")
-        print("🤖 Payload: message length = \(finalMessage.count) chars, history items = \(conversationHistory.count)")
-        
+        print("🤖 Payload: message length = \(message.count) chars, history items = \(conversationHistory.count)")
+
         let response = try await supabase.invokeFunction(
             name: "ai-router",
             payload: payload
@@ -161,17 +164,16 @@ final class AIService: AIServiceProtocol {
             throw AIError.invalidResponse
         }
         
-        let model = response["model"] as? String ?? "gemini"
+        let model = response["model"] as? String ?? "minimax"
         let isMedical = response["isMedical"] as? Bool ?? false
         let isEmergency = response["isEmergency"] as? Bool ?? false
         let hasDisclaimer = response["hasDisclaimer"] as? Bool ?? isMedical
-        
+
         print("🤖 Model used: \(model)")
         print("🤖 Is medical: \(isMedical)")
         print("🤖 Is emergency: \(isEmergency)")
         print("🤖 Has disclaimer: \(hasDisclaimer)")
         print("🤖 Response length: \(responseText.count) characters")
-        print("🤖 Response preview: \(responseText.prefix(200))...")
         
         return AIResponse(
             text: responseText,
@@ -219,7 +221,7 @@ final class AIService: AIServiceProtocol {
             throw AIError.invalidResponse
         }
         
-        let model = response["model"] as? String ?? "medgemma-27b"
+        let model = response["model"] as? String ?? "minimax-medical"
         
         print("🏥 Model used: \(model)")
         print("🏥 Response length: \(responseText.count) characters")
@@ -454,10 +456,9 @@ final class AIService: AIServiceProtocol {
                   let content = msgDict["content"] else {
                 continue
             }
-            
+
             let timestamp: Date
             if let timestampStr = msgDict["timestamp"] {
-                // Try parsing with fractional seconds first
                 if let parsedDate = dateFormatterWithFractional.date(from: timestampStr) {
                     timestamp = parsedDate
                 } else if let parsedDate = dateFormatterWithoutFractional.date(from: timestampStr) {
@@ -468,16 +469,21 @@ final class AIService: AIServiceProtocol {
             } else {
                 timestamp = Date()
             }
-            
+
             let isUser = role == "user"
+            let isBookmarked = msgDict["is_bookmarked"] == "true"
+            let feedback: MessageFeedback? = msgDict["user_feedback"].flatMap { MessageFeedback(rawValue: $0) }
+
             let message = ChatMessage(
                 content: content,
                 isUser: isUser,
-                timestamp: timestamp
+                timestamp: timestamp,
+                userFeedback: feedback,
+                isBookmarked: isBookmarked
             )
             chatMessages.append(message)
         }
-        
+
         return (chatMessages, conversation.id)
     }
     
@@ -584,7 +590,7 @@ final class AIService: AIServiceProtocol {
                   let content = msgDict["content"] else {
                 continue
             }
-            
+
             let timestamp: Date
             if let timestampStr = msgDict["timestamp"] {
                 if let parsedDate = dateFormatterWithFractional.date(from: timestampStr) {
@@ -597,16 +603,21 @@ final class AIService: AIServiceProtocol {
             } else {
                 timestamp = Date()
             }
-            
+
             let isUser = role == "user"
+            let isBookmarked = msgDict["is_bookmarked"] == "true"
+            let feedback: MessageFeedback? = msgDict["user_feedback"].flatMap { MessageFeedback(rawValue: $0) }
+
             let message = ChatMessage(
                 content: content,
                 isUser: isUser,
-                timestamp: timestamp
+                timestamp: timestamp,
+                userFeedback: feedback,
+                isBookmarked: isBookmarked
             )
             chatMessages.append(message)
         }
-        
+
         return chatMessages
     }
     
@@ -627,13 +638,17 @@ final class AIService: AIServiceProtocol {
             let role: String
             let content: String
             let timestamp: String
+            let is_bookmarked: Bool?
+            let user_feedback: String?
         }
-        
+
         let messagesJSON = messages.filter { !$0.isLoading }.map { msg -> MessageItem in
             MessageItem(
                 role: msg.isUser ? "user" : "assistant",
                 content: msg.content,
-                timestamp: dateFormatter.string(from: msg.timestamp)
+                timestamp: dateFormatter.string(from: msg.timestamp),
+                is_bookmarked: msg.isBookmarked ? true : nil,
+                user_feedback: msg.userFeedback?.rawValue
             )
         }
         
@@ -705,7 +720,7 @@ final class AIService: AIServiceProtocol {
                 conversation_type: "general_health",
                 messages: messagesJSON,
                 status: "active",
-                model_used: "gemini-3-flash-preview"
+                model_used: "minimax"
             )
             
             let created: ConversationResponse = try await supabase.client
@@ -780,8 +795,68 @@ final class AIService: AIServiceProtocol {
         }
     }
     
+    // MARK: - Medical Consent
+
+    func saveMedicalConsent() async throws {
+        guard let userId = try? await supabase.client.auth.session.user.id else {
+            return
+        }
+
+        struct ConsentInsert: Encodable {
+            let user_id: UUID
+            let consent_type: String
+            let consent_version: String
+            let device_type: String
+            let app_version: String
+        }
+
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+
+        let insert = ConsentInsert(
+            user_id: userId,
+            consent_type: "initial_disclaimer",
+            consent_version: "1.0",
+            device_type: "ios",
+            app_version: appVersion
+        )
+
+        // ON CONFLICT DO NOTHING — upsert only if not already present
+        try await supabase.client
+            .from("ai_medical_consent")
+            .upsert(insert, onConflict: "user_id,consent_type,consent_version", ignoreDuplicates: true)
+            .execute()
+
+        print("✅ Medical consent saved")
+    }
+
+    func checkMedicalConsent() async -> Bool {
+        guard let userId = try? await supabase.client.auth.session.user.id else {
+            return false
+        }
+
+        struct ConsentRecord: Decodable {
+            let id: UUID
+        }
+
+        do {
+            let records: [ConsentRecord] = try await supabase.client
+                .from("ai_medical_consent")
+                .select("id")
+                .eq("user_id", value: userId.uuidString)
+                .eq("consent_type", value: "initial_disclaimer")
+                .limit(1)
+                .execute()
+                .value
+
+            return !records.isEmpty
+        } catch {
+            print("⚠️ Failed to check medical consent: \(error.localizedDescription)")
+            return false
+        }
+    }
+
     // MARK: - Helpers
-    
+
     private func getHealthProfileId() async throws -> UUID {
         // Check authentication first
         do {

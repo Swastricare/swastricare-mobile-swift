@@ -1,24 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY')
+import { callMiniMax, MiniMaxMessage } from '../_shared/minimax.ts'
+import { handleCors, corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
   try {
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        },
-      })
-    }
+    const corsResponse = handleCors(req)
+    if (corsResponse) return corsResponse
 
-    const { 
-      steps, 
-      heartRate, 
-      sleepDuration, 
+    const {
+      steps,
+      heartRate,
+      sleepDuration,
       activeCalories = 0,
       exerciseMinutes = 0,
       standHours = 0,
@@ -26,10 +19,10 @@ serve(async (req) => {
       bloodPressure = '--/--',
       weight = '--'
     } = await req.json()
-    
+
     // Input validation
     if (typeof steps !== 'number' || steps < 0 || steps > 100000) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         assessment: "Invalid step count provided.",
         insights: "Please provide a valid number of steps between 0 and 100,000.",
         recommendations: ["Check your input", "Try again with valid data"]
@@ -40,7 +33,7 @@ serve(async (req) => {
     }
 
     if (typeof heartRate !== 'number' || heartRate < 20 || heartRate > 250) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         assessment: "Invalid heart rate provided.",
         insights: "Please provide a valid heart rate between 20 and 250 bpm.",
         recommendations: ["Check your input", "Try again with valid data"]
@@ -49,7 +42,7 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
-    
+
     const authHeader = req.headers.get('Authorization')
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -63,7 +56,7 @@ serve(async (req) => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         userId = user?.id
-        
+
         if (userId) {
           const { data: profile } = await supabase
             .from('health_profiles')
@@ -78,16 +71,9 @@ serve(async (req) => {
       }
     }
 
-    const prompt = `You are Swastrica! 💚 A health assistant created by Swastricare team (product of Onwords). NEVER say you were made by Google or any other company.
+    const systemPrompt = `You are Swastrica! 💚 A health assistant created by Swastricare team (product of Onwords). NEVER say you were made by Google, MiniMax, or any other company.
 
-Analyze comprehensive health data:
-
-Activity: ${steps} steps, ${distance.toFixed(1)}km walked/run, ${exerciseMinutes} min exercise, ${standHours} stand hours
-Vitals: Heart Rate ${heartRate}bpm, Sleep ${sleepDuration}
-Energy: ${activeCalories} cal burned
-Body: Weight ${weight}kg, BP ${bloodPressure}
-
-Provide a warm, encouraging health analysis. Use short sentences and emojis. Return ONLY valid JSON:
+Analyze comprehensive health data and provide a warm, encouraging health analysis. Use short sentences and emojis. Return ONLY valid JSON with this exact structure:
 {
   "assessment": "2-3 short sentences with emojis about overall health status",
   "insights": "3-4 short sentences with emojis highlighting key patterns and what's going well or needs attention",
@@ -96,102 +82,79 @@ Provide a warm, encouraging health analysis. Use short sentences and emojis. Ret
 
 No markdown, no code blocks, just pure JSON.`
 
-    console.log('Calling Gemini...')
-    
-    // Add timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased from 30s to 60s
-    
-    try {
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GOOGLE_AI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 2048, // Increased from 1024
-              responseMimeType: "application/json"
-            }
-          }),
-          signal: controller.signal
-        }
-      )
-      clearTimeout(timeoutId)
+    const userMessage = `Please analyze the following health data:
 
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text()
-        console.error('Gemini error:', errorText)
-        throw new Error(`Gemini: ${geminiResponse.statusText}`)
-      }
+Activity: ${steps} steps, ${distance.toFixed(1)}km walked/run, ${exerciseMinutes} min exercise, ${standHours} stand hours
+Vitals: Heart Rate ${heartRate}bpm, Sleep ${sleepDuration}
+Energy: ${activeCalories} cal burned
+Body: Weight ${weight}kg, BP ${bloodPressure}`
 
-      const geminiData = await geminiResponse.json()
-      
-      if (!geminiData.candidates || !geminiData.candidates[0]) {
-        throw new Error('No response from Gemini')
-      }
-      
-      let responseText = geminiData.candidates[0].content.parts[0].text.trim()
-      console.log('Raw:', responseText.substring(0, 100))
+    const messages: MiniMaxMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
+    ]
 
-      responseText = responseText.replace(/```json\n/g, '').replace(/```\n/g, '').replace(/```/g, '').trim()
-      
-      const analysis = JSON.parse(responseText)
-      console.log('Parsed OK')
+    console.log('Calling MiniMax...')
 
-      if (!analysis.assessment || !analysis.insights || !Array.isArray(analysis.recommendations)) {
-        throw new Error('Invalid structure')
-      }
+    let responseText = await callMiniMax(messages, {
+      temperature: 0.7,
+      maxTokens: 2048,
+      responseFormat: 'json_object',
+    })
 
-      if (userId && healthProfileId) {
-        try {
-          await supabase.from('ai_insights').insert({
-            health_profile_id: healthProfileId,
-            insight_type: 'daily_health_analysis',
-            priority: 'medium',
-            title: 'Daily Health Analysis',
-            description: analysis.assessment,
-            detailed_analysis: analysis.insights,
-            supporting_data: { 
-              steps, 
-              heartRate, 
-              sleepDuration,
-              activeCalories,
-              exerciseMinutes,
-              standHours,
-              distance,
-              bloodPressure,
-              weight,
-              analyzed_at: new Date().toISOString()
-            },
-            data_sources: ['health_metrics', 'activity_data'],
-            data_range_start: new Date().toISOString().split('T')[0],
-            data_range_end: new Date().toISOString().split('T')[0],
-            suggested_actions: analysis.recommendations,
-            confidence_score: 0.85,
-            show_in_dashboard: true
-          })
-          console.log('Health insight saved')
-        } catch (e) {
-          console.log('DB failed:', e.message)
-        }
-      }
+    console.log('Raw:', responseText.substring(0, 100))
 
-      return new Response(JSON.stringify(analysis), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
-    } catch (fetchError) {
-      clearTimeout(timeoutId)
-      if (fetchError.name === 'AbortError') {
-        throw new Error('Request timeout')
-      }
-      throw fetchError
+    // Strip any markdown code fences defensively
+    responseText = responseText.replace(/```json\n/g, '').replace(/```\n/g, '').replace(/```/g, '').trim()
+
+    const analysis = JSON.parse(responseText)
+    console.log('Parsed OK')
+
+    if (!analysis.assessment || !analysis.insights || !Array.isArray(analysis.recommendations)) {
+      throw new Error('Invalid structure')
     }
+
+    if (userId && healthProfileId) {
+      try {
+        await supabase.from('ai_insights').insert({
+          health_profile_id: healthProfileId,
+          insight_type: 'daily_health_analysis',
+          priority: 'medium',
+          title: 'Daily Health Analysis',
+          description: analysis.assessment,
+          detailed_analysis: analysis.insights,
+          supporting_data: {
+            steps,
+            heartRate,
+            sleepDuration,
+            activeCalories,
+            exerciseMinutes,
+            standHours,
+            distance,
+            bloodPressure,
+            weight,
+            model: 'minimax',
+            analyzed_at: new Date().toISOString()
+          },
+          data_sources: ['health_metrics', 'activity_data'],
+          data_range_start: new Date().toISOString().split('T')[0],
+          data_range_end: new Date().toISOString().split('T')[0],
+          suggested_actions: analysis.recommendations,
+          confidence_score: 0.85,
+          show_in_dashboard: true
+        })
+        console.log('Health insight saved')
+      } catch (e) {
+        console.log('DB failed:', e.message)
+      }
+    }
+
+    return new Response(JSON.stringify(analysis), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
   } catch (error) {
     console.error('Error:', error)
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       assessment: "Your health metrics look good. Keep maintaining your current activity levels.",
       insights: "Based on your data, you're on track with movement and rest. Focus on consistency.",
       recommendations: [
@@ -203,7 +166,7 @@ No markdown, no code blocks, just pure JSON.`
       ]
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 })

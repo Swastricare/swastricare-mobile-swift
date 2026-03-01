@@ -1,28 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { handleCors, corsHeaders } from '../_shared/cors.ts'
 
-// Medical keywords for routing to MedGemma
+// Medical keywords for routing to medical chat
 const MEDICAL_KEYWORDS = [
   // Symptoms
   'symptom', 'pain', 'ache', 'hurt', 'sore', 'fever', 'nausea', 'dizzy', 'fatigue',
   'headache', 'migraine', 'cough', 'cold', 'flu', 'infection', 'swelling', 'rash',
   'bleeding', 'vomiting', 'diarrhea', 'constipation', 'cramp', 'numbness', 'tingling',
-  
+
   // Medical terms
   'medication', 'medicine', 'drug', 'prescription', 'dose', 'dosage', 'side effect',
   'diagnosis', 'condition', 'disease', 'illness', 'disorder', 'syndrome',
   'treatment', 'therapy', 'surgery', 'procedure', 'test', 'scan', 'x-ray', 'mri',
-  
+
   // Body parts (medical context)
   'chest', 'abdomen', 'liver', 'kidney', 'lung', 'heart', 'brain', 'spine',
-  
+
   // Healthcare
   'doctor', 'physician', 'hospital', 'clinic', 'emergency', 'ambulance',
   'specialist', 'cardiologist', 'dermatologist', 'neurologist',
-  
+
   // Vitals & metrics
   'blood pressure', 'glucose', 'cholesterol', 'bmi', 'oxygen', 'saturation',
-  
+
   // Conditions
   'diabetes', 'hypertension', 'asthma', 'allergy', 'arthritis', 'cancer',
   'depression', 'anxiety', 'insomnia', 'anemia', 'thyroid'
@@ -54,19 +54,12 @@ function hasImageData(payload: any): boolean {
 
 serve(async (req) => {
   try {
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        },
-      })
-    }
+    const corsResponse = handleCors(req)
+    if (corsResponse) return corsResponse
 
     const payload = await req.json()
     const { message, conversationHistory, imageData, forceModel } = payload
-    
+
     console.log('=== AI ROUTER ===')
     console.log('Incoming payload:', {
       message: message?.substring(0, 100),
@@ -75,35 +68,35 @@ serve(async (req) => {
       hasImage: !!imageData,
       forceModel: forceModel || 'auto'
     })
-    
+
     // Input validation
     if (!message || typeof message !== 'string') {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         response: "Please provide a valid message.",
         model: "none",
         error: true
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })
     }
 
     // Determine which model to use
-    let targetModel = 'gemini' // default
+    let targetModel = 'minimax' // default
     let targetFunction = 'ai-chat'
-    
+
     // Check for forced model selection
     if (forceModel) {
-      if (forceModel === 'medgemma' || forceModel === 'medgemma-27b') {
-        targetModel = 'medgemma-27b'
+      if (forceModel === 'medical' || forceModel === 'medgemma' || forceModel === 'medgemma-27b') {
+        targetModel = 'minimax-medical'
         targetFunction = 'medgemma-chat'
-      } else if (forceModel === 'medgemma-4b' || forceModel === 'medgemma-vision') {
-        targetModel = 'medgemma-4b'
+      } else if (forceModel === 'medgemma-4b' || forceModel === 'medgemma-vision' || forceModel === 'vision') {
+        targetModel = 'medgemma-vision'
         targetFunction = 'medgemma-vision'
       }
     } else {
       // Auto-detect based on content
-      
+
       // Check for emergency first
       if (isEmergencyQuery(message)) {
         // Return emergency response immediately
@@ -113,18 +106,18 @@ serve(async (req) => {
           isEmergency: true,
           disclaimer: "If this is a life-threatening emergency, call emergency services immediately."
         }), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
         })
       }
-      
-      // Check for image data - route to MedGemma 4B
+
+      // Check for image data - route to MedGemma Vision (stays on Gemini)
       if (hasImageData(payload)) {
-        targetModel = 'medgemma-4b'
+        targetModel = 'medgemma-vision'
         targetFunction = 'medgemma-vision'
       }
-      // Check for medical keywords - route to MedGemma 27B
+      // Check for medical keywords - route to medical chat (MiniMax with medical prompt)
       else if (isMedicalQuery(message)) {
-        targetModel = 'medgemma-27b'
+        targetModel = 'minimax-medical'
         targetFunction = 'medgemma-chat'
       }
     }
@@ -132,17 +125,17 @@ serve(async (req) => {
     console.log('=== ROUTING DECISION ===')
     console.log(`Selected model: ${targetModel}`)
     console.log(`Target function: ${targetFunction}`)
-    console.log(`Reason: ${isEmergencyQuery(message) ? 'Emergency detected' : hasImageData(payload) ? 'Image data present' : isMedicalQuery(message) ? 'Medical keywords detected' : 'General chat (default)'}`)
-    
+    console.log(`Reason: ${hasImageData(payload) ? 'Image data present' : isMedicalQuery(message) ? 'Medical keywords detected' : 'General chat (default)'}`)
+
     // Get the base URL for internal function calls
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    
+
     // Forward the request to the appropriate function
     const authHeader = req.headers.get('Authorization')
-    
+
     const functionUrl = `${supabaseUrl}/functions/v1/${targetFunction}`
-    
+
     const forwardPayload = {
       message,
       conversationHistory,
@@ -150,17 +143,10 @@ serve(async (req) => {
       routedFrom: 'ai-router',
       originalModel: targetModel
     }
-    
+
     console.log('=== FORWARDING REQUEST ===')
     console.log(`URL: ${functionUrl}`)
-    console.log('Payload:', {
-      message: message.substring(0, 100),
-      hasHistory: !!conversationHistory,
-      hasImage: !!imageData,
-      routedFrom: 'ai-router',
-      originalModel: targetModel
-    })
-    
+
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
@@ -170,14 +156,14 @@ serve(async (req) => {
       },
       body: JSON.stringify(forwardPayload)
     })
-    
+
     if (!response.ok) {
       const errorText = await response.text()
       console.error(`${targetFunction} error:`, errorText)
-      
-      // Fallback to Gemini if MedGemma fails
-      if (targetModel.startsWith('medgemma')) {
-        console.log('Falling back to Gemini...')
+
+      // Fallback to general chat if medical chat fails
+      if (targetModel === 'minimax-medical') {
+        console.log('Falling back to general chat...')
         const fallbackResponse = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
           method: 'POST',
           headers: {
@@ -187,42 +173,42 @@ serve(async (req) => {
           },
           body: JSON.stringify({ message, conversationHistory })
         })
-        
+
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json()
           return new Response(JSON.stringify({
             ...fallbackData,
-            model: 'gemini-fallback',
+            model: 'minimax-fallback',
             note: 'Medical AI temporarily unavailable, using general AI'
           }), {
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
           })
         }
       }
-      
+
       throw new Error(`Function ${targetFunction} failed: ${errorText}`)
     }
-    
+
     const data = await response.json()
-    
+
     // Add metadata about which model was used
     return new Response(JSON.stringify({
       ...data,
       model: targetModel,
-      isMedical: targetModel.startsWith('medgemma')
+      isMedical: targetModel === 'minimax-medical' || targetModel === 'medgemma-vision'
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
-    
+
   } catch (error) {
     console.error('Router error:', error)
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       response: "I'm having trouble processing your request. Please try again.",
       model: "error",
       error: true
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 })

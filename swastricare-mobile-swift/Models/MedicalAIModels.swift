@@ -126,33 +126,31 @@ enum AIPersonality: String, CaseIterable, Identifiable {
 
 // MARK: - Medical AI Model Types
 
-/// Available medical AI models
+/// Available AI models
 enum MedicalAIModel: String, Codable {
-    case medgemma27B = "medgemma-27b"    // Text-only medical conversations
-    case medgemma4B = "medgemma-4b"       // Multimodal (image + text)
-    case geminiMedical = "gemini-medical" // Fallback with medical prompts
-    case geminiFlash = "gemini-3-flash"   // General chat (non-medical)
-    
+    case minimax = "minimax"                     // General chat (MiniMax M2.5)
+    case minimaxMedical = "minimax-medical"       // Medical chat (MiniMax with medical prompt)
+    case medgemmaVision = "medgemma-vision"       // Multimodal vision (Gemini, for images only)
+
     var displayName: String {
         switch self {
-        case .medgemma27B: return "MedGemma Medical AI"
-        case .medgemma4B: return "MedGemma Vision"
-        case .geminiMedical: return "Medical Assistant"
-        case .geminiFlash: return "Swastri AI"
+        case .minimax: return "Swastri AI"
+        case .minimaxMedical: return "Medical Assistant"
+        case .medgemmaVision: return "MedGemma Vision"
         }
     }
-    
+
     var isMedical: Bool {
         switch self {
-        case .medgemma27B, .medgemma4B, .geminiMedical:
+        case .minimaxMedical, .medgemmaVision:
             return true
-        case .geminiFlash:
+        case .minimax:
             return false
         }
     }
-    
+
     var supportsImages: Bool {
-        self == .medgemma4B
+        self == .medgemmaVision
     }
 }
 

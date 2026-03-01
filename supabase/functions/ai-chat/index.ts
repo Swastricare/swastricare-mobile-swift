@@ -1,72 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { callMiniMax, MiniMaxMessage } from '../_shared/minimax.ts'
+import { handleCors, corsHeaders } from '../_shared/cors.ts'
 
-const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY')
 const MAX_MESSAGE_LENGTH = 4000
 const MAX_HISTORY_LENGTH = 10
 
-serve(async (req) => {
-  try {
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        },
-      })
-    }
-
-    const { message, conversationHistory } = await req.json()
-    
-    // Input validation
-    if (!message || typeof message !== 'string') {
-      return new Response(JSON.stringify({ 
-        response: "Please provide a valid message."
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
-    }
-
-    if (message.length > MAX_MESSAGE_LENGTH) {
-      return new Response(JSON.stringify({ 
-        response: "Message is too long. Please keep it under 1000 characters."
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
-    }
-    
-    const authHeader = req.headers.get('Authorization')
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: authHeader ? { Authorization: authHeader } : {} } }
-    )
-
-    let userId = null
-    let healthProfileId = null
-    if (authHeader) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        userId = user?.id
-        
-        if (userId) {
-          const { data: profile } = await supabase
-            .from('health_profiles')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('is_primary', true)
-            .single()
-          healthProfileId = profile?.id
-        }
-      } catch (e) {
-        console.log('Auth/profile fetch failed:', e.message)
-      }
-    }
-
-    let fullPrompt = `You are Swastrica, a friendly health assistant! 💚 Use short sentences. Add relevant emojis. Be encouraging and warm. Keep responses brief (2-4 short sentences).
+const SYSTEM_PROMPT = `You are Swastrica, a friendly health assistant! 💚 Use short sentences. Add relevant emojis. Be encouraging and warm. Keep responses brief (2-4 short sentences).
 
 IMPORTANT IDENTITY RULES:
 - You were created by the Swastricare team, a product of Onwords (parent company)
@@ -99,137 +39,102 @@ INTERACTION GUIDELINES:
 - If users ask about design, explain the "Glassmorphism" concept: "It gives clarity and depth to your health data."
 - If users want to measure heart rate, tell them: "Go to the Tracker tab and tap Heart Rate to measure it with your camera."
 - If users ask about a website, tell them: "Our web platform at swastricare.com is coming soon!"
-- Always be helpful, calm, and reassuring.
+- Always be helpful, calm, and reassuring.`
 
-`
-    
-    if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
-      fullPrompt += "Previous:\n"
-      conversationHistory.slice(-MAX_HISTORY_LENGTH).forEach((msg) => {
-        if (msg.role && msg.content) {
-          fullPrompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`
-        }
+serve(async (req) => {
+  // Handle CORS preflight
+  const corsResponse = handleCors(req)
+  if (corsResponse) return corsResponse
+
+  try {
+    const { message, conversationHistory } = await req.json()
+
+    // Input validation
+    if (!message || typeof message !== 'string') {
+      return new Response(JSON.stringify({
+        response: "Please provide a valid message."
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })
-      fullPrompt += "\n"
     }
-    
-    fullPrompt += `User: ${message}\n\nAssistant:`
 
-    console.log('Calling Gemini...')
-    
-    // Add timeout to Gemini API call
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout (increased from 30s)
-    
-    try {
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GOOGLE_AI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: fullPrompt }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 2048 } // Increased from 512 to 2048
-          }),
-          signal: controller.signal
-        }
-      )
-      clearTimeout(timeoutId)
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return new Response(JSON.stringify({
+        response: "Message is too long. Please keep it under 1000 characters."
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
 
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text()
-        console.error('Gemini error:', errorText)
-        throw new Error(`Gemini: ${geminiResponse.statusText}`)
-      }
+    const authHeader = req.headers.get('Authorization')
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: authHeader ? { Authorization: authHeader } : {} } }
+    )
 
-      const geminiData = await geminiResponse.json()
-      
-      if (!geminiData.candidates || !geminiData.candidates[0]) {
-        throw new Error('No response from Gemini')
-      }
-      
-      const aiResponse = geminiData.candidates[0].content.parts[0].text.trim()
-      console.log('Got response')
+    let userId = null
+    let healthProfileId = null
+    if (authHeader) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        userId = user?.id
 
-      if (userId && healthProfileId) {
-        try {
-          const messagesArray = [
-            ...(conversationHistory || []),
-            { role: 'user', content: message, timestamp: new Date().toISOString() },
-            { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString() }
-          ]
-          
-          // Try to find existing active conversation
-          const { data: existingConversations, error: fetchError } = await supabase
-            .from('ai_conversations')
+        if (userId) {
+          const { data: profile } = await supabase
+            .from('health_profiles')
             .select('id')
             .eq('user_id', userId)
-            .eq('health_profile_id', healthProfileId)
-            .eq('status', 'active')
-            .order('updated_at', { ascending: false })
-            .limit(1)
-          
-          if (existingConversations && existingConversations.length > 0) {
-            // Update existing conversation
-            const { error: updateError } = await supabase
-              .from('ai_conversations')
-              .update({
-                messages: messagesArray,
-                updated_at: new Date().toISOString(),
-                title: message.substring(0, 100)
-              })
-              .eq('id', existingConversations[0].id)
-            
-            if (updateError) {
-              console.log('Update error:', updateError.message)
-            } else {
-              console.log('Conversation updated:', existingConversations[0].id)
-            }
-          } else {
-            // Create new conversation
-            const { data: newConv, error: insertError } = await supabase
-              .from('ai_conversations')
-              .insert({
-                user_id: userId,
-                health_profile_id: healthProfileId,
-                title: message.substring(0, 100),
-                conversation_type: 'general_health',
-                messages: messagesArray,
-                context_data: { history_length: conversationHistory?.length || 0 },
-                model_used: 'gemini-3-flash-preview',
-                status: 'active'
-              })
-              .select('id')
-              .single()
-            
-            if (insertError) {
-              console.log('Insert error:', insertError.message)
-            } else {
-              console.log('New conversation created:', newConv?.id)
-            }
-          }
-        } catch (e) {
-          console.log('DB save failed:', e.message)
+            .eq('is_primary', true)
+            .single()
+          healthProfileId = profile?.id
         }
+      } catch (e) {
+        console.log('Auth/profile fetch failed:', e.message)
       }
-
-      return new Response(JSON.stringify({ response: aiResponse }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
-    } catch (fetchError) {
-      clearTimeout(timeoutId)
-      if (fetchError.name === 'AbortError') {
-        throw new Error('Request timeout')
-      }
-      throw fetchError
     }
+
+    // Build messages array for MiniMax
+    const messages: MiniMaxMessage[] = [
+      { role: 'system', content: SYSTEM_PROMPT },
+    ]
+
+    // Append conversation history as alternating user/assistant messages
+    if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+      conversationHistory.slice(-MAX_HISTORY_LENGTH).forEach((msg: { role?: string; content?: string }) => {
+        if (msg.role && msg.content) {
+          messages.push({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.content,
+          })
+        }
+      })
+    }
+
+    // Append the current user message
+    messages.push({ role: 'user', content: message })
+
+    console.log('Calling MiniMax...')
+
+    const aiResponse = await callMiniMax(messages, {
+      temperature: 0.8,
+      maxTokens: 2048,
+    })
+
+    console.log('Got response')
+
+    return new Response(JSON.stringify({ response: aiResponse }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
   } catch (error) {
     console.error('Error:', error)
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       response: "I'm having trouble right now. Please try again in a moment."
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 })

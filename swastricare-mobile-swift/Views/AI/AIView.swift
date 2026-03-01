@@ -672,14 +672,14 @@ struct AIView: View {
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.15), value: showEmptyState)
             .padding(.bottom, 20)
 
-            // AI Personality Roster (Swastri, Coach, Nutri, Zen, Luna) - commented out
-            // if viewModel.selectedAIMode == .general {
-            //     AIRosterPicker(selected: $viewModel.selectedPersonality)
-            //         .opacity(showEmptyState ? 1 : 0)
-            //         .offset(y: showEmptyState ? 0 : 12)
-            //         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
-            //         .padding(.bottom, 16)
-            // }
+            // AI Personality Roster (Swastri, Coach, Nutri, Zen, Luna)
+            if viewModel.selectedAIMode == .general {
+                AIRosterPicker(selected: $viewModel.selectedPersonality)
+                    .opacity(showEmptyState ? 1 : 0)
+                    .offset(y: showEmptyState ? 0 : 12)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
+                    .padding(.bottom, 16)
+            }
 
             // Health Vitals Strip
             HealthVitalsStrip(

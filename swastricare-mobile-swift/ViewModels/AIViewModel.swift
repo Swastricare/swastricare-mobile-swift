@@ -47,7 +47,7 @@ final class AIViewModel: ObservableObject {
 
     // MARK: - MedGemma State
     
-    @Published private(set) var lastResponseModel: String = "gemini"
+    @Published private(set) var lastResponseModel: String = "minimax"
     @Published private(set) var lastResponseWasMedical: Bool = false
     @Published var showEmergencyAlert: Bool = false
     @Published var showMedicalDisclaimer: Bool = false
@@ -118,6 +118,12 @@ final class AIViewModel: ObservableObject {
     @Published private var shouldLoadHistory = true
     
     func loadHistory() async {
+        // Check persisted medical consent so returning users skip the disclaimer
+        let hasConsent = await aiService.checkMedicalConsent()
+        if hasConsent {
+            hasAcknowledgedMedicalDisclaimer = true
+        }
+
         // Don't load history if we explicitly cleared it
         guard shouldLoadHistory else {
             return
@@ -214,44 +220,35 @@ final class AIViewModel: ObservableObject {
             // Fetch health history for the last 7 days
             let history = await healthService.fetchHealthMetricsHistory(days: 7)
             let systemContext = formatHealthHistoryForChat(history)
-            
-            let response: String
-            
-            // Route based on selected AI mode
-            switch selectedAIMode {
-            case .general:
-                // Use general chat (Gemini) with personality-specific prompt
-                print("🤖 AI Mode: General (\(selectedPersonality.fullTitle))")
-                let personalityContext = selectedPersonality.systemPrompt + "\n\n" + systemContext
-                response = try await aiService.sendChatMessage(enrichedText, context: Array(messages.dropLast()), systemContext: personalityContext)
-                lastResponseModel = "gemini"
-                lastResponseWasMedical = false
 
-            case .medical:
-                // TEMPORARY: Use ai-chat with medical prompt until medgemma-chat is fixed
-                print("🏥 AI Mode: Medical Expert (using ai-chat temporarily)")
+            // Build personality + health context for the system prompt
+            let personalityContext = selectedPersonality.systemPrompt + "\n\n" + systemContext
 
-                // Build medical-specific system context
-                var medicalContext = """
-                You are Swastrica Medical AI, a health assistant by Swastricare (Onwords). Provide accurate medical information with these guidelines:
-                - Always recommend consulting healthcare professionals
-                - Flag emergency symptoms immediately
-                - Use clear, empathetic language
-                - Never prescribe medications or dosages
-                - Include appropriate disclaimers
+            // Determine forceModel hint based on user's mode selection
+            let forceModel: String? = selectedAIMode == .medical ? "medical" : nil
 
-                """
-                medicalContext += systemContext
+            print("🤖 AI Mode: \(selectedAIMode.rawValue) (\(selectedPersonality.fullTitle)), forceModel: \(forceModel ?? "auto")")
 
-                response = try await aiService.sendChatMessage(enrichedText, context: Array(messages.dropLast()), systemContext: medicalContext)
-                lastResponseModel = "gemini-medical"
-                lastResponseWasMedical = true
+            // Route everything through ai-router via sendSmartMessage
+            let aiResponse = try await aiService.sendSmartMessage(
+                enrichedText,
+                context: Array(messages.dropLast()),
+                systemContext: personalityContext,
+                forceModel: forceModel
+            )
+
+            lastResponseModel = aiResponse.model
+            lastResponseWasMedical = aiResponse.isMedical
+
+            // Handle emergency response from router
+            if aiResponse.isEmergency {
+                showEmergencyAlert = true
             }
-            
+
             // Remove loading message and add response with mode badge
             messages.removeLast()
-            let responseMode: AIResponseMode = selectedAIMode == .medical ? .medical : .general
-            messages.append(ChatMessage.assistantMessage(response, mode: responseMode))
+            let responseMode: AIResponseMode = aiResponse.isMedical ? .medical : .general
+            messages.append(ChatMessage.assistantMessage(aiResponse.text, mode: responseMode))
             chatState = .idle
             
             // Save chat history
@@ -316,13 +313,13 @@ final class AIViewModel: ObservableObject {
             )
             messages[index] = updatedMessage
             
-            // Log feedback (could send to analytics or backend)
+            // Log feedback
             print("📊 User feedback: \(feedback.rawValue) for message: \(messageId)")
-            
-            // TODO: Send to Supabase for quality monitoring
-            // Task {
-            //     try? await aiService.logMessageFeedback(messageId: messageId, feedback: feedback)
-            // }
+
+            // Persist updated feedback state
+            Task {
+                try? await aiService.saveChatHistory(messages, conversationId: currentConversationId)
+            }
         }
     }
     
@@ -330,6 +327,11 @@ final class AIViewModel: ObservableObject {
         if let index = messages.firstIndex(where: { $0.id == messageId }) {
             messages[index].isBookmarked.toggle()
             print("🔖 Bookmark toggled for message: \(messageId) → \(messages[index].isBookmarked)")
+
+            // Persist updated bookmark state
+            Task {
+                try? await aiService.saveChatHistory(messages, conversationId: currentConversationId)
+            }
         }
     }
 
@@ -504,7 +506,7 @@ final class AIViewModel: ObservableObject {
         showEmergencyAlert = false
         showMedicalDisclaimer = false
         hasAcknowledgedMedicalDisclaimer = false
-        lastResponseModel = "gemini"
+        lastResponseModel = "minimax"
         lastResponseWasMedical = false
 
         // Image state
@@ -530,7 +532,12 @@ final class AIViewModel: ObservableObject {
     func acknowledgeMedicalDisclaimer() {
         hasAcknowledgedMedicalDisclaimer = true
         showMedicalDisclaimer = false
-        
+
+        // Persist consent to Supabase so returning users skip the disclaimer
+        Task {
+            try? await aiService.saveMedicalConsent()
+        }
+
         // Continue with the message if there was one pending
         if !inputText.isEmpty {
             Task {
