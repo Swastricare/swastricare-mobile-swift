@@ -23,9 +23,7 @@ struct MedicationsView: View {
                 // Theme-aware Background
                 // PremiumBackground()
                 if viewModel.isLoading {
-                    ProgressView()
-                        .tint(Color(hex: "2E3192"))
-                        .scaleEffect(1.2)
+                    medicationsSkeletonView
                 } else if viewModel.todaysMedications.isEmpty {
                     emptyStateView
                 } else {
@@ -106,8 +104,63 @@ struct MedicationsView: View {
         }
     }
     
+    // MARK: - Skeleton Loading
+
+    private var medicationsSkeletonView: some View {
+        VStack(spacing: 0) {
+            // Calendar strip skeleton (7 date circles)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(0..<7, id: \.self) { _ in
+                        VStack(spacing: 6) {
+                            SkeletonShape(width: 28, height: 10, cornerRadius: 4)
+                            SkeletonCircle(size: 40)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 16)
+
+            // Progress section skeleton
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    SkeletonShape(width: 120, height: 14)
+                    SkeletonShape(width: 80, height: 12)
+                }
+                Spacer()
+                SkeletonCircle(size: 72)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+
+            // Medication cards skeleton
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        HStack(spacing: 14) {
+                            SkeletonCircle(size: 44)
+                            VStack(alignment: .leading, spacing: 6) {
+                                SkeletonShape(width: 140, height: 14)
+                                SkeletonShape(width: 90, height: 12)
+                            }
+                            Spacer()
+                            SkeletonShape(width: 60, height: 28, cornerRadius: 14)
+                        }
+                        .padding(16)
+                        .glass(cornerRadius: 16)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+            }
+        }
+    }
+
     // MARK: - Empty State
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 24) {
             Spacer()

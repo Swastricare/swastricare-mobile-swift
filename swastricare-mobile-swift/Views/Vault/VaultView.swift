@@ -472,33 +472,28 @@ struct VaultView: View {
     
     // MARK: - Loading View
     private var loadingView: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            
-            ZStack {
-                Circle()
-                    .fill(Color(hex: "2E3192").opacity(0.1))
-                    .frame(width: 100, height: 100)
-                
-                ProgressView()
-                    .scaleEffect(1.5)
-                    .tint(Color(hex: "2E3192"))
+        let columns = [
+            GridItem(.flexible(), spacing: 16),
+            GridItem(.flexible(), spacing: 16)
+        ]
+
+        return ScrollView {
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(0..<4, id: \.self) { _ in
+                    VStack(spacing: 12) {
+                        SkeletonShape(height: 56, cornerRadius: 12)
+                        SkeletonShape(width: 80, height: 14)
+                        SkeletonShape(width: 50, height: 12)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .padding(.horizontal, 12)
+                    .glass(cornerRadius: 20)
+                }
             }
-            
-            VStack(spacing: 8) {
-                Text("Loading Documents")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Text("Please wait while we fetch your medical records")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            
-            Spacer()
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
         }
-        .padding(.horizontal, 40)
     }
     
     // MARK: - Error View

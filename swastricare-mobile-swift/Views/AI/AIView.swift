@@ -2615,8 +2615,7 @@ struct ConversationHistoryView: View {
                 PremiumBackground()
 
                 if viewModel.isLoadingConversations {
-                    ProgressView()
-                        .scaleEffect(1.5)
+                    conversationsSkeletonView
                 } else if viewModel.conversations.isEmpty {
                     emptyStateView
                 } else {
@@ -2652,6 +2651,24 @@ struct ConversationHistoryView: View {
         }
     }
     
+    private var conversationsSkeletonView: some View {
+        List {
+            ForEach(0..<6, id: \.self) { _ in
+                HStack(alignment: .center, spacing: 16) {
+                    SkeletonCircle(size: 52)
+                    VStack(alignment: .leading, spacing: 6) {
+                        SkeletonShape(width: 160, height: 14)
+                        SkeletonShape(height: 12)
+                        SkeletonShape(width: 100, height: 10)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .listRowBackground(Color.clear)
+        }
+        .listStyle(.plain)
+    }
+
     private var emptyStateView: some View {
         VStack(spacing: 24) {
             ZStack {

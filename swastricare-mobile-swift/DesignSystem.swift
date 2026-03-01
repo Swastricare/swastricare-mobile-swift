@@ -344,6 +344,78 @@ struct LiquidGlassButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Shimmer Loading Effect
+
+/// Adds an animated diagonal light-sweep shimmer over the content.
+struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = -1.5
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geo in
+                    let width = geo.size.width
+                    LinearGradient(
+                        colors: [
+                            .clear,
+                            Color.white.opacity(0.4),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(width: width * 0.6)
+                    .offset(x: phase * width)
+                    .clipped()
+                }
+            )
+            .mask(content)
+            .onAppear {
+                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                    phase = 1.5
+                }
+            }
+    }
+}
+
+extension View {
+    /// Applies a diagonal shimmer sweep animation.
+    func shimmer() -> some View {
+        modifier(ShimmerModifier())
+    }
+
+    /// Alias for `.shimmer()` — backwards compatibility.
+    func shimmering() -> some View {
+        modifier(ShimmerModifier())
+    }
+}
+
+/// A rounded placeholder shape with shimmer for skeleton loading states.
+struct SkeletonShape: View {
+    var width: CGFloat? = nil
+    var height: CGFloat = 16
+    var cornerRadius: CGFloat = 8
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius)
+            .fill(Color.primary.opacity(0.08))
+            .frame(width: width, height: height)
+            .shimmer()
+    }
+}
+
+/// A circular placeholder shape with shimmer for skeleton loading states.
+struct SkeletonCircle: View {
+    var size: CGFloat = 44
+
+    var body: some View {
+        Circle()
+            .fill(Color.primary.opacity(0.08))
+            .frame(width: size, height: size)
+            .shimmer()
+    }
+}
+
 // MARK: - Visual Effect Blur
 
 struct VisualEffectBlur: UIViewRepresentable {
