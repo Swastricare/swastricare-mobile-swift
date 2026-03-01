@@ -62,7 +62,7 @@ struct HydrationView: View {
         NavigationView {
             ZStack {
                 // Theme-aware Background
-                // PremiumBackground()
+                PremiumBackground()
                 ScrollView {
                     VStack(spacing: 20) {
                         // Missing Data Tooltip
@@ -296,60 +296,33 @@ struct HydrationView: View {
             Text(viewModel.goalDescription)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
-            HStack(alignment: .center, spacing: 24) {
-                // Circular Progress
-                ZStack {
-                    Circle()
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 12)
-                        .frame(width: 120, height: 120)
-                    
-                    Circle()
-                        .trim(from: 0, to: viewModel.progress)
-                        .stroke(
-                            Color(hex: "2E3192"),
-                            style: StrokeStyle(lineWidth: 12, lineCap: .round)
-                        )
-                        .frame(width: 120, height: 120)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.spring(response: 0.5), value: viewModel.progress)
-                    
-                    VStack(spacing: 2) {
-                        Text("\(Int(viewModel.progress * 100))%")
-                            .font(.title)
-                            .fontWeight(.bold)
-                        
-                        if viewModel.isGoalMet {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        }
-                    }
-                    .foregroundColor(.primary)
-                }
-                
-                // Stats
-                VStack(alignment: .leading, spacing: 12) {
-                    statRow(
-                        icon: "drop.fill",
-                        color: .cyan,
-                        value: "\(viewModel.totalIntake)",
-                        label: "of \(viewModel.dailyGoal) ml"
-                    )
-                    
-                    statRow(
-                        icon: "arrow.up.circle.fill",
-                        color: .green,
-                        value: "\(viewModel.remainingMl)",
-                        label: "remaining"
-                    )
-                    
-                    statRow(
-                        icon: "cup.and.saucer.fill",
-                        color: .brown,
-                        value: "\(viewModel.caffeineInfo.count)",
-                        label: "caffeine drinks"
-                    )
-                }
+
+            // Water glass animation
+            WaterGlassView(progress: viewModel.progress)
+                .padding(.vertical, 4)
+
+            // Stat pills row
+            HStack(spacing: 10) {
+                statPill(
+                    icon: "drop.fill",
+                    color: .cyan,
+                    value: "\(viewModel.totalIntake)",
+                    label: "of \(viewModel.dailyGoal) ml"
+                )
+
+                statPill(
+                    icon: "arrow.up.circle.fill",
+                    color: .green,
+                    value: "\(viewModel.remainingMl)",
+                    label: "remaining"
+                )
+
+                statPill(
+                    icon: "cup.and.saucer.fill",
+                    color: .brown,
+                    value: "\(viewModel.caffeineInfo.count)",
+                    label: "caffeine"
+                )
             }
         }
         .padding(20)
@@ -357,26 +330,27 @@ struct HydrationView: View {
         .cornerRadius(16)
         .padding(.horizontal, 20)
     }
-    
-    private func statRow(icon: String, color: Color, value: String, label: String) -> some View {
-        HStack(spacing: 12) {
+
+    private func statPill(icon: String, color: Color, value: String, label: String) -> some View {
+        VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(color)
-                .frame(width: 24)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.primary)
-                
-                Text(label)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
+
+            Text(value)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.primary)
+
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(color.opacity(0.08))
+        .cornerRadius(12)
     }
     
     // MARK: - Quick Add Section
@@ -682,6 +656,133 @@ struct HydrationView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium])
+    }
+}
+
+// MARK: - Glass Shape
+
+struct GlassShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        let w = rect.width
+        let h = rect.height
+
+        // Glass silhouette: wider rim at top, narrower base
+        let rimInset: CGFloat = 0              // full width at top
+        let baseInset: CGFloat = w * 0.125     // 75% width at bottom
+        let bottomRadius: CGFloat = min(w * 0.1, 12)
+
+        let topLeft = CGPoint(x: rimInset, y: 0)
+        let topRight = CGPoint(x: w - rimInset, y: 0)
+        let bottomRight = CGPoint(x: w - baseInset, y: h)
+        let bottomLeft = CGPoint(x: baseInset, y: h)
+
+        // Start at top-left, go clockwise
+        path.move(to: topLeft)
+        path.addLine(to: topRight)
+
+        // Right side slopes inward toward base
+        path.addLine(to: CGPoint(x: bottomRight.x, y: h - bottomRadius))
+        path.addQuadCurve(
+            to: CGPoint(x: bottomRight.x - bottomRadius, y: h),
+            control: bottomRight
+        )
+
+        // Bottom edge
+        path.addLine(to: CGPoint(x: bottomLeft.x + bottomRadius, y: h))
+        path.addQuadCurve(
+            to: CGPoint(x: bottomLeft.x, y: h - bottomRadius),
+            control: bottomLeft
+        )
+
+        // Left side slopes back outward toward rim
+        path.addLine(to: topLeft)
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+// MARK: - Water Glass View
+
+struct WaterGlassView: View {
+    let progress: CGFloat // 0...1
+    let glassWidth: CGFloat
+    let glassHeight: CGFloat
+
+    @State private var wavePhase: Double = 0
+    @State private var visualProgress: CGFloat = 0
+
+    init(progress: CGFloat, width: CGFloat = 120, height: CGFloat = 160) {
+        self.progress = min(max(progress, 0), 1)
+        self.glassWidth = width
+        self.glassHeight = height
+    }
+
+    var body: some View {
+        ZStack {
+            // Glass outline
+            GlassShape()
+                .stroke(Color.cyan.opacity(0.3), lineWidth: 2)
+                .frame(width: glassWidth, height: glassHeight)
+
+            // Water fill clipped to glass
+            GlassShape()
+                .fill(Color.clear)
+                .frame(width: glassWidth, height: glassHeight)
+                .overlay(alignment: .bottom) {
+                    let fillHeight = glassHeight * visualProgress
+                    ZStack {
+                        // Back wave
+                        WaterWave(amplitude: 4, offset: wavePhase)
+                            .fill(Color.cyan.opacity(0.25))
+                            .frame(height: fillHeight)
+
+                        // Front wave
+                        WaterWave(amplitude: 3, offset: wavePhase + 1.5)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.cyan.opacity(0.5), Color.cyan.opacity(0.35)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: fillHeight)
+                    }
+                    .frame(height: fillHeight, alignment: .bottom)
+                }
+                .clipShape(GlassShape())
+
+            // Percentage label
+            VStack(spacing: 2) {
+                Text("\(Int(visualProgress * 100))%")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+
+                if visualProgress >= 1.0 {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .frame(width: glassWidth, height: glassHeight)
+        .onAppear {
+            // Animate fill from 0 to actual progress
+            withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+                visualProgress = progress
+            }
+            // Continuous wave motion
+            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                wavePhase = .pi * 2
+            }
+        }
+        .onChange(of: progress) { _, newValue in
+            withAnimation(.easeOut(duration: 0.5)) {
+                visualProgress = min(max(newValue, 0), 1)
+            }
+        }
     }
 }
 

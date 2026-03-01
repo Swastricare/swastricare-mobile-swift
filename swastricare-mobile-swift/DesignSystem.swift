@@ -416,6 +416,43 @@ struct SkeletonCircle: View {
     }
 }
 
+// MARK: - Water Wave Shape
+
+struct WaterWave: Shape {
+    var amplitude: CGFloat
+    var offset: Double
+
+    var animatableData: Double {
+        get { offset }
+        set { offset = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        let width = rect.width
+        let height = rect.height
+
+        // Wave oscillates around y = amplitude so it stays in [0, 2*amplitude], avoiding top cut-off.
+        let cap = min(amplitude, height / 2)
+
+        path.move(to: CGPoint(x: 0, y: cap * (1 + sin(offset))))
+
+        for x in stride(from: 0, to: width, by: 2) {
+            let relativeX = x / width
+            let angle = relativeX * .pi * 2 + offset
+            let y = cap * (1 + sin(angle))
+            path.addLine(to: CGPoint(x: x, y: y))
+        }
+
+        path.addLine(to: CGPoint(x: width, y: height + cap))
+        path.addLine(to: CGPoint(x: 0, y: height + cap))
+        path.closeSubpath()
+
+        return path
+    }
+}
+
 // MARK: - Visual Effect Blur
 
 struct VisualEffectBlur: UIViewRepresentable {
