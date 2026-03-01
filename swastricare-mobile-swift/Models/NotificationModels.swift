@@ -505,6 +505,10 @@ enum NotificationAction: String {
     case medicationTaken = "MEDICATION_TAKEN"
     case medicationSkip = "MEDICATION_SKIP"
     case medicationSnooze = "MEDICATION_SNOOZE"
+
+    // AI nudge actions
+    case nudgeAct = "NUDGE_ACT"
+    case nudgeDismiss = "NUDGE_DISMISS"
     
     var title: String {
         switch self {
@@ -515,6 +519,8 @@ enum NotificationAction: String {
         case .medicationTaken: return "Taken"
         case .medicationSkip: return "Skip"
         case .medicationSnooze: return "Snooze 15m"
+        case .nudgeAct: return "Take Action"
+        case .nudgeDismiss: return "Dismiss"
         }
     }
     
@@ -548,6 +554,8 @@ enum NotificationAction: String {
         case .medicationTaken: return "checkmark.circle.fill"
         case .medicationSkip: return "xmark.circle"
         case .medicationSnooze: return "clock.fill"
+        case .nudgeAct: return "arrow.right.circle.fill"
+        case .nudgeDismiss: return "xmark.circle"
         }
     }
 }
@@ -559,7 +567,8 @@ enum NotificationCategory: String {
     case medicationReminder = "MEDICATION_REMINDER"
     case dietReminder = "DIET_REMINDER"
     case menstrualReminder = "MENSTRUAL_REMINDER"
-    
+    case aiNudge = "AI_NUDGE"
+
     var identifier: String { rawValue }
 }
 

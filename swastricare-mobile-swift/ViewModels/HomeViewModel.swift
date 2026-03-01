@@ -21,6 +21,7 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var lastSyncTime: Date?
     @Published var isSyncing = false
+    @Published private(set) var serverNudges: [ServerNudge] = []
     
     // MARK: - Computed Properties
     
@@ -53,12 +54,14 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Dependencies
     
     private let healthService: HealthKitServiceProtocol
+    private let nudgeService: NudgeServiceProtocol
     private let userDefaultsKey = "hasRequestedHealthAuthorization"
-    
+
     // MARK: - Init
-    
-    init(healthService: HealthKitServiceProtocol = HealthKitService.shared) {
+
+    init(healthService: HealthKitServiceProtocol = HealthKitService.shared, nudgeService: NudgeServiceProtocol = NudgeService.shared) {
         self.healthService = healthService
+        self.nudgeService = nudgeService
         self.hasRequestedAuth = UserDefaults.standard.bool(forKey: userDefaultsKey)
         self.isAuthorized = hasRequestedAuth // For read permissions, assume authorized if requested
     }
@@ -139,6 +142,9 @@ final class HomeViewModel: ObservableObject {
         }
 
         print("🏠 HomeVM: Data loaded - Steps: \(healthMetrics.steps), HR: \(healthMetrics.heartRate)")
+
+        // Load server-side nudges
+        await loadNudges()
     }
     
     func refresh() async {
@@ -170,6 +176,25 @@ final class HomeViewModel: ObservableObject {
         isSyncing = false
     }
     
+    // MARK: - Nudges
+
+    func loadNudges() async {
+        do {
+            serverNudges = try await nudgeService.fetchActiveNudges()
+        } catch {
+            print("🏠 HomeVM: Failed to load nudges: \(error.localizedDescription)")
+        }
+    }
+
+    func dismissNudge(_ nudge: ServerNudge) async {
+        serverNudges.removeAll { $0.id == nudge.id }
+        try? await nudgeService.dismissNudge(id: nudge.id)
+    }
+
+    func actOnNudge(_ nudge: ServerNudge) async {
+        try? await nudgeService.markActedOn(id: nudge.id)
+    }
+
     // MARK: - Helpers
     
     func clearError() {

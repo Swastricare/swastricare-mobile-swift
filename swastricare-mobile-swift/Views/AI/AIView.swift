@@ -697,9 +697,27 @@ struct AIView: View {
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.22), value: showEmptyState)
             .padding(.bottom, 14)
 
-            // Proactive Health Nudges
+            // Proactive Health Nudges (client-side)
             proactiveNudgesView
                 .padding(.bottom, 14)
+
+            // Server-side AI Nudges
+            NudgeCardsView(
+                nudges: DependencyContainer.shared.homeViewModel.serverNudges,
+                onDismiss: { nudge in
+                    Task { await DependencyContainer.shared.homeViewModel.dismissNudge(nudge) }
+                },
+                onAction: { nudge in
+                    Task { await DependencyContainer.shared.homeViewModel.actOnNudge(nudge) }
+                    if let deeplink = nudge.actionDeeplink, let url = URL(string: deeplink) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            )
+            .opacity(showEmptyState ? 1 : 0)
+            .offset(y: showEmptyState ? 0 : 12)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.25), value: showEmptyState)
+            .padding(.bottom, 14)
 
             // Quick Action Grid
             QuickActionGrid(

@@ -738,6 +738,10 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
                 await handleMedicationNotificationResponse(response: response)
                 return
             }
+            if type == "ai_nudge" {
+                await handleNudgeNotificationResponse(response: response)
+                return
+            }
         }
         
         // Get scheduled time for history tracking
@@ -786,6 +790,32 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         }
     }
     
+    /// Handle AI nudge notification response
+    private func handleNudgeNotificationResponse(response: UNNotificationResponse) async {
+        let actionIdentifier = response.actionIdentifier
+        let userInfo = response.notification.request.content.userInfo
+
+        let nudgeIdString = userInfo["nudge_id"] as? String
+        let nudgeId = nudgeIdString.flatMap { UUID(uuidString: $0) }
+
+        switch actionIdentifier {
+        case NotificationAction.nudgeAct.rawValue:
+            if let nudgeId { try? await NudgeService.shared.markActedOn(id: nudgeId) }
+            if let deeplink = userInfo["action_deeplink"] as? String, let url = URL(string: deeplink) {
+                await MainActor.run { UIApplication.shared.open(url) }
+            }
+        case NotificationAction.nudgeDismiss.rawValue, UNNotificationDismissActionIdentifier:
+            if let nudgeId { try? await NudgeService.shared.dismissNudge(id: nudgeId) }
+        case UNNotificationDefaultActionIdentifier:
+            if let nudgeId { try? await NudgeService.shared.markActedOn(id: nudgeId) }
+            if let deeplink = userInfo["action_deeplink"] as? String, let url = URL(string: deeplink) {
+                await MainActor.run { UIApplication.shared.open(url) }
+            }
+        default:
+            break
+        }
+    }
+
     /// Handle medication notification response
     func handleMedicationNotificationResponse(response: UNNotificationResponse) async {
         let actionIdentifier = response.actionIdentifier
@@ -1118,7 +1148,27 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
             options: [.customDismissAction, .allowInCarPlay]
         )
         
-        notificationCenter.setNotificationCategories([hydrationCategory, medicationCategory, dietCategory, menstrualCategory])
+        // AI Nudge category
+        let nudgeActAction = UNNotificationAction(
+            identifier: NotificationAction.nudgeAct.rawValue,
+            title: NotificationAction.nudgeAct.title,
+            options: [.foreground]
+        )
+
+        let nudgeDismissAction = UNNotificationAction(
+            identifier: NotificationAction.nudgeDismiss.rawValue,
+            title: NotificationAction.nudgeDismiss.title,
+            options: [.destructive]
+        )
+
+        let nudgeCategory = UNNotificationCategory(
+            identifier: NotificationCategory.aiNudge.identifier,
+            actions: [nudgeActAction, nudgeDismissAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+
+        notificationCenter.setNotificationCategories([hydrationCategory, medicationCategory, dietCategory, menstrualCategory, nudgeCategory])
         print("🔔 NotificationService: Notification categories configured (snooze: \(settings.snoozeMinutes)m)")
     }
     

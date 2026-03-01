@@ -32,6 +32,7 @@ final class DependencyContainer: ObservableObject {
     let locationTrackingService: LocationTrackingServiceProtocol
     let workoutSessionManager: WorkoutSessionManagerProtocol
     let dietService: DietServiceProtocol
+    let nudgeService: NudgeServiceProtocol
     
     // MARK: - ViewModels (Lazy initialized)
     
@@ -114,6 +115,7 @@ final class DependencyContainer: ObservableObject {
         self.locationTrackingService = LocationTrackingService.shared
         self.workoutSessionManager = WorkoutSessionManager.shared
         self.dietService = DietService.shared
+        self.nudgeService = NudgeService.shared
     }
     
     // MARK: - Factory Methods (for creating new instances if needed)

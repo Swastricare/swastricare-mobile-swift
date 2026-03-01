@@ -122,6 +122,23 @@ struct HomeView: View {
                     )
                     .animation(.spring(response: 0.5, dampingFraction: 0.7), value: hasAppeared)
                     
+                    // Proactive AI Nudges
+                    if !viewModel.serverNudges.isEmpty {
+                        NudgeCardsView(
+                            nudges: viewModel.serverNudges,
+                            onDismiss: { nudge in
+                                Task { await viewModel.dismissNudge(nudge) }
+                            },
+                            onAction: { nudge in
+                                Task { await viewModel.actOnNudge(nudge) }
+                                if let deeplink = nudge.actionDeeplink, let url = URL(string: deeplink) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                        )
+                        .padding(.top, 4)
+                    }
+
                     // Health Authorization Banner
                     if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
                         authorizationBanner
