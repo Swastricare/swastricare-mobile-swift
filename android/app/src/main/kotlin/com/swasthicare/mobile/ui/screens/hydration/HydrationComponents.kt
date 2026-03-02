@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -35,7 +34,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.*
-import com.swasthicare.mobile.ui.theme.HydrationColor
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -499,7 +497,7 @@ fun HydrationInsightsCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.Coffee, null, tint = Color(0xFF8B6914), modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.LocalCafe, null, tint = Color(0xFF8B6914), modifier = Modifier.size(16.dp))
                 Text(
                     "Caffeine today: ${insights.caffeineAmountMl}ml (${insights.caffeineCount} drinks)",
                     fontSize = 13.sp,

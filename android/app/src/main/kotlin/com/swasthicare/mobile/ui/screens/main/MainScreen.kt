@@ -236,6 +236,19 @@ fun MainScreen(
                     onDismiss = { navController.popBackStack() }
                 )
             }
+            // Hydration flow
+            composable("hydration") {
+                HydrationScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToAI = {
+                        navController.navigate(MainTab.AI.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
         }
     }
 }

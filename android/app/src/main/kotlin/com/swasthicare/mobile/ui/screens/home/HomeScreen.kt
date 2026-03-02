@@ -50,6 +50,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onNavigateToMedications: () -> Unit = {},
     onNavigateToDiet: () -> Unit = {},
+    onNavigateToHydration: () -> Unit = {},
     onNavigateToCycleTracker: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -295,7 +296,7 @@ fun HomeScreen(
                             .weight(1f)
                             .height(180.dp)
                             .glass(cornerRadius = 24.dp)
-                            .clickable { viewModel.incrementHydration() }
+                            .clickable { onNavigateToHydration() }
                     ) {
                         val progress = uiState.hydrationCurrent.toFloat() / uiState.hydrationGoal.toFloat()
                         
