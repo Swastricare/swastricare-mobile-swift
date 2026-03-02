@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.SupabaseAuthRepository
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.data.services.CrashlyticsService
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +19,9 @@ import kotlinx.coroutines.launch
  */
 class AuthViewModel(
     private val authRepository: SupabaseAuthRepository,
-    private val googleAuthHelper: GoogleAuthHelper
+    private val googleAuthHelper: GoogleAuthHelper,
+    private val analyticsService: AnalyticsService = AppContainer.analyticsService,
+    private val crashlyticsService: CrashlyticsService = AppContainer.crashlyticsService
 ) : ViewModel() {
     
     // UI State
@@ -78,6 +83,9 @@ class AuthViewModel(
                     email = _formState.value.email,
                     password = _formState.value.password
                 )
+                analyticsService.logEvent("sign_in", mapOf("method" to "email"))
+                analyticsService.setUserId(user.id)
+                crashlyticsService.setUserId(user.id)
                 _uiState.value = AuthUiState.Success(user)
                 clearForm()
             } catch (e: Exception) {
@@ -111,6 +119,9 @@ class AuthViewModel(
                 )
                 
                 if (user != null) {
+                    analyticsService.logEvent("sign_up", mapOf("method" to "email"))
+                    analyticsService.setUserId(user.id)
+                    crashlyticsService.setUserId(user.id)
                     _uiState.value = AuthUiState.Success(user)
                     clearForm()
                 } else {
@@ -140,6 +151,9 @@ class AuthViewModel(
                 
                 // Sign in with Supabase using the ID token
                 val user = authRepository.signInWithGoogle(idToken)
+                analyticsService.logEvent("sign_in", mapOf("method" to "google"))
+                analyticsService.setUserId(user.id)
+                crashlyticsService.setUserId(user.id)
                 _uiState.value = AuthUiState.Success(user)
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Google sign-in failed"
@@ -183,6 +197,7 @@ class AuthViewModel(
             _isLoading.value = true
             try {
                 authRepository.signOut()
+                analyticsService.logEvent("sign_out")
                 _uiState.value = AuthUiState.Idle
                 clearForm()
             } catch (e: Exception) {

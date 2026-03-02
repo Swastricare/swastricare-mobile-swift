@@ -5,7 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.services.AIService
+import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.SpeechService
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +34,7 @@ sealed class AnalysisState {
 class AIViewModel(application: Application) : AndroidViewModel(application) {
     private val aiService = AIService()
     private val speechService = SpeechService(application.applicationContext)
+    private val analyticsService: AnalyticsService = AppContainer.analyticsService
     
     private val _uiState = MutableStateFlow(AIUiState())
     val uiState: StateFlow<AIUiState> = _uiState.asStateFlow()
@@ -48,6 +51,8 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
     fun sendMessage() {
         val text = _uiState.value.inputText.trim()
         if (text.isEmpty()) return
+
+        analyticsService.logAIMessageSent("chat")
 
         val userMessage = ChatMessage.userMessage(text)
         val currentMessages = _uiState.value.messages.toMutableList()
@@ -108,6 +113,7 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun analyzeCurrentHealth() {
+        analyticsService.logEvent("ai_analysis_request")
         _uiState.value = _uiState.value.copy(analysisState = AnalysisState.Analyzing)
         
         viewModelScope.launch {

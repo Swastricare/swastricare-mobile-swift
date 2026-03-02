@@ -8,6 +8,8 @@ import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.data.repository.MockVaultRepository
 // import com.swasthicare.mobile.data.repository.SupabaseVaultRepository
 import com.swasthicare.mobile.data.repository.VaultRepository
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +37,8 @@ enum class VaultViewMode {
 class VaultViewModel(
     // In a real app with Hilt, this would be injected.
     // For now defaulting to Mock implementation for UI-only mode.
-    private val repository: VaultRepository = MockVaultRepository() 
+    private val repository: VaultRepository = MockVaultRepository(),
+    private val analyticsService: AnalyticsService = AppContainer.analyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VaultUiState())
@@ -90,6 +93,7 @@ class VaultViewModel(
                     category = categoryString,
                     metadata = metadata
                 )
+                analyticsService.logVaultUpload(categoryString)
                 
                 _uiState.update { it.copy(uploadProgress = 1.0f) }
                 
@@ -170,7 +174,10 @@ class VaultViewModel(
     fun deleteDocument(document: MedicalDocument) {
         viewModelScope.launch {
             try {
-                document.id?.let { repository.deleteDocument(it) }
+                document.id?.let {
+                    repository.deleteDocument(it)
+                    analyticsService.logEvent("vault_delete", mapOf("document_id" to it))
+                }
                 loadDocuments()
             } catch (e: Exception) {
                  _uiState.update { it.copy(errorMessage = "Failed to delete document") }

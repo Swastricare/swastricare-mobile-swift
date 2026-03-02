@@ -5,6 +5,9 @@ import android.content.SharedPreferences
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.data.services.AppAnalyticsService
+import com.swasthicare.mobile.data.services.CrashlyticsService
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
 import com.swasthicare.mobile.ui.screens.hydration.HydrationViewModel
@@ -19,19 +22,19 @@ import io.github.jan.supabase.functions.Functions
 
 /**
  * App Dependency Container
- * Provides Supabase authentication and repositories
+ * Provides Supabase authentication, repositories, and services.
  */
 object AppContainer {
-    
+
     private var _context: Context? = null
-    
+
     fun initialize(context: Context) {
         _context = context.applicationContext
     }
-    
+
     private val context: Context
         get() = _context ?: throw IllegalStateException("AppContainer not initialized")
-    
+
     // Supabase Client - matching iOS
     val supabaseClient: SupabaseClient by lazy {
         createSupabaseClient(
@@ -48,7 +51,7 @@ object AppContainer {
             install(Functions)
         }
     }
-    
+
     // Google Auth Helper
     val googleAuthHelper: GoogleAuthHelper by lazy {
         GoogleAuthHelper(
@@ -63,23 +66,42 @@ object AppContainer {
             webClientId = "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
         )
     }
-    
+
     // Auth Repository
     val authRepository: SupabaseAuthRepository by lazy {
         SupabaseAuthRepository(supabaseClient)
     }
-    
+
     // Auth ViewModel
     val authViewModel: AuthViewModel by lazy {
         AuthViewModel(authRepository, googleAuthHelper)
     }
-    
+
     // Shared preferences
     val sharedPreferences: SharedPreferences by lazy {
         context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
     }
 
-    // Other repositories
+    // ─────────────────────────────────────
+    // MARK: - Firebase / Analytics Services
+    // ─────────────────────────────────────
+
+    val analyticsService: AnalyticsService by lazy {
+        AnalyticsService()
+    }
+
+    val crashlyticsService: CrashlyticsService by lazy {
+        CrashlyticsService()
+    }
+
+    val appAnalyticsService: AppAnalyticsService by lazy {
+        AppAnalyticsService(context, supabaseClient)
+    }
+
+    // ─────────────────────────────────────
+    // MARK: - Repositories
+    // ─────────────────────────────────────
+
     val profileRepository: ProfileRepository by lazy {
         MockProfileRepository()
     }
@@ -110,5 +132,10 @@ object AppContainer {
 
     val hydrationViewModel: HydrationViewModel by lazy {
         HydrationViewModel(hydrationRepository, profileRepository)
+    }
+
+    // Nudge Repository (Feature 10: Live Server Nudges)
+    val nudgeRepository: NudgeRepository by lazy {
+        SupabaseNudgeRepository(supabaseClient, sharedPreferences)
     }
 }

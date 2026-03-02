@@ -44,6 +44,9 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.data.model.HealthNudge
+import com.swasthicare.mobile.data.model.NudgePriority
+import com.swasthicare.mobile.data.model.NudgeType
 import com.swasthicare.mobile.ui.theme.PremiumColor
 import kotlinx.coroutines.delay
 import kotlin.math.PI
@@ -713,6 +716,125 @@ fun NudgesCardStrip(
             NudgeCard(
                 nudge = nudge,
                 onDismiss = { onDismiss(nudge.id) }
+            )
+        }
+    }
+}
+
+// MARK: - Health Nudge Card (server-backed HealthNudge model)
+@Composable
+fun HealthNudgeCard(
+    nudge: HealthNudge,
+    onDismiss: () -> Unit,
+    onAct: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Color based on priority
+    val accentColor = when (nudge.priority) {
+        NudgePriority.HIGH -> Color(0xFFFF3B30)    // Red
+        NudgePriority.MEDIUM -> Color(0xFFFF9500)  // Orange
+        NudgePriority.LOW -> Color(0xFF007AFF)      // Blue
+    }
+
+    // Icon based on nudge type
+    val icon = when (nudge.type) {
+        NudgeType.HYDRATION -> Icons.Default.Bolt
+        NudgeType.INACTIVITY -> Icons.Default.Bolt
+        NudgeType.MEDICATION_MISSED -> Icons.Default.Bolt
+        NudgeType.SLEEP_DEFICIT -> Icons.Default.Bolt
+        NudgeType.STEP_GOAL_CLOSE -> Icons.Default.Bolt
+        NudgeType.HEART_RATE_ELEVATED -> Icons.Default.Favorite
+        NudgeType.STREAK_AT_RISK -> Icons.Default.Bolt
+        NudgeType.WEEKLY_INSIGHT -> Icons.Default.Bolt
+    }
+
+    Box(
+        modifier = modifier
+            .width(260.dp)
+            .glass(cornerRadius = 20.dp)
+            .clickable { onAct() }
+    ) {
+        // Colored left accent bar
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .width(4.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
+                .background(accentColor)
+        )
+        Row(
+            modifier = Modifier
+                .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Icon
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(accentColor.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            // Text
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    nudge.title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    nudge.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+            // Dismiss button
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Dismiss",
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable { onDismiss() }
+                    .align(Alignment.Top)
+            )
+        }
+    }
+}
+
+// MARK: - Health Nudges Card Strip (server-backed)
+@Composable
+fun HealthNudgesCardStrip(
+    nudges: List<HealthNudge>,
+    onDismiss: (String) -> Unit,
+    onAct: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (nudges.isEmpty()) return
+
+    val scrollState = rememberScrollState()
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState)
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        nudges.forEach { nudge ->
+            HealthNudgeCard(
+                nudge = nudge,
+                onDismiss = { onDismiss(nudge.id) },
+                onAct = { onAct(nudge.id) }
             )
         }
     }

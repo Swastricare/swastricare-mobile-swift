@@ -35,11 +35,12 @@ import com.swasthicare.mobile.ui.theme.PrimaryColor
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
-    onSignOut: () -> Unit = {}
+    onSignOut: () -> Unit = {},
+    onNavigateToEditProfile: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
-    
+
     // Handle sign out navigation
     LaunchedEffect(signOutEvent) {
         if (signOutEvent) {
@@ -55,6 +56,10 @@ fun ProfileScreen(
         profileBMI = viewModel.profileBMI,
         appVersion = viewModel.appVersion,
         onRefreshHealthProfile = viewModel::refreshHealthProfile,
+        onEditProfile = {
+            viewModel.beginEdit()
+            onNavigateToEditProfile()
+        },
         onNotificationToggle = viewModel::toggleNotifications,
         onBiometricToggle = viewModel::toggleBiometric,
         onSyncToggle = viewModel::toggleHealthSync,
@@ -75,6 +80,7 @@ fun ProfileScreenContent(
     profileBMI: String,
     appVersion: String,
     onRefreshHealthProfile: () -> Unit,
+    onEditProfile: () -> Unit = {},
     onNotificationToggle: (Boolean) -> Unit,
     onBiometricToggle: (Boolean) -> Unit,
     onSyncToggle: (Boolean) -> Unit,
@@ -101,7 +107,8 @@ fun ProfileScreenContent(
                     user = uiState.user,
                     memberSince = memberSince,
                     userName = uiState.user?.fullName ?: "User",
-                    userEmail = uiState.user?.email ?: ""
+                    userEmail = uiState.user?.email ?: "",
+                    onEditProfile = onEditProfile
                 )
             }
 
@@ -206,7 +213,8 @@ fun ProfileHeader(
     user: AppUser?,
     memberSince: String,
     userName: String,
-    userEmail: String
+    userEmail: String,
+    onEditProfile: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -216,20 +224,38 @@ fun ProfileHeader(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Avatar
-        if (user?.avatarUrl != null) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(user.avatarUrl)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = "Profile Picture",
-                contentScale = ContentScale.Crop,
+        Box(contentAlignment = Alignment.BottomEnd) {
+            if (user?.avatarUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(user.avatarUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Profile Picture",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                )
+            } else {
+                DefaultAvatar(name = userName)
+            }
+
+            // Edit badge
+            IconButton(
+                onClick = onEditProfile,
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
-            )
-        } else {
-            DefaultAvatar(name = userName)
+                    .background(PrimaryColor)
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Edit Profile",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
 
         // Info

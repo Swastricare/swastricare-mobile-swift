@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.MedicationRepository
 import com.swasthicare.mobile.data.repository.ProfileRepository
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,7 +41,8 @@ data class MedicationsUiState(
 
 class MedicationsViewModel(
     private val repository: MedicationRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val analyticsService: AnalyticsService = AppContainer.analyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MedicationsUiState(isLoading = true))
@@ -92,6 +95,11 @@ class MedicationsViewModel(
 
     fun markAsTaken(dose: MedicationDose) {
         viewModelScope.launch {
+            // Log analytics event
+            val medName = _uiState.value.medicationsWithDoses
+                .firstOrNull { it.medication.id == dose.medicationId }?.medication?.name ?: "unknown"
+            analyticsService.logMedicationTaken(medName)
+
             // Optimistic update
             updateDoseStatus(dose, AdherenceStatus.TAKEN)
 
@@ -118,6 +126,11 @@ class MedicationsViewModel(
 
     fun markAsSkipped(dose: MedicationDose, reason: String? = null) {
         viewModelScope.launch {
+            // Log analytics event
+            val medName = _uiState.value.medicationsWithDoses
+                .firstOrNull { it.medication.id == dose.medicationId }?.medication?.name ?: "unknown"
+            analyticsService.logMedicationSkipped(medName, reason)
+
             updateDoseStatus(dose, AdherenceStatus.SKIPPED)
 
             val profileId = resolveProfileId()

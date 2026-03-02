@@ -85,9 +85,10 @@ fun HomeScreen(
 
                 // Server Nudges
                 if (uiState.serverNudges.isNotEmpty()) {
-                    NudgesCardStrip(
+                    HealthNudgesCardStrip(
                         nudges = uiState.serverNudges,
-                        onDismiss = { id -> viewModel.dismissNudge(id) }
+                        onDismiss = { id -> viewModel.dismissNudge(id) },
+                        onAct = { id -> viewModel.actOnNudge(id) }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }

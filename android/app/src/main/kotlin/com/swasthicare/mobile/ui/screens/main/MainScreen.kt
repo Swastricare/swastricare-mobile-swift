@@ -48,8 +48,11 @@ import com.swasthicare.mobile.ui.screens.hydration.HydrationScreen
 import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationDetailScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationsScreen
+import com.swasthicare.mobile.ui.screens.profile.EditProfileScreen
 import com.swasthicare.mobile.ui.screens.profile.ProfileScreen
+import com.swasthicare.mobile.ui.screens.profile.ProfileViewModel
 import com.swasthicare.mobile.ui.screens.vault.VaultScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 sealed class MainTab(
     val route: String, 
@@ -156,6 +159,9 @@ fun MainScreen(
             }
         }
     ) { innerPadding ->
+        // Shared ProfileViewModel scoped to the MainScreen so Profile and EditProfile share state
+        val profileViewModel: ProfileViewModel = viewModel()
+
         // We want content to go behind the floating bar, so we ignore bottom padding mostly
         // but we add a spacer at the bottom of screens instead (already added in HomeScreen)
         NavHost(
@@ -174,7 +180,17 @@ fun MainScreen(
             composable(MainTab.AI.route) { AIScreen() }
             composable(MainTab.Vault.route) { VaultScreen() }
             composable(MainTab.Profile.route) {
-                ProfileScreen(onSignOut = onSignOut)
+                ProfileScreen(
+                    viewModel = profileViewModel,
+                    onSignOut = onSignOut,
+                    onNavigateToEditProfile = { navController.navigate("edit_profile") }
+                )
+            }
+            composable("edit_profile") {
+                EditProfileScreen(
+                    viewModel = profileViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             // Medications flow
             composable("medications") {

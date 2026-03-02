@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.HydrationRepository
 import com.swasthicare.mobile.data.repository.ProfileRepository
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,7 +65,8 @@ data class HydrationUiState(
 
 class HydrationViewModel(
     private val repository: HydrationRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val analyticsService: AnalyticsService = AppContainer.analyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HydrationUiState(isLoading = true))
@@ -98,6 +101,7 @@ class HydrationViewModel(
 
     fun addDrink(drinkType: DrinkType, amountMl: Int, notes: String? = null) {
         viewModelScope.launch {
+            analyticsService.logHydrationLogged(amountMl, drinkType.dbValue)
             val effectiveMl = (amountMl * drinkType.hydrationMultiplier).toInt()
             val entry = HydrationEntry(
                 id = UUID.randomUUID().toString(),
