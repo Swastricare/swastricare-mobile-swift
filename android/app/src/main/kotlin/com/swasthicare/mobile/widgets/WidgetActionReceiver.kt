@@ -30,74 +30,78 @@ class WidgetActionReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        when (intent.action) {
-            ACTION_LOG_WATER -> handleLogWater(context, intent)
-            ACTION_MARK_MEDICATION_TAKEN -> handleMarkMedicationTaken(context, intent)
-        }
-    }
-
-    private fun handleLogWater(context: Context, intent: Intent) {
-        val amountMl = intent.getIntExtra(EXTRA_WATER_AMOUNT, 250)
-
+        val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Initialize AppContainer if needed
-                AppContainer.initialize(context)
-
-                val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                val effectiveMl = (amountMl * DrinkType.WATER.hydrationMultiplier).toInt()
-                val entry = HydrationEntry(
-                    id = UUID.randomUUID().toString(),
-                    drinkType = DrinkType.WATER.dbValue,
-                    amountMl = amountMl,
-                    effectiveMl = effectiveMl,
-                    consumedAt = LocalDateTime.now().format(isoFormatter),
-                    synced = false
-                )
-                AppContainer.hydrationRepository.addLocalEntry(entry)
-
-                // Update widget data
-                val entries = AppContainer.hydrationRepository.loadLocalEntries()
-                val todayStr = java.time.LocalDate.now().toString()
-                val todayTotal = entries
-                    .filter { it.consumedAt.startsWith(todayStr) }
-                    .sumOf { it.effectiveMl }
-                val goal = WidgetDataManager.getHydrationGoal(context)
-                WidgetDataManager.updateHydrationWidget(context, todayTotal, goal)
-
-                // Refresh widget
-                HydrationWidget().updateAll(context)
-            } catch (_: Exception) { }
+                when (intent.action) {
+                    ACTION_LOG_WATER -> handleLogWater(context, intent)
+                    ACTION_MARK_MEDICATION_TAKEN -> handleMarkMedicationTaken(context, intent)
+                }
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 
-    private fun handleMarkMedicationTaken(context: Context, intent: Intent) {
+    private suspend fun handleLogWater(context: Context, intent: Intent) {
+        val amountMl = intent.getIntExtra(EXTRA_WATER_AMOUNT, 250)
+
+        try {
+            // Initialize AppContainer if needed
+            AppContainer.initialize(context)
+
+            val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+            val effectiveMl = (amountMl * DrinkType.WATER.hydrationMultiplier).toInt()
+            val entry = HydrationEntry(
+                id = UUID.randomUUID().toString(),
+                drinkType = DrinkType.WATER.dbValue,
+                amountMl = amountMl,
+                effectiveMl = effectiveMl,
+                consumedAt = LocalDateTime.now().format(isoFormatter),
+                synced = false
+            )
+            AppContainer.hydrationRepository.addLocalEntry(entry)
+
+            // Update widget data
+            val entries = AppContainer.hydrationRepository.loadLocalEntries()
+            val todayStr = java.time.LocalDate.now().toString()
+            val todayTotal = entries
+                .filter { it.consumedAt.startsWith(todayStr) }
+                .sumOf { it.effectiveMl }
+            val goal = WidgetDataManager.getHydrationGoal(context)
+            WidgetDataManager.updateHydrationWidget(context, todayTotal, goal)
+
+            // Refresh widget
+            HydrationWidget().updateAll(context)
+        } catch (_: Exception) { }
+    }
+
+    private suspend fun handleMarkMedicationTaken(context: Context, intent: Intent) {
         val medicationId = intent.getStringExtra(EXTRA_MEDICATION_ID) ?: return
         val scheduleId = intent.getStringExtra(EXTRA_SCHEDULE_ID) ?: return
 
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                AppContainer.initialize(context)
+        try {
+            AppContainer.initialize(context)
 
-                AppContainer.medicationRepository.markAsTaken(
-                    medicationId = medicationId,
-                    scheduleId = scheduleId,
-                    profileId = "demo-profile-id",
-                    scheduledTime = java.time.LocalDateTime.now(),
-                    logId = null
-                )
+            val profileId = AppContainer.authRepository.currentUser?.id ?: return
+            AppContainer.medicationRepository.markAsTaken(
+                medicationId = medicationId,
+                scheduleId = scheduleId,
+                profileId = profileId,
+                scheduledTime = java.time.LocalDateTime.now(),
+                logId = null
+            )
 
-                // Update widget data — clear next dose
-                WidgetDataManager.updateMedicationWidget(
-                    context,
-                    nextName = "All done!",
-                    nextTime = "",
-                    nextDosage = ""
-                )
+            // Update widget data — clear next dose
+            WidgetDataManager.updateMedicationWidget(
+                context,
+                nextName = "All done!",
+                nextTime = "",
+                nextDosage = ""
+            )
 
-                // Refresh widget
-                MedicationWidget().updateAll(context)
-            } catch (_: Exception) { }
-        }
+            // Refresh widget
+            MedicationWidget().updateAll(context)
+        } catch (_: Exception) { }
     }
 }

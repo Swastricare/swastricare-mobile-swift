@@ -206,19 +206,19 @@ class AppVersionService(
     }
 
     private fun cacheResult(result: AppUpdateCheckResult) {
-        prefs.edit()
+        val editor = prefs.edit()
             .putLong(PREFS_KEY_CACHE_TIMESTAMP, System.currentTimeMillis())
             .putString(PREFS_KEY_CACHED_STATUS, result.status.name)
-            .apply()
 
         result.versionInfo?.let { info ->
-            prefs.edit()
+            editor
                 .putString(PREFS_KEY_CACHED_VERSION, info.version)
                 .putBoolean(PREFS_KEY_CACHED_FORCE, info.forceUpdate)
                 .putBoolean(PREFS_KEY_CACHED_OPTIONAL, info.optionalUpdate)
                 .putString(PREFS_KEY_CACHED_RELEASE_NOTES, info.releaseNotes)
                 .putString(PREFS_KEY_CACHED_STORE_URL, info.storeUrl)
-                .apply()
         }
+
+        editor.apply()
     }
 }

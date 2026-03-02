@@ -55,9 +55,10 @@ fun VaultScreen(
             contentResolver.query(it, null, null, null, null)?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                cursor.moveToFirst()
-                pendingFileName = cursor.getString(nameIndex)
-                pendingFileSize = cursor.getLong(sizeIndex)
+                if (cursor.moveToFirst()) {
+                    pendingFileName = if (nameIndex >= 0) cursor.getString(nameIndex) ?: "unknown" else "unknown"
+                    pendingFileSize = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
+                }
             }
             contentResolver.openInputStream(it)?.use { stream ->
                 pendingFileData = stream.readBytes()
@@ -78,9 +79,10 @@ fun VaultScreen(
             contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                cursor.moveToFirst()
-                pendingFileName = cursor.getString(nameIndex)
-                pendingFileSize = cursor.getLong(sizeIndex)
+                if (cursor.moveToFirst()) {
+                    pendingFileName = if (nameIndex >= 0) cursor.getString(nameIndex) ?: "unknown" else "unknown"
+                    pendingFileSize = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
+                }
             }
             contentResolver.openInputStream(uri)?.use { stream ->
                 pendingFileData = stream.readBytes()
@@ -97,9 +99,10 @@ fun VaultScreen(
                     contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                         val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                         val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                        cursor.moveToFirst()
-                        name = cursor.getString(nameIndex)
-                        size = cursor.getLong(sizeIndex)
+                        if (cursor.moveToFirst()) {
+                            name = if (nameIndex >= 0) cursor.getString(nameIndex) ?: "unknown" else "unknown"
+                            size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
+                        }
                     }
                     val data = contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     data?.let {

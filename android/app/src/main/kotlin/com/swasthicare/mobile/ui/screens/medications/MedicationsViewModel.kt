@@ -43,14 +43,13 @@ data class MedicationsUiState(
 class MedicationsViewModel(
     private val repository: MedicationRepository,
     private val profileRepository: ProfileRepository,
-    private val analyticsService: AnalyticsService = AppContainer.analyticsService
+    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MedicationsUiState(isLoading = true))
     val uiState: StateFlow<MedicationsUiState> = _uiState.asStateFlow()
 
-    // Hardcoded for demo; in production, fetch from auth + profileRepository
-    private val demoProfileId = "demo-profile-id"
+    // Resolved from authenticated user
 
     init {
         // Load from cache immediately for instant display
@@ -262,13 +261,8 @@ class MedicationsViewModel(
     // MARK: - Private Helpers
     // ─────────────────────────────────────
 
-    private suspend fun resolveProfileId(): String {
-        return try {
-            // Try to get from profileRepository; fall back to demo id for now
-            profileRepository.getHealthProfile(demoProfileId)?.userId ?: demoProfileId
-        } catch (e: Exception) {
-            demoProfileId
-        }
+    private fun resolveProfileId(): String {
+        return AppContainer.authRepository.currentUser?.id ?: ""
     }
 
     private fun buildMedicationsWithDoses(

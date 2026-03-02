@@ -114,7 +114,7 @@ class HealthConnectService(private val context: Context) {
     /**
      * Check if Health Connect is available on this device (function form).
      */
-    fun isAvailable(): Boolean =
+    fun checkAvailability(): Boolean =
         try {
             HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
         } catch (_: Exception) {
@@ -394,8 +394,8 @@ class HealthConnectService(private val context: Context) {
      * Returns a list of [DailyStepCount], one entry per day.
      * Days with no data default to 0 steps.
      */
-    suspend fun getWeeklyStepCounts(): List<DailyStepCount> {
-        val healthClient = client ?: return generateFallbackWeeklySteps()
+    suspend fun getWeeklyStepCounts(): List<DailyStepCount> = withContext(Dispatchers.IO) {
+        val healthClient = client ?: return@withContext generateFallbackWeeklySteps()
 
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now()
@@ -421,7 +421,7 @@ class HealthConnectService(private val context: Context) {
             result.add(DailyStepCount(date = date, steps = steps))
         }
 
-        return result
+        result
     }
 
     /**

@@ -31,8 +31,8 @@ class SupabaseNudgeRepository(
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     override suspend fun fetchActiveNudges(healthProfileId: String): List<HealthNudge> {
-        // Check cache first
-        val cached = loadFromCache()
+        // Check cache first (scoped to this user's profile)
+        val cached = loadFromCache(healthProfileId)
         if (cached != null) return cached
 
         return try {
@@ -45,8 +45,8 @@ class SupabaseNudgeRepository(
                 }
                 .decodeList<HealthNudge>()
 
-            // Cache the result
-            saveToCache(nudges)
+            // Cache the result (scoped to this user's profile)
+            saveToCache(healthProfileId, nudges)
             nudges
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch nudges from server: ${e.message}")
@@ -92,11 +92,14 @@ class SupabaseNudgeRepository(
     // MARK: - Cache
     // ─────────────────────────────────────
 
-    private fun loadFromCache(): List<HealthNudge>? {
-        val cachedTime = sharedPreferences.getLong(KEY_CACHE_TIME, 0L)
+    private fun getCacheKey(profileId: String) = "cached_nudges_$profileId"
+    private fun getCacheTimeKey(profileId: String) = "nudge_cache_time_$profileId"
+
+    private fun loadFromCache(profileId: String): List<HealthNudge>? {
+        val cachedTime = sharedPreferences.getLong(getCacheTimeKey(profileId), 0L)
         if (System.currentTimeMillis() - cachedTime > CACHE_TTL_MS) return null
 
-        val cachedJson = sharedPreferences.getString(KEY_CACHED_NUDGES, null) ?: return null
+        val cachedJson = sharedPreferences.getString(getCacheKey(profileId), null) ?: return null
         return try {
             json.decodeFromString<List<HealthNudge>>(cachedJson)
         } catch (e: Exception) {
@@ -104,12 +107,12 @@ class SupabaseNudgeRepository(
         }
     }
 
-    private fun saveToCache(nudges: List<HealthNudge>) {
+    private fun saveToCache(profileId: String, nudges: List<HealthNudge>) {
         try {
             val nudgesJson = json.encodeToString(nudges)
             sharedPreferences.edit()
-                .putString(KEY_CACHED_NUDGES, nudgesJson)
-                .putLong(KEY_CACHE_TIME, System.currentTimeMillis())
+                .putString(getCacheKey(profileId), nudgesJson)
+                .putLong(getCacheTimeKey(profileId), System.currentTimeMillis())
                 .apply()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to cache nudges: ${e.message}")
@@ -117,16 +120,18 @@ class SupabaseNudgeRepository(
     }
 
     private fun clearCache() {
-        sharedPreferences.edit()
-            .remove(KEY_CACHED_NUDGES)
-            .remove(KEY_CACHE_TIME)
-            .apply()
+        // Clear all nudge cache entries by removing known keys
+        // Note: This clears all user caches; a more targeted approach would
+        // require tracking the current profileId, but this is safe for invalidation
+        val editor = sharedPreferences.edit()
+        sharedPreferences.all.keys
+            .filter { it.startsWith("cached_nudges_") || it.startsWith("nudge_cache_time_") }
+            .forEach { editor.remove(it) }
+        editor.apply()
     }
 
     companion object {
         private const val TAG = "NudgeRepository"
-        private const val KEY_CACHED_NUDGES = "cached_nudges"
-        private const val KEY_CACHE_TIME = "nudge_cache_time"
         private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutes
     }
 }

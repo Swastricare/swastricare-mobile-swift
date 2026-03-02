@@ -54,7 +54,8 @@ fun HomeScreen(
     onNavigateToCycleTracker: () -> Unit = {},
     onNavigateToHeartRate: () -> Unit = {},
     onNavigateToBodyScan: () -> Unit = {},
-    onNavigateToNotifications: () -> Unit = {}
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToRoute: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -92,7 +93,11 @@ fun HomeScreen(
                     HealthNudgesCardStrip(
                         nudges = uiState.serverNudges,
                         onDismiss = { id -> viewModel.dismissNudge(id) },
-                        onAct = { id -> viewModel.actOnNudge(id) }
+                        onAct = { id ->
+                            viewModel.actOnNudge(id)?.let { url ->
+                                try { onNavigateToRoute(url.removePrefix("swastricare://")) } catch (_: Exception) {}
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }

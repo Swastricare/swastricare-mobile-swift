@@ -52,6 +52,7 @@ sealed class DeepLinkRoute {
 object DeepLinkHandler {
 
     private val SUPPORTED_SCHEMES = setOf("swastricare", "swastricareapp")
+    private val FAMILY_CODE_REGEX = Regex("^[A-Za-z0-9]{6}$")
 
     /**
      * Parse an incoming [Uri] and return the matching [DeepLinkRoute].
@@ -84,6 +85,11 @@ object DeepLinkHandler {
                     DeepLinkRoute.Run
                 }
             }
+            "activeworkout" -> DeepLinkRoute.StartRun("run")
+            "startrun" -> {
+                val type = pathSegments.firstOrNull() ?: uri.getQueryParameter("type") ?: "run"
+                DeepLinkRoute.StartRun(type)
+            }
             "diet" -> DeepLinkRoute.Diet
             "vault" -> DeepLinkRoute.Vault
             "ai" -> DeepLinkRoute.AI
@@ -91,7 +97,7 @@ object DeepLinkHandler {
                 // swastricare://family/join?code=ABC123
                 if (pathSegments.firstOrNull() == "join") {
                     val code = uri.getQueryParameter("code")
-                    if (!code.isNullOrBlank()) {
+                    if (!code.isNullOrBlank() && FAMILY_CODE_REGEX.matches(code)) {
                         DeepLinkRoute.FamilyJoin(code)
                     } else {
                         DeepLinkRoute.Unknown
@@ -112,10 +118,10 @@ object DeepLinkHandler {
         is DeepLinkRoute.Home -> "vitals"
         is DeepLinkRoute.Hydration -> "hydration"
         is DeepLinkRoute.Medications -> "medications"
-        is DeepLinkRoute.HeartRate -> "vitals" // Heart rate is on the vitals tab
-        is DeepLinkRoute.Steps -> "vitals" // Steps shown on vitals
-        is DeepLinkRoute.Run -> "vitals"
-        is DeepLinkRoute.StartRun -> "vitals" // TODO: navigate to live workout
+        is DeepLinkRoute.HeartRate -> "heart_rate"
+        is DeepLinkRoute.Steps -> "steps"
+        is DeepLinkRoute.Run -> "steps"
+        is DeepLinkRoute.StartRun -> "live_workout"
         is DeepLinkRoute.Diet -> "diet"
         is DeepLinkRoute.Vault -> "vault"
         is DeepLinkRoute.AI -> "ai"

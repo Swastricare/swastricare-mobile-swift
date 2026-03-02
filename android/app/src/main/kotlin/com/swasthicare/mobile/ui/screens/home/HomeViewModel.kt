@@ -59,7 +59,7 @@ data class HomeState(
 
 class HomeViewModel(
     private val nudgeRepository: NudgeRepository = AppContainer.nudgeRepository,
-    private val analyticsService: AnalyticsService = AppContainer.analyticsService
+    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeState())
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
@@ -219,8 +219,9 @@ class HomeViewModel(
     fun loadNudges() {
         viewModelScope.launch {
             try {
-                // Attempt to fetch from Supabase via NudgeRepository
-                val profileId = "demo-profile-id" // In production, resolve from auth
+                // Resolve real profile ID from authenticated user
+                val userId = AppContainer.authRepository.currentUser?.id ?: return@launch
+                val profileId = userId
                 val nudges = nudgeRepository.fetchActiveNudges(profileId)
 
                 if (nudges.isNotEmpty()) {

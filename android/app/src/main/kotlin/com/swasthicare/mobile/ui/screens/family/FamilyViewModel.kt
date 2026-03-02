@@ -49,7 +49,10 @@ class FamilyViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val userId = authRepository.currentUser?.id ?: "demo-user-id"
+                val userId = authRepository.currentUser?.id ?: run {
+                    _uiState.update { it.copy(isLoading = false, error = "Please log in first") }
+                    return@launch
+                }
                 val group = familyRepository.getMyFamilyGroup(userId)
 
                 if (group != null) {
@@ -89,7 +92,10 @@ class FamilyViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isJoining = true, error = null) }
             try {
-                val userId = authRepository.currentUser?.id ?: "demo-user-id"
+                val userId = authRepository.currentUser?.id ?: run {
+                    _uiState.update { it.copy(isJoining = false, error = "Please log in first") }
+                    return@launch
+                }
                 val fullName = authRepository.currentUser?.fullName
                 val result = familyRepository.joinGroup(code, userId, fullName)
                 result.fold(
@@ -160,7 +166,12 @@ class FamilyViewModel(
     }
 
     fun leaveGroup() {
-        val memberId = _uiState.value.currentMember?.id ?: return
+        val member = _uiState.value.currentMember ?: return
+        if (member.role == "owner" && _uiState.value.members.size > 1) {
+            _uiState.update { it.copy(error = "Transfer ownership before leaving the group") }
+            return
+        }
+        val memberId = member.id
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, showLeaveConfirmation = false) }
             try {

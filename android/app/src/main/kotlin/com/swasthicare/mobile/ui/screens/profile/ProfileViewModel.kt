@@ -53,7 +53,7 @@ data class EditProfileState(
     val activityLevel: String = "Moderately Active",
     val avatarUrl: String? = null,
     val selectedAvatarUri: Uri? = null,
-    val capturedAvatarBitmap: Bitmap? = null
+    val capturedAvatarBytes: ByteArray? = null
 ) {
     val isValid: Boolean
         get() = fullName.isNotBlank() &&
@@ -90,7 +90,7 @@ class ProfileViewModel : ViewModel() {
     private val profileRepository = AppContainer.profileRepository
     private val biometricService: BiometricService = AppContainer.biometricService
     private val prefs: SharedPreferences = AppContainer.sharedPreferences
-    private val analyticsService = AppContainer.analyticsService
+    private val analyticsService = AppContainer.firebaseAnalyticsService
 
     // Expose sign out event for navigation
     private val _signOutEvent = MutableStateFlow(false)
@@ -304,11 +304,12 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun onAvatarSelected(uri: Uri) {
-        _editState.update { it.copy(selectedAvatarUri = uri, capturedAvatarBitmap = null) }
+        _editState.update { it.copy(selectedAvatarUri = uri, capturedAvatarBytes = null) }
     }
 
     fun onAvatarCaptured(bitmap: Bitmap) {
-        _editState.update { it.copy(capturedAvatarBitmap = bitmap, selectedAvatarUri = null) }
+        val bytes = bitmapToBytes(bitmap)
+        _editState.update { it.copy(capturedAvatarBytes = bytes, selectedAvatarUri = null) }
     }
 
     fun saveProfile(onSuccess: () -> Unit) {
@@ -327,15 +328,22 @@ class ProfileViewModel : ViewModel() {
 
                 // Upload avatar if changed
                 var newAvatarUrl = state.avatarUrl
-                if (state.capturedAvatarBitmap != null) {
-                    val bytes = bitmapToBytes(state.capturedAvatarBitmap)
+                if (state.capturedAvatarBytes != null) {
                     newAvatarUrl = profileRepository.uploadAvatar(
-                        userId, bytes, "avatar_${UUID.randomUUID()}.jpg"
+                        userId, state.capturedAvatarBytes, "avatar_${UUID.randomUUID()}.jpg"
                     )
                 }
-                // Note: For gallery URI, the app would need ContentResolver to read bytes.
-                // That requires Context, which is typically handled in the Activity/Fragment layer.
-                // For now, we handle the camera bitmap case directly.
+
+                // Handle gallery-selected avatar URI
+                if (state.selectedAvatarUri != null && newAvatarUrl == state.avatarUrl) {
+                    val bytes = AppContainer.context.contentResolver
+                        .openInputStream(state.selectedAvatarUri)?.use { it.readBytes() }
+                    if (bytes != null) {
+                        newAvatarUrl = profileRepository.uploadAvatar(
+                            userId, bytes, "avatar_${UUID.randomUUID()}.jpg"
+                        )
+                    }
+                }
 
                 // Update health profile
                 val existingProfile = _uiState.value.healthProfile
@@ -434,6 +442,7 @@ class ProfileViewModel : ViewModel() {
     val profileBMI: String
         get() {
             val profile = uiState.value.healthProfile ?: return "Not set"
+            if (profile.heightCm <= 0 || profile.weightKg <= 0) return "Not set"
             val heightM = profile.heightCm / 100.0
             val bmi = profile.weightKg / (heightM * heightM)
             return String.format(Locale.US, "%.1f", bmi)

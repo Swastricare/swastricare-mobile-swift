@@ -91,6 +91,7 @@ class HeartRateDetector(private val context: Context) {
         cameraProvider?.unbindAll()
         camera?.cameraControl?.enableTorch(false)
         camera = null
+        analysisExecutor.shutdown()
         _measurementState.value = MeasurementState.IDLE
     }
 
@@ -153,6 +154,8 @@ class HeartRateDetector(private val context: Context) {
             camera?.cameraControl?.enableTorch(true)
         } catch (e: Exception) {
             Log.e(TAG, "Camera binding failed", e)
+            camera?.cameraControl?.enableTorch(false)
+            cameraProvider?.unbindAll()
             _measurementState.value = MeasurementState.ERROR
         }
     }

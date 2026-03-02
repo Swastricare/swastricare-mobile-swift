@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.ProfileRepository
 import com.swasthicare.mobile.data.repository.RunActivityRepository
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +39,7 @@ class RunActivityViewModel(
     private val _uiState = MutableStateFlow(RunActivityUiState(isLoading = true))
     val uiState: StateFlow<RunActivityUiState> = _uiState.asStateFlow()
 
-    private val demoProfileId = "demo-profile-id"
+    // Profile ID resolved from authenticated user
 
     init {
         loadData()
@@ -100,7 +101,7 @@ class RunActivityViewModel(
         } catch (_: Exception) { }
     }
 
-    private suspend fun resolveProfileId(): String = try {
-        profileRepository.getHealthProfile(demoProfileId)?.userId ?: demoProfileId
-    } catch (_: Exception) { demoProfileId }
+    private fun resolveProfileId(): String {
+        return AppContainer.authRepository.currentUser?.id ?: ""
+    }
 }

@@ -71,6 +71,9 @@ import com.swasthicare.mobile.ui.screens.runactivity.LiveWorkoutScreen
 import com.swasthicare.mobile.ui.screens.runactivity.RunActivityScreen
 import com.swasthicare.mobile.ui.screens.runactivity.WorkoutSummaryScreen
 import com.swasthicare.mobile.ui.screens.vault.VaultScreen
+import com.swasthicare.mobile.ui.screens.analytics.HealthAnalyticsScreen
+import com.swasthicare.mobile.ui.screens.runactivity.ActivityDetailScreen
+import com.swasthicare.mobile.ui.screens.runactivity.RunCalendarScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 sealed class MainTab(
@@ -233,14 +236,19 @@ fun MainScreen(
                     onNavigateToCycleTracker = { navController.navigate("cycle_tracker") },
                     onNavigateToHeartRate = { navController.navigate("heart_rate") },
                     onNavigateToBodyScan = { navController.navigate("ar_body_scan") },
-                    onNavigateToNotifications = { navController.navigate("notification_history") }
+                    onNavigateToNotifications = { navController.navigate("notification_history") },
+                    onNavigateToRoute = { route -> try { navController.navigate(route) } catch (_: Exception) {} }
                 )
             }
             composable(MainTab.AI.route) { AIScreen() }
             composable(MainTab.Vault.route) { VaultScreen() }
             composable(MainTab.Steps.route) {
                 RunActivityScreen(
-                    onNavigateToLiveWorkout = { navController.navigate("live_workout") }
+                    onNavigateToLiveWorkout = { navController.navigate("live_workout") },
+                    onNavigateToActivityDetail = { workoutId ->
+                        navController.navigate("activity_detail/$workoutId")
+                    },
+                    onNavigateToCalendar = { navController.navigate("run_calendar") }
                 )
             }
             composable(MainTab.Profile.route) {
@@ -392,6 +400,37 @@ fun MainScreen(
                     onDone = {
                         navController.popBackStack("steps", inclusive = false)
                     }
+                )
+            }
+            // Run Calendar
+            composable("run_calendar") {
+                RunCalendarScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToActivityDetail = { workoutId ->
+                        navController.navigate("activity_detail/$workoutId")
+                    }
+                )
+            }
+            // Health Analytics
+            composable("health_analytics") {
+                HealthAnalyticsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToAI = {
+                        navController.navigate(MainTab.AI.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+            // Activity Detail
+            composable("activity_detail/{workoutId}") { backStackEntry ->
+                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: return@composable
+                ActivityDetailScreen(
+                    workoutId = workoutId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onDelete = { navController.popBackStack() }
                 )
             }
             // Family flow

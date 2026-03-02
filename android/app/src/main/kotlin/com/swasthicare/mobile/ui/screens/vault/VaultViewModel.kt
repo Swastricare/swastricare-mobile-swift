@@ -103,24 +103,26 @@ class VaultViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isUploading = true, uploadProgress = 0.1f) }
             try {
-                // Simulate progress
                 _uiState.update { it.copy(uploadProgress = 0.5f) }
-                
+
                 val categoryString = category.title
-                
+
                 repository.uploadDocument(
                     fileData = fileData,
                     fileName = fileName,
                     category = categoryString,
                     metadata = metadata
                 )
-                
+
                 _uiState.update { it.copy(uploadProgress = 1.0f) }
-                
-                // Refresh list
-                loadDocuments()
-                
-                _uiState.update { it.copy(isUploading = false, showAddSheet = false) }
+
+                // Refresh list inline (not via loadDocuments which launches a separate coroutine)
+                try {
+                    val documents = repository.getDocuments()
+                    _uiState.update { it.copy(documents = documents, isUploading = false, showAddSheet = false) }
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(isUploading = false, showAddSheet = false, errorMessage = "Uploaded but failed to refresh: ${e.message}") }
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isUploading = false, errorMessage = "Upload failed: ${e.message}") }
             }
@@ -175,18 +177,26 @@ class VaultViewModel(
         viewModelScope.launch {
              _uiState.update { it.copy(isLoading = true) }
              try {
+                 val failedIds = mutableListOf<String>()
                  _uiState.value.selectedDocuments.forEach { id ->
-                     repository.deleteDocument(id)
+                     try {
+                         repository.deleteDocument(id)
+                     } catch (e: Exception) {
+                         failedIds.add(id)
+                     }
                  }
-                 loadDocuments()
-                 _uiState.update { 
+                 val documents = repository.getDocuments()
+                 _uiState.update {
                      it.copy(
+                         documents = documents,
+                         isLoading = false,
                          selectedDocuments = emptySet(),
-                         isSelectionMode = false
-                     ) 
+                         isSelectionMode = false,
+                         errorMessage = if (failedIds.isNotEmpty()) "Failed to delete ${failedIds.size} document(s)" else null
+                     )
                  }
              } catch (e: Exception) {
-                 _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to delete documents") }
+                 _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to delete documents: ${e.message}") }
              }
         }
     }

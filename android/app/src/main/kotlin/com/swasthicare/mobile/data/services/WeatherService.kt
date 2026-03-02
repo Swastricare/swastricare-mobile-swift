@@ -168,11 +168,12 @@ class WeatherService(
 
     private suspend fun fetchWeatherFromApi(lat: Double, lon: Double): WeatherData? =
         withContext(Dispatchers.IO) {
+            var connection: HttpURLConnection? = null
             try {
                 val urlStr = "https://api.openweathermap.org/data/2.5/weather" +
                         "?lat=$lat&lon=$lon&appid=$API_KEY&units=metric"
                 val url = URL(urlStr)
-                val connection = url.openConnection() as HttpURLConnection
+                connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = 10_000
                 connection.readTimeout = 10_000
                 connection.requestMethod = "GET"
@@ -181,7 +182,6 @@ class WeatherService(
                 if (responseCode != 200) return@withContext null
 
                 val responseBody = connection.inputStream.bufferedReader().readText()
-                connection.disconnect()
 
                 val response = json.decodeFromString<OwmResponse>(responseBody)
                 val weatherData = WeatherData(
@@ -194,6 +194,8 @@ class WeatherService(
                 weatherData
             } catch (e: Exception) {
                 null
+            } finally {
+                connection?.disconnect()
             }
         }
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -27,7 +28,7 @@ import com.swasthicare.mobile.ui.theme.SwasthiCareTheme
 class MainActivity : ComponentActivity() {
 
     // Deep link route parsed from intent, observed by AppNavigation
-    private val pendingDeepLink = mutableStateOf<DeepLinkRoute?>(null)
+    private val pendingDeepLink = MutableStateFlow<DeepLinkRoute?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -74,11 +75,13 @@ class MainActivity : ComponentActivity() {
                         lockViewModel.checkInitialLock()
                     }
 
+                    val currentDeepLink by pendingDeepLink.collectAsState()
+
                     Box(modifier = Modifier.fillMaxSize()) {
                         // Main app content with deep link support
                         AppNavigation(
                             authViewModel = AppContainer.authViewModel,
-                            deepLinkRoute = pendingDeepLink.value,
+                            deepLinkRoute = currentDeepLink,
                             onDeepLinkConsumed = { pendingDeepLink.value = null }
                         )
 

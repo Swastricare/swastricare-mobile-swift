@@ -85,6 +85,14 @@ class SupabaseFamilyRepository(
             val group = groups.firstOrNull()
                 ?: return@withContext Result.failure(Exception("Invalid invite code"))
 
+            // Check if user is already a member of any family group
+            val existingMember = supabaseClient.from("family_members")
+                .select { filter { eq("user_id", userId) } }
+                .decodeSingleOrNull<FamilyMember>()
+            if (existingMember != null) {
+                return@withContext Result.failure(Exception("You are already a member of a family group"))
+            }
+
             // Add member
             val newMember = FamilyMember(
                 id = java.util.UUID.randomUUID().toString(),
@@ -130,6 +138,7 @@ class SupabaseFamilyRepository(
 
     private fun generateRandomCode(): String {
         val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return (1..6).map { chars.random() }.joinToString("")
+        val random = java.security.SecureRandom()
+        return (1..8).map { chars[random.nextInt(chars.length)] }.joinToString("")
     }
 }

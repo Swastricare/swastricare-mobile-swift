@@ -7,8 +7,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 interface ProfileRepository {
     suspend fun getHealthProfile(userId: String): HealthProfile?
@@ -106,24 +106,18 @@ class SupabaseProfileRepository(
         bio: String?,
         avatarUrl: String?
     ) {
-        @Serializable
-        data class UserProfileUpdate(
-            @SerialName("full_name") val fullName: String? = null,
-            val phone: String? = null,
-            val bio: String? = null,
-            @SerialName("avatar_url") val avatarUrl: String? = null
-        )
+        // Build the JSON object manually so that null fields are truly omitted
+        // from the payload, preventing them from overwriting existing data in Supabase.
+        val updatePayload = buildJsonObject {
+            if (fullName != null) put("full_name", fullName)
+            if (phone != null) put("phone", phone)
+            if (bio != null) put("bio", bio)
+            if (avatarUrl != null) put("avatar_url", avatarUrl)
+        }
 
         try {
             supabaseClient.postgrest["profiles"]
-                .update(
-                    UserProfileUpdate(
-                        fullName = fullName,
-                        phone = phone,
-                        bio = bio,
-                        avatarUrl = avatarUrl
-                    )
-                ) {
+                .update(updatePayload) {
                     filter {
                         eq("id", userId)
                     }

@@ -114,6 +114,7 @@ class LocationTrackingService(private val context: Context) {
     }
 
     fun resumeTracking() {
+        lastLocation = null
         isPaused = false
     }
 

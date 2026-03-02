@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 class AuthViewModel(
     private val authRepository: SupabaseAuthRepository,
     private val googleAuthHelper: GoogleAuthHelper,
-    private val analyticsService: AnalyticsService = AppContainer.analyticsService,
+    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
     private val crashlyticsService: CrashlyticsService = AppContainer.crashlyticsService
 ) : ViewModel() {
 

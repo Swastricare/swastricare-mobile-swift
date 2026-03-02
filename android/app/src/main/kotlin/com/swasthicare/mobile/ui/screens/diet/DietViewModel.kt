@@ -70,7 +70,6 @@ class DietViewModel(
     private val _uiState = MutableStateFlow(DietUiState(isLoading = true))
     val uiState: StateFlow<DietUiState> = _uiState.asStateFlow()
 
-    private val demoProfileId = "demo-profile-id"
     private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
     init {
@@ -320,7 +319,7 @@ class DietViewModel(
         } catch (_: Exception) { }
     }
 
-    private suspend fun resolveProfileId(): String = try {
-        profileRepository.getHealthProfile(demoProfileId)?.userId ?: demoProfileId
-    } catch (_: Exception) { demoProfileId }
+    private fun resolveProfileId(): String {
+        return com.swasthicare.mobile.di.AppContainer.authRepository.currentUser?.id ?: ""
+    }
 }

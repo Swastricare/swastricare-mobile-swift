@@ -19,6 +19,7 @@ import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.data.services.NotificationService
 import com.swasthicare.mobile.data.services.PoseDetectionService
 import com.swasthicare.mobile.data.services.WeatherService
+import com.swasthicare.mobile.data.services.WorkoutStateManager
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
 import com.swasthicare.mobile.ui.screens.family.FamilyViewModel
@@ -146,11 +147,6 @@ object AppContainer {
         PoseDetectionService()
     }
 
-    // Analytics Service (Feature 17: Custom Supabase Analytics - Agent 5 instance)
-    val analyticsService: AppAnalyticsService by lazy {
-        AppAnalyticsService(context, supabaseClient)
-    }
-
     // App Version Service (Feature 18: Force Update Checking)
     val appVersionService: AppVersionService by lazy {
         AppVersionService(context, supabaseClient)
@@ -167,7 +163,7 @@ object AppContainer {
     // ─────────────────────────────────────
 
     val profileRepository: ProfileRepository by lazy {
-        MockProfileRepository()
+        SupabaseProfileRepository(supabaseClient)
     }
 
     val vaultRepository: VaultRepository by lazy {
@@ -218,13 +214,13 @@ object AppContainer {
     }
 
     val menstrualCycleViewModel: MenstrualCycleViewModel by lazy {
-        MenstrualCycleViewModel(menstrualCycleRepository, profileRepository)
+        MenstrualCycleViewModel()
     }
 
     // ── Heart Rate ──
 
     val heartRateViewModel: HeartRateViewModel by lazy {
-        HeartRateViewModel(context, supabaseClient)
+        HeartRateViewModel(sharedPreferences)
     }
 
     // ── Run Activity ──
@@ -238,7 +234,13 @@ object AppContainer {
     }
 
     val liveWorkoutViewModel: LiveWorkoutViewModel by lazy {
-        LiveWorkoutViewModel(context, runActivityRepository, profileRepository)
+        LiveWorkoutViewModel(context)
+    }
+
+    // ── Workout Recovery ──
+
+    val workoutStateManager: WorkoutStateManager by lazy {
+        WorkoutStateManager(sharedPreferences)
     }
 
     // Nudge Repository (Feature 10: Live Server Nudges)

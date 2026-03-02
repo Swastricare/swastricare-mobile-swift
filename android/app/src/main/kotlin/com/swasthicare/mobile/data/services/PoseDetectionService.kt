@@ -69,8 +69,8 @@ class PoseDetectionService {
     private suspend fun detectPose(inputImage: InputImage): Pose =
         suspendCancellableCoroutine { cont ->
             poseDetector.process(inputImage)
-                .addOnSuccessListener { pose -> cont.resume(pose) }
-                .addOnFailureListener { e -> cont.resumeWithException(e) }
+                .addOnSuccessListener { pose -> if (cont.isActive) cont.resume(pose) }
+                .addOnFailureListener { e -> if (cont.isActive) cont.resumeWithException(e) }
         }
 
     private fun extractResult(pose: Pose, imageWidth: Int, imageHeight: Int): BodyScanResult? {

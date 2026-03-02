@@ -18,7 +18,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArrayList
@@ -80,9 +79,9 @@ class AppAnalyticsService(
         private const val RETRY_BASE_MS = 1000L
         private const val PREFS_KEY_QUEUED_EVENTS = "persisted_events"
         private const val PREFS_NAME = "swasthicare_analytics"
-
-        private var currentUserId: String? = null
     }
+
+    private var currentUserId: String? = null
 
     private val eventQueue = ConcurrentLinkedQueue<AppEvent>()
     private var sessionId: String = UUID.randomUUID().toString()
@@ -100,9 +99,9 @@ class AppAnalyticsService(
         encodeDefaults = true
     }
 
-    private val isoFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-        timeZone = TimeZone.getTimeZone("UTC")
-    }
+    private val isoFormatter = java.time.format.DateTimeFormatter
+        .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        .withZone(java.time.ZoneOffset.UTC)
 
     // ─────────────────────────────────────
     // MARK: - Initialization (Agent 3 start/stop pattern)
@@ -167,7 +166,7 @@ class AppAnalyticsService(
             id = UUID.randomUUID().toString(),
             eventName = eventName,
             properties = properties,
-            timestamp = isoFormatter.format(Date()),
+            timestamp = isoFormatter.format(java.time.Instant.now()),
             sessionId = sessionId,
             userId = currentUserId
         )

@@ -22,16 +22,12 @@ class AIService(private val client: SupabaseClient) {
         }
         val request = ChatRequest(message = message, context = contextMessages)
 
-        return try {
-            val response = client.functions.invoke(
-                function = "ai-router",
-                body = request
-            )
-            val body = response.body<String>()
-            Json.decodeFromString<ChatResponse>(body).response
-        } catch (e: Exception) {
-            "I'm having trouble connecting right now. Please try again. (${e.message})"
-        }
+        val response = client.functions.invoke(
+            function = "ai-router",
+            body = request
+        )
+        val body = response.body<String>()
+        return Json.decodeFromString<ChatResponse>(body).response
     }
 
     suspend fun analyzeHealth(metrics: HealthMetrics): HealthAnalysisResponse {

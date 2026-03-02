@@ -82,6 +82,8 @@ data class LiveWorkoutUiState(
         // Pace in min/km
         if (distanceMeters < 10) return "--:--"
         val paceSeconds = elapsedSeconds / (distanceMeters / 1000.0)
+        // Cap at 99:59 to avoid absurd display values
+        if (paceSeconds > 5999) return "99:59"
         val paceMin = (paceSeconds / 60).toInt()
         val paceSec = (paceSeconds % 60).toInt()
         return String.format("%d:%02d", paceMin, paceSec)
@@ -167,6 +169,9 @@ class LiveWorkoutViewModel(
     }
 
     fun startWorkout() {
+        // Guard against double-taps: only start from IDLE
+        if (_uiState.value.phase != WorkoutPhase.IDLE) return
+
         // Begin countdown
         _uiState.update { it.copy(phase = WorkoutPhase.COUNTDOWN, countdownValue = 3) }
 
@@ -192,6 +197,9 @@ class LiveWorkoutViewModel(
     }
 
     fun stopWorkout() {
+        val currentPhase = _uiState.value.phase
+        if (currentPhase != WorkoutPhase.TRACKING && currentPhase != WorkoutPhase.PAUSED) return
+
         timerJob?.cancel()
         routeTracker.stopTracking()
 
@@ -242,6 +250,7 @@ class LiveWorkoutViewModel(
     }
 
     private fun startTimer() {
+        timerJob?.cancel()
         timerJob = viewModelScope.launch {
             while (true) {
                 delay(1000)

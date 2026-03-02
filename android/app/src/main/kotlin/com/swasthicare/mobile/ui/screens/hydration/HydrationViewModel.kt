@@ -77,13 +77,12 @@ class HydrationViewModel(
     private val repository: HydrationRepository,
     private val profileRepository: ProfileRepository,
     private val weatherService: WeatherService? = null,
-    private val analyticsService: AnalyticsService = AppContainer.analyticsService
+    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HydrationUiState(isLoading = true))
     val uiState: StateFlow<HydrationUiState> = _uiState.asStateFlow()
 
-    private val demoProfileId = "demo-profile-id"
     private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
     init {
@@ -252,21 +251,21 @@ class HydrationViewModel(
     }
 
     private suspend fun syncInBackground() {
+        val profileId = resolveProfileId() ?: return
         val unsynced = _uiState.value.entries.filter { !it.synced }
         if (unsynced.isNotEmpty()) {
-            val profileId = resolveProfileId()
             repository.syncEntriesToCloud(unsynced, profileId)
         }
     }
 
     private suspend fun syncEntryToCloud(entry: HydrationEntry) {
         try {
-            val profileId = resolveProfileId()
+            val profileId = resolveProfileId() ?: return
             repository.syncEntriesToCloud(listOf(entry), profileId)
         } catch (_: Exception) { }
     }
 
-    private suspend fun resolveProfileId(): String = try {
-        profileRepository.getHealthProfile(demoProfileId)?.userId ?: demoProfileId
-    } catch (_: Exception) { demoProfileId }
+    private fun resolveProfileId(): String? {
+        return AppContainer.authRepository.currentUser?.id
+    }
 }

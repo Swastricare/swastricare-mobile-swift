@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.services.AIService
 import com.swasthicare.mobile.data.services.SpeechService
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,7 +61,7 @@ sealed class AnalysisState {
 }
 
 class AIViewModel(application: Application) : AndroidViewModel(application) {
-    private val aiService = AIService()
+    private val aiService = AIService(AppContainer.supabaseClient)
     private val speechService = SpeechService(application.applicationContext)
 
     private val _uiState = MutableStateFlow(AIUiState())
@@ -80,6 +81,8 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
         if (text.isEmpty()) return
 
         val userMessage = ChatMessage.userMessage(text)
+        // Capture prior messages for context BEFORE adding the new user message
+        val priorMessages = _uiState.value.messages.filter { !it.isLoading }
         val currentMessages = _uiState.value.messages.toMutableList()
         currentMessages.add(userMessage)
 
@@ -96,7 +99,7 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val responseText = aiService.sendChatMessage(text, _uiState.value.messages.filter { !it.isLoading })
+                val responseText = aiService.sendChatMessage(text, priorMessages)
 
                 val newMessages = _uiState.value.messages.filter { !it.isLoading }.toMutableList()
                 newMessages.add(ChatMessage.assistantMessage(responseText))
@@ -216,6 +219,8 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun sendImageForAnalysis(imageType: ImageType) {
         val userMessage = ChatMessage.userMessage("[Image: ${imageType.label}] Please analyze this ${imageType.label.lowercase()} image.")
+        // Capture prior messages for context BEFORE adding the new user message
+        val priorMessages = _uiState.value.messages.filter { !it.isLoading }
         val currentMessages = _uiState.value.messages.toMutableList()
         currentMessages.add(userMessage)
         currentMessages.add(ChatMessage.loadingMessage())
@@ -231,7 +236,7 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val responseText = aiService.sendChatMessage(
                     "Analyze this ${imageType.label} image using MedGemma 4B model",
-                    _uiState.value.messages.filter { !it.isLoading }
+                    priorMessages
                 )
 
                 val newMessages = _uiState.value.messages.filter { !it.isLoading }.toMutableList()
