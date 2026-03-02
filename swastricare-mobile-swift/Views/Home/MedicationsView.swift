@@ -247,54 +247,64 @@ struct MedicationsView: View {
     }
     
     private var progressSection: some View {
-        HStack(spacing: 20) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Today's Progress")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-                
-                Text("\(viewModel.takenCount) of \(viewModel.totalCount) taken")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.primary)
-                
-                if let stats = viewModel.adherenceStatistics {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 12))
-                        Text("\(stats.adherenceRate) adherence")
-                            .font(.system(size: 13))
-                    }
-                    .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            // Circular progress
-            ZStack {
-                Circle()
-                    .stroke(Color.primary.opacity(0.1), lineWidth: 8)
-                    .frame(width: 72, height: 72)
-                
-                let progress = viewModel.todayAdherencePercentage / 100
-                
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(Color(hex: "11998e"), style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .frame(width: 72, height: 72)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: progress)
-                
-                VStack(spacing: 2) {
-                    Text("\(Int(viewModel.todayAdherencePercentage))%")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.primary)
-                }
+        VStack(spacing: 16) {
+            Text("Today's Progress")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
+
+            // Pill bottle animation
+            PillBottleView(progress: viewModel.todayAdherencePercentage / 100)
+                .padding(.vertical, 4)
+
+            // Stat pills row
+            HStack(spacing: 10) {
+                medicationStatPill(
+                    icon: "checkmark.circle.fill",
+                    color: Color(hex: "11998e"),
+                    value: "\(viewModel.takenCount)",
+                    label: "taken"
+                )
+
+                medicationStatPill(
+                    icon: "clock.fill",
+                    color: .orange,
+                    value: "\(viewModel.totalCount - viewModel.takenCount)",
+                    label: "remaining"
+                )
+
+                medicationStatPill(
+                    icon: "chart.line.uptrend.xyaxis",
+                    color: .green,
+                    value: viewModel.adherenceStatistics?.adherenceRate ?? "0%",
+                    label: "adherence"
+                )
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 20)
-        .glass(cornerRadius: 20)
+        .padding(20)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
+    }
+
+    private func medicationStatPill(icon: String, color: Color, value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(color)
+
+            Text(value)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.primary)
+
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(color.opacity(0.08))
+        .cornerRadius(12)
     }
 }
 
