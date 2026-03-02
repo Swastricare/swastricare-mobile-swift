@@ -1,11 +1,14 @@
 package com.swasthicare.mobile.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.swasthicare.mobile.navigation.DeepLinkHandler
+import com.swasthicare.mobile.navigation.DeepLinkRoute
 import com.swasthicare.mobile.ui.screens.auth.AuthUiState
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.auth.LoginScreen
@@ -19,16 +22,20 @@ import com.swasthicare.mobile.ui.screens.splash.SplashScreen
  * Matches iOS navigation flow
  */
 @Composable
-fun AppNavigation(authViewModel: AuthViewModel) {
+fun AppNavigation(
+    authViewModel: AuthViewModel,
+    deepLinkRoute: DeepLinkRoute? = null,
+    onDeepLinkConsumed: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val authState by authViewModel.uiState.collectAsState()
-    
+
     // Determine start destination based on auth state
     val startDestination = when (authState) {
         is AuthUiState.Success -> "main"
         else -> "splash"
     }
-    
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -48,7 +55,7 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                 }
             )
         }
-        
+
         // Login Screen
         composable("login") {
             LoginScreen(
@@ -66,7 +73,7 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                 }
             )
         }
-        
+
         // Sign Up Screen
         composable("signup") {
             SignUpScreen(
@@ -81,7 +88,7 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                 }
             )
         }
-        
+
         // Reset Password Screen
         composable("reset_password") {
             ResetPasswordScreen(
@@ -91,18 +98,18 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                 }
             )
         }
-        
+
         // Main App Screen
         composable("main") {
             MainScreen(
                 onSignOut = {
-                    // Sign out from AuthViewModel
                     authViewModel.signOut()
-                    // Navigate back to login
                     navController.navigate("login") {
                         popUpTo("main") { inclusive = true }
                     }
-                }
+                },
+                deepLinkRoute = deepLinkRoute,
+                onDeepLinkConsumed = onDeepLinkConsumed
             )
         }
     }

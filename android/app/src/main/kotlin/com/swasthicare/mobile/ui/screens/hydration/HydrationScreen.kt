@@ -30,6 +30,7 @@ import com.swasthicare.mobile.data.models.DrinkType
 import com.swasthicare.mobile.data.models.QuickAddPreset
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.swasthicare.mobile.ui.screens.home.glass
 
 // ─────────────────────────────────────
 // MARK: - HydrationScreen
@@ -102,6 +103,20 @@ fun HydrationScreen(
                             Spacer(Modifier.height(16.dp))
                         }
 
+                        // Weather Adjustment Banner
+                        if (uiState.isWeatherAdjusted && uiState.weatherData != null) {
+                            item {
+                                WeatherAdjustmentBanner(
+                                    temperature = uiState.weatherData!!.temperatureCelsius,
+                                    city = uiState.weatherData!!.city,
+                                    baseGoal = uiState.baseGoalMl,
+                                    adjustedGoal = uiState.effectiveGoalMl,
+                                    modifier = Modifier.padding(horizontal = 20.dp)
+                                )
+                                Spacer(Modifier.height(16.dp))
+                            }
+                        }
+
                         // Progress Section: Glass + Stats
                         item {
                             Column(
@@ -115,7 +130,10 @@ fun HydrationScreen(
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 Text(
-                                    "Goal: ${uiState.goal.dailyGoalMl}ml",
+                                    if (uiState.isWeatherAdjusted)
+                                        "Goal: ${uiState.effectiveGoalMl}ml (adjusted from ${uiState.baseGoalMl}ml)"
+                                    else
+                                        "Goal: ${uiState.effectiveGoalMl}ml",
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
@@ -135,7 +153,7 @@ fun HydrationScreen(
                                         icon = Icons.Default.WaterDrop,
                                         iconColor = HydrationCyan,
                                         value = "${uiState.effectiveIntake}",
-                                        label = "of ${uiState.goal.dailyGoalMl}ml",
+                                        label = "of ${uiState.effectiveGoalMl}ml",
                                         modifier = Modifier.weight(1f)
                                     )
                                     HydrationStatPill(

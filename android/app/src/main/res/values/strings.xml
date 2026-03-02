@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SwasthiCare</string>
+    <string name="hydration_widget_description">Track your daily water intake and log drinks quickly.</string>
+    <string name="medication_widget_description">View your next medication dose and mark it as taken.</string>
+    <string name="steps_widget_description">View your daily step count, distance, and calories.</string>
+    <string name="diet_widget_description">Track your calorie intake and macros at a glance.</string>
 </resources>

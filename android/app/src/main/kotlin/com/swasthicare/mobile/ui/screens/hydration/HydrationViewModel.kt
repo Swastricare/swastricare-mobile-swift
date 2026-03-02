@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.HydrationRepository
 import com.swasthicare.mobile.data.repository.ProfileRepository
+import com.swasthicare.mobile.data.services.WeatherData
+import com.swasthicare.mobile.data.services.WeatherService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,9 +16,9 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-// ─────────────────────────────────────
+// -----------------------------------------------
 // MARK: - UI State
-// ─────────────────────────────────────
+// -----------------------------------------------
 
 data class HydrationUiState(
     val entries: List<HydrationEntry> = emptyList(),
@@ -25,7 +27,11 @@ data class HydrationUiState(
     val insights: HydrationInsights? = null,
     val selectedDate: LocalDate = LocalDate.now(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // Weather adjustment
+    val weatherData: WeatherData? = null,
+    val weatherAdjustmentFactor: Double = 1.0,
+    val baseGoalMl: Int = 2500
 ) {
     /** Entries for selectedDate, sorted newest first */
     val todaysEntries: List<HydrationEntry> get() {
@@ -39,14 +45,18 @@ data class HydrationUiState(
 
     val effectiveIntake: Int get() = todaysEntries.sumOf { it.effectiveMl }
 
-    val remainingMl: Int get() = maxOf(0, goal.dailyGoalMl - effectiveIntake)
+    val effectiveGoalMl: Int get() = (baseGoalMl * weatherAdjustmentFactor).toInt()
+
+    val remainingMl: Int get() = maxOf(0, effectiveGoalMl - effectiveIntake)
 
     val progress: Float get() =
-        if (goal.dailyGoalMl > 0)
-            (effectiveIntake.toFloat() / goal.dailyGoalMl).coerceIn(0f, 1.5f)
+        if (effectiveGoalMl > 0)
+            (effectiveIntake.toFloat() / effectiveGoalMl).coerceIn(0f, 1.5f)
         else 0f
 
-    val isGoalMet: Boolean get() = effectiveIntake >= goal.dailyGoalMl
+    val isGoalMet: Boolean get() = effectiveIntake >= effectiveGoalMl
+
+    val isWeatherAdjusted: Boolean get() = weatherAdjustmentFactor > 1.0
 
     val caffeineEntries: Int get() = todaysEntries.count {
         DrinkType.fromDb(it.drinkType).containsCaffeine
@@ -57,13 +67,14 @@ data class HydrationUiState(
         .sumOf { it.amountMl }
 }
 
-// ─────────────────────────────────────
+// -----------------------------------------------
 // MARK: - ViewModel
-// ─────────────────────────────────────
+// -----------------------------------------------
 
 class HydrationViewModel(
     private val repository: HydrationRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val weatherService: WeatherService? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HydrationUiState(isLoading = true))
@@ -87,12 +98,16 @@ class HydrationViewModel(
                 entries = entries,
                 preferences = prefs,
                 goal = goal,
+                baseGoalMl = goal.dailyGoalMl,
                 insights = insights,
                 isLoading = false
             )
 
             // Background sync
             syncInBackground()
+
+            // Fetch weather for adjustment
+            fetchWeatherAdjustment()
         }
     }
 
@@ -130,6 +145,7 @@ class HydrationViewModel(
             _uiState.value = _uiState.value.copy(
                 preferences = newPrefs,
                 goal = goal,
+                baseGoalMl = goal.dailyGoalMl,
                 insights = insights
             )
         }
@@ -143,9 +159,33 @@ class HydrationViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    // ─────────────────────────────────────
+    // -----------------------------------------------
+    // MARK: - Weather Adjustment
+    // -----------------------------------------------
+
+    private fun fetchWeatherAdjustment() {
+        val service = weatherService ?: return
+        viewModelScope.launch {
+            try {
+                val weather = service.getCurrentWeather()
+                val factor = if (weather != null && weather.temperatureCelsius > WeatherService.HOT_WEATHER_THRESHOLD) {
+                    WeatherService.HOT_WEATHER_MULTIPLIER
+                } else {
+                    1.0
+                }
+                _uiState.value = _uiState.value.copy(
+                    weatherData = weather,
+                    weatherAdjustmentFactor = factor
+                )
+            } catch (_: Exception) {
+                // Silently fail — weather is best effort
+            }
+        }
+    }
+
+    // -----------------------------------------------
     // MARK: - Private Helpers
-    // ─────────────────────────────────────
+    // -----------------------------------------------
 
     private fun refreshFromLocal() {
         val entries = repository.loadLocalEntries()
@@ -200,7 +240,7 @@ class HydrationViewModel(
             val dayEffective = entries
                 .filter { it.consumedAt.startsWith(dateStr) }
                 .sumOf { it.effectiveMl }
-            if (dayEffective < goal.dailyGoalMl * 0.5) break // Count if at least 50% of goal met
+            if (dayEffective < goal.dailyGoalMl * 0.5) break
             streak++
             date = date.minusDays(1)
         }

@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.swasthicare.mobile"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
@@ -80,6 +80,16 @@ dependencies {
     
     // SceneView for 3D rendering (wraps Filament with Compose support)
     implementation("io.github.sceneview:sceneview:2.2.1")
+
+    // Jetpack Glance (App Widgets)
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+    implementation("androidx.glance:glance-material3:1.1.1")
+
+    // Health Connect
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
+
+    // Google Play Services Location (for weather-based hydration)
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

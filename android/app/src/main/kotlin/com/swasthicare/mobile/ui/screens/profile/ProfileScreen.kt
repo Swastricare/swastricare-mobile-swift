@@ -3,6 +3,7 @@ package com.swasthicare.mobile.ui.screens.profile
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +36,8 @@ import com.swasthicare.mobile.ui.theme.PrimaryColor
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
-    onSignOut: () -> Unit = {}
+    onSignOut: () -> Unit = {},
+    onNavigateToFamily: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
@@ -63,7 +65,8 @@ fun ProfileScreen(
         onConfirmSignOut = viewModel::signOut,
         onConfirmDeleteAccount = viewModel::deleteAccount,
         onDismissSignOutDialog = { viewModel.setShowSignOutConfirmation(false) },
-        onDismissDeleteAccountDialog = { viewModel.setShowDeleteAccountConfirmation(false) }
+        onDismissDeleteAccountDialog = { viewModel.setShowDeleteAccountConfirmation(false) },
+        onNavigateToFamily = onNavigateToFamily
     )
 }
 
@@ -83,7 +86,8 @@ fun ProfileScreenContent(
     onConfirmSignOut: () -> Unit,
     onConfirmDeleteAccount: () -> Unit,
     onDismissSignOutDialog: () -> Unit,
-    onDismissDeleteAccountDialog: () -> Unit
+    onDismissDeleteAccountDialog: () -> Unit,
+    onNavigateToFamily: () -> Unit = {}
 ) {
     // Background - solid color based on theme
     Box(
@@ -118,6 +122,11 @@ fun ProfileScreenContent(
             // Hydration Section
             item {
                 HydrationSection()
+            }
+
+            // Family Section
+            item {
+                FamilySection(onNavigateToFamily = onNavigateToFamily)
             }
 
             // Settings Section
@@ -590,6 +599,46 @@ fun SignOutSection(
                      Text("Sign Out")
                  }
             }
+        }
+    }
+}
+
+@Composable
+fun FamilySection(onNavigateToFamily: () -> Unit) {
+    SectionContainer(title = "Family") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onNavigateToFamily() }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.People,
+                contentDescription = null,
+                tint = PrimaryColor,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Family Group",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "View or join a family health group",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

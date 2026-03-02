@@ -393,7 +393,8 @@ fun HomeScreen(
                 // Weekly Steps Chart
                 WeeklyStepsChart(
                     weeklySteps = uiState.weeklySteps,
-                    selectedDate = uiState.selectedDate
+                    selectedDate = uiState.selectedDate,
+                    stepGoal = uiState.dailyStepGoal
                 )
                 
                 Spacer(modifier = Modifier.height(20.dp))
