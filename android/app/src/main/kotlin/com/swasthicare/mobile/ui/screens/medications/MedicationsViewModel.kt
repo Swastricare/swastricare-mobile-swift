@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.MedicationRepository
 import com.swasthicare.mobile.data.repository.ProfileRepository
+import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.notifications.MedicationReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -169,6 +171,22 @@ class MedicationsViewModel(
                 val savedMed = result.getOrThrow()
                 val schedules = buildSchedules(savedMed.id, profileId, scheduleType, scheduleTimes)
                 repository.upsertSchedules(schedules)
+
+                // Schedule reminders for each schedule
+                schedules.forEach { schedule ->
+                    val parts = schedule.timeOfDay.split(":")
+                    val hour = parts.getOrNull(0)?.toIntOrNull() ?: return@forEach
+                    val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                    MedicationReminderScheduler.schedule(
+                        context = AppContainer.appContext,
+                        medId = savedMed.id,
+                        scheduleId = schedule.id,
+                        medName = savedMed.name,
+                        timeHour = hour,
+                        timeMinute = minute
+                    )
+                }
+
                 loadMedications()
             } else {
                 _uiState.value = _uiState.value.copy(
@@ -181,8 +199,17 @@ class MedicationsViewModel(
 
     fun deleteMedication(medicationId: String) {
         viewModelScope.launch {
+            // Grab schedules before deletion so we can cancel their alarms
+            val schedulesToCancel = _uiState.value.medicationsWithDoses
+                .firstOrNull { it.medication.id == medicationId }
+                ?.schedules.orEmpty()
+
             val result = repository.deleteMedication(medicationId)
             if (result.isSuccess) {
+                // Cancel reminders for deleted medication's schedules
+                schedulesToCancel.forEach { schedule ->
+                    MedicationReminderScheduler.cancel(AppContainer.appContext, schedule.id)
+                }
                 loadMedications()
             } else {
                 _uiState.value = _uiState.value.copy(error = "Failed to delete medication")

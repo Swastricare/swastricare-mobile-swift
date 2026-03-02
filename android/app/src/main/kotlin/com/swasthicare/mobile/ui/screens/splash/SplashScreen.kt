@@ -11,19 +11,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.di.ONBOARDING_COMPLETE_KEY
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun SplashScreen(
     onNavigateToHome: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onNavigateToOnboarding: () -> Unit,
+    onForceUpdate: () -> Unit
 ) {
     LaunchedEffect(Unit) {
-        delay(2000)
-        // Navigate to login (auth check happens in ViewModel)
-        onNavigateToLogin()
+        delay(1500)
+
+        // Check for force update
+        try {
+            val config = AppContainer.supabaseClient.postgrest["app_config"]
+                .select { filter { eq("key", "min_android_version") } }
+                .decodeSingleOrNull<Map<String, String>>()
+            val minVersion = config?.get("value")?.toIntOrNull() ?: 1
+            val currentVersion = 1 // TODO: Use BuildConfig.VERSION_CODE
+
+            if (currentVersion < minVersion) {
+                onForceUpdate()
+                return@LaunchedEffect
+            }
+        } catch (_: Exception) {
+            // Network error — allow app to proceed
+        }
+
+        val prefs = AppContainer.dataStore.data.first()
+        val onboardingDone = prefs[ONBOARDING_COMPLETE_KEY] ?: false
+        if (onboardingDone) {
+            onNavigateToLogin()
+        } else {
+            onNavigateToOnboarding()
+        }
     }
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()

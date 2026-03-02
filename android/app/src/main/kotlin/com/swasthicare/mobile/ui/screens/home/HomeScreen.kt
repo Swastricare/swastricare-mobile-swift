@@ -56,10 +56,10 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Premium Animated Background
+    com.swasthicare.mobile.ui.theme.PremiumBackground(modifier = Modifier.fillMaxSize()) {
+        // 1. Premium Animated Background (orb layer)
         PremiumBackground()
-        
+
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),

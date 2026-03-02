@@ -2,6 +2,8 @@ package com.swasthicare.mobile.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
@@ -9,6 +11,9 @@ import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
 import com.swasthicare.mobile.ui.screens.hydration.HydrationViewModel
 import com.swasthicare.mobile.ui.screens.medications.MedicationsViewModel
+import com.swasthicare.mobile.data.services.AIService
+import com.swasthicare.mobile.data.services.HealthConnectService
+import com.swasthicare.mobile.data.services.SpeechService
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
@@ -16,6 +21,14 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.functions.Functions
+
+// Extension property for DataStore
+private val Context.dataStore by preferencesDataStore(name = "swasthicare_settings")
+
+// DataStore keys for navigation state
+val ONBOARDING_COMPLETE_KEY = booleanPreferencesKey("onboarding_complete")
+val CONSENT_ACCEPTED_KEY = booleanPreferencesKey("consent_accepted")
+val HEALTH_PROFILE_COMPLETE_KEY = booleanPreferencesKey("health_profile_complete")
 
 /**
  * App Dependency Container
@@ -31,6 +44,10 @@ object AppContainer {
     
     private val context: Context
         get() = _context ?: throw IllegalStateException("AppContainer not initialized")
+
+    /** Public accessor for services that need application context (e.g. notifications) */
+    val appContext: Context
+        get() = context
     
     // Supabase Client - matching iOS
     val supabaseClient: SupabaseClient by lazy {
@@ -79,13 +96,26 @@ object AppContainer {
         context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
     }
 
-    // Other repositories
-    val profileRepository: ProfileRepository by lazy {
-        MockProfileRepository()
+    // DataStore for persisting settings
+    val dataStore get() = context.dataStore
+
+    // AI Services
+    val aiService: AIService by lazy {
+        AIService(supabaseClient)
     }
 
-    val vaultRepository: VaultRepository by lazy {
-        MockVaultRepository()
+    val speechService: SpeechService by lazy {
+        SpeechService(context)
+    }
+
+    // Health Connect
+    val healthConnectService: HealthConnectService by lazy {
+        HealthConnectService(context)
+    }
+
+    // Other repositories
+    val profileRepository: ProfileRepository by lazy {
+        SupabaseProfileRepository(supabaseClient)
     }
 
     val medicationRepository: MedicationRepository by lazy {

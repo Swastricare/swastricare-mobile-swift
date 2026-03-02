@@ -1,11 +1,11 @@
 package com.swasthicare.mobile.ui.screens.ai
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.services.AIService
 import com.swasthicare.mobile.data.services.SpeechService
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,9 +29,9 @@ sealed class AnalysisState {
     data class Error(val message: String) : AnalysisState()
 }
 
-class AIViewModel(application: Application) : AndroidViewModel(application) {
-    private val aiService = AIService()
-    private val speechService = SpeechService(application.applicationContext)
+class AIViewModel : ViewModel() {
+    private val aiService: AIService = AppContainer.aiService
+    private val speechService: SpeechService = AppContainer.speechService
     
     private val _uiState = MutableStateFlow(AIUiState())
     val uiState: StateFlow<AIUiState> = _uiState.asStateFlow()

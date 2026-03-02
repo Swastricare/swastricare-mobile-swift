@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.DietInsights
 import com.swasthicare.mobile.data.models.MealType
 import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.ui.components.EmptyStateView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 
 // ─────────────────────────────────────
@@ -40,6 +41,7 @@ fun DietScreen(
 
     val isDark = isSystemInDarkTheme()
     val secondaryBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+    var showSettingsSheet by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
@@ -82,7 +84,10 @@ fun DietScreen(
                         DropdownMenuItem(
                             text = { Text("Goals & Settings") },
                             leadingIcon = { Icon(Icons.Default.Settings, null) },
-                            onClick = { showMenu = false /* TODO: settings */ }
+                            onClick = {
+                                showMenu = false
+                                showSettingsSheet = true
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Add Food") },
@@ -190,6 +195,18 @@ fun DietScreen(
                             Spacer(Modifier.height(12.dp))
                         }
 
+                        // Empty state when no meals logged
+                        if (uiState.nutritionSummary.mealCount == 0) {
+                            item {
+                                EmptyStateView(
+                                    emoji = "\uD83E\uDD57",
+                                    title = "No meals logged today",
+                                    subtitle = "Tap + to add breakfast, lunch, or dinner.",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+
                         // Meal Section Cards
                         items(MealType.values().size) { index ->
                             val mealType = MealType.values()[index]
@@ -261,6 +278,15 @@ fun DietScreen(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
                 action = { TextButton(onClick = { vm.clearError() }) { Text("Dismiss") } }
             ) { Text(errorMsg) }
+        }
+
+        // Settings bottom sheet
+        if (showSettingsSheet) {
+            DietSettingsSheet(
+                currentGoals = uiState.dietGoals,
+                onSave = { goals -> vm.updateGoals(goals) },
+                onDismiss = { showSettingsSheet = false }
+            )
         }
     }
 }

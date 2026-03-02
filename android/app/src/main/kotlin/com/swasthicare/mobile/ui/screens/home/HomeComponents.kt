@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -726,8 +727,17 @@ fun DietQuickActionCard(
     calorieCurrent: Int,
     calorieGoal: Int,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    index: Int = 0
 ) {
+    var visible by remember { mutableStateOf(false) }
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(400, delayMillis = index * 100),
+        label = "dietCardAlpha"
+    )
+    LaunchedEffect(Unit) { visible = true }
+
     val progress = if (calorieGoal > 0) (calorieCurrent.toFloat() / calorieGoal).coerceIn(0f, 1f) else 0f
 
     val animatedProgress by animateFloatAsState(
@@ -736,6 +746,7 @@ fun DietQuickActionCard(
         label = "dietProgress"
     )
 
+    Box(modifier = Modifier.alpha(cardAlpha)) {
     Box(
         modifier = modifier
             .height(150.dp)
@@ -809,6 +820,7 @@ fun DietQuickActionCard(
             }
         }
     }
+    } // close alpha Box wrapper
 }
 
 // MARK: - Cycle Tracker Card
@@ -818,8 +830,18 @@ private val CyclePurple = Color(0xFFBF5AF2)
 fun CycleTrackerCard(
     phaseLabel: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    index: Int = 0
 ) {
+    var visible by remember { mutableStateOf(false) }
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(400, delayMillis = index * 100),
+        label = "cycleCardAlpha"
+    )
+    LaunchedEffect(Unit) { visible = true }
+
+    Box(modifier = Modifier.alpha(cardAlpha)) {
     val infiniteTransition = rememberInfiniteTransition(label = "cyclePulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.85f,
@@ -917,6 +939,7 @@ fun CycleTrackerCard(
             )
         }
     }
+    } // close alpha Box wrapper
 }
 
 // MARK: - Health Authorization Banner

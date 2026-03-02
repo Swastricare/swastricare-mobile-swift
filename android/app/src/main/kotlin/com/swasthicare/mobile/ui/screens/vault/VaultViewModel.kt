@@ -6,8 +6,9 @@ import com.swasthicare.mobile.data.model.DocumentMetadata
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.data.repository.MockVaultRepository
-// import com.swasthicare.mobile.data.repository.SupabaseVaultRepository
+import com.swasthicare.mobile.data.repository.SupabaseVaultRepository
 import com.swasthicare.mobile.data.repository.VaultRepository
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,9 +34,14 @@ enum class VaultViewMode {
 }
 
 class VaultViewModel(
-    // In a real app with Hilt, this would be injected.
-    // For now defaulting to Mock implementation for UI-only mode.
-    private val repository: VaultRepository = MockVaultRepository() 
+    private val repository: VaultRepository = run {
+        val userId = AppContainer.authRepository.currentUser?.id
+        if (userId != null) {
+            SupabaseVaultRepository(AppContainer.supabaseClient, userId)
+        } else {
+            MockVaultRepository()
+        }
+    }
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VaultUiState())

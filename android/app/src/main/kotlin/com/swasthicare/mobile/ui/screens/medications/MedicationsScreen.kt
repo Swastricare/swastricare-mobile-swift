@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.AdherenceStatus
 import com.swasthicare.mobile.data.models.MedicationDose
 import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.ui.components.EmptyStateView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import java.time.format.DateTimeFormatter
 
@@ -416,30 +417,16 @@ private fun MedicationsSkeletonContent() {
 private fun MedicationsEmptyContent(onAdd: () -> Unit) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 40.dp),
+            .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            Icons.Default.Medication, null,
-            tint = MedBrandBlue.copy(alpha = 0.3f),
-            modifier = Modifier.size(100.dp)
+        EmptyStateView(
+            emoji = "\uD83D\uDC8A",
+            title = "No medications added",
+            subtitle = "Tap + to add your first medication and set reminders."
         )
-        Spacer(Modifier.height(24.dp))
-        Text(
-            "No Medications Yet",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            "Add your first medication to get started with reminders",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
         Button(
             onClick = onAdd,
             colors = ButtonDefaults.buttonColors(containerColor = MedBrandBlue),

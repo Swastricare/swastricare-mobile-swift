@@ -13,3 +13,30 @@
 -keep public class * extends android.app.Activity
 -keep public class * extends android.app.Application
 -keep public class * extends android.app.Service
+
+# Kotlin serialization
+-keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keep @kotlinx.serialization.Serializable class * { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+}
+
+# Supabase / Ktor
+-dontwarn io.ktor.**
+-keep class io.github.jan.supabase.** { *; }
+-keep class io.ktor.** { *; }
+
+# Coil
+-dontwarn coil.**
+
+# Health Connect
+-keep class androidx.health.connect.** { *; }
+
+# Coroutines
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+
+# Firebase
+-keep class com.google.firebase.** { *; }

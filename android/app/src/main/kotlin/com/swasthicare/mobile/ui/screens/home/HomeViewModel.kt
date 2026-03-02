@@ -2,6 +2,8 @@ package com.swasthicare.mobile.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swasthicare.mobile.data.services.HealthConnectService
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.DailyMetric
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,7 +53,9 @@ data class HomeState(
     val cyclePhase: String = "Cycle Tracker"
 )
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(
+    private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
+) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeState())
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
 
@@ -61,9 +65,6 @@ class HomeViewModel : ViewModel() {
 
     private fun loadData() {
         viewModelScope.launch {
-            // Simulate network delay
-            delay(1500)
-            
             val hour = LocalDateTime.now().hour
             val greeting = when (hour) {
                 in 5..11 -> "Good Morning,"
@@ -71,34 +72,39 @@ class HomeViewModel : ViewModel() {
                 in 17..20 -> "Good Evening,"
                 else -> "Good Night,"
             }
-            
-            // Generate week dates and sample data
             val weekDates = generateWeekDates()
-            val weeklySteps = generateSampleWeeklySteps()
 
-            _uiState.value = HomeState(
-                userName = "Alex Johnson",
-                greeting = greeting,
-                stepCount = 8432,
-                calories = 450,
-                activeMinutes = 45,
-                standHours = 8,
-                heartRate = 72,
-                sleepHours = "7h 30m",
-                distance = 5.2,
-                hydrationCurrent = 1250,
-                hydrationGoal = 2500,
-                medicationsTaken = 2,
-                medicationsTotal = 4,
-                isLoading = false,
-                isDemoMode = true,
-                isAuthorized = false,
-                weekDates = weekDates,
-                selectedDate = Date(),
-                weeklySteps = weeklySteps,
-                calorieCurrent = 1240,
-                calorieGoal = 2000
-            )
+            if (healthConnectService.isAvailable && healthConnectService.hasPermissions()) {
+                val summary = healthConnectService.getTodaySummary()
+                val weeklySteps = generateSampleWeeklySteps() // TODO: fetch real weekly data
+                _uiState.value = HomeState(
+                    greeting = greeting,
+                    stepCount = summary.steps,
+                    calories = summary.activeCalories,
+                    heartRate = summary.heartRate,
+                    isLoading = false,
+                    isDemoMode = false,
+                    isAuthorized = true,
+                    weekDates = weekDates,
+                    selectedDate = Date(),
+                    weeklySteps = weeklySteps
+                )
+            } else {
+                // Demo fallback while permissions not granted
+                delay(800)
+                _uiState.value = HomeState(
+                    greeting = greeting,
+                    stepCount = 0,
+                    calories = 0,
+                    heartRate = 0,
+                    isLoading = false,
+                    isDemoMode = !healthConnectService.isAvailable,
+                    isAuthorized = false,
+                    weekDates = weekDates,
+                    selectedDate = Date(),
+                    weeklySteps = generateSampleWeeklySteps()
+                )
+            }
             loadNudges()
         }
     }
@@ -153,10 +159,11 @@ class HomeViewModel : ViewModel() {
         }
     }
     
-    fun requestHealthPermissions() {
-        // In a real app, would request Google Fit permissions
+    // Called after the user grants Health Connect permissions via the system dialog
+    fun onPermissionsGranted() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAuthorized = true, isDemoMode = false)
+            loadData()
         }
     }
     

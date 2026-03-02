@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
+import com.swasthicare.mobile.ui.components.EmptyStateView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -435,27 +436,10 @@ fun TimelineView(
 
 @Composable
 fun EmptyState() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Default.FolderOpen,
-            contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "No Documents Yet",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = "Upload your medical records to get started",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+    EmptyStateView(
+        emoji = "\uD83D\uDCC1",
+        title = "No documents yet",
+        subtitle = "Upload prescriptions, lab reports, and medical records to keep them safe.",
+        modifier = Modifier.fillMaxSize()
+    )
 }

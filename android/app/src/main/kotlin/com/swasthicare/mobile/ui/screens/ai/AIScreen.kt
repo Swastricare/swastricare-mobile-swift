@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.data.models.ChatMessage
 import com.swasthicare.mobile.data.models.HealthAnalysisResult
 import com.swasthicare.mobile.data.models.QuickAction
+import com.swasthicare.mobile.ui.components.EmptyStateView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 import kotlinx.coroutines.delay
@@ -181,40 +182,18 @@ fun IntroView(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.padding(32.dp),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.AutoAwesome,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp)
-            )
-        }
-        
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "Swastri AI",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Text(
-                text = "Your personal health assistant.\nAsk me anything about your vitals, diet, or fitness.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                lineHeight = 24.sp
-            )
-        }
-        
+        EmptyStateView(
+            emoji = "\uD83E\uDD16",
+            title = "Ask Swastri AI",
+            subtitle = "Get personalized health insights, medication information, and wellness advice."
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Button(
             onClick = onAnalyzeClick,
             colors = ButtonDefaults.buttonColors(

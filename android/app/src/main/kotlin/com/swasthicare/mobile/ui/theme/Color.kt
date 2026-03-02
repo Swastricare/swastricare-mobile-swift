@@ -23,10 +23,15 @@ val TextPrimaryDark = Color(0xFFFFFFFF)
 val TextSecondaryDark = Color(0xFF8E8E93)
 
 // Functional Colors
-val HeartRateColor = Color(0xFFFF2D55)
+val HeartRateColor = Color(0xFFFF3B30)
 val SleepColor = Color(0xFF5E5CE6)
 val ActivityColor = Color(0xFFFF9F0A)
-val HydrationColor = Color(0xFF64D2FF)
+val HydrationColor = Color(0xFF00C7BE)
+
+val MedicationColor = Color(0xFF5856D6)
+val DietColor = Color(0xFF34C759)
+val StepsColor = Color(0xFF30D158)
+val DistanceColor = Color(0xFF0A84FF)
 
 // Premium Colors (Ported from iOS)
 object PremiumColor {
