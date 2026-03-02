@@ -37,6 +37,3 @@
 -keepclassmembernames class kotlinx.** {
     volatile <fields>;
 }
-
-# Firebase
--keep class com.google.firebase.** { *; }

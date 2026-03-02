@@ -6,7 +6,34 @@
 
 **Architecture:** MVVM with singleton `AppContainer` DI, Supabase SDK for all backend, Jetpack Compose UI, `DataStore<Preferences>` for settings persistence. Each task replaces one mock/stub with a real implementation and wires it into the existing navigation.
 
-**Tech Stack:** Kotlin, Jetpack Compose, Material3, Supabase Kotlin SDK v2.6.0, Ktor 2.3.12, Health Connect API, AlarmManager, DataStore, Firebase Crashlytics
+**Tech Stack:** Kotlin, Jetpack Compose, Material3, Supabase Kotlin SDK v2.6.0, Ktor 2.3.12, Health Connect API, AlarmManager, DataStore
+
+---
+
+## Progress Tracker
+
+| Task | Description | Status |
+|------|-------------|--------|
+| 1 | Add Missing Dependencies | ✅ Done |
+| 2 | Supabase Profile Repository | ✅ Done |
+| 3 | Persist Profile Settings with DataStore | ✅ Done |
+| 4 | Health Connect Integration (Home/Vitals) | ✅ Done |
+| 5 | Supabase Vault Repository | ✅ Done |
+| 6 | AI Chat Backend Connection | ✅ Done |
+| 7 | Onboarding Screen | ✅ Done |
+| 8 | Consent Screen | ✅ Done |
+| 9 | Health Profile Questionnaire | ✅ Done |
+| 10 | Force Update Screen | ✅ Done |
+| 11 | Google OAuth Fix | ✅ Done (Web Client ID configured) |
+| 12 | Medication Reminders | ✅ Done |
+| 13 | Diet Goals Settings Sheet | ✅ Done |
+| 14 | Animated Premium Background | ✅ Done |
+| 15 | Typography & Color Audit | ✅ Done |
+| 16 | Tab Crossfade Animation & Dark Mode Audit | ✅ Done |
+| 17 | Empty States | ✅ Done |
+| 18 | Firebase Crashlytics | ⏸️ Deferred (will add later) |
+| 19 | ProGuard Rules & App Signing | ✅ Done |
+| 20 | Final Verification & Internal Beta | 🔲 Manual — device testing + Play Store |
 
 ---
 
