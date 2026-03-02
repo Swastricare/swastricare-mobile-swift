@@ -46,7 +46,8 @@ import com.swasthicare.mobile.ui.theme.*
 
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(),
+    onNavigateToMedications: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -213,7 +214,7 @@ fun HomeScreen(
                             .weight(1f)
                             .height(180.dp)
                             .glass(cornerRadius = 24.dp)
-                            .clickable { /* TODO */ }
+                            .clickable { onNavigateToMedications() }
                     ) {
                         val progress = uiState.medicationsTaken.toFloat() / uiState.medicationsTotal.toFloat()
                         Box(

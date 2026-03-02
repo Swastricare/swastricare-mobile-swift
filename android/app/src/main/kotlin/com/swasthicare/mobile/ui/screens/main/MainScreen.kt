@@ -41,6 +41,9 @@ import androidx.navigation.compose.rememberNavController
 import com.swasthicare.mobile.ui.screens.ai.AIScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
+import com.swasthicare.mobile.ui.screens.medications.MedicationDetailScreen
+import com.swasthicare.mobile.ui.screens.medications.MedicationsScreen
 import com.swasthicare.mobile.ui.screens.profile.ProfileScreen
 import com.swasthicare.mobile.ui.screens.vault.VaultScreen
 
@@ -156,12 +159,37 @@ fun MainScreen(
             startDestination = MainTab.Vitals.route,
             modifier = Modifier.fillMaxSize() // Fill entire screen including behind bar
         ) {
-            composable(MainTab.Vitals.route) { HomeScreen() }
+            composable(MainTab.Vitals.route) {
+                HomeScreen(onNavigateToMedications = { navController.navigate("medications") })
+            }
             composable(MainTab.AI.route) { AIScreen() }
             composable(MainTab.Vault.route) { VaultScreen() }
-            composable(MainTab.Profile.route) { 
-                ProfileScreen(
-                    onSignOut = onSignOut
+            composable(MainTab.Profile.route) {
+                ProfileScreen(onSignOut = onSignOut)
+            }
+            // Medications flow
+            composable("medications") {
+                MedicationsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToAddMedication = { navController.navigate("add_medication") },
+                    onNavigateToDetail = { id -> navController.navigate("medication_detail/$id") },
+                    onNavigateToAI = {
+                        navController.navigate(MainTab.AI.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+            composable("add_medication") {
+                AddMedicationScreen(onDismiss = { navController.popBackStack() })
+            }
+            composable("medication_detail/{medicationId}") { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("medicationId") ?: return@composable
+                MedicationDetailScreen(
+                    medicationId = id,
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

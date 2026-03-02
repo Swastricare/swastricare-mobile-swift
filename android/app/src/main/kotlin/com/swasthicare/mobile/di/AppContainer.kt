@@ -1,10 +1,12 @@
 package com.swasthicare.mobile.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
+import com.swasthicare.mobile.ui.screens.medications.MedicationsViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
@@ -70,12 +72,25 @@ object AppContainer {
         AuthViewModel(authRepository, googleAuthHelper)
     }
     
+    // Shared preferences
+    val sharedPreferences: SharedPreferences by lazy {
+        context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
+    }
+
     // Other repositories
     val profileRepository: ProfileRepository by lazy {
         MockProfileRepository()
     }
-    
+
     val vaultRepository: VaultRepository by lazy {
         MockVaultRepository()
+    }
+
+    val medicationRepository: MedicationRepository by lazy {
+        SupabaseMedicationRepository(supabaseClient, sharedPreferences)
+    }
+
+    val medicationsViewModel: MedicationsViewModel by lazy {
+        MedicationsViewModel(medicationRepository, profileRepository)
     }
 }
