@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,406 +20,301 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.AdherenceStatus
 import com.swasthicare.mobile.data.models.MedicationDose
-import com.swasthicare.mobile.ui.screens.home.glass
-import com.swasthicare.mobile.ui.theme.*
+import com.swasthicare.mobile.data.models.MedicationType
+import com.swasthicare.mobile.ui.screens.home.WaterWave
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.min
 
 // ─────────────────────────────────────
-// MARK: - PillBottleProgress
+// MARK: - Brand Colors
 // ─────────────────────────────────────
 
-@Composable
-fun PillBottleProgress(
-    adherencePercentage: Float,
-    takenCount: Int,
-    totalCount: Int,
-    modifier: Modifier = Modifier
-) {
-    val animatedFill by animateFloatAsState(
-        targetValue = adherencePercentage.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-        label = "pillFill"
-    )
+val MedBrandBlue = Color(0xFF2E3192)   // iOS Color(hex: "2E3192")
+val MedTealGreen = Color(0xFF11998E)   // iOS Color(hex: "11998e")
 
-    val fillColor by animateColorAsState(
-        targetValue = when {
-            adherencePercentage >= 0.8f -> Color(0xFF34C759)   // green
-            adherencePercentage >= 0.5f -> Color(0xFFFF9500)   // orange
-            else -> Color(0xFFFF3B30)                           // red
-        },
-        animationSpec = tween(600),
-        label = "fillColor"
-    )
+// ─────────────────────────────────────
+// MARK: - MedicationType Icon
+// ─────────────────────────────────────
 
-    Box(
-        modifier = modifier
-            .height(160.dp)
-            .fillMaxWidth(0.45f),
-        contentAlignment = Alignment.Center
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            val bottleColor = Color.White.copy(alpha = 0.15f)
-            val strokeColor = Color.White.copy(alpha = 0.5f)
-            val strokeWidth = 3.dp.toPx()
-            val cr = 12.dp.toPx()
-
-            // Bottle neck
-            val neckLeft = w * 0.33f
-            val neckRight = w * 0.67f
-            val neckTop = h * 0.05f
-            val neckBottom = h * 0.20f
-
-            // Bottle body
-            val bodyLeft = w * 0.10f
-            val bodyRight = w * 0.90f
-            val bodyTop = neckBottom
-            val bodyBottom = h * 0.92f
-
-            // Clip fill to bottle body shape
-            val bodyPath = Path().apply {
-                addRoundRect(
-                    androidx.compose.ui.geometry.RoundRect(
-                        left = bodyLeft, top = bodyTop,
-                        right = bodyRight, bottom = bodyBottom,
-                        cornerRadius = CornerRadius(cr, cr)
-                    )
-                )
-            }
-
-            // Draw fill liquid
-            val fillTop = bodyBottom - (bodyBottom - bodyTop) * animatedFill
-            clipPath(bodyPath) {
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            fillColor.copy(alpha = 0.9f),
-                            fillColor.copy(alpha = 0.6f)
-                        ),
-                        startY = fillTop,
-                        endY = bodyBottom
-                    ),
-                    topLeft = Offset(bodyLeft, fillTop),
-                    size = Size(bodyRight - bodyLeft, bodyBottom - fillTop)
-                )
-            }
-
-            // Draw bottle outline
-            drawRoundRect(
-                color = bottleColor,
-                topLeft = Offset(bodyLeft, bodyTop),
-                size = Size(bodyRight - bodyLeft, bodyBottom - bodyTop),
-                cornerRadius = CornerRadius(cr, cr),
-                style = Fill
-            )
-            drawRoundRect(
-                color = strokeColor,
-                topLeft = Offset(bodyLeft, bodyTop),
-                size = Size(bodyRight - bodyLeft, bodyBottom - bodyTop),
-                cornerRadius = CornerRadius(cr, cr),
-                style = Stroke(width = strokeWidth)
-            )
-
-            // Neck
-            drawRect(
-                color = bottleColor,
-                topLeft = Offset(neckLeft, neckTop),
-                size = Size(neckRight - neckLeft, neckBottom - neckTop)
-            )
-            drawRect(
-                color = strokeColor,
-                topLeft = Offset(neckLeft, neckTop),
-                size = Size(neckRight - neckLeft, neckBottom - neckTop),
-                style = Stroke(width = strokeWidth)
-            )
-            // Cap
-            drawRoundRect(
-                color = strokeColor,
-                topLeft = Offset(neckLeft - 4.dp.toPx(), 0f),
-                size = Size(neckRight - neckLeft + 8.dp.toPx(), neckTop + 8.dp.toPx()),
-                cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx()),
-                style = Stroke(width = strokeWidth)
-            )
-        }
-
-        // Pill count label centered in bottle body
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 28.dp)
-        ) {
-            Text(
-                text = "$takenCount",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Text(
-                text = "/$totalCount",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-        }
-    }
+fun MedicationType.toIcon(): ImageVector = when (this) {
+    MedicationType.PILL -> Icons.Default.Medication
+    MedicationType.LIQUID -> Icons.Default.LocalDrink
+    MedicationType.INJECTION -> Icons.Default.Vaccines
+    MedicationType.INHALER -> Icons.Default.Air
+    MedicationType.DROPS -> Icons.Default.WaterDrop
+    MedicationType.CREAM -> Icons.Default.Spa
+    MedicationType.OTHER -> Icons.Default.MedicalServices
 }
 
 // ─────────────────────────────────────
-// MARK: - DateStrip
+// MARK: - AdherenceStatus Helpers
 // ─────────────────────────────────────
 
+fun AdherenceStatus.toIcon(): ImageVector = when (this) {
+    AdherenceStatus.TAKEN -> Icons.Default.CheckCircle
+    AdherenceStatus.PENDING -> Icons.Default.Schedule
+    AdherenceStatus.MISSED -> Icons.Default.Cancel
+    AdherenceStatus.SKIPPED -> Icons.Default.RemoveCircleOutline
+    AdherenceStatus.LATE -> Icons.Default.AccessTime
+    AdherenceStatus.EARLY -> Icons.Default.SkipPrevious
+}
+
+fun AdherenceStatus.displayName(): String = when (this) {
+    AdherenceStatus.TAKEN -> "Taken"
+    AdherenceStatus.PENDING -> "Pending"
+    AdherenceStatus.MISSED -> "Missed"
+    AdherenceStatus.SKIPPED -> "Skipped"
+    AdherenceStatus.LATE -> "Late"
+    AdherenceStatus.EARLY -> "Early"
+}
+
+fun AdherenceStatus.statusColor(): Color = when (this) {
+    AdherenceStatus.TAKEN -> Color(0xFF34C759)
+    AdherenceStatus.LATE -> Color(0xFFFF9500)
+    AdherenceStatus.EARLY -> Color(0xFF007AFF)
+    AdherenceStatus.MISSED -> Color(0xFFFF3B30)
+    AdherenceStatus.SKIPPED -> Color(0xFF8E8E93)
+    AdherenceStatus.PENDING -> Color(0xFF8E8E93)
+}
+
+// ─────────────────────────────────────
+// MARK: - CalendarStrip
+// ─────────────────────────────────────
+
+/**
+ * Horizontal scrollable 7-day calendar strip starting from today.
+ * Matches iOS: day abbreviation + day number in circle.
+ */
 @Composable
-fun DateStrip(
+fun CalendarStrip(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val today = LocalDate.now()
-    val dates = (-3..3).map { today.plusDays(it.toLong()) }
+    val dates = (0..6).map { today.plusDays(it.toLong()) }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    androidx.compose.foundation.lazy.LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp)
     ) {
-        dates.forEach { date ->
-            val isSelected = date == selectedDate
+        items(dates.size) { index ->
+            val date = dates[index]
             val isToday = date == today
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(0.65f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        if (isSelected) PrimaryColor
-                        else Color.White.copy(alpha = 0.1f)
-                    )
-                    .clickable { onDateSelected(date) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-                            .take(3).uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
-                        fontSize = 9.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = date.dayOfMonth.toString(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.9f)
-                    )
-                    if (isToday && !isSelected) {
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(4.dp)
-                                .background(PrimaryColor, CircleShape)
-                        )
-                    }
-                }
-            }
+            val isSelected = date == selectedDate
+
+            CalendarDay(
+                date = date,
+                isToday = isToday,
+                isSelected = isSelected,
+                onClick = { onDateSelected(date) }
+            )
         }
     }
 }
 
-// ─────────────────────────────────────
-// MARK: - StatPillsRow
-// ─────────────────────────────────────
-
 @Composable
-fun StatPillsRow(
-    taken: Int,
-    remaining: Int,
-    adherenceRate: Float,
-    modifier: Modifier = Modifier
+private fun CalendarDay(
+    date: LocalDate,
+    isToday: Boolean,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        StatPill(label = "Taken", value = "$taken", color = Color(0xFF34C759))
-        StatPill(label = "Remaining", value = "$remaining", color = Color(0xFFFF9500))
-        StatPill(
-            label = "Adherence",
-            value = "${(adherenceRate * 100).toInt()}%",
-            color = PrimaryColor
-        )
-    }
-}
+    val dayAbbr = date.dayOfWeek
+        .getDisplayName(TextStyle.SHORT, Locale.getDefault())
+        .take(3)
 
-@Composable
-private fun StatPill(label: String, value: String, color: Color) {
+    val bgColor = when {
+        isSelected -> Color.Transparent
+        isToday -> MedBrandBlue.copy(alpha = 0.1f)
+        else -> Color.Transparent
+    }
+
     Box(
         modifier = Modifier
-            .glass(cornerRadius = 14.dp)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - TimelineGroup
-// ─────────────────────────────────────
-
-@Composable
-fun TimelineGroup(
-    label: String,
-    doses: List<MedicationDose>,
-    onMarkTaken: (MedicationDose) -> Unit,
-    onMarkSkipped: (MedicationDose) -> Unit,
-    onDoseClick: (MedicationDose) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (doses.isEmpty()) return
-
-    Column(modifier = modifier) {
-        // Time period header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            HorizontalDivider(
-                modifier = Modifier.weight(1f),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-            )
-        }
-
-        doses.forEach { dose ->
-            MedicationCard(
-                dose = dose,
-                onMarkTaken = { onMarkTaken(dose) },
-                onMarkSkipped = { onMarkSkipped(dose) },
-                onClick = { onDoseClick(dose) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp)
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - MedicationCard
-// ─────────────────────────────────────
-
-@Composable
-fun MedicationCard(
-    dose: MedicationDose,
-    onMarkTaken: () -> Unit,
-    onMarkSkipped: () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
-
-    Box(
-        modifier = modifier
-            .glass(cornerRadius = 16.dp)
+            .width(56.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { onClick() }
-            .padding(12.dp)
+            .background(bgColor, RoundedCornerShape(12.dp))
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Type emoji + time
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(44.dp)
+            Text(
+                text = dayAbbr,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+            // Number inside circle when selected
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        color = if (isSelected) MedBrandBlue else Color.Transparent,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = dose.medicationType.emoji,
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Text(
-                    text = dose.scheduledTime.format(timeFormatter),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    maxLines = 1
+                    text = date.dayOfMonth.toString(),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
                 )
             }
+        }
+    }
+}
 
-            // Name + dosage
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = dose.medicationName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+// ─────────────────────────────────────
+// MARK: - PillBottleView (matches iOS exactly)
+// ─────────────────────────────────────
+
+/**
+ * Animated pill bottle with water fill — exact iOS PillBottleView match.
+ * Width: 80dp, Height: 130dp
+ * Fill color: teal (#11998E)
+ * Shows percentage inside body.
+ */
+@Composable
+fun PillBottleView(
+    progress: Float,                // 0..1
+    modifier: Modifier = Modifier,
+    bottleWidth: Int = 80,          // dp
+    bottleHeight: Int = 130         // dp
+) {
+    val teal = MedTealGreen
+    val safeProgress = progress.coerceIn(0f, 1f)
+
+    val animatedFill by animateFloatAsState(
+        targetValue = safeProgress,
+        animationSpec = tween(durationMillis = 800, delayMillis = 200, easing = FastOutSlowInEasing),
+        label = "bottleFill"
+    )
+
+    // Body starts at 16% from top (cap 10% + neck 6%)
+    val bodyTopFraction = 0.16f
+    val bodyBottomRadius = 10.dp
+
+    Box(
+        modifier = modifier.size(bottleWidth.dp, bottleHeight.dp)
+    ) {
+        // ── Bottle outline (Canvas) ──
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+            val outlineColor = teal.copy(alpha = 0.3f)
+
+            val capH = h * 0.10f
+            val neckH = h * 0.06f
+            val bodyTop = capH + neckH
+            val capInset = w * 0.15f
+            val neckInset = w * 0.10f
+            val bodyR = CornerRadius(min(w * 0.08f, 10.dp.toPx()))
+            val capR = min(w * 0.06f, 6.dp.toPx())
+
+            // Cap
+            val capPath = Path().apply {
+                addRoundRect(
+                    RoundRect(
+                        left = capInset, top = 0f,
+                        right = w - capInset, bottom = capH,
+                        topLeftCornerRadius = CornerRadius(capR),
+                        topRightCornerRadius = CornerRadius(capR)
+                    )
                 )
-                if (dose.dosage.isNotBlank()) {
-                    Text(
-                        text = dose.dosage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                StatusBadge(status = dose.status, isOverdue = dose.isOverdue)
             }
+            drawPath(capPath, outlineColor, style = stroke)
 
-            // Action buttons (only for actionable statuses)
-            if (dose.status == AdherenceStatus.PENDING) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    SmallActionButton(
-                        text = "Take",
-                        color = Color(0xFF34C759),
-                        onClick = onMarkTaken
+            // Neck (simple rect, no fill)
+            drawRect(
+                color = outlineColor,
+                topLeft = Offset(neckInset, capH),
+                size = Size(w - 2 * neckInset, neckH),
+                style = stroke
+            )
+
+            // Body
+            val bodyPath = Path().apply {
+                addRoundRect(
+                    RoundRect(
+                        left = 0f, top = bodyTop,
+                        right = w, bottom = h,
+                        bottomLeftCornerRadius = bodyR,
+                        bottomRightCornerRadius = bodyR
                     )
-                    SmallActionButton(
-                        text = "Skip",
-                        color = Color(0xFF8E8E93),
-                        onClick = onMarkSkipped
+                )
+            }
+            drawPath(bodyPath, outlineColor, style = stroke)
+        }
+
+        // ── Water fill (clipped to body only) ──
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(1f - bodyTopFraction)
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(bottomStart = bodyBottomRadius, bottomEnd = bodyBottomRadius))
+        ) {
+            WaterWave(
+                progress = animatedFill,
+                color = teal.copy(alpha = 0.25f),
+                modifier = Modifier.fillMaxSize()
+            )
+            WaterWave(
+                progress = animatedFill,
+                color = teal.copy(alpha = 0.4f),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 3.dp)
+            )
+        }
+
+        // ── Percentage label ──
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = (bottleHeight * bodyTopFraction).dp)
+            ) {
+                Text(
+                    text = "${(animatedFill * 100).toInt()}%",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (animatedFill >= 1f) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF34C759),
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
@@ -429,109 +322,463 @@ fun MedicationCard(
     }
 }
 
-@Composable
-private fun SmallActionButton(text: String, color: Color, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(color.copy(alpha = 0.15f))
-            .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 5.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = color
-        )
-    }
-}
-
 // ─────────────────────────────────────
-// MARK: - StatusBadge
+// MARK: - Medication Stat Pill
 // ─────────────────────────────────────
 
+/**
+ * Icon + value + label pill. Matches iOS medicationStatPill.
+ */
 @Composable
-fun StatusBadge(status: AdherenceStatus, isOverdue: Boolean = false, modifier: Modifier = Modifier) {
-    val (label, color) = when {
-        isOverdue && status == AdherenceStatus.PENDING -> "Overdue" to Color(0xFFFF3B30)
-        status == AdherenceStatus.PENDING -> "Pending" to Color(0xFFFF9500)
-        status == AdherenceStatus.TAKEN -> "Taken" to Color(0xFF34C759)
-        status == AdherenceStatus.SKIPPED -> "Skipped" to Color(0xFF8E8E93)
-        status == AdherenceStatus.MISSED -> "Missed" to Color(0xFFFF3B30)
-        status == AdherenceStatus.LATE -> "Late" to Color(0xFFFF9500)
-        status == AdherenceStatus.EARLY -> "Early" to PrimaryColor
-        else -> "Unknown" to Color(0xFF8E8E93)
-    }
-
-    Box(
+fun MedicationStatPill(
+    icon: ImageVector,
+    iconColor: Color,
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(iconColor.copy(alpha = 0.08f))
+            .padding(vertical = 10.dp, horizontal = 8.dp)
     ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(14.dp)
+        )
+        Text(
+            text = value,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            fontWeight = FontWeight.Medium
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            maxLines = 1
         )
     }
 }
 
 // ─────────────────────────────────────
-// MARK: - AdherenceBarChart (7-day)
+// MARK: - Timeline Medication Card
 // ─────────────────────────────────────
 
+/**
+ * Matches iOS TimelineMedicationCard exactly:
+ * [icon box][name + dosage · status][quick-take checkmark]
+ */
 @Composable
-fun AdherenceBarChart(
-    weekDays: List<Pair<String, Float>>,  // (day label, adherence 0..1)
+fun TimelineMedicationCard(
+    dose: MedicationDose,
+    onTaken: () -> Unit,
+    onTap: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.Bottom
+    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+
+    val statusText = if (dose.status == AdherenceStatus.PENDING && dose.isOverdue) "Overdue" else dose.status.displayName()
+    val statusColor = if (dose.status == AdherenceStatus.PENDING && dose.isOverdue)
+        Color(0xFFFF3B30) else dose.status.statusColor()
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(cardBg)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onTap() }
     ) {
-        weekDays.forEach { (day, rate) ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f)
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Medication type icon box (40×40)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MedBrandBlue.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
             ) {
-                val barColor = when {
-                    rate >= 0.8f -> Color(0xFF34C759)
-                    rate >= 0.5f -> Color(0xFFFF9500)
-                    rate > 0f -> Color(0xFFFF3B30)
-                    else -> Color.White.copy(alpha = 0.1f)
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    val animatedHeight by animateFloatAsState(
-                        targetValue = rate.coerceIn(0f, 1f),
-                        animationSpec = tween(600, easing = FastOutSlowInEasing),
-                        label = "bar_$day"
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(animatedHeight.coerceAtLeast(0.04f))
-                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                            .background(barColor)
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
+                Icon(
+                    imageVector = dose.medicationType.toIcon(),
+                    contentDescription = null,
+                    tint = MedBrandBlue,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            // Name + dosage · status
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
                 Text(
-                    text = day,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontSize = 10.sp
+                    text = dose.medicationName,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (dose.dosage.isNotBlank()) {
+                        Text(
+                            text = dose.dosage,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "·",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = dose.status.toIcon(),
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = statusText,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = statusColor
+                        )
+                    }
+                }
+            }
+
+            // Action icon on right
+            if (dose.status == AdherenceStatus.PENDING) {
+                IconButton(
+                    onClick = onTaken,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Take",
+                        tint = MedTealGreen,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            } else if (dose.status == AdherenceStatus.TAKEN ||
+                       dose.status == AdherenceStatus.LATE ||
+                       dose.status == AdherenceStatus.EARLY) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF34C759).copy(alpha = 0.6f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - DoseCard (Detail screen)
+// ─────────────────────────────────────
+
+/**
+ * Matches iOS DoseCard: time + status + take/skip or taken-at label.
+ */
+@Composable
+fun DoseCard(
+    dose: MedicationDose,
+    onMarkTaken: () -> Unit,
+    onMarkSkipped: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .let {
+                val isDark = isSystemInDarkTheme()
+                if (isDark) it.background(Color(0xFF2C2C2E))
+                else it.background(Color(0xFFF2F2F7))
+            }
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = dose.scheduledTime.format(timeFormatter),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = dose.status.toIcon(),
+                        contentDescription = null,
+                        tint = dose.status.statusColor(),
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = if (dose.isOverdue && dose.status == AdherenceStatus.PENDING)
+                            "Overdue" else dose.status.displayName(),
+                        fontSize = 13.sp,
+                        color = if (dose.isOverdue && dose.status == AdherenceStatus.PENDING)
+                            Color(0xFFFF3B30) else dose.status.statusColor()
+                    )
+                }
+            }
+
+            if (dose.status == AdherenceStatus.PENDING) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    IconButton(onClick = onMarkTaken, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF34C759), modifier = Modifier.size(28.dp))
+                    }
+                    IconButton(onClick = onMarkSkipped, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Cancel, null, tint = Color(0xFFFF9500), modifier = Modifier.size(28.dp))
+                    }
+                }
+            } else if (dose.takenAt != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF34C759), modifier = Modifier.size(12.dp))
+                    Text(
+                        text = "at ${dose.takenAt.format(timeFormatter)}",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - DetailRow
+// ─────────────────────────────────────
+
+/**
+ * Label + value row with icon. Matches iOS DetailRow.
+ */
+@Composable
+fun DetailRow(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(cardBg)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+        }
+        Text(
+            text = value,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - MedicationStatCard
+// ─────────────────────────────────────
+
+/**
+ * Big number + title. Matches iOS MedicationStatCard.
+ */
+@Composable
+fun MedicationStatCard(
+    title: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = value,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - TypeCard (AddMedication)
+// ─────────────────────────────────────
+
+/**
+ * Medication type selection card. Matches iOS TypeCard.
+ * Selected: white icon/text on #2E3192 background.
+ * Unselected: blue icon/text on subtle gray.
+ */
+@Composable
+fun MedicationTypeCard(
+    type: MedicationType,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                if (isSelected) MedBrandBlue
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+            )
+            .border(
+                width = 1.dp,
+                color = if (isSelected) Color.Transparent
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+            .padding(vertical = 20.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = type.toIcon(),
+                contentDescription = null,
+                tint = if (isSelected) Color.White else MedBrandBlue,
+                modifier = Modifier.size(28.dp)
+            )
+            Text(
+                text = type.displayName,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - ScheduleTemplateCard (AddMedication)
+// ─────────────────────────────────────
+
+/**
+ * Schedule option with name, description, and selection checkmark.
+ * Matches iOS ScheduleTemplateCard.
+ */
+@Composable
+fun ScheduleTemplateCard(
+    title: String,
+    description: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(cardBg)
+            .border(
+                width = if (isSelected) 2.dp else 0.dp,
+                color = if (isSelected) MedBrandBlue else Color.Transparent,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = description,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MedBrandBlue,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }

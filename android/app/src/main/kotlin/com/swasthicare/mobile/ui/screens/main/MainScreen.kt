@@ -39,6 +39,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.swasthicare.mobile.ui.screens.ai.AIScreen
+import com.swasthicare.mobile.ui.screens.diet.AddFoodScreen
+import com.swasthicare.mobile.ui.screens.diet.DietScreen
+import com.swasthicare.mobile.ui.screens.diet.FoodSearchScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
@@ -160,7 +163,10 @@ fun MainScreen(
             modifier = Modifier.fillMaxSize() // Fill entire screen including behind bar
         ) {
             composable(MainTab.Vitals.route) {
-                HomeScreen(onNavigateToMedications = { navController.navigate("medications") })
+                HomeScreen(
+                    onNavigateToMedications = { navController.navigate("medications") },
+                    onNavigateToDiet = { navController.navigate("diet") }
+                )
             }
             composable(MainTab.AI.route) { AIScreen() }
             composable(MainTab.Vault.route) { VaultScreen() }
@@ -190,6 +196,41 @@ fun MainScreen(
                 MedicationDetailScreen(
                     medicationId = id,
                     onBack = { navController.popBackStack() }
+                )
+            }
+            // Diet flow
+            composable("diet") {
+                DietScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToAddFood = { mealTypeDb ->
+                        navController.navigate("add_food/$mealTypeDb")
+                    },
+                    onNavigateToFoodSearch = { mealTypeDb ->
+                        navController.navigate("food_search/$mealTypeDb")
+                    },
+                    onNavigateToAI = {
+                        navController.navigate(MainTab.AI.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+            composable("add_food/{mealTypeDb}") { backStackEntry ->
+                val mealTypeDb = backStackEntry.arguments?.getString("mealTypeDb") ?: "breakfast"
+                AddFoodScreen(
+                    initialMealTypeDb = mealTypeDb,
+                    onDismiss = { navController.popBackStack() },
+                    onNavigateToFoodSearch = { mt -> navController.navigate("food_search/$mt") }
+                )
+            }
+            composable("food_search/{mealTypeDb}") { backStackEntry ->
+                val mealTypeDb = backStackEntry.arguments?.getString("mealTypeDb") ?: "breakfast"
+                FoodSearchScreen(
+                    mealTypeDb = mealTypeDb,
+                    onFoodSelected = { navController.popBackStack() },
+                    onDismiss = { navController.popBackStack() }
                 )
             }
         }

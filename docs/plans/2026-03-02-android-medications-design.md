@@ -1,7 +1,7 @@
 # Android Medications Feature — Design Document
 **Date:** 2026-03-02
 **Platform:** Android (Kotlin / Jetpack Compose)
-**Status:** Implemented
+**Status:** Implemented (iOS Carbon Copy UI — 2026-03-02 rev)
 
 ---
 

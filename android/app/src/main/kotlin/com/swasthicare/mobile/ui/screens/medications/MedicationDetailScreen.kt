@@ -1,31 +1,34 @@
 package com.swasthicare.mobile.ui.screens.medications
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.data.models.AdherenceStatus
+import com.swasthicare.mobile.data.models.MedicationDose
 import com.swasthicare.mobile.data.models.MedicationWithDoses
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
-import com.swasthicare.mobile.ui.theme.PrimaryColor
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ─────────────────────────────────────
+// MARK: - MedicationDetailScreen
+// ─────────────────────────────────────
+
 @Composable
 fun MedicationDetailScreen(
     medicationId: String,
@@ -33,72 +36,166 @@ fun MedicationDetailScreen(
 ) {
     val vm = remember { AppContainer.medicationsViewModel }
     val uiState by vm.uiState.collectAsState()
+    var isEditing by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var skipDialogDose by remember { mutableStateOf<MedicationDose?>(null) }
 
     val mwd = uiState.medicationsWithDoses.firstOrNull { it.medication.id == medicationId }
+
+    // Edit form state (initialised from medication when it loads)
+    var editName by remember { mutableStateOf("") }
+    var editDosage by remember { mutableStateOf("") }
+    var editNotes by remember { mutableStateOf("") }
+    var editIsOngoing by remember { mutableStateOf(true) }
+
+    LaunchedEffect(mwd) {
+        mwd?.medication?.let { med ->
+            editName = med.name
+            editDosage = med.dosage ?: ""
+            editNotes = med.notes ?: ""
+            editIsOngoing = med.isOngoing
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
 
         if (mwd == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryColor)
+                CircularProgressIndicator(color = MedBrandBlue)
             }
         } else {
+            val med = mwd.medication
+            val hasChanges = editName != med.name ||
+                             editDosage != (med.dosage ?: "") ||
+                             editNotes != (med.notes ?: "") ||
+                             editIsOngoing != med.isOngoing
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding(),
-                contentPadding = PaddingValues(bottom = 120.dp)
+                contentPadding = PaddingValues(bottom = 40.dp)
             ) {
                 // ── Top Bar ──
                 item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        TextButton(onClick = {
+                            if (isEditing) {
+                                // Cancel editing — reset form
+                                editName = med.name
+                                editDosage = med.dosage ?: ""
+                                editNotes = med.notes ?: ""
+                                editIsOngoing = med.isOngoing
+                                isEditing = false
+                            } else {
+                                onBack()
+                            }
+                        }) {
+                            Text(
+                                if (isEditing) "Cancel" else "Close",
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                         Text(
-                            text = mwd.medication.name,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
+                            if (isEditing) "Edit Medication" else "Medication Details",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center
                         )
-                        IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color(0xFFFF3B30)
+                        TextButton(onClick = {
+                            if (isEditing) {
+                                if (hasChanges) {
+                                    vm.updateMedication(
+                                        medicationId = medicationId,
+                                        name = editName,
+                                        dosage = editDosage,
+                                        notes = editNotes.ifBlank { null },
+                                        isOngoing = editIsOngoing
+                                    )
+                                    isEditing = false
+                                }
+                            } else {
+                                isEditing = true
+                            }
+                        }) {
+                            Text(
+                                if (isEditing) "Save" else "Edit",
+                                fontSize = 16.sp,
+                                color = if (isEditing && !hasChanges)
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                else MedBrandBlue
                             )
                         }
                     }
                 }
 
-                // ── Medication Info Card ──
+                // ── Header Card ──
                 item {
-                    MedicationInfoCard(mwd = mwd)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .glass(cornerRadius = 18.dp)
+                            .padding(horizontal = 20.dp, vertical = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MedBrandBlue.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = mwd.type.toIcon(),
+                                contentDescription = null,
+                                tint = MedBrandBlue,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(med.name,
+                                fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                            if (mwd.displayDosage.isNotBlank()) {
+                                Text(mwd.displayDosage, fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Default.Schedule, null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(12.dp))
+                                Text(
+                                    "${mwd.schedules.size} time(s) daily",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.weight(1f))
+                    }
+                    Spacer(Modifier.height(20.dp))
                 }
 
-                // ── 7-day Adherence Chart ──
-                item {
-                    AdherenceChartCard()
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                // ── Today's Log History ──
+                // ── Today's Doses ──
                 item {
                     Text(
                         "Today's Doses",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(12.dp))
                 }
 
                 if (mwd.todayDoses.isEmpty()) {
@@ -108,210 +205,348 @@ fun MedicationDetailScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 20.dp)
                                 .glass(cornerRadius = 16.dp)
-                                .padding(20.dp),
+                                .padding(vertical = 32.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                "No doses scheduled for today",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.CalendarToday, null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text(
+                                    "No doses scheduled for today",
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            }
                         }
                     }
                 } else {
-                    items(mwd.todayDoses) { dose ->
-                        DoseLogRow(dose = dose, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            mwd.todayDoses.forEach { dose ->
+                                DoseCard(
+                                    dose = dose,
+                                    onMarkTaken = { vm.markAsTaken(dose) },
+                                    onMarkSkipped = { skipDialogDose = dose }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item { Spacer(Modifier.height(20.dp)) }
+
+                // ── Details or Edit Form ──
+                if (isEditing) {
+                    item {
+                        EditFormSection(
+                            name = editName, onNameChange = { editName = it },
+                            dosage = editDosage, onDosageChange = { editDosage = it },
+                            notes = editNotes, onNotesChange = { editNotes = it },
+                            isOngoing = editIsOngoing, onIsOngoingChange = { editIsOngoing = it }
+                        )
+                        Spacer(Modifier.height(20.dp))
+                    }
+                } else {
+                    item {
+                        DetailsSection(mwd = mwd)
+                        Spacer(Modifier.height(20.dp))
+                    }
+                }
+
+                // ── Adherence Section ──
+                item {
+                    AdherenceSection(doses = mwd.todayDoses)
+                    Spacer(Modifier.height(20.dp))
+                }
+
+                // ── Delete Button (visible when editing) ──
+                if (isEditing) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFFFF3B30).copy(alpha = 0.10f))
+                                .clickable { showDeleteDialog = true }
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.Delete, null,
+                                    tint = Color(0xFFFF3B30), modifier = Modifier.size(16.dp))
+                                Text("Delete Medication",
+                                    fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFFF3B30))
+                            }
+                        }
+                        Spacer(Modifier.height(20.dp))
                     }
                 }
             }
         }
     }
 
-    // Delete confirmation dialog
+    // ── Delete Dialog ──
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Medication?") },
+            title = { Text("Delete Medication") },
             text = {
-                Text("This will discontinue ${mwd?.medication?.name}. All logs will be kept.")
+                Text("Are you sure you want to delete ${mwd?.medication?.name}? This will also cancel all scheduled reminders.")
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        vm.deleteMedication(medicationId)
-                        showDeleteDialog = false
-                        onBack()
-                    }
-                ) {
-                    Text("Delete", color = Color(0xFFFF3B30))
-                }
+                TextButton(onClick = {
+                    vm.deleteMedication(medicationId)
+                    showDeleteDialog = false
+                    onBack()
+                }) { Text("Delete", color = Color(0xFFFF3B30)) }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             }
         )
     }
+
+    // ── Skip Dose Dialog ──
+    skipDialogDose?.let { dose ->
+        AlertDialog(
+            onDismissRequest = { skipDialogDose = null },
+            title = { Text("Skip Dose?") },
+            text = {
+                Text("Skip ${dose.medicationName} at ${
+                    dose.scheduledTime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a"))
+                }?")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.markAsSkipped(dose, null)
+                    skipDialogDose = null
+                }) { Text("Skip", color = Color(0xFFFF9500)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { skipDialogDose = null }) { Text("Cancel") }
+            }
+        )
+    }
 }
 
 // ─────────────────────────────────────
-// MARK: - Medication Info Card
+// MARK: - Details Section
 // ─────────────────────────────────────
 
 @Composable
-private fun MedicationInfoCard(mwd: MedicationWithDoses) {
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+private fun DetailsSection(mwd: MedicationWithDoses) {
     val med = mwd.medication
-    val schedules = mwd.schedules
-
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .glass(cornerRadius = 20.dp)
-            .padding(16.dp)
+            .glass(cornerRadius = 18.dp)
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Text("Details", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Type + name
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(mwd.type.emoji, style = MaterialTheme.typography.headlineMedium)
-                Column {
-                    Text(
-                        med.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (mwd.displayDosage.isNotBlank()) {
-                        Text(
-                            mwd.displayDosage,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-
-            // Schedule summary
-            if (schedules.isNotEmpty()) {
-                InfoRow("Schedule", schedules.joinToString(", ") { s ->
-                    val parts = s.timeOfDay.split(":")
-                    val h = parts[0].toIntOrNull() ?: 0
-                    val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
-                    val ampm = if (h < 12) "AM" else "PM"
-                    val dh = if (h == 0) 12 else if (h > 12) h - 12 else h
-                    String.format("%d:%02d %s", dh, m, ampm)
-                })
-            }
-
-            // Start/end
-            med.startDate?.let { InfoRow("Started", it) }
-            if (!med.isOngoing && med.endDate != null) {
-                InfoRow("Ends", med.endDate)
-            } else if (med.isOngoing) {
-                InfoRow("Duration", "Ongoing")
-            }
-
-            // Adherence today
-            InfoRow("Today", "${mwd.takenCount}/${mwd.totalDoses} doses taken")
-
-            // Notes
-            med.notes?.takeIf { it.isNotBlank() }?.let {
-                InfoRow("Notes", it)
-            }
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Adherence Chart Card
-// ─────────────────────────────────────
-
-@Composable
-private fun AdherenceChartCard() {
-    val today = LocalDate.now()
-    // Build 7-day labels and placeholder adherence data
-    val weekDays = (6 downTo 0).map { daysAgo ->
-        val date = today.minusDays(daysAgo.toLong())
-        val label = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(3)
-        // In production, fetch real adherence per day; for now show today's as non-zero
-        val rate = if (daysAgo == 0) 0.75f else 0f
-        label to rate
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .glass(cornerRadius = 20.dp)
-            .padding(16.dp)
-    ) {
-        Column {
-            Text(
-                "7-Day Adherence",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+            DetailRow(
+                label = "Type",
+                value = mwd.type.displayName,
+                icon = Icons.Default.Medication
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            AdherenceBarChart(weekDays = weekDays)
-        }
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Dose Log Row
-// ─────────────────────────────────────
-
-@Composable
-private fun DoseLogRow(dose: MedicationDose, modifier: Modifier = Modifier) {
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .glass(cornerRadius = 14.dp)
-            .padding(12.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                dose.scheduledTime.format(timeFormatter),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.width(64.dp)
+            DetailRow(
+                label = "Schedule",
+                value = "${mwd.schedules.size} time(s) daily",
+                icon = Icons.Default.Schedule
             )
-            StatusBadge(status = dose.status, isOverdue = dose.isOverdue)
-            Spacer(modifier = Modifier.weight(1f))
-            dose.takenAt?.let { taken ->
-                Text(
-                    "at ${taken.format(timeFormatter)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            if (med.isOngoing) {
+                DetailRow(
+                    label = "Duration",
+                    value = "Ongoing",
+                    icon = Icons.Default.AllInclusive
+                )
+            } else if (med.endDate != null) {
+                DetailRow(
+                    label = "End Date",
+                    value = med.endDate,
+                    icon = Icons.Default.CalendarToday
                 )
             }
+        }
+        med.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Default.Note, null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.size(14.dp))
+                    Text("Notes", fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                }
+                Text(notes, fontSize = 15.sp)
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Edit Form Section
+// ─────────────────────────────────────
+
+@Composable
+private fun EditFormSection(
+    name: String, onNameChange: (String) -> Unit,
+    dosage: String, onDosageChange: (String) -> Unit,
+    notes: String, onNotesChange: (String) -> Unit,
+    isOngoing: Boolean, onIsOngoingChange: (Boolean) -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .glass(cornerRadius = 18.dp)
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        Text("Edit Details", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Name", fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            OutlinedTextField(
+                value = name, onValueChange = onNameChange,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MedBrandBlue,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Dosage", fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            OutlinedTextField(
+                value = dosage, onValueChange = onDosageChange,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MedBrandBlue,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Notes", fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            OutlinedTextField(
+                value = notes, onValueChange = onNotesChange,
+                minLines = 3, maxLines = 5,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MedBrandBlue,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(cardBg)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Ongoing medication", fontSize = 15.sp)
+                Text("No end date", fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            }
+            Switch(
+                checked = isOngoing,
+                onCheckedChange = onIsOngoingChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = MedBrandBlue
+                )
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Adherence Section
+// ─────────────────────────────────────
+
+@Composable
+private fun AdherenceSection(doses: List<MedicationDose>) {
+    val taken   = doses.count { it.status == AdherenceStatus.TAKEN }
+    val missed  = doses.count { it.status == AdherenceStatus.MISSED }
+    val skipped = doses.count { it.status == AdherenceStatus.SKIPPED }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+    ) {
+        Text("Adherence History", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glass(cornerRadius = 18.dp)
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            MedicationStatCard(
+                title = "Taken",
+                value = "$taken",
+                color = Color(0xFF34C759),
+                modifier = Modifier.weight(1f)
+            )
+            MedicationStatCard(
+                title = "Missed",
+                value = "$missed",
+                color = Color(0xFFFF3B30),
+                modifier = Modifier.weight(1f)
+            )
+            MedicationStatCard(
+                title = "Skipped",
+                value = "$skipped",
+                color = Color(0xFFFF9500),
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

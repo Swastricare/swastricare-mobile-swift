@@ -1,190 +1,205 @@
 package com.swasthicare.mobile.ui.screens.medications
 
-import android.app.TimePickerDialog
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.MedicationType
 import com.swasthicare.mobile.data.models.ScheduleType
 import com.swasthicare.mobile.di.AppContainer
-import com.swasthicare.mobile.ui.screens.home.PremiumBackground
-import com.swasthicare.mobile.ui.screens.home.glass
-import com.swasthicare.mobile.ui.theme.PrimaryColor
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val medicationTypes = MedicationType.values().toList()
-private val scheduleTypes = ScheduleType.values().toList()
+// Default scheduled times per schedule type
+private fun defaultScheduleTimes(type: ScheduleType): List<Pair<String, String>> = when (type) {
+    ScheduleType.ONCE_DAILY   -> listOf("Morning" to "8:00 AM")
+    ScheduleType.TWICE_DAILY  -> listOf("Morning" to "8:00 AM", "Evening" to "8:00 PM")
+    ScheduleType.THRICE_DAILY -> listOf("Morning" to "8:00 AM", "Afternoon" to "2:00 PM", "Evening" to "8:00 PM")
+    ScheduleType.CUSTOM       -> emptyList()
+}
+
+private fun scheduleTimeStrings(type: ScheduleType): List<String> = when (type) {
+    ScheduleType.ONCE_DAILY   -> listOf("08:00:00")
+    ScheduleType.TWICE_DAILY  -> listOf("08:00:00", "20:00:00")
+    ScheduleType.THRICE_DAILY -> listOf("08:00:00", "14:00:00", "20:00:00")
+    ScheduleType.CUSTOM       -> listOf("08:00:00")
+}
+
+// ─────────────────────────────────────
+// MARK: - AddMedicationScreen
+// ─────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddMedicationScreen(
-    onDismiss: () -> Unit
-) {
+fun AddMedicationScreen(onDismiss: () -> Unit) {
     val vm = remember { AppContainer.medicationsViewModel }
 
-    // Step tracking
+    // Form state
     var currentStep by remember { mutableIntStateOf(1) }
-    val totalSteps = 3
-
-    // Step 1 state
-    var medicationName by remember { mutableStateOf("") }
-    var selectedType by remember { mutableStateOf(MedicationType.PILL) }
+    var name by remember { mutableStateOf("") }
     var dosage by remember { mutableStateOf("") }
-    var dosageUnit by remember { mutableStateOf("mg") }
-
-    // Step 2 state
+    var selectedType by remember { mutableStateOf(MedicationType.PILL) }
     var selectedSchedule by remember { mutableStateOf(ScheduleType.ONCE_DAILY) }
-    var scheduleTimes by remember { mutableStateOf(listOf("08:00")) }
-
-    // Step 3 state
     var startDate by remember { mutableStateOf(LocalDate.now()) }
-    var endDate by remember { mutableStateOf<LocalDate?>(null) }
+    var endDate by remember { mutableStateOf(LocalDate.now().plusMonths(1)) }
     var isOngoing by remember { mutableStateOf(true) }
     var notes by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
 
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
+        // ── Top Bar ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface)
+            }
+            Text(
+                "Add Medication",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.width(72.dp))
+        }
+
+        // ── Progress Bar (3 segments, iOS-style) ──
+        MedProgressBar(currentStep = currentStep)
+
+        // ── Step Content ──
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(top = 24.dp, bottom = 100.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // ── Header ──
+            when (currentStep) {
+                1 -> Step1Content(
+                    name = name, onNameChange = { name = it },
+                    dosage = dosage, onDosageChange = { dosage = it },
+                    selectedType = selectedType, onTypeSelected = { selectedType = it }
+                )
+                2 -> Step2Content(
+                    selectedSchedule = selectedSchedule,
+                    onScheduleSelected = { selectedSchedule = it }
+                )
+                3 -> Step3Content(
+                    startDate = startDate,
+                    endDate = endDate,
+                    isOngoing = isOngoing,
+                    notes = notes,
+                    onNotesChange = { notes = it },
+                    onIsOngoingChange = { isOngoing = it },
+                    onShowStartDatePicker = { showStartDatePicker = true },
+                    onShowEndDatePicker = { showEndDatePicker = true },
+                    dateFormatter = dateFormatter
+                )
+            }
+        }
+
+        // ── Navigation Buttons (sticky bottom) ──
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shadowElevation = 8.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
-                Text(
-                    text = "Add Medication",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = "Step $currentStep of $totalSteps",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            }
-
-            // ── Progress Bar ──
-            LinearProgressIndicator(
-                progress = { currentStep.toFloat() / totalSteps },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)),
-                color = PrimaryColor,
-                trackColor = PrimaryColor.copy(alpha = 0.2f)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // ── Step Content ──
-            Box(modifier = Modifier.weight(1f)) {
-                when (currentStep) {
-                    1 -> Step1MedicationInfo(
-                        name = medicationName,
-                        onNameChange = { medicationName = it },
-                        selectedType = selectedType,
-                        onTypeSelect = { selectedType = it },
-                        dosage = dosage,
-                        onDosageChange = { dosage = it },
-                        dosageUnit = dosageUnit,
-                        onUnitChange = { dosageUnit = it }
-                    )
-                    2 -> Step2Schedule(
-                        selectedSchedule = selectedSchedule,
-                        onScheduleSelect = { type ->
-                            selectedSchedule = type
-                            // Reset times to match new frequency
-                            val defaults = listOf("08:00", "14:00", "20:00")
-                            scheduleTimes = when (type) {
-                                ScheduleType.ONCE_DAILY -> listOf("08:00")
-                                ScheduleType.TWICE_DAILY -> listOf("08:00", "20:00")
-                                ScheduleType.THRICE_DAILY -> defaults
-                                ScheduleType.CUSTOM -> scheduleTimes
-                            }
-                        },
-                        scheduleTimes = scheduleTimes,
-                        onTimeChange = { index, newTime ->
-                            scheduleTimes = scheduleTimes.toMutableList().also { it[index] = newTime }
-                        },
-                        onAddTime = { scheduleTimes = scheduleTimes + "12:00" },
-                        onRemoveTime = { index ->
-                            if (scheduleTimes.size > 1) {
-                                scheduleTimes = scheduleTimes.filterIndexed { i, _ -> i != index }
-                            }
-                        }
-                    )
-                    3 -> Step3Duration(
-                        startDate = startDate,
-                        onStartDateChange = { startDate = it },
-                        endDate = endDate,
-                        onEndDateChange = { endDate = it },
-                        isOngoing = isOngoing,
-                        onOngoingChange = { isOngoing = it },
-                        notes = notes,
-                        onNotesChange = { notes = it }
-                    )
-                }
-            }
-
-            // ── Navigation Buttons ──
-            val isNextEnabled = (currentStep == 1 && medicationName.isNotBlank()) ||
-                                 currentStep == 2 ||
-                                 currentStep == 3
-            if (currentStep > 1) {
-                // Back + Next side-by-side
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { currentStep-- },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
+                if (currentStep > 1) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { currentStep-- }
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("Back")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.ChevronLeft, null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp))
+                            Text("Back", fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
-                    Button(
-                        onClick = {
-                            if (currentStep < totalSteps) {
+                }
+
+                val canProceed = currentStep != 1 || name.isNotBlank()
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (canProceed) MedBrandBlue
+                            else Color.Gray.copy(alpha = 0.2f)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            enabled = canProceed && !isLoading
+                        ) {
+                            if (currentStep < 3) {
                                 currentStep++
                             } else {
+                                isLoading = true
                                 vm.addMedication(
-                                    name = medicationName,
+                                    name = name,
                                     dosage = dosage,
-                                    dosageUnit = dosageUnit,
+                                    dosageUnit = "",
                                     type = selectedType,
                                     scheduleType = selectedSchedule,
-                                    scheduleTimes = scheduleTimes.map { "$it:00" },
+                                    scheduleTimes = scheduleTimeStrings(selectedSchedule),
                                     startDate = startDate,
                                     endDate = if (isOngoing) null else endDate,
                                     isOngoing = isOngoing,
@@ -192,145 +207,172 @@ fun AddMedicationScreen(
                                 )
                                 onDismiss()
                             }
-                        },
-                        enabled = isNextEnabled,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                    ) {
-                        Text(if (currentStep < totalSteps) "Next" else "Save Medication")
-                    }
-                }
-            } else {
-                // Step 1: Next fills full width
-                Button(
-                    onClick = { currentStep++ },
-                    enabled = isNextEnabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        }
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("Next")
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                if (currentStep == 3) "Save" else "Next",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (canProceed) Color.White
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            )
+                            if (currentStep < 3) {
+                                Icon(Icons.Default.ChevronRight, null,
+                                    tint = if (canProceed) Color.White
+                                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
                 }
             }
         }
     }
-}
 
-// ─────────────────────────────────────
-// MARK: - Step 1: Medication Info
-// ─────────────────────────────────────
-
-@Composable
-private fun Step1MedicationInfo(
-    name: String,
-    onNameChange: (String) -> Unit,
-    selectedType: MedicationType,
-    onTypeSelect: (MedicationType) -> Unit,
-    dosage: String,
-    onDosageChange: (String) -> Unit,
-    dosageUnit: String,
-    onUnitChange: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            "What medication?",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
+    // ── Start Date Picker ──
+    if (showStartDatePicker) {
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = startDate.toEpochDay() * 86_400_000L
         )
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { millis ->
+                        startDate = Instant.ofEpochMilli(millis)
+                            .atZone(ZoneId.of("UTC")).toLocalDate()
+                    }
+                    showStartDatePicker = false
+                }) { Text("OK", color = MedBrandBlue) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartDatePicker = false }) { Text("Cancel") }
+            }
+        ) { DatePicker(state = state) }
+    }
 
-        OutlinedTextField(
-            value = name,
-            onValueChange = onNameChange,
-            label = { Text("Medication Name") },
-            placeholder = { Text("e.g. Metformin") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            singleLine = true
+    // ── End Date Picker ──
+    if (showEndDatePicker) {
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = endDate.toEpochDay() * 86_400_000L
         )
-
-        // Type Grid
-        Text("Type", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-        TypeGrid(selectedType = selectedType, onTypeSelect = onTypeSelect)
-
-        // Dosage row
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = dosage,
-                onValueChange = onDosageChange,
-                label = { Text("Dosage Amount") },
-                placeholder = { Text("500") },
-                modifier = Modifier.weight(0.6f),
-                shape = RoundedCornerShape(14.dp),
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = dosageUnit,
-                onValueChange = onUnitChange,
-                label = { Text("Unit") },
-                placeholder = { Text("mg") },
-                modifier = Modifier.weight(0.4f),
-                shape = RoundedCornerShape(14.dp),
-                singleLine = true
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { millis ->
+                        endDate = Instant.ofEpochMilli(millis)
+                            .atZone(ZoneId.of("UTC")).toLocalDate()
+                    }
+                    showEndDatePicker = false
+                }) { Text("OK", color = MedBrandBlue) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) { Text("Cancel") }
+            }
+        ) { DatePicker(state = state) }
     }
 }
 
+// ─────────────────────────────────────
+// MARK: - Progress Bar (3 segments)
+// ─────────────────────────────────────
+
 @Composable
-private fun TypeGrid(selectedType: MedicationType, onTypeSelect: (MedicationType) -> Unit) {
-    val chunked = medicationTypes.chunked(4)
-    chunked.forEach { row ->
+private fun MedProgressBar(currentStep: Int) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            row.forEach { type ->
-                val isSelected = type == selectedType
+            for (step in 1..3) {
+                val filled = step <= currentStep
+                val segColor by animateColorAsState(
+                    targetValue = if (filled) MedBrandBlue
+                                  else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                    animationSpec = tween(durationMillis = 300),
+                    label = "seg$step"
+                )
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (isSelected) PrimaryColor.copy(alpha = 0.2f)
-                            else Color.White.copy(alpha = 0.05f)
-                        )
-                        .border(
-                            1.dp,
-                            if (isSelected) PrimaryColor else Color.White.copy(alpha = 0.1f),
-                            RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onTypeSelect(type) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(type.emoji, style = MaterialTheme.typography.headlineSmall)
-                        Text(
-                            type.displayName,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) PrimaryColor
-                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(segColor)
+                )
             }
-            // fill empty slots
-            repeat(4 - row.size) {
-                Spacer(modifier = Modifier.weight(1f))
+        }
+        Text(
+            "Step $currentStep of 3",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Step 1: Basic Information
+// ─────────────────────────────────────
+
+@Composable
+private fun Step1Content(
+    name: String, onNameChange: (String) -> Unit,
+    dosage: String, onDosageChange: (String) -> Unit,
+    selectedType: MedicationType, onTypeSelected: (MedicationType) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Step 1: Basic Information",
+                fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("Enter the medication details",
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Medication Name", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            MedTextField(name, onNameChange, "e.g., Aspirin, Metformin")
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Dosage (Optional)", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            MedTextField(dosage, onDosageChange, "e.g., 500mg, 1 tablet")
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Type", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.heightIn(max = 400.dp)
+            ) {
+                items(MedicationType.values()) { type ->
+                    MedicationTypeCard(
+                        type = type,
+                        isSelected = selectedType == type,
+                        onClick = { onTypeSelected(type) }
+                    )
+                }
             }
         }
     }
@@ -340,109 +382,64 @@ private fun TypeGrid(selectedType: MedicationType, onTypeSelect: (MedicationType
 // MARK: - Step 2: Schedule
 // ─────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Step2Schedule(
+private fun Step2Content(
     selectedSchedule: ScheduleType,
-    onScheduleSelect: (ScheduleType) -> Unit,
-    scheduleTimes: List<String>,
-    onTimeChange: (Int, String) -> Unit,
-    onAddTime: () -> Unit,
-    onRemoveTime: (Int) -> Unit
+    onScheduleSelected: (ScheduleType) -> Unit
 ) {
-    val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            "How often?",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
-        // Schedule chips
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            scheduleTypes.forEach { type ->
-                FilterChip(
-                    selected = type == selectedSchedule,
-                    onClick = { onScheduleSelect(type) },
-                    label = { Text(type.displayName, style = MaterialTheme.typography.labelMedium) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PrimaryColor.copy(alpha = 0.2f),
-                        selectedLabelColor = PrimaryColor
-                    )
-                )
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Step 2: Schedule",
+                fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("Choose how often you take this medication",
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
 
-        // Time pickers
-        Text("Times", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-        scheduleTimes.forEachIndexed { index, time ->
-            TimePickerRow(
-                time = time,
-                onPickTime = {
-                    val parts = time.split(":")
-                    val h = parts.getOrNull(0)?.toIntOrNull() ?: 8
-                    val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
-                    TimePickerDialog(context, { _, hour, minute ->
-                        onTimeChange(index, String.format("%02d:%02d", hour, minute))
-                    }, h, m, false).show()
-                },
-                showRemove = scheduleTimes.size > 1 && selectedSchedule == ScheduleType.CUSTOM,
-                onRemove = { onRemoveTime(index) }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            ScheduleTemplateCard(
+                title = "Once Daily",
+                description = "One dose per day",
+                isSelected = selectedSchedule == ScheduleType.ONCE_DAILY,
+                onClick = { onScheduleSelected(ScheduleType.ONCE_DAILY) }
+            )
+            ScheduleTemplateCard(
+                title = "Twice Daily",
+                description = "Two doses per day",
+                isSelected = selectedSchedule == ScheduleType.TWICE_DAILY,
+                onClick = { onScheduleSelected(ScheduleType.TWICE_DAILY) }
+            )
+            ScheduleTemplateCard(
+                title = "Thrice Daily",
+                description = "Three doses per day",
+                isSelected = selectedSchedule == ScheduleType.THRICE_DAILY,
+                onClick = { onScheduleSelected(ScheduleType.THRICE_DAILY) }
             )
         }
-        if (selectedSchedule == ScheduleType.CUSTOM) {
-            TextButton(onClick = onAddTime) {
-                Text("+ Add time slot")
-            }
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
-    }
-}
-
-@Composable
-private fun TimePickerRow(
-    time: String,
-    onPickTime: () -> Unit,
-    showRemove: Boolean,
-    onRemove: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .glass(cornerRadius = 14.dp)
-                .clickable { onPickTime() }
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-        ) {
-            val parts = time.split(":")
-            val h = parts.getOrNull(0)?.toIntOrNull() ?: 8
-            val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
-            val ampm = if (h < 12) "AM" else "PM"
-            val displayH = if (h == 0) 12 else if (h > 12) h - 12 else h
-            Text(
-                text = String.format("%d:%02d %s", displayH, m, ampm),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-        }
-        if (showRemove) {
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(18.dp))
+        val times = defaultScheduleTimes(selectedSchedule)
+        if (times.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Scheduled Times", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                times.forEach { (label, time) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(cardBg)
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(label, fontSize = 15.sp)
+                        Text(time, fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MedBrandBlue)
+                    }
+                }
             }
         }
     }
@@ -452,119 +449,157 @@ private fun TimePickerRow(
 // MARK: - Step 3: Duration & Notes
 // ─────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Step3Duration(
+private fun Step3Content(
     startDate: LocalDate,
-    onStartDateChange: (LocalDate) -> Unit,
-    endDate: LocalDate?,
-    onEndDateChange: (LocalDate?) -> Unit,
+    endDate: LocalDate,
     isOngoing: Boolean,
-    onOngoingChange: (Boolean) -> Unit,
     notes: String,
-    onNotesChange: (String) -> Unit
+    onNotesChange: (String) -> Unit,
+    onIsOngoingChange: (Boolean) -> Unit,
+    onShowStartDatePicker: () -> Unit,
+    onShowEndDatePicker: () -> Unit,
+    dateFormatter: DateTimeFormatter
 ) {
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            "Duration & Notes",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
-        // Start date display (non-interactive for simplicity; DatePicker would need a dialog)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .glass(cornerRadius = 14.dp)
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    "Start Date",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-                Text(
-                    startDate.format(dateFormatter),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Step 3: Duration",
+                fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("Set the medication duration",
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
 
-        // Ongoing toggle
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .glass(cornerRadius = 14.dp)
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Start Date", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            DateSelectRow(
+                dateText = startDate.format(dateFormatter),
+                cardBg = cardBg,
+                onClick = onShowStartDatePicker
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Duration", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(cardBg)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Ongoing medication", style = MaterialTheme.typography.bodyMedium)
+                Column {
+                    Text("Ongoing medication", fontSize = 15.sp)
+                    Text("No end date", fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                }
                 Switch(
                     checked = isOngoing,
-                    onCheckedChange = onOngoingChange,
-                    colors = SwitchDefaults.colors(checkedThumbColor = PrimaryColor)
+                    onCheckedChange = onIsOngoingChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MedBrandBlue
+                    )
                 )
             }
-        }
-
-        // End date (shown only if not ongoing)
-        if (!isOngoing) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .glass(cornerRadius = 14.dp)
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        "End Date",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        endDate?.format(dateFormatter) ?: "Not set",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = if (endDate == null) MaterialTheme.colorScheme.onSurface.copy(0.4f)
-                                else MaterialTheme.colorScheme.onSurface
+            if (!isOngoing) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("End Date", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    DateSelectRow(
+                        dateText = endDate.format(dateFormatter),
+                        cardBg = cardBg,
+                        onClick = onShowEndDatePicker
                     )
                 }
             }
         }
 
-        // Notes
-        OutlinedTextField(
-            value = notes,
-            onValueChange = onNotesChange,
-            label = { Text("Notes (optional)") },
-            placeholder = { Text("e.g. Take with food") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
-            shape = RoundedCornerShape(14.dp),
-            maxLines = 4
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Notes (Optional)", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            OutlinedTextField(
+                value = notes,
+                onValueChange = onNotesChange,
+                placeholder = {
+                    Text("Any special instructions…",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                },
+                minLines = 4,
+                maxLines = 6,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MedBrandBlue,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
 
-        Spacer(modifier = Modifier.height(20.dp))
+// ─────────────────────────────────────
+// MARK: - Shared UI Helpers
+// ─────────────────────────────────────
+
+/** Premium text field — matches iOS PremiumTextFieldStyle */
+@Composable
+private fun MedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = {
+            Text(placeholder,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+        },
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MedBrandBlue,
+            unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+            focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+        ),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+/** Tappable date row with calendar icon */
+@Composable
+private fun DateSelectRow(
+    dateText: String,
+    cardBg: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(cardBg)
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                RoundedCornerShape(14.dp)
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(dateText, fontSize = 16.sp)
+        Icon(Icons.Default.CalendarToday, null,
+            tint = MedBrandBlue, modifier = Modifier.size(18.dp))
     }
 }

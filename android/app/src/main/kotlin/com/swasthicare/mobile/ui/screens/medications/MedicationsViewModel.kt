@@ -190,6 +190,31 @@ class MedicationsViewModel(
         }
     }
 
+    fun updateMedication(
+        medicationId: String,
+        name: String,
+        dosage: String,
+        notes: String?,
+        isOngoing: Boolean
+    ) {
+        viewModelScope.launch {
+            val current = _uiState.value.medicationsWithDoses
+                .firstOrNull { it.medication.id == medicationId }?.medication ?: return@launch
+            val updated = current.copy(
+                name = name,
+                dosage = dosage,
+                notes = notes,
+                isOngoing = isOngoing
+            )
+            val result = repository.upsertMedication(updated)
+            if (result.isSuccess) {
+                loadMedications()
+            } else {
+                _uiState.value = _uiState.value.copy(error = "Failed to update medication")
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
