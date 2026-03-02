@@ -40,10 +40,12 @@ class SupabaseHydrationRepository(
 
     // ── Local Entries ──
 
-    override fun loadLocalEntries(): List<HydrationEntry> = try {
-        val raw = prefs.getString("hydration_entries", null) ?: return emptyList()
-        hydrationJson.decodeFromString<List<HydrationEntry>>(raw)
-    } catch (_: Exception) { emptyList() }
+    override fun loadLocalEntries(): List<HydrationEntry> {
+        return try {
+            val raw = prefs.getString("hydration_entries", null) ?: return emptyList()
+            hydrationJson.decodeFromString<List<HydrationEntry>>(raw)
+        } catch (_: Exception) { emptyList() }
+    }
 
     override fun addLocalEntry(entry: HydrationEntry) {
         val current = loadLocalEntries().toMutableList()
@@ -65,10 +67,12 @@ class SupabaseHydrationRepository(
 
     // ── Preferences ──
 
-    override fun loadPreferences(): HydrationPreferences = try {
-        val raw = prefs.getString("hydration_preferences", null) ?: return HydrationPreferences.Default
-        hydrationJson.decodeFromString<HydrationPreferences>(raw)
-    } catch (_: Exception) { HydrationPreferences.Default }
+    override fun loadPreferences(): HydrationPreferences {
+        return try {
+            val raw = prefs.getString("hydration_preferences", null) ?: return HydrationPreferences.Default
+            hydrationJson.decodeFromString<HydrationPreferences>(raw)
+        } catch (_: Exception) { HydrationPreferences.Default }
+    }
 
     override fun savePreferences(prefs: HydrationPreferences) {
         this.prefs.edit().putString("hydration_preferences", hydrationJson.encodeToString(prefs)).apply()

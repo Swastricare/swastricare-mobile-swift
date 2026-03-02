@@ -47,10 +47,12 @@ class SupabaseDietRepository(
 
     // ── Local Food Cache ──
 
-    override fun getCachedFoodItems(): List<FoodItem> = try {
-        val raw = prefs.getString("diet_food_cache", null) ?: return emptyList()
-        dietJson.decodeFromString<List<FoodItem>>(raw)
-    } catch (_: Exception) { emptyList() }
+    override fun getCachedFoodItems(): List<FoodItem> {
+        return try {
+            val raw = prefs.getString("diet_food_cache", null) ?: return emptyList()
+            dietJson.decodeFromString<List<FoodItem>>(raw)
+        } catch (_: Exception) { emptyList() }
+    }
 
     override fun cacheFoodItems(items: List<FoodItem>) {
         try {
@@ -60,10 +62,12 @@ class SupabaseDietRepository(
 
     // ── Local Diet Logs ──
 
-    override fun loadLocalLogs(): List<DietLogEntry> = try {
-        val raw = prefs.getString("diet_logs", null) ?: return emptyList()
-        dietJson.decodeFromString<List<DietLogEntry>>(raw)
-    } catch (_: Exception) { emptyList() }
+    override fun loadLocalLogs(): List<DietLogEntry> {
+        return try {
+            val raw = prefs.getString("diet_logs", null) ?: return emptyList()
+            dietJson.decodeFromString<List<DietLogEntry>>(raw)
+        } catch (_: Exception) { emptyList() }
+    }
 
     override fun addLocalLog(entry: DietLogEntry) {
         val current = loadLocalLogs().toMutableList()
@@ -85,10 +89,12 @@ class SupabaseDietRepository(
 
     // ── Goals ──
 
-    override fun loadGoals(): DietGoals = try {
-        val raw = prefs.getString("diet_goals", null) ?: return DietGoals.Default
-        dietJson.decodeFromString<DietGoals>(raw)
-    } catch (_: Exception) { DietGoals.Default }
+    override fun loadGoals(): DietGoals {
+        return try {
+            val raw = prefs.getString("diet_goals", null) ?: return DietGoals.Default
+            dietJson.decodeFromString<DietGoals>(raw)
+        } catch (_: Exception) { DietGoals.Default }
+    }
 
     override fun saveGoals(goals: DietGoals) {
         prefs.edit().putString("diet_goals", dietJson.encodeToString(goals)).apply()
