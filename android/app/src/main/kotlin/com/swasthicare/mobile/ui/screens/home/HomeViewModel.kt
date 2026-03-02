@@ -2,6 +2,11 @@ package com.swasthicare.mobile.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swasthicare.mobile.data.model.HealthNudge
+import com.swasthicare.mobile.data.model.NudgePriority
+import com.swasthicare.mobile.data.model.NudgeType
+import com.swasthicare.mobile.data.repository.NudgeRepository
+import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.DailyMetric
@@ -14,15 +19,6 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Calendar
 import java.util.Date
-
-data class ServerNudge(
-    val id: String,
-    val title: String,
-    val message: String,
-    val icon: String = "heart.fill",
-    val color: String = "#007AFF",
-    val deepLink: String? = null
-)
 
 data class HomeState(
     val userName: String = "Alex Johnson",
@@ -45,8 +41,8 @@ data class HomeState(
     val weekDates: List<Date> = emptyList(),
     val selectedDate: Date = Date(),
     val weeklySteps: List<DailyMetric> = emptyList(),
-    // Nudges
-    val serverNudges: List<ServerNudge> = emptyList(),
+    // Nudges — now backed by HealthNudge model from server
+    val serverNudges: List<HealthNudge> = emptyList(),
     // Diet quick action data
     val calorieCurrent: Int = 0,
     val calorieGoal: Int = 2000,
@@ -54,13 +50,17 @@ data class HomeState(
     val cyclePhase: String = "Cycle Tracker"
 )
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(
+    private val nudgeRepository: NudgeRepository = AppContainer.nudgeRepository,
+    private val analyticsService: AnalyticsService = AppContainer.analyticsService
+) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeState())
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
 
     private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
 
     init {
+        analyticsService.logScreenView("HomeScreen")
         loadData()
     }
 
@@ -167,30 +167,69 @@ class HomeViewModel : ViewModel() {
     fun loadNudges() {
         viewModelScope.launch {
             try {
-                val demoNudges = listOf(
-                    ServerNudge(
-                        id = "1",
-                        title = "Stay Hydrated",
-                        message = "You're 750ml short of your daily water goal. Drink up!",
-                        icon = "drop.fill",
-                        color = "#00C7BE"
-                    ),
-                    ServerNudge(
-                        id = "2",
-                        title = "Medication Due",
-                        message = "Your evening Vitamin D dose is due in 30 minutes.",
-                        icon = "pills.fill",
-                        color = "#30D158"
+                // Attempt to fetch from Supabase via NudgeRepository
+                val profileId = "demo-profile-id" // In production, resolve from auth
+                val nudges = nudgeRepository.fetchActiveNudges(profileId)
+
+                if (nudges.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(serverNudges = nudges)
+                } else {
+                    // Fallback to demo nudges when server returns empty
+                    val demoNudges = listOf(
+                        HealthNudge(
+                            id = "demo-1",
+                            healthProfileId = profileId,
+                            type = NudgeType.HYDRATION,
+                            title = "Stay Hydrated",
+                            message = "You're 750ml short of your daily water goal. Drink up!",
+                            priority = NudgePriority.MEDIUM,
+                            actionUrl = "swastricare://hydration"
+                        ),
+                        HealthNudge(
+                            id = "demo-2",
+                            healthProfileId = profileId,
+                            type = NudgeType.MEDICATION_MISSED,
+                            title = "Medication Due",
+                            message = "Your evening Vitamin D dose is due in 30 minutes.",
+                            priority = NudgePriority.HIGH,
+                            actionUrl = "swastricare://medications"
+                        )
                     )
-                )
-                _uiState.value = _uiState.value.copy(serverNudges = demoNudges)
-            } catch (_: Exception) {}
+                    _uiState.value = _uiState.value.copy(serverNudges = demoNudges)
+                }
+            } catch (_: Exception) {
+                // Keep existing nudges on error (graceful degradation)
+            }
         }
     }
 
     fun dismissNudge(nudgeId: String) {
+        // Remove from UI immediately (optimistic)
         val current = _uiState.value.serverNudges.filter { it.id != nudgeId }
         _uiState.value = _uiState.value.copy(serverNudges = current)
+
+        // Persist dismissal to server
+        viewModelScope.launch {
+            try {
+                nudgeRepository.dismissNudge(nudgeId)
+            } catch (_: Exception) {
+                // Already removed from UI, no need to re-add
+            }
+        }
+    }
+
+    fun actOnNudge(nudgeId: String): String? {
+        val nudge = _uiState.value.serverNudges.find { it.id == nudgeId } ?: return null
+
+        // Mark as acted on in server
+        viewModelScope.launch {
+            try {
+                nudgeRepository.markNudgeActedOn(nudgeId)
+            } catch (_: Exception) {}
+        }
+
+        // Return the action URL for navigation
+        return nudge.actionUrl
     }
 
     fun incrementHydration() {
@@ -279,6 +318,6 @@ class HomeViewModel : ViewModel() {
         val cal1 = Calendar.getInstance().apply { time = date1 }
         val cal2 = Calendar.getInstance().apply { time = date2 }
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
 }

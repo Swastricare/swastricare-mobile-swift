@@ -37,7 +37,8 @@ import com.swasthicare.mobile.ui.theme.PrimaryColor
 fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
     onSignOut: () -> Unit = {},
-    onNavigateToNotificationSettings: () -> Unit = {}
+    onNavigateToNotificationSettings: () -> Unit = {},
+    onNavigateToEditProfile: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
@@ -57,6 +58,10 @@ fun ProfileScreen(
         profileBMI = viewModel.profileBMI,
         appVersion = viewModel.appVersion,
         onRefreshHealthProfile = viewModel::refreshHealthProfile,
+        onEditProfile = {
+            viewModel.beginEdit()
+            onNavigateToEditProfile()
+        },
         onNotificationToggle = onNavigateToNotificationSettings,
         onBiometricToggle = viewModel::toggleBiometric,
         onSyncToggle = viewModel::toggleHealthSync,
@@ -77,6 +82,7 @@ fun ProfileScreenContent(
     profileBMI: String,
     appVersion: String,
     onRefreshHealthProfile: () -> Unit,
+    onEditProfile: () -> Unit = {},
     onNotificationToggle: () -> Unit,
     onBiometricToggle: (Boolean) -> Unit,
     onSyncToggle: (Boolean) -> Unit,
@@ -103,7 +109,8 @@ fun ProfileScreenContent(
                     user = uiState.user,
                     memberSince = memberSince,
                     userName = uiState.user?.fullName ?: "User",
-                    userEmail = uiState.user?.email ?: ""
+                    userEmail = uiState.user?.email ?: "",
+                    onEditProfile = onEditProfile
                 )
             }
 
@@ -208,7 +215,8 @@ fun ProfileHeader(
     user: AppUser?,
     memberSince: String,
     userName: String,
-    userEmail: String
+    userEmail: String,
+    onEditProfile: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -218,20 +226,38 @@ fun ProfileHeader(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Avatar
-        if (user?.avatarUrl != null) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(user.avatarUrl)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = "Profile Picture",
-                contentScale = ContentScale.Crop,
+        Box(contentAlignment = Alignment.BottomEnd) {
+            if (user?.avatarUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(user.avatarUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Profile Picture",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                )
+            } else {
+                DefaultAvatar(name = userName)
+            }
+
+            // Edit badge
+            IconButton(
+                onClick = onEditProfile,
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
-            )
-        } else {
-            DefaultAvatar(name = userName)
+                    .background(PrimaryColor)
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Edit Profile",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
 
         // Info
@@ -347,21 +373,21 @@ fun HealthProfileSection(
         } else if (uiState.healthProfile != null) {
             HealthProfileRow(icon = Icons.Default.Person, label = "Name", value = uiState.healthProfile.fullName)
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            
+
             HealthProfileRow(icon = Icons.Default.People, label = "Gender", value = uiState.healthProfile.gender.displayName)
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            
+
             HealthProfileRow(icon = Icons.Default.CalendarToday, label = "Age", value = profileAge)
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            
+
             HealthProfileRow(icon = Icons.Default.Straighten, label = "Height", value = "${uiState.healthProfile.heightCm} cm")
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            
+
             HealthProfileRow(icon = Icons.Default.MonitorWeight, label = "Weight", value = "${uiState.healthProfile.weightKg} kg")
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            
+
             HealthProfileRow(icon = Icons.Default.Accessibility, label = "BMI", value = profileBMI)
-            
+
             if (uiState.healthProfile.bloodType != null) {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 HealthProfileRow(icon = Icons.Default.WaterDrop, label = "Blood Type", value = uiState.healthProfile.bloodType)
@@ -436,9 +462,9 @@ fun HydrationSection() {
             Spacer(modifier = Modifier.weight(1f))
             Text("Moderate", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        
+
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        
+
         Row(
              modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -451,7 +477,7 @@ fun HydrationSection() {
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        
+
         // Hydration Settings Link
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -581,16 +607,16 @@ fun SignOutSection(
                 }
             }
         }
-        
+
         Text(
             text = "Permanently delete your account and all associated data.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
-        
+
         Spacer(modifier = Modifier.height(12.dp))
-        
+
         SectionContainer {
              TextButton(
                 onClick = onSignOut,
@@ -626,7 +652,7 @@ fun ShimmerRow() {
     // Adjust shimmer colors for dark mode
     val baseColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     val highlightColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    
+
     val brush = Brush.linearGradient(
         colors = listOf(
             baseColor,

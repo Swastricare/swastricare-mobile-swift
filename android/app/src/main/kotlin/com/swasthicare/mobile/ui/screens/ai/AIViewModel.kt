@@ -10,6 +10,7 @@ import com.swasthicare.mobile.data.repository.AIConversationRepository
 import com.swasthicare.mobile.data.repository.AIConversation
 import com.swasthicare.mobile.data.repository.AIMessageRecord
 import com.swasthicare.mobile.data.services.AIService
+import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.data.services.SpeechService
 import com.swasthicare.mobile.di.AppContainer
@@ -78,6 +79,7 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
     private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
     private val conversationRepo: AIConversationRepository = AppContainer.aiConversationRepository
     private val prefs: SharedPreferences = AppContainer.sharedPreferences
+    private val analyticsService: AnalyticsService = AppContainer.analyticsService
 
     private val _uiState = MutableStateFlow(AIUiState())
     val uiState: StateFlow<AIUiState> = _uiState.asStateFlow()
@@ -141,6 +143,9 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
         val state = _uiState.value
         val text = state.inputText.trim()
         if (text.isEmpty() && state.selectedImageUri == null) return
+
+        // Log analytics
+        analyticsService.logAIMessageSent("chat")
 
         // Emergency keyword detection
         if (containsEmergencyKeyword(text)) {
@@ -234,6 +239,7 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
     // ── Health Analysis with real data ──
 
     private fun analyzeCurrentHealth() {
+        analyticsService.logEvent("ai_analysis_request")
         _uiState.value = _uiState.value.copy(analysisState = AnalysisState.Analyzing)
 
         viewModelScope.launch {

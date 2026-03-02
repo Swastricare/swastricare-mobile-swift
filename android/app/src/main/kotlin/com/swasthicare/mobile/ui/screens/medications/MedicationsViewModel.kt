@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.MedicationRepository
 import com.swasthicare.mobile.data.repository.ProfileRepository
+import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.notifications.MedicationReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +42,8 @@ data class MedicationsUiState(
 
 class MedicationsViewModel(
     private val repository: MedicationRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val analyticsService: AnalyticsService = AppContainer.analyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MedicationsUiState(isLoading = true))
@@ -94,6 +96,11 @@ class MedicationsViewModel(
 
     fun markAsTaken(dose: MedicationDose) {
         viewModelScope.launch {
+            // Log analytics event
+            val medName = _uiState.value.medicationsWithDoses
+                .firstOrNull { it.medication.id == dose.medicationId }?.medication?.name ?: "unknown"
+            analyticsService.logMedicationTaken(medName)
+
             // Optimistic update
             updateDoseStatus(dose, AdherenceStatus.TAKEN)
 
@@ -120,6 +127,11 @@ class MedicationsViewModel(
 
     fun markAsSkipped(dose: MedicationDose, reason: String? = null) {
         viewModelScope.launch {
+            // Log analytics event
+            val medName = _uiState.value.medicationsWithDoses
+                .firstOrNull { it.medication.id == dose.medicationId }?.medication?.name ?: "unknown"
+            analyticsService.logMedicationSkipped(medName, reason)
+
             updateDoseStatus(dose, AdherenceStatus.SKIPPED)
 
             val profileId = resolveProfileId()
@@ -178,7 +190,7 @@ class MedicationsViewModel(
                     val hour = parts.getOrNull(0)?.toIntOrNull() ?: return@forEach
                     val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
                     MedicationReminderScheduler.schedule(
-                        context = AppContainer.appContext,
+                        context = AppContainer.context,
                         medId = savedMed.id,
                         scheduleId = schedule.id,
                         medName = savedMed.name,
@@ -208,7 +220,7 @@ class MedicationsViewModel(
             if (result.isSuccess) {
                 // Cancel reminders for deleted medication's schedules
                 schedulesToCancel.forEach { schedule ->
-                    MedicationReminderScheduler.cancel(AppContainer.appContext, schedule.id)
+                    MedicationReminderScheduler.cancel(AppContainer.context, schedule.id)
                 }
                 loadMedications()
             } else {

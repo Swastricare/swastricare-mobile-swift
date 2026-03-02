@@ -57,11 +57,14 @@ import com.swasthicare.mobile.ui.screens.medications.MedicationDetailScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationsScreen
 import com.swasthicare.mobile.ui.screens.notifications.NotificationSettingsScreen
 import com.swasthicare.mobile.ui.screens.menstrualcycle.MenstrualCycleScreen
+import com.swasthicare.mobile.ui.screens.profile.EditProfileScreen
 import com.swasthicare.mobile.ui.screens.profile.ProfileScreen
+import com.swasthicare.mobile.ui.screens.profile.ProfileViewModel
 import com.swasthicare.mobile.ui.screens.runactivity.LiveWorkoutScreen
 import com.swasthicare.mobile.ui.screens.runactivity.RunActivityScreen
 import com.swasthicare.mobile.ui.screens.runactivity.WorkoutSummaryScreen
 import com.swasthicare.mobile.ui.screens.vault.VaultScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 sealed class MainTab(
     val route: String,
@@ -107,7 +110,7 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
     val haptic = LocalHapticFeedback.current
-    
+
     val items = listOf(
         MainTab.Vitals,
         MainTab.Vault,
@@ -133,19 +136,19 @@ fun MainScreen(
                 ) {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
-                    
+
                     items.forEach { screen ->
                         val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                         val selectedColor = MaterialTheme.colorScheme.primary
                         val unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        
+
                         NavigationBarItem(
-                            icon = { 
+                            icon = {
                                 Icon(
                                     imageVector = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
                                     contentDescription = screen.title,
                                     modifier = Modifier.size(24.dp)
-                                ) 
+                                )
                             },
                             label = null, // Remove labels for cleaner "Apple-like" look
                             selected = isSelected,
@@ -160,7 +163,7 @@ fun MainScreen(
                                 if (currentDestination?.route != screen.route) {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 }
-                                
+
                                 navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
@@ -175,6 +178,9 @@ fun MainScreen(
             }
         }
     ) { innerPadding ->
+        // Shared ProfileViewModel scoped to the MainScreen so Profile and EditProfile share state
+        val profileViewModel: ProfileViewModel = viewModel()
+
         // We want content to go behind the floating bar, so we ignore bottom padding mostly
         // but we add a spacer at the bottom of screens instead (already added in HomeScreen)
         NavHost(
@@ -204,12 +210,20 @@ fun MainScreen(
             }
             composable(MainTab.Profile.route) {
                 ProfileScreen(
+                    viewModel = profileViewModel,
                     onSignOut = onSignOut,
-                    onNavigateToNotificationSettings = { navController.navigate("notification_settings") }
+                    onNavigateToNotificationSettings = { navController.navigate("notification_settings") },
+                    onNavigateToEditProfile = { navController.navigate("edit_profile") }
                 )
             }
             composable("notification_settings") {
                 NotificationSettingsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable("edit_profile") {
+                EditProfileScreen(
+                    viewModel = profileViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

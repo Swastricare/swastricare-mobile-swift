@@ -5,7 +5,10 @@ import android.content.SharedPreferences
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.data.services.BiometricService
+import com.swasthicare.mobile.data.services.CrashlyticsService
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.data.services.NotificationService
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
@@ -26,7 +29,7 @@ import io.github.jan.supabase.functions.Functions
 
 /**
  * App Dependency Container
- * Provides Supabase authentication, repositories, and services
+ * Provides Supabase authentication, repositories, and services.
  */
 object AppContainer {
 
@@ -94,7 +97,25 @@ object AppContainer {
         NotificationService(context, sharedPreferences)
     }
 
-    // ── Repositories ──
+    // ─────────────────────────────────────
+    // MARK: - Firebase / Analytics Services
+    // ─────────────────────────────────────
+
+    val analyticsService: AnalyticsService by lazy {
+        AnalyticsService()
+    }
+
+    val crashlyticsService: CrashlyticsService by lazy {
+        CrashlyticsService()
+    }
+
+    val appAnalyticsService: AppAnalyticsService by lazy {
+        AppAnalyticsService(context, supabaseClient)
+    }
+
+    // ─────────────────────────────────────
+    // MARK: - Repositories
+    // ─────────────────────────────────────
 
     val profileRepository: ProfileRepository by lazy {
         MockProfileRepository()
@@ -160,5 +181,10 @@ object AppContainer {
 
     val liveWorkoutViewModel: LiveWorkoutViewModel by lazy {
         LiveWorkoutViewModel(context, runActivityRepository, profileRepository)
+    }
+
+    // Nudge Repository (Feature 10: Live Server Nudges)
+    val nudgeRepository: NudgeRepository by lazy {
+        SupabaseNudgeRepository(supabaseClient, sharedPreferences)
     }
 }
