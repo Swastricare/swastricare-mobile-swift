@@ -47,7 +47,7 @@ struct MedicationsView: View {
             ZStack {   // Black Background
           
                 // Theme-aware Background
-                // PremiumBackground()
+                PremiumBackground()
                 if viewModel.isLoading {
                     medicationsSkeletonView
                 } else if viewModel.todaysMedications.isEmpty {
@@ -70,7 +70,34 @@ struct MedicationsView: View {
                                 timelineSection
                                     .padding(.horizontal, 20)
                                     .padding(.top, 8)
-                                    .padding(.bottom, 24)
+                                    .padding(.bottom, 16)
+
+                                // Ask AI about medications
+                                Button(action: {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    dismiss()
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                        NotificationCenter.default.post(name: NSNotification.Name("SwitchToAITab"), object: nil)
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "sparkles")
+                                            .font(.system(size: 14, weight: .semibold))
+                                        Text("Ask AI about my medications")
+                                            .font(.system(size: 14, weight: .semibold))
+                                    }
+                                    .foregroundColor(Color(hex: "2E3192"))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color(hex: "2E3192").opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5)
+                                    )
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 24)
                             }
                         }
                     }
