@@ -403,6 +403,194 @@ struct MedicationCard: View {
     }
 }
 
+// MARK: - Pill Bottle Shape
+
+struct PillBottleShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        let w = rect.width
+        let h = rect.height
+
+        // Bottle proportions
+        let capHeight: CGFloat = h * 0.1
+        let neckHeight: CGFloat = h * 0.06
+        let bodyTop = capHeight + neckHeight
+        let bodyRadius: CGFloat = min(w * 0.08, 10)
+        let capInset: CGFloat = w * 0.15
+        let neckInset: CGFloat = w * 0.1
+        let capRadius: CGFloat = min(w * 0.06, 6)
+
+        // Cap (top, narrower)
+        path.move(to: CGPoint(x: capInset + capRadius, y: 0))
+        path.addLine(to: CGPoint(x: w - capInset - capRadius, y: 0))
+        path.addQuadCurve(
+            to: CGPoint(x: w - capInset, y: capRadius),
+            control: CGPoint(x: w - capInset, y: 0)
+        )
+        path.addLine(to: CGPoint(x: w - capInset, y: capHeight))
+        path.addLine(to: CGPoint(x: capInset, y: capHeight))
+        path.addLine(to: CGPoint(x: capInset, y: capRadius))
+        path.addQuadCurve(
+            to: CGPoint(x: capInset + capRadius, y: 0),
+            control: CGPoint(x: capInset, y: 0)
+        )
+        path.closeSubpath()
+
+        // Neck (short connector, slightly wider than cap)
+        path.move(to: CGPoint(x: neckInset, y: capHeight))
+        path.addLine(to: CGPoint(x: w - neckInset, y: capHeight))
+        path.addLine(to: CGPoint(x: w - neckInset, y: bodyTop))
+        path.addLine(to: CGPoint(x: neckInset, y: bodyTop))
+        path.closeSubpath()
+
+        // Body (main bottle, full width, rounded bottom)
+        path.move(to: CGPoint(x: 0, y: bodyTop))
+        path.addLine(to: CGPoint(x: w, y: bodyTop))
+        path.addLine(to: CGPoint(x: w, y: h - bodyRadius))
+        path.addQuadCurve(
+            to: CGPoint(x: w - bodyRadius, y: h),
+            control: CGPoint(x: w, y: h)
+        )
+        path.addLine(to: CGPoint(x: bodyRadius, y: h))
+        path.addQuadCurve(
+            to: CGPoint(x: 0, y: h - bodyRadius),
+            control: CGPoint(x: 0, y: h)
+        )
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+/// Shape for just the bottle body (used to clip water fill — excludes cap and neck)
+struct PillBottleBodyShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        let w = rect.width
+        let h = rect.height
+        let bodyRadius: CGFloat = min(w * 0.08, 10)
+
+        path.move(to: CGPoint(x: 0, y: 0))
+        path.addLine(to: CGPoint(x: w, y: 0))
+        path.addLine(to: CGPoint(x: w, y: h - bodyRadius))
+        path.addQuadCurve(
+            to: CGPoint(x: w - bodyRadius, y: h),
+            control: CGPoint(x: w, y: h)
+        )
+        path.addLine(to: CGPoint(x: bodyRadius, y: h))
+        path.addQuadCurve(
+            to: CGPoint(x: 0, y: h - bodyRadius),
+            control: CGPoint(x: 0, y: h)
+        )
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+// MARK: - Pill Bottle View
+
+struct PillBottleView: View {
+    let progress: CGFloat // 0...1
+    let bottleWidth: CGFloat
+    let bottleHeight: CGFloat
+
+    @State private var wavePhase: Double = 0
+    @State private var visualProgress: CGFloat = 0
+
+    private let teal = Color(hex: "11998e")
+
+    private var capHeight: CGFloat { bottleHeight * 0.1 }
+    private var neckHeight: CGFloat { bottleHeight * 0.06 }
+    private var bodyTop: CGFloat { capHeight + neckHeight }
+    private var bodyHeight: CGFloat { bottleHeight - bodyTop }
+
+    init(progress: CGFloat, width: CGFloat = 80, height: CGFloat = 130) {
+        self.progress = min(max(progress, 0), 1)
+        self.bottleWidth = width
+        self.bottleHeight = height
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            // Bottle outline
+            PillBottleShape()
+                .stroke(teal.opacity(0.3), lineWidth: 2)
+                .frame(width: bottleWidth, height: bottleHeight)
+
+            // Water fill inside body only
+            VStack(spacing: 0) {
+                Color.clear
+                    .frame(height: bodyTop)
+
+                ZStack(alignment: .bottom) {
+                    PillBottleBodyShape()
+                        .fill(Color.clear)
+                        .frame(width: bottleWidth, height: bodyHeight)
+
+                    let fillHeight = bodyHeight * visualProgress
+                    ZStack {
+                        WaterWave(amplitude: 3, offset: wavePhase)
+                            .fill(teal.opacity(0.25))
+                            .frame(height: fillHeight)
+
+                        WaterWave(amplitude: 2.5, offset: wavePhase + 1.5)
+                            .fill(
+                                LinearGradient(
+                                    colors: [teal.opacity(0.5), teal.opacity(0.35)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: fillHeight)
+                    }
+                    .frame(height: fillHeight, alignment: .bottom)
+                    .clipShape(PillBottleBodyShape())
+                }
+                .frame(width: bottleWidth, height: bodyHeight)
+            }
+            .frame(width: bottleWidth, height: bottleHeight)
+
+            // Percentage label (centered in body)
+            VStack(spacing: 2) {
+                Spacer()
+                    .frame(height: bodyTop)
+
+                Spacer()
+
+                Text("\(Int(visualProgress * 100))%")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+
+                if visualProgress >= 1.0 {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.green)
+                }
+
+                Spacer()
+            }
+            .frame(width: bottleWidth, height: bottleHeight)
+        }
+        .frame(width: bottleWidth, height: bottleHeight)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+                visualProgress = progress
+            }
+            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                wavePhase = .pi * 2
+            }
+        }
+        .onChange(of: progress) { _, newValue in
+            withAnimation(.easeOut(duration: 0.5)) {
+                visualProgress = min(max(newValue, 0), 1)
+            }
+        }
+    }
+}
+
 #Preview {
     MedicationsView(viewModel: MedicationViewModel())
 }
