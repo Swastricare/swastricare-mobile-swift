@@ -28,6 +28,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,10 +44,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.swasthicare.mobile.navigation.DeepLinkHandler
+import com.swasthicare.mobile.navigation.DeepLinkRoute
 import com.swasthicare.mobile.ui.screens.ai.AIScreen
 import com.swasthicare.mobile.ui.screens.diet.AddFoodScreen
 import com.swasthicare.mobile.ui.screens.diet.DietScreen
 import com.swasthicare.mobile.ui.screens.diet.FoodSearchScreen
+import com.swasthicare.mobile.ui.screens.family.FamilyScreen
 import com.swasthicare.mobile.ui.screens.heartrate.HeartRateResultScreen
 import com.swasthicare.mobile.ui.screens.heartrate.HeartRateScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
@@ -106,7 +110,9 @@ sealed class MainTab(
 
 @Composable
 fun MainScreen(
-    onSignOut: () -> Unit = {}
+    onSignOut: () -> Unit = {},
+    deepLinkRoute: DeepLinkRoute? = null,
+    onDeepLinkConsumed: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val haptic = LocalHapticFeedback.current
@@ -118,6 +124,30 @@ fun MainScreen(
         MainTab.Steps,
         MainTab.Profile
     )
+
+    // Handle deep link navigation
+    LaunchedEffect(deepLinkRoute) {
+        if (deepLinkRoute != null) {
+            val navRoute = DeepLinkHandler.toNavRoute(deepLinkRoute)
+
+            // Check if it's a tab route or a nested screen route
+            val isTabRoute = items.any { it.route == navRoute }
+            if (isTabRoute) {
+                navController.navigate(navRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            } else {
+                navController.navigate(navRoute) {
+                    launchSingleTop = true
+                }
+            }
+            onDeepLinkConsumed()
+        }
+    }
 
     Scaffold(
         containerColor = Color.Transparent, // Let the background show through
@@ -213,7 +243,8 @@ fun MainScreen(
                     viewModel = profileViewModel,
                     onSignOut = onSignOut,
                     onNavigateToNotificationSettings = { navController.navigate("notification_settings") },
-                    onNavigateToEditProfile = { navController.navigate("edit_profile") }
+                    onNavigateToEditProfile = { navController.navigate("edit_profile") },
+                    onNavigateToFamily = { navController.navigate("family") }
                 )
             }
             composable("notification_settings") {
@@ -334,6 +365,19 @@ fun MainScreen(
                     onDone = {
                         navController.popBackStack("steps", inclusive = false)
                     }
+                )
+            }
+            // Family flow
+            composable("family") {
+                FamilyScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable("family_join/{code}") { backStackEntry ->
+                val code = backStackEntry.arguments?.getString("code") ?: ""
+                FamilyScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    initialJoinCode = code
                 )
             }
         }

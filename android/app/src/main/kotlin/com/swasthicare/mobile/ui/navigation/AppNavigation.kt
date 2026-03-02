@@ -1,6 +1,7 @@
 package com.swasthicare.mobile.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -11,6 +12,8 @@ import androidx.navigation.compose.rememberNavController
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.di.CONSENT_ACCEPTED_KEY
 import com.swasthicare.mobile.di.ONBOARDING_COMPLETE_KEY
+import com.swasthicare.mobile.navigation.DeepLinkHandler
+import com.swasthicare.mobile.navigation.DeepLinkRoute
 import com.swasthicare.mobile.ui.screens.auth.AuthUiState
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.auth.LoginScreen
@@ -30,7 +33,11 @@ import kotlinx.coroutines.launch
  * Splash -> ForceUpdate? -> Onboarding -> Consent -> Login -> HealthProfile? -> Main
  */
 @Composable
-fun AppNavigation(authViewModel: AuthViewModel) {
+fun AppNavigation(
+    authViewModel: AuthViewModel,
+    deepLinkRoute: DeepLinkRoute? = null,
+    onDeepLinkConsumed: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val authState by authViewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
@@ -169,7 +176,9 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                     navController.navigate("login") {
                         popUpTo("main") { inclusive = true }
                     }
-                }
+                },
+                deepLinkRoute = deepLinkRoute,
+                onDeepLinkConsumed = onDeepLinkConsumed
             )
         }
     }

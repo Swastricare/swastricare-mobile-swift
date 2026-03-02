@@ -91,7 +91,7 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
 
     // Health Connect
-    implementation("androidx.health.connect:connect-client:1.1.0-alpha07")
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
 
     // Biometric
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
@@ -105,14 +105,18 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
 
-    // Google Location Services for GPS workout tracking
-    implementation("com.google.android.gms:play-services-location:21.1.0")
+    // Google Location Services for GPS workout tracking + weather-based hydration
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 
     // Accompanist permissions helper
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
     // ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    // Jetpack Glance (App Widgets)
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+    implementation("androidx.glance:glance-material3:1.1.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

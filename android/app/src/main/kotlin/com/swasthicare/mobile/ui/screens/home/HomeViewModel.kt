@@ -7,6 +7,7 @@ import com.swasthicare.mobile.data.model.NudgePriority
 import com.swasthicare.mobile.data.model.NudgeType
 import com.swasthicare.mobile.data.repository.NudgeRepository
 import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.data.services.DailyStepCount
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.DailyMetric
@@ -15,10 +16,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.TextStyle
 import java.util.Calendar
 import java.util.Date
+import java.util.Locale
 
 data class HomeState(
     val userName: String = "Alex Johnson",
@@ -41,6 +45,9 @@ data class HomeState(
     val weekDates: List<Date> = emptyList(),
     val selectedDate: Date = Date(),
     val weeklySteps: List<DailyMetric> = emptyList(),
+    // Real weekly steps from Health Connect
+    val weeklyStepCounts: List<DailyStepCount> = emptyList(),
+    val dailyStepGoal: Int = 10000,
     // Nudges — now backed by HealthNudge model from server
     val serverNudges: List<HealthNudge> = emptyList(),
     // Diet quick action data
@@ -130,9 +137,54 @@ class HomeViewModel(
                 calorieCurrent = 0,
                 calorieGoal = 2000
             )
+
+            // Load real weekly steps from Health Connect
+            loadRealWeeklySteps()
         } catch (e: Exception) {
             // Fallback to demo data on error
             loadDemoData(greeting, weekDates)
+        }
+    }
+
+    /**
+     * Fetch real weekly steps from Health Connect.
+     * Falls back to sample data if Health Connect is not available.
+     */
+    private fun loadRealWeeklySteps() {
+        viewModelScope.launch {
+            try {
+                val weeklyStepCounts = healthConnectService.getWeeklyStepCounts()
+
+                // Convert DailyStepCount to DailyMetric for chart compatibility
+                val realWeeklyMetrics = weeklyStepCounts.map { dsc ->
+                    val dayName = dsc.date.dayOfWeek.getDisplayName(
+                        TextStyle.SHORT, Locale.getDefault()
+                    ).take(3)
+                    val calendar = Calendar.getInstance().apply {
+                        set(Calendar.YEAR, dsc.date.year)
+                        set(Calendar.MONTH, dsc.date.monthValue - 1)
+                        set(Calendar.DAY_OF_MONTH, dsc.date.dayOfMonth)
+                    }
+                    DailyMetric(
+                        date = calendar.time,
+                        steps = dsc.steps.toInt(),
+                        dayName = dayName
+                    )
+                }
+
+                // Update today's step count from real data
+                val today = LocalDate.now()
+                val todaySteps = weeklyStepCounts.firstOrNull { it.date == today }?.steps?.toInt()
+
+                _uiState.value = _uiState.value.copy(
+                    weeklySteps = realWeeklyMetrics,
+                    weeklyStepCounts = weeklyStepCounts,
+                    stepCount = todaySteps ?: _uiState.value.stepCount,
+                    isDemoMode = false
+                )
+            } catch (_: Exception) {
+                // Keep sample data on failure
+            }
         }
     }
 
@@ -243,6 +295,7 @@ class HomeViewModel(
         val current = _uiState.value
         _uiState.value = current.copy(selectedDate = date)
 
+        // Update step count based on weekly data
         val metric = current.weeklySteps.find { isSameDay(it.date, date) }
         metric?.let {
             _uiState.value = _uiState.value.copy(stepCount = it.steps)
@@ -252,6 +305,7 @@ class HomeViewModel(
     fun requestHealthPermissions() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAuthorized = true, isDemoMode = false)
+            loadRealWeeklySteps()
         }
     }
 

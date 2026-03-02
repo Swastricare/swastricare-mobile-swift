@@ -660,6 +660,62 @@ fun HydrationProgressRing(
 }
 
 // ─────────────────────────────────────
+// MARK: - Weather Adjustment Banner
+// ─────────────────────────────────────
+
+@Composable
+fun WeatherAdjustmentBanner(
+    temperature: Double,
+    city: String,
+    baseGoal: Int,
+    adjustedGoal: Int,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isSystemInDarkTheme()
+    val bannerBg = if (isDark) Color(0xFF2C1810) else Color(0xFFFFF3E0)
+    val accentColor = Color(0xFFFF9500)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bannerBg)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Sun icon
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(accentColor.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.WbSunny, null,
+                tint = accentColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "It's ${String.format("%.0f", temperature)}\u00B0C in $city",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Your hydration goal has been increased by 20% (${baseGoal}ml \u2192 ${adjustedGoal}ml)",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────
 // MARK: - Skeleton Loading
 // ─────────────────────────────────────
 

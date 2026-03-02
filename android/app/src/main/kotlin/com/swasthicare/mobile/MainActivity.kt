@@ -1,5 +1,7 @@
 package com.swasthicare.mobile
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,18 +17,27 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.navigation.DeepLinkHandler
+import com.swasthicare.mobile.navigation.DeepLinkRoute
 import com.swasthicare.mobile.ui.lock.LockScreen
 import com.swasthicare.mobile.ui.lock.LockScreenViewModel
 import com.swasthicare.mobile.ui.navigation.AppNavigation
 import com.swasthicare.mobile.ui.theme.SwasthiCareTheme
 
 class MainActivity : ComponentActivity() {
+
+    // Deep link route parsed from intent, observed by AppNavigation
+    private val pendingDeepLink = mutableStateOf<DeepLinkRoute?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         // Initialize AppContainer
         AppContainer.initialize(this)
+
+        // Handle deep link from launch intent
+        handleDeepLink(intent)
 
         setContent {
             SwasthiCareTheme {
@@ -64,8 +75,12 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Main app content
-                        AppNavigation(authViewModel = AppContainer.authViewModel)
+                        // Main app content with deep link support
+                        AppNavigation(
+                            authViewModel = AppContainer.authViewModel,
+                            deepLinkRoute = pendingDeepLink.value,
+                            onDeepLinkConsumed = { pendingDeepLink.value = null }
+                        )
 
                         // Lock screen overlay
                         if (isLocked) {
@@ -75,5 +90,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        val route = DeepLinkHandler.parse(uri) ?: return
+        if (route is DeepLinkRoute.Unknown) return
+        pendingDeepLink.value = route
     }
 }

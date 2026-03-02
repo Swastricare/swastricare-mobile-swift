@@ -11,8 +11,10 @@ import com.swasthicare.mobile.data.services.BiometricService
 import com.swasthicare.mobile.data.services.CrashlyticsService
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.data.services.NotificationService
+import com.swasthicare.mobile.data.services.WeatherService
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
+import com.swasthicare.mobile.ui.screens.family.FamilyViewModel
 import com.swasthicare.mobile.ui.screens.heartrate.HeartRateViewModel
 import com.swasthicare.mobile.ui.screens.hydration.HydrationViewModel
 import com.swasthicare.mobile.ui.screens.medications.MedicationsViewModel
@@ -97,6 +99,11 @@ object AppContainer {
         NotificationService(context, sharedPreferences)
     }
 
+    // Weather Service (for hydration adjustments)
+    val weatherService: WeatherService by lazy {
+        WeatherService(context, sharedPreferences)
+    }
+
     // ─────────────────────────────────────
     // MARK: - Firebase / Analytics Services
     // ─────────────────────────────────────
@@ -146,7 +153,16 @@ object AppContainer {
     }
 
     val hydrationViewModel: HydrationViewModel by lazy {
-        HydrationViewModel(hydrationRepository, profileRepository)
+        HydrationViewModel(hydrationRepository, profileRepository, weatherService)
+    }
+
+    // Family
+    val familyRepository: FamilyRepository by lazy {
+        SupabaseFamilyRepository(supabaseClient)
+    }
+
+    val familyViewModel: FamilyViewModel by lazy {
+        FamilyViewModel(familyRepository, authRepository)
     }
 
     val aiConversationRepository: AIConversationRepository by lazy {

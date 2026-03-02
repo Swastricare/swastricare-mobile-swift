@@ -137,29 +137,36 @@ private fun DateButton(
 fun WeeklyStepsChart(
     weeklySteps: List<DailyMetric>,
     selectedDate: Date,
+    stepGoal: Int = 10000,
     modifier: Modifier = Modifier
 ) {
     var isVisible by remember { mutableStateOf(false) }
-    
+    var tappedIndex by remember { mutableStateOf(-1) }
+
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(200)
         isVisible = true
     }
-    
+
     val animatedAlpha by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0f,
         animationSpec = tween(500),
         label = "chartAlpha"
     )
-    
+
     val animatedScale by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0.9f,
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
         label = "chartScale"
     )
-    
-    val maxSteps = weeklySteps.maxOfOrNull { it.steps } ?: 1
-    
+
+    // Use the max of steps and goal so the goal line is always visible
+    val maxValue = maxOf(weeklySteps.maxOfOrNull { it.steps } ?: 1, stepGoal)
+    val chartHeight = 150f
+
+    // Determine today's date for highlighting
+    val today = Calendar.getInstance().time
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -173,56 +180,107 @@ fun WeeklyStepsChart(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = "Weekly Steps",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        
         Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Weekly Steps",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            // Show step count of tapped bar
+            if (tappedIndex in weeklySteps.indices) {
+                val tappedMetric = weeklySteps[tappedIndex]
+                Text(
+                    text = "%,d steps".format(tappedMetric.steps),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PremiumColor.RoyalBlueStart,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
+                .height(chartHeight.dp)
         ) {
-            weeklySteps.forEach { metric ->
-                val isSelectedDay = isSameDay(metric.date, selectedDate)
-                val barHeight = if (maxSteps > 0) (metric.steps.toFloat() / maxSteps) * 120f else 0f
-                
-                // Animate bar height
-                val animatedHeight by animateFloatAsState(
-                    targetValue = if (isVisible) barHeight else 0f,
-                    animationSpec = tween(
-                        durationMillis = 800,
-                        delayMillis = weeklySteps.indexOf(metric) * 50,
-                        easing = FastOutSlowInEasing
-                    ),
-                    label = "barHeight"
+            // Goal line (dashed)
+            if (stepGoal > 0) {
+                val goalRatio = stepGoal.toFloat() / maxValue
+                val goalY = chartHeight * (1f - goalRatio)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = goalY.dp)
+                        .height(1.dp)
+                        .background(Color.Gray.copy(alpha = 0.4f))
                 )
-                
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(30.dp)
-                            .height(animatedHeight.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (isSelectedDay) PremiumColor.RoyalBlueStart 
-                                else Color.Gray.copy(alpha = 0.3f)
-                            )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                weeklySteps.forEachIndexed { index, metric ->
+                    val isSelectedDay = isSameDay(metric.date, selectedDate)
+                    val isToday = isSameDay(metric.date, today)
+                    val barHeightDp = if (maxValue > 0) (metric.steps.toFloat() / maxValue) * (chartHeight - 20f) else 0f
+
+                    // Animate bar height
+                    val animatedHeight by animateFloatAsState(
+                        targetValue = if (isVisible) barHeightDp else 0f,
+                        animationSpec = tween(
+                            durationMillis = 800,
+                            delayMillis = index * 80,
+                            easing = FastOutSlowInEasing
+                        ),
+                        label = "barHeight$index"
                     )
-                    
-                    Text(
-                        text = metric.dayName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                    val barColor = when {
+                        isToday -> PremiumColor.RoyalBlueStart
+                        isSelectedDay -> PremiumColor.RoyalBlueStart.copy(alpha = 0.7f)
+                        else -> Color.Gray.copy(alpha = 0.3f)
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.clickable {
+                            tappedIndex = if (tappedIndex == index) -1 else index
+                        }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(30.dp)
+                                .height(animatedHeight.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(barColor)
+                        )
+
+                        Text(
+                            text = metric.dayName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isToday) PremiumColor.RoyalBlueStart
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
                 }
             }
+        }
+
+        // Goal label
+        if (stepGoal > 0) {
+            Text(
+                text = "Goal: %,d steps".format(stepGoal),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
