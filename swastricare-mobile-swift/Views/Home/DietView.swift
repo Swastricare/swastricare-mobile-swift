@@ -16,6 +16,9 @@ struct DietView: View {
     var body: some View {
         NavigationView {
             ZStack {
+                // Theme-aware Background
+                PremiumBackground()
+
                 ScrollView {
                     VStack(spacing: 20) {
                         // Calendar Strip
@@ -34,6 +37,32 @@ struct DietView: View {
                         if let insights = viewModel.insights {
                             insightsCard(insights)
                         }
+
+                        // Ask AI about diet
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                NotificationCenter.default.post(name: NSNotification.Name("SwitchToAITab"), object: nil)
+                            }
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Ask AI about my diet")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(Color(hex: "2E3192"))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(hex: "2E3192").opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5)
+                            )
+                        }
+                        .padding(.horizontal, 20)
                     }
                     .padding(.bottom, 20)
                 }
@@ -129,38 +158,36 @@ struct DietView: View {
             Text(viewModel.goalDescription)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
-            HStack(alignment: .center, spacing: 24) {
-                // Calorie Progress Ring
-                CalorieProgressRing(
-                    current: viewModel.totalCalories,
-                    goal: viewModel.dietGoals.dailyCalories,
-                    progress: viewModel.calorieProgress
+
+            // Calorie Progress Ring (centered hero)
+            CalorieProgressRing(
+                current: viewModel.totalCalories,
+                goal: viewModel.dietGoals.dailyCalories,
+                progress: viewModel.calorieProgress
+            )
+
+            // Stat pills row
+            HStack(spacing: 10) {
+                dietStatPill(
+                    icon: "flame.fill",
+                    color: .green,
+                    value: "\(viewModel.totalCalories)",
+                    label: "of \(viewModel.dietGoals.dailyCalories) cal"
                 )
-                
-                // Stats
-                VStack(alignment: .leading, spacing: 12) {
-                    statRow(
-                        icon: "flame.fill",
-                        color: .green,
-                        value: "\(viewModel.totalCalories)",
-                        label: "of \(viewModel.dietGoals.dailyCalories) cal"
-                    )
-                    
-                    statRow(
-                        icon: "arrow.up.circle.fill",
-                        color: .orange,
-                        value: "\(viewModel.remainingCalories)",
-                        label: "remaining"
-                    )
-                    
-                    statRow(
-                        icon: "fork.knife",
-                        color: .blue,
-                        value: "\(viewModel.nutritionSummary.mealCount)",
-                        label: "meals logged"
-                    )
-                }
+
+                dietStatPill(
+                    icon: "arrow.up.circle.fill",
+                    color: .orange,
+                    value: "\(viewModel.remainingCalories)",
+                    label: "remaining"
+                )
+
+                dietStatPill(
+                    icon: "fork.knife",
+                    color: .blue,
+                    value: "\(viewModel.nutritionSummary.mealCount)",
+                    label: "meals"
+                )
             }
         }
         .padding(20)
@@ -168,26 +195,27 @@ struct DietView: View {
         .cornerRadius(16)
         .padding(.horizontal, 20)
     }
-    
-    private func statRow(icon: String, color: Color, value: String, label: String) -> some View {
-        HStack(spacing: 12) {
+
+    private func dietStatPill(icon: String, color: Color, value: String, label: String) -> some View {
+        VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(color)
-                .frame(width: 24)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.primary)
-                
-                Text(label)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
+
+            Text(value)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.primary)
+
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(color.opacity(0.08))
+        .cornerRadius(12)
     }
     
     // MARK: - Macro Breakdown Section
