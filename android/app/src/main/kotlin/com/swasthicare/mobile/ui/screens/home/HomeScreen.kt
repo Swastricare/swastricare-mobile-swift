@@ -51,7 +51,8 @@ fun HomeScreen(
     onNavigateToMedications: () -> Unit = {},
     onNavigateToDiet: () -> Unit = {},
     onNavigateToHydration: () -> Unit = {},
-    onNavigateToCycleTracker: () -> Unit = {}
+    onNavigateToCycleTracker: () -> Unit = {},
+    onNavigateToBodyScan: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -365,8 +366,11 @@ fun HomeScreen(
                         onClick = onNavigateToDiet,
                         modifier = Modifier.weight(1f)
                     )
-                    // Empty spacer on the right (matches iOS layout where diet is left-half)
-                    Spacer(modifier = Modifier.weight(1f))
+                    // Body Scan Quick Action
+                    BodyScanQuickActionCard(
+                        onClick = onNavigateToBodyScan,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

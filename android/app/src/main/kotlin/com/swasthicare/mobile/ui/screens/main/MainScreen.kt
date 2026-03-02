@@ -42,6 +42,7 @@ import com.swasthicare.mobile.ui.screens.ai.AIScreen
 import com.swasthicare.mobile.ui.screens.diet.AddFoodScreen
 import com.swasthicare.mobile.ui.screens.diet.DietScreen
 import com.swasthicare.mobile.ui.screens.diet.FoodSearchScreen
+import com.swasthicare.mobile.ui.screens.ar.ARBodyScanScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.screens.hydration.HydrationScreen
@@ -168,7 +169,8 @@ fun MainScreen(
                     onNavigateToMedications = { navController.navigate("medications") },
                     onNavigateToDiet = { navController.navigate("diet") },
                     onNavigateToHydration = { navController.navigate("hydration") },
-                    onNavigateToCycleTracker = { /* TODO: navController.navigate("cycle_tracker") */ }
+                    onNavigateToCycleTracker = { /* TODO: navController.navigate("cycle_tracker") */ },
+                    onNavigateToBodyScan = { navController.navigate("ar_body_scan") }
                 )
             }
             composable(MainTab.AI.route) { AIScreen() }
@@ -234,6 +236,12 @@ fun MainScreen(
                     mealTypeDb = mealTypeDb,
                     onFoodSelected = { navController.popBackStack() },
                     onDismiss = { navController.popBackStack() }
+                )
+            }
+            // AR Body Scan (Feature 16)
+            composable("ar_body_scan") {
+                ARBodyScanScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             // Hydration flow

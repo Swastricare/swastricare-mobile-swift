@@ -2,9 +2,13 @@ package com.swasthicare.mobile.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.swasthicare.mobile.BuildConfig
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
+import com.swasthicare.mobile.data.services.AppAnalyticsService
+import com.swasthicare.mobile.data.services.AppVersionService
+import com.swasthicare.mobile.data.services.PoseDetectionService
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
 import com.swasthicare.mobile.ui.screens.hydration.HydrationViewModel
@@ -19,19 +23,19 @@ import io.github.jan.supabase.functions.Functions
 
 /**
  * App Dependency Container
- * Provides Supabase authentication and repositories
+ * Provides Supabase authentication, repositories, and services
  */
 object AppContainer {
-    
+
     private var _context: Context? = null
-    
+
     fun initialize(context: Context) {
         _context = context.applicationContext
     }
-    
+
     private val context: Context
         get() = _context ?: throw IllegalStateException("AppContainer not initialized")
-    
+
     // Supabase Client - matching iOS
     val supabaseClient: SupabaseClient by lazy {
         createSupabaseClient(
@@ -48,32 +52,25 @@ object AppContainer {
             install(Functions)
         }
     }
-    
-    // Google Auth Helper
+
+    // Google Auth Helper - reads Web Client ID from BuildConfig (set via gradle.properties)
     val googleAuthHelper: GoogleAuthHelper by lazy {
         GoogleAuthHelper(
             context = context,
-            // TODO: Replace with your Google Web Client ID from Supabase Dashboard
-            // Steps:
-            // 1. Go to https://supabase.com/dashboard/project/jlumbeyukpnuicyxzvre/auth/providers
-            // 2. Enable Google provider
-            // 3. Add Android package name: com.swasthicare.mobile
-            // 4. Add SHA-1 certificate fingerprint
-            // 5. Copy the Web Client ID from Google Cloud Console
-            webClientId = "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
+            webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
         )
     }
-    
+
     // Auth Repository
     val authRepository: SupabaseAuthRepository by lazy {
         SupabaseAuthRepository(supabaseClient)
     }
-    
+
     // Auth ViewModel
     val authViewModel: AuthViewModel by lazy {
         AuthViewModel(authRepository, googleAuthHelper)
     }
-    
+
     // Shared preferences
     val sharedPreferences: SharedPreferences by lazy {
         context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
@@ -111,4 +108,27 @@ object AppContainer {
     val hydrationViewModel: HydrationViewModel by lazy {
         HydrationViewModel(hydrationRepository, profileRepository)
     }
+
+    // --- New Services (Features 16-18) ---
+
+    // Pose Detection Service (Feature 16: AR Body Scan)
+    val poseDetectionService: PoseDetectionService by lazy {
+        PoseDetectionService()
+    }
+
+    // Analytics Service (Feature 17: Custom Supabase Analytics)
+    val analyticsService: AppAnalyticsService by lazy {
+        AppAnalyticsService(context, supabaseClient)
+    }
+
+    // App Version Service (Feature 18: Force Update Checking)
+    val appVersionService: AppVersionService by lazy {
+        AppVersionService(context, supabaseClient)
+    }
+
+    /**
+     * Current app version name from BuildConfig.
+     */
+    val currentVersionName: String
+        get() = BuildConfig.VERSION_NAME
 }
