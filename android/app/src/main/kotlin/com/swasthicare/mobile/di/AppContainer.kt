@@ -7,8 +7,12 @@ import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
+import com.swasthicare.mobile.ui.screens.heartrate.HeartRateViewModel
 import com.swasthicare.mobile.ui.screens.hydration.HydrationViewModel
 import com.swasthicare.mobile.ui.screens.medications.MedicationsViewModel
+import com.swasthicare.mobile.ui.screens.menstrualcycle.MenstrualCycleViewModel
+import com.swasthicare.mobile.ui.screens.runactivity.LiveWorkoutViewModel
+import com.swasthicare.mobile.ui.screens.runactivity.RunActivityViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
@@ -110,5 +114,35 @@ object AppContainer {
 
     val hydrationViewModel: HydrationViewModel by lazy {
         HydrationViewModel(hydrationRepository, profileRepository)
+    }
+
+    // ── Menstrual Cycle ──
+
+    val menstrualCycleRepository: MenstrualCycleRepository by lazy {
+        SupabaseMenstrualCycleRepository(supabaseClient, sharedPreferences)
+    }
+
+    val menstrualCycleViewModel: MenstrualCycleViewModel by lazy {
+        MenstrualCycleViewModel(menstrualCycleRepository, profileRepository)
+    }
+
+    // ── Heart Rate ──
+
+    val heartRateViewModel: HeartRateViewModel by lazy {
+        HeartRateViewModel(context, supabaseClient)
+    }
+
+    // ── Run Activity ──
+
+    val runActivityRepository: RunActivityRepository by lazy {
+        SupabaseRunActivityRepository(supabaseClient, sharedPreferences)
+    }
+
+    val runActivityViewModel: RunActivityViewModel by lazy {
+        RunActivityViewModel(runActivityRepository, profileRepository)
+    }
+
+    val liveWorkoutViewModel: LiveWorkoutViewModel by lazy {
+        LiveWorkoutViewModel(context, runActivityRepository, profileRepository)
     }
 }

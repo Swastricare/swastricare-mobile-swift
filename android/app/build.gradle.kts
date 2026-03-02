@@ -81,6 +81,21 @@ dependencies {
     // SceneView for 3D rendering (wraps Filament with Compose support)
     implementation("io.github.sceneview:sceneview:2.2.1")
 
+    // CameraX for PPG heart rate measurement
+    implementation("androidx.camera:camera-core:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+
+    // Google Location Services for GPS workout tracking
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+
+    // Accompanist permissions helper
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
+    // ViewModel Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

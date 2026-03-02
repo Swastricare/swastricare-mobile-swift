@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
@@ -42,42 +44,54 @@ import com.swasthicare.mobile.ui.screens.ai.AIScreen
 import com.swasthicare.mobile.ui.screens.diet.AddFoodScreen
 import com.swasthicare.mobile.ui.screens.diet.DietScreen
 import com.swasthicare.mobile.ui.screens.diet.FoodSearchScreen
+import com.swasthicare.mobile.ui.screens.heartrate.HeartRateResultScreen
+import com.swasthicare.mobile.ui.screens.heartrate.HeartRateScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.screens.hydration.HydrationScreen
 import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationDetailScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationsScreen
+import com.swasthicare.mobile.ui.screens.menstrualcycle.MenstrualCycleScreen
 import com.swasthicare.mobile.ui.screens.profile.ProfileScreen
+import com.swasthicare.mobile.ui.screens.runactivity.LiveWorkoutScreen
+import com.swasthicare.mobile.ui.screens.runactivity.RunActivityScreen
+import com.swasthicare.mobile.ui.screens.runactivity.WorkoutSummaryScreen
 import com.swasthicare.mobile.ui.screens.vault.VaultScreen
 
 sealed class MainTab(
-    val route: String, 
-    val title: String, 
+    val route: String,
+    val title: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 ) {
     object Vitals : MainTab(
-        route = "vitals", 
-        title = "Vitals", 
+        route = "vitals",
+        title = "Vitals",
         selectedIcon = Icons.Filled.Favorite,
         unselectedIcon = Icons.Outlined.FavoriteBorder
     )
-    object AI : MainTab(
-        route = "ai", 
-        title = "AI", 
-        selectedIcon = Icons.Filled.AutoAwesome,
-        unselectedIcon = Icons.Outlined.AutoAwesome
-    )
     object Vault : MainTab(
-        route = "vault", 
-        title = "Vault", 
+        route = "vault",
+        title = "Vault",
         selectedIcon = Icons.Filled.Lock,
         unselectedIcon = Icons.Outlined.Lock
     )
+    object AI : MainTab(
+        route = "ai",
+        title = "AI",
+        selectedIcon = Icons.Filled.AutoAwesome,
+        unselectedIcon = Icons.Outlined.AutoAwesome
+    )
+    object Steps : MainTab(
+        route = "steps",
+        title = "Steps",
+        selectedIcon = Icons.Filled.DirectionsRun,
+        unselectedIcon = Icons.Outlined.DirectionsRun
+    )
     object Profile : MainTab(
-        route = "profile", 
-        title = "Profile", 
+        route = "profile",
+        title = "Profile",
         selectedIcon = Icons.Filled.Person,
         unselectedIcon = Icons.Outlined.Person
     )
@@ -92,8 +106,9 @@ fun MainScreen(
     
     val items = listOf(
         MainTab.Vitals,
-        MainTab.AI,
         MainTab.Vault,
+        MainTab.AI,
+        MainTab.Steps,
         MainTab.Profile
     )
 
@@ -168,11 +183,17 @@ fun MainScreen(
                     onNavigateToMedications = { navController.navigate("medications") },
                     onNavigateToDiet = { navController.navigate("diet") },
                     onNavigateToHydration = { navController.navigate("hydration") },
-                    onNavigateToCycleTracker = { /* TODO: navController.navigate("cycle_tracker") */ }
+                    onNavigateToCycleTracker = { navController.navigate("cycle_tracker") },
+                    onNavigateToHeartRate = { navController.navigate("heart_rate") },
                 )
             }
             composable(MainTab.AI.route) { AIScreen() }
             composable(MainTab.Vault.route) { VaultScreen() }
+            composable(MainTab.Steps.route) {
+                RunActivityScreen(
+                    onNavigateToLiveWorkout = { navController.navigate("live_workout") }
+                )
+            }
             composable(MainTab.Profile.route) {
                 ProfileScreen(onSignOut = onSignOut)
             }
@@ -246,6 +267,42 @@ fun MainScreen(
                             launchSingleTop = true
                             restoreState = true
                         }
+                    }
+                )
+            }
+            // Menstrual Cycle Tracker
+            composable("cycle_tracker") {
+                MenstrualCycleScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            // Heart Rate Measurement
+            composable("heart_rate") {
+                HeartRateScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToResult = { navController.navigate("heart_rate_result") }
+                )
+            }
+            composable("heart_rate_result") {
+                HeartRateResultScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onRetake = {
+                        navController.popBackStack("heart_rate", inclusive = false)
+                    }
+                )
+            }
+            // Live Workout flow
+            composable("live_workout") {
+                LiveWorkoutScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSummary = { navController.navigate("workout_summary") }
+                )
+            }
+            composable("workout_summary") {
+                WorkoutSummaryScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onDone = {
+                        navController.popBackStack("steps", inclusive = false)
                     }
                 )
             }
