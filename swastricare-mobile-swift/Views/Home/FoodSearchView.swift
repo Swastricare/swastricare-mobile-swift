@@ -44,9 +44,12 @@ struct FoodSearchView: View {
                 } else {
                     List {
                         ForEach(filteredFoods) { food in
-                            FoodItemRow(food: food) {
-                                onFoodSelected(food)
-                            }
+                            FoodItemRow(
+                                food: food,
+                                onSelect: { onFoodSelected(food) },
+                                isFavorite: viewModel.isFavorite(foodId: food.id),
+                                onToggleFavorite: { viewModel.toggleFavorite(foodId: food.id) }
+                            )
                         }
                     }
                     .listStyle(.plain)
@@ -149,7 +152,9 @@ struct FoodSearchView: View {
 struct FoodItemRow: View {
     let food: FoodItem
     let onSelect: () -> Void
-    
+    var isFavorite: Bool = false
+    var onToggleFavorite: (() -> Void)? = nil
+
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 12) {
@@ -159,39 +164,49 @@ struct FoodItemRow: View {
                     .frame(width: 50, height: 50)
                     .background(Color.green.opacity(0.1))
                     .cornerRadius(10)
-                
+
                 // Food details
                 VStack(alignment: .leading, spacing: 4) {
                     Text(food.name)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.primary)
-                    
+
                     if let brand = food.brand {
                         Text(brand)
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                     }
-                    
+
                     HStack(spacing: 8) {
                         Text(food.displayServingSize)
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
-                        
+
                         Text("•")
                             .foregroundColor(.secondary)
-                        
+
                         Text(food.caloriesPerServing)
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.green)
                     }
-                    
+
                     Text(food.macroSummary)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
+                // Favorite toggle
+                if let onToggleFavorite {
+                    Button(action: onToggleFavorite) {
+                        Image(systemName: isFavorite ? "heart.fill" : "heart")
+                            .font(.system(size: 18))
+                            .foregroundColor(isFavorite ? .pink : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 // Add button
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 24))

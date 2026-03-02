@@ -26,7 +26,8 @@ final class DietViewModel: ObservableObject {
     @Published var showAddFood = false
     @Published var showSettings = false
     @Published var searchQuery = ""
-    
+    @Published var favoriteFoodIds: Set<String> = []
+
     // MARK: - Computed Properties
     
     var todaysLogs: [DietLogEntry] {
@@ -85,6 +86,7 @@ final class DietViewModel: ObservableObject {
     ) {
         self.dietService = dietService
         self.localStorage = localStorage
+        self.favoriteFoodIds = Set(UserDefaults.standard.stringArray(forKey: "favoriteFoodIds") ?? [])
     }
     
     // MARK: - Lifecycle
@@ -272,7 +274,44 @@ final class DietViewModel: ObservableObject {
     func searchFoods(query: String) -> [FoodItem] {
         dietService.searchFoods(query: query, in: foodItemsCache)
     }
-    
+
+    /// Recent foods from last 20 logged entries (unique by name)
+    var recentFoods: [FoodItem] {
+        var seen = Set<String>()
+        var result: [FoodItem] = []
+        let sortedLogs = dietLogs.sorted { $0.loggedAt > $1.loggedAt }
+        for log in sortedLogs {
+            guard !seen.contains(log.foodName) else { continue }
+            seen.insert(log.foodName)
+            if let item = foodItemsCache.first(where: { $0.name == log.foodName }) {
+                result.append(item)
+            }
+            if result.count >= 10 { break }
+        }
+        return result
+    }
+
+    /// Favorite food items resolved from cache
+    var favoriteFoods: [FoodItem] {
+        foodItemsCache.filter { favoriteFoodIds.contains($0.id.uuidString) }
+    }
+
+    /// Toggle favorite status for a food item
+    func toggleFavorite(foodId: UUID) {
+        let idString = foodId.uuidString
+        if favoriteFoodIds.contains(idString) {
+            favoriteFoodIds.remove(idString)
+        } else {
+            favoriteFoodIds.insert(idString)
+        }
+        UserDefaults.standard.set(Array(favoriteFoodIds), forKey: "favoriteFoodIds")
+    }
+
+    /// Check if a food item is favorited
+    func isFavorite(foodId: UUID) -> Bool {
+        favoriteFoodIds.contains(foodId.uuidString)
+    }
+
     // MARK: - Private Methods
     
     private func calculateNutrition() {
@@ -319,7 +358,7 @@ final class DietViewModel: ObservableObject {
         
         // Fetch food items from cloud
         do {
-            let cloudFoodItems = try await SupabaseManager.shared.fetchFoodItems(limit: 100)
+            let cloudFoodItems = try await SupabaseManager.shared.fetchFoodItems(limit: 500)
             if !cloudFoodItems.isEmpty {
                 foodItemsCache = cloudFoodItems
                 localStorage.saveFoodItemsCache(cloudFoodItems)
