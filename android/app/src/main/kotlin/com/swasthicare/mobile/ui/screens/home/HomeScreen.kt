@@ -53,7 +53,8 @@ fun HomeScreen(
     onNavigateToHydration: () -> Unit = {},
     onNavigateToCycleTracker: () -> Unit = {},
     onNavigateToHeartRate: () -> Unit = {},
-    onNavigateToBodyScan: () -> Unit = {}
+    onNavigateToBodyScan: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -80,7 +81,8 @@ fun HomeScreen(
                 LivingStatusHeader(
                     userName = uiState.userName,
                     greeting = uiState.greeting,
-                    statusColor = SecondaryColor
+                    statusColor = SecondaryColor,
+                    onNotificationClick = onNavigateToNotifications
                 )
                 
                 Spacer(modifier = Modifier.height(20.dp))

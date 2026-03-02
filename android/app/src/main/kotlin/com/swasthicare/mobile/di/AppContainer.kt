@@ -2,6 +2,10 @@ package com.swasthicare.mobile.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.swasthicare.mobile.BuildConfig
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
@@ -32,6 +36,13 @@ import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.functions.Functions
 
+// DataStore extension on Context (single instance per process)
+private val Context.appDataStore: DataStore<Preferences> by preferencesDataStore(name = "swasthicare_settings")
+
+// Preference keys used by SplashScreen and AppNavigation
+val ONBOARDING_COMPLETE_KEY = booleanPreferencesKey("onboarding_complete")
+val CONSENT_ACCEPTED_KEY = booleanPreferencesKey("consent_accepted")
+
 /**
  * App Dependency Container
  * Provides Supabase authentication, repositories, and services.
@@ -46,6 +57,10 @@ object AppContainer {
 
     val context: Context
         get() = _context ?: throw IllegalStateException("AppContainer not initialized")
+
+    // DataStore for persistent preferences (onboarding, consent, etc.)
+    val dataStore: DataStore<Preferences>
+        get() = context.appDataStore
 
     // Supabase Client - matching iOS
     val supabaseClient: SupabaseClient by lazy {

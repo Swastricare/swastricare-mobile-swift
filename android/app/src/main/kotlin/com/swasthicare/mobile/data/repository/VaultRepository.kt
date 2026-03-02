@@ -2,9 +2,6 @@ package com.swasthicare.mobile.data.repository
 
 import com.swasthicare.mobile.data.model.DocumentMetadata
 import com.swasthicare.mobile.data.model.MedicalDocument
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -20,6 +17,13 @@ interface VaultRepository {
     ): MedicalDocument
     suspend fun deleteDocument(documentId: String)
     suspend fun getSignedUrl(path: String): String
+    suspend fun updateDocument(
+        documentId: String,
+        title: String,
+        category: String,
+        notes: String?,
+        tags: List<String>
+    ): MedicalDocument
 }
 
 class MockVaultRepository : VaultRepository {
@@ -92,72 +96,25 @@ class MockVaultRepository : VaultRepository {
     override suspend fun getSignedUrl(path: String): String {
         return "https://example.com/$path"
     }
-}
 
-class SupabaseVaultRepository(
-    private val client: SupabaseClient,
-    private val userId: String
-) : VaultRepository {
-
-    private val bucketId = "vault-documents"
-    private val tableName = "vault_documents"
-
-    override suspend fun getDocuments(): List<MedicalDocument> {
-        return try {
-            client.from(tableName).select {
-                filter { eq("user_id", userId) }
-                order("created_at", revert = true)
-            }.decodeList<MedicalDocument>()
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    override suspend fun uploadDocument(
-        fileData: ByteArray,
-        fileName: String,
+    override suspend fun updateDocument(
+        documentId: String,
+        title: String,
         category: String,
-        metadata: DocumentMetadata
+        notes: String?,
+        tags: List<String>
     ): MedicalDocument {
-        // 1. Upload file to Supabase Storage
-        val storagePath = "$userId/$fileName"
-        client.storage[bucketId].upload(storagePath, fileData, upsert = true)
-        val fileUrl = client.storage[bucketId].publicUrl(storagePath)
-
-        // 2. Insert metadata row
-        val doc = MedicalDocument(
-            userId = userId,
-            title = metadata.name.ifEmpty { fileName },
+        delay(500)
+        val index = documents.indexOfFirst { it.id == documentId }
+        if (index == -1) throw Exception("Document not found")
+        val updated = documents[index].copy(
+            title = title,
             category = category,
-            fileType = fileName.substringAfterLast('.', "dat"),
-            fileUrl = fileUrl,
-            fileSize = fileData.size.toLong(),
-            doctorName = metadata.doctorName,
-            location = metadata.location,
-            documentDate = metadata.documentDate,
-            notes = metadata.description
+            notes = notes,
+            tags = tags,
+            updatedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         )
-        client.from(tableName).insert(doc)
-        return doc
-    }
-
-    override suspend fun deleteDocument(documentId: String) {
-        // Get file URL first to delete from storage
-        val doc = client.from(tableName).select {
-            filter { eq("id", documentId) }
-        }.decodeSingleOrNull<MedicalDocument>()
-
-        doc?.fileUrl?.let { url ->
-            val path = url.substringAfter("$bucketId/")
-            runCatching { client.storage[bucketId].delete(listOf(path)) }
-        }
-
-        client.from(tableName).delete {
-            filter { eq("id", documentId) }
-        }
-    }
-
-    override suspend fun getSignedUrl(path: String): String {
-        return client.storage[bucketId].createSignedUrl(path, 3600)
+        documents[index] = updated
+        return updated
     }
 }

@@ -1,14 +1,18 @@
 package com.swasthicare.mobile.ui.screens.runactivity
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,207 +23,269 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swasthicare.mobile.data.models.*
-import com.swasthicare.mobile.di.AppContainer
-import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.shouldShowRationale
+import com.swasthicare.mobile.data.services.RouteTracker
+import com.swasthicare.mobile.ui.components.GpsStatusChip
+import com.swasthicare.mobile.ui.components.RouteMapView
 import com.swasthicare.mobile.ui.screens.home.glass
-import com.swasthicare.mobile.ui.theme.*
+import com.swasthicare.mobile.ui.theme.PremiumColor
 
-private val WorkoutGreen = Color(0xFF30D158)
-private val WorkoutRed = Color(0xFFFF375F)
-private val WorkoutBlue = Color(0xFF0A84FF)
+// ─────────────────────────────────────
+// MARK: - LiveWorkoutScreen
+// ─────────────────────────────────────
 
-// ------------------------------------
-// MARK: - Live Workout Screen
-// ------------------------------------
-
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun LiveWorkoutScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateToSummary: () -> Unit
+    viewModel: LiveWorkoutViewModel,
+    onBack: () -> Unit,
+    onWorkoutCompleted: () -> Unit = {}
 ) {
-    val vm = remember { AppContainer.liveWorkoutViewModel }
-    val uiState by vm.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
-    // Navigate to summary when workout finishes
-    LaunchedEffect(uiState.workoutState) {
-        if (uiState.workoutState == WorkoutState.SUMMARY) {
-            onNavigateToSummary()
+    // ── Location Permission ──
+    val locationPermissions = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    ) { permissionsResult ->
+        val fineGranted = permissionsResult[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = permissionsResult[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        viewModel.onLocationPermissionResult(fineGranted || coarseGranted)
+    }
+
+    // Check permission on composition
+    LaunchedEffect(locationPermissions.permissions) {
+        val hasAny = locationPermissions.permissions.any { it.status.isGranted }
+        viewModel.onLocationPermissionResult(hasAny)
+    }
+
+    // Request permissions when in IDLE phase for GPS-based workouts
+    LaunchedEffect(uiState.phase, uiState.workoutType.usesGps) {
+        if (uiState.phase == WorkoutPhase.IDLE &&
+            uiState.workoutType.usesGps &&
+            !locationPermissions.allPermissionsGranted
+        ) {
+            locationPermissions.launchMultiplePermissionRequest()
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0D0D1A),
+                        Color(0xFF1A1A2E),
+                        Color(0xFF0D0D1A)
+                    )
+                )
+            )
+    ) {
+        when (uiState.phase) {
+            WorkoutPhase.IDLE -> IdlePhaseContent(
+                uiState = uiState,
+                hasLocationPermission = uiState.hasLocationPermission,
+                usesGps = uiState.workoutType.usesGps,
+                isPermanentlyDenied = locationPermissions.permissions.any {
+                    !it.status.isGranted && !it.status.shouldShowRationale
+                } && !locationPermissions.allPermissionsGranted,
+                onSelectWorkoutType = { viewModel.setWorkoutType(it) },
+                onStart = { viewModel.startWorkout() },
+                onBack = onBack,
+                onOpenSettings = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
+                    )
+                }
+            )
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-        ) {
-            // Top Bar (only in certain states)
-            if (uiState.workoutState == WorkoutState.IDLE) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Text(
-                        "Start Workout",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f).padding(start = 4.dp)
-                    )
-                }
-            }
+            WorkoutPhase.COUNTDOWN -> CountdownPhaseContent(
+                countdownValue = uiState.countdownValue
+            )
 
-            when (uiState.workoutState) {
-                WorkoutState.IDLE -> {
-                    ActivityTypeSelection(
-                        selectedType = uiState.activityType,
-                        onTypeSelected = { vm.selectActivityType(it) },
-                        onStart = { vm.startWorkout() },
-                        hasPermission = vm.hasLocationPermission()
-                    )
+            WorkoutPhase.TRACKING -> TrackingPhaseContent(
+                uiState = uiState,
+                onPause = { viewModel.pauseWorkout() },
+                onStop = { viewModel.stopWorkout() }
+            )
+
+            WorkoutPhase.PAUSED -> PausedPhaseContent(
+                uiState = uiState,
+                onResume = { viewModel.resumeWorkout() },
+                onStop = { viewModel.stopWorkout() }
+            )
+
+            WorkoutPhase.COMPLETED -> WorkoutSummaryContent(
+                uiState = uiState,
+                onDone = {
+                    viewModel.resetWorkout()
+                    onWorkoutCompleted()
+                },
+                onDiscard = {
+                    viewModel.resetWorkout()
+                    onBack()
                 }
-                WorkoutState.COUNTDOWN -> {
-                    CountdownOverlay(count = uiState.countdown)
-                }
-                WorkoutState.TRACKING, WorkoutState.PAUSED -> {
-                    LiveMetricsView(
-                        uiState = uiState,
-                        onPause = { vm.pauseWorkout() },
-                        onResume = { vm.resumeWorkout() },
-                        onStop = { vm.stopWorkout() }
-                    )
-                }
-                WorkoutState.FINISHING -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = WorkoutGreen)
-                    }
-                }
-                else -> {} // SUMMARY and ERROR handled elsewhere
-            }
+            )
         }
     }
 }
 
-// ------------------------------------
-// MARK: - Activity Type Selection
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - IDLE Phase
+// ─────────────────────────────────────
 
 @Composable
-private fun ActivityTypeSelection(
-    selectedType: ActivityType,
-    onTypeSelected: (ActivityType) -> Unit,
+private fun IdlePhaseContent(
+    uiState: LiveWorkoutUiState,
+    hasLocationPermission: Boolean,
+    usesGps: Boolean,
+    isPermanentlyDenied: Boolean,
+    onSelectWorkoutType: (WorkoutType) -> Unit,
     onStart: () -> Unit,
-    hasPermission: Boolean
+    onBack: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+            .statusBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(20.dp))
-
-        Text(
-            "Choose Activity",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-
-        // Activity type grid
+        // Top bar
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            ActivityType.entries.forEach { type ->
-                val isSelected = type == selectedType
-                val typeColor = when (type) {
-                    ActivityType.WALKING -> WorkoutBlue
-                    ActivityType.RUNNING -> WorkoutGreen
-                    ActivityType.CYCLING -> Color(0xFFFF9F0A)
-                    ActivityType.HIKING -> Color(0xFF8E8E93)
-                }
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            Text(
+                "Start Workout",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Spacer(Modifier.size(48.dp))
+        }
 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .glass(cornerRadius = 16.dp)
-                        .then(
-                            if (isSelected) Modifier.background(
-                                typeColor.copy(alpha = 0.2f),
-                                RoundedCornerShape(16.dp)
-                            ) else Modifier
-                        )
-                        .clickable { onTypeSelected(type) }
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+        Spacer(Modifier.height(32.dp))
+
+        // Workout type selector
+        Text(
+            "Choose Activity",
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White.copy(alpha = 0.7f),
+            fontWeight = FontWeight.Medium
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Workout type grid
+        val types = WorkoutType.entries.toList()
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            for (row in types.chunked(3)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(type.emoji, fontSize = 32.sp)
-                    Text(
-                        type.displayName,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) typeColor else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    for (type in row) {
+                        WorkoutTypeCard(
+                            type = type,
+                            isSelected = uiState.workoutType == type,
+                            onClick = { onSelectWorkoutType(type) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // Fill remaining space if row has fewer than 3 items
+                    repeat(3 - row.size) {
+                        Spacer(Modifier.weight(1f))
+                    }
                 }
             }
         }
 
-        if (!hasPermission) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFF9F0A).copy(alpha = 0.1f)
-                )
+        Spacer(Modifier.height(24.dp))
+
+        // GPS warning card
+        if (usesGps && !hasLocationPermission) {
+            NoGpsWarningCard(
+                isPermanentlyDenied = isPermanentlyDenied,
+                onOpenSettings = onOpenSettings
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        // GPS status
+        if (usesGps && hasLocationPermission) {
+            Row(
+                modifier = Modifier
+                    .glass(cornerRadius = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        null,
-                        tint = Color(0xFFFF9F0A)
-                    )
-                    Text(
-                        "Location permission is required for GPS tracking. Please grant it in Settings.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                Icon(
+                    Icons.Default.GpsFixed,
+                    contentDescription = null,
+                    tint = Color(0xFF38EF7D),
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    "GPS ready - route will be recorded",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
             }
+            Spacer(Modifier.height(16.dp))
         }
 
         Spacer(Modifier.weight(1f))
 
         // Start button
-        Button(
-            onClick = onStart,
-            colors = ButtonDefaults.buttonColors(containerColor = WorkoutGreen),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().height(60.dp)
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            PremiumColor.NeonGreenStart,
+                            PremiumColor.NeonGreenEnd
+                        )
+                    )
+                )
+                .clickable { onStart() },
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(8.dp))
             Text(
-                "Start ${selectedType.displayName}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                "START",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = Color.White,
+                fontSize = 22.sp
             )
         }
 
@@ -227,228 +293,611 @@ private fun ActivityTypeSelection(
     }
 }
 
-// ------------------------------------
-// MARK: - Countdown Overlay
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - Workout Type Card
+// ─────────────────────────────────────
 
 @Composable
-private fun CountdownOverlay(count: Int) {
-    val animatedScale by animateFloatAsState(
-        targetValue = if (count > 0) 1.5f else 0.5f,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "countScale"
+private fun WorkoutTypeCard(
+    type: WorkoutType,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val icon: ImageVector = when (type) {
+        WorkoutType.RUN -> Icons.Default.DirectionsRun
+        WorkoutType.WALK -> Icons.Default.DirectionsWalk
+        WorkoutType.CYCLE -> Icons.Default.DirectionsBike
+        WorkoutType.HIKE -> Icons.Default.Terrain
+        WorkoutType.INDOOR_RUN -> Icons.Default.FitnessCenter
+        WorkoutType.INDOOR_WALK -> Icons.Default.FitnessCenter
+    }
+
+    val borderColor = if (isSelected) PremiumColor.NeonGreenEnd else Color.Transparent
+
+    Column(
+        modifier = modifier
+            .glass(cornerRadius = 16.dp, opacity = if (isSelected) 0.4f else 0.2f)
+            .then(
+                if (isSelected) {
+                    Modifier.background(
+                        color = PremiumColor.NeonGreenEnd.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                } else Modifier
+            )
+            .clickable { onClick() }
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = type.displayName,
+            tint = if (isSelected) PremiumColor.NeonGreenEnd else Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.size(28.dp)
+        )
+        Text(
+            text = type.displayName,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            textAlign = TextAlign.Center
+        )
+        if (type.usesGps) {
+            Icon(
+                Icons.Default.GpsFixed,
+                contentDescription = "GPS",
+                tint = Color.White.copy(alpha = 0.3f),
+                modifier = Modifier.size(10.dp)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - No GPS Warning Card
+// ─────────────────────────────────────
+
+@Composable
+private fun NoGpsWarningCard(
+    isPermanentlyDenied: Boolean,
+    onOpenSettings: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = Color(0xFFFF6B6B).copy(alpha = 0.1f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Default.GpsOff,
+                contentDescription = null,
+                tint = Color(0xFFFF6B6B),
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                "Location Permission Required",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFFF6B6B)
+            )
+        }
+        Text(
+            if (isPermanentlyDenied) {
+                "Location access was permanently denied. Open settings to enable it for GPS route tracking."
+            } else {
+                "GPS location is needed to track your route. The workout will still work without it, but no route map will be shown."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.6f)
+        )
+        if (isPermanentlyDenied) {
+            TextButton(onClick = onOpenSettings) {
+                Text(
+                    "Open Settings",
+                    color = Color(0xFFFF6B6B),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Countdown Phase
+// ─────────────────────────────────────
+
+@Composable
+private fun CountdownPhaseContent(countdownValue: Int) {
+    val scale by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 300f),
+        label = "countdownScale"
     )
 
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                "$count",
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.Bold,
-                color = WorkoutGreen,
-                fontSize = 96.sp,
-                modifier = Modifier.scale(animatedScale)
-            )
-            Text(
-                "Get Ready!",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            text = "$countdownValue",
+            fontSize = 120.sp,
+            fontWeight = FontWeight.Black,
+            color = PremiumColor.NeonGreenEnd,
+            modifier = Modifier.scale(scale)
+        )
     }
 }
 
-// ------------------------------------
-// MARK: - Live Metrics View
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - Tracking Phase
+// ─────────────────────────────────────
 
 @Composable
-private fun LiveMetricsView(
+private fun TrackingPhaseContent(
     uiState: LiveWorkoutUiState,
     onPause: () -> Unit,
-    onResume: () -> Unit,
     onStop: () -> Unit
 ) {
-    val isPaused = uiState.workoutState == WorkoutState.PAUSED
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+            .statusBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Activity Type Badge
+        Spacer(Modifier.height(16.dp))
+
+        // Top bar with workout type and GPS status
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(uiState.activityType.emoji, fontSize = 20.sp)
             Text(
-                uiState.activityType.displayName,
+                uiState.workoutType.displayName,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
-            if (isPaused) {
-                Box(
-                    modifier = Modifier
-                        .background(WorkoutRed.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        "PAUSED",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = WorkoutRed,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+            if (uiState.workoutType.usesGps) {
+                GpsStatusChip(gpsStatus = uiState.gpsStatus)
             }
         }
 
-        // Timer (large)
-        val infiniteTransition = rememberInfiniteTransition(label = "timerPulse")
-        val timerAlpha by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = if (isPaused) 0.3f else 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(800),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "timerAlpha"
-        )
+        Spacer(Modifier.height(16.dp))
 
+        // Route map (live)
+        if (uiState.workoutType.usesGps && uiState.hasLocationPermission) {
+            RouteMapView(
+                routePoints = uiState.routePoints,
+                isLive = true,
+                height = 200
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        // Main timer display
         Text(
-            uiState.formattedElapsed,
-            style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Bold,
-            fontSize = 56.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = timerAlpha)
+            text = uiState.elapsedFormatted,
+            fontSize = 64.sp,
+            fontWeight = FontWeight.Black,
+            color = Color.White,
+            letterSpacing = 2.sp
         )
 
-        // Metrics Grid
+        Spacer(Modifier.height(24.dp))
+
+        // Metric cards grid
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LiveMetricCard(
+            MetricCard(
                 label = "Distance",
-                value = uiState.formattedDistance,
+                value = uiState.distanceFormatted,
                 unit = "km",
-                color = WorkoutGreen,
+                color = Color(0xFF00E5FF),
                 modifier = Modifier.weight(1f)
             )
-            LiveMetricCard(
+            MetricCard(
                 label = "Pace",
-                value = uiState.formattedCurrentPace,
-                unit = "/km",
-                color = WorkoutBlue,
+                value = uiState.paceFormatted,
+                unit = "min/km",
+                color = PremiumColor.NeonGreenEnd,
                 modifier = Modifier.weight(1f)
             )
         }
+
+        Spacer(Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LiveMetricCard(
-                label = "Avg Pace",
-                value = uiState.formattedAvgPace,
-                unit = "/km",
-                color = Color(0xFFFF9F0A),
+            MetricCard(
+                label = "Speed",
+                value = String.format("%.1f", uiState.currentSpeedKmh),
+                unit = "km/h",
+                color = Color(0xFFFFD60A),
                 modifier = Modifier.weight(1f)
             )
-            LiveMetricCard(
-                label = "Calories",
-                value = "${uiState.caloriesBurned}",
-                unit = "kcal",
-                color = Color(0xFFFF375F),
+            MetricCard(
+                label = "Altitude",
+                value = String.format("%.0f", uiState.currentAltitude),
+                unit = "m",
+                color = Color(0xFFBF5AF2),
                 modifier = Modifier.weight(1f)
             )
-        }
-
-        // Splits
-        if (uiState.splits.isNotEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .glass(cornerRadius = 16.dp)
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    "Splits",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                uiState.splits.takeLast(3).forEach { split ->
-                    val paceMin = split.paceSecondsPerKm / 60
-                    val paceSec = split.paceSecondsPerKm % 60
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "KM ${split.kilometer}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            "${paceMin}:${String.format("%02d", paceSec)} /km",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = WorkoutGreen
-                        )
-                    }
-                }
-            }
         }
 
         Spacer(Modifier.weight(1f))
 
-        // Control Buttons
+        // Control buttons
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 40.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Stop button
-            FloatingActionButton(
-                onClick = onStop,
-                containerColor = WorkoutRed,
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(Icons.Default.Stop, null, tint = Color.White, modifier = Modifier.size(24.dp))
-            }
-
-            // Pause/Resume button (larger)
-            FloatingActionButton(
-                onClick = { if (isPaused) onResume() else onPause() },
-                containerColor = WorkoutGreen,
-                modifier = Modifier.size(72.dp)
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF4757).copy(alpha = 0.2f))
+                    .clickable { onStop() },
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                    null,
+                    Icons.Default.Stop,
+                    contentDescription = "Stop",
+                    tint = Color(0xFFFF4757),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            // Pause button (large)
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                PremiumColor.RoyalBlueStart,
+                                PremiumColor.RoyalBlueEnd
+                            )
+                        )
+                    )
+                    .clickable { onPause() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Pause,
+                    contentDescription = "Pause",
                     tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp)
                 )
             }
 
             // Spacer for symmetry
-            Spacer(modifier = Modifier.size(56.dp))
+            Spacer(Modifier.size(64.dp))
         }
-
-        Spacer(Modifier.height(20.dp))
     }
 }
 
+// ─────────────────────────────────────
+// MARK: - Paused Phase
+// ─────────────────────────────────────
+
 @Composable
-private fun LiveMetricCard(
+private fun PausedPhaseContent(
+    uiState: LiveWorkoutUiState,
+    onResume: () -> Unit,
+    onStop: () -> Unit
+) {
+    val pulseAnim = rememberInfiniteTransition(label = "pausePulse")
+    val pulseAlpha by pulseAnim.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pauseAlpha"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+            .statusBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(16.dp))
+
+        // Paused label
+        Text(
+            "PAUSED",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFFD60A).copy(alpha = pulseAlpha),
+            letterSpacing = 4.sp
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Route map (static, showing current route)
+        if (uiState.workoutType.usesGps && uiState.routePoints.size >= 2) {
+            RouteMapView(
+                routePoints = uiState.routePoints,
+                isLive = false,
+                height = 180
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        // Timer (dimmed)
+        Text(
+            text = uiState.elapsedFormatted,
+            fontSize = 56.sp,
+            fontWeight = FontWeight.Black,
+            color = Color.White.copy(alpha = 0.5f),
+            letterSpacing = 2.sp
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Quick metrics
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricCard(
+                label = "Distance",
+                value = uiState.distanceFormatted,
+                unit = "km",
+                color = Color(0xFF00E5FF),
+                modifier = Modifier.weight(1f)
+            )
+            MetricCard(
+                label = "Pace",
+                value = uiState.paceFormatted,
+                unit = "min/km",
+                color = PremiumColor.NeonGreenEnd,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        // Resume & Stop buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 40.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Stop button
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF4757).copy(alpha = 0.2f))
+                    .clickable { onStop() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Stop,
+                    contentDescription = "Stop",
+                    tint = Color(0xFFFF4757),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            // Resume button (large, green)
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                PremiumColor.NeonGreenStart,
+                                PremiumColor.NeonGreenEnd
+                            )
+                        )
+                    )
+                    .clickable { onResume() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.PlayArrow,
+                    contentDescription = "Resume",
+                    tint = Color.White,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Workout Summary (Completed)
+// ─────────────────────────────────────
+
+@Composable
+private fun WorkoutSummaryContent(
+    uiState: LiveWorkoutUiState,
+    onDone: () -> Unit,
+    onDiscard: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+            .statusBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            "Workout Complete!",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Black,
+            color = PremiumColor.NeonGreenEnd
+        )
+
+        Text(
+            uiState.workoutType.displayName,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White.copy(alpha = 0.6f)
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        // Route map (static review)
+        if (uiState.routePoints.size >= 2) {
+            RouteMapView(
+                routePoints = uiState.routePoints,
+                isLive = false,
+                height = 220
+            )
+            Spacer(Modifier.height(20.dp))
+        }
+
+        // Summary metrics
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Duration
+            SummaryRow(label = "Duration", value = uiState.elapsedFormatted)
+
+            // Distance
+            SummaryRow(
+                label = "Distance",
+                value = "${uiState.distanceFormatted} km"
+            )
+
+            // Average Pace
+            SummaryRow(label = "Avg Pace", value = "${uiState.paceFormatted} /km")
+
+            // Average Speed
+            SummaryRow(
+                label = "Avg Speed",
+                value = String.format("%.1f km/h", uiState.averageSpeedKmh)
+            )
+
+            // Max Speed
+            SummaryRow(
+                label = "Max Speed",
+                value = String.format("%.1f km/h", uiState.maxSpeedMps * 3.6f)
+            )
+
+            // Elevation Gain
+            if (uiState.elevationGainMeters > 0) {
+                SummaryRow(
+                    label = "Elevation Gain",
+                    value = String.format("%.0f m", uiState.elevationGainMeters)
+                )
+            }
+
+            // Calories
+            if (uiState.caloriesBurned > 0) {
+                SummaryRow(
+                    label = "Calories",
+                    value = "${uiState.caloriesBurned} kcal"
+                )
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        // Done button
+        Button(
+            onClick = onDone,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PremiumColor.NeonGreenStart
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(
+                "Save Workout",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Discard button
+        TextButton(
+            onClick = onDiscard,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                "Discard",
+                color = Color.White.copy(alpha = 0.4f),
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Summary Row
+// ─────────────────────────────────────
+
+@Composable
+private fun SummaryRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = 12.dp, opacity = 0.2f)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.6f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Metric Card
+// ─────────────────────────────────────
+
+@Composable
+private fun MetricCard(
     label: String,
     value: String,
     unit: String,
@@ -457,180 +906,32 @@ private fun LiveMetricCard(
 ) {
     Column(
         modifier = modifier
-            .glass(cornerRadius = 16.dp)
+            .glass(cornerRadius = 16.dp, opacity = 0.2f)
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            label,
+            text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = color.copy(alpha = 0.8f),
+            fontWeight = FontWeight.Medium
         )
         Row(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
-                value,
+                text = value,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = color
+                color = Color.White
             )
             Text(
-                unit,
+                text = unit,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.5f),
                 modifier = Modifier.padding(bottom = 4.dp)
             )
         }
-    }
-}
-
-// ------------------------------------
-// MARK: - Workout Summary Screen
-// ------------------------------------
-
-@Composable
-fun WorkoutSummaryScreen(
-    onNavigateBack: () -> Unit,
-    onDone: () -> Unit
-) {
-    val vm = remember { AppContainer.liveWorkoutViewModel }
-    val uiState by vm.uiState.collectAsState()
-
-    // Navigate back after save
-    LaunchedEffect(uiState.savedSuccessfully) {
-        if (uiState.savedSuccessfully) {
-            kotlinx.coroutines.delay(500)
-            vm.resetState()
-            onDone()
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Header
-            Text(
-                "Workout Complete!",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                uiState.activityType.emoji + " " + uiState.activityType.displayName,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // Summary Metrics
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .glass(cornerRadius = 20.dp)
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                SummaryRow("Duration", uiState.formattedElapsed)
-                SummaryRow("Distance", "${uiState.formattedDistance} km")
-                SummaryRow("Avg Pace", "${uiState.formattedAvgPace} /km")
-                SummaryRow("Calories", "${uiState.caloriesBurned} kcal")
-            }
-
-            // Splits
-            if (uiState.splits.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glass(cornerRadius = 20.dp)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        "Splits",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    uiState.splits.forEach { split ->
-                        val paceMin = split.paceSecondsPerKm / 60
-                        val paceSec = split.paceSecondsPerKm % 60
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                "KM ${split.kilometer}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                "${paceMin}:${String.format("%02d", paceSec)} /km",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = WorkoutGreen
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            // Save Button
-            Button(
-                onClick = { vm.saveWorkout() },
-                colors = ButtonDefaults.buttonColors(containerColor = WorkoutGreen),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) {
-                Icon(Icons.Default.Save, null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Save Workout", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
-
-            // Discard Button
-            OutlinedButton(
-                onClick = {
-                    vm.discardWorkout()
-                    onNavigateBack()
-                },
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Delete, null, tint = WorkoutRed)
-                Spacer(Modifier.width(8.dp))
-                Text("Discard", color = WorkoutRed)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SummaryRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold
-        )
     }
 }

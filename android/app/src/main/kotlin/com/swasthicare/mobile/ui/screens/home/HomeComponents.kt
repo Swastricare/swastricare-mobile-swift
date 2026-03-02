@@ -198,7 +198,8 @@ fun PremiumBackground() {
 fun LivingStatusHeader(
     userName: String,
     greeting: String,
-    statusColor: Color
+    statusColor: Color,
+    onNotificationClick: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "heartbeat")
     
@@ -264,6 +265,7 @@ fun LivingStatusHeader(
                 modifier = Modifier
                     .size(40.dp)
                     .glass(cornerRadius = 20.dp)
+                    .clickable { onNotificationClick() }
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {

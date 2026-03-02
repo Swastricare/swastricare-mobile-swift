@@ -39,7 +39,8 @@ import com.swasthicare.mobile.ui.screens.home.glass
 @Composable
 fun HydrationScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToAI: () -> Unit
+    onNavigateToAI: () -> Unit,
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val vm = remember { AppContainer.hydrationViewModel }
     val uiState by vm.uiState.collectAsState()
@@ -80,6 +81,9 @@ fun HydrationScreen(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f).padding(start = 4.dp)
                 )
+                IconButton(onClick = onNavigateToSettings) {
+                    Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                }
                 IconButton(onClick = onNavigateToAI) {
                     Icon(Icons.Default.AutoAwesome, "Ask AI", tint = HydrationCyan)
                 }

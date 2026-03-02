@@ -123,6 +123,9 @@ dependencies {
     // Accompanist permissions helper
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
+    // DataStore Preferences (used for onboarding/consent state)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     // ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 

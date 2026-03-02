@@ -6,10 +6,8 @@ import com.swasthicare.mobile.data.model.DocumentMetadata
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.data.repository.MockVaultRepository
-import com.swasthicare.mobile.data.repository.SupabaseVaultRepository
+// import com.swasthicare.mobile.data.repository.SupabaseVaultRepository
 import com.swasthicare.mobile.data.repository.VaultRepository
-import com.swasthicare.mobile.data.services.AnalyticsService
-import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,23 +25,41 @@ data class VaultUiState(
     val viewMode: VaultViewMode = VaultViewMode.List,
     val selectedDocuments: Set<String> = emptySet(),
     val isSelectionMode: Boolean = false,
-    val showAddSheet: Boolean = false
+    val showAddSheet: Boolean = false,
+    val selectedDocumentDetail: MedicalDocument? = null,
+    val showBatchUploadPreview: Boolean = false,
+    val batchUploadItems: List<BatchUploadItem> = emptyList(),
+    val openFolderName: String? = null
 )
+
+data class BatchUploadItem(
+    val fileName: String,
+    val fileSize: Long,
+    val fileData: ByteArray,
+    val category: VaultCategory = VaultCategory.OTHER
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is BatchUploadItem) return false
+        return fileName == other.fileName && fileSize == other.fileSize && category == other.category
+    }
+
+    override fun hashCode(): Int {
+        var result = fileName.hashCode()
+        result = 31 * result + fileSize.hashCode()
+        result = 31 * result + category.hashCode()
+        return result
+    }
+}
 
 enum class VaultViewMode {
     List, Folders, Timeline
 }
 
 class VaultViewModel(
-    private val repository: VaultRepository = run {
-        val userId = AppContainer.authRepository.currentUser?.id
-        if (userId != null) {
-            SupabaseVaultRepository(AppContainer.supabaseClient, userId)
-        } else {
-            MockVaultRepository()
-        }
-    },
-    private val analyticsService: AnalyticsService = AppContainer.analyticsService
+    // In a real app with Hilt, this would be injected.
+    // For now defaulting to Mock implementation for UI-only mode.
+    private val repository: VaultRepository = MockVaultRepository() 
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VaultUiState())
@@ -89,22 +105,21 @@ class VaultViewModel(
             try {
                 // Simulate progress
                 _uiState.update { it.copy(uploadProgress = 0.5f) }
-
+                
                 val categoryString = category.title
-
+                
                 repository.uploadDocument(
                     fileData = fileData,
                     fileName = fileName,
                     category = categoryString,
                     metadata = metadata
                 )
-                analyticsService.logVaultUpload(categoryString)
-
+                
                 _uiState.update { it.copy(uploadProgress = 1.0f) }
-
+                
                 // Refresh list
                 loadDocuments()
-
+                
                 _uiState.update { it.copy(isUploading = false, showAddSheet = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isUploading = false, errorMessage = "Upload failed: ${e.message}") }
@@ -155,7 +170,7 @@ class VaultViewModel(
     fun clearSelection() {
         _uiState.update { it.copy(selectedDocuments = emptySet()) }
     }
-
+    
     fun deleteSelectedDocuments() {
         viewModelScope.launch {
              _uiState.update { it.copy(isLoading = true) }
@@ -164,11 +179,11 @@ class VaultViewModel(
                      repository.deleteDocument(id)
                  }
                  loadDocuments()
-                 _uiState.update {
+                 _uiState.update { 
                      it.copy(
                          selectedDocuments = emptySet(),
                          isSelectionMode = false
-                     )
+                     ) 
                  }
              } catch (e: Exception) {
                  _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to delete documents") }
@@ -179,29 +194,142 @@ class VaultViewModel(
     fun deleteDocument(document: MedicalDocument) {
         viewModelScope.launch {
             try {
-                document.id?.let {
-                    repository.deleteDocument(it)
-                    analyticsService.logEvent("vault_delete", mapOf("document_id" to it))
-                }
+                document.id?.let { repository.deleteDocument(it) }
                 loadDocuments()
             } catch (e: Exception) {
                  _uiState.update { it.copy(errorMessage = "Failed to delete document") }
             }
         }
     }
-
+    
     fun setShowAddSheet(show: Boolean) {
         _uiState.update { it.copy(showAddSheet = show) }
     }
+
+    fun selectDocumentForDetail(document: MedicalDocument?) {
+        _uiState.update { it.copy(selectedDocumentDetail = document) }
+    }
+
+    fun updateDocumentMetadata(
+        documentId: String,
+        title: String,
+        category: String,
+        notes: String?,
+        tags: List<String>
+    ) {
+        viewModelScope.launch {
+            try {
+                repository.updateDocument(documentId, title, category, notes, tags)
+                loadDocuments()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Failed to update document: ${e.message}") }
+            }
+        }
+    }
+
+    fun deleteDocument(documentId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteDocument(documentId)
+                _uiState.update { it.copy(selectedDocumentDetail = null) }
+                loadDocuments()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Failed to delete document") }
+            }
+        }
+    }
+
+    fun setBatchUploadItems(items: List<BatchUploadItem>) {
+        _uiState.update { it.copy(batchUploadItems = items, showBatchUploadPreview = items.isNotEmpty()) }
+    }
+
+    fun updateBatchItemCategory(index: Int, category: VaultCategory) {
+        _uiState.update { state ->
+            val updatedItems = state.batchUploadItems.toMutableList()
+            if (index in updatedItems.indices) {
+                updatedItems[index] = updatedItems[index].copy(category = category)
+            }
+            state.copy(batchUploadItems = updatedItems)
+        }
+    }
+
+    fun removeBatchItem(index: Int) {
+        _uiState.update { state ->
+            val updatedItems = state.batchUploadItems.toMutableList()
+            if (index in updatedItems.indices) {
+                updatedItems.removeAt(index)
+            }
+            state.copy(
+                batchUploadItems = updatedItems,
+                showBatchUploadPreview = updatedItems.isNotEmpty()
+            )
+        }
+    }
+
+    fun batchUploadDocuments() {
+        viewModelScope.launch {
+            val items = _uiState.value.batchUploadItems
+            if (items.isEmpty()) return@launch
+
+            _uiState.update { it.copy(isUploading = true, uploadProgress = 0f) }
+            try {
+                items.forEachIndexed { index, item ->
+                    _uiState.update { it.copy(uploadProgress = (index.toFloat() + 0.5f) / items.size) }
+                    val metadata = DocumentMetadata(name = item.fileName.substringBeforeLast('.'))
+                    repository.uploadDocument(
+                        fileData = item.fileData,
+                        fileName = item.fileName,
+                        category = item.category.title,
+                        metadata = metadata
+                    )
+                    _uiState.update { it.copy(uploadProgress = (index + 1).toFloat() / items.size) }
+                }
+
+                loadDocuments()
+                _uiState.update {
+                    it.copy(
+                        isUploading = false,
+                        showBatchUploadPreview = false,
+                        batchUploadItems = emptyList()
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isUploading = false,
+                        errorMessage = "Batch upload failed: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun dismissBatchUpload() {
+        _uiState.update { it.copy(showBatchUploadPreview = false, batchUploadItems = emptyList()) }
+    }
+
+    fun openFolder(folderName: String) {
+        _uiState.update { it.copy(openFolderName = folderName) }
+    }
+
+    fun closeFolder() {
+        _uiState.update { it.copy(openFolderName = null) }
+    }
+
+    val folderDocuments: List<MedicalDocument>
+        get() {
+            val folderName = uiState.value.openFolderName ?: return emptyList()
+            return groupedDocuments[folderName] ?: emptyList()
+        }
 
     val filteredDocuments: List<MedicalDocument>
         get() {
             val state = uiState.value
             return state.documents.filter { doc ->
-                val matchesCategory = state.selectedCategory == null ||
+                val matchesCategory = state.selectedCategory == null || 
                     doc.category.equals(state.selectedCategory.title, ignoreCase = true)
-
-                val matchesSearch = state.searchQuery.isEmpty() ||
+                
+                val matchesSearch = state.searchQuery.isEmpty() || 
                     doc.title.contains(state.searchQuery, ignoreCase = true) ||
                     (doc.doctorName?.contains(state.searchQuery, ignoreCase = true) == true) ||
                     (doc.description?.contains(state.searchQuery, ignoreCase = true) == true)
@@ -209,7 +337,7 @@ class VaultViewModel(
                 matchesCategory && matchesSearch
             }
         }
-
+        
     val groupedDocuments: Map<String, List<MedicalDocument>>
         get() = filteredDocuments.groupBy { it.folderName ?: it.documentDate?.substringBefore("T") ?: "Other" }
 }

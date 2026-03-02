@@ -52,14 +52,16 @@ import com.swasthicare.mobile.ui.screens.diet.DietScreen
 import com.swasthicare.mobile.ui.screens.diet.FoodSearchScreen
 import com.swasthicare.mobile.ui.screens.ar.ARBodyScanScreen
 import com.swasthicare.mobile.ui.screens.family.FamilyScreen
-import com.swasthicare.mobile.ui.screens.heartrate.HeartRateResultScreen
+import com.swasthicare.mobile.ui.screens.heartrate.HeartRateAnalyticsScreen
 import com.swasthicare.mobile.ui.screens.heartrate.HeartRateScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.screens.hydration.HydrationScreen
+import com.swasthicare.mobile.ui.screens.hydration.HydrationSettingsScreen
 import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationDetailScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationsScreen
+import com.swasthicare.mobile.ui.screens.notifications.NotificationHistoryScreen
 import com.swasthicare.mobile.ui.screens.notifications.NotificationSettingsScreen
 import com.swasthicare.mobile.ui.screens.menstrualcycle.MenstrualCycleScreen
 import com.swasthicare.mobile.ui.screens.profile.EditProfileScreen
@@ -230,7 +232,8 @@ fun MainScreen(
                     onNavigateToHydration = { navController.navigate("hydration") },
                     onNavigateToCycleTracker = { navController.navigate("cycle_tracker") },
                     onNavigateToHeartRate = { navController.navigate("heart_rate") },
-                    onNavigateToBodyScan = { navController.navigate("ar_body_scan") }
+                    onNavigateToBodyScan = { navController.navigate("ar_body_scan") },
+                    onNavigateToNotifications = { navController.navigate("notification_history") }
                 )
             }
             composable(MainTab.AI.route) { AIScreen() }
@@ -251,6 +254,11 @@ fun MainScreen(
             }
             composable("notification_settings") {
                 NotificationSettingsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable("notification_history") {
+                NotificationHistoryScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -336,7 +344,14 @@ fun MainScreen(
                             launchSingleTop = true
                             restoreState = true
                         }
-                    }
+                    },
+                    onNavigateToSettings = { navController.navigate("hydration_settings") }
+                )
+            }
+            composable("hydration_settings") {
+                HydrationSettingsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToNotifications = { navController.navigate("notification_settings") }
                 )
             }
             // Menstrual Cycle Tracker
@@ -349,15 +364,19 @@ fun MainScreen(
             composable("heart_rate") {
                 HeartRateScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToResult = { navController.navigate("heart_rate_result") }
+                    onNavigateToAnalytics = { navController.navigate("heart_rate_analytics") },
+                    onNavigateToAI = {
+                        navController.navigate(MainTab.AI.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
-            composable("heart_rate_result") {
-                HeartRateResultScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onRetake = {
-                        navController.popBackStack("heart_rate", inclusive = false)
-                    }
+            composable("heart_rate_analytics") {
+                HeartRateAnalyticsScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             // Live Workout flow

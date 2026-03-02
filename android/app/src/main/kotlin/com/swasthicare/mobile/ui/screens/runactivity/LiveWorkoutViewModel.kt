@@ -3,278 +3,256 @@ package com.swasthicare.mobile.ui.screens.runactivity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.swasthicare.mobile.data.models.*
-import com.swasthicare.mobile.data.repository.ProfileRepository
-import com.swasthicare.mobile.data.repository.RunActivityRepository
-import com.swasthicare.mobile.data.repository.WorkoutRecoveryState
-import com.swasthicare.mobile.data.services.LocationTrackingService
+import com.swasthicare.mobile.data.model.RoutePoint
+import com.swasthicare.mobile.data.services.RouteTracker
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.util.UUID
 
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - Workout Types
+// ─────────────────────────────────────
+
+enum class WorkoutType(val displayName: String, val icon: String, val usesGps: Boolean) {
+    RUN("Run", "directions_run", true),
+    WALK("Walk", "directions_walk", true),
+    CYCLE("Cycle", "directions_bike", true),
+    HIKE("Hike", "terrain", true),
+    INDOOR_RUN("Indoor Run", "fitness_center", false),
+    INDOOR_WALK("Indoor Walk", "fitness_center", false)
+}
+
+// ─────────────────────────────────────
+// MARK: - Workout State
+// ─────────────────────────────────────
+
+enum class WorkoutPhase {
+    IDLE,       // Not started
+    COUNTDOWN,  // 3-2-1 countdown
+    TRACKING,   // Active workout
+    PAUSED,     // Workout paused
+    COMPLETED   // Workout finished
+}
+
+// ─────────────────────────────────────
 // MARK: - UI State
-// ------------------------------------
+// ─────────────────────────────────────
 
 data class LiveWorkoutUiState(
-    val workoutState: WorkoutState = WorkoutState.IDLE,
-    val activityType: ActivityType = ActivityType.RUNNING,
+    val phase: WorkoutPhase = WorkoutPhase.IDLE,
+    val workoutType: WorkoutType = WorkoutType.RUN,
+
+    // Timer
     val elapsedSeconds: Long = 0,
+    val countdownValue: Int = 3,
+
+    // Metrics
     val distanceMeters: Double = 0.0,
-    val currentPace: Long = 0, // sec/km
-    val avgPace: Long = 0, // sec/km
+    val currentSpeedMps: Float = 0f,       // meters per second
+    val averageSpeedMps: Float = 0f,
     val caloriesBurned: Int = 0,
-    val splits: List<ActivitySplit> = emptyList(),
-    val routeCoordinates: List<RouteCoordinate> = emptyList(),
-    val countdown: Int = 3,
-    val error: String? = null,
-    // Summary
-    val savedSuccessfully: Boolean = false
+    val currentAltitude: Double = 0.0,
+
+    // GPS
+    val routePoints: List<RoutePoint> = emptyList(),
+    val gpsStatus: RouteTracker.GpsStatus = RouteTracker.GpsStatus.OFF,
+    val hasLocationPermission: Boolean = false,
+
+    // Summary data
+    val maxSpeedMps: Float = 0f,
+    val elevationGainMeters: Double = 0.0
 ) {
-    val formattedElapsed: String get() {
+    val elapsedFormatted: String get() {
         val hours = elapsedSeconds / 3600
-        val mins = (elapsedSeconds % 3600) / 60
-        val secs = elapsedSeconds % 60
+        val minutes = (elapsedSeconds % 3600) / 60
+        val seconds = elapsedSeconds % 60
         return if (hours > 0) {
-            String.format("%d:%02d:%02d", hours, mins, secs)
+            String.format("%d:%02d:%02d", hours, minutes, seconds)
         } else {
-            String.format("%02d:%02d", mins, secs)
+            String.format("%02d:%02d", minutes, seconds)
         }
     }
 
-    val formattedDistance: String get() = String.format("%.2f", distanceMeters / 1000.0)
+    val distanceKm: Double get() = distanceMeters / 1000.0
 
-    val formattedCurrentPace: String get() {
-        if (currentPace <= 0 || currentPace > 3600) return "--:--"
-        val mins = currentPace / 60
-        val secs = currentPace % 60
-        return String.format("%d:%02d", mins, secs)
+    val distanceFormatted: String get() = String.format("%.2f", distanceKm)
+
+    val paceFormatted: String get() {
+        // Pace in min/km
+        if (distanceMeters < 10) return "--:--"
+        val paceSeconds = elapsedSeconds / (distanceMeters / 1000.0)
+        val paceMin = (paceSeconds / 60).toInt()
+        val paceSec = (paceSeconds % 60).toInt()
+        return String.format("%d:%02d", paceMin, paceSec)
     }
 
-    val formattedAvgPace: String get() {
-        if (avgPace <= 0 || avgPace > 3600) return "--:--"
-        val mins = avgPace / 60
-        val secs = avgPace % 60
-        return String.format("%d:%02d", mins, secs)
-    }
+    val currentSpeedKmh: Float get() = currentSpeedMps * 3.6f
+
+    val averageSpeedKmh: Float get() = averageSpeedMps * 3.6f
 }
 
-// ------------------------------------
+// ─────────────────────────────────────
 // MARK: - ViewModel
-// ------------------------------------
+// ─────────────────────────────────────
 
 class LiveWorkoutViewModel(
-    private val context: Context,
-    private val repository: RunActivityRepository,
-    private val profileRepository: ProfileRepository
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LiveWorkoutUiState())
     val uiState: StateFlow<LiveWorkoutUiState> = _uiState.asStateFlow()
 
-    private val locationService = LocationTrackingService(context)
+    private val routeTracker = RouteTracker(context)
+
     private var timerJob: Job? = null
-    private var autoSaveJob: Job? = null
-    private var startTime: LocalDateTime? = null
-    private val demoProfileId = "demo-profile-id"
+    private var maxSpeed: Float = 0f
+    private var lastAltitude: Double? = null
+    private var totalElevationGain: Double = 0.0
 
     init {
-        // Check for crash recovery
-        checkRecoveryState()
+        // Collect route updates
+        viewModelScope.launch {
+            routeTracker.routePoints.collect { points ->
+                _uiState.update { it.copy(routePoints = points) }
+                // Track elevation gain
+                if (points.isNotEmpty()) {
+                    val currentAlt = points.last().altitude
+                    _uiState.update { it.copy(currentAltitude = currentAlt) }
+                    lastAltitude?.let { prev ->
+                        val gain = currentAlt - prev
+                        if (gain > 0) {
+                            totalElevationGain += gain
+                            _uiState.update { it.copy(elevationGainMeters = totalElevationGain) }
+                        }
+                    }
+                    lastAltitude = currentAlt
+                }
+            }
+        }
 
-        // Observe location service
         viewModelScope.launch {
-            locationService.totalDistanceMeters.collect { dist ->
-                _uiState.value = _uiState.value.copy(distanceMeters = dist)
+            routeTracker.totalDistanceMeters.collect { dist ->
+                _uiState.update { it.copy(distanceMeters = dist) }
             }
         }
+
         viewModelScope.launch {
-            locationService.currentPaceSecondsPerKm.collect { pace ->
-                _uiState.value = _uiState.value.copy(currentPace = pace)
+            routeTracker.gpsStatus.collect { status ->
+                _uiState.update { it.copy(gpsStatus = status) }
             }
         }
+
         viewModelScope.launch {
-            locationService.avgPaceSecondsPerKm.collect { pace ->
-                _uiState.value = _uiState.value.copy(avgPace = pace)
-            }
-        }
-        viewModelScope.launch {
-            locationService.splits.collect { splits ->
-                _uiState.value = _uiState.value.copy(splits = splits)
-            }
-        }
-        viewModelScope.launch {
-            locationService.caloriesBurned.collect { cal ->
-                _uiState.value = _uiState.value.copy(caloriesBurned = cal)
-            }
-        }
-        viewModelScope.launch {
-            locationService.routeCoordinates.collect { route ->
-                _uiState.value = _uiState.value.copy(routeCoordinates = route)
+            routeTracker.currentSpeed.collect { speed ->
+                if (speed > maxSpeed) maxSpeed = speed
+                _uiState.update { it.copy(
+                    currentSpeedMps = speed,
+                    maxSpeedMps = maxSpeed
+                ) }
             }
         }
     }
 
-    fun selectActivityType(type: ActivityType) {
-        _uiState.value = _uiState.value.copy(activityType = type)
+    // ─────────────────────────────────────
+    // MARK: - Public Actions
+    // ─────────────────────────────────────
+
+    fun setWorkoutType(type: WorkoutType) {
+        _uiState.update { it.copy(workoutType = type) }
+    }
+
+    fun onLocationPermissionResult(granted: Boolean) {
+        _uiState.update { it.copy(hasLocationPermission = granted) }
     }
 
     fun startWorkout() {
-        _uiState.value = _uiState.value.copy(workoutState = WorkoutState.COUNTDOWN, countdown = 3)
+        // Begin countdown
+        _uiState.update { it.copy(phase = WorkoutPhase.COUNTDOWN, countdownValue = 3) }
 
         viewModelScope.launch {
-            // 3-2-1 countdown
             for (i in 3 downTo 1) {
-                _uiState.value = _uiState.value.copy(countdown = i)
+                _uiState.update { it.copy(countdownValue = i) }
                 delay(1000)
             }
-
-            // Start tracking
-            startTime = LocalDateTime.now()
-            _uiState.value = _uiState.value.copy(
-                workoutState = WorkoutState.TRACKING,
-                elapsedSeconds = 0
-            )
-
-            locationService.startTracking(_uiState.value.activityType.dbValue)
-            startTimer()
-            startAutoSave()
+            beginTracking()
         }
     }
 
     fun pauseWorkout() {
-        _uiState.value = _uiState.value.copy(workoutState = WorkoutState.PAUSED)
-        locationService.pauseTracking()
+        _uiState.update { it.copy(phase = WorkoutPhase.PAUSED) }
         timerJob?.cancel()
+        routeTracker.pauseTracking()
     }
 
     fun resumeWorkout() {
-        _uiState.value = _uiState.value.copy(workoutState = WorkoutState.TRACKING)
-        locationService.resumeTracking()
+        _uiState.update { it.copy(phase = WorkoutPhase.TRACKING) }
+        routeTracker.resumeTracking()
         startTimer()
     }
 
     fun stopWorkout() {
-        _uiState.value = _uiState.value.copy(workoutState = WorkoutState.FINISHING)
-        locationService.stopTracking()
         timerJob?.cancel()
-        autoSaveJob?.cancel()
-        repository.clearWorkoutState()
+        routeTracker.stopTracking()
 
-        _uiState.value = _uiState.value.copy(workoutState = WorkoutState.SUMMARY)
-    }
+        // Calculate final average speed
+        val state = _uiState.value
+        val avgSpeed = if (state.elapsedSeconds > 0) {
+            (state.distanceMeters / state.elapsedSeconds).toFloat()
+        } else 0f
 
-    fun saveWorkout() {
-        viewModelScope.launch {
-            val state = _uiState.value
-            val activity = RunActivity(
-                id = UUID.randomUUID().toString(),
-                userId = demoProfileId,
-                activityType = state.activityType,
-                startTime = startTime,
-                endTime = LocalDateTime.now(),
-                distanceMeters = state.distanceMeters,
-                durationSeconds = state.elapsedSeconds,
-                avgPaceSecondsPerKm = state.avgPace,
-                caloriesBurned = state.caloriesBurned,
-                routeCoordinates = state.routeCoordinates,
-                splits = state.splits,
-                synced = false
+        // Estimate calories (rough: 1 cal per kg per km, assuming 70kg)
+        val calories = (state.distanceKm * 70).toInt()
+
+        _uiState.update {
+            it.copy(
+                phase = WorkoutPhase.COMPLETED,
+                averageSpeedMps = avgSpeed,
+                caloriesBurned = calories
             )
-
-            repository.addLocalActivity(activity)
-            repository.clearWorkoutState()
-
-            // Sync to cloud
-            try {
-                val profileId = resolveProfileId()
-                repository.syncActivitiesToCloud(listOf(activity), profileId)
-            } catch (_: Exception) { }
-
-            _uiState.value = _uiState.value.copy(savedSuccessfully = true)
         }
     }
 
-    fun discardWorkout() {
-        repository.clearWorkoutState()
-        resetState()
-    }
-
-    fun resetState() {
+    fun resetWorkout() {
+        timerJob?.cancel()
+        routeTracker.stopTracking()
+        routeTracker.reset()
+        maxSpeed = 0f
+        lastAltitude = null
+        totalElevationGain = 0.0
         _uiState.value = LiveWorkoutUiState()
     }
 
-    fun hasLocationPermission(): Boolean = locationService.hasLocationPermission()
+    fun getRouteSnapshot(): List<RoutePoint> = routeTracker.getRouteSnapshot()
 
-    // ------------------------------------
-    // Private
-    // ------------------------------------
+    // ─────────────────────────────────────
+    // MARK: - Private
+    // ─────────────────────────────────────
+
+    private fun beginTracking() {
+        _uiState.update { it.copy(phase = WorkoutPhase.TRACKING) }
+
+        // Start GPS if permission granted and workout uses GPS
+        val state = _uiState.value
+        if (state.hasLocationPermission && state.workoutType.usesGps) {
+            routeTracker.startTracking()
+        }
+
+        startTimer()
+    }
 
     private fun startTimer() {
-        timerJob?.cancel()
         timerJob = viewModelScope.launch {
             while (true) {
                 delay(1000)
-                _uiState.value = _uiState.value.copy(
-                    elapsedSeconds = _uiState.value.elapsedSeconds + 1
-                )
+                _uiState.update { it.copy(elapsedSeconds = it.elapsedSeconds + 1) }
             }
         }
     }
-
-    private fun startAutoSave() {
-        autoSaveJob?.cancel()
-        autoSaveJob = viewModelScope.launch {
-            while (true) {
-                delay(10_000) // Every 10 seconds
-                val state = _uiState.value
-                if (state.workoutState == WorkoutState.TRACKING || state.workoutState == WorkoutState.PAUSED) {
-                    repository.saveWorkoutState(
-                        WorkoutRecoveryState(
-                            activityType = state.activityType.dbValue,
-                            startTimeMs = startTime?.let {
-                                java.time.ZoneOffset.UTC.let { offset ->
-                                    it.toEpochSecond(offset) * 1000
-                                }
-                            } ?: 0,
-                            elapsedSeconds = state.elapsedSeconds,
-                            distanceMeters = state.distanceMeters,
-                            caloriesBurned = state.caloriesBurned,
-                            isActive = true
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    private fun checkRecoveryState() {
-        val recovered = repository.loadWorkoutState()
-        if (recovered != null && recovered.isActive) {
-            // There was an active workout when app crashed
-            _uiState.value = _uiState.value.copy(
-                workoutState = WorkoutState.PAUSED,
-                activityType = ActivityType.fromDb(recovered.activityType),
-                elapsedSeconds = recovered.elapsedSeconds,
-                distanceMeters = recovered.distanceMeters,
-                caloriesBurned = recovered.caloriesBurned
-            )
-        }
-    }
-
-    private suspend fun resolveProfileId(): String = try {
-        profileRepository.getHealthProfile(demoProfileId)?.userId ?: demoProfileId
-    } catch (_: Exception) { demoProfileId }
 
     override fun onCleared() {
         super.onCleared()
-        locationService.stopTracking()
+        routeTracker.stopTracking()
         timerJob?.cancel()
-        autoSaveJob?.cancel()
     }
 }
