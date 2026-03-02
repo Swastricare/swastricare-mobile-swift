@@ -49,7 +49,8 @@ import com.swasthicare.mobile.ui.theme.*
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onNavigateToMedications: () -> Unit = {},
-    onNavigateToDiet: () -> Unit = {}
+    onNavigateToDiet: () -> Unit = {},
+    onNavigateToCycleTracker: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -80,7 +81,16 @@ fun HomeScreen(
                 )
                 
                 Spacer(modifier = Modifier.height(20.dp))
-                
+
+                // Server Nudges
+                if (uiState.serverNudges.isNotEmpty()) {
+                    NudgesCardStrip(
+                        nudges = uiState.serverNudges,
+                        onDismiss = { id -> viewModel.dismissNudge(id) }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 // 3. Body Status Section
                 Text(
                     text = "Daily Activity",
@@ -341,57 +351,31 @@ fun HomeScreen(
                 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Diet Chart Card
-                Box(
+                // Quick Actions Row 2 — Diet + [empty half]
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .height(72.dp)
-                        .glass(cornerRadius = 18.dp)
-                        .clickable { onNavigateToDiet() }
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(
-                                    Color(0xFF34C759).copy(alpha = 0.15f),
-                                    androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = Color(0xFF34C759),
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Diet Chart",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                "Track calories & macros",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                        }
-                        Icon(
-                            Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    DietQuickActionCard(
+                        calorieCurrent = uiState.calorieCurrent,
+                        calorieGoal = uiState.calorieGoal,
+                        onClick = onNavigateToDiet,
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Empty spacer on the right (matches iOS layout where diet is left-half)
+                    Spacer(modifier = Modifier.weight(1f))
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Cycle Tracker — full width
+                CycleTrackerCard(
+                    phaseLabel = uiState.cyclePhase,
+                    onClick = onNavigateToCycleTracker,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
 
                 Spacer(modifier = Modifier.height(20.dp))
 

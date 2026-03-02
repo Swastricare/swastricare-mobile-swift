@@ -12,6 +12,15 @@ import java.time.LocalDateTime
 import java.util.Calendar
 import java.util.Date
 
+data class ServerNudge(
+    val id: String,
+    val title: String,
+    val message: String,
+    val icon: String = "heart.fill",
+    val color: String = "#007AFF",
+    val deepLink: String? = null
+)
+
 data class HomeState(
     val userName: String = "Alex Johnson",
     val greeting: String = "Good Morning,",
@@ -32,7 +41,14 @@ data class HomeState(
     // Tracker state
     val weekDates: List<Date> = emptyList(),
     val selectedDate: Date = Date(),
-    val weeklySteps: List<DailyMetric> = emptyList()
+    val weeklySteps: List<DailyMetric> = emptyList(),
+    // Nudges
+    val serverNudges: List<ServerNudge> = emptyList(),
+    // Diet quick action data
+    val calorieCurrent: Int = 0,
+    val calorieGoal: Int = 2000,
+    // Cycle tracker stub
+    val cyclePhase: String = "Cycle Tracker"
 )
 
 class HomeViewModel : ViewModel() {
@@ -79,9 +95,43 @@ class HomeViewModel : ViewModel() {
                 isAuthorized = false,
                 weekDates = weekDates,
                 selectedDate = Date(),
-                weeklySteps = weeklySteps
+                weeklySteps = weeklySteps,
+                calorieCurrent = 1240,
+                calorieGoal = 2000
             )
+            loadNudges()
         }
+    }
+
+    fun loadNudges() {
+        viewModelScope.launch {
+            try {
+                // Fetch from Supabase — table: server_nudges, filter: active = true
+                // For now stub 1-2 demo nudges until Supabase table is confirmed
+                val demoNudges = listOf(
+                    ServerNudge(
+                        id = "1",
+                        title = "Stay Hydrated",
+                        message = "You're 750ml short of your daily water goal. Drink up!",
+                        icon = "drop.fill",
+                        color = "#00C7BE"
+                    ),
+                    ServerNudge(
+                        id = "2",
+                        title = "Medication Due",
+                        message = "Your evening Vitamin D dose is due in 30 minutes.",
+                        icon = "pills.fill",
+                        color = "#30D158"
+                    )
+                )
+                _uiState.value = _uiState.value.copy(serverNudges = demoNudges)
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun dismissNudge(nudgeId: String) {
+        val current = _uiState.value.serverNudges.filter { it.id != nudgeId }
+        _uiState.value = _uiState.value.copy(serverNudges = current)
     }
     
     fun incrementHydration() {

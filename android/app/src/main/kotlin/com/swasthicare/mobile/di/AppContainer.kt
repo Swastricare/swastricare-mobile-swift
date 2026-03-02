@@ -7,6 +7,7 @@ import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
+import com.swasthicare.mobile.ui.screens.hydration.HydrationViewModel
 import com.swasthicare.mobile.ui.screens.medications.MedicationsViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
@@ -101,5 +102,13 @@ object AppContainer {
 
     val dietViewModel: DietViewModel by lazy {
         DietViewModel(dietRepository, profileRepository)
+    }
+
+    val hydrationRepository: HydrationRepository by lazy {
+        SupabaseHydrationRepository(supabaseClient, sharedPreferences)
+    }
+
+    val hydrationViewModel: HydrationViewModel by lazy {
+        HydrationViewModel(hydrationRepository, profileRepository)
     }
 }

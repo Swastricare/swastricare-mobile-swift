@@ -44,6 +44,7 @@ import com.swasthicare.mobile.ui.screens.diet.DietScreen
 import com.swasthicare.mobile.ui.screens.diet.FoodSearchScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.screens.hydration.HydrationScreen
 import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationDetailScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationsScreen
@@ -165,7 +166,9 @@ fun MainScreen(
             composable(MainTab.Vitals.route) {
                 HomeScreen(
                     onNavigateToMedications = { navController.navigate("medications") },
-                    onNavigateToDiet = { navController.navigate("diet") }
+                    onNavigateToDiet = { navController.navigate("diet") },
+                    onNavigateToHydration = { navController.navigate("hydration") },
+                    onNavigateToCycleTracker = { /* TODO: navController.navigate("cycle_tracker") */ }
                 )
             }
             composable(MainTab.AI.route) { AIScreen() }
