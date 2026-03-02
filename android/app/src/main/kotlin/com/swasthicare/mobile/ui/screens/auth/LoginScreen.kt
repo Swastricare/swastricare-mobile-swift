@@ -196,14 +196,25 @@ fun LoginScreen(
                             Text("Or continue with", style = MaterialTheme.typography.bodySmall, color = PremiumColors.TextGrey)
                             HorizontalDivider(modifier = Modifier.weight(1f), color = PremiumColors.TextGrey.copy(alpha = 0.2f))
                         }
-                        
-                        SocialLoginButton(
-                            icon = Icons.Default.Email, 
-                            label = "Continue with Google", 
-                            onClick = { viewModel.signInWithGoogle() }, 
-                            modifier = Modifier.fillMaxWidth(), 
-                            enabled = !isLoading
-                        )
+
+                        if (viewModel.isGoogleSignInConfigured) {
+                            SocialLoginButton(
+                                icon = Icons.Default.Email,
+                                label = "Continue with Google",
+                                onClick = { viewModel.signInWithGoogle() },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !isLoading
+                            )
+                        } else {
+                            // Google Sign-In not configured - show disabled button
+                            SocialLoginButton(
+                                icon = Icons.Default.Email,
+                                label = "Google Sign-In (Coming soon)",
+                                onClick = { /* No-op: not configured */ },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = false
+                            )
+                        }
                     }
                 }
                 

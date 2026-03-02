@@ -2,15 +2,18 @@ package com.swasthicare.mobile.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.swasthicare.mobile.BuildConfig
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.AppAnalyticsService
+import com.swasthicare.mobile.data.services.AppVersionService
 import com.swasthicare.mobile.data.services.BiometricService
 import com.swasthicare.mobile.data.services.CrashlyticsService
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.data.services.NotificationService
+import com.swasthicare.mobile.data.services.PoseDetectionService
 import com.swasthicare.mobile.data.services.WeatherService
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
@@ -61,12 +64,11 @@ object AppContainer {
         }
     }
 
-    // Google Auth Helper
+    // Google Auth Helper - reads Web Client ID from BuildConfig (set via gradle.properties)
     val googleAuthHelper: GoogleAuthHelper by lazy {
         GoogleAuthHelper(
             context = context,
-            // TODO: Replace with your Google Web Client ID from Supabase Dashboard
-            webClientId = "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
+            webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
         )
     }
 
@@ -108,7 +110,7 @@ object AppContainer {
     // MARK: - Firebase / Analytics Services
     // ─────────────────────────────────────
 
-    val analyticsService: AnalyticsService by lazy {
+    val firebaseAnalyticsService: AnalyticsService by lazy {
         AnalyticsService()
     }
 
@@ -119,6 +121,31 @@ object AppContainer {
     val appAnalyticsService: AppAnalyticsService by lazy {
         AppAnalyticsService(context, supabaseClient)
     }
+
+    // ─────────────────────────────────────
+    // MARK: - New Services (Features 16-18)
+    // ─────────────────────────────────────
+
+    // Pose Detection Service (Feature 16: AR Body Scan)
+    val poseDetectionService: PoseDetectionService by lazy {
+        PoseDetectionService()
+    }
+
+    // Analytics Service (Feature 17: Custom Supabase Analytics - Agent 5 instance)
+    val analyticsService: AppAnalyticsService by lazy {
+        AppAnalyticsService(context, supabaseClient)
+    }
+
+    // App Version Service (Feature 18: Force Update Checking)
+    val appVersionService: AppVersionService by lazy {
+        AppVersionService(context, supabaseClient)
+    }
+
+    /**
+     * Current app version name from BuildConfig.
+     */
+    val currentVersionName: String
+        get() = BuildConfig.VERSION_NAME
 
     // ─────────────────────────────────────
     // MARK: - Repositories

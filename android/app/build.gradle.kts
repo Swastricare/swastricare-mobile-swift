@@ -21,6 +21,13 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Google Sign-In Web Client ID (set in gradle.properties or local.properties)
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${project.findProperty("GOOGLE_WEB_CLIENT_ID") ?: ""}\""
+        )
     }
 
     buildTypes {
@@ -44,6 +51,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -99,11 +107,15 @@ dependencies {
     // SceneView for 3D rendering (wraps Filament with Compose support)
     implementation("io.github.sceneview:sceneview:2.2.1")
 
-    // CameraX for PPG heart rate measurement
-    implementation("androidx.camera:camera-core:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
+    // ML Kit Pose Detection (for AR Body Scan)
+    implementation("com.google.mlkit:pose-detection:18.0.0-beta5")
+    implementation("com.google.mlkit:pose-detection-accurate:18.0.0-beta5")
+
+    // CameraX for PPG heart rate measurement and AR Body Scan (higher version)
+    implementation("androidx.camera:camera-core:1.4.1")
+    implementation("androidx.camera:camera-camera2:1.4.1")
+    implementation("androidx.camera:camera-lifecycle:1.4.1")
+    implementation("androidx.camera:camera-view:1.4.1")
 
     // Google Location Services for GPS workout tracking + weather-based hydration
     implementation("com.google.android.gms:play-services-location:21.2.0")

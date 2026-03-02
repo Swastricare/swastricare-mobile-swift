@@ -3,6 +3,10 @@ package com.swasthicare.mobile.ui.screens.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
+import com.swasthicare.mobile.data.helpers.GoogleSignInCancelledException
+import com.swasthicare.mobile.data.helpers.GoogleSignInException
+import com.swasthicare.mobile.data.helpers.GoogleSignInNotConfiguredException
+import com.swasthicare.mobile.data.helpers.NoGoogleAccountException
 import com.swasthicare.mobile.data.repository.SupabaseAuthRepository
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.CrashlyticsService
@@ -23,27 +27,31 @@ class AuthViewModel(
     private val analyticsService: AnalyticsService = AppContainer.analyticsService,
     private val crashlyticsService: CrashlyticsService = AppContainer.crashlyticsService
 ) : ViewModel() {
-    
+
     // UI State
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
-    
+
     // Form State
     private val _formState = MutableStateFlow(AuthFormState())
     val formState: StateFlow<AuthFormState> = _formState.asStateFlow()
-    
+
     // Error Message
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
-    
+
     // Loading State
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-    
+
+    // Whether Google Sign-In is available
+    val isGoogleSignInConfigured: Boolean
+        get() = googleAuthHelper.isConfigured
+
     init {
         checkSession()
     }
-    
+
     /**
      * Check if user has active session
      * Matches iOS checkAuthStatus()
@@ -63,7 +71,7 @@ class AuthViewModel(
             }
         }
     }
-    
+
     /**
      * Sign in with email and password
      * Matches iOS signIn()
@@ -73,11 +81,11 @@ class AuthViewModel(
             _errorMessage.value = "Please enter valid email and password"
             return
         }
-        
+
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            
+
             try {
                 val user = authRepository.signIn(
                     email = _formState.value.email,
@@ -96,7 +104,7 @@ class AuthViewModel(
             }
         }
     }
-    
+
     /**
      * Sign up with email, password, and full name
      * Matches iOS signUp()
@@ -106,18 +114,18 @@ class AuthViewModel(
             _errorMessage.value = "Please fill in all fields correctly"
             return
         }
-        
+
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            
+
             try {
                 val user = authRepository.signUp(
                     email = _formState.value.email,
                     password = _formState.value.password,
                     fullName = _formState.value.fullName
                 )
-                
+
                 if (user != null) {
                     analyticsService.logEvent("sign_up", mapOf("method" to "email"))
                     analyticsService.setUserId(user.id)
@@ -135,26 +143,45 @@ class AuthViewModel(
             }
         }
     }
-    
+
     /**
      * Sign in with Google OAuth
      * Matches iOS signInWithGoogle()
+     * Handles specific error types for better UX
      */
     fun signInWithGoogle() {
+        if (!googleAuthHelper.isConfigured) {
+            _errorMessage.value = "Google Sign-In is not configured yet"
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            
+
             try {
                 // Get Google ID token using Credential Manager
                 val idToken = googleAuthHelper.signIn()
-                
+
                 // Sign in with Supabase using the ID token
                 val user = authRepository.signInWithGoogle(idToken)
                 analyticsService.logEvent("sign_in", mapOf("method" to "google"))
                 analyticsService.setUserId(user.id)
                 crashlyticsService.setUserId(user.id)
                 _uiState.value = AuthUiState.Success(user)
+            } catch (e: GoogleSignInCancelledException) {
+                // User cancelled - silently dismiss, no error message
+                _isLoading.value = false
+                return@launch
+            } catch (e: GoogleSignInNotConfiguredException) {
+                _errorMessage.value = "Google Sign-In is not configured"
+                _uiState.value = AuthUiState.Error("Google Sign-In is not configured")
+            } catch (e: NoGoogleAccountException) {
+                _errorMessage.value = "No Google accounts found on this device"
+                _uiState.value = AuthUiState.Error("No Google accounts found")
+            } catch (e: GoogleSignInException) {
+                _errorMessage.value = e.message ?: "Google sign-in failed"
+                _uiState.value = AuthUiState.Error(e.message ?: "Google sign-in failed")
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Google sign-in failed"
                 _uiState.value = AuthUiState.Error(e.message ?: "Google sign-in failed")
@@ -163,7 +190,7 @@ class AuthViewModel(
             }
         }
     }
-    
+
     /**
      * Reset password via email
      * Matches iOS resetPassword()
@@ -173,11 +200,11 @@ class AuthViewModel(
             _errorMessage.value = "Please enter a valid email"
             return
         }
-        
+
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            
+
             try {
                 authRepository.resetPassword(_formState.value.email)
                 _errorMessage.value = "Password reset link sent to your email"
@@ -188,7 +215,7 @@ class AuthViewModel(
             }
         }
     }
-    
+
     /**
      * Sign out current user
      */
@@ -207,28 +234,28 @@ class AuthViewModel(
             }
         }
     }
-    
+
     // Form field updates
     fun updateEmail(email: String) {
         _formState.value = _formState.value.copy(email = email)
     }
-    
+
     fun updatePassword(password: String) {
         _formState.value = _formState.value.copy(password = password)
     }
-    
+
     fun updateFullName(fullName: String) {
         _formState.value = _formState.value.copy(fullName = fullName)
     }
-    
+
     fun updateConfirmPassword(confirmPassword: String) {
         _formState.value = _formState.value.copy(confirmPassword = confirmPassword)
     }
-    
+
     fun clearError() {
         _errorMessage.value = null
     }
-    
+
     private fun clearForm() {
         _formState.value = AuthFormState()
     }

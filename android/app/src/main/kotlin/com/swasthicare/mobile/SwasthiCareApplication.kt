@@ -35,11 +35,21 @@ class SwasthiCareApplication : Application() {
         // Initialize Firebase
         initializeFirebase()
 
-        // Start custom Supabase analytics service
+        // Start custom Supabase analytics service (Agent 3 pattern)
         try {
             AppContainer.appAnalyticsService.start()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to start AppAnalyticsService: ${e.message}")
+        }
+
+        // Initialize Analytics Service with lifecycle observer (Agent 5 pattern)
+        // Starts session, loads persisted events, begins periodic flush,
+        // and registers ProcessLifecycleOwner observer for background flush.
+        try {
+            AppContainer.analyticsService.initialize()
+        } catch (e: Exception) {
+            // Analytics initialization failure should not crash the app
+            Log.w(TAG, "Analytics init failed: ${e.message}")
         }
     }
 
