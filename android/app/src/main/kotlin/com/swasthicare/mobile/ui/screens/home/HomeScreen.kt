@@ -51,7 +51,8 @@ fun HomeScreen(
     onNavigateToMedications: () -> Unit = {},
     onNavigateToDiet: () -> Unit = {},
     onNavigateToHydration: () -> Unit = {},
-    onNavigateToCycleTracker: () -> Unit = {}
+    onNavigateToCycleTracker: () -> Unit = {},
+    onNavigateToHeartRate: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -407,7 +408,7 @@ fun HomeScreen(
                     standHours = uiState.standHours,
                     sleepHours = uiState.sleepHours,
                     distance = uiState.distance,
-                    onMeasureHeartRate = { /* TODO: Implement heart rate measurement */ }
+                    onMeasureHeartRate = onNavigateToHeartRate
                 )
                 
                 Spacer(modifier = Modifier.height(120.dp)) // Extra space for bottom bar
