@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.swasthicare.mobile"
-        minSdk = 24
+        minSdk = 26 // Raised from 24 to 26 for Health Connect support
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
@@ -50,6 +50,7 @@ dependencies {
     // Core Android
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-process:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
 
     // Jetpack Compose
@@ -71,13 +72,19 @@ dependencies {
     implementation("io.ktor:ktor-client-core:2.3.12")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("io.coil-kt:coil-compose:2.5.0")
-    
+
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation("androidx.credentials:credentials:1.2.2")
     implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
-    
+
+    // Health Connect
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha07")
+
+    // Biometric
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
+
     // SceneView for 3D rendering (wraps Filament with Compose support)
     implementation("io.github.sceneview:sceneview:2.2.1")
 

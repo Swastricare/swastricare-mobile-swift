@@ -5,6 +5,9 @@ import android.content.SharedPreferences
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
+import com.swasthicare.mobile.data.services.BiometricService
+import com.swasthicare.mobile.data.services.HealthConnectService
+import com.swasthicare.mobile.data.services.NotificationService
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
 import com.swasthicare.mobile.ui.screens.hydration.HydrationViewModel
@@ -19,19 +22,19 @@ import io.github.jan.supabase.functions.Functions
 
 /**
  * App Dependency Container
- * Provides Supabase authentication and repositories
+ * Provides Supabase authentication, repositories, and services
  */
 object AppContainer {
-    
+
     private var _context: Context? = null
-    
+
     fun initialize(context: Context) {
         _context = context.applicationContext
     }
-    
-    private val context: Context
+
+    val context: Context
         get() = _context ?: throw IllegalStateException("AppContainer not initialized")
-    
+
     // Supabase Client - matching iOS
     val supabaseClient: SupabaseClient by lazy {
         createSupabaseClient(
@@ -48,38 +51,47 @@ object AppContainer {
             install(Functions)
         }
     }
-    
+
     // Google Auth Helper
     val googleAuthHelper: GoogleAuthHelper by lazy {
         GoogleAuthHelper(
             context = context,
             // TODO: Replace with your Google Web Client ID from Supabase Dashboard
-            // Steps:
-            // 1. Go to https://supabase.com/dashboard/project/jlumbeyukpnuicyxzvre/auth/providers
-            // 2. Enable Google provider
-            // 3. Add Android package name: com.swasthicare.mobile
-            // 4. Add SHA-1 certificate fingerprint
-            // 5. Copy the Web Client ID from Google Cloud Console
             webClientId = "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
         )
     }
-    
+
     // Auth Repository
     val authRepository: SupabaseAuthRepository by lazy {
         SupabaseAuthRepository(supabaseClient)
     }
-    
+
     // Auth ViewModel
     val authViewModel: AuthViewModel by lazy {
         AuthViewModel(authRepository, googleAuthHelper)
     }
-    
+
     // Shared preferences
     val sharedPreferences: SharedPreferences by lazy {
         context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
     }
 
-    // Other repositories
+    // ── Services ──
+
+    val healthConnectService: HealthConnectService by lazy {
+        HealthConnectService(context)
+    }
+
+    val biometricService: BiometricService by lazy {
+        BiometricService(context)
+    }
+
+    val notificationService: NotificationService by lazy {
+        NotificationService(context, sharedPreferences)
+    }
+
+    // ── Repositories ──
+
     val profileRepository: ProfileRepository by lazy {
         MockProfileRepository()
     }
@@ -110,5 +122,9 @@ object AppContainer {
 
     val hydrationViewModel: HydrationViewModel by lazy {
         HydrationViewModel(hydrationRepository, profileRepository)
+    }
+
+    val aiConversationRepository: AIConversationRepository by lazy {
+        SupabaseAIConversationRepository(supabaseClient, sharedPreferences)
     }
 }

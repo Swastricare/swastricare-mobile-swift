@@ -1,9 +1,11 @@
 package com.swasthicare.mobile.ui.screens.profile
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.AppUser
 import com.swasthicare.mobile.data.model.HealthProfile
+import com.swasthicare.mobile.data.services.BiometricService
 import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,21 +33,23 @@ data class ProfileUiState(
 class ProfileViewModel : ViewModel() {
     private val authRepository = AppContainer.authRepository
     private val profileRepository = AppContainer.profileRepository
-    
+    private val biometricService: BiometricService = AppContainer.biometricService
+    private val prefs: SharedPreferences = AppContainer.sharedPreferences
+
     // Expose sign out event for navigation
     private val _signOutEvent = MutableStateFlow(false)
     val signOutEvent: StateFlow<Boolean> = _signOutEvent.asStateFlow()
-    
+
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
         loadUser()
-        // Load settings from SharedPreferences (omitted for brevity, using defaults)
+        // Load settings from SharedPreferences
         _uiState.update {
             it.copy(
                 notificationsEnabled = true,
-                biometricEnabled = false,
+                biometricEnabled = prefs.getBoolean("biometric_enabled", false),
                 healthSyncEnabled = true
             )
         }
@@ -123,6 +127,11 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun toggleBiometric(enabled: Boolean) {
+        if (enabled && !biometricService.canAuthenticate()) {
+            // Device doesn't support biometric — don't enable
+            return
+        }
+        prefs.edit().putBoolean("biometric_enabled", enabled).apply()
         _uiState.update { it.copy(biometricEnabled = enabled) }
     }
 

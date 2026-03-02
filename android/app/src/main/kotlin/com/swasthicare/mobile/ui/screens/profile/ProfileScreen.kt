@@ -3,6 +3,7 @@ package com.swasthicare.mobile.ui.screens.profile
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,11 +36,12 @@ import com.swasthicare.mobile.ui.theme.PrimaryColor
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
-    onSignOut: () -> Unit = {}
+    onSignOut: () -> Unit = {},
+    onNavigateToNotificationSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
-    
+
     // Handle sign out navigation
     LaunchedEffect(signOutEvent) {
         if (signOutEvent) {
@@ -55,7 +57,7 @@ fun ProfileScreen(
         profileBMI = viewModel.profileBMI,
         appVersion = viewModel.appVersion,
         onRefreshHealthProfile = viewModel::refreshHealthProfile,
-        onNotificationToggle = viewModel::toggleNotifications,
+        onNotificationToggle = onNavigateToNotificationSettings,
         onBiometricToggle = viewModel::toggleBiometric,
         onSyncToggle = viewModel::toggleHealthSync,
         onSignOutClick = { viewModel.setShowSignOutConfirmation(true) },
@@ -75,7 +77,7 @@ fun ProfileScreenContent(
     profileBMI: String,
     appVersion: String,
     onRefreshHealthProfile: () -> Unit,
-    onNotificationToggle: (Boolean) -> Unit,
+    onNotificationToggle: () -> Unit,
     onBiometricToggle: (Boolean) -> Unit,
     onSyncToggle: (Boolean) -> Unit,
     onSignOutClick: () -> Unit,
@@ -469,29 +471,41 @@ fun SettingsSection(
     notificationsEnabled: Boolean,
     biometricEnabled: Boolean,
     healthSyncEnabled: Boolean,
-    onNotificationToggle: (Boolean) -> Unit,
+    onNotificationToggle: () -> Unit,
     onBiometricToggle: (Boolean) -> Unit,
     onSyncToggle: (Boolean) -> Unit
 ) {
     SectionContainer(title = "Settings") {
-        SettingToggleRow(
-            icon = Icons.Default.Notifications,
-            label = "Notifications",
-            checked = notificationsEnabled,
-            onCheckedChange = onNotificationToggle
-        )
-        
+        // Notification Settings — navigates to full settings screen
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNotificationToggle() },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(imageVector = Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(20.dp), tint = PrimaryColor)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(text = "Notification Settings", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        
+
         SettingToggleRow(
             icon = Icons.Default.Fingerprint,
             label = "Biometric Login",
             checked = biometricEnabled,
             onCheckedChange = onBiometricToggle
         )
-        
+
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        
+
         SettingToggleRow(
             icon = Icons.Default.Sync,
             label = "Auto Sync Health",
