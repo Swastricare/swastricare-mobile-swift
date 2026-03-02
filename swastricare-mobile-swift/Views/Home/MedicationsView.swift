@@ -14,7 +14,33 @@ struct MedicationsView: View {
     @State private var selectedDate = Date()
     @State private var showAddMedication = false
     @State private var selectedMedication: MedicationWithAdherence?
-    
+
+    private var timelineSlots: [TimelineSlot] {
+        let calendar = Calendar.current
+        var slotDict: [String: (time: Date, items: [(MedicationWithAdherence, MedicationAdherence)])] = [:]
+
+        for medWithAdherence in viewModel.todaysMedications {
+            for dose in medWithAdherence.todayDoses {
+                let comps = calendar.dateComponents([.hour, .minute], from: dose.scheduledTime)
+                let key = String(format: "%02d:%02d", comps.hour ?? 0, comps.minute ?? 0)
+
+                if slotDict[key] == nil {
+                    slotDict[key] = (time: dose.scheduledTime, items: [])
+                }
+                slotDict[key]?.items.append((medWithAdherence, dose))
+            }
+        }
+
+        return slotDict.map { key, value in
+            TimelineSlot(
+                id: key,
+                time: value.time,
+                items: value.items.map { (medication: $0.0, dose: $0.1) }
+            )
+        }
+        .sorted { $0.time < $1.time }
+    }
+
     // MARK: - Body
     var body: some View {
         NavigationView {
@@ -38,26 +64,14 @@ struct MedicationsView: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 20)
                         
-                        // Medication List
+                        // Timeline Medication List
                         ScrollView {
-                            LazyVStack(spacing: 12) {
-                                ForEach(viewModel.todaysMedications) { medWithAdherence in
-                                    MedicationCard(
-                                        medicationWithAdherence: medWithAdherence,
-                                        onTaken: {
-                                            Task {
-                                                try? await viewModel.quickMarkAsTaken(medicationWithAdherence: medWithAdherence)
-                                            }
-                                        },
-                                        onTap: {
-                                            selectedMedication = medWithAdherence
-                                        }
-                                    )
-                                }
+                            VStack(spacing: 0) {
+                                timelineSection
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 8)
+                                    .padding(.bottom, 24)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 8)
-                            .padding(.bottom, 24)
                         }
                     }
                 }
@@ -306,6 +320,55 @@ struct MedicationsView: View {
         .background(color.opacity(0.08))
         .cornerRadius(12)
     }
+
+    private var timelineSection: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(timelineSlots.enumerated()), id: \.element.id) { index, slot in
+                HStack(alignment: .top, spacing: 14) {
+                    // Time + dot column
+                    VStack(spacing: 0) {
+                        Text(slot.formattedTime)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(slot.hasOverdue ? .red : .secondary)
+                            .frame(width: 65, alignment: .trailing)
+
+                        Circle()
+                            .fill(slot.dotColor)
+                            .frame(width: 10, height: 10)
+                            .padding(.top, 6)
+
+                        // Connecting line (except last slot)
+                        if index < timelineSlots.count - 1 {
+                            Rectangle()
+                                .fill(Color.primary.opacity(0.1))
+                                .frame(width: 2)
+                                .frame(maxHeight: .infinity)
+                        }
+                    }
+                    .frame(width: 65)
+
+                    // Cards for this time slot
+                    VStack(spacing: 8) {
+                        ForEach(slot.items, id: \.dose.id) { item in
+                            TimelineMedicationCard(
+                                medication: item.medication,
+                                dose: item.dose,
+                                onTaken: {
+                                    Task {
+                                        try? await viewModel.quickMarkAsTaken(medicationWithAdherence: item.medication)
+                                    }
+                                },
+                                onTap: {
+                                    selectedMedication = item.medication
+                                }
+                            )
+                        }
+                    }
+                }
+                .padding(.bottom, index < timelineSlots.count - 1 ? 16 : 0)
+            }
+        }
+    }
 }
 
 // MARK: - Medication Card
@@ -410,6 +473,134 @@ struct MedicationCard: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Timeline Medication Card
+
+struct TimelineMedicationCard: View {
+    let medication: MedicationWithAdherence
+    let dose: MedicationAdherence
+    let onTaken: () -> Void
+    let onTap: () -> Void
+
+    private var statusColor: Color {
+        switch dose.status {
+        case .taken, .early: return .green
+        case .late: return .orange
+        case .missed: return .red
+        case .skipped: return Color.primary.opacity(0.4)
+        case .pending:
+            return dose.isOverdue() ? .red : Color.primary.opacity(0.4)
+        }
+    }
+
+    private var statusText: String {
+        if dose.status == .pending && dose.isOverdue() {
+            return "Overdue"
+        }
+        return dose.status.displayName
+    }
+
+    private var showTakeButton: Bool {
+        dose.status == .pending
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                // Medication type icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(hex: "2E3192").opacity(0.12))
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: medication.medication.type.icon)
+                        .font(.system(size: 18))
+                        .foregroundColor(Color(hex: "2E3192"))
+                }
+
+                // Name + dosage
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(medication.medication.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+
+                    HStack(spacing: 6) {
+                        Text(medication.medication.dosage)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+
+                        Text("·")
+                            .foregroundColor(.secondary)
+
+                        HStack(spacing: 3) {
+                            Image(systemName: dose.status.icon)
+                                .font(.system(size: 10))
+                            Text(statusText)
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(statusColor)
+                    }
+                }
+
+                Spacer()
+
+                // Quick take button
+                if showTakeButton {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            onTaken()
+                        }
+                    }) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(Color(hex: "11998e"))
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else if dose.status == .taken || dose.status == .late || dose.status == .early {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.green.opacity(0.6))
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color(UIColor.secondarySystemBackground))
+            .cornerRadius(14)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Timeline Slot
+
+struct TimelineSlot: Identifiable {
+    let id: String  // "HH:mm" key
+    let time: Date
+    let items: [(medication: MedicationWithAdherence, dose: MedicationAdherence)]
+
+    var allTaken: Bool {
+        items.allSatisfy { dose in
+            dose.dose.status == .taken || dose.dose.status == .late || dose.dose.status == .early
+        }
+    }
+
+    var hasOverdue: Bool {
+        items.contains { $0.dose.isOverdue() }
+    }
+
+    var dotColor: Color {
+        if allTaken { return .green }
+        if hasOverdue { return .red }
+        return Color.primary.opacity(0.3)
+    }
+
+    var formattedTime: String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: time)
     }
 }
 
