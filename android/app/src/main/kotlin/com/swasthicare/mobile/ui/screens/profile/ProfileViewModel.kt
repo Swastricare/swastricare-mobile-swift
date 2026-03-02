@@ -1,16 +1,15 @@
 package com.swasthicare.mobile.ui.screens.profile
 
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.AppUser
 import com.swasthicare.mobile.data.model.HealthProfile
+import com.swasthicare.mobile.data.services.BiometricService
 import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -23,7 +22,6 @@ data class ProfileUiState(
     val healthProfile: HealthProfile? = null,
     val isLoading: Boolean = false,
     val isLoadingHealthProfile: Boolean = false,
-    val needsHealthProfile: Boolean = false,
     val errorMessage: String? = null,
     val notificationsEnabled: Boolean = false,
     val biometricEnabled: Boolean = false,
@@ -35,13 +33,8 @@ data class ProfileUiState(
 class ProfileViewModel : ViewModel() {
     private val authRepository = AppContainer.authRepository
     private val profileRepository = AppContainer.profileRepository
-    private val dataStore = AppContainer.dataStore
-
-    companion object {
-        val NOTIFICATIONS_KEY = booleanPreferencesKey("notifications_enabled")
-        val BIOMETRIC_KEY = booleanPreferencesKey("biometric_enabled")
-        val HEALTH_SYNC_KEY = booleanPreferencesKey("health_sync_enabled")
-    }
+    private val biometricService: BiometricService = AppContainer.biometricService
+    private val prefs: SharedPreferences = AppContainer.sharedPreferences
 
     // Expose sign out event for navigation
     private val _signOutEvent = MutableStateFlow(false)
@@ -52,19 +45,13 @@ class ProfileViewModel : ViewModel() {
 
     init {
         loadUser()
-        loadSettings()
-    }
-
-    private fun loadSettings() {
-        viewModelScope.launch {
-            val prefs = dataStore.data.first()
-            _uiState.update {
-                it.copy(
-                    notificationsEnabled = prefs[NOTIFICATIONS_KEY] ?: true,
-                    biometricEnabled = prefs[BIOMETRIC_KEY] ?: false,
-                    healthSyncEnabled = prefs[HEALTH_SYNC_KEY] ?: true
-                )
-            }
+        // Load settings from SharedPreferences
+        _uiState.update {
+            it.copy(
+                notificationsEnabled = true,
+                biometricEnabled = prefs.getBoolean("biometric_enabled", false),
+                healthSyncEnabled = true
+            )
         }
     }
 
@@ -105,12 +92,22 @@ class ProfileViewModel : ViewModel() {
                 val profile = profileRepository.getHealthProfile(userId)
                 
                 if (profile != null) {
-                    _uiState.update {
-                        it.copy(healthProfile = profile, isLoadingHealthProfile = false, needsHealthProfile = false)
+                    _uiState.update { 
+                        it.copy(healthProfile = profile, isLoadingHealthProfile = false) 
                     }
                 } else {
-                    _uiState.update {
-                        it.copy(isLoadingHealthProfile = false, needsHealthProfile = true)
+                     // Fallback mock profile for demo
+                     val mockProfile = HealthProfile(
+                        userId = userId,
+                        fullName = "John Doe",
+                        gender = com.swasthicare.mobile.data.model.Gender.Male,
+                        dateOfBirth = "1990-01-01",
+                        heightCm = 180.0,
+                        weightKg = 75.0,
+                        bloodType = "O+"
+                    )
+                    _uiState.update { 
+                        it.copy(healthProfile = mockProfile, isLoadingHealthProfile = false) 
                     }
                 }
             } catch (e: Exception) {
@@ -126,24 +123,20 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun toggleNotifications(enabled: Boolean) {
-        viewModelScope.launch {
-            dataStore.edit { it[NOTIFICATIONS_KEY] = enabled }
-            _uiState.update { it.copy(notificationsEnabled = enabled) }
-        }
+        _uiState.update { it.copy(notificationsEnabled = enabled) }
     }
 
     fun toggleBiometric(enabled: Boolean) {
-        viewModelScope.launch {
-            dataStore.edit { it[BIOMETRIC_KEY] = enabled }
-            _uiState.update { it.copy(biometricEnabled = enabled) }
+        if (enabled && !biometricService.canAuthenticate()) {
+            // Device doesn't support biometric — don't enable
+            return
         }
+        prefs.edit().putBoolean("biometric_enabled", enabled).apply()
+        _uiState.update { it.copy(biometricEnabled = enabled) }
     }
 
     fun toggleHealthSync(enabled: Boolean) {
-        viewModelScope.launch {
-            dataStore.edit { it[HEALTH_SYNC_KEY] = enabled }
-            _uiState.update { it.copy(healthSyncEnabled = enabled) }
-        }
+        _uiState.update { it.copy(healthSyncEnabled = enabled) }
     }
     
     fun setShowSignOutConfirmation(show: Boolean) {

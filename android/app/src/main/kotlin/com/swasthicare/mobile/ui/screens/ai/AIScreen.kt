@@ -1,53 +1,48 @@
 package com.swasthicare.mobile.ui.screens.ai
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-// import com.swasthicare.mobile.data.models.AnalysisState // Removed
 import com.swasthicare.mobile.data.models.ChatMessage
 import com.swasthicare.mobile.data.models.HealthAnalysisResult
 import com.swasthicare.mobile.data.models.QuickAction
-import com.swasthicare.mobile.ui.components.EmptyStateView
+import com.swasthicare.mobile.data.repository.AIConversation
+import com.swasthicare.mobile.data.repository.AIMessageRecord
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,8 +53,8 @@ fun AIScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    
-    // Permission launcher
+
+    // Permission launcher for mic
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -67,7 +62,21 @@ fun AIScreen(
             viewModel.toggleRecording()
         }
     }
-    
+
+    // Image picker launchers
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        viewModel.setSelectedImage(uri)
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        // For camera, we'd need a file URI; simplified here
+        // In production, save bitmap to temp file and get URI
+    }
+
     // Auto-scroll to bottom
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
@@ -76,27 +85,45 @@ fun AIScreen(
     }
 
     Scaffold(
-        topBar = {
-            // Invisible top bar to respect safe area, content handles headers
-        },
+        topBar = {},
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             PremiumBackground()
-            
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .imePadding() // Handles keyboard overlap
+                    .imePadding()
             ) {
-                // Header
+                // Header with history + bookmarks + clear buttons
                 CenterAlignedTopAppBar(
                     title = { Text("Swastri AI", fontWeight = FontWeight.Bold) },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = Color.Transparent
                     ),
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.toggleHistorySheet() }) {
+                            Box(
+                                modifier = Modifier
+                                    .glass(cornerRadius = 20.dp)
+                                    .padding(8.dp)
+                            ) {
+                                Icon(Icons.Default.History, contentDescription = "History", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    },
                     actions = {
+                        IconButton(onClick = { viewModel.toggleBookmarksSheet() }) {
+                            Box(
+                                modifier = Modifier
+                                    .glass(cornerRadius = 20.dp)
+                                    .padding(8.dp)
+                            ) {
+                                Icon(Icons.Outlined.Bookmark, contentDescription = "Bookmarks", modifier = Modifier.size(16.dp))
+                            }
+                        }
                         IconButton(onClick = { viewModel.clearChat() }) {
                             Box(
                                 modifier = Modifier
@@ -109,6 +136,15 @@ fun AIScreen(
                     }
                 )
 
+                // Mode & Personality selectors
+                ModePersonalityBar(
+                    selectedMode = uiState.selectedMode,
+                    selectedPersonality = uiState.selectedPersonality,
+                    onModeChange = { viewModel.setMode(it) },
+                    onPersonalityChange = { viewModel.setPersonality(it) }
+                )
+
+                // Chat content
                 Box(modifier = Modifier.weight(1f)) {
                     if (uiState.messages.isEmpty() && uiState.showEmptyState) {
                         IntroView(
@@ -123,8 +159,33 @@ fun AIScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(uiState.messages, key = { it.id }) { message ->
-                                ChatBubble(message = message)
+                                ChatBubble(
+                                    message = message,
+                                    onBookmark = { viewModel.toggleBookmark(message.id) },
+                                    onThumbsUp = { viewModel.sendFeedback(message.id, true) },
+                                    onThumbsDown = { viewModel.sendFeedback(message.id, false) }
+                                )
                             }
+                        }
+                    }
+                }
+
+                // Selected image preview
+                if (uiState.selectedImageUri != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .glass(cornerRadius = 12.dp)
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Image attached", style = MaterialTheme.typography.bodySmall)
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(onClick = { viewModel.clearSelectedImage() }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -135,20 +196,19 @@ fun AIScreen(
                     onSendClick = viewModel::sendMessage,
                     onQuickActionClick = viewModel::sendQuickAction,
                     onMicClick = {
-                        // Check logic handled inside viewmodel? No, permission check here first
                         if (uiState.isRecording) {
-                             viewModel.toggleRecording()
+                            viewModel.toggleRecording()
                         } else {
-                            // Check permission
                             permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                         }
                     },
+                    onImageClick = { galleryLauncher.launch("image/*") },
                     isRecording = uiState.isRecording,
                     showSuggestions = uiState.messages.isEmpty(),
                     isLoading = uiState.isLoading
                 )
             }
-            
+
             // Analysis Overlay
             if (uiState.analysisState !is AnalysisState.Idle) {
                 AnalysisResultOverlay(
@@ -160,7 +220,9 @@ fun AIScreen(
             // Error Toast
             if (uiState.error != null) {
                 Snackbar(
-                    modifier = Modifier.padding(16.dp).align(Alignment.TopCenter),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.TopCenter),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
                             Text("Dismiss", color = MaterialTheme.colorScheme.onErrorContainer)
@@ -172,9 +234,132 @@ fun AIScreen(
                     Text(uiState.error!!)
                 }
             }
+
+            // Medical Disclaimer Dialog
+            if (uiState.showMedicalDisclaimer) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.dismissMedicalDisclaimer() },
+                    title = { Text("Medical Mode Disclaimer") },
+                    text = {
+                        Text(
+                            "Medical mode uses specialized AI for health-related queries. " +
+                            "This is NOT a substitute for professional medical advice, diagnosis, or treatment. " +
+                            "Always consult your healthcare provider for medical concerns.\n\n" +
+                            "Do you understand and wish to continue?"
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.acceptMedicalDisclaimer() }) {
+                            Text("I Understand")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.dismissMedicalDisclaimer() }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            // Emergency Alert Dialog
+            if (uiState.showEmergencyAlert) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.dismissEmergencyAlert() },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Emergency Detected", color = Color.Red, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    text = { Text(uiState.emergencyMessage) },
+                    confirmButton = {
+                        Button(
+                            onClick = { viewModel.dismissEmergencyAlert() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text("I Understand", color = Color.White)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            }
+
+            // History Bottom Sheet
+            if (uiState.showHistorySheet) {
+                HistoryBottomSheet(
+                    conversations = uiState.conversations,
+                    onSelect = { viewModel.loadConversation(it.id) },
+                    onDelete = { viewModel.deleteConversation(it.id) },
+                    onDismiss = { viewModel.toggleHistorySheet() }
+                )
+            }
+
+            // Bookmarks Bottom Sheet
+            if (uiState.showBookmarksSheet) {
+                BookmarksBottomSheet(
+                    bookmarks = uiState.bookmarkedMessages,
+                    onDismiss = { viewModel.toggleBookmarksSheet() }
+                )
+            }
         }
     }
 }
+
+// ── Mode & Personality Bar ──
+
+@Composable
+fun ModePersonalityBar(
+    selectedMode: AIMode,
+    selectedPersonality: AIPersonality,
+    onModeChange: (AIMode) -> Unit,
+    onPersonalityChange: (AIPersonality) -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        // Mode toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AIMode.entries.forEach { mode ->
+                FilterChip(
+                    selected = selectedMode == mode,
+                    onClick = { onModeChange(mode) },
+                    label = { Text(mode.label, style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = if (mode == AIMode.Medical) {
+                        { Icon(Icons.Default.LocalHospital, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                    } else null
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Personality dropdown
+            var expanded by remember { mutableStateOf(false) }
+            Box {
+                FilterChip(
+                    selected = true,
+                    onClick = { expanded = true },
+                    label = { Text(selectedPersonality.label, style = MaterialTheme.typography.labelSmall) },
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                )
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    AIPersonality.entries.forEach { personality ->
+                        DropdownMenuItem(
+                            text = { Text(personality.label) },
+                            onClick = {
+                                onPersonalityChange(personality)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── IntroView ──
 
 @Composable
 fun IntroView(
@@ -182,23 +367,42 @@ fun IntroView(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        EmptyStateView(
-            emoji = "\uD83E\uDD16",
-            title = "Ask Swastri AI",
-            subtitle = "Get personalized health insights, medication information, and wellness advice."
-        )
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Swastri AI",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Your personal health assistant.\nAsk me anything about your vitals, diet, or fitness.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                lineHeight = 24.sp
+            )
+        }
 
         Button(
             onClick = onAnalyzeClick,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
         ) {
             Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -208,8 +412,15 @@ fun IntroView(
     }
 }
 
+// ── Chat Bubble with feedback & bookmark ──
+
 @Composable
-fun ChatBubble(message: ChatMessage) {
+fun ChatBubble(
+    message: ChatMessage,
+    onBookmark: () -> Unit = {},
+    onThumbsUp: () -> Unit = {},
+    onThumbsDown: () -> Unit = {}
+) {
     val isUser = message.isUser
     val align = if (isUser) Alignment.End else Alignment.Start
     val bgColor = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
@@ -242,39 +453,47 @@ fun ChatBubble(message: ChatMessage) {
                 )
             }
         }
+
+        // Feedback & bookmark actions for assistant messages
+        if (!isUser && !message.isLoading) {
+            Row(
+                modifier = Modifier.padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(onClick = onThumbsUp, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.ThumbUp, contentDescription = "Thumbs Up", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.outline)
+                }
+                IconButton(onClick = onThumbsDown, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.ThumbDown, contentDescription = "Thumbs Down", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.outline)
+                }
+                IconButton(onClick = onBookmark, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.BookmarkAdd, contentDescription = "Bookmark", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.outline)
+                }
+            }
+        }
     }
 }
 
-// Basic markdown parser for bold/italic
+// Basic markdown parser for bold
 fun parseMarkdown(text: String): AnnotatedString {
     val builder = AnnotatedString.Builder()
     var currentIndex = 0
     val boldRegex = "\\*\\*(.*?)\\*\\*".toRegex()
-    
     val matches = boldRegex.findAll(text)
-    
     for (match in matches) {
-        // Append text before match
         if (match.range.first > currentIndex) {
             builder.append(text.substring(currentIndex, match.range.first))
         }
-        
-        // Append bold text
         builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
             append(match.groupValues[1])
         }
-        
         currentIndex = match.range.last + 1
     }
-    
-    // Append remaining text
     if (currentIndex < text.length) {
         builder.append(text.substring(currentIndex))
     }
-    
     return builder.toAnnotatedString()
 }
-
 
 @Composable
 fun TypingIndicator() {
@@ -288,11 +507,13 @@ fun TypingIndicator() {
         )
     )
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha), CircleShape))
+        repeat(3) {
+            Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha), CircleShape))
+        }
     }
 }
+
+// ── Chat Input Bar with image button ──
 
 @Composable
 fun ChatInputBar(
@@ -301,6 +522,7 @@ fun ChatInputBar(
     onSendClick: () -> Unit,
     onQuickActionClick: (QuickAction) -> Unit,
     onMicClick: () -> Unit,
+    onImageClick: () -> Unit,
     isRecording: Boolean,
     showSuggestions: Boolean,
     isLoading: Boolean
@@ -329,6 +551,23 @@ fun ChatInputBar(
                 .padding(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Image picker button
+            IconButton(
+                onClick = onImageClick,
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), CircleShape)
+                    .size(36.dp)
+            ) {
+                Icon(
+                    Icons.Default.Image,
+                    contentDescription = "Attach Image",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
             TextField(
                 value = inputText,
                 onValueChange = onTextChanged,
@@ -341,7 +580,7 @@ fun ChatInputBar(
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 4.dp),
                 maxLines = 4,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onSendClick() })
@@ -358,18 +597,13 @@ fun ChatInputBar(
                     )
                     .size(40.dp)
             ) {
-                Icon(
-                    Icons.Default.ArrowUpward,
-                    contentDescription = "Send",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
+                Icon(Icons.Default.ArrowUpward, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(20.dp))
             }
-            
+
             Spacer(modifier = Modifier.width(8.dp))
-            
+
             // Mic Button
-             IconButton(
+            IconButton(
                 onClick = onMicClick,
                 modifier = Modifier
                     .background(
@@ -395,7 +629,9 @@ fun QuickActionButton(action: QuickAction, onClick: () -> Unit) {
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
         contentPadding = PaddingValues(0.dp),
-        modifier = Modifier.glass(cornerRadius = 16.dp).width(200.dp)
+        modifier = Modifier
+            .glass(cornerRadius = 16.dp)
+            .width(200.dp)
     ) {
         Column(
             modifier = Modifier
@@ -410,11 +646,13 @@ fun QuickActionButton(action: QuickAction, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
+
+// ── Analysis Result Overlay ──
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -444,7 +682,7 @@ fun AnalysisResultOverlay(
                 is AnalysisState.Completed -> {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("Health Analysis", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        
+
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text("Assessment", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
@@ -460,7 +698,7 @@ fun AnalysisResultOverlay(
                                 Text(state.result.analysis.insights)
                             }
                         }
-                        
+
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text("Recommendations", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
@@ -484,6 +722,128 @@ fun AnalysisResultOverlay(
                     }
                 }
                 else -> {}
+            }
+        }
+    }
+}
+
+// ── History Bottom Sheet ──
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HistoryBottomSheet(
+    conversations: List<AIConversation>,
+    onSelect: (AIConversation) -> Unit,
+    onDelete: (AIConversation) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text("Conversation History", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (conversations.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No conversations yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(conversations) { conversation ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .clickable { onSelect(conversation) }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    conversation.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    conversation.created_at.take(10),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(onClick = { onDelete(conversation) }, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Bookmarks Bottom Sheet ──
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BookmarksBottomSheet(
+    bookmarks: List<AIMessageRecord>,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text("Bookmarked Messages", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (bookmarks.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No bookmarks yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(bookmarks) { message ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(message.role.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    message.content,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 5,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

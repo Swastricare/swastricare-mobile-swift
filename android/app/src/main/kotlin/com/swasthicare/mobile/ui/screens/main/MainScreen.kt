@@ -51,6 +51,7 @@ import com.swasthicare.mobile.ui.screens.hydration.HydrationScreen
 import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationDetailScreen
 import com.swasthicare.mobile.ui.screens.medications.MedicationsScreen
+import com.swasthicare.mobile.ui.screens.notifications.NotificationSettingsScreen
 import com.swasthicare.mobile.ui.screens.profile.ProfileScreen
 import com.swasthicare.mobile.ui.screens.vault.VaultScreen
 
@@ -181,7 +182,15 @@ fun MainScreen(
             composable(MainTab.AI.route) { AIScreen() }
             composable(MainTab.Vault.route) { VaultScreen() }
             composable(MainTab.Profile.route) {
-                ProfileScreen(onSignOut = onSignOut)
+                ProfileScreen(
+                    onSignOut = onSignOut,
+                    onNavigateToNotificationSettings = { navController.navigate("notification_settings") }
+                )
+            }
+            composable("notification_settings") {
+                NotificationSettingsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             // Medications flow
             composable("medications") {
