@@ -58,10 +58,12 @@ class SupabaseMenstrualCycleRepository(
 
     // ── Local Cycles ──
 
-    override fun loadLocalCycles(): List<MenstrualCycle> = try {
-        val raw = prefs.getString("menstrual_cycles", null) ?: return emptyList()
-        mcJson.decodeFromString<List<MenstrualCycleDto>>(raw).map { it.toDomain() }
-    } catch (_: Exception) { emptyList() }
+    override fun loadLocalCycles(): List<MenstrualCycle> {
+        return try {
+            val raw = prefs.getString("menstrual_cycles", null) ?: return emptyList()
+            mcJson.decodeFromString<List<MenstrualCycleDto>>(raw).map { it.toDomain() }
+        } catch (_: Exception) { emptyList() }
+    }
 
     override fun saveLocalCycles(cycles: List<MenstrualCycle>) {
         val dtos = cycles.map { it.toDto("") }
@@ -103,10 +105,12 @@ class SupabaseMenstrualCycleRepository(
 
     // ── Local Daily Logs ──
 
-    override fun loadLocalDailyLogs(): List<MenstrualDailyLog> = try {
-        val raw = prefs.getString("menstrual_daily_logs", null) ?: return emptyList()
-        mcJson.decodeFromString<List<MenstrualDailyLogDto>>(raw).map { it.toDomain() }
-    } catch (_: Exception) { emptyList() }
+    override fun loadLocalDailyLogs(): List<MenstrualDailyLog> {
+        return try {
+            val raw = prefs.getString("menstrual_daily_logs", null) ?: return emptyList()
+            mcJson.decodeFromString<List<MenstrualDailyLogDto>>(raw).map { it.toDomain() }
+        } catch (_: Exception) { emptyList() }
+    }
 
     override fun saveLocalDailyLogs(logs: List<MenstrualDailyLog>) {
         val dtos = logs.map { it.toDto("") }
@@ -146,17 +150,19 @@ class SupabaseMenstrualCycleRepository(
 
     // ── Settings ──
 
-    override fun loadSettings(): MenstrualSettings = try {
-        val raw = prefs.getString("menstrual_settings", null)
-            ?: return MenstrualSettings()
-        val dto = mcJson.decodeFromString<MenstrualSettingsDto>(raw)
-        MenstrualSettings(
-            averageCycleLength = dto.averageCycleLength,
-            averagePeriodLength = dto.averagePeriodLength,
-            reminderEnabled = dto.reminderEnabled,
-            reminderTime = dto.reminderTime.take(5)
-        )
-    } catch (_: Exception) { MenstrualSettings() }
+    override fun loadSettings(): MenstrualSettings {
+        return try {
+            val raw = prefs.getString("menstrual_settings", null)
+                ?: return MenstrualSettings()
+            val dto = mcJson.decodeFromString<MenstrualSettingsDto>(raw)
+            MenstrualSettings(
+                averageCycleLength = dto.averageCycleLength,
+                averagePeriodLength = dto.averagePeriodLength,
+                reminderEnabled = dto.reminderEnabled,
+                reminderTime = dto.reminderTime.take(5)
+            )
+        } catch (_: Exception) { MenstrualSettings() }
+    }
 
     override fun saveSettings(settings: MenstrualSettings) {
         val dto = MenstrualSettingsDto(

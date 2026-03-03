@@ -623,14 +623,15 @@ fun DemoModeBanner(
 // MARK: - Nudge Card
 @Composable
 fun NudgeCard(
-    nudge: ServerNudge,
+    nudge: HealthNudge,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Parse accent color (fallback to blue)
-    val accentColor = remember(nudge.color) {
-        try { Color(android.graphics.Color.parseColor(nudge.color)) }
-        catch (_: Exception) { Color(0xFF007AFF) }
+    // Derive accent color from priority
+    val accentColor = when (nudge.priority) {
+        NudgePriority.HIGH -> Color(0xFFFF3B30)
+        NudgePriority.MEDIUM -> Color(0xFFFF9500)
+        NudgePriority.LOW -> Color(0xFF007AFF)
     }
 
     Box(
@@ -699,7 +700,7 @@ fun NudgeCard(
 // MARK: - Nudges Card Strip
 @Composable
 fun NudgesCardStrip(
-    nudges: List<ServerNudge>,
+    nudges: List<HealthNudge>,
     onDismiss: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {

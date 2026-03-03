@@ -204,6 +204,8 @@ class HealthAnalyticsViewModel : ViewModel() {
                 parts.add("Your step count has increased by $pct% compared to last period. Keep up the great work!")
             } else if (it.trend == TrendDirection.Down) {
                 parts.add("Your step count decreased by $pct%. Try taking short walks between tasks.")
+            } else {
+                // Flat trend — no insight to add
             }
         }
         sleepSummary?.let {

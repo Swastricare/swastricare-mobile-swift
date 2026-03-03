@@ -52,7 +52,7 @@ fun DocumentDetailSheet(
             editedTitle != document.title ||
                 editedCategory.title != document.category ||
                 editedNotes != (document.notes ?: "") ||
-                editedTags != (document.tags ?: emptyList())
+                editedTags != (document.tags ?: emptyList<String>())
         }
     }
 
@@ -427,8 +427,9 @@ fun DocumentDetailSheet(
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
                 ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
                 )
             ) {
                 Icon(

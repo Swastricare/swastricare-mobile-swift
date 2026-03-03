@@ -174,19 +174,23 @@ class SupabaseAIConversationRepository(
 
     // ── Local fallback ──
 
-    private fun loadLocalConversations(): List<AIConversation> = try {
-        val raw = prefs.getString("ai_conversations", null) ?: return emptyList()
-        aiJson.decodeFromString<List<AIConversation>>(raw)
-    } catch (_: Exception) { emptyList() }
+    private fun loadLocalConversations(): List<AIConversation> {
+        return try {
+            val raw = prefs.getString("ai_conversations", null) ?: return emptyList()
+            aiJson.decodeFromString<List<AIConversation>>(raw)
+        } catch (_: Exception) { emptyList() }
+    }
 
     private fun saveLocalConversations(conversations: List<AIConversation>) {
         prefs.edit().putString("ai_conversations", aiJson.encodeToString(conversations)).apply()
     }
 
-    private fun loadLocalMessages(): List<AIMessageRecord> = try {
-        val raw = prefs.getString("ai_messages", null) ?: return emptyList()
-        aiJson.decodeFromString<List<AIMessageRecord>>(raw)
-    } catch (_: Exception) { emptyList() }
+    private fun loadLocalMessages(): List<AIMessageRecord> {
+        return try {
+            val raw = prefs.getString("ai_messages", null) ?: return emptyList()
+            aiJson.decodeFromString<List<AIMessageRecord>>(raw)
+        } catch (_: Exception) { emptyList() }
+    }
 
     private fun saveLocalMessages(messages: List<AIMessageRecord>) {
         prefs.edit().putString("ai_messages", aiJson.encodeToString(messages)).apply()

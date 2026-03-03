@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.ui.screens.onboarding
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -32,6 +33,7 @@ private val pages = listOf(
     OnboardingPage("Your Family, Together", "Manage health for your entire family from one account.", "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67", Color(0xFFFF9500))
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(onFinished: () -> Unit) {
     val pagerState = rememberPagerState(pageCount = { pages.size })

@@ -235,37 +235,28 @@ fun NotificationHistoryScreen(
                     EmptyNotificationsView()
                 }
                 else -> {
-                    val pullRefreshState = rememberPullToRefreshState()
-
-                    PullToRefreshBox(
-                        isRefreshing = uiState.isRefreshing,
-                        onRefresh = { vm.refresh() },
-                        state = pullRefreshState,
-                        modifier = Modifier.fillMaxSize()
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            uiState.groupedByDate.forEach { (dateKey, records) ->
-                                item(key = "header_$dateKey") {
-                                    DateHeader(dateKey = dateKey)
-                                }
-                                itemsIndexed(
-                                    items = records,
-                                    key = { _, record -> record.id }
-                                ) { index, record ->
-                                    AnimatedVisibility(
-                                        visible = true,
-                                        enter = fadeIn(initialAlpha = 0.3f)
-                                    ) {
-                                        NotificationCard(record = record)
-                                    }
+                        uiState.groupedByDate.forEach { (dateKey, records) ->
+                            item(key = "header_$dateKey") {
+                                DateHeader(dateKey = dateKey)
+                            }
+                            itemsIndexed(
+                                items = records,
+                                key = { _, record -> record.id }
+                            ) { index, record ->
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn(initialAlpha = 0.3f)
+                                ) {
+                                    NotificationCard(record = record)
                                 }
                             }
-                            item { Spacer(Modifier.height(100.dp)) }
                         }
+                        item { Spacer(Modifier.height(100.dp)) }
                     }
                 }
             }

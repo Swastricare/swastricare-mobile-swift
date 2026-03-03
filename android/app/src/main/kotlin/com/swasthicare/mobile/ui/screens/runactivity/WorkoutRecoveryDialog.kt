@@ -283,9 +283,7 @@ fun WorkoutRecoveryDialog(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = DiscardRed
                     ),
-                    border = ButtonDefaults.outlinedButtonBorder(enabled = true).let {
-                        androidx.compose.foundation.BorderStroke(1.5.dp, DiscardRed)
-                    }
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, DiscardRed)
                 ) {
                     Text(
                         text = "Yes, Discard Workout",
@@ -303,9 +301,7 @@ fun WorkoutRecoveryDialog(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = DiscardRed
                     ),
-                    border = ButtonDefaults.outlinedButtonBorder(enabled = true).let {
-                        androidx.compose.foundation.BorderStroke(1.5.dp, DiscardRed.copy(alpha = 0.5f))
-                    }
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, DiscardRed.copy(alpha = 0.5f))
                 ) {
                     Text(
                         text = "Discard",

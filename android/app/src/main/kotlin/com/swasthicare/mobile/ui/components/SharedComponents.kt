@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -210,10 +211,7 @@ fun Modifier.scaleOnPress(
     )
 
     this
-        .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
+        .graphicsLayer(scaleX = scale, scaleY = scale)
         .pointerInput(Unit) {
             detectTapGestures(
                 onPress = {

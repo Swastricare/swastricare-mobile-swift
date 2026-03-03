@@ -56,10 +56,12 @@ class SupabaseRunActivityRepository(
 
     // ── Local Activities ──
 
-    override fun loadLocalActivities(): List<RunActivity> = try {
-        val raw = prefs.getString("run_activities", null) ?: return emptyList()
-        runJson.decodeFromString<List<RunActivityDto>>(raw).map { it.toDomain() }
-    } catch (_: Exception) { emptyList() }
+    override fun loadLocalActivities(): List<RunActivity> {
+        return try {
+            val raw = prefs.getString("run_activities", null) ?: return emptyList()
+            runJson.decodeFromString<List<RunActivityDto>>(raw).map { it.toDomain() }
+        } catch (_: Exception) { emptyList() }
+    }
 
     override fun saveLocalActivities(activities: List<RunActivity>) {
         val dtos = activities.map { it.toDto("") }
@@ -142,11 +144,13 @@ class SupabaseRunActivityRepository(
         prefs.edit().putString("workout_recovery_state", runJson.encodeToString(state)).apply()
     }
 
-    override fun loadWorkoutState(): WorkoutRecoveryState? = try {
-        val raw = prefs.getString("workout_recovery_state", null) ?: return null
-        val state = runJson.decodeFromString<WorkoutRecoveryState>(raw)
-        if (state.isActive) state else null
-    } catch (_: Exception) { null }
+    override fun loadWorkoutState(): WorkoutRecoveryState? {
+        return try {
+            val raw = prefs.getString("workout_recovery_state", null) ?: return null
+            val state = runJson.decodeFromString<WorkoutRecoveryState>(raw)
+            if (state.isActive) state else null
+        } catch (_: Exception) { null }
+    }
 
     override fun clearWorkoutState() {
         prefs.edit().remove("workout_recovery_state").apply()

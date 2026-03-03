@@ -31,8 +31,6 @@ import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 
-private val HydrationCyan = Color(0xFF00BCD4)
-
 @Composable
 fun HydrationSettingsScreen(
     onNavigateBack: () -> Unit,
