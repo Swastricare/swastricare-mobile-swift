@@ -1,26 +1,32 @@
 package com.swasthicare.mobile.ui.screens.splash
 
-import androidx.compose.animation.core.*
+import android.net.Uri
+import androidx.annotation.OptIn
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
+import com.swasthicare.mobile.R
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.di.ONBOARDING_COMPLETE_KEY
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 
+@OptIn(UnstableApi::class)
 @Composable
 fun SplashScreen(
     onNavigateToHome: () -> Unit,
@@ -28,49 +34,40 @@ fun SplashScreen(
     onNavigateToOnboarding: () -> Unit,
     onForceUpdate: () -> Unit
 ) {
-    // Cinematic entry animation
-    var startAnimation by remember { mutableStateOf(false) }
-    var fadeOut by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    val logoScale by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0.5f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "logoScale"
-    )
-    val logoAlpha by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(800),
-        label = "logoAlpha"
-    )
-    val subtitleAlpha by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(800, delayMillis = 400),
-        label = "subtitleAlpha"
-    )
+    // Fade-out overlay for cinematic exit (matches iOS)
+    var fadeOut by remember { mutableStateOf(false) }
     val screenAlpha by animateFloatAsState(
-        targetValue = if (fadeOut) 0f else 1f,
-        animationSpec = tween(500),
+        targetValue = if (fadeOut) 1f else 0f,
+        animationSpec = tween(400),
         label = "fadeOut"
     )
 
-    // Pulsing glow
-    val infiniteTransition = rememberInfiniteTransition(label = "glow")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
-    )
+    // Create ExoPlayer — plays once and holds on last frame
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            val videoUri = Uri.parse("android.resource://${context.packageName}/${R.raw.sw_logo_v1}")
+            setMediaItem(MediaItem.fromUri(videoUri))
+            repeatMode = Player.REPEAT_MODE_OFF
+            playWhenReady = true
+            prepare()
+        }
+    }
 
+    // Clean up player on dispose
+    DisposableEffect(Unit) {
+        onDispose { exoPlayer.release() }
+    }
+
+    // Navigation logic — wait for video to finish, then route
     LaunchedEffect(Unit) {
-        startAnimation = true
-        delay(2500)
+        // Wait for the video to finish (poll every 100ms)
+        while (exoPlayer.currentPosition < exoPlayer.duration - 100 || exoPlayer.duration <= 0) {
+            delay(100)
+        }
+        // Hold on last frame briefly
+        delay(500)
 
         // Check for force update
         try {
@@ -82,7 +79,7 @@ fun SplashScreen(
 
             if (currentVersion < minVersion) {
                 fadeOut = true
-                delay(500)
+                delay(400)
                 onForceUpdate()
                 return@LaunchedEffect
             }
@@ -92,7 +89,7 @@ fun SplashScreen(
         val onboardingDone = prefs[ONBOARDING_COMPLETE_KEY] ?: false
 
         fadeOut = true
-        delay(500)
+        delay(400)
 
         if (onboardingDone) {
             onNavigateToLogin()
@@ -104,55 +101,27 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .alpha(screenAlpha)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0D1B2A),
-                        Color(0xFF1B2838),
-                        Color(0xFF0D1B2A)
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
+            .background(Color.Black)
     ) {
-        // Background glow orb
-        Box(
-            modifier = Modifier
-                .size(200.dp)
-                .alpha(glowAlpha)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF2196F3).copy(alpha = 0.4f),
-                            Color(0xFF00BCD4).copy(alpha = 0.2f),
-                            Color.Transparent
-                        )
-                    )
-                )
+        // Full-screen video player (no controls)
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    player = exoPlayer
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    setBackgroundColor(android.graphics.Color.BLACK)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
         )
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // App name with scale animation
-            Text(
-                text = "SwasthiCare",
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier
-                    .scale(logoScale)
-                    .alpha(logoAlpha)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Your Health Companion",
-                fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.alpha(subtitleAlpha)
-            )
-        }
+        // Fade-to-black overlay for cinematic exit
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(screenAlpha)
+                .background(Color.Black)
+        )
     }
 }
