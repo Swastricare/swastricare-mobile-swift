@@ -1,23 +1,28 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "swasthicare-placeholder",
-    "storage_bucket": "swasthicare-placeholder.appspot.com"
+    "project_number": "933690564598",
+    "project_id": "swastricare-da29c",
+    "storage_bucket": "swastricare-da29c.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+        "mobilesdk_app_id": "1:933690564598:android:41aba9733d8fee9497f1d7",
         "android_client_info": {
           "package_name": "com.swasthicare.mobile"
         }
       },
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyPlaceholderKeyForBuildOnly"
+          "current_key": "AIzaSyCUtx0r_x773LV48h2TmLXKAoU2poVVKec"
         }
       ],
-      "services": {}
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

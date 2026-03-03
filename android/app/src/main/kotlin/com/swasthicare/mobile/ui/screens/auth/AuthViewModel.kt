@@ -11,6 +11,8 @@ import com.swasthicare.mobile.data.repository.SupabaseAuthRepository
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.CrashlyticsService
 import com.swasthicare.mobile.di.AppContainer
+import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -149,7 +151,7 @@ class AuthViewModel(
      * Matches iOS signInWithGoogle()
      * Handles specific error types for better UX
      */
-    fun signInWithGoogle() {
+    fun signInWithGoogle(activityContext: Context) {
         if (!googleAuthHelper.isConfigured) {
             _errorMessage.value = "Google Sign-In is not configured yet"
             return
@@ -160,8 +162,8 @@ class AuthViewModel(
             _errorMessage.value = null
 
             try {
-                // Get Google ID token using Credential Manager
-                val idToken = googleAuthHelper.signIn()
+                // Get Google ID token using Credential Manager (requires Activity context)
+                val idToken = googleAuthHelper.signIn(activityContext)
 
                 // Sign in with Supabase using the ID token
                 val user = authRepository.signInWithGoogle(idToken)
@@ -170,19 +172,23 @@ class AuthViewModel(
                 crashlyticsService.setUserId(user.id)
                 _uiState.value = AuthUiState.Success(user)
             } catch (e: GoogleSignInCancelledException) {
-                // User cancelled - silently dismiss, no error message
+                Log.w("GoogleAuth", "Cancelled by user", e)
                 _isLoading.value = false
                 return@launch
             } catch (e: GoogleSignInNotConfiguredException) {
+                Log.e("GoogleAuth", "Not configured", e)
                 _errorMessage.value = "Google Sign-In is not configured"
                 _uiState.value = AuthUiState.Error("Google Sign-In is not configured")
             } catch (e: NoGoogleAccountException) {
+                Log.e("GoogleAuth", "No accounts found", e)
                 _errorMessage.value = "No Google accounts found on this device"
                 _uiState.value = AuthUiState.Error("No Google accounts found")
             } catch (e: GoogleSignInException) {
+                Log.e("GoogleAuth", "GoogleSignInException: ${e.message}", e)
                 _errorMessage.value = e.message ?: "Google sign-in failed"
                 _uiState.value = AuthUiState.Error(e.message ?: "Google sign-in failed")
             } catch (e: Exception) {
+                Log.e("GoogleAuth", "Unexpected: ${e.javaClass.simpleName}: ${e.message}", e)
                 _errorMessage.value = e.message ?: "Google sign-in failed"
                 _uiState.value = AuthUiState.Error(e.message ?: "Google sign-in failed")
             } finally {

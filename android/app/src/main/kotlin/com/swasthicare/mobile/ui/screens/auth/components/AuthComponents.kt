@@ -53,62 +53,63 @@ fun PremiumTextField(
     isFocused: Boolean = false,
     isError: Boolean = false
 ) {
-    val borderBrush = if (isError) {
-        SolidColor(MaterialTheme.colorScheme.error)
-    } else if (isFocused) {
-        Brush.linearGradient(listOf(PremiumColors.RoyalBlue, PremiumColors.Cyan))
-    } else {
-        SolidColor(Color.Transparent)
-    }
-    
-    // Animate scale on focus for a premium feel
-    val scale by animateFloatAsState(if (isFocused) 1.02f else 1f, label = "field_scale")
-    
-    Row(
-        modifier = modifier
-            .scale(scale)
-            .fillMaxWidth()
-            .height(60.dp) // Slightly taller for premium feel
-            .shadow(
-                elevation = 0.dp, // Flat style inside card
-                shape = RoundedCornerShape(16.dp),
-                spotColor = PremiumColors.RoyalBlue.copy(alpha = 0.15f),
-                ambientColor = PremiumColors.RoyalBlue.copy(alpha = 0.1f)
-            )
-            .background(PremiumColors.LightBlueBg, RoundedCornerShape(16.dp)) // Light grey for contrast on white card
-            .border(if (isFocused || isError) 1.5.dp else 0.dp, borderBrush, RoundedCornerShape(16.dp))
-            .padding(horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    // Matching iOS AuthTextField: label above, icon + field inside rounded container
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (isError) MaterialTheme.colorScheme.error else if (isFocused) PremiumColors.RoyalBlue else PremiumColors.TextGrey,
-            modifier = Modifier.size(22.dp)
+        // Label above (matching iOS)
+        Text(
+            text = placeholder,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = PremiumColors.TextGrey.copy(alpha = 0.7f)) },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                cursorColor = if (isError) MaterialTheme.colorScheme.error else PremiumColors.RoyalBlue,
-                errorCursorColor = MaterialTheme.colorScheme.error,
-                focusedTextColor = PremiumColors.TextDark,
-                unfocusedTextColor = PremiumColors.TextDark
-            ),
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
-            keyboardActions = keyboardActions,
-            singleLine = true,
-            modifier = Modifier.weight(1f),
-            isError = isError
-        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    RoundedCornerShape(16.dp)
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (isError) MaterialTheme.colorScheme.error
+                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+
+            TextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = { Text("", color = PremiumColors.TextGrey.copy(alpha = 0.7f)) },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = PremiumColors.RoyalBlue,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+                keyboardActions = keyboardActions,
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                isError = isError
+            )
+        }
     }
 }
 
@@ -125,70 +126,71 @@ fun PremiumSecureField(
     isError: Boolean = false
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
-    
-    val borderBrush = if (isError) {
-         SolidColor(MaterialTheme.colorScheme.error)
-    } else if (isFocused) {
-        Brush.linearGradient(listOf(PremiumColors.RoyalBlue, PremiumColors.Cyan))
-    } else {
-        SolidColor(Color.Transparent)
-    }
-    
-    val scale by animateFloatAsState(if (isFocused) 1.02f else 1f, label = "field_scale")
-    
-    Row(
-        modifier = modifier
-            .scale(scale)
-            .fillMaxWidth()
-            .height(60.dp)
-            .shadow(
-                elevation = 0.dp, // Flat style inside card
-                shape = RoundedCornerShape(16.dp),
-                spotColor = PremiumColors.RoyalBlue.copy(alpha = 0.15f),
-                ambientColor = PremiumColors.RoyalBlue.copy(alpha = 0.1f)
-            )
-            .background(Color.White, RoundedCornerShape(16.dp))
-            .border(if (isFocused || isError) 1.5.dp else 0.dp, borderBrush, RoundedCornerShape(16.dp))
-            .padding(horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+
+    // Matching iOS AuthSecureField: label above, icon + field + eye toggle
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (isError) MaterialTheme.colorScheme.error else if (isFocused) PremiumColors.RoyalBlue else PremiumColors.TextGrey,
-            modifier = Modifier.size(22.dp)
+        Text(
+            text = placeholder,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = PremiumColors.TextGrey.copy(alpha = 0.7f)) },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                cursorColor = if (isError) MaterialTheme.colorScheme.error else PremiumColors.RoyalBlue,
-                errorCursorColor = MaterialTheme.colorScheme.error,
-                focusedTextColor = PremiumColors.TextDark,
-                unfocusedTextColor = PremiumColors.TextDark
-            ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = imeAction),
-            keyboardActions = keyboardActions,
-            singleLine = true,
-            modifier = Modifier.weight(1f),
-            isError = isError
-        )
-        
-        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    RoundedCornerShape(16.dp)
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (isError) MaterialTheme.colorScheme.error
+                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Icon(
-                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                tint = PremiumColors.TextGrey
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
             )
+
+            TextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = { Text("", color = PremiumColors.TextGrey.copy(alpha = 0.7f)) },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = PremiumColors.RoyalBlue,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = imeAction),
+                keyboardActions = keyboardActions,
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                isError = isError
+            )
+
+            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                Icon(
+                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -201,26 +203,19 @@ fun PremiumButton(
     enabled: Boolean = true,
     isLoading: Boolean = false
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (enabled) 1f else 0.98f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "button_scale"
-    )
-    
+    // Matching iOS AuthPrimaryButtonStyle: solid indigo, 56dp, 16 radius, shadow
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp)
-            .scale(scale)
+            .height(56.dp)
             .shadow(
-                elevation = if (enabled) 15.dp else 4.dp,
-                shape = RoundedCornerShape(18.dp),
-                spotColor = PremiumColors.RoyalBlue.copy(alpha = 0.5f),
-                ambientColor = PremiumColors.Cyan.copy(alpha = 0.2f)
+                elevation = if (enabled) 12.dp else 0.dp,
+                shape = RoundedCornerShape(16.dp),
+                spotColor = PremiumColors.RoyalBlue.copy(alpha = 0.3f)
             )
             .background(
-                Brush.horizontalGradient(listOf(PremiumColors.RoyalBlue, PremiumColors.Cyan)),
-                RoundedCornerShape(18.dp)
+                if (enabled) PremiumColors.RoyalBlue else Color.Gray.copy(alpha = 0.3f),
+                RoundedCornerShape(16.dp)
             )
             .clickable(enabled = enabled && !isLoading, onClick = onClick),
         contentAlignment = Alignment.Center
@@ -229,8 +224,8 @@ fun PremiumButton(
             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
         } else {
             Text(
-                text, 
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), 
+                text,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = Color.White
             )
         }
@@ -245,35 +240,36 @@ fun SocialLoginButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    val alpha by animateFloatAsState(if (enabled) 1f else 0.5f, label = "button_alpha")
-
+    // Matching iOS AuthSocialButton: outlined, 56dp, icon + text centered
     Row(
         modifier = modifier
             .height(56.dp)
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = Color.Black.copy(alpha = 0.1f)
+            .background(
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                RoundedCornerShape(16.dp)
             )
-            .background(Color.White, RoundedCornerShape(16.dp))
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable(enabled = enabled, onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = icon, 
-            contentDescription = null, 
-            modifier = Modifier.size(24.dp),
-            tint = if (label.contains("Google")) Color.Unspecified else PremiumColors.TextDark.copy(alpha = alpha) // Allow original colors if needed
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurface
         )
-        // Manual tint for Google if using vector icon that doesn't have intrinsic color
-        // For now using default tint, but if using Vector drawable with color, invoke tint=Color.Unspecified
-        
+        Spacer(modifier = Modifier.width(12.dp))
         Text(
-            label, 
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-            color = PremiumColors.TextDark.copy(alpha = alpha)
+            label,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -350,36 +346,30 @@ fun AnimatedLogo(modifier: Modifier = Modifier) {
 
 @Composable
 fun PremiumBackground(modifier: Modifier = Modifier) {
+    // Matching iOS AuthBackground: system background + two blurred circles
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFFF8FAFC), // Almost white
-                        Color(0xFFEFF4F9),
-                        Color(0xFFE2E9F3)  // Soft Blue-Grey
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        // Add subtle decorative circles for depth
+        // Top Right - Blue circle
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .offset(x = 100.dp, y = (-100).dp)
-                .size(400.dp)
-                .background(PremiumColors.Cyan.copy(alpha = 0.05f), androidx.compose.foundation.shape.CircleShape)
-                .blur(80.dp)
+                .offset(x = 50.dp, y = (-50).dp)
+                .size(300.dp)
+                .background(PremiumColors.RoyalBlue.copy(alpha = 0.05f), androidx.compose.foundation.shape.CircleShape)
+                .blur(100.dp)
         )
-        
+
+        // Bottom Left - Cyan circle
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .offset(x = (-100).dp, y = 100.dp)
-                .size(400.dp)
-                .background(PremiumColors.RoyalBlue.copy(alpha = 0.05f), androidx.compose.foundation.shape.CircleShape)
-                .blur(80.dp)
+                .offset(x = (-50).dp, y = 50.dp)
+                .size(250.dp)
+                .background(PremiumColors.Cyan.copy(alpha = 0.05f), androidx.compose.foundation.shape.CircleShape)
+                .blur(90.dp)
         )
     }
 }

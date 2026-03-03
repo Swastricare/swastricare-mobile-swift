@@ -5,13 +5,16 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.13.2")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20")
-        classpath("org.jetbrains.kotlin:kotlin-serialization:1.9.20")
+        classpath("com.android.tools.build:gradle:9.0.1")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.10")
+        classpath("org.jetbrains.kotlin:kotlin-serialization:2.2.10")
         // Firebase
         classpath("com.google.gms:google-services:4.4.2")
         classpath("com.google.firebase:firebase-crashlytics-gradle:3.0.2")
-        classpath("com.google.firebase:perf-plugin:1.4.2")
+        // Firebase perf-plugin removed — no version supports AGP 9.x yet
+        // See: https://github.com/firebase/firebase-android-sdk/issues/7293
+        // The runtime library (firebase-perf-ktx) still works without the plugin
+        classpath("org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.2.10")
     }
 }
 

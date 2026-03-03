@@ -83,7 +83,7 @@ object AppContainer {
     // Google Auth Helper - reads Web Client ID from BuildConfig (set via gradle.properties)
     val googleAuthHelper: GoogleAuthHelper by lazy {
         GoogleAuthHelper(
-            context = context,
+            applicationContext = context,
             webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
         )
     }

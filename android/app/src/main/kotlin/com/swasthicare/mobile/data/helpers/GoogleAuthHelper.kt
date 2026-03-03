@@ -37,14 +37,12 @@ import java.util.UUID
  *         Debug: keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android
  */
 class GoogleAuthHelper(
-    private val context: Context,
+    private val applicationContext: Context,
     private val webClientId: String
 ) {
     companion object {
         private const val TAG = "GoogleAuthHelper"
     }
-
-    private val credentialManager = CredentialManager.create(context)
 
     /**
      * Whether Google Sign-In is configured (non-empty client ID).
@@ -57,17 +55,20 @@ class GoogleAuthHelper(
      * Initiate Google Sign-In flow.
      * Returns Google ID token to be used with Supabase.
      *
+     * @param activityContext MUST be an Activity context (not Application) for Credential Manager UI
      * @throws GoogleSignInNotConfiguredException if webClientId is blank
      * @throws GoogleSignInCancelledException if user cancelled
      * @throws NoGoogleAccountException if no Google accounts found
      * @throws GoogleSignInException for other errors
      */
-    suspend fun signIn(): String {
+    suspend fun signIn(activityContext: Context): String {
         if (!isConfigured) {
             throw GoogleSignInNotConfiguredException(
                 "Google Sign-In is not configured. Set GOOGLE_WEB_CLIENT_ID in gradle.properties."
             )
         }
+
+        val credentialManager = CredentialManager.create(activityContext)
 
         val nonce = generateNonce()
         val hashedNonce = hashNonce(nonce)
@@ -85,7 +86,7 @@ class GoogleAuthHelper(
         return try {
             val result = credentialManager.getCredential(
                 request = request,
-                context = context
+                context = activityContext
             )
 
             val credential = GoogleIdTokenCredential.createFrom(result.credential.data)

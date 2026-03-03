@@ -1,6 +1,7 @@
 package com.swasthicare.mobile.ui.components
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,14 +22,12 @@ import io.github.sceneview.SceneView
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
 import io.github.sceneview.node.ModelNode
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * 3D Model Viewer Component using SceneView (Filament wrapper)
- * 
+ *
  * Displays GLB models with auto-rotation, lighting, and smooth animations.
- * Similar to iOS SceneKit ModelViewer implementation.
+ * Matching iOS SceneKit ModelViewer implementation.
  */
 @Composable
 fun ModelViewer(
@@ -38,22 +37,21 @@ fun ModelViewer(
     allowInteraction: Boolean = false,
     rotationDurationMs: Int = 8000
 ) {
-    val context = LocalContext.current
     var isModelLoaded by remember { mutableStateOf(false) }
-    
-    // Entrance animation
+
+    // Entrance animation (matching iOS: 0→0.8 opacity, 0.8→1.2 scale)
     val animatedAlpha by animateFloatAsState(
-        targetValue = if (isModelLoaded) 1f else 0f,
+        targetValue = if (isModelLoaded) 0.8f else 0f,
         animationSpec = tween(durationMillis = 1000, delayMillis = 200),
         label = "modelAlpha"
     )
-    
+
     val animatedScale by animateFloatAsState(
         targetValue = if (isModelLoaded) 1f else 0.8f,
         animationSpec = tween(durationMillis = 1000, delayMillis = 200, easing = FastOutSlowInEasing),
         label = "modelScale"
     )
-    
+
     // Auto-rotation animation
     val infiniteTransition = rememberInfiniteTransition(label = "rotation")
     val rotationY by infiniteTransition.animateFloat(
@@ -65,7 +63,7 @@ fun ModelViewer(
         ),
         label = "rotationY"
     )
-    
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
@@ -75,14 +73,14 @@ fun ModelViewer(
             modifier = Modifier.fillMaxSize(),
             isVisible = isModelLoaded
         )
-        
+
         // Placeholder while loading
         if (!isModelLoaded) {
             LoadingPlaceholder(
                 modifier = Modifier.fillMaxSize()
             )
         }
-        
+
         // SceneView for 3D rendering
         SceneViewComposable(
             modelName = modelName,
@@ -93,8 +91,8 @@ fun ModelViewer(
                 .alpha(animatedAlpha)
                 .scale(animatedScale)
         )
-        
-        // Bottom fade mask
+
+        // Bottom fade mask (matching iOS gradient mask)
         BottomFadeMask(
             modifier = Modifier
                 .fillMaxWidth()
@@ -111,79 +109,57 @@ private fun SceneViewComposable(
     onModelLoaded: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     var modelNode by remember { mutableStateOf<ModelNode?>(null) }
-    var sceneViewRef by remember { mutableStateOf<SceneView?>(null) }
-    
+
     // Update rotation when rotationY changes
     LaunchedEffect(rotationY) {
         modelNode?.rotation = Rotation(y = rotationY)
     }
-    
+
     AndroidView(
         factory = { ctx ->
-            SceneView(ctx).apply {
-                sceneViewRef = this
-                
-                // Set transparent background
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                
+            SceneView(ctx, isOpaque = false).apply {
+
                 // Configure camera
                 cameraNode.position = Position(z = 4f)
-                
-                // Load model asynchronously
-                loadModelAsync(ctx, modelName) { node ->
-                    modelNode = node
-                    node?.let {
-                        // Center and scale model
-                        it.position = Position(y = -0.5f)
-                        it.scale = io.github.sceneview.math.Scale(1.5f)
-                        
-                        // Add to scene
-                        addChildNode(it)
-                        
+
+                // Load model on the main thread after SceneView is fully initialized
+                val assetPath = "models/$modelName.glb"
+                post {
+                    try {
+                        // Read the GLB file as a ByteBuffer from assets
+                        val buffer = ctx.assets.open(assetPath).use { stream ->
+                            val bytes = stream.readBytes()
+                            java.nio.ByteBuffer.allocateDirect(bytes.size).apply {
+                                put(bytes)
+                                rewind()
+                            }
+                        }
+                        Log.d("ModelViewer", "Read ${buffer.capacity()} bytes from $assetPath")
+
+                        val instance = modelLoader.createModelInstance(buffer)
+                        val node = ModelNode(
+                            modelInstance = instance
+                        ).apply {
+                            position = Position(y = -0.5f)
+                            scale = io.github.sceneview.math.Scale(1.5f)
+                        }
+                        addChildNode(node)
+                        modelNode = node
                         onModelLoaded()
+                        Log.d("ModelViewer", "Successfully loaded $modelName.glb")
+                    } catch (e: Exception) {
+                        Log.e("ModelViewer", "Failed to load $modelName.glb: ${e.message}", e)
                     }
                 }
             }
         },
         modifier = modifier,
-        update = { sceneView ->
+        update = { _ ->
             // Update rotation
             modelNode?.rotation = Rotation(y = rotationY)
         }
     )
-}
-
-private fun SceneView.loadModelAsync(
-    context: Context,
-    modelName: String,
-    onLoaded: (ModelNode?) -> Unit
-) {
-    try {
-        val assetPath = "models/$modelName.glb"
-        
-        // Load model from assets in background thread
-        Thread {
-            try {
-                val modelNode = ModelNode(
-                    modelInstance = modelLoader.createModelInstance(
-                        assetFileLocation = assetPath
-                    )
-                )
-                
-                post {
-                    onLoaded(modelNode)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                post { onLoaded(null) }
-            }
-        }.start()
-    } catch (e: Exception) {
-        e.printStackTrace()
-        onLoaded(null)
-    }
 }
 
 /**
@@ -199,7 +175,7 @@ fun RadialGlowBackground(
         animationSpec = tween(durationMillis = 1000),
         label = "glowAlpha"
     )
-    
+
     Box(
         modifier = modifier
             .alpha(animatedAlpha)
@@ -231,7 +207,7 @@ fun LoadingPlaceholder(
         ),
         label = "pulseScale"
     )
-    
+
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 0.6f,
@@ -241,7 +217,7 @@ fun LoadingPlaceholder(
         ),
         label = "pulseAlpha"
     )
-    
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
@@ -265,7 +241,7 @@ fun LoadingPlaceholder(
 }
 
 /**
- * Gradient mask for bottom fade effect
+ * Gradient mask for bottom fade effect (matching iOS LinearGradient mask)
  */
 @Composable
 fun BottomFadeMask(
