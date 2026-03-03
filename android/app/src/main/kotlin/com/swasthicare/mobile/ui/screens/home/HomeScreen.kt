@@ -51,7 +51,11 @@ fun HomeScreen(
     onNavigateToMedications: () -> Unit = {},
     onNavigateToDiet: () -> Unit = {},
     onNavigateToHydration: () -> Unit = {},
-    onNavigateToCycleTracker: () -> Unit = {}
+    onNavigateToCycleTracker: () -> Unit = {},
+    onNavigateToHeartRate: () -> Unit = {},
+    onNavigateToBodyScan: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToRoute: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
