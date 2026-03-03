@@ -61,7 +61,7 @@ fun ProfileScreen(
         appVersion = viewModel.appVersion,
         onRefreshHealthProfile = viewModel::refreshHealthProfile,
         onEditProfile = {
-            viewModel.beginEdit()
+            viewModel.initEditForm()
             onNavigateToEditProfile()
         },
         onNotificationToggle = onNavigateToNotificationSettings,
