@@ -11,12 +11,12 @@ plugins {
 
 android {
     namespace = "com.swasthicare.mobile"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.swasthicare.mobile"
         minSdk = 26 // Raised from 24 to 26 for Health Connect support
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 

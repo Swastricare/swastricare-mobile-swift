@@ -32,7 +32,9 @@ import com.swasthicare.mobile.ui.theme.PremiumColor
 
 @Composable
 fun RunActivityScreen(
-    onStartWorkout: () -> Unit = {},
+    onNavigateToLiveWorkout: () -> Unit = {},
+    onNavigateToActivityDetail: (String) -> Unit = {},
+    onNavigateToCalendar: () -> Unit = {},
     onNavigateBack: (() -> Unit)? = null
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -77,7 +79,7 @@ fun RunActivityScreen(
             Spacer(Modifier.height(24.dp))
 
             // Start workout hero card
-            StartWorkoutCard(onClick = onStartWorkout)
+            StartWorkoutCard(onClick = onNavigateToLiveWorkout)
 
             Spacer(Modifier.height(24.dp))
 
@@ -99,28 +101,28 @@ fun RunActivityScreen(
                     icon = Icons.Default.DirectionsRun,
                     label = "Run",
                     color = Color(0xFF00E5FF),
-                    onClick = onStartWorkout,
+                    onClick = onNavigateToLiveWorkout,
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.DirectionsWalk,
                     label = "Walk",
                     color = PremiumColor.NeonGreenEnd,
-                    onClick = onStartWorkout,
+                    onClick = onNavigateToLiveWorkout,
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.DirectionsBike,
                     label = "Cycle",
                     color = Color(0xFFFFD60A),
-                    onClick = onStartWorkout,
+                    onClick = onNavigateToLiveWorkout,
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.Terrain,
                     label = "Hike",
                     color = Color(0xFFBF5AF2),
-                    onClick = onStartWorkout,
+                    onClick = onNavigateToLiveWorkout,
                     modifier = Modifier.weight(1f)
                 )
             }

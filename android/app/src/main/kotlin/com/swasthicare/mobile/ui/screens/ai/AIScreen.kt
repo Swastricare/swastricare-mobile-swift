@@ -875,7 +875,7 @@ fun parseMarkdown(text: String): AnnotatedString {
 
 @Composable
 fun TypingIndicator() {
-    val transition = rememberInfiniteTransition()
+    val transition = rememberInfiniteTransition(label = "typingIndicator")
     val alpha by transition.animateFloat(
         initialValue = 0.3f,
         targetValue = 1f,

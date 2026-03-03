@@ -46,12 +46,12 @@ import com.swasthicare.mobile.ui.theme.PremiumColor
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun LiveWorkoutScreen(
-    viewModel: LiveWorkoutViewModel,
-    onBack: () -> Unit,
-    onWorkoutCompleted: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToSummary: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val viewModel = remember { LiveWorkoutViewModel(context) }
+    val uiState by viewModel.uiState.collectAsState()
 
     // ── Location Permission ──
     val locationPermissions = rememberMultiplePermissionsState(
@@ -104,7 +104,7 @@ fun LiveWorkoutScreen(
                 } && !locationPermissions.allPermissionsGranted,
                 onSelectWorkoutType = { viewModel.setWorkoutType(it) },
                 onStart = { viewModel.startWorkout() },
-                onBack = onBack,
+                onBack = onNavigateBack,
                 onOpenSettings = {
                     context.startActivity(
                         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -134,11 +134,11 @@ fun LiveWorkoutScreen(
                 uiState = uiState,
                 onDone = {
                     viewModel.resetWorkout()
-                    onWorkoutCompleted()
+                    onNavigateToSummary()
                 },
                 onDiscard = {
                     viewModel.resetWorkout()
-                    onBack()
+                    onNavigateBack()
                 }
             )
         }

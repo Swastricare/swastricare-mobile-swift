@@ -1,19 +1,18 @@
 package com.swasthicare.mobile.ui.screens.menstrualcycle
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -21,41 +20,54 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swasthicare.mobile.data.models.*
-import com.swasthicare.mobile.di.AppContainer
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
-import com.swasthicare.mobile.ui.theme.*
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
 
-private val CyclePurple = Color(0xFFBF5AF2)
-private val CycleRed = Color(0xFFFF375F)
-private val CycleGreen = Color(0xFF30D158)
-private val CycleBlue = Color(0xFF0A84FF)
-private val CycleOrange = Color(0xFFFF9F0A)
+// ─────────────────────────────────────
+// MARK: - Color Constants
+// ─────────────────────────────────────
 
-// ------------------------------------
+private val CyclePink = Color(0xFFE91E63)
+private val CyclePurple = Color(0xFF9C27B0)
+private val MenstrualColor = Color(0xFFE91E63)
+private val FollicularColor = Color(0xFF4CAF50)
+private val OvulationColor = Color(0xFFFF9800)
+private val LutealColor = Color(0xFF9C27B0)
+
+// ─────────────────────────────────────
 // MARK: - Main Screen
-// ------------------------------------
+// ─────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenstrualCycleScreen(
-    onNavigateBack: () -> Unit
+    viewModel: MenstrualCycleViewModel = viewModel(),
+    onNavigateBack: () -> Unit = {}
 ) {
-    val vm = remember { AppContainer.menstrualCycleViewModel }
-    val uiState by vm.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val scrollState = rememberScrollState()
+
+    var showSettingsSheet by remember { mutableStateOf(false) }
+    var showStatisticsSheet by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
@@ -65,7 +77,7 @@ fun MenstrualCycleScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top Bar
+            // ── Top Bar ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -82,10 +94,15 @@ fun MenstrualCycleScreen(
                     "Cycle Tracker",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp)
                 )
-                IconButton(onClick = { vm.showSettingsSheet() }) {
-                    Icon(Icons.Default.Settings, "Settings", tint = CyclePurple)
+                IconButton(onClick = { showSettingsSheet = true }) {
+                    Icon(
+                        Icons.Default.Settings, "Settings",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -94,169 +111,124 @@ fun MenstrualCycleScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = CyclePurple)
+                    CircularProgressIndicator(color = CyclePink)
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 120.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Phase Status Card
-                    item {
-                        CycleStatusCard(
-                            phase = uiState.currentPhase,
-                            dayOfCycle = uiState.currentDayOfCycle,
-                            daysUntilNext = uiState.daysUntilNextPeriod,
-                            hasActivePeriod = uiState.cycles.any { it.isActive },
-                            onLogPeriodStart = { vm.logPeriodStart() },
-                            onLogPeriodEnd = { vm.logPeriodEnd() },
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // 1. Cycle Status Card (progress ring)
+                    CycleStatusCard(
+                        currentDay = uiState.currentDayInCycle,
+                        totalDays = uiState.totalCycleDays,
+                        phase = uiState.currentPhase,
+                        daysUntilNextPeriod = uiState.daysUntilNextPeriod,
+                        progress = uiState.cycleProgress
+                    )
+
+                    // 2. Calendar
+                    CycleCalendar(
+                        selectedMonth = uiState.selectedMonth,
+                        loggedPeriodDates = uiState.loggedPeriodDates,
+                        predictedPeriodDates = uiState.predictedPeriodDates,
+                        fertileWindowDates = uiState.fertileWindowDates,
+                        onDateTap = { viewModel.togglePeriodDate(it) },
+                        onMonthChange = { viewModel.changeMonth(it) }
+                    )
+
+                    // 3. Phase Info Card
+                    PhaseInfoCard(phase = uiState.currentPhase)
+
+                    // 4. Tips Section
+                    TipsSection(phase = uiState.currentPhase)
+
+                    // 5. Statistics Preview Card
+                    uiState.statistics?.let { stats ->
+                        StatisticsPreviewCard(
+                            stats = stats,
+                            onTap = { showStatisticsSheet = true },
+                            formatDate = { viewModel.formatDate(it) }
                         )
                     }
 
-                    // Calendar
-                    item {
-                        Spacer(Modifier.height(16.dp))
-                        MonthlyCalendar(
-                            selectedMonth = uiState.selectedMonth,
-                            calendarData = uiState.calendarData,
-                            selectedDate = uiState.selectedDate,
-                            onDateSelected = { vm.selectDate(it) },
-                            onPreviousMonth = { vm.navigateMonth(false) },
-                            onNextMonth = { vm.navigateMonth(true) },
-                            modifier = Modifier.padding(horizontal = 20.dp)
-                        )
-                    }
-
-                    // Phase Info Card
-                    item {
-                        Spacer(Modifier.height(16.dp))
-                        PhaseInfoCard(
-                            phase = uiState.currentPhase,
-                            modifier = Modifier.padding(horizontal = 20.dp)
-                        )
-                    }
-
-                    // Quick Actions
-                    item {
-                        Spacer(Modifier.height(16.dp))
-                        QuickActionsRow(
-                            onAddLog = { vm.showDailyLogSheet() },
-                            onViewStats = { vm.showStatisticsSheet() },
-                            modifier = Modifier.padding(horizontal = 20.dp)
-                        )
-                    }
-
-                    // Selected Day Log
-                    uiState.selectedDayLog?.let { log ->
-                        item {
-                            Spacer(Modifier.height(16.dp))
-                            DayLogCard(
-                                log = log,
-                                modifier = Modifier.padding(horizontal = 20.dp)
-                            )
-                        }
-                    }
-
-                    // Predictions Card
-                    uiState.predictions?.let { predictions ->
-                        item {
-                            Spacer(Modifier.height(16.dp))
-                            PredictionsCard(
-                                predictions = predictions,
-                                modifier = Modifier.padding(horizontal = 20.dp)
-                            )
-                        }
-                    }
-
-                    // Statistics Summary
-                    if (uiState.statistics.totalCyclesTracked > 0) {
-                        item {
-                            Spacer(Modifier.height(16.dp))
-                            StatisticsSummaryCard(
-                                statistics = uiState.statistics,
-                                modifier = Modifier.padding(horizontal = 20.dp)
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(120.dp))
                 }
             }
         }
+    }
 
-        // Daily Log Bottom Sheet
-        if (uiState.showDailyLogSheet) {
-            DailyLogBottomSheet(
-                existingLog = uiState.selectedDayLog,
-                onSave = { flow, symptoms, mood, pain, notes ->
-                    vm.addDailyLog(flow, symptoms, mood, pain, notes)
-                },
-                onDismiss = { vm.hideDailyLogSheet() }
+    // ── Bottom Sheets ──
+    if (showSettingsSheet) {
+        CycleSettingsSheet(
+            settings = uiState.settings,
+            onDismiss = { showSettingsSheet = false },
+            onSave = { cycleLen, periodLen ->
+                viewModel.updateCycleSettings(cycleLen, periodLen)
+            },
+            onUpdateNotifications = { period, fertile, pms ->
+                viewModel.updateNotificationSettings(period, fertile, pms)
+            }
+        )
+    }
+
+    if (showStatisticsSheet) {
+        uiState.statistics?.let { stats ->
+            CycleStatisticsSheet(
+                stats = stats,
+                onDismiss = { showStatisticsSheet = false },
+                formatDate = { viewModel.formatDate(it) }
             )
-        }
-
-        // Settings Bottom Sheet
-        if (uiState.showSettingsSheet) {
-            SettingsBottomSheet(
-                settings = uiState.settings,
-                onSave = { vm.updateSettings(it) },
-                onDismiss = { vm.hideSettingsSheet() }
-            )
-        }
-
-        // Statistics Bottom Sheet
-        if (uiState.showStatisticsSheet) {
-            StatisticsBottomSheet(
-                statistics = uiState.statistics,
-                onDismiss = { vm.hideStatisticsSheet() }
-            )
-        }
-
-        // Error snackbar
-        uiState.error?.let { errorMsg ->
-            Snackbar(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                action = { TextButton(onClick = { vm.clearError() }) { Text("Dismiss") } }
-            ) { Text(errorMsg) }
         }
     }
 }
 
-// ------------------------------------
-// MARK: - Cycle Status Card
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - CycleStatusCard
+// ─────────────────────────────────────
 
 @Composable
 private fun CycleStatusCard(
+    currentDay: Int,
+    totalDays: Int,
     phase: CyclePhase,
-    dayOfCycle: Int?,
-    daysUntilNext: Int?,
-    hasActivePeriod: Boolean,
-    onLogPeriodStart: () -> Unit,
-    onLogPeriodEnd: () -> Unit,
-    modifier: Modifier = Modifier
+    daysUntilNextPeriod: Int,
+    progress: Float
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "statusPulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+    // Animate the progress ring on appearance
+    var targetProgress by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(progress) { targetProgress = progress }
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+        label = "ringProgress"
+    )
+
+    // Stagger-in animation
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { isVisible = true }
+
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(600),
+        label = "statusAlpha"
+    )
+    val cardScale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0.9f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
         label = "statusScale"
     )
 
-    val phaseColor = when (phase) {
-        CyclePhase.MENSTRUAL -> CycleRed
-        CyclePhase.FOLLICULAR -> CycleGreen
-        CyclePhase.OVULATION -> CycleBlue
-        CyclePhase.LUTEAL -> CycleOrange
-        CyclePhase.UNKNOWN -> CyclePurple
-    }
-
     Box(
-        modifier = modifier
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
             .fillMaxWidth()
+            .graphicsLayer { alpha = cardAlpha; scaleX = cardScale; scaleY = cardScale }
             .glass(cornerRadius = 24.dp)
     ) {
         // Gradient overlay
@@ -265,78 +237,139 @@ private fun CycleStatusCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(
-                    brush = Brush.horizontalGradient(
+                    Brush.horizontalGradient(
                         colors = listOf(
-                            phaseColor.copy(alpha = 0.4f),
-                            phaseColor.copy(alpha = 0.1f)
+                            CyclePink.copy(alpha = 0.08f),
+                            CyclePurple.copy(alpha = 0.08f)
                         )
                     )
                 )
-                .padding(20.dp)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Progress Ring
+            Box(
+                modifier = Modifier.size(120.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeWidth = 10.dp.toPx()
+                    val radius = (size.minDimension - strokeWidth) / 2
+                    val center = Offset(size.width / 2, size.height / 2)
+
+                    // Background ring
+                    drawCircle(
+                        color = Color.Gray.copy(alpha = 0.15f),
+                        radius = radius,
+                        center = center,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+
+                    // Sweep gradient arc
+                    val sweepAngle = animatedProgress * 360f
+                    val phaseColors = listOf(
+                        MenstrualColor,
+                        FollicularColor,
+                        OvulationColor,
+                        LutealColor,
+                        MenstrualColor
+                    )
+                    drawArc(
+                        brush = Brush.sweepGradient(
+                            colors = phaseColors,
+                            center = center
+                        ),
+                        startAngle = -90f,
+                        sweepAngle = sweepAngle,
+                        useCenter = false,
+                        topLeft = Offset(center.x - radius, center.y - radius),
+                        size = Size(radius * 2, radius * 2),
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+
+                    // Dot at the end of the arc
+                    val endAngleRad = Math.toRadians((-90.0 + sweepAngle))
+                    val dotX = center.x + radius * cos(endAngleRad).toFloat()
+                    val dotY = center.y + radius * sin(endAngleRad).toFloat()
+                    drawCircle(
+                        color = Color.White,
+                        radius = strokeWidth / 2 + 2.dp.toPx(),
+                        center = Offset(dotX, dotY)
+                    )
+                    drawCircle(
+                        color = phase.color,
+                        radius = strokeWidth / 2,
+                        center = Offset(dotX, dotY)
+                    )
+                }
+
+                // Center text
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Day",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "$currentDay",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = phase.color
+                    )
+                    Text(
+                        text = "of $totalDays",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Phase info text
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            phase.emoji + " " + phase.displayName,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        dayOfCycle?.let {
-                            Text(
-                                "Day $it of cycle",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    // Animated phase indicator
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .scale(pulseScale)
-                            .background(phaseColor.copy(alpha = 0.3f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(phase.emoji, fontSize = 24.sp)
-                    }
+                    Text(text = phase.icon, fontSize = 20.sp)
+                    Text(
+                        text = phase.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = phase.color
+                    )
                 }
 
-                // Next period prediction
-                daysUntilNext?.let { days ->
-                    if (days > 0 && !hasActivePeriod) {
-                        Text(
-                            "Next period in $days days",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
+                HorizontalDivider(
+                    color = phase.color.copy(alpha = 0.2f),
+                    thickness = 1.dp
+                )
 
-                // Log Period Button
-                Button(
-                    onClick = { if (hasActivePeriod) onLogPeriodEnd() else onLogPeriodStart() },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (hasActivePeriod) CycleRed else CyclePurple
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
-                        if (hasActivePeriod) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        null,
-                        modifier = Modifier.size(18.dp)
+                        Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(Modifier.width(8.dp))
                     Text(
-                        if (hasActivePeriod) "End Period" else "Log Period Start",
-                        fontWeight = FontWeight.SemiBold
+                        text = if (daysUntilNextPeriod > 0)
+                            "$daysUntilNextPeriod days until next period"
+                        else
+                            "Period expected today",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -344,159 +377,148 @@ private fun CycleStatusCard(
     }
 }
 
-// ------------------------------------
-// MARK: - Monthly Calendar
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - Cycle Calendar
+// ─────────────────────────────────────
 
 @Composable
-private fun MonthlyCalendar(
-    selectedMonth: YearMonth,
-    calendarData: List<CalendarDayData>,
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    modifier: Modifier = Modifier
+private fun CycleCalendar(
+    selectedMonth: LocalDate,
+    loggedPeriodDates: Set<LocalDate>,
+    predictedPeriodDates: Set<LocalDate>,
+    fertileWindowDates: Set<LocalDate>,
+    onDateTap: (LocalDate) -> Unit,
+    onMonthChange: (Int) -> Unit
 ) {
-    val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+    val yearMonth = YearMonth.from(selectedMonth)
+    val daysInMonth = yearMonth.lengthOfMonth()
+    val firstDayOfWeek = yearMonth.atDay(1).dayOfWeek
+    // Offset so Sunday = 0
+    val startOffset = (firstDayOfWeek.value % 7)
+    val today = LocalDate.now()
+    val dayNames = listOf("S", "M", "T", "W", "T", "F", "S")
 
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
             .fillMaxWidth()
             .glass(cornerRadius = 20.dp)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(16.dp)
     ) {
-        // Month navigation
+        // Month header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onPreviousMonth) {
-                Icon(Icons.Default.ChevronLeft, "Previous")
+            IconButton(onClick = { onMonthChange(-1) }) {
+                Icon(
+                    Icons.Default.ChevronLeft,
+                    contentDescription = "Previous month",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             Text(
-                selectedMonth.atDay(1).format(monthFormatter),
+                text = "${selectedMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${selectedMonth.year}",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             )
-            IconButton(onClick = onNextMonth) {
-                Icon(Icons.Default.ChevronRight, "Next")
-            }
-        }
-
-        // Day of week headers
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            listOf("S", "M", "T", "W", "T", "F", "S").forEach { day ->
-                Text(
-                    day,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.width(36.dp),
-                    textAlign = TextAlign.Center
+            IconButton(onClick = { onMonthChange(1) }) {
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = "Next month",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Day-of-week headers
+        Row(modifier = Modifier.fillMaxWidth()) {
+            dayNames.forEach { day ->
+                Text(
+                    text = day,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
         // Calendar grid
-        val firstDayOfMonth = selectedMonth.atDay(1)
-        val startDayOffset = (firstDayOfMonth.dayOfWeek.value % 7) // Sunday = 0
+        val totalCells = startOffset + daysInMonth
+        val rows = (totalCells + 6) / 7
 
-        val totalSlots = startDayOffset + selectedMonth.lengthOfMonth()
-        val rows = (totalSlots + 6) / 7
+        for (row in 0 until rows) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (col in 0..6) {
+                    val cellIndex = row * 7 + col
+                    val dayNumber = cellIndex - startOffset + 1
 
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            for (row in 0 until rows) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    for (col in 0..6) {
-                        val index = row * 7 + col - startDayOffset
-                        if (index in 0 until selectedMonth.lengthOfMonth()) {
-                            val dayData = calendarData.getOrNull(index)
-                            val date = selectedMonth.atDay(index + 1)
-                            CalendarDayCell(
-                                day = index + 1,
-                                dayData = dayData,
-                                isSelected = date == selectedDate,
-                                isToday = date == LocalDate.now(),
-                                onClick = { onDateSelected(date) }
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.size(36.dp))
+                    if (dayNumber in 1..daysInMonth) {
+                        val date = yearMonth.atDay(dayNumber)
+                        val isToday = date == today
+                        val isLogged = loggedPeriodDates.contains(date)
+                        val isPredicted = predictedPeriodDates.contains(date)
+                        val isFertile = fertileWindowDates.contains(date)
+
+                        val bgColor = when {
+                            isLogged -> MenstrualColor.copy(alpha = 0.7f)
+                            isPredicted -> MenstrualColor.copy(alpha = 0.25f)
+                            isFertile -> OvulationColor.copy(alpha = 0.25f)
+                            else -> Color.Transparent
                         }
+
+                        val textColor = when {
+                            isLogged -> Color.White
+                            isToday -> CyclePink
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .padding(2.dp)
+                                .clip(CircleShape)
+                                .background(bgColor)
+                                .then(
+                                    if (isToday && !isLogged) Modifier.border(
+                                        1.5.dp, CyclePink, CircleShape
+                                    ) else Modifier
+                                )
+                                .clickable { onDateTap(date) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$dayNumber",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                                color = textColor
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f).aspectRatio(1f))
                     }
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Legend
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            CalendarLegendItem(color = CycleRed, label = "Period")
-            CalendarLegendItem(color = CycleGreen, label = "Fertile")
-            CalendarLegendItem(color = CycleBlue, label = "Ovulation")
-            CalendarLegendItem(color = CycleRed.copy(alpha = 0.4f), label = "Predicted")
-        }
-    }
-}
-
-@Composable
-private fun CalendarDayCell(
-    day: Int,
-    dayData: CalendarDayData?,
-    isSelected: Boolean,
-    isToday: Boolean,
-    onClick: () -> Unit
-) {
-    val backgroundColor = when {
-        dayData?.isCurrentPeriod == true -> CycleRed.copy(alpha = 0.7f)
-        dayData?.isPredicted == true -> CycleRed.copy(alpha = 0.3f)
-        dayData?.phase == CyclePhase.OVULATION -> CycleBlue.copy(alpha = 0.5f)
-        dayData?.phase == CyclePhase.FOLLICULAR && dayData.date.isAfter(LocalDate.now().minusDays(3)) -> CycleGreen.copy(alpha = 0.3f)
-        else -> Color.Transparent
-    }
-
-    val textColor = when {
-        dayData?.isCurrentPeriod == true -> Color.White
-        isSelected -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(backgroundColor)
-            .then(
-                if (isSelected) Modifier.border(2.dp, CyclePurple, CircleShape)
-                else if (isToday) Modifier.border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                else Modifier
-            )
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "$day",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = textColor
-            )
-            if (dayData?.hasLog == true) {
-                Box(
-                    modifier = Modifier
-                        .size(4.dp)
-                        .background(CyclePurple, CircleShape)
-                )
-            }
+            CalendarLegendItem(color = MenstrualColor.copy(alpha = 0.7f), label = "Period")
+            CalendarLegendItem(color = MenstrualColor.copy(alpha = 0.25f), label = "Predicted")
+            CalendarLegendItem(color = OvulationColor.copy(alpha = 0.25f), label = "Fertile")
         }
     }
 }
@@ -509,85 +531,141 @@ private fun CalendarLegendItem(color: Color, label: String) {
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
+                .size(10.dp)
                 .background(color, CircleShape)
         )
         Text(
-            label,
+            text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
-// ------------------------------------
-// MARK: - Phase Info Card
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - PhaseInfoCard
+// ─────────────────────────────────────
 
 @Composable
-private fun PhaseInfoCard(
-    phase: CyclePhase,
-    modifier: Modifier = Modifier
-) {
-    val tips = when (phase) {
-        CyclePhase.MENSTRUAL -> listOf(
-            "Take it easy with gentle exercise",
-            "Stay hydrated and eat iron-rich foods",
-            "Use a heating pad for cramps"
-        )
-        CyclePhase.FOLLICULAR -> listOf(
-            "Great time for high-intensity workouts",
-            "Your energy is building up",
-            "Focus on protein-rich meals"
-        )
-        CyclePhase.OVULATION -> listOf(
-            "Peak energy and confidence levels",
-            "Great time for social activities",
-            "Stay hydrated"
-        )
-        CyclePhase.LUTEAL -> listOf(
-            "You may crave carbs and comfort food",
-            "Gentle yoga and walking help with PMS",
-            "Prioritize sleep and relaxation"
-        )
-        CyclePhase.UNKNOWN -> listOf(
-            "Log your period to start tracking",
-            "Track symptoms for better predictions"
-        )
+private fun PhaseInfoCard(phase: CyclePhase) {
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(200)
+        isVisible = true
     }
 
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(600),
+        label = "phaseAlpha"
+    )
+
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
             .fillMaxWidth()
+            .graphicsLayer { alpha = cardAlpha }
             .glass(cornerRadius = 20.dp)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            "Phase Guide",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            phase.description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        // Header
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(phase.color.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = phase.icon, fontSize = 22.sp)
+            }
+            Column {
+                Text(
+                    text = phase.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = phase.color
+                )
+                Text(
+                    text = "Current Phase",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Colored accent bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(phase.color, phase.color.copy(alpha = 0.2f))
+                    )
+                )
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            tips.forEach { tip ->
+        // Description
+        Text(
+            text = phase.description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            lineHeight = 22.sp
+        )
+
+        // Symptoms
+        Text(
+            text = "Typical Symptoms",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            phase.symptoms.forEach { symptom ->
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        null,
-                        tint = CycleGreen,
-                        modifier = Modifier.size(16.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(phase.color, CircleShape)
                     )
                     Text(
-                        tip,
+                        text = symptom,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+
+        // Recommendations
+        Text(
+            text = "Recommendations",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            phase.recommendations.forEachIndexed { index, rec ->
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "${index + 1}.",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = phase.color
+                    )
+                    Text(
+                        text = rec,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
@@ -597,554 +675,372 @@ private fun PhaseInfoCard(
     }
 }
 
-// ------------------------------------
-// MARK: - Quick Actions
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - TipsSection
+// ─────────────────────────────────────
 
 @Composable
-private fun QuickActionsRow(
-    onAddLog: () -> Unit,
-    onViewStats: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+private fun TipsSection(phase: CyclePhase) {
+    val tips = tipsForPhase(phase)
+
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(400)
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { it / 4 }
     ) {
-        QuickActionButton(
-            icon = Icons.Default.Edit,
-            label = "Add Log",
-            color = CyclePurple,
-            onClick = onAddLog,
-            modifier = Modifier.weight(1f)
-        )
-        QuickActionButton(
-            icon = Icons.Default.BarChart,
-            label = "Statistics",
-            color = CycleBlue,
-            onClick = onViewStats,
-            modifier = Modifier.weight(1f)
-        )
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Phase Tips",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            tips.forEachIndexed { index, tip ->
+                TipCard(tip = tip, phase = phase, delay = index * 100)
+            }
+        }
     }
 }
 
 @Composable
-private fun QuickActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    color: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .height(70.dp)
+private fun TipCard(tip: PhaseTip, phase: CyclePhase, delay: Int) {
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(delay.toLong())
+        isVisible = true
+    }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(500),
+        label = "tipAlpha"
+    )
+    val offsetY by animateFloatAsState(
+        targetValue = if (isVisible) 0f else 16f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        label = "tipOffset"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { this.alpha = alpha; translationY = offsetY }
             .glass(cornerRadius = 16.dp)
-            .clickable { onClick() }
-            .padding(12.dp),
-        contentAlignment = Alignment.Center
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(phase.color.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(color.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
-            }
+            Text(text = tip.icon, fontSize = 20.sp)
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             Text(
-                label,
+                text = tip.title,
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = tip.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                lineHeight = 18.sp
             )
         }
     }
 }
 
-// ------------------------------------
-// MARK: - Day Log Card
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - StatisticsPreviewCard
+// ─────────────────────────────────────
 
 @Composable
-private fun DayLogCard(
-    log: MenstrualDailyLog,
-    modifier: Modifier = Modifier
+private fun StatisticsPreviewCard(
+    stats: CycleStatistics,
+    onTap: () -> Unit,
+    formatDate: (LocalDate) -> String
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text(
-            "Log for ${log.date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        if (log.flowLevel != FlowLevel.NONE) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Flow:", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    log.flowLevel.emoji + " " + log.flowLevel.displayName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-
-        if (log.symptoms.isNotEmpty()) {
-            Text("Symptoms:", style = MaterialTheme.typography.bodyMedium)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                log.symptoms.take(4).forEach { symptom ->
-                    Box(
-                        modifier = Modifier
-                            .background(CyclePurple.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            "${symptom.emoji} ${symptom.displayName}",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
-            }
-        }
-
-        log.mood?.let { mood ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Mood:", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    "${mood.emoji} ${mood.displayName}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-
-        if (log.painLevel > 0) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Pain Level:", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    "${log.painLevel}/10",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (log.painLevel > 5) CycleRed else MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(600)
+        isVisible = true
     }
-}
 
-// ------------------------------------
-// MARK: - Predictions Card
-// ------------------------------------
-
-@Composable
-private fun PredictionsCard(
-    predictions: CyclePrediction,
-    modifier: Modifier = Modifier
-) {
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
+    val alpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(600),
+        label = "statsAlpha"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0.95f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        label = "statsScale"
+    )
 
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
             .fillMaxWidth()
+            .graphicsLayer { this.alpha = alpha; scaleX = scale; scaleY = scale }
             .glass(cornerRadius = 20.dp)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .clickable { onTap() }
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            "Predictions",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Cycle Statistics",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "View details",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            PredictionItem(
-                emoji = "🩸",
+            StatItem(
+                label = "Avg Cycle",
+                value = "${stats.averageCycleLength.toInt()} days",
+                color = CyclePurple
+            )
+            StatItem(
+                label = "Avg Period",
+                value = "${stats.averagePeriodLength.toInt()} days",
+                color = CyclePink
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatItem(
+                label = "Last Period",
+                value = stats.lastPeriodDate?.let { formatDate(it) } ?: "--",
+                color = MenstrualColor
+            )
+            StatItem(
                 label = "Next Period",
-                date = predictions.nextPeriodDate.format(dateFormatter),
-                color = CycleRed
+                value = stats.predictedNextPeriod?.let { formatDate(it) } ?: "--",
+                color = OvulationColor
             )
-            PredictionItem(
-                emoji = "🌸",
-                label = "Ovulation",
-                date = predictions.ovulationDate.format(dateFormatter),
-                color = CycleBlue
-            )
-            PredictionItem(
-                emoji = "🌱",
-                label = "Fertile Window",
-                date = "${predictions.fertileWindowStart.format(dateFormatter)} - ${predictions.fertileWindowEnd.format(dateFormatter)}",
-                color = CycleGreen
-            )
+        }
+
+        // Regularity badge
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        stats.regularity.color.copy(alpha = 0.12f),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = stats.regularity.displayName,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = stats.regularity.color
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun PredictionItem(
-    emoji: String,
-    label: String,
-    date: String,
-    color: Color
-) {
+private fun StatItem(label: String, value: String, color: Color) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.padding(horizontal = 4.dp)
     ) {
-        Text(emoji, fontSize = 24.sp)
         Text(
-            label,
+            text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            date,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
             color = color,
             textAlign = TextAlign.Center
         )
     }
 }
 
-// ------------------------------------
-// MARK: - Statistics Summary Card
-// ------------------------------------
-
-@Composable
-private fun StatisticsSummaryCard(
-    statistics: CycleStatistics,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            "Cycle Statistics",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            StatItem(
-                value = String.format("%.0f", statistics.averageCycleLength),
-                label = "Avg Cycle",
-                unit = "days"
-            )
-            StatItem(
-                value = String.format("%.0f", statistics.averagePeriodLength),
-                label = "Avg Period",
-                unit = "days"
-            )
-            StatItem(
-                value = "${statistics.totalCyclesTracked}",
-                label = "Total",
-                unit = "cycles"
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatItem(value: String, label: String, unit: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            value,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = CyclePurple
-        )
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            unit,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-        )
-    }
-}
-
-// ------------------------------------
-// MARK: - Daily Log Bottom Sheet
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - CycleSettingsSheet
+// ─────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DailyLogBottomSheet(
-    existingLog: MenstrualDailyLog?,
-    onSave: (FlowLevel, List<MenstrualSymptom>, MenstrualMood?, Int, String?) -> Unit,
-    onDismiss: () -> Unit
+private fun CycleSettingsSheet(
+    settings: CycleSettings,
+    onDismiss: () -> Unit,
+    onSave: (cycleLength: Int, periodLength: Int) -> Unit,
+    onUpdateNotifications: (period: Boolean?, fertile: Boolean?, pms: Boolean?) -> Unit
 ) {
-    var selectedFlow by remember { mutableStateOf(existingLog?.flowLevel ?: FlowLevel.NONE) }
-    var selectedSymptoms by remember { mutableStateOf(existingLog?.symptoms?.toSet() ?: emptySet()) }
-    var selectedMood by remember { mutableStateOf(existingLog?.mood) }
-    var painLevel by remember { mutableFloatStateOf((existingLog?.painLevel ?: 0).toFloat()) }
-    var notes by remember { mutableStateOf(existingLog?.notes ?: "") }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        LazyColumn(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(bottom = 40.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            item {
-                Text(
-                    "Daily Log",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // Flow Level
-            item {
-                Text(
-                    "Flow Level",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FlowLevel.entries.forEach { flow ->
-                        FilterChip(
-                            selected = selectedFlow == flow,
-                            onClick = { selectedFlow = flow },
-                            label = { Text(flow.emoji + " " + flow.displayName, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = CycleRed.copy(alpha = 0.2f)
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            // Symptoms
-            item {
-                Text(
-                    "Symptoms",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(8.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MenstrualSymptom.entries.chunked(3).forEach { row ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            row.forEach { symptom ->
-                                FilterChip(
-                                    selected = symptom in selectedSymptoms,
-                                    onClick = {
-                                        selectedSymptoms = if (symptom in selectedSymptoms) {
-                                            selectedSymptoms - symptom
-                                        } else {
-                                            selectedSymptoms + symptom
-                                        }
-                                    },
-                                    label = { Text("${symptom.emoji} ${symptom.displayName}", fontSize = 11.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = CyclePurple.copy(alpha = 0.2f)
-                                    ),
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            // Fill remaining space if row is incomplete
-                            repeat(3 - row.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Mood
-            item {
-                Text(
-                    "Mood",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(8.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MenstrualMood.entries.chunked(4).forEach { row ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            row.forEach { mood ->
-                                FilterChip(
-                                    selected = selectedMood == mood,
-                                    onClick = { selectedMood = if (selectedMood == mood) null else mood },
-                                    label = { Text("${mood.emoji} ${mood.displayName}", fontSize = 11.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = CycleBlue.copy(alpha = 0.2f)
-                                    ),
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            repeat(4 - row.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Pain Level
-            item {
-                Text(
-                    "Pain Level: ${painLevel.toInt()}/10",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(4.dp))
-                Slider(
-                    value = painLevel,
-                    onValueChange = { painLevel = it },
-                    valueRange = 0f..10f,
-                    steps = 9,
-                    colors = SliderDefaults.colors(
-                        thumbColor = CyclePurple,
-                        activeTrackColor = CyclePurple
-                    )
-                )
-            }
-
-            // Notes
-            item {
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    minLines = 2,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = CyclePurple,
-                        cursorColor = CyclePurple
-                    )
-                )
-            }
-
-            // Save Button
-            item {
-                Button(
-                    onClick = {
-                        onSave(
-                            selectedFlow,
-                            selectedSymptoms.toList(),
-                            selectedMood,
-                            painLevel.toInt(),
-                            notes.ifBlank { null }
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = CyclePurple),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
-                ) {
-                    Text("Save Log", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-// ------------------------------------
-// MARK: - Settings Bottom Sheet
-// ------------------------------------
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SettingsBottomSheet(
-    settings: MenstrualSettings,
-    onSave: (MenstrualSettings) -> Unit,
-    onDismiss: () -> Unit
-) {
     var cycleLength by remember { mutableFloatStateOf(settings.averageCycleLength.toFloat()) }
     var periodLength by remember { mutableFloatStateOf(settings.averagePeriodLength.toFloat()) }
-    var reminderEnabled by remember { mutableStateOf(settings.reminderEnabled) }
+    var periodReminder by remember { mutableStateOf(settings.periodReminderEnabled) }
+    var fertileReminder by remember { mutableStateOf(settings.fertileWindowReminderEnabled) }
+    var pmsReminder by remember { mutableStateOf(settings.pmsReminderEnabled) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Text(
-                "Cycle Settings",
-                style = MaterialTheme.typography.titleLarge,
+                text = "Cycle Settings",
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Average Cycle Length: ${cycleLength.toInt()} days",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
+            // Cycle Length Slider
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Average Cycle Length",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "${cycleLength.toInt()} days",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = CyclePurple
+                    )
+                }
                 Slider(
                     value = cycleLength,
                     onValueChange = { cycleLength = it },
-                    valueRange = 21f..35f,
-                    steps = 13,
+                    valueRange = 21f..45f,
+                    steps = 23,
                     colors = SliderDefaults.colors(
                         thumbColor = CyclePurple,
                         activeTrackColor = CyclePurple
                     )
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("21", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("45", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Average Period Length: ${periodLength.toInt()} days",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
+            // Period Length Slider
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Average Period Length",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "${periodLength.toInt()} days",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = CyclePink
+                    )
+                }
                 Slider(
                     value = periodLength,
                     onValueChange = { periodLength = it },
                     valueRange = 2f..10f,
                     steps = 7,
                     colors = SliderDefaults.colors(
-                        thumbColor = CyclePurple,
-                        activeTrackColor = CyclePurple
+                        thumbColor = CyclePink,
+                        activeTrackColor = CyclePink
                     )
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("2", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("10", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // Notification Preferences
+            Text(
+                text = "Notifications",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Period Reminder", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Get notified before your period starts",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = periodReminder,
+                    onCheckedChange = { periodReminder = it },
+                    colors = SwitchDefaults.colors(checkedTrackColor = CyclePink)
                 )
             }
 
@@ -1153,118 +1049,371 @@ private fun SettingsBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Period Reminders",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Column {
+                    Text("Fertile Window Reminder", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Get notified during your fertile window",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Switch(
-                    checked = reminderEnabled,
-                    onCheckedChange = { reminderEnabled = it },
-                    colors = SwitchDefaults.colors(checkedTrackColor = CyclePurple)
+                    checked = fertileReminder,
+                    onCheckedChange = { fertileReminder = it },
+                    colors = SwitchDefaults.colors(checkedTrackColor = OvulationColor)
                 )
             }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("PMS Reminder", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Get tips when PMS phase begins",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = pmsReminder,
+                    onCheckedChange = { pmsReminder = it },
+                    colors = SwitchDefaults.colors(checkedTrackColor = LutealColor)
+                )
+            }
+
+            // Save Button
             Button(
                 onClick = {
-                    onSave(
-                        settings.copy(
-                            averageCycleLength = cycleLength.toInt(),
-                            averagePeriodLength = periodLength.toInt(),
-                            reminderEnabled = reminderEnabled
-                        )
-                    )
+                    onSave(cycleLength.toInt(), periodLength.toInt())
+                    onUpdateNotifications(periodReminder, fertileReminder, pmsReminder)
+                    onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = CyclePurple),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CyclePink
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Text("Save Settings", fontWeight = FontWeight.Bold)
+                Text(
+                    "Save",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
-
-            Spacer(Modifier.height(32.dp))
         }
     }
 }
 
-// ------------------------------------
-// MARK: - Statistics Bottom Sheet
-// ------------------------------------
+// ─────────────────────────────────────
+// MARK: - CycleStatisticsSheet
+// ─────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StatisticsBottomSheet(
-    statistics: CycleStatistics,
-    onDismiss: () -> Unit
+private fun CycleStatisticsSheet(
+    stats: CycleStatistics,
+    onDismiss: () -> Unit,
+    formatDate: (LocalDate) -> String
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scrollState = rememberScrollState()
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Text(
-                "Cycle Statistics",
-                style = MaterialTheme.typography.titleLarge,
+                text = "Cycle Statistics",
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
 
-            if (statistics.totalCyclesTracked == 0) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Regularity
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            stats.regularity.color.copy(alpha = 0.12f),
+                            RoundedCornerShape(24.dp)
+                        )
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
-                    Text("📊", fontSize = 48.sp)
                     Text(
-                        "No cycle data yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        "Log at least 2 cycles to see statistics",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        text = "Cycle Regularity: ${stats.regularity.displayName}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = stats.regularity.color
                     )
                 }
-            } else {
-                StatRow("Average Cycle Length", "${String.format("%.1f", statistics.averageCycleLength)} days")
-                StatRow("Average Period Length", "${String.format("%.1f", statistics.averagePeriodLength)} days")
-                StatRow("Longest Cycle", "${statistics.longestCycle} days")
-                StatRow("Shortest Cycle", "${statistics.shortestCycle} days")
-                StatRow("Total Cycles Tracked", "${statistics.totalCyclesTracked}")
             }
 
-            Spacer(Modifier.height(32.dp))
+            // Cycle Length Chart
+            StatChartSection(
+                title = "Cycle Length (last 6 cycles)",
+                averageLabel = "Avg: ${String.format("%.1f", stats.averageCycleLength)} days",
+                values = stats.recentCycles.map { it.cycleLength.toFloat() },
+                labels = stats.recentCycles.map {
+                    it.startDate.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+                },
+                barColor = CyclePurple,
+                maxValue = 45f
+            )
+
+            // Period Length Chart
+            StatChartSection(
+                title = "Period Length (last 6 cycles)",
+                averageLabel = "Avg: ${String.format("%.1f", stats.averagePeriodLength)} days",
+                values = stats.recentCycles.map { it.periodLength.toFloat() },
+                labels = stats.recentCycles.map {
+                    it.startDate.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+                },
+                barColor = CyclePink,
+                maxValue = 10f
+            )
+
+            // Symptom Frequency
+            if (stats.symptomFrequencies.isNotEmpty()) {
+                Text(
+                    text = "Symptom Frequency",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    stats.symptomFrequencies.forEach { sf ->
+                        SymptomFrequencyBar(
+                            symptom = sf.symptom,
+                            percentage = sf.percentage
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // History List
+            Text(
+                text = "Cycle History",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                stats.recentCycles.forEach { record ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = formatDate(record.startDate),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "Period: ${record.periodLength} days",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CyclePink
+                            )
+                        }
+                        Text(
+                            text = "${record.cycleLength} days",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = CyclePurple
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
+// ─────────────────────────────────────
+// MARK: - Canvas Bar Chart Section
+// ─────────────────────────────────────
+
 @Composable
-private fun StatRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                RoundedCornerShape(12.dp)
+private fun StatChartSection(
+    title: String,
+    averageLabel: String,
+    values: List<Float>,
+    labels: List<String>,
+    barColor: Color,
+    maxValue: Float
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
             )
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = CyclePurple
-        )
+            Text(
+                text = averageLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = barColor,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        // Canvas bar chart
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+        ) {
+            val barCount = values.size
+            if (barCount == 0) return@Canvas
+
+            val chartWidth = size.width
+            val chartHeight = size.height - 24.dp.toPx() // Leave room for labels
+            val barSpacing = 12.dp.toPx()
+            val barWidth = (chartWidth - barSpacing * (barCount + 1)) / barCount
+            val cornerRadius = 4.dp.toPx()
+
+            // Average line
+            val avg = values.average().toFloat()
+            val avgY = chartHeight * (1f - avg / maxValue)
+            drawLine(
+                color = barColor.copy(alpha = 0.3f),
+                start = Offset(0f, avgY),
+                end = Offset(chartWidth, avgY),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                    floatArrayOf(8.dp.toPx(), 4.dp.toPx())
+                )
+            )
+
+            values.forEachIndexed { index, value ->
+                val barHeight = chartHeight * (value / maxValue)
+                val x = barSpacing + index * (barWidth + barSpacing)
+                val y = chartHeight - barHeight
+
+                // Bar
+                drawRoundRect(
+                    color = barColor.copy(alpha = 0.7f),
+                    topLeft = Offset(x, y),
+                    size = Size(barWidth, barHeight),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius)
+                )
+
+                // Value label on top
+                drawContext.canvas.nativeCanvas.apply {
+                    val paint = android.graphics.Paint().apply {
+                        color = barColor.copy(alpha = 0.9f).hashCode()
+                        textSize = 10.sp.toPx()
+                        textAlign = android.graphics.Paint.Align.CENTER
+                        isAntiAlias = true
+                    }
+                    drawText(
+                        "${value.toInt()}",
+                        x + barWidth / 2,
+                        y - 4.dp.toPx(),
+                        paint
+                    )
+                }
+
+                // Month label at bottom
+                if (index < labels.size) {
+                    drawContext.canvas.nativeCanvas.apply {
+                        val paint = android.graphics.Paint().apply {
+                            color = android.graphics.Color.GRAY
+                            textSize = 10.sp.toPx()
+                            textAlign = android.graphics.Paint.Align.CENTER
+                            isAntiAlias = true
+                        }
+                        drawText(
+                            labels[index],
+                            x + barWidth / 2,
+                            size.height - 2.dp.toPx(),
+                            paint
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Symptom Frequency Bar
+// ─────────────────────────────────────
+
+@Composable
+private fun SymptomFrequencyBar(
+    symptom: String,
+    percentage: Float
+) {
+    val animatedWidth by animateFloatAsState(
+        targetValue = percentage,
+        animationSpec = tween(800, easing = FastOutSlowInEasing),
+        label = "symptomBar"
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = symptom,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "${(percentage * 100).toInt()}%",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = CyclePink
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(animatedWidth)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(CyclePink, CyclePurple)
+                        )
+                    )
+            )
+        }
     }
 }
