@@ -1,18 +1,15 @@
 package com.swasthicare.mobile.ui.screens.profile
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,521 +17,945 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swasthicare.mobile.data.model.Gender
-import com.swasthicare.mobile.ui.theme.PrimaryColor
-import java.text.SimpleDateFormat
-import java.util.Calendar
+import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.PremiumColor
 import java.util.Locale
+
+// ─────────────────────────────────────────────────────────────────────
+//  EditProfileScreen  (Android equivalent of iOS AccountView)
+// ─────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
-    viewModel: ProfileViewModel,
-    onNavigateBack: () -> Unit
+    viewModel: ProfileViewModel = viewModel(),
+    onNavigateBack: () -> Unit = {}
 ) {
-    val editState by viewModel.editState.collectAsState()
-    val isSaving by viewModel.isSaving.collectAsState()
-    val saveError by viewModel.saveError.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val formState by viewModel.editFormState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Photo picker launchers
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { viewModel.onAvatarSelected(it) }
+    // Initialise form from current profile data when screen appears
+    LaunchedEffect(uiState.user, uiState.healthProfile) {
+        viewModel.initEditForm()
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        bitmap?.let { viewModel.onAvatarCaptured(it) }
-    }
-
-    var showPhotoOptions by remember { mutableStateOf(false) }
-    var showDatePicker by remember { mutableStateOf(false) }
-
-    // Date picker state
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = editState.dateOfBirthMillis
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                        val dateStr = sdf.format(millis)
-                        viewModel.updateEditField { copy(dateOfBirth = dateStr, dateOfBirthMillis = millis) }
-                    }
-                    showDatePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
+    // React to save success / error with snackbar
+    LaunchedEffect(formState.saveSuccess, formState.saveError) {
+        if (formState.saveSuccess) {
+            snackbarHostState.showSnackbar(
+                message = "Profile updated successfully!",
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearSaveResult()
+        }
+        formState.saveError?.let { error ->
+            snackbarHostState.showSnackbar(
+                message = error,
+                duration = SnackbarDuration.Long
+            )
+            viewModel.clearSaveResult()
         }
     }
 
-    // Photo options bottom sheet
-    if (showPhotoOptions) {
-        AlertDialog(
-            onDismissRequest = { showPhotoOptions = false },
-            title = { Text("Change Photo") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = {
-                        showPhotoOptions = false
-                        cameraLauncher.launch(null)
-                    }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Take Photo")
-                        }
-                    }
-                    TextButton(onClick = {
-                        showPhotoOptions = false
-                        galleryLauncher.launch("image/*")
-                    }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Choose from Gallery")
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showPhotoOptions = false }) { Text("Cancel") }
-            }
-        )
-    }
+    val hasChanges = viewModel.hasEditChanges
+    val isValid = viewModel.isEditFormValid
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Edit Profile") },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        viewModel.cancelEdit()
-                        onNavigateBack()
-                    }) {
-                        Icon(Icons.Default.Close, contentDescription = "Cancel")
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 },
-                actions = {
-                    TextButton(
-                        onClick = {
-                            viewModel.saveProfile {
-                                onNavigateBack()
-                            }
-                        },
-                        enabled = !isSaving && editState.isValid
-                    ) {
-                        if (isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Save", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // Error
-            if (saveError != null) {
-                item {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Error,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                saveError ?: "",
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
+        },
+        containerColor = Color.Transparent
+    ) { paddingValues ->
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            PremiumBackground()
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 8.dp, bottom = 40.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
+                // ── Avatar ──────────────────────────────────────────
+                AvatarSection(
+                    avatarUrl = uiState.user?.avatarUrl,
+                    name = formState.name,
+                    email = uiState.user?.email ?: ""
+                )
+
+                // ── Phone Missing Banner ────────────────────────────
+                if (formState.phone.isBlank()) {
+                    PhoneMissingBanner()
                 }
-            }
 
-            // Avatar Section
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(contentAlignment = Alignment.BottomEnd) {
-                        if (editState.avatarUrl != null || editState.selectedAvatarUri != null) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(editState.selectedAvatarUri ?: editState.avatarUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Profile Photo",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            // Initials avatar
-                            Box(
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        brush = Brush.linearGradient(
-                                            colors = listOf(Color(0xFF2E3192), Color(0xFF4A90E2))
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = editState.fullName.take(1).uppercase(),
-                                    style = MaterialTheme.typography.displayMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            }
-                        }
+                // ── Personal Information ────────────────────────────
+                EditSection(title = "PERSONAL INFORMATION") {
+                    // Full Name
+                    EditTextField(
+                        title = "Full Name",
+                        icon = Icons.Default.Person,
+                        iconColor = Color(0xFF4A90E2),
+                        value = formState.name,
+                        onValueChange = viewModel::updateEditName
+                    )
 
-                        // Camera badge
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(PrimaryColor)
-                                .clickable { showPhotoOptions = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.CameraAlt,
-                                contentDescription = "Change Photo",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Phone Number
+                    EditTextField(
+                        title = "Phone Number",
+                        icon = Icons.Default.Phone,
+                        iconColor = Color(0xFF34C759),
+                        value = formState.phone,
+                        onValueChange = viewModel::updateEditPhone,
+                        placeholder = "Add phone number",
+                        keyboardType = KeyboardType.Phone
+                    )
 
-                    TextButton(onClick = { showPhotoOptions = true }) {
-                        Text("Change Photo")
-                    }
-                }
-            }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            // Personal Info Section
-            item {
-                EditSectionHeader(title = "Personal Info")
-            }
+                    // Bio / Description (multiline)
+                    BioField(
+                        value = formState.bio,
+                        onValueChange = viewModel::updateEditBio
+                    )
 
-            item {
-                OutlinedTextField(
-                    value = editState.fullName,
-                    onValueChange = { viewModel.updateEditField { copy(fullName = it) } },
-                    label = { Text("Full Name *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    isError = editState.fullName.isBlank(),
-                    supportingText = if (editState.fullName.isBlank()) {
-                        { Text("Name is required") }
-                    } else null
-                )
-            }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            item {
-                OutlinedTextField(
-                    value = editState.phoneNumber,
-                    onValueChange = { viewModel.updateEditField { copy(phoneNumber = it) } },
-                    label = { Text("Phone Number") },
-                    prefix = { Text("+91 ") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    isError = editState.phoneNumber.isNotEmpty() && !editState.isPhoneValid,
-                    supportingText = if (editState.phoneNumber.isNotEmpty() && !editState.isPhoneValid) {
-                        { Text("Enter a valid 10-digit phone number") }
-                    } else null
-                )
-            }
+                    // Gender dropdown
+                    GenderSelector(
+                        selected = formState.gender,
+                        onSelected = viewModel::updateEditGender
+                    )
 
-            item {
-                OutlinedTextField(
-                    value = editState.bio,
-                    onValueChange = { viewModel.updateEditField { copy(bio = it) } },
-                    label = { Text("Bio (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    maxLines = 4
-                )
-            }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            // Health Info Section
-            item {
-                EditSectionHeader(title = "Health Info")
-            }
-
-            // Gender
-            item {
-                Text(
-                    "Gender",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val genders = Gender.entries
-                    items(genders.size) { index ->
-                        val gender = genders[index]
-                        FilterChip(
-                            selected = editState.gender == gender,
-                            onClick = { viewModel.updateEditField { copy(gender = gender) } },
-                            label = { Text(gender.displayName) }
-                        )
-                    }
-                }
-            }
-
-            // Date of Birth
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showDatePicker = true }
-                ) {
-                    OutlinedTextField(
-                        value = editState.dateOfBirth,
-                        onValueChange = {},
-                        label = { Text("Date of Birth") },
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = true,
-                        enabled = false,
-                        trailingIcon = {
-                            Icon(Icons.Default.CalendarToday, contentDescription = "Pick date")
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledBorderColor = MaterialTheme.colorScheme.outline,
-                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    // Date of Birth
+                    DateOfBirthField(
+                        value = formState.dateOfBirth,
+                        onValueChange = viewModel::updateEditDateOfBirth
                     )
                 }
-            }
 
-            // Height
-            item {
-                OutlinedTextField(
-                    value = editState.heightCm,
-                    onValueChange = { viewModel.updateEditField { copy(heightCm = it) } },
-                    label = { Text("Height (cm)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    suffix = { Text("cm") },
-                    isError = editState.heightCm.isNotEmpty() &&
-                            (editState.heightCm.toDoubleOrNull() ?: 0.0) <= 0,
-                    supportingText = if (editState.heightCm.isNotEmpty() &&
-                        (editState.heightCm.toDoubleOrNull() ?: 0.0) <= 0
-                    ) {
-                        { Text("Enter a valid height") }
-                    } else null
-                )
-            }
+                // ── Body Stats ──────────────────────────────────────
+                EditSection(title = "BODY STATS") {
+                    // Height slider
+                    SliderField(
+                        label = "Height",
+                        value = formState.heightCm.toFloat(),
+                        valueLabel = "${formState.heightCm.toInt()} cm",
+                        range = 100f..250f,
+                        steps = 150,
+                        icon = Icons.Default.Straighten,
+                        iconColor = Color(0xFF34C759),
+                        onValueChange = { viewModel.updateEditHeightCm(it.toDouble()) }
+                    )
 
-            // Weight
-            item {
-                OutlinedTextField(
-                    value = editState.weightKg,
-                    onValueChange = { viewModel.updateEditField { copy(weightKg = it) } },
-                    label = { Text("Weight (kg)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    suffix = { Text("kg") },
-                    isError = editState.weightKg.isNotEmpty() &&
-                            (editState.weightKg.toDoubleOrNull() ?: 0.0) <= 0,
-                    supportingText = if (editState.weightKg.isNotEmpty() &&
-                        (editState.weightKg.toDoubleOrNull() ?: 0.0) <= 0
-                    ) {
-                        { Text("Enter a valid weight") }
-                    } else null
-                )
-            }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            // BMI auto-calculated display
-            item {
-                val bmi = editState.calculatedBMI
-                AnimatedVisibility(visible = bmi != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = PrimaryColor.copy(alpha = 0.1f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Accessibility,
-                                contentDescription = null,
-                                tint = PrimaryColor
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    "BMI",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    String.format(Locale.US, "%.1f", bmi ?: 0.0),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryColor
-                                )
-                            }
-                            Spacer(modifier = Modifier.weight(1f))
-                            Text(
-                                editState.bmiCategory,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    // Weight slider
+                    SliderField(
+                        label = "Weight",
+                        value = formState.weightKg.toFloat(),
+                        valueLabel = String.format(Locale.US, "%.1f kg", formState.weightKg),
+                        range = 20f..250f,
+                        steps = 460,
+                        icon = Icons.Default.MonitorWeight,
+                        iconColor = Color(0xFF64D2FF),
+                        onValueChange = { viewModel.updateEditWeightKg(it.toDouble()) }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // BMI (computed, read-only)
+                    val bmi = viewModel.computeBmi(formState.heightCm, formState.weightKg)
+                    val bmiCat = viewModel.bmiCategory(bmi)
+                    BmiRow(bmi = bmi, category = bmiCat)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Blood Type dropdown
+                    BloodTypeSelector(
+                        selected = formState.bloodType,
+                        onSelected = viewModel::updateEditBloodType
+                    )
                 }
-            }
 
-            // Blood Type
-            item {
-                Text(
-                    "Blood Type",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                val bloodTypes = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
-                // Display in a flow/grid using LazyRow with wrapping
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    bloodTypes.chunked(4).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            row.forEach { bt ->
-                                FilterChip(
-                                    selected = editState.bloodType == bt,
-                                    onClick = {
-                                        viewModel.updateEditField {
-                                            copy(bloodType = if (bloodType == bt) "" else bt)
-                                        }
-                                    },
-                                    label = { Text(bt) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            // Fill remaining spots if row is shorter
-                            repeat(4 - row.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
+                // ── Location ────────────────────────────────────────
+                EditSection(title = "LOCATION") {
+                    EditTextField(
+                        title = "City",
+                        icon = Icons.Default.LocationOn,
+                        iconColor = Color(0xFF30D5C8),
+                        value = formState.city,
+                        onValueChange = viewModel::updateEditCity,
+                        placeholder = "Your city"
+                    )
                 }
-            }
 
-            // City
-            item {
-                OutlinedTextField(
-                    value = editState.city,
-                    onValueChange = { viewModel.updateEditField { copy(city = it) } },
-                    label = { Text("City (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
+                // ── Account Details (Read-Only) ─────────────────────
+                EditSection(title = "ACCOUNT DETAILS") {
+                    ReadOnlyRow(
+                        icon = Icons.Default.Email,
+                        iconColor = Color(0xFF5E5CE6),
+                        label = "Email",
+                        value = uiState.user?.email ?: "Not available"
+                    )
 
-            // Activity Level
-            item {
-                Text(
-                    "Activity Level",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                val levels = listOf("Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Extra Active")
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    levels.chunked(2).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            row.forEach { level ->
-                                FilterChip(
-                                    selected = editState.activityLevel == level,
-                                    onClick = { viewModel.updateEditField { copy(activityLevel = level) } },
-                                    label = {
-                                        Text(
-                                            level,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            textAlign = TextAlign.Center
-                                        )
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            repeat(2 - row.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 52.dp, top = 8.dp, bottom = 8.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                    )
+
+                    ReadOnlyRow(
+                        icon = Icons.Default.CalendarMonth,
+                        iconColor = Color(0xFFFF9F0A),
+                        label = "Member Since",
+                        value = viewModel.memberSince
+                    )
                 }
-            }
 
-            // Bottom spacer
-            item {
+                // ── Save Button ─────────────────────────────────────
+                SaveButton(
+                    enabled = hasChanges && isValid && !formState.isSaving,
+                    isSaving = formState.isSaving,
+                    onClick = { viewModel.saveEditProfile() }
+                )
+
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
 }
 
+// =====================================================================
+//  Composable building blocks
+// =====================================================================
+
+// ── Avatar ───────────────────────────────────────────────────────────
+
 @Composable
-fun EditSectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = PrimaryColor,
-        modifier = Modifier.padding(vertical = 4.dp)
+private fun AvatarSection(
+    avatarUrl: String?,
+    name: String,
+    email: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (avatarUrl != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(avatarUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Profile picture",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            // Gradient placeholder
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .shadow(10.dp, CircleShape, ambientColor = Color(0xFF2E3192).copy(alpha = 0.25f))
+                    .clip(CircleShape)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(Color(0xFF2E3192), Color(0xFF4A90E2))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = name.take(1).uppercase(),
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
+
+        Text(
+            text = email,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+    }
+}
+
+// ── Phone Missing Banner ─────────────────────────────────────────────
+
+@Composable
+private fun PhoneMissingBanner() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFFF8E53).copy(alpha = 0.08f))
+            .border(
+                width = 1.dp,
+                color = Color(0xFFFF8E53).copy(alpha = 0.2f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.PhoneAndroid,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = Color(0xFFFF6B6B)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "Add your phone number",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "For family emergency alerts and account recovery",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+// ── Section Container ────────────────────────────────────────────────
+
+@Composable
+private fun EditSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            letterSpacing = 0.8.sp,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glass(cornerRadius = 20.dp)
+                .padding(20.dp),
+            content = content
+        )
+    }
+}
+
+// ── Editable Text Field ──────────────────────────────────────────────
+
+@Composable
+private fun EditTextField(
+    title: String,
+    icon: ImageVector,
+    iconColor: Color,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String = title,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                    RoundedCornerShape(14.dp)
+                )
+                .padding(horizontal = 14.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(24.dp)
+            )
+
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = {
+                    Text(
+                        placeholder,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    cursorColor = PremiumColor.RoyalBlueStart
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType)
+            )
+        }
+    }
+}
+
+// ── Bio / Description (multiline) ────────────────────────────────────
+
+@Composable
+private fun BioField(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Bio",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                    RoundedCornerShape(14.dp)
+                )
+                .padding(horizontal = 14.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.FormatQuote,
+                contentDescription = null,
+                tint = Color(0xFF9C27B0),
+                modifier = Modifier
+                    .size(24.dp)
+                    .padding(top = 12.dp)
+            )
+
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = {
+                    Text(
+                        "Write something about yourself...",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                    )
+                },
+                minLines = 3,
+                maxLines = 5,
+                modifier = Modifier.weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    cursorColor = PremiumColor.RoyalBlueStart
+                )
+            )
+        }
+    }
+}
+
+// ── Gender Selector ──────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GenderSelector(
+    selected: Gender,
+    onSelected: (Gender) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Gender",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                        RoundedCornerShape(14.dp)
+                    )
+                    .menuAnchor()
+                    .clickable { expanded = true }
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.People,
+                    contentDescription = null,
+                    tint = Color(0xFF5E5CE6),
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = selected.displayName,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f)
+                )
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            }
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                Gender.entries.forEach { gender ->
+                    DropdownMenuItem(
+                        text = { Text(gender.displayName) },
+                        onClick = {
+                            onSelected(gender)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Date of Birth ────────────────────────────────────────────────────
+
+@Composable
+private fun DateOfBirthField(
+    value: String, // yyyy-MM-dd
+    onValueChange: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Date of Birth",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                    RoundedCornerShape(14.dp)
+                )
+                .padding(horizontal = 14.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.CalendarToday,
+                contentDescription = null,
+                tint = Color(0xFFFF9F0A),
+                modifier = Modifier.size(24.dp)
+            )
+
+            OutlinedTextField(
+                value = value,
+                onValueChange = { newValue ->
+                    // Simple validation: allow only digits and dashes in yyyy-MM-dd format
+                    if (newValue.matches(Regex("^[0-9-]*$")) && newValue.length <= 10) {
+                        onValueChange(newValue)
+                    }
+                },
+                placeholder = {
+                    Text(
+                        "yyyy-MM-dd",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    cursorColor = PremiumColor.RoyalBlueStart
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+        }
+    }
+}
+
+// ── Slider Field (Height / Weight) ───────────────────────────────────
+
+@Composable
+private fun SliderField(
+    label: String,
+    value: Float,
+    valueLabel: String,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    icon: ImageVector,
+    iconColor: Color,
+    onValueChange: (Float) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            )
+            Text(
+                text = valueLabel,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = PremiumColor.RoyalBlueStart
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                    RoundedCornerShape(14.dp)
+                )
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Slider(
+                value = value,
+                onValueChange = onValueChange,
+                valueRange = range,
+                steps = steps,
+                modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(
+                    thumbColor = PremiumColor.RoyalBlueStart,
+                    activeTrackColor = PremiumColor.RoyalBlueStart,
+                    inactiveTrackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
+                )
+            )
+        }
+    }
+}
+
+// ── BMI Row (read-only computed) ─────────────────────────────────────
+
+@Composable
+private fun BmiRow(bmi: Double, category: String) {
+    val bmiColor = when {
+        bmi < 18.5 -> Color(0xFFFF9F0A)
+        bmi < 25.0 -> Color(0xFF34C759)
+        bmi < 30.0 -> Color(0xFFFF9F0A)
+        else -> Color(0xFFFF3B30)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                RoundedCornerShape(14.dp)
+            )
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Accessibility,
+            contentDescription = null,
+            tint = Color(0xFF5E5CE6),
+            modifier = Modifier.size(24.dp)
+        )
+
+        Text(
+            text = "BMI",
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Text(
+            text = String.format(Locale.US, "%.1f", bmi),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = bmiColor
+        )
+
+        Text(
+            text = category,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+    }
+}
+
+// ── Blood Type Selector ──────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BloodTypeSelector(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    val bloodTypes = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Blood Type",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                        RoundedCornerShape(14.dp)
+                    )
+                    .menuAnchor()
+                    .clickable { expanded = true }
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WaterDrop,
+                    contentDescription = null,
+                    tint = Color(0xFFFF3B30),
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = selected.ifBlank { "Not set" },
+                    fontSize = 16.sp,
+                    color = if (selected.isBlank())
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                    else
+                        MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f)
+                )
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            }
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Not set") },
+                    onClick = {
+                        onSelected("")
+                        expanded = false
+                    }
+                )
+                bloodTypes.forEach { type ->
+                    DropdownMenuItem(
+                        text = { Text(type) },
+                        onClick = {
+                            onSelected(type)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Read-Only Row ────────────────────────────────────────────────────
+
+@Composable
+private fun ReadOnlyRow(
+    icon: ImageVector,
+    iconColor: Color,
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            )
+            Text(
+                text = value.ifBlank { "Not available" },
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Icon(
+            imageVector = Icons.Default.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f),
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+// ── Save Button ──────────────────────────────────────────────────────
+
+@Composable
+private fun SaveButton(
+    enabled: Boolean,
+    isSaving: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (enabled) Color(0xFF2E3192) else Color.Gray.copy(alpha = 0.3f),
+        label = "saveBtnColor"
     )
-    HorizontalDivider()
+
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .then(
+                if (enabled) Modifier.shadow(
+                    elevation = 12.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    ambientColor = Color(0xFF2E3192).copy(alpha = 0.3f),
+                    spotColor = Color(0xFF2E3192).copy(alpha = 0.3f)
+                ) else Modifier
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor,
+            disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
+            contentColor = Color.White,
+            disabledContentColor = Color.White.copy(alpha = 0.5f)
+        )
+    ) {
+        if (isSaving) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(22.dp),
+                color = Color.White,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Save Changes",
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp
+            )
+        }
+    }
 }

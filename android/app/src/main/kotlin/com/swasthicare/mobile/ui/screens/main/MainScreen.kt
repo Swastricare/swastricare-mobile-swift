@@ -75,6 +75,7 @@ import com.swasthicare.mobile.ui.screens.vault.VaultScreen
 import com.swasthicare.mobile.ui.screens.analytics.HealthAnalyticsScreen
 import com.swasthicare.mobile.ui.screens.runactivity.ActivityDetailScreen
 import com.swasthicare.mobile.ui.screens.runactivity.RunCalendarScreen
+import com.swasthicare.mobile.ui.screens.settings.SettingsScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 sealed class MainTab(
@@ -227,7 +228,19 @@ fun MainScreen(
                     onSignOut = onSignOut,
                     onNavigateToNotificationSettings = { navController.navigate("notification_settings") },
                     onNavigateToEditProfile = { navController.navigate("edit_profile") },
-                    onNavigateToFamily = { navController.navigate("family") }
+                    onNavigateToFamily = { navController.navigate("family") },
+                    onNavigateToSettings = { navController.navigate("settings") }
+                )
+            }
+            // Settings
+            composable("settings") {
+                SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditProfile = { navController.navigate("edit_profile") },
+                    onNavigateToFamily = { navController.navigate("family") },
+                    onNavigateToNotificationSettings = { navController.navigate("notification_settings") },
+                    onNavigateToHydrationSettings = { navController.navigate("hydration_settings") },
+                    onSignOut = onSignOut
                 )
             }
             composable("notification_settings") {

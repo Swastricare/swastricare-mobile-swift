@@ -38,6 +38,12 @@ object WidgetDataManager {
     const val KEY_DIET_CARBS = "widget_diet_carbs"
     const val KEY_DIET_FAT = "widget_diet_fat"
 
+    // Run keys
+    const val KEY_RUN_LAST_DISTANCE_KM = "widget_run_last_distance_km"
+    const val KEY_RUN_LAST_DURATION_SECONDS = "widget_run_last_duration_seconds"
+    const val KEY_RUN_LAST_PACE = "widget_run_last_pace"
+    const val KEY_RUN_LAST_DATE = "widget_run_last_date"
+
     fun getPrefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -154,4 +160,76 @@ object WidgetDataManager {
 
     fun getDietFat(context: Context): Int =
         getPrefs(context).getInt(KEY_DIET_FAT, 0)
+
+    // -----------------------------------------------
+    // Run / Activity
+    // -----------------------------------------------
+
+    /**
+     * Store the last completed run/walk data for the Run widget.
+     *
+     * @param context      Application context
+     * @param distanceKm   Distance covered in kilometres
+     * @param durationSecs Total duration in seconds
+     * @param pace         Average pace string (e.g. "5:30 /km")
+     * @param date         ISO-8601 date string of the run (e.g. "2026-03-03")
+     */
+    fun updateLastRun(
+        context: Context,
+        distanceKm: Double,
+        durationSecs: Int,
+        pace: String,
+        date: String
+    ) {
+        getPrefs(context).edit()
+            .putFloat(KEY_RUN_LAST_DISTANCE_KM, distanceKm.toFloat())
+            .putInt(KEY_RUN_LAST_DURATION_SECONDS, durationSecs)
+            .putString(KEY_RUN_LAST_PACE, pace)
+            .putString(KEY_RUN_LAST_DATE, date)
+            .apply()
+    }
+
+    /**
+     * Retrieve last run data as a [LastRunData] data class.
+     * Returns data with sensible defaults when no run has been recorded yet.
+     */
+    fun getLastRunData(context: Context): LastRunData {
+        val prefs = getPrefs(context)
+        return LastRunData(
+            distanceKm = prefs.getFloat(KEY_RUN_LAST_DISTANCE_KM, 0f).toDouble(),
+            durationSecs = prefs.getInt(KEY_RUN_LAST_DURATION_SECONDS, 0),
+            pace = prefs.getString(KEY_RUN_LAST_PACE, "--:--") ?: "--:--",
+            date = prefs.getString(KEY_RUN_LAST_DATE, "") ?: ""
+        )
+    }
+}
+
+/**
+ * Data class holding the last run information for the Run widget.
+ */
+data class LastRunData(
+    val distanceKm: Double,
+    val durationSecs: Int,
+    val pace: String,
+    val date: String
+) {
+    /** True when at least one run has been recorded. */
+    val hasData: Boolean get() = date.isNotEmpty() && durationSecs > 0
+
+    /** Duration formatted as mm:ss or h:mm:ss. */
+    val formattedDuration: String
+        get() {
+            val hours = durationSecs / 3600
+            val mins = (durationSecs % 3600) / 60
+            val secs = durationSecs % 60
+            return if (hours > 0) {
+                "%d:%02d:%02d".format(hours, mins, secs)
+            } else {
+                "%02d:%02d".format(mins, secs)
+            }
+        }
+
+    /** Distance formatted to two decimal places with "km" suffix. */
+    val formattedDistance: String
+        get() = "%.2f km".format(distanceKm)
 }

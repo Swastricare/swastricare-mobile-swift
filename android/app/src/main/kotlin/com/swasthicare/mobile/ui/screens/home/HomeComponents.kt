@@ -39,13 +39,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swasthicare.mobile.data.model.HealthNudge
-import com.swasthicare.mobile.data.model.NudgePriority
-import com.swasthicare.mobile.data.model.NudgeType
 import com.swasthicare.mobile.ui.theme.PremiumColor
 import kotlinx.coroutines.delay
 import kotlin.math.PI
@@ -81,6 +79,40 @@ fun Modifier.glass(
             ),
             shape = RoundedCornerShape(cornerRadius)
         )
+}
+
+// MARK: - Shimmer Loading Modifier
+@Composable
+fun Modifier.shimmer(
+    enabled: Boolean = true,
+    durationMillis: Int = 1200
+): Modifier {
+    if (!enabled) return this
+
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val shimmerProgress by infiniteTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerProgress"
+    )
+
+    val isDark = isSystemInDarkTheme()
+    val baseColor = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Gray.copy(alpha = 0.1f)
+    val highlightColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.6f)
+
+    val shimmerBrush = Brush.linearGradient(
+        colors = listOf(baseColor, highlightColor, baseColor),
+        start = Offset(shimmerProgress * 1000f - 500f, 0f),
+        end = Offset(shimmerProgress * 1000f + 500f, 0f)
+    )
+
+    return this.then(
+        Modifier.background(brush = shimmerBrush)
+    )
 }
 
 // MARK: - Premium Background
@@ -196,8 +228,7 @@ fun PremiumBackground() {
 fun LivingStatusHeader(
     userName: String,
     greeting: String,
-    statusColor: Color,
-    onNotificationClick: () -> Unit = {}
+    statusColor: Color
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "heartbeat")
     
@@ -263,7 +294,6 @@ fun LivingStatusHeader(
                 modifier = Modifier
                     .size(40.dp)
                     .glass(cornerRadius = 20.dp)
-                    .clickable { onNotificationClick() }
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -623,15 +653,14 @@ fun DemoModeBanner(
 // MARK: - Nudge Card
 @Composable
 fun NudgeCard(
-    nudge: HealthNudge,
+    nudge: ServerNudge,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Derive accent color from priority
-    val accentColor = when (nudge.priority) {
-        NudgePriority.HIGH -> Color(0xFFFF3B30)
-        NudgePriority.MEDIUM -> Color(0xFFFF9500)
-        NudgePriority.LOW -> Color(0xFF007AFF)
+    // Parse accent color (fallback to blue)
+    val accentColor = remember(nudge.color) {
+        try { Color(android.graphics.Color.parseColor(nudge.color)) }
+        catch (_: Exception) { Color(0xFF007AFF) }
     }
 
     Box(
@@ -700,7 +729,7 @@ fun NudgeCard(
 // MARK: - Nudges Card Strip
 @Composable
 fun NudgesCardStrip(
-    nudges: List<HealthNudge>,
+    nudges: List<ServerNudge>,
     onDismiss: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -723,125 +752,6 @@ fun NudgesCardStrip(
     }
 }
 
-// MARK: - Health Nudge Card (server-backed HealthNudge model)
-@Composable
-fun HealthNudgeCard(
-    nudge: HealthNudge,
-    onDismiss: () -> Unit,
-    onAct: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Color based on priority
-    val accentColor = when (nudge.priority) {
-        NudgePriority.HIGH -> Color(0xFFFF3B30)    // Red
-        NudgePriority.MEDIUM -> Color(0xFFFF9500)  // Orange
-        NudgePriority.LOW -> Color(0xFF007AFF)      // Blue
-    }
-
-    // Icon based on nudge type
-    val icon = when (nudge.type) {
-        NudgeType.HYDRATION -> Icons.Default.Bolt
-        NudgeType.INACTIVITY -> Icons.Default.Bolt
-        NudgeType.MEDICATION_MISSED -> Icons.Default.Bolt
-        NudgeType.SLEEP_DEFICIT -> Icons.Default.Bolt
-        NudgeType.STEP_GOAL_CLOSE -> Icons.Default.Bolt
-        NudgeType.HEART_RATE_ELEVATED -> Icons.Default.Favorite
-        NudgeType.STREAK_AT_RISK -> Icons.Default.Bolt
-        NudgeType.WEEKLY_INSIGHT -> Icons.Default.Bolt
-    }
-
-    Box(
-        modifier = modifier
-            .width(260.dp)
-            .glass(cornerRadius = 20.dp)
-            .clickable { onAct() }
-    ) {
-        // Colored left accent bar
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .width(4.dp)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
-                .background(accentColor)
-        )
-        Row(
-            modifier = Modifier
-                .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            // Icon
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(accentColor.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            // Text
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    nudge.title,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    nudge.message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-            }
-            // Dismiss button
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Dismiss",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                modifier = Modifier
-                    .size(18.dp)
-                    .clickable { onDismiss() }
-                    .align(Alignment.Top)
-            )
-        }
-    }
-}
-
-// MARK: - Health Nudges Card Strip (server-backed)
-@Composable
-fun HealthNudgesCardStrip(
-    nudges: List<HealthNudge>,
-    onDismiss: (String) -> Unit,
-    onAct: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (nudges.isEmpty()) return
-
-    val scrollState = rememberScrollState()
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState)
-            .padding(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        nudges.forEach { nudge ->
-            HealthNudgeCard(
-                nudge = nudge,
-                onDismiss = { onDismiss(nudge.id) },
-                onAct = { onAct(nudge.id) }
-            )
-        }
-    }
-}
-
 // MARK: - Diet Quick Action Card
 private val DietOrange = Color(0xFFFF9500)
 
@@ -850,17 +760,8 @@ fun DietQuickActionCard(
     calorieCurrent: Int,
     calorieGoal: Int,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    index: Int = 0
+    modifier: Modifier = Modifier
 ) {
-    var visible by remember { mutableStateOf(false) }
-    val cardAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, delayMillis = index * 100),
-        label = "dietCardAlpha"
-    )
-    LaunchedEffect(Unit) { visible = true }
-
     val progress = if (calorieGoal > 0) (calorieCurrent.toFloat() / calorieGoal).coerceIn(0f, 1f) else 0f
 
     val animatedProgress by animateFloatAsState(
@@ -869,7 +770,6 @@ fun DietQuickActionCard(
         label = "dietProgress"
     )
 
-    Box(modifier = Modifier.alpha(cardAlpha)) {
     Box(
         modifier = modifier
             .height(150.dp)
@@ -943,7 +843,6 @@ fun DietQuickActionCard(
             }
         }
     }
-    } // close alpha Box wrapper
 }
 
 // MARK: - Cycle Tracker Card
@@ -953,18 +852,8 @@ private val CyclePurple = Color(0xFFBF5AF2)
 fun CycleTrackerCard(
     phaseLabel: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    index: Int = 0
+    modifier: Modifier = Modifier
 ) {
-    var visible by remember { mutableStateOf(false) }
-    val cardAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, delayMillis = index * 100),
-        label = "cycleCardAlpha"
-    )
-    LaunchedEffect(Unit) { visible = true }
-
-    Box(modifier = Modifier.alpha(cardAlpha)) {
     val infiniteTransition = rememberInfiniteTransition(label = "cyclePulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.85f,
@@ -1060,74 +949,6 @@ fun CycleTrackerCard(
                 tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp)
             )
-        }
-    }
-    } // close alpha Box wrapper
-}
-
-// MARK: - Body Scan Quick Action Card
-private val BodyScanCyan = Color(0xFF00C7BE)
-
-@Composable
-fun BodyScanQuickActionCard(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .height(150.dp)
-            .glass(cornerRadius = 24.dp)
-            .clickable { onClick() }
-    ) {
-        // Gradient background
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(24.dp))
-                .background(
-                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                        colors = listOf(
-                            BodyScanCyan.copy(alpha = 0.4f),
-                            BodyScanCyan.copy(alpha = 0.6f)
-                        )
-                    )
-                )
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Camera icon
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(Color.White.copy(alpha = 0.2f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Bolt,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "Body Scan",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    "AR Overlay",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            }
         }
     }
 }

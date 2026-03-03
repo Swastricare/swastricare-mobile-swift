@@ -39,7 +39,8 @@ fun ProfileScreen(
     onSignOut: () -> Unit = {},
     onNavigateToNotificationSettings: () -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
-    onNavigateToFamily: () -> Unit = {}
+    onNavigateToFamily: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
@@ -72,7 +73,8 @@ fun ProfileScreen(
         onConfirmDeleteAccount = viewModel::deleteAccount,
         onDismissSignOutDialog = { viewModel.setShowSignOutConfirmation(false) },
         onDismissDeleteAccountDialog = { viewModel.setShowDeleteAccountConfirmation(false) },
-        onNavigateToFamily = onNavigateToFamily
+        onNavigateToFamily = onNavigateToFamily,
+        onNavigateToSettings = onNavigateToSettings
     )
 }
 
@@ -94,7 +96,8 @@ fun ProfileScreenContent(
     onConfirmDeleteAccount: () -> Unit,
     onDismissSignOutDialog: () -> Unit,
     onDismissDeleteAccountDialog: () -> Unit,
-    onNavigateToFamily: () -> Unit = {}
+    onNavigateToFamily: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
     // Background - solid color based on theme
     Box(
@@ -147,6 +150,38 @@ fun ProfileScreenContent(
                     onBiometricToggle = onBiometricToggle,
                     onSyncToggle = onSyncToggle
                 )
+            }
+
+            // All Settings navigation
+            item {
+                SectionContainer(title = "More") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToSettings() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = PrimaryColor
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "All Settings",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             // About Section
