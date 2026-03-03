@@ -1,13 +1,15 @@
 package com.swasthicare.mobile.ui.screens.main
 
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DirectionsRun
@@ -21,16 +23,17 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -38,7 +41,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -55,7 +57,6 @@ import com.swasthicare.mobile.ui.screens.family.FamilyScreen
 import com.swasthicare.mobile.ui.screens.heartrate.HeartRateAnalyticsScreen
 import com.swasthicare.mobile.ui.screens.heartrate.HeartRateScreen
 import com.swasthicare.mobile.ui.screens.home.HomeScreen
-import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.screens.hydration.HydrationScreen
 import com.swasthicare.mobile.ui.screens.hydration.HydrationSettingsScreen
 import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
@@ -156,61 +157,30 @@ fun MainScreen(
     }
 
     Scaffold(
-        containerColor = Color.Transparent, // Let the background show through
+        containerColor = Color.Transparent,
         bottomBar = {
-            // Floating Glass Navigation Bar
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 20.dp, vertical = 20.dp)
-                    .glass(cornerRadius = 32.dp, opacity = 0.8f) // Use our glass modifier
-            ) {
-                NavigationBar(
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                    windowInsets = NavigationBarDefaults.windowInsets,
-                    modifier = Modifier.height(70.dp) // Slightly taller for floating look
-                ) {
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentDestination = navBackStackEntry?.destination
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
 
-                    items.forEach { screen ->
-                        val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                        val selectedColor = MaterialTheme.colorScheme.primary
-                        val unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-
-                        NavigationBarItem(
-                            icon = {
-                                Icon(
-                                    imageVector = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
-                                    contentDescription = screen.title,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            },
-                            label = null, // Remove labels for cleaner "Apple-like" look
-                            selected = isSelected,
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = selectedColor,
-                                selectedTextColor = selectedColor,
-                                indicatorColor = selectedColor.copy(alpha = 0.1f),
-                                unselectedIconColor = unselectedColor,
-                                unselectedTextColor = unselectedColor
-                            ),
-                            onClick = {
-                                if (currentDestination?.route != screen.route) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                }
-
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+            // Hide nav bar on full-screen routes
+            val hideNavBarRoutes = listOf("live_workout", "workout_summary", "ar_body_scan")
+            if (currentRoute !in hideNavBarRoutes) {
+                FloatingGlassNavBar(
+                    items = items,
+                    currentRoute = currentRoute,
+                    onTabSelected = { tab ->
+                        if (currentRoute != tab.route) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        navController.navigate(tab.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
-                        )
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
+                )
             }
         }
     ) { innerPadding ->
@@ -447,5 +417,130 @@ fun MainScreen(
                 )
             }
         }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Floating Glass Navigation Bar
+// ─────────────────────────────────────
+
+private val AIGreenColor = Color(0xFF32D74B) // iOS systemGreen
+
+@Composable
+private fun FloatingGlassNavBar(
+    items: List<MainTab>,
+    currentRoute: String?,
+    onTabSelected: (MainTab) -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        // Glass container
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    if (isDark)
+                        Color(0xFF1C1C1E).copy(alpha = 0.85f)
+                    else
+                        Color.White.copy(alpha = 0.85f)
+                )
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEach { tab ->
+                val isSelected = currentRoute == tab.route
+                val isAI = tab is MainTab.AI
+
+                NavBarItem(
+                    tab = tab,
+                    isSelected = isSelected,
+                    isAI = isAI,
+                    isDark = isDark,
+                    onClick = { onTabSelected(tab) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NavBarItem(
+    tab: MainTab,
+    isSelected: Boolean,
+    isAI: Boolean,
+    isDark: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Bounce animation on selection
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0.9f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "tabScale"
+    )
+
+    // AI tab icon color is always green; others follow selected/unselected
+    val iconColor = when {
+        isAI -> AIGreenColor
+        isSelected -> if (isDark) Color.White else Color(0xFF007AFF)
+        else -> if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF8E8E93)
+    }
+
+    val labelColor = when {
+        isAI && isSelected -> AIGreenColor
+        isSelected -> if (isDark) Color.White else Color(0xFF007AFF)
+        else -> if (isDark) Color.White.copy(alpha = 0.35f) else Color(0xFF8E8E93)
+    }
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onClick() }
+            .padding(vertical = 6.dp)
+            .scale(scale),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        // Glow dot above selected icon
+        Box(
+            modifier = Modifier
+                .size(4.dp)
+                .clip(CircleShape)
+                .background(
+                    if (isSelected) {
+                        if (isAI) AIGreenColor else iconColor
+                    } else Color.Transparent
+                )
+        )
+
+        Icon(
+            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+            contentDescription = tab.title,
+            tint = iconColor,
+            modifier = Modifier.size(22.dp)
+        )
+
+        Text(
+            text = tab.title,
+            fontSize = 10.sp,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = labelColor,
+            maxLines = 1
+        )
     }
 }
