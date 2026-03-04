@@ -1,11 +1,17 @@
 package com.swasthicare.mobile.ui.screens.heartrate
 
+import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
+import androidx.camera.view.PreviewView
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swasthicare.mobile.data.services.HeartRateDetector
+import com.swasthicare.mobile.data.services.MeasurementPhase
+import com.swasthicare.mobile.data.services.MeasurementState
+import com.swasthicare.mobile.data.services.SignalQuality
 import com.swasthicare.mobile.di.AppContainer
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,38 +39,49 @@ data class HeartRateReading(
 // ─────────────────────────────────────
 
 data class HeartRateUiState(
-    val isMeasuring: Boolean = false,
-    val showResult: Boolean = false,
+    val measurementState: MeasurementState = MeasurementState.IDLE,
     val measurementProgress: Float = 0f,
     val currentBpm: Int = 0,
     val lastBpm: Int = 0,
     val confidence: Float = 0.95f,
     val source: String = "Camera",
+    val signalQuality: SignalQuality = SignalQuality.POOR,
+    val phase: MeasurementPhase = MeasurementPhase.PREPARING,
+    val waveformData: List<Float> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
-)
+) {
+    val isMeasuring: Boolean get() = measurementState in listOf(
+        MeasurementState.PREPARING, MeasurementState.CALIBRATING,
+        MeasurementState.MEASURING, MeasurementState.COMPLETING
+    )
+    val showResult: Boolean get() = measurementState == MeasurementState.RESULT
+}
 
 // ─────────────────────────────────────
 // MARK: - ViewModel
 // ─────────────────────────────────────
 
 class HeartRateViewModel(
+    private val context: Context = AppContainer.context,
     private val prefs: SharedPreferences = AppContainer.sharedPreferences
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "HeartRateViewModel"
+        private const val PREF_KEY_READINGS = "heart_rate_readings"
+    }
+
+    private val detector = HeartRateDetector(context)
 
     private val _uiState = MutableStateFlow(HeartRateUiState())
     val uiState: StateFlow<HeartRateUiState> = _uiState.asStateFlow()
 
-    private var measurementJob: Job? = null
-
     private val json = Json { ignoreUnknownKeys = true }
-
-    companion object {
-        private const val PREF_KEY_READINGS = "heart_rate_readings"
-    }
 
     init {
         loadLastReading()
+        collectDetectorFlows()
     }
 
     private fun loadLastReading() {
@@ -79,71 +96,108 @@ class HeartRateViewModel(
         }
     }
 
-    fun startMeasurement() {
-        measurementJob?.cancel()
-        _uiState.value = _uiState.value.copy(
-            isMeasuring = true,
-            showResult = false,
-            measurementProgress = 0f,
-            currentBpm = 0
-        )
+    /**
+     * Collect all StateFlows from the HeartRateDetector and map them
+     * into the single HeartRateUiState.
+     */
+    private fun collectDetectorFlows() {
+        viewModelScope.launch {
+            detector.measurementState.collect { state ->
+                _uiState.value = _uiState.value.copy(measurementState = state)
 
-        measurementJob = viewModelScope.launch {
-            // Simulate camera PPG measurement over ~10 seconds
-            val totalSteps = 50
-            val stepDelayMs = 200L
-            var simulatedBpm = 0
-
-            for (step in 1..totalSteps) {
-                delay(stepDelayMs)
-                val progress = step.toFloat() / totalSteps
-
-                // Simulate BPM stabilizing
-                simulatedBpm = when {
-                    step < 10 -> (60..120).random()
-                    step < 25 -> (68..85).random()
-                    step < 40 -> (70..78).random()
-                    else -> (72..76).random()
+                // When detector reaches RESULT, extract the result and save it
+                if (state == MeasurementState.RESULT) {
+                    handleMeasurementResult()
                 }
 
+                // Surface errors
+                if (state == MeasurementState.ERROR) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Measurement failed. Please try again."
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            detector.currentBPM.collect { bpm ->
+                _uiState.value = _uiState.value.copy(currentBpm = bpm)
+            }
+        }
+
+        viewModelScope.launch {
+            detector.progress.collect { progress ->
+                _uiState.value = _uiState.value.copy(measurementProgress = progress)
+            }
+        }
+
+        viewModelScope.launch {
+            detector.signalQuality.collect { quality ->
+                _uiState.value = _uiState.value.copy(signalQuality = quality)
+            }
+        }
+
+        viewModelScope.launch {
+            detector.phase.collect { phase ->
+                _uiState.value = _uiState.value.copy(phase = phase)
+            }
+        }
+
+        viewModelScope.launch {
+            detector.waveformData.collect { waveform ->
                 _uiState.value = _uiState.value.copy(
-                    measurementProgress = progress,
-                    currentBpm = simulatedBpm
+                    waveformData = waveform
                 )
             }
+        }
+    }
 
-            // Final result
-            val finalBpm = (71..77).random()
-            val confidence = 0.92f + (Math.random() * 0.07f).toFloat()
+    // ── Measurement Control ──
 
-            // Save reading
+    fun startMeasurement(previewView: PreviewView, lifecycleOwner: LifecycleOwner) {
+        _uiState.value = _uiState.value.copy(
+            error = null
+        )
+        detector.startMeasurement(previewView, lifecycleOwner)
+    }
+
+    fun cancelMeasurement() {
+        detector.stopMeasurement()
+        _uiState.value = _uiState.value.copy(
+            measurementProgress = 0f,
+            currentBpm = 0,
+            error = null
+        )
+    }
+
+    // ── Result Handling ──
+
+    private fun handleMeasurementResult() {
+        val result = detector.getResult()
+        if (result != null) {
+            Log.d(TAG, "Measurement complete: ${result.bpm} BPM, confidence=${result.confidence}, quality=${result.quality}")
+
+            // Save reading to persistence
             saveReading(
                 HeartRateReading(
-                    bpm = finalBpm,
+                    bpm = result.bpm,
                     timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                     source = "Camera",
-                    confidence = confidence
+                    confidence = result.confidence
                 )
             )
 
             _uiState.value = _uiState.value.copy(
-                isMeasuring = false,
-                showResult = true,
-                lastBpm = finalBpm,
-                confidence = confidence,
+                lastBpm = result.bpm,
+                confidence = result.confidence,
                 source = "Camera"
             )
+        } else {
+            Log.w(TAG, "Measurement completed but no result available")
+            _uiState.value = _uiState.value.copy(
+                error = "Could not determine heart rate. Please try again with your finger firmly on the camera."
+            )
         }
-    }
-
-    fun cancelMeasurement() {
-        measurementJob?.cancel()
-        _uiState.value = _uiState.value.copy(
-            isMeasuring = false,
-            showResult = false,
-            measurementProgress = 0f,
-            currentBpm = 0
-        )
     }
 
     // ── Persistence ──
@@ -168,5 +222,12 @@ class HeartRateViewModel(
     fun clearReadings() {
         prefs.edit().remove(PREF_KEY_READINGS).apply()
         _uiState.value = _uiState.value.copy(lastBpm = 0)
+    }
+
+    // ── Lifecycle ──
+
+    override fun onCleared() {
+        super.onCleared()
+        detector.stopMeasurement()
     }
 }

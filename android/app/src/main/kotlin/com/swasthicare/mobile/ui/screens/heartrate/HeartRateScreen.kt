@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.ui.screens.heartrate
 
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -18,14 +19,21 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.swasthicare.mobile.data.services.MeasurementPhase
+import com.swasthicare.mobile.data.services.SignalQuality
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
@@ -39,6 +47,12 @@ private val ZoneElevated = Color(0xFFFFC107)
 private val ZoneHigh = Color(0xFFF44336)
 private val ZoneLow = Color(0xFF2196F3)
 
+// Signal quality indicator colors
+private val SignalExcellent = Color(0xFF4CAF50)
+private val SignalGood = Color(0xFF2196F3)
+private val SignalFair = Color(0xFFFFC107)
+private val SignalPoor = Color(0xFFF44336)
+
 // ─────────────────────────────────────
 // MARK: - HeartRateScreen (Measurement)
 // ─────────────────────────────────────
@@ -51,6 +65,14 @@ fun HeartRateScreen(
 ) {
     val viewModel = AppContainer.heartRateViewModel
     val uiState by viewModel.uiState.collectAsState()
+
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Create a PreviewView for CameraX (required for camera binding even though we don't show a preview)
+    val previewView = remember {
+        PreviewView(context)
+    }
 
     // Stop measurement when navigating away to prevent camera/resource leaks
     DisposableEffect(Unit) {
@@ -101,17 +123,22 @@ fun HeartRateScreen(
                     source = uiState.source,
                     onNavigateToAnalytics = onNavigateToAnalytics,
                     onNavigateToAI = onNavigateToAI,
-                    onMeasureAgain = { viewModel.startMeasurement() },
+                    onMeasureAgain = { viewModel.startMeasurement(previewView, lifecycleOwner) },
                     onDismiss = onNavigateBack
                 )
                 uiState.isMeasuring -> HeartRateMeasuringView(
                     progress = uiState.measurementProgress,
                     currentBpm = uiState.currentBpm,
+                    phase = uiState.phase,
+                    signalQuality = uiState.signalQuality,
+                    waveformData = uiState.waveformData,
+                    previewView = previewView,
                     onCancel = { viewModel.cancelMeasurement() }
                 )
                 else -> HeartRateIdleView(
                     lastBpm = uiState.lastBpm,
-                    onStartMeasurement = { viewModel.startMeasurement() }
+                    error = uiState.error,
+                    onStartMeasurement = { viewModel.startMeasurement(previewView, lifecycleOwner) }
                 )
             }
         }
@@ -125,6 +152,7 @@ fun HeartRateScreen(
 @Composable
 private fun HeartRateIdleView(
     lastBpm: Int,
+    error: String? = null,
     onStartMeasurement: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "heartPulse")
@@ -187,6 +215,26 @@ private fun HeartRateIdleView(
             Spacer(Modifier.height(24.dp))
         }
 
+        // Error message from previous measurement attempt
+        if (error != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ZoneHigh.copy(alpha = 0.1f))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ZoneHigh,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+
         Text(
             text = "Place your fingertip over the camera\nand flashlight to measure your heart rate",
             style = MaterialTheme.typography.bodyMedium,
@@ -219,6 +267,10 @@ private fun HeartRateIdleView(
 private fun HeartRateMeasuringView(
     progress: Float,
     currentBpm: Int,
+    phase: MeasurementPhase,
+    signalQuality: SignalQuality,
+    waveformData: List<Float>,
+    previewView: PreviewView,
     onCancel: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "measuring")
@@ -232,6 +284,14 @@ private fun HeartRateMeasuringView(
         label = "pulseAlpha"
     )
 
+    // Signal quality color
+    val qualityColor = when (signalQuality) {
+        SignalQuality.EXCELLENT -> SignalExcellent
+        SignalQuality.GOOD -> SignalGood
+        SignalQuality.FAIR -> SignalFair
+        SignalQuality.POOR -> SignalPoor
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -239,6 +299,12 @@ private fun HeartRateMeasuringView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // Hidden camera preview (1x1 dp) — CameraX requires a surface to bind to
+        AndroidView(
+            factory = { previewView },
+            modifier = Modifier.size(1.dp)
+        )
+
         // Circular progress with heart
         Box(contentAlignment = Alignment.Center) {
             CircularProgressIndicator(
@@ -272,10 +338,11 @@ private fun HeartRateMeasuringView(
             }
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(24.dp))
 
+        // Phase text
         Text(
-            text = "Measuring...",
+            text = phase.displayName,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
@@ -287,7 +354,63 @@ private fun HeartRateMeasuringView(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(16.dp))
+
+        // Signal quality badge
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(qualityColor.copy(alpha = 0.1f))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(qualityColor, CircleShape)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "Signal: ${signalQuality.displayName}",
+                style = MaterialTheme.typography.labelMedium,
+                color = qualityColor,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Waveform canvas
+        if (waveformData.isNotEmpty()) {
+            WaveformDisplay(
+                waveformData = waveformData,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        } else {
+            // Placeholder while waiting for data
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Waiting for signal...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
 
         OutlinedButton(
             onClick = onCancel,
@@ -296,6 +419,59 @@ private fun HeartRateMeasuringView(
         ) {
             Text("Cancel")
         }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Waveform Display
+// ─────────────────────────────────────
+
+@Composable
+private fun WaveformDisplay(
+    waveformData: List<Float>,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        if (waveformData.size < 2) return@Canvas
+
+        val width = size.width
+        val height = size.height
+        val midY = height / 2
+
+        // Normalize waveform data
+        val maxAbs = waveformData.maxOfOrNull { kotlin.math.abs(it) }?.coerceAtLeast(0.01f) ?: 1f
+        val amplitude = height * 0.4f
+
+        val path = Path()
+        val stepX = width / (waveformData.size - 1).coerceAtLeast(1)
+
+        waveformData.forEachIndexed { index, value ->
+            val x = index * stepX
+            val y = midY - (value / maxAbs) * amplitude
+
+            if (index == 0) {
+                path.moveTo(x, y)
+            } else {
+                path.lineTo(x, y)
+            }
+        }
+
+        drawPath(
+            path = path,
+            color = HeartRateColor,
+            style = Stroke(
+                width = 2.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+        )
+
+        // Draw a faint center line
+        drawLine(
+            color = HeartRateColor.copy(alpha = 0.15f),
+            start = Offset(0f, midY),
+            end = Offset(width, midY),
+            strokeWidth = 1.dp.toPx()
+        )
     }
 }
 
