@@ -210,6 +210,7 @@ private fun PdfViewer(document: MedicalDocument) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var renderedPages by remember { mutableStateOf<Map<Int, Bitmap>>(emptyMap()) }
     var pdfRenderer by remember { mutableStateOf<PdfRenderer?>(null) }
+    var tempPdfFile by remember { mutableStateOf<File?>(null) }
 
     val listState = rememberLazyListState()
     val currentVisiblePage by remember {
@@ -230,10 +231,15 @@ private fun PdfViewer(document: MedicalDocument) {
         )
     }
 
-    // Initialize PDF renderer
+    // Initialize PDF renderer and clean up on dispose
     DisposableEffect(document.fileUrl) {
         onDispose {
             pdfRenderer?.close()
+            // Recycle all remaining bitmaps to free native memory
+            renderedPages.values.forEach { it.recycle() }
+            renderedPages = emptyMap()
+            // Delete temp file downloaded from remote URL
+            tempPdfFile?.delete()
         }
     }
 
@@ -258,11 +264,12 @@ private fun PdfViewer(document: MedicalDocument) {
                             val connection = url.openConnection()
                             connection.connect()
                             val input = connection.getInputStream()
-                            val tempFile = File.createTempFile("pdf_", ".pdf", context.cacheDir)
-                            tempFile.outputStream().use { output ->
+                            val downloadedFile = File.createTempFile("pdf_", ".pdf", context.cacheDir)
+                            downloadedFile.outputStream().use { output ->
                                 input.copyTo(output)
                             }
-                            ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                            tempPdfFile = downloadedFile
+                            ParcelFileDescriptor.open(downloadedFile, ParcelFileDescriptor.MODE_READ_ONLY)
                         } catch (e: Exception) {
                             null
                         }
@@ -275,9 +282,9 @@ private fun PdfViewer(document: MedicalDocument) {
                     pdfRenderer = renderer
                     pageCount = renderer.pageCount
 
-                    // Render the first few pages eagerly
+                    // Render the initial viewport pages eagerly (matches sliding window of ±1)
                     val initialPages = mutableMapOf<Int, Bitmap>()
-                    val pagestoRender = minOf(3, renderer.pageCount)
+                    val pagestoRender = minOf(2, renderer.pageCount)
                     for (i in 0 until pagestoRender) {
                         val page = renderer.openPage(i)
                         val bitmap = Bitmap.createBitmap(
@@ -302,13 +309,25 @@ private fun PdfViewer(document: MedicalDocument) {
         }
     }
 
-    // Lazy-load pages as they become visible
+    // Lazy-load pages in a sliding window and evict pages outside it
     LaunchedEffect(currentVisiblePage) {
         val renderer = pdfRenderer ?: return@LaunchedEffect
-        val pagesToLoad = ((currentVisiblePage - 2).coerceAtLeast(0) until (currentVisiblePage + 2).coerceAtMost(pageCount))
+        // currentVisiblePage is 1-based; convert to 0-based index for the window
+        val currentIndex = (currentVisiblePage - 1).coerceIn(0, (pageCount - 1).coerceAtLeast(0))
+        val keepRange = (currentIndex - 1).coerceAtLeast(0)..(currentIndex + 1).coerceAtMost(pageCount - 1)
 
+        // Evict bitmaps outside the sliding window to free memory
+        val evictKeys = renderedPages.keys.filter { it !in keepRange }
+        if (evictKeys.isNotEmpty()) {
+            evictKeys.forEach { pageNum ->
+                renderedPages[pageNum]?.recycle()
+            }
+            renderedPages = renderedPages.filterKeys { it in keepRange }
+        }
+
+        // Render pages within the window that aren't already rendered
         withContext(Dispatchers.IO) {
-            for (pageIndex in pagesToLoad) {
+            for (pageIndex in keepRange) {
                 if (!renderedPages.containsKey(pageIndex)) {
                     try {
                         val page = renderer.openPage(pageIndex)
