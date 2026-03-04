@@ -123,6 +123,7 @@ class LiveWorkoutViewModel(
 
     private var timerJob: Job? = null
     private var autoSaveJob: Job? = null
+    private var countdownJob: Job? = null
     private var maxSpeed: Float = 0f
     private var lastAltitude: Double? = null
     private var totalElevationGain: Double = 0.0
@@ -194,7 +195,7 @@ class LiveWorkoutViewModel(
         // Begin countdown
         _uiState.update { it.copy(phase = WorkoutPhase.COUNTDOWN, countdownValue = 3) }
 
-        viewModelScope.launch {
+        countdownJob = viewModelScope.launch {
             for (i in 3 downTo 1) {
                 _uiState.update { it.copy(countdownValue = i) }
                 delay(1000)
@@ -223,6 +224,7 @@ class LiveWorkoutViewModel(
         val currentPhase = _uiState.value.phase
         if (currentPhase != WorkoutPhase.TRACKING && currentPhase != WorkoutPhase.PAUSED) return
 
+        countdownJob?.cancel()
         timerJob?.cancel()
         autoSaveJob?.cancel()
         routeTracker.stopTracking()
@@ -255,6 +257,7 @@ class LiveWorkoutViewModel(
     }
 
     fun resetWorkout() {
+        countdownJob?.cancel()
         timerJob?.cancel()
         autoSaveJob?.cancel()
         routeTracker.stopTracking()

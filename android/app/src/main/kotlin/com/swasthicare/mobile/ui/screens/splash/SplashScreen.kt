@@ -64,9 +64,11 @@ fun SplashScreen(
 
     // Navigation logic — wait for video to finish, then route
     LaunchedEffect(Unit) {
-        // Wait for the video to finish (poll every 100ms)
-        while (exoPlayer.currentPosition < exoPlayer.duration - 100 || exoPlayer.duration <= 0) {
-            delay(100)
+        // Wait for the video to finish (poll every 100ms), with a 10s safety timeout
+        withTimeoutOrNull(10_000) {
+            while (exoPlayer.currentPosition < exoPlayer.duration - 100 || exoPlayer.duration <= 0) {
+                delay(100)
+            }
         }
         // Hold on last frame briefly
         delay(500)

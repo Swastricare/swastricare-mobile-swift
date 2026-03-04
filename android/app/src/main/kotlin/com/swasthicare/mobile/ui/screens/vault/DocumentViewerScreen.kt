@@ -316,36 +316,33 @@ private fun PdfViewer(document: MedicalDocument) {
         val currentIndex = (currentVisiblePage - 1).coerceIn(0, (pageCount - 1).coerceAtLeast(0))
         val keepRange = (currentIndex - 1).coerceAtLeast(0)..(currentIndex + 1).coerceAtMost(pageCount - 1)
 
-        // Evict bitmaps outside the sliding window to free memory
-        val evictKeys = renderedPages.keys.filter { it !in keepRange }
-        if (evictKeys.isNotEmpty()) {
-            evictKeys.forEach { pageNum ->
-                renderedPages[pageNum]?.recycle()
-            }
-            renderedPages = renderedPages.filterKeys { it in keepRange }
-        }
+        // Evict pages outside window (don't recycle — let GC handle it)
+        val evicted = renderedPages.filterKeys { it in keepRange }
+        renderedPages = evicted
 
-        // Render pages within the window that aren't already rendered
-        withContext(Dispatchers.IO) {
-            for (pageIndex in keepRange) {
-                if (!renderedPages.containsKey(pageIndex)) {
-                    try {
-                        val page = renderer.openPage(pageIndex)
-                        val bitmap = Bitmap.createBitmap(
-                            page.width * 2,
-                            page.height * 2,
-                            Bitmap.Config.ARGB_8888
-                        )
-                        bitmap.eraseColor(android.graphics.Color.WHITE)
-                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        page.close()
-                        renderedPages = renderedPages + (pageIndex to bitmap)
-                    } catch (_: Exception) {
-                        // Page might already be open or renderer closed
-                    }
+        // Render missing pages on IO thread
+        val newPages = mutableMapOf<Int, Bitmap>()
+        for (pageIndex in keepRange) {
+            if (renderedPages.containsKey(pageIndex)) continue
+            withContext(Dispatchers.IO) {
+                try {
+                    val page = renderer.openPage(pageIndex)
+                    val bitmap = Bitmap.createBitmap(
+                        page.width * 2,
+                        page.height * 2,
+                        Bitmap.Config.ARGB_8888
+                    )
+                    bitmap.eraseColor(android.graphics.Color.WHITE)
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    page.close()
+                    newPages[pageIndex] = bitmap
+                } catch (_: Exception) {
+                    // Page might already be open or renderer closed
                 }
             }
         }
+        // State write on main thread
+        renderedPages = renderedPages + newPages
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
