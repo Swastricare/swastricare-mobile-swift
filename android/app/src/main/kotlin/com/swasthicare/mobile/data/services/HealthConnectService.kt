@@ -96,6 +96,11 @@ class HealthConnectService(private val context: Context) {
         val dayName: String
     )
 
+    // ── Cache ──
+
+    private var cachedSummary: DailyHealthSummary? = null
+    private var cacheTimestamp: Long = 0L
+
     // ── Client ──
 
     private val client: HealthConnectClient? by lazy {
@@ -134,9 +139,20 @@ class HealthConnectService(private val context: Context) {
         }
     }
 
-    // ── READ: Today's Summary ──
+    // ── READ: Today's Summary (cached for 60 seconds) ──
 
-    suspend fun getTodaySummary(): DailyHealthSummary = withContext(Dispatchers.IO) {
+    suspend fun getTodaySummary(): DailyHealthSummary {
+        val now = System.currentTimeMillis()
+        cachedSummary?.let { cached ->
+            if (now - cacheTimestamp < 60_000) return cached
+        }
+        val summary = fetchTodaySummary()
+        cachedSummary = summary
+        cacheTimestamp = now
+        return summary
+    }
+
+    private suspend fun fetchTodaySummary(): DailyHealthSummary = withContext(Dispatchers.IO) {
         val hc = client ?: return@withContext DailyHealthSummary()
 
         val now = Instant.now()
@@ -406,7 +422,8 @@ class HealthConnectService(private val context: Context) {
     }
 
     /**
-     * Query StepsRecord for each of the last 7 days.
+     * Query StepsRecord for the last 7 days using a SINGLE Health Connect query,
+     * then group by day in memory.
      * Returns a list of [DailyStepCount], one entry per day.
      * Days with no data default to 0 steps.
      */
@@ -415,29 +432,30 @@ class HealthConnectService(private val context: Context) {
 
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now()
-        val result = mutableListOf<DailyStepCount>()
+        val weekAgo = today.minusDays(6)
 
-        for (dayOffset in 6 downTo 0) {
-            val date = today.minusDays(dayOffset.toLong())
-            val startOfDay = date.atStartOfDay(zone).toInstant()
-            val endOfDay = date.plusDays(1).atStartOfDay(zone).toInstant()
-
-            val steps = try {
-                val response = healthClient.readRecords(
-                    ReadRecordsRequest(
-                        recordType = StepsRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(startOfDay, endOfDay)
+        try {
+            val records = healthClient.readRecords(
+                ReadRecordsRequest(
+                    recordType = StepsRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(
+                        weekAgo.atStartOfDay(zone).toInstant(),
+                        today.plusDays(1).atStartOfDay(zone).toInstant()
                     )
                 )
-                response.records.sumOf { it.count }
-            } catch (_: Exception) {
-                0L
-            }
+            ).records
 
-            result.add(DailyStepCount(date = date, steps = steps))
+            (0..6).map { daysAgo ->
+                val date = today.minusDays(daysAgo.toLong())
+                val dayStart = date.atStartOfDay(zone).toInstant()
+                val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
+                val steps = records.filter { it.startTime >= dayStart && it.startTime < dayEnd }
+                    .sumOf { it.count }
+                DailyStepCount(date = date, steps = steps)
+            }.reversed()
+        } catch (_: Exception) {
+            generateFallbackWeeklySteps()
         }
-
-        result
     }
 
     /**
@@ -481,27 +499,46 @@ class HealthConnectService(private val context: Context) {
 
     // ── Estimate Stand Hours ──
 
+    /**
+     * Estimate stand hours using a SINGLE Health Connect query for all StepsRecords
+     * from 6am-10pm, then group by hour in memory.
+     * An hour counts as "standing" if it has at least one overlapping step record with count > 0.
+     */
     private suspend fun estimateStandHours(): Int = withContext(Dispatchers.IO) {
         val hc = client ?: return@withContext 0
-        val today = LocalDate.now()
-        var standCount = 0
-
         try {
-            for (hour in 6..22) { // 6am to 10pm
-                val hourStart = today.atTime(hour, 0).atZone(ZoneId.systemDefault()).toInstant()
-                val hourEnd = today.atTime(hour, 59, 59).atZone(ZoneId.systemDefault()).toInstant()
-                if (hourEnd.isAfter(Instant.now())) break
+            val today = LocalDate.now()
+            val zone = ZoneId.systemDefault()
+            val now = Instant.now()
+            val startOfRange = today.atTime(6, 0).atZone(zone).toInstant()
+            val endOfRange = today.atTime(22, 0).atZone(zone).toInstant()
 
-                val filter = TimeRangeFilter.between(hourStart, hourEnd)
-                val records = hc.readRecords(ReadRecordsRequest(StepsRecord::class, filter))
-                val hourSteps = records.records.sumOf { it.count }.toInt()
-                if (hourSteps >= 100) standCount++ // 100 steps in an hour = standing
+            // Clamp the end to current time so we don't query the future
+            val effectiveEnd = if (now.isBefore(endOfRange)) now else endOfRange
+            if (effectiveEnd.isBefore(startOfRange) || effectiveEnd == startOfRange) return@withContext 0
+
+            val records = hc.readRecords(
+                ReadRecordsRequest(
+                    StepsRecord::class,
+                    TimeRangeFilter.between(startOfRange, effectiveEnd)
+                )
+            ).records
+
+            // Count hours (6..21) that have at least one overlapping step record with count > 0
+            (6..21).count { hour ->
+                val hourStart = today.atTime(hour, 0).atZone(zone).toInstant()
+                val hourEnd = today.atTime(hour + 1, 0).atZone(zone).toInstant()
+                // Only count completed hours (or current hour up to now)
+                if (hourStart.isAfter(now)) return@count false
+                records.any { record ->
+                    record.startTime < hourEnd && record.endTime > hourStart && record.count > 0
+                }
             }
         } catch (e: Exception) {
             Log.w(TAG, "estimateStandHours failed: ${e.message}")
             AppContainer.crashlyticsService.recordException(e)
+            0
         }
-        standCount
     }
 
     // ── WRITE Functions ──
