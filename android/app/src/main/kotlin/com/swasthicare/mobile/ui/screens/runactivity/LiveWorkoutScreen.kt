@@ -51,7 +51,7 @@ fun LiveWorkoutScreen(
     onNavigateToSummary: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val viewModel = remember { AppContainer.liveWorkoutViewModel }
+    val viewModel = AppContainer.liveWorkoutViewModel
     val uiState by viewModel.uiState.collectAsState()
 
     // ── Location Permission ──

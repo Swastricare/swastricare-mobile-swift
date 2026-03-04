@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.HeartRateColor
@@ -48,8 +49,15 @@ fun HeartRateScreen(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToAI: () -> Unit = {}
 ) {
-    val viewModel = remember { HeartRateViewModel() }
+    val viewModel = AppContainer.heartRateViewModel
     val uiState by viewModel.uiState.collectAsState()
+
+    // Stop measurement when navigating away to prevent camera/resource leaks
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.cancelMeasurement()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()

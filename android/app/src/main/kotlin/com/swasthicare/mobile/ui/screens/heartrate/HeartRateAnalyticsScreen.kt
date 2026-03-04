@@ -96,7 +96,7 @@ data class HeartRateAnalyticsState(
 fun HeartRateAnalyticsScreen(
     onNavigateBack: () -> Unit = {}
 ) {
-    val heartRateViewModel = remember { HeartRateViewModel() }
+    val heartRateViewModel = AppContainer.heartRateViewModel
     var state by remember { mutableStateOf(HeartRateAnalyticsState()) }
 
     // Load data
