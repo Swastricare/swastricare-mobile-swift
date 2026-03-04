@@ -2,6 +2,7 @@ package com.swasthicare.mobile.data.repository
 
 import android.content.SharedPreferences
 import com.swasthicare.mobile.data.models.*
+import com.swasthicare.mobile.di.AppContainer
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
@@ -91,6 +92,7 @@ class SupabaseHydrationRepository(
             markEntriesAsSynced(entries.map { it.id })
             Result.success(Unit)
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -103,6 +105,7 @@ class SupabaseHydrationRepository(
                 }
                 Result.success(Unit)
             } catch (e: Exception) {
+                AppContainer.crashlyticsService.recordException(e)
                 Result.failure(e)
             }
         }

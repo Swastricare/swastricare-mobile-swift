@@ -3,6 +3,7 @@ package com.swasthicare.mobile.data.services
 import android.content.Context
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
+import com.swasthicare.mobile.di.AppContainer
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -173,6 +174,7 @@ class HealthConnectService(private val context: Context) {
             totalCal = totalCalRecords.records.sumOf { it.energy.inKilocalories }.toInt()
         } catch (e: Exception) {
             Log.w(TAG, "Error reading basic metrics: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
 
         try {
@@ -180,6 +182,7 @@ class HealthConnectService(private val context: Context) {
             sleepMin = getTodaySleep()
         } catch (e: Exception) {
             Log.w(TAG, "Error reading sleep: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
 
         try {
@@ -187,6 +190,7 @@ class HealthConnectService(private val context: Context) {
             distanceKm = getTodayDistance()
         } catch (e: Exception) {
             Log.w(TAG, "Error reading distance: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
 
         try {
@@ -194,6 +198,7 @@ class HealthConnectService(private val context: Context) {
             exerciseMin = getTodayExercise()
         } catch (e: Exception) {
             Log.w(TAG, "Error reading exercise: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
 
         try {
@@ -201,6 +206,7 @@ class HealthConnectService(private val context: Context) {
             standHours = estimateStandHours()
         } catch (e: Exception) {
             Log.w(TAG, "Error estimating stand hours: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
 
         try {
@@ -210,6 +216,7 @@ class HealthConnectService(private val context: Context) {
             diastolic = bp.second
         } catch (e: Exception) {
             Log.w(TAG, "Error reading blood pressure: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
 
         try {
@@ -217,6 +224,7 @@ class HealthConnectService(private val context: Context) {
             weightKg = getLatestWeight()
         } catch (e: Exception) {
             Log.w(TAG, "Error reading weight: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
 
         try {
@@ -224,6 +232,7 @@ class HealthConnectService(private val context: Context) {
             heightCm = getLatestHeight()
         } catch (e: Exception) {
             Log.w(TAG, "Error reading height: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
 
         DailyHealthSummary(
@@ -259,6 +268,7 @@ class HealthConnectService(private val context: Context) {
             }.toInt()
         } catch (e: Exception) {
             Log.w(TAG, "getTodaySleep failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             0
         }
     }
@@ -275,6 +285,7 @@ class HealthConnectService(private val context: Context) {
             records.records.sumOf { it.distance.inKilometers }
         } catch (e: Exception) {
             Log.w(TAG, "getTodayDistance failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             0.0
         }
     }
@@ -293,6 +304,7 @@ class HealthConnectService(private val context: Context) {
             }.toInt()
         } catch (e: Exception) {
             Log.w(TAG, "getTodayExercise failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             0
         }
     }
@@ -309,6 +321,7 @@ class HealthConnectService(private val context: Context) {
             records.records.lastOrNull()?.weight?.inKilograms ?: 0.0
         } catch (e: Exception) {
             Log.w(TAG, "getLatestWeight failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             0.0
         }
     }
@@ -326,6 +339,7 @@ class HealthConnectService(private val context: Context) {
             meters * 100.0
         } catch (e: Exception) {
             Log.w(TAG, "getLatestHeight failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             0.0
         }
     }
@@ -348,6 +362,7 @@ class HealthConnectService(private val context: Context) {
             } else Pair(0, 0)
         } catch (e: Exception) {
             Log.w(TAG, "getLatestBloodPressure failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             Pair(0, 0)
         }
     }
@@ -385,6 +400,7 @@ class HealthConnectService(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.w(TAG, "getWeeklySteps failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             emptyList()
         }
     }
@@ -483,6 +499,7 @@ class HealthConnectService(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.w(TAG, "estimateStandHours failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
         }
         standCount
     }
@@ -507,6 +524,7 @@ class HealthConnectService(private val context: Context) {
                 true
             } catch (e: Exception) {
                 Log.e(TAG, "writeHeartRate failed: ${e.message}")
+                AppContainer.crashlyticsService.recordException(e)
                 false
             }
         }
@@ -527,6 +545,7 @@ class HealthConnectService(private val context: Context) {
                 true
             } catch (e: Exception) {
                 Log.e(TAG, "writeHydration failed: ${e.message}")
+                AppContainer.crashlyticsService.recordException(e)
                 false
             }
         }
@@ -552,6 +571,7 @@ class HealthConnectService(private val context: Context) {
             true
         } catch (e: Exception) {
             Log.e(TAG, "writeExerciseSession failed: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             false
         }
     }

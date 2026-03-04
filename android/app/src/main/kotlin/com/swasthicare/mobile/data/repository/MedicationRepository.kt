@@ -2,6 +2,7 @@ package com.swasthicare.mobile.data.repository
 
 import android.content.SharedPreferences
 import com.swasthicare.mobile.data.models.*
+import com.swasthicare.mobile.di.AppContainer
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.encodeToString
@@ -67,6 +68,7 @@ class SupabaseMedicationRepository(
             }.decodeList<MedicationDto>()
         } catch (e: Exception) {
             // Fall back to cache on network error
+            AppContainer.crashlyticsService.recordException(e)
             getCachedMedications()
         }
     }
@@ -80,6 +82,7 @@ class SupabaseMedicationRepository(
                 }
             }.decodeList<MedicationScheduleDto>()
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             emptyList()
         }
     }
@@ -96,6 +99,7 @@ class SupabaseMedicationRepository(
                 }
             }.decodeList<MedicationLogDto>()
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             emptyList()
         }
     }
@@ -112,6 +116,7 @@ class SupabaseMedicationRepository(
                 }
             }.decodeList<MedicationLogDto>()
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             emptyList()
         }
     }
@@ -122,6 +127,7 @@ class SupabaseMedicationRepository(
             supabaseClient.from("medications").upsert(medication)
             Result.success(medication)
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -133,6 +139,7 @@ class SupabaseMedicationRepository(
             }
             Result.success(Unit)
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -159,6 +166,7 @@ class SupabaseMedicationRepository(
             supabaseClient.from("medication_logs").upsert(log)
             Result.success(id)
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -185,6 +193,7 @@ class SupabaseMedicationRepository(
             supabaseClient.from("medication_logs").upsert(log)
             Result.success(id)
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -199,6 +208,7 @@ class SupabaseMedicationRepository(
             }
             Result.success(Unit)
         } catch (e: Exception) {
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }

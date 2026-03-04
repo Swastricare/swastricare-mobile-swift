@@ -3,6 +3,7 @@ package com.swasthicare.mobile.data.repository
 import android.util.Log
 import com.swasthicare.mobile.data.model.HealthProfile
 import com.swasthicare.mobile.data.model.Gender
+import com.swasthicare.mobile.di.AppContainer
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
@@ -81,6 +82,7 @@ class SupabaseProfileRepository(
                 .decodeSingleOrNull<HealthProfile>()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch health profile: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             null
         }
     }
@@ -92,6 +94,7 @@ class SupabaseProfileRepository(
             Result.success(profile)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to create health profile: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -107,6 +110,7 @@ class SupabaseProfileRepository(
             Result.success(profile)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to update health profile: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -137,6 +141,7 @@ class SupabaseProfileRepository(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to update user profile: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -150,6 +155,7 @@ class SupabaseProfileRepository(
             Result.success(bucket.publicUrl(path))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to upload avatar: ${e.message}")
+            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
