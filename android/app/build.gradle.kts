@@ -37,6 +37,18 @@ android {
             "OPENWEATHERMAP_API_KEY",
             "\"${project.findProperty("OPENWEATHERMAP_API_KEY") ?: ""}\""
         )
+
+        // Supabase credentials (set in gradle.properties)
+        buildConfigField(
+            "String",
+            "SUPABASE_URL",
+            "\"${project.findProperty("SUPABASE_URL") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "SUPABASE_ANON_KEY",
+            "\"${project.findProperty("SUPABASE_ANON_KEY") ?: ""}\""
+        )
     }
 
     buildTypes {
