@@ -3,6 +3,7 @@ package com.swasthicare.mobile.ui.screens.ar
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.PointF
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -81,69 +83,80 @@ fun ARBodyScanScreen(
     // Bottom sheet state
     val sheetState = rememberModalBottomSheetState()
 
+    var cameraError by remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         if (uiState.cameraPermissionGranted) {
-            // Camera Preview
-            CameraPreviewWithAnalysis(
-                onFrameAvailable = { imageProxy ->
-                    viewModel.processFrame(imageProxy)
-                }
-            )
-
-            // Body overlay
-            uiState.bodyScanResult?.let { result ->
-                BodyOverlayCanvas(
-                    result = result,
-                    uiState = uiState,
-                    onOrganTapped = { organKey ->
-                        viewModel.selectOrgan(organKey)
-                    }
+            if (cameraError) {
+                // Camera error screen
+                CameraErrorScreen(
+                    onRetry = { cameraError = false },
+                    onNavigateBack = onNavigateBack
                 )
-            }
+            } else {
+                // Camera Preview
+                CameraPreviewWithAnalysis(
+                    onFrameAvailable = { imageProxy ->
+                        viewModel.processFrame(imageProxy)
+                    },
+                    onCameraError = { cameraError = true }
+                )
 
-            // Scanning animation overlay
-            ScanningOverlay(detectionState = uiState.detectionState)
-
-            // Top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onNavigateBack,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = Color.Black.copy(alpha = 0.4f)
+                // Body overlay
+                uiState.bodyScanResult?.let { result ->
+                    BodyOverlayCanvas(
+                        result = result,
+                        uiState = uiState,
+                        onOrganTapped = { organKey ->
+                            viewModel.selectOrgan(organKey)
+                        }
                     )
+                }
+
+                // Scanning animation overlay
+                ScanningOverlay(detectionState = uiState.detectionState)
+
+                // Top bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
+                    IconButton(
+                        onClick = onNavigateBack,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = Color.Black.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+
+                    Text(
+                        text = "Body Scan",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
+
+                    Spacer(modifier = Modifier.size(48.dp))
                 }
 
-                Text(
-                    text = "Body Scan",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-
-                Spacer(modifier = Modifier.size(48.dp))
-            }
-
-            // Detection status indicator
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 32.dp)
-            ) {
-                DetectionStatusChip(detectionState = uiState.detectionState)
+                // Detection status indicator
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = 32.dp)
+                ) {
+                    DetectionStatusChip(detectionState = uiState.detectionState)
+                }
             }
         } else {
             // Permission not granted screen
@@ -170,7 +183,8 @@ fun ARBodyScanScreen(
 
 @Composable
 private fun CameraPreviewWithAnalysis(
-    onFrameAvailable: (androidx.camera.core.ImageProxy) -> Unit
+    onFrameAvailable: (androidx.camera.core.ImageProxy) -> Unit,
+    onCameraError: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -214,7 +228,8 @@ private fun CameraPreviewWithAnalysis(
                         imageAnalysis
                     )
                 } catch (e: Exception) {
-                    // Camera initialization failed silently
+                    Log.e("ARBodyScan", "Camera initialization failed", e)
+                    onCameraError()
                 }
             }, ContextCompat.getMainExecutor(ctx))
 
@@ -513,6 +528,61 @@ private fun OrganDetailSheet(organInfo: OrganInfo) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun CameraErrorScreen(
+    onRetry: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = null,
+            tint = HeartRateColor.copy(alpha = 0.8f),
+            modifier = Modifier.size(80.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Camera Unavailable",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Camera unavailable. Please close other camera apps and try again.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+        ) {
+            Text("Try Again")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        TextButton(onClick = onNavigateBack) {
+            Text("Go Back", color = Color.White.copy(alpha = 0.7f))
+        }
     }
 }
 
