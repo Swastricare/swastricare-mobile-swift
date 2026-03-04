@@ -6,6 +6,7 @@ import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.HydrationRepository
 import com.swasthicare.mobile.data.repository.ProfileRepository
 import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.data.services.DrinkingPatternService
 import com.swasthicare.mobile.data.services.WeatherData
 import com.swasthicare.mobile.data.services.WeatherService
 import com.swasthicare.mobile.di.AppContainer
@@ -77,7 +78,8 @@ class HydrationViewModel(
     private val repository: HydrationRepository,
     private val profileRepository: ProfileRepository,
     private val weatherService: WeatherService? = null,
-    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
+    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
+    private val patternService: DrinkingPatternService = DrinkingPatternService(AppContainer.sharedPreferences)
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HydrationUiState(isLoading = true))
@@ -104,6 +106,9 @@ class HydrationViewModel(
                 insights = insights,
                 isLoading = false
             )
+
+            // Analyze drinking patterns from loaded entries
+            analyzePatterns()
 
             // Background sync
             syncInBackground()
@@ -190,6 +195,11 @@ class HydrationViewModel(
     // MARK: - Private Helpers
     // -----------------------------------------------
 
+    private fun analyzePatterns() {
+        val timestamps = _uiState.value.entries.map { it.consumedAt }
+        patternService.analyzePatterns(timestamps)
+    }
+
     private fun refreshFromLocal() {
         val entries = repository.loadLocalEntries()
         val insights = computeInsights(entries, _uiState.value.goal)
@@ -236,9 +246,11 @@ class HydrationViewModel(
     }
 
     private fun computeStreak(entries: List<HydrationEntry>, goal: HydrationGoal): Int {
+        if (goal.dailyGoalMl <= 0) return 0
         var streak = 0
         var date = LocalDate.now()
-        while (true) {
+        val maxDays = 365
+        while (streak < maxDays) {
             val dateStr = date.toString()
             val dayEffective = entries
                 .filter { it.consumedAt.startsWith(dateStr) }
