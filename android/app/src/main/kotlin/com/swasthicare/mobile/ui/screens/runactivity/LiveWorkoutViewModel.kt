@@ -8,6 +8,7 @@ import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.data.services.RouteTracker
 import com.swasthicare.mobile.data.services.SavedWorkoutState
+import com.swasthicare.mobile.data.services.WorkoutNotificationService
 import com.swasthicare.mobile.data.services.WorkoutStateManager
 import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.Job
@@ -225,6 +226,7 @@ class LiveWorkoutViewModel(
         timerJob?.cancel()
         autoSaveJob?.cancel()
         routeTracker.stopTracking()
+        WorkoutNotificationService.stop(context)
 
         // Workout completed normally — clear persisted recovery state
         workoutStateManager.clearState()
@@ -257,6 +259,7 @@ class LiveWorkoutViewModel(
         autoSaveJob?.cancel()
         routeTracker.stopTracking()
         routeTracker.reset()
+        WorkoutNotificationService.stop(context)
 
         // Discard — clear persisted recovery state
         workoutStateManager.clearState()
@@ -289,6 +292,7 @@ class LiveWorkoutViewModel(
             routeTracker.startTracking()
         }
 
+        WorkoutNotificationService.start(context)
         startTimer()
         startAutoSave()
     }
@@ -299,6 +303,17 @@ class LiveWorkoutViewModel(
             while (true) {
                 delay(1000)
                 _uiState.update { it.copy(elapsedSeconds = it.elapsedSeconds + 1) }
+                val state = _uiState.value
+                if (state.elapsedSeconds % 5 == 0L) {
+                    val distanceKm = "%.2f km".format(state.distanceMeters / 1000.0)
+                    WorkoutNotificationService.update(
+                        context,
+                        state.elapsedFormatted,
+                        distanceKm,
+                        state.paceFormatted,
+                        state.caloriesBurned
+                    )
+                }
             }
         }
     }

@@ -190,6 +190,12 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/run_widget_info" />
         </receiver>
+
+        <!-- Workout Foreground Notification Service -->
+        <service
+            android:name=".data.services.WorkoutNotificationService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
     </application>
 
 </manifest>
