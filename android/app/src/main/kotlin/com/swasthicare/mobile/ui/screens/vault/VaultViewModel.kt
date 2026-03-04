@@ -5,9 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.DocumentMetadata
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
-import com.swasthicare.mobile.data.repository.MockVaultRepository
-// import com.swasthicare.mobile.data.repository.SupabaseVaultRepository
 import com.swasthicare.mobile.data.repository.VaultRepository
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,9 +56,7 @@ enum class VaultViewMode {
 }
 
 class VaultViewModel(
-    // In a real app with Hilt, this would be injected.
-    // For now defaulting to Mock implementation for UI-only mode.
-    private val repository: VaultRepository = MockVaultRepository() 
+    private val repository: VaultRepository = AppContainer.vaultRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VaultUiState())
@@ -76,20 +73,7 @@ class VaultViewModel(
                 val documents = repository.getDocuments()
                 _uiState.update { it.copy(documents = documents, isLoading = false) }
             } catch (e: Exception) {
-                // Fallback to mock if Supabase fails (e.g. auth issue during dev)
-                // In production, handle specific errors
-                if (e.message?.contains("User not authenticated") == true) {
-                     // Using mock for demo if not logged in
-                     try {
-                         val mockRepo = MockVaultRepository()
-                         val docs = mockRepo.getDocuments()
-                         _uiState.update { it.copy(documents = docs, isLoading = false, errorMessage = "Demo Mode: ${e.message}") }
-                     } catch (ex: Exception) {
-                         _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
-                     }
-                } else {
-                    _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
-                }
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
