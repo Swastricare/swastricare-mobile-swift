@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -533,9 +534,11 @@ private fun InsightItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UrineColorGuideSheet(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onLogWater: (Int) -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selectedLevel by remember { mutableStateOf<Int?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -557,18 +560,23 @@ fun UrineColorGuideSheet(
             )
 
             Text(
-                "Check your urine color to assess hydration level",
+                "Tap a color to check your hydration level",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
             UrineColorLevel.guide.forEach { level ->
+                val isSelected = selectedLevel == level.level
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                        .clickable { selectedLevel = if (isSelected) null else level.level }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -579,6 +587,10 @@ fun UrineColorGuideSheet(
                             .size(40.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color(level.colorHex))
+                            .then(
+                                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                                else Modifier
+                            )
                     )
 
                     Column(modifier = Modifier.weight(1f)) {
@@ -602,9 +614,23 @@ fun UrineColorGuideSheet(
                             level.recommendation,
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            maxLines = 2,
+                            maxLines = if (isSelected) Int.MAX_VALUE else 2,
                             overflow = TextOverflow.Ellipsis
                         )
+                    }
+                }
+
+                if (isSelected && level.level > 2) {
+                    Button(
+                        onClick = {
+                            onLogWater(250)
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C7BE)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Log 250ml Water", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

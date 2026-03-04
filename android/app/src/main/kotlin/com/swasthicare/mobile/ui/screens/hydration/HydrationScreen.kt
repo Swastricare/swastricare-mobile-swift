@@ -427,7 +427,10 @@ fun HydrationScreen(
 
         // Urine Color Guide Bottom Sheet
         if (showUrineGuide) {
-            UrineColorGuideSheet(onDismiss = { showUrineGuide = false })
+            UrineColorGuideSheet(
+                onDismiss = { showUrineGuide = false },
+                onLogWater = { amount -> vm.addDrink(DrinkType.WATER, amount) }
+            )
         }
     }
 }
