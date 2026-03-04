@@ -1,14 +1,24 @@
 package com.swasthicare.mobile.data.services
 
 import android.app.*
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.swasthicare.mobile.MainActivity
 import com.swasthicare.mobile.R
 
 class WorkoutNotificationService : Service() {
+
+    private val stopReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
+    }
 
     companion object {
         const val CHANNEL_ID = "workout_tracking"
@@ -42,6 +52,16 @@ class WorkoutNotificationService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(stopReceiver, IntentFilter(ACTION_STOP), RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(stopReceiver, IntentFilter(ACTION_STOP))
+        }
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(stopReceiver)
+        super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -52,7 +72,7 @@ class WorkoutNotificationService : Service() {
 
         val notification = buildNotification(time, distance, pace, calories)
         startForeground(NOTIFICATION_ID, notification)
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
