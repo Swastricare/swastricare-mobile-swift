@@ -2,23 +2,34 @@
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 
-# Keep Supabase classes
--keep class io.github.jan.supabase.** { *; }
--keepnames class io.github.jan.supabase.** { *; }
-
-# Keep Kotlin coroutines
--keepnames class kotlinx.coroutines.** { *; }
-
-# Keep Android components
+# ===========================================================================
+# Android components
+# ===========================================================================
 -keep public class * extends android.app.Activity
 -keep public class * extends android.app.Application
 -keep public class * extends android.app.Service
 -keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
 
-# Kotlin serialization
--keepattributes *Annotation*
--keepattributes EnclosingMethod
--keepattributes InnerClasses
+# ===========================================================================
+# kotlinx.serialization
+# ===========================================================================
+-keepattributes *Annotation*, InnerClasses, EnclosingMethod
+-dontnote kotlinx.serialization.AnnotationsKt
+
+# Keep Companion object fields of serializable classes
+-keepclassmembers class kotlinx.serialization.json.** { *** Companion; }
+
+# Keep `serializer()` on Companion objects of all @Serializable classes
+-keep,includedescriptorclasses class com.swasthicare.mobile.**$$serializer { *; }
+-keepclassmembers class com.swasthicare.mobile.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.swasthicare.mobile.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep all @Serializable annotated classes and their @SerialName fields
 -keep @kotlinx.serialization.Serializable class * { *; }
 -keepclassmembers class * {
     @kotlinx.serialization.SerialName <fields>;
@@ -30,40 +41,97 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
+# ===========================================================================
+# Kotlin coroutines
+# ===========================================================================
+-keepnames class kotlinx.coroutines.** { *; }
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+
+# ===========================================================================
 # Supabase / Ktor
--dontwarn io.ktor.**
+# ===========================================================================
 -keep class io.github.jan.supabase.** { *; }
+-keepnames class io.github.jan.supabase.** { *; }
 -keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
 
-# Coil
--dontwarn coil.**
+# ===========================================================================
+# Firebase (Analytics, Crashlytics, Performance)
+# ===========================================================================
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
 
-# Health Connect
--keep class androidx.health.connect.** { *; }
+# ===========================================================================
+# Google Play Services (Auth, Location)
+# ===========================================================================
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
 
+# ===========================================================================
+# Google Credential Manager / Google Sign-In
+# ===========================================================================
+-keep class androidx.credentials.** { *; }
+-dontwarn androidx.credentials.**
+-keep class com.google.android.libraries.identity.** { *; }
+-dontwarn com.google.android.libraries.identity.**
+
+# ===========================================================================
 # SceneView / Filament (3D model viewer)
+# ===========================================================================
 -keep class io.github.sceneview.** { *; }
 -keep class com.google.android.filament.** { *; }
 -dontwarn io.github.sceneview.**
 -dontwarn com.google.android.filament.**
 
+# ===========================================================================
 # ML Kit Pose Detection
+# ===========================================================================
 -keep class com.google.mlkit.** { *; }
 -dontwarn com.google.mlkit.**
 
-# Google Play Services
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.android.gms.**
+# ===========================================================================
+# Health Connect
+# ===========================================================================
+-keep class androidx.health.connect.** { *; }
+-dontwarn androidx.health.connect.**
 
-# Firebase
--keep class com.google.firebase.** { *; }
--dontwarn com.google.firebase.**
+# ===========================================================================
+# CameraX
+# ===========================================================================
+-keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
 
-# Coroutines
--keepclassmembernames class kotlinx.** {
-    volatile <fields>;
-}
+# ===========================================================================
+# Coil (image loading)
+# ===========================================================================
+-keep class coil.** { *; }
+-dontwarn coil.**
 
-# App data models (ensure serialization works)
+# ===========================================================================
+# Media3 / ExoPlayer (video splash screen)
+# ===========================================================================
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
+
+# ===========================================================================
+# Jetpack Glance (App Widgets)
+# ===========================================================================
+-keep class androidx.glance.** { *; }
+-dontwarn androidx.glance.**
+
+# ===========================================================================
+# Biometric
+# ===========================================================================
+-keep class androidx.biometric.** { *; }
+-dontwarn androidx.biometric.**
+
+# ===========================================================================
+# App data models and services (ensure serialization works)
+# ===========================================================================
 -keep class com.swasthicare.mobile.data.model.** { *; }
 -keep class com.swasthicare.mobile.data.models.** { *; }
+-keep class com.swasthicare.mobile.data.services.** { *; }
+-keep class com.swasthicare.mobile.widgets.** { *; }
+-keep class com.swasthicare.mobile.notifications.** { *; }
