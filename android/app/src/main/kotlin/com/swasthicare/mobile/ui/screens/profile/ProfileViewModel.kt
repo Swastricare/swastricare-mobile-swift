@@ -83,15 +83,8 @@ class ProfileViewModel : ViewModel() {
                     _uiState.update { it.copy(user = user, isLoading = false) }
                     loadHealthProfile(user.id)
                 } else {
-                    // Fallback to mock user for UI demonstration if no real user logged in
-                     val mockUser = AppUser(
-                        id = "mock-user-1",
-                        email = "john.doe@example.com",
-                        fullName = "John Doe",
-                        createdAt = "2024-01-01T12:00:00Z"
-                    )
-                     _uiState.update { it.copy(user = mockUser, isLoading = false) }
-                     loadHealthProfile(mockUser.id)
+                    // No authenticated user — show empty state (UI should prompt login)
+                    _uiState.update { it.copy(user = null, isLoading = false) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
@@ -107,24 +100,8 @@ class ProfileViewModel : ViewModel() {
                 // Try fetching real profile
                 val profile = profileRepository.getHealthProfile(userId)
                 
-                if (profile != null) {
-                    _uiState.update { 
-                        it.copy(healthProfile = profile, isLoadingHealthProfile = false) 
-                    }
-                } else {
-                     // Fallback mock profile for demo
-                     val mockProfile = HealthProfile(
-                        userId = userId,
-                        fullName = "John Doe",
-                        gender = com.swasthicare.mobile.data.model.Gender.Male,
-                        dateOfBirth = "1990-01-01",
-                        heightCm = 180.0,
-                        weightKg = 75.0,
-                        bloodType = "O+"
-                    )
-                    _uiState.update { 
-                        it.copy(healthProfile = mockProfile, isLoadingHealthProfile = false) 
-                    }
+                _uiState.update {
+                    it.copy(healthProfile = profile, isLoadingHealthProfile = false)
                 }
             } catch (e: Exception) {
                 // Don't show error for profile load failure (user might not have one)

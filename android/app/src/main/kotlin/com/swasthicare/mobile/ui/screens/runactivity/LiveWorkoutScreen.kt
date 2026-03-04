@@ -34,6 +34,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.shouldShowRationale
 import com.swasthicare.mobile.data.services.RouteTracker
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.GpsStatusChip
 import com.swasthicare.mobile.ui.components.RouteMapView
 import com.swasthicare.mobile.ui.screens.home.glass
@@ -50,7 +51,7 @@ fun LiveWorkoutScreen(
     onNavigateToSummary: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val viewModel = remember { LiveWorkoutViewModel(context) }
+    val viewModel = remember { AppContainer.liveWorkoutViewModel }
     val uiState by viewModel.uiState.collectAsState()
 
     // ── Location Permission ──

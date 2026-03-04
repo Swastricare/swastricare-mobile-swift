@@ -813,7 +813,7 @@ fun NudgesCardStrip(
 }
 
 // MARK: - Diet Quick Action Card
-private val DietOrange = Color(0xFFFF9500)
+private val DietOrange = com.swasthicare.mobile.ui.theme.ActivityColor
 
 @Composable
 fun DietQuickActionCard(
@@ -919,7 +919,7 @@ fun DietQuickActionCard(
 }
 
 // MARK: - Cycle Tracker Card
-private val CyclePurple = Color(0xFFBF5AF2)
+private val CyclePurple = com.swasthicare.mobile.ui.theme.CycleColor
 
 @Composable
 fun CycleTrackerCard(

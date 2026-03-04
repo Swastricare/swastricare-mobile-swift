@@ -29,9 +29,10 @@ object MedicationReminderScheduler {
             putExtra("schedule_id", scheduleId)
             putExtra("med_name", medName)
         }
+        val requestCode = "${medId}_${scheduleId}".hashCode() and Int.MAX_VALUE
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            scheduleId.hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -56,9 +57,10 @@ object MedicationReminderScheduler {
     fun cancel(context: Context, scheduleId: String) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, MedicationReminderReceiver::class.java)
+        val requestCode = scheduleId.hashCode() and Int.MAX_VALUE
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            scheduleId.hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         ) ?: return

@@ -240,7 +240,7 @@ object AppContainer {
     }
 
     val liveWorkoutViewModel: LiveWorkoutViewModel by lazy {
-        LiveWorkoutViewModel(context)
+        LiveWorkoutViewModel(context, workoutStateManager)
     }
 
     // ── Workout Recovery ──

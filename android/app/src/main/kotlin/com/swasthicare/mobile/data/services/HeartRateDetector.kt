@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.nio.ByteBuffer
+import java.util.Collections
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
@@ -31,11 +33,11 @@ class HeartRateDetector(private val context: Context) {
         const val PREPARING_END_MS = 5_000L
         const val CALIBRATING_END_MS = 10_000L
         const val MEASURING_END_MS = 25_000L
-        // COMPLETING: 25-30s
     }
 
     private val processor = PPGSignalProcessor()
-    private val analysisExecutor = Executors.newSingleThreadExecutor()
+    // Recreate executor for each measurement to avoid shutdown-reuse issue (BUG-4)
+    private var analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: androidx.camera.core.Camera? = null
 
@@ -59,14 +61,15 @@ class HeartRateDetector(private val context: Context) {
     val waveformData: StateFlow<List<Float>> = _waveformData.asStateFlow()
 
     private var startTimeMs: Long = 0
-    private var bpmReadings = mutableListOf<Int>()
+    // Thread-safe list to prevent ConcurrentModificationException (BUG-5)
+    private var bpmReadings: MutableList<Int> = Collections.synchronizedList(mutableListOf())
 
     fun startMeasurement(
         previewView: PreviewView,
         lifecycleOwner: LifecycleOwner
     ) {
         processor.reset()
-        bpmReadings.clear()
+        bpmReadings = Collections.synchronizedList(mutableListOf())
         _measurementState.value = MeasurementState.PREPARING
         _currentBPM.value = 0
         _signalQuality.value = SignalQuality.POOR
@@ -74,6 +77,11 @@ class HeartRateDetector(private val context: Context) {
         _phase.value = MeasurementPhase.PREPARING
         _waveformData.value = emptyList()
         startTimeMs = System.currentTimeMillis()
+
+        // Create fresh executor for each measurement (BUG-4 fix)
+        if (analysisExecutor.isShutdown) {
+            analysisExecutor = Executors.newSingleThreadExecutor()
+        }
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
@@ -88,18 +96,31 @@ class HeartRateDetector(private val context: Context) {
     }
 
     fun stopMeasurement() {
-        cameraProvider?.unbindAll()
-        camera?.cameraControl?.enableTorch(false)
+        // Disable torch safely (BUG-6 fix)
+        try {
+            camera?.cameraControl?.enableTorch(false)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to disable torch: ${e.message}")
+        }
+
+        try {
+            cameraProvider?.unbindAll()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to unbind camera: ${e.message}")
+        }
+
         camera = null
         analysisExecutor.shutdown()
         _measurementState.value = MeasurementState.IDLE
     }
 
     fun getResult(): HeartRateResult? {
-        if (bpmReadings.isEmpty()) return null
+        // Snapshot the list to avoid race conditions (BUG-25 fix)
+        val snapshot = synchronized(bpmReadings) { bpmReadings.toList() }
+        if (snapshot.isEmpty()) return null
 
         // Use median for robustness
-        val sorted = bpmReadings.sorted()
+        val sorted = snapshot.sorted()
         val medianBPM = sorted[sorted.size / 2]
         val confidence = processor.getConfidence()
         val errorMargin = when {
@@ -150,12 +171,11 @@ class HeartRateDetector(private val context: Context) {
                 preview,
                 imageAnalysis
             )
-            // Enable torch (flashlight) for PPG
             camera?.cameraControl?.enableTorch(true)
         } catch (e: Exception) {
             Log.e(TAG, "Camera binding failed", e)
-            camera?.cameraControl?.enableTorch(false)
-            cameraProvider?.unbindAll()
+            try { camera?.cameraControl?.enableTorch(false) } catch (_: Exception) {}
+            try { cameraProvider?.unbindAll() } catch (_: Exception) {}
             _measurementState.value = MeasurementState.ERROR
         }
     }
@@ -167,7 +187,6 @@ class HeartRateDetector(private val context: Context) {
             val progressVal = (elapsed.toFloat() / MEASUREMENT_DURATION_MS).coerceIn(0f, 1f)
             _progress.value = progressVal
 
-            // Update phase
             val currentPhase = when {
                 elapsed < PREPARING_END_MS -> MeasurementPhase.PREPARING
                 elapsed < CALIBRATING_END_MS -> MeasurementPhase.CALIBRATING
@@ -183,19 +202,15 @@ class HeartRateDetector(private val context: Context) {
                 MeasurementPhase.COMPLETING -> MeasurementState.COMPLETING
             }
 
-            // Extract red channel average
             val redAvg = extractRedChannelAverage(imageProxy)
             processor.addSample(redAvg)
 
-            // Update signal quality
             _signalQuality.value = processor.assessSignalQuality()
 
-            // Update waveform (last 90 samples = ~3 seconds)
             val filtered = processor.getFilteredBuffer()
             val waveform = filtered.takeLast(90).map { it.toFloat() }
             _waveformData.value = waveform
 
-            // Calculate BPM once we have enough data
             if (elapsed > CALIBRATING_END_MS) {
                 processor.calculateBPM()?.let { bpm ->
                     val bpmInt = bpm.toInt()
@@ -204,11 +219,10 @@ class HeartRateDetector(private val context: Context) {
                 }
             }
 
-            // Check if measurement is complete
             if (elapsed >= MEASUREMENT_DURATION_MS) {
                 _measurementState.value = MeasurementState.RESULT
-                camera?.cameraControl?.enableTorch(false)
-                cameraProvider?.unbindAll()
+                try { camera?.cameraControl?.enableTorch(false) } catch (_: Exception) {}
+                try { cameraProvider?.unbindAll() } catch (_: Exception) {}
             }
         } catch (e: Exception) {
             Log.e(TAG, "Frame processing error", e)
@@ -221,14 +235,11 @@ class HeartRateDetector(private val context: Context) {
     private fun extractRedChannelAverage(imageProxy: ImageProxy): Double {
         val image = imageProxy.image ?: return 0.0
 
-        // YUV_420_888 format: Y plane contains luminance
-        // For PPG, the red channel correlates with the Y (luminance) when finger covers camera
         val yPlane = image.planes[0]
         val buffer: ByteBuffer = yPlane.buffer
         val data = ByteArray(buffer.remaining())
         buffer.get(data)
 
-        // Average luminance (correlates with red absorption through finger)
         var sum = 0L
         for (byte in data) {
             sum += (byte.toInt() and 0xFF)

@@ -40,6 +40,6 @@ class MedicationReminderReceiver : BroadcastReceiver() {
             .setContentIntent(openIntent)
             .build()
 
-        manager.notify(medId.hashCode(), notification)
+        manager.notify("${medId}_${scheduleId}".hashCode(), notification)
     }
 }

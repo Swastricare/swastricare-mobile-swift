@@ -262,7 +262,8 @@ class MedicationsViewModel(
     // ─────────────────────────────────────
 
     private fun resolveProfileId(): String {
-        return AppContainer.authRepository.currentUser?.id ?: ""
+        return AppContainer.authRepository.currentUser?.id
+            ?: throw IllegalStateException("No authenticated user")
     }
 
     private fun buildMedicationsWithDoses(

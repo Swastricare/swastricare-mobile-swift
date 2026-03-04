@@ -152,7 +152,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -179,7 +179,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .background(
                             if (canProceed) MedBrandBlue
                             else Color.Gray.copy(alpha = 0.2f)
@@ -428,7 +428,7 @@ private fun Step2Content(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(cardBg)
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -487,7 +487,7 @@ private fun Step3Content(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(cardBg)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -536,7 +536,7 @@ private fun Step3Content(
                     focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
                     unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                 ),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -568,7 +568,7 @@ private fun MedTextField(
             focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
             unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
         ),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     )
 }
@@ -583,12 +583,12 @@ private fun DateSelectRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(cardBg)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-                RoundedCornerShape(14.dp)
+                RoundedCornerShape(16.dp)
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

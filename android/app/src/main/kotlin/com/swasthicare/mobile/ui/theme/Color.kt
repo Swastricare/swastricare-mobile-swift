@@ -22,16 +22,28 @@ val TextSecondaryLight = Color(0xFF8E8E93)
 val TextPrimaryDark = Color(0xFFFFFFFF)
 val TextSecondaryDark = Color(0xFF8E8E93)
 
-// Functional Colors
+// Functional Colors — per-feature semantic tokens
 val HeartRateColor = Color(0xFFFF3B30)
 val SleepColor = Color(0xFF4F46E5)
 val ActivityColor = Color(0xFFFF9F0A)
 val HydrationColor = Color(0xFF00C7BE)
+val HydrationCyan = Color(0xFF64D2FF)
 
 val MedicationColor = Color(0xFF5856D6)
 val DietColor = Color(0xFF34C759)
 val StepsColor = Color(0xFF30D158)
 val DistanceColor = Color(0xFF0A84FF)
+val CycleColor = Color(0xFFBF5AF2)
+val SystemBlue = Color(0xFF007AFF)
+
+// Nutrition-specific Colors
+val NutritionProtein = Color(0xFFFF6B6B)
+val NutritionCarbs = Color(0xFF4ECDC4)
+val NutritionFat = Color(0xFFFFD93D)
+
+// Danger / Warning
+val DangerRed = Color(0xFFFF453A)
+val WarningOrange = Color(0xFFFF9F0A)
 
 // Premium Colors (Ported from iOS)
 object PremiumColor {

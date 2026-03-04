@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.ProfileRepository
 import com.swasthicare.mobile.data.repository.RunActivityRepository
+import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +40,7 @@ class RunActivityViewModel(
     private val _uiState = MutableStateFlow(RunActivityUiState(isLoading = true))
     val uiState: StateFlow<RunActivityUiState> = _uiState.asStateFlow()
 
-    // Profile ID resolved from authenticated user
+    private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
 
     init {
         loadData()
@@ -49,20 +50,26 @@ class RunActivityViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            val activities = repository.loadLocalActivities()
-            val stats = repository.calculateStatistics(activities, _uiState.value.timeRangeFilter)
+            try {
+                val activities = repository.loadLocalActivities()
+                val stats = repository.calculateStatistics(activities, _uiState.value.timeRangeFilter)
 
-            _uiState.value = _uiState.value.copy(
-                activities = activities,
-                statistics = stats,
-                isLoading = false,
-                todaySteps = 8432, // Demo data
-                todayDistance = 5.2,
-                todayCalories = 450
-            )
+                // Load real data from Health Connect
+                val summary = healthConnectService.getTodaySummary()
 
-            // Background sync
-            syncInBackground()
+                _uiState.value = _uiState.value.copy(
+                    activities = activities,
+                    statistics = stats,
+                    isLoading = false,
+                    todaySteps = summary.steps,
+                    todayDistance = summary.distanceKm,
+                    todayCalories = summary.activeCalories
+                )
+
+                syncInBackground()
+            } catch (_: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
         }
     }
 
@@ -93,15 +100,13 @@ class RunActivityViewModel(
 
     private suspend fun syncInBackground() {
         try {
-            val profileId = resolveProfileId()
+            val profileId = AppContainer.authRepository.currentUser?.id ?: return
             val unsynced = _uiState.value.activities.filter { !it.synced }
             if (unsynced.isNotEmpty()) {
-                repository.syncActivitiesToCloud(_uiState.value.activities, profileId)
+                repository.syncActivitiesToCloud(unsynced, profileId)
             }
-        } catch (_: Exception) { }
-    }
-
-    private fun resolveProfileId(): String {
-        return AppContainer.authRepository.currentUser?.id ?: ""
+        } catch (e: Exception) {
+            android.util.Log.w("RunActivityVM", "Sync failed: ${e.message}")
+        }
     }
 }

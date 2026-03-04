@@ -347,14 +347,16 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
+                // Fetch real health data from Health Connect
+                val summary = com.swasthicare.mobile.di.AppContainer.healthConnectService.getTodaySummary()
                 val metrics = HealthMetrics(
-                    steps = 5432,
-                    heartRate = 72,
-                    sleep = "7h 15m",
-                    activeCalories = 320,
-                    exerciseMinutes = 45,
-                    bloodPressure = "120/80",
-                    weight = "70.5"
+                    steps = summary.steps,
+                    heartRate = summary.heartRate,
+                    sleep = summary.sleepFormatted,
+                    activeCalories = summary.activeCalories,
+                    exerciseMinutes = summary.exerciseMinutes,
+                    bloodPressure = summary.bloodPressureFormatted,
+                    weight = if (summary.weightKg > 0) "%.1f".format(summary.weightKg) else "--"
                 )
 
                 val response = aiService.analyzeHealth(metrics)

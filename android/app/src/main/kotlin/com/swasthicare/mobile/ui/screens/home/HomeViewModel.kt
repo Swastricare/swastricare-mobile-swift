@@ -1,9 +1,10 @@
 package com.swasthicare.mobile.ui.screens.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.DailyMetric
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +23,7 @@ data class ServerNudge(
 )
 
 data class HomeState(
-    val userName: String = "Alex Johnson",
+    val userName: String = "",
     val greeting: String = "Good Morning,",
     val stepCount: Int = 0,
     val calories: Int = 0,
@@ -34,7 +35,7 @@ data class HomeState(
     val hydrationCurrent: Int = 0,
     val hydrationGoal: Int = 2500,
     val medicationsTaken: Int = 0,
-    val medicationsTotal: Int = 4,
+    val medicationsTotal: Int = 0,
     val isLoading: Boolean = true,
     val isDemoMode: Boolean = false,
     val isAuthorized: Boolean = false,
@@ -55,77 +56,110 @@ class HomeViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(HomeState())
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
 
+    private val healthConnectService = AppContainer.healthConnectService
+    private val hydrationRepository = AppContainer.hydrationRepository
+    private val dietRepository = AppContainer.dietRepository
+
     init {
         loadData()
     }
 
     private fun loadData() {
         viewModelScope.launch {
-            // Simulate network delay
-            delay(1500)
-            
-            val hour = LocalDateTime.now().hour
-            val greeting = when (hour) {
-                in 5..11 -> "Good Morning,"
-                in 12..16 -> "Good Afternoon,"
-                in 17..20 -> "Good Evening,"
-                else -> "Good Night,"
-            }
-            
-            // Generate week dates and sample data
-            val weekDates = generateWeekDates()
-            val weeklySteps = generateSampleWeeklySteps()
+            try {
+                val hour = LocalDateTime.now().hour
+                val greeting = when (hour) {
+                    in 5..11 -> "Good Morning,"
+                    in 12..16 -> "Good Afternoon,"
+                    in 17..20 -> "Good Evening,"
+                    else -> "Good Night,"
+                }
 
-            _uiState.value = HomeState(
-                userName = "Alex Johnson",
-                greeting = greeting,
-                stepCount = 8432,
-                calories = 450,
-                activeMinutes = 45,
-                standHours = 8,
-                heartRate = 72,
-                sleepHours = "7h 30m",
-                distance = 5.2,
-                hydrationCurrent = 1250,
-                hydrationGoal = 2500,
-                medicationsTaken = 2,
-                medicationsTotal = 4,
-                isLoading = false,
-                isDemoMode = false,
-                isAuthorized = false,
-                weekDates = weekDates,
-                selectedDate = Date(),
-                weeklySteps = weeklySteps,
-                calorieCurrent = 1240,
-                calorieGoal = 2000
-            )
-            loadNudges()
+                // Resolve user name
+                val userName = AppContainer.authRepository.currentUser?.fullName
+                    ?: AppContainer.authRepository.currentUser?.email?.substringBefore("@")
+                    ?: ""
+
+                // Load real data from Health Connect
+                val summary = healthConnectService.getTodaySummary()
+                val weeklyStepEntries = healthConnectService.getWeeklySteps()
+
+                // Load hydration data from local store
+                val todayStr = java.time.LocalDate.now().toString()
+                val hydrationEntries = try { hydrationRepository.loadLocalEntries() } catch (_: Exception) { emptyList() }
+                val todayHydration = hydrationEntries
+                    .filter { it.consumedAt.startsWith(todayStr) }
+                    .sumOf { it.effectiveMl }
+
+                // Load diet data from local store
+                val dietEntries = try { dietRepository.loadLocalLogs() } catch (_: Exception) { emptyList() }
+                val todayCalories = dietEntries
+                    .filter { it.loggedAt.startsWith(todayStr) }
+                    .sumOf { it.calories }
+                val dietGoals = try { dietRepository.loadGoals() } catch (_: Exception) { null }
+
+                // Convert weekly steps to DailyMetric
+                val weekDates = generateWeekDates()
+                val weeklySteps = weeklyStepEntries.map { entry ->
+                    DailyMetric(
+                        date = java.util.Date.from(
+                            entry.date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                        ),
+                        steps = entry.steps,
+                        dayName = entry.dayName
+                    )
+                }
+
+                _uiState.value = HomeState(
+                    userName = userName,
+                    greeting = greeting,
+                    stepCount = summary.steps,
+                    calories = summary.activeCalories,
+                    activeMinutes = summary.exerciseMinutes,
+                    standHours = summary.standHours,
+                    heartRate = summary.heartRate,
+                    sleepHours = summary.sleepFormatted,
+                    distance = summary.distanceKm,
+                    hydrationCurrent = todayHydration,
+                    hydrationGoal = 2500,
+                    medicationsTaken = 0,
+                    medicationsTotal = 0,
+                    isLoading = false,
+                    isDemoMode = false,
+                    isAuthorized = healthConnectService.isAvailable,
+                    weekDates = weekDates,
+                    selectedDate = Date(),
+                    weeklySteps = weeklySteps,
+                    calorieCurrent = todayCalories,
+                    calorieGoal = dietGoals?.dailyCalories ?: 2000
+                )
+                loadNudges()
+            } catch (e: Exception) {
+                Log.w("HomeViewModel", "Error loading home data: ${e.message}")
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
         }
     }
 
     fun loadNudges() {
         viewModelScope.launch {
             try {
-                // Fetch from Supabase — table: server_nudges, filter: active = true
-                // For now stub 1-2 demo nudges until Supabase table is confirmed
-                val demoNudges = listOf(
+                val profileId = AppContainer.authRepository.currentUser?.id ?: return@launch
+                val nudges = AppContainer.nudgeRepository.fetchActiveNudges(profileId)
+                val serverNudges = nudges.map { nudge ->
                     ServerNudge(
-                        id = "1",
-                        title = "Stay Hydrated",
-                        message = "You're 750ml short of your daily water goal. Drink up!",
-                        icon = "drop.fill",
-                        color = "#00C7BE"
-                    ),
-                    ServerNudge(
-                        id = "2",
-                        title = "Medication Due",
-                        message = "Your evening Vitamin D dose is due in 30 minutes.",
-                        icon = "pills.fill",
-                        color = "#30D158"
+                        id = nudge.id,
+                        title = nudge.title,
+                        message = nudge.message,
+                        icon = nudge.type.name.lowercase(),
+                        color = "#007AFF",
+                        deepLink = nudge.deepLink
                     )
-                )
-                _uiState.value = _uiState.value.copy(serverNudges = demoNudges)
-            } catch (_: Exception) {}
+                }
+                _uiState.value = _uiState.value.copy(serverNudges = serverNudges)
+            } catch (_: Exception) {
+                // Nudges are non-critical
+            }
         }
     }
 
@@ -133,76 +167,43 @@ class HomeViewModel : ViewModel() {
         val current = _uiState.value.serverNudges.filter { it.id != nudgeId }
         _uiState.value = _uiState.value.copy(serverNudges = current)
     }
-    
+
     fun incrementHydration() {
         val current = _uiState.value
         if (current.hydrationCurrent < current.hydrationGoal) {
             _uiState.value = current.copy(hydrationCurrent = current.hydrationCurrent + 250)
         }
     }
-    
+
     fun selectDate(date: Date) {
         val current = _uiState.value
         _uiState.value = current.copy(selectedDate = date)
-        
-        // In a real app, would fetch data for selected date
-        // For demo, update step count based on weekly data
         val metric = current.weeklySteps.find { isSameDay(it.date, date) }
         metric?.let {
             _uiState.value = _uiState.value.copy(stepCount = it.steps)
         }
     }
-    
+
     fun requestHealthPermissions() {
-        // In a real app, would request Google Fit permissions
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAuthorized = true, isDemoMode = false)
         }
     }
-    
+
     fun syncToCloud() {
-        viewModelScope.launch {
-            // Simulate cloud sync
-            delay(1000)
-            // Would sync to Supabase in real implementation
-        }
+        // Sync handled by individual repositories
     }
-    
-    // Helper function to generate week dates
+
     private fun generateWeekDates(): List<Date> {
         val calendar = Calendar.getInstance()
-        val today = calendar.time
-        
-        // Start from beginning of week
         calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-        
         return (0..6).map {
             val date = calendar.time
             calendar.add(Calendar.DAY_OF_MONTH, 1)
             date
         }
     }
-    
-    // Generate sample weekly steps data
-    private fun generateSampleWeeklySteps(): List<DailyMetric> {
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-        
-        val sampleSteps = listOf(6500, 8200, 7800, 9100, 8432, 5600, 4200)
-        val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-        
-        return sampleSteps.mapIndexed { index, steps ->
-            val date = calendar.time
-            calendar.add(Calendar.DAY_OF_MONTH, 1)
-            DailyMetric(
-                date = date,
-                steps = steps,
-                dayName = dayNames[index]
-            )
-        }
-    }
-    
-    // Helper function to compare dates
+
     private fun isSameDay(date1: Date, date2: Date): Boolean {
         val cal1 = Calendar.getInstance().apply { time = date1 }
         val cal2 = Calendar.getInstance().apply { time = date2 }

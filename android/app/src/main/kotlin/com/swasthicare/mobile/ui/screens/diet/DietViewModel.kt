@@ -316,10 +316,13 @@ class DietViewModel(
         try {
             val profileId = resolveProfileId()
             repository.syncLogsToCloud(listOf(entry), profileId)
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            android.util.Log.w("DietViewModel", "Sync log failed: ${e.message}")
+        }
     }
 
     private fun resolveProfileId(): String {
-        return com.swasthicare.mobile.di.AppContainer.authRepository.currentUser?.id ?: ""
+        return com.swasthicare.mobile.di.AppContainer.authRepository.currentUser?.id
+            ?: throw IllegalStateException("No authenticated user")
     }
 }

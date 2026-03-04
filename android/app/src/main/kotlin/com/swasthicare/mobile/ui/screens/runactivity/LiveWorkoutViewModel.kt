@@ -5,10 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.RoutePoint
 import com.swasthicare.mobile.data.services.RouteTracker
+import com.swasthicare.mobile.data.services.SavedWorkoutState
+import com.swasthicare.mobile.data.services.WorkoutStateManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 // ─────────────────────────────────────
 // MARK: - Workout Types
@@ -99,7 +106,8 @@ data class LiveWorkoutUiState(
 // ─────────────────────────────────────
 
 class LiveWorkoutViewModel(
-    private val context: Context
+    private val context: Context,
+    private val workoutStateManager: WorkoutStateManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LiveWorkoutUiState())
@@ -108,9 +116,14 @@ class LiveWorkoutViewModel(
     private val routeTracker = RouteTracker(context)
 
     private var timerJob: Job? = null
+    private var autoSaveJob: Job? = null
     private var maxSpeed: Float = 0f
     private var lastAltitude: Double? = null
     private var totalElevationGain: Double = 0.0
+    private var workoutStartTime: Instant? = null
+
+    private val autoSaveJson = Json { encodeDefaults = true }
+    private val isoFormatter = DateTimeFormatter.ISO_INSTANT
 
     init {
         // Collect route updates
@@ -187,13 +200,17 @@ class LiveWorkoutViewModel(
     fun pauseWorkout() {
         _uiState.update { it.copy(phase = WorkoutPhase.PAUSED) }
         timerJob?.cancel()
+        autoSaveJob?.cancel()
         routeTracker.pauseTracking()
+        // Save state on pause so recovery knows we were paused
+        saveCurrentState()
     }
 
     fun resumeWorkout() {
         _uiState.update { it.copy(phase = WorkoutPhase.TRACKING) }
         routeTracker.resumeTracking()
         startTimer()
+        startAutoSave()
     }
 
     fun stopWorkout() {
@@ -201,7 +218,11 @@ class LiveWorkoutViewModel(
         if (currentPhase != WorkoutPhase.TRACKING && currentPhase != WorkoutPhase.PAUSED) return
 
         timerJob?.cancel()
+        autoSaveJob?.cancel()
         routeTracker.stopTracking()
+
+        // Workout completed normally — clear persisted recovery state
+        workoutStateManager.clearState()
 
         // Calculate final average speed
         val state = _uiState.value
@@ -223,11 +244,17 @@ class LiveWorkoutViewModel(
 
     fun resetWorkout() {
         timerJob?.cancel()
+        autoSaveJob?.cancel()
         routeTracker.stopTracking()
         routeTracker.reset()
+
+        // Discard — clear persisted recovery state
+        workoutStateManager.clearState()
+
         maxSpeed = 0f
         lastAltitude = null
         totalElevationGain = 0.0
+        workoutStartTime = null
         _uiState.value = LiveWorkoutUiState()
     }
 
@@ -239,6 +266,7 @@ class LiveWorkoutViewModel(
 
     private fun beginTracking() {
         _uiState.update { it.copy(phase = WorkoutPhase.TRACKING) }
+        workoutStartTime = Instant.now()
 
         // Start GPS if permission granted and workout uses GPS
         val state = _uiState.value
@@ -247,6 +275,7 @@ class LiveWorkoutViewModel(
         }
 
         startTimer()
+        startAutoSave()
     }
 
     private fun startTimer() {
@@ -259,9 +288,58 @@ class LiveWorkoutViewModel(
         }
     }
 
+    /**
+     * Launches a coroutine that persists workout state every 10 seconds.
+     * If the app crashes mid-workout the most recent snapshot can be
+     * recovered on the next launch via [WorkoutStateManager.loadSavedState].
+     */
+    private fun startAutoSave() {
+        autoSaveJob?.cancel()
+        autoSaveJob = viewModelScope.launch {
+            while (isActive) {
+                delay(10_000)
+                saveCurrentState()
+            }
+        }
+    }
+
+    /**
+     * Snapshot the live workout into a [SavedWorkoutState] and persist it
+     * via [WorkoutStateManager].
+     */
+    private fun saveCurrentState() {
+        val state = _uiState.value
+        val startIso = workoutStartTime?.let { isoFormatter.format(it) } ?: return
+        val nowIso = isoFormatter.format(Instant.now())
+
+        // Convert model RoutePoints to the serializable format used by WorkoutStateManager
+        val routePointsSerialized = autoSaveJson.encodeToString(
+            state.routePoints.map { rp ->
+                com.swasthicare.mobile.data.services.RoutePoint(
+                    latitude = rp.latitude,
+                    longitude = rp.longitude,
+                    timestamp = rp.timestamp
+                )
+            }
+        )
+
+        val savedState = SavedWorkoutState(
+            workoutType = state.workoutType.name,
+            startTime = startIso,
+            elapsedSeconds = state.elapsedSeconds,
+            distanceMeters = state.distanceMeters,
+            routePointsJson = routePointsSerialized,
+            isActive = state.phase == WorkoutPhase.TRACKING || state.phase == WorkoutPhase.PAUSED,
+            savedAt = nowIso
+        )
+
+        workoutStateManager.saveState(savedState)
+    }
+
     override fun onCleared() {
         super.onCleared()
         routeTracker.stopTracking()
         timerJob?.cancel()
+        autoSaveJob?.cancel()
     }
 }

@@ -416,12 +416,12 @@ private fun EditTextField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-                    RoundedCornerShape(14.dp)
+                    RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -475,12 +475,12 @@ private fun BioField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-                    RoundedCornerShape(14.dp)
+                    RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -541,12 +541,12 @@ private fun GenderSelector(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
                     .border(
                         1.dp,
                         MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-                        RoundedCornerShape(14.dp)
+                        RoundedCornerShape(16.dp)
                     )
                     .menuAnchor()
                     .clickable { expanded = true }
@@ -605,12 +605,12 @@ private fun DateOfBirthField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-                    RoundedCornerShape(14.dp)
+                    RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -685,12 +685,12 @@ private fun SliderField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-                    RoundedCornerShape(14.dp)
+                    RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -733,12 +733,12 @@ private fun BmiRow(bmi: Double, category: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-                RoundedCornerShape(14.dp)
+                RoundedCornerShape(16.dp)
             )
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -800,12 +800,12 @@ private fun BloodTypeSelector(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
                     .border(
                         1.dp,
                         MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-                        RoundedCornerShape(14.dp)
+                        RoundedCornerShape(16.dp)
                     )
                     .menuAnchor()
                     .clickable { expanded = true }

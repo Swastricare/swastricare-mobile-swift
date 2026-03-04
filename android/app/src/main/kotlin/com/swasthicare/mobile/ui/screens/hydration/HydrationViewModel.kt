@@ -262,7 +262,9 @@ class HydrationViewModel(
         try {
             val profileId = resolveProfileId() ?: return
             repository.syncEntriesToCloud(listOf(entry), profileId)
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            android.util.Log.w("HydrationViewModel", "Sync entry failed: ${e.message}")
+        }
     }
 
     private fun resolveProfileId(): String? {

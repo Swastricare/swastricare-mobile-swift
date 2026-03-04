@@ -36,6 +36,9 @@ import com.swasthicare.mobile.data.models.FoodCategory
 import com.swasthicare.mobile.data.models.FoodItem
 import com.swasthicare.mobile.data.models.MealType
 import com.swasthicare.mobile.data.models.NutritionSummary
+import com.swasthicare.mobile.ui.theme.NutritionProtein
+import com.swasthicare.mobile.ui.theme.NutritionCarbs
+import com.swasthicare.mobile.ui.theme.NutritionFat
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -319,21 +322,21 @@ fun MacroBreakdownCard(
             current = summary.totalProteinG.toInt(),
             goal = goals.proteinGrams,
             progress = proteinProgress,
-            color = Color(0xFFFF6B6B)
+            color = NutritionProtein
         )
         MacroRow(
             label = "Carbs",
             current = summary.totalCarbsG.toInt(),
             goal = goals.carbsGrams,
             progress = carbsProgress,
-            color = Color(0xFF4ECDC4)
+            color = NutritionCarbs
         )
         MacroRow(
             label = "Fat",
             current = summary.totalFatG.toInt(),
             goal = goals.fatGrams,
             progress = fatProgress,
-            color = Color(0xFFFFD93D)
+            color = NutritionFat
         )
     }
 }
