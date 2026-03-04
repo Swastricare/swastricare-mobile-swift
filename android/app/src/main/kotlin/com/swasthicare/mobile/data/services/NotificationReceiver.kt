@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.swasthicare.mobile.di.AppContainer
 
 /**
  * Handles notification-related broadcast intents:
@@ -18,7 +19,9 @@ class NotificationReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        val prefs = context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
+        // Ensure AppContainer is initialized so we can access encrypted prefs
+        AppContainer.initialize(context)
+        val prefs = AppContainer.sharedPreferences
         val notificationService = NotificationService(context, prefs)
 
         when (intent.action) {

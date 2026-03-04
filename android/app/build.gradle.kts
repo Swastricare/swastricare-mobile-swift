@@ -117,6 +117,9 @@ dependencies {
     // Biometric
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
 
+    // Encrypted SharedPreferences (security-crypto)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
     // SceneView for 3D rendering (wraps Filament with Compose support)
     implementation("io.github.sceneview:sceneview:2.2.1")
 

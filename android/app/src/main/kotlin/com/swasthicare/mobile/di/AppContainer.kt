@@ -2,10 +2,14 @@ package com.swasthicare.mobile.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
+import androidx.core.content.edit
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.swasthicare.mobile.BuildConfig
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
@@ -99,9 +103,54 @@ object AppContainer {
         AuthViewModel(authRepository, googleAuthHelper)
     }
 
-    // Shared preferences
+    // Shared preferences — encrypted at rest (AES-256-GCM) with automatic migration
+    // from the old plain-text "swasthicare_prefs" file on first launch after upgrade.
+    // Falls back to unencrypted prefs on devices with broken Keystore implementations.
     val sharedPreferences: SharedPreferences by lazy {
-        context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            val encrypted = EncryptedSharedPreferences.create(
+                context,
+                "swasthicare_prefs_encrypted",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+
+            migratePrefsIfNeeded(context, encrypted)
+            encrypted
+        } catch (e: Exception) {
+            Log.w("AppContainer", "EncryptedSharedPreferences unavailable, using plain", e)
+            context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
+        }
+    }
+
+    /**
+     * One-time migration: copies all entries from the old unencrypted
+     * "swasthicare_prefs" file into the new encrypted store, then clears the old file.
+     */
+    private fun migratePrefsIfNeeded(context: Context, encrypted: SharedPreferences) {
+        val old = context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
+        if (old.all.isEmpty()) return
+
+        Log.i("AppContainer", "Migrating ${old.all.size} prefs to EncryptedSharedPreferences")
+        encrypted.edit {
+            old.all.forEach { (key, value) ->
+                when (value) {
+                    is String -> putString(key, value)
+                    is Int -> putInt(key, value)
+                    is Boolean -> putBoolean(key, value)
+                    is Long -> putLong(key, value)
+                    is Float -> putFloat(key, value)
+                    is Set<*> -> putStringSet(key, value.filterIsInstance<String>().toSet())
+                }
+            }
+        }
+        old.edit { clear() }
+        Log.i("AppContainer", "SharedPreferences migration complete")
     }
 
     // ── Services ──
@@ -226,7 +275,7 @@ object AppContainer {
     // ── Heart Rate ──
 
     val heartRateViewModel: HeartRateViewModel by lazy {
-        HeartRateViewModel(sharedPreferences)
+        HeartRateViewModel(context, sharedPreferences)
     }
 
     // ── Run Activity ──
