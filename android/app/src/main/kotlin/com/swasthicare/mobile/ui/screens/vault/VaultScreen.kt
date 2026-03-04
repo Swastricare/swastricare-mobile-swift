@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
@@ -39,6 +40,16 @@ fun VaultScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    val allowedMimeTypes = arrayOf(
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    )
+    val maxFileSizeBytes = 20L * 1024 * 1024 // 20 MB
 
     // Upload State
     var pendingFileUri by remember { mutableStateOf<Uri?>(null) }
@@ -52,14 +63,31 @@ fun VaultScreen(
     ) { uri ->
         uri?.let {
             val contentResolver = context.contentResolver
+            var name = "unknown"
+            var size = 0L
             contentResolver.query(it, null, null, null, null)?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
                 if (cursor.moveToFirst()) {
-                    pendingFileName = if (nameIndex >= 0) cursor.getString(nameIndex) ?: "unknown" else "unknown"
-                    pendingFileSize = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
+                    name = if (nameIndex >= 0) cursor.getString(nameIndex) ?: "unknown" else "unknown"
+                    size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
                 }
             }
+            // Validate file size (fallback via file descriptor if cursor returned 0)
+            val fileSize = if (size > 0) size else {
+                contentResolver.openFileDescriptor(it, "r")?.use { fd -> fd.statSize } ?: 0L
+            }
+            if (fileSize > maxFileSizeBytes) {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "File too large. Maximum size is 20 MB.",
+                        duration = SnackbarDuration.Long
+                    )
+                }
+                return@let
+            }
+            pendingFileName = name
+            pendingFileSize = fileSize
             contentResolver.openInputStream(it)?.use { stream ->
                 pendingFileData = stream.readBytes()
             }
@@ -76,21 +104,39 @@ fun VaultScreen(
             // Single file: use normal flow
             val uri = uris.first()
             val contentResolver = context.contentResolver
+            var name = "unknown"
+            var size = 0L
             contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
                 if (cursor.moveToFirst()) {
-                    pendingFileName = if (nameIndex >= 0) cursor.getString(nameIndex) ?: "unknown" else "unknown"
-                    pendingFileSize = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
+                    name = if (nameIndex >= 0) cursor.getString(nameIndex) ?: "unknown" else "unknown"
+                    size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
                 }
             }
+            // Validate file size
+            val fileSize = if (size > 0) size else {
+                contentResolver.openFileDescriptor(uri, "r")?.use { fd -> fd.statSize } ?: 0L
+            }
+            if (fileSize > maxFileSizeBytes) {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "File too large. Maximum size is 20 MB.",
+                        duration = SnackbarDuration.Long
+                    )
+                }
+                return@rememberLauncherForActivityResult
+            }
+            pendingFileName = name
+            pendingFileSize = fileSize
             contentResolver.openInputStream(uri)?.use { stream ->
                 pendingFileData = stream.readBytes()
             }
             pendingFileUri = uri
             viewModel.setShowAddSheet(true)
         } else if (uris.size > 1) {
-            // Multiple files: batch upload flow
+            // Multiple files: batch upload flow with size validation
+            var skippedCount = 0
             val batchItems = uris.mapNotNull { uri ->
                 try {
                     val contentResolver = context.contentResolver
@@ -104,11 +150,19 @@ fun VaultScreen(
                             size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
                         }
                     }
+                    // Validate file size
+                    val fileSize = if (size > 0) size else {
+                        contentResolver.openFileDescriptor(uri, "r")?.use { fd -> fd.statSize } ?: 0L
+                    }
+                    if (fileSize > maxFileSizeBytes) {
+                        skippedCount++
+                        return@mapNotNull null
+                    }
                     val data = contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     data?.let {
                         BatchUploadItem(
                             fileName = name,
-                            fileSize = size,
+                            fileSize = fileSize,
                             fileData = it,
                             category = VaultCategory.OTHER
                         )
@@ -117,7 +171,18 @@ fun VaultScreen(
                     null
                 }
             }
-            viewModel.setBatchUploadItems(batchItems)
+            if (skippedCount > 0) {
+                coroutineScope.launch {
+                    val fileWord = if (skippedCount == 1) "file was" else "files were"
+                    snackbarHostState.showSnackbar(
+                        message = "$skippedCount $fileWord skipped (exceeds 20 MB limit).",
+                        duration = SnackbarDuration.Long
+                    )
+                }
+            }
+            if (batchItems.isNotEmpty()) {
+                viewModel.setBatchUploadItems(batchItems)
+            }
         }
     }
 
@@ -250,7 +315,7 @@ fun VaultScreen(
             if (!uiState.isSelectionMode) {
                 FloatingActionButton(
                     onClick = {
-                        batchFilePickerLauncher.launch(arrayOf("*/*"))
+                        batchFilePickerLauncher.launch(allowedMimeTypes)
                     },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White,
@@ -320,6 +385,14 @@ fun VaultScreen(
                 )
             }
         }
+
+        // Snackbar Host (overlays all content)
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 96.dp) // above FAB
+        )
 
         // Batch Upload Preview Sheet
         if (uiState.showBatchUploadPreview) {
