@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.sceneview.SceneView
@@ -23,6 +24,9 @@ import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
 import io.github.sceneview.math.colorOf
 import io.github.sceneview.node.ModelNode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
 
 private const val TAG = "ModelViewer"
 
@@ -98,11 +102,61 @@ private fun SceneViewComposable(
     onModelLoaded: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var modelNode by remember { mutableStateOf<ModelNode?>(null) }
+    var sceneView by remember { mutableStateOf<SceneView?>(null) }
+
+    // Load the GLB model bytes off the main thread to avoid ANR on large assets (~13MB)
+    val assetPath = "models/$modelName.glb"
+    var modelBuffer by remember { mutableStateOf<ByteBuffer?>(null) }
+
+    LaunchedEffect(assetPath) {
+        modelBuffer = withContext(Dispatchers.IO) {
+            try {
+                context.assets.open(assetPath).use { stream ->
+                    val bytes = stream.readBytes()
+                    Log.d(TAG, "Read ${bytes.size} bytes from $assetPath on IO thread")
+                    ByteBuffer.allocateDirect(bytes.size).apply {
+                        put(bytes)
+                        rewind()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "!!! Failed to read model asset: ${e.message}", e)
+                null
+            }
+        }
+    }
 
     // Update rotation when rotationY changes
     LaunchedEffect(rotationY) {
         modelNode?.rotation = Rotation(y = rotationY)
+    }
+
+    // Lifecycle cleanup: destroy model node and release SceneView resources when leaving
+    DisposableEffect(Unit) {
+        onDispose {
+            Log.d(TAG, "DisposableEffect onDispose: cleaning up SceneView resources")
+            modelNode?.let { node ->
+                try {
+                    sceneView?.removeChildNode(node)
+                    node.destroy()
+                    Log.d(TAG, "ModelNode destroyed")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error destroying ModelNode: ${e.message}")
+                }
+            }
+            modelNode = null
+            sceneView?.let { sv ->
+                try {
+                    sv.destroy()
+                    Log.d(TAG, "SceneView destroyed")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error destroying SceneView: ${e.message}")
+                }
+            }
+            sceneView = null
+        }
     }
 
     AndroidView(
@@ -125,55 +179,10 @@ private fun SceneViewComposable(
                         }
                     })
 
-                    // Camera: model bbox is ~0.2 x 1.0 x 0.6 units; scale 1.5 → ~0.3 x 1.5 x 0.9
+                    // Camera: model bbox is ~0.2 x 1.0 x 0.6 units; scale 1.5 -> ~0.3 x 1.5 x 0.9
                     cameraNode.position = Position(z = 3.0f)
 
-                    // Load model on main/GL thread after layout
-                    val assetPath = "models/$modelName.glb"
-                    post {
-                        Log.d(TAG, "Post: view=${width}x${height}")
-                        try {
-                            val buffer = ctx.assets.open(assetPath).use { stream ->
-                                val bytes = stream.readBytes()
-                                java.nio.ByteBuffer.allocateDirect(bytes.size).apply {
-                                    put(bytes)
-                                    rewind()
-                                }
-                            }
-                            Log.d(TAG, "Read ${buffer.capacity()} bytes")
-
-                            val instance = modelLoader.createModelInstance(buffer)
-                            Log.d(TAG, "ModelInstance OK")
-
-                            // Create and apply a programmatic material (ensures visibility on ALL GPUs)
-                            val material = materialLoader.createColorInstance(
-                                color = colorOf(rgb = 0.82f),
-                                metallic = 0.0f,
-                                roughness = 0.65f,
-                                reflectance = 0.35f
-                            )
-
-                            val node = ModelNode(modelInstance = instance).apply {
-                                position = Position(y = -0.5f)
-                                scale = io.github.sceneview.math.Scale(1.5f)
-                                // Apply material to ALL renderable nodes
-                                renderableNodes.forEach { renderable ->
-                                    try {
-                                        renderable.setMaterialInstances(material)
-                                    } catch (e: Exception) {
-                                        Log.w(TAG, "Material apply failed: ${e.message}")
-                                    }
-                                }
-                            }
-                            addChildNode(node)
-                            modelNode = node
-                            onModelLoaded()
-                            Log.d(TAG, "=== SUCCESS: ${node.renderableNodes.size} renderables ===")
-
-                        } catch (e: Exception) {
-                            Log.e(TAG, "!!! LOAD FAILED: ${e.message}", e)
-                        }
-                    }
+                    sceneView = this
                 }
             } catch (e: Exception) {
                 // SceneView constructor failed (GPU incompatibility, etc.)
@@ -182,8 +191,49 @@ private fun SceneViewComposable(
             }
         },
         modifier = modifier,
-        update = { _ ->
+        update = { view ->
+            // Apply rotation on every recomposition
             modelNode?.rotation = Rotation(y = rotationY)
+
+            // Once the buffer is loaded and we have a SceneView, create the model instance
+            val buffer = modelBuffer
+            if (buffer != null && modelNode == null && view is SceneView) {
+                try {
+                    Log.d(TAG, "Creating model instance from ${buffer.capacity()} byte buffer")
+
+                    val instance = view.modelLoader.createModelInstance(buffer)
+                    Log.d(TAG, "ModelInstance OK")
+
+                    // Create and apply a programmatic material (ensures visibility on ALL GPUs)
+                    val material = view.materialLoader.createColorInstance(
+                        color = colorOf(rgb = 0.82f),
+                        metallic = 0.0f,
+                        roughness = 0.65f,
+                        reflectance = 0.35f
+                    )
+
+                    val node = ModelNode(modelInstance = instance).apply {
+                        position = Position(y = -0.5f)
+                        scale = io.github.sceneview.math.Scale(1.5f)
+                        // Apply material to ALL renderable nodes
+                        renderableNodes.forEach { renderable ->
+                            try {
+                                renderable.setMaterialInstances(material)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Material apply failed: ${e.message}")
+                            }
+                        }
+                    }
+                    view.addChildNode(node)
+                    modelNode = node
+                    onModelLoaded()
+                    Log.d(TAG, "=== SUCCESS: ${node.renderableNodes.size} renderables ===")
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "!!! MODEL CREATION FAILED: ${e.message}", e)
+                    onModelLoaded() // Clear loading placeholder to avoid infinite spinner
+                }
+            }
         }
     )
 }
