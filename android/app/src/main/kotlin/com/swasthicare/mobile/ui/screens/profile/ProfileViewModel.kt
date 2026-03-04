@@ -378,11 +378,13 @@ class ProfileViewModel : ViewModel() {
                     updatedAt = null
                 )
 
-                if (existingHp != null) {
+                val result = if (existingHp != null) {
                     profileRepository.updateHealthProfile(updatedProfile)
                 } else {
                     profileRepository.createHealthProfile(updatedProfile)
                 }
+
+                result.getOrThrow()
 
                 // Snapshot becomes the new original so hasChanges resets
                 originalFormState = form.copy(isSaving = false, saveSuccess = true, saveError = null)

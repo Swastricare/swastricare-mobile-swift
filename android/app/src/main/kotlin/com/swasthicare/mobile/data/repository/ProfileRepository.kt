@@ -12,8 +12,8 @@ import kotlinx.serialization.json.put
 
 interface ProfileRepository {
     suspend fun getHealthProfile(userId: String): HealthProfile?
-    suspend fun createHealthProfile(profile: HealthProfile): HealthProfile
-    suspend fun updateHealthProfile(profile: HealthProfile): HealthProfile
+    suspend fun createHealthProfile(profile: HealthProfile): Result<HealthProfile>
+    suspend fun updateHealthProfile(profile: HealthProfile): Result<HealthProfile>
 
     /** Update user-level profile info (name, phone, bio, avatar) */
     suspend fun updateUserProfile(
@@ -22,10 +22,10 @@ interface ProfileRepository {
         phone: String?,
         bio: String?,
         avatarUrl: String?
-    )
+    ): Result<Unit>
 
     /** Upload avatar image to Supabase Storage and return the public URL */
-    suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): String
+    suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): Result<String>
 }
 
 class MockProfileRepository : ProfileRepository {
@@ -41,9 +41,11 @@ class MockProfileRepository : ProfileRepository {
         )
     }
 
-    override suspend fun createHealthProfile(profile: HealthProfile): HealthProfile = profile
+    override suspend fun createHealthProfile(profile: HealthProfile): Result<HealthProfile> =
+        Result.success(profile)
 
-    override suspend fun updateHealthProfile(profile: HealthProfile): HealthProfile = profile
+    override suspend fun updateHealthProfile(profile: HealthProfile): Result<HealthProfile> =
+        Result.success(profile)
 
     override suspend fun updateUserProfile(
         userId: String,
@@ -51,12 +53,12 @@ class MockProfileRepository : ProfileRepository {
         phone: String?,
         bio: String?,
         avatarUrl: String?
-    ) {
-        // No-op for mock
+    ): Result<Unit> {
+        return Result.success(Unit)
     }
 
-    override suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): String {
-        return "https://placeholder.com/avatar.jpg"
+    override suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): Result<String> {
+        return Result.success("https://placeholder.com/avatar.jpg")
     }
 }
 
@@ -83,20 +85,30 @@ class SupabaseProfileRepository(
         }
     }
 
-    override suspend fun createHealthProfile(profile: HealthProfile): HealthProfile {
-        supabaseClient.postgrest["health_profiles"]
-            .insert(profile)
-        return profile
+    override suspend fun createHealthProfile(profile: HealthProfile): Result<HealthProfile> {
+        return try {
+            supabaseClient.postgrest["health_profiles"]
+                .insert(profile)
+            Result.success(profile)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create health profile: ${e.message}")
+            Result.failure(e)
+        }
     }
 
-    override suspend fun updateHealthProfile(profile: HealthProfile): HealthProfile {
-        supabaseClient.postgrest["health_profiles"]
-            .update(profile) {
-                filter {
-                    eq("user_id", profile.userId)
+    override suspend fun updateHealthProfile(profile: HealthProfile): Result<HealthProfile> {
+        return try {
+            supabaseClient.postgrest["health_profiles"]
+                .update(profile) {
+                    filter {
+                        eq("user_id", profile.userId)
+                    }
                 }
-            }
-        return profile
+            Result.success(profile)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update health profile: ${e.message}")
+            Result.failure(e)
+        }
     }
 
     override suspend fun updateUserProfile(
@@ -105,7 +117,7 @@ class SupabaseProfileRepository(
         phone: String?,
         bio: String?,
         avatarUrl: String?
-    ) {
+    ): Result<Unit> {
         // Build the JSON object manually so that null fields are truly omitted
         // from the payload, preventing them from overwriting existing data in Supabase.
         val updatePayload = buildJsonObject {
@@ -115,31 +127,31 @@ class SupabaseProfileRepository(
             if (avatarUrl != null) put("avatar_url", avatarUrl)
         }
 
-        try {
+        return try {
             supabaseClient.postgrest["profiles"]
                 .update(updatePayload) {
                     filter {
                         eq("id", userId)
                     }
                 }
+            Result.success(Unit)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to update user profile: ${e.message}")
-            throw e
+            Result.failure(e)
         }
     }
 
-    override suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): String {
+    override suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): Result<String> {
         val bucket = supabaseClient.storage["avatars"]
         val path = "$userId/$fileName"
 
-        try {
+        return try {
             bucket.upload(path, imageData, upsert = true)
+            Result.success(bucket.publicUrl(path))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to upload avatar: ${e.message}")
-            throw e
+            Result.failure(e)
         }
-
-        return bucket.publicUrl(path)
     }
 
     companion object {

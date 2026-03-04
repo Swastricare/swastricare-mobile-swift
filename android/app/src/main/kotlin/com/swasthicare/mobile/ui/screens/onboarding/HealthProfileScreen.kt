@@ -134,19 +134,19 @@ fun HealthProfileScreen(
                 }
                 isLoading = true
                 scope.launch {
-                    try {
-                        val profile = HealthProfile(
-                            userId = userId,
-                            fullName = fullName.trim(),
-                            gender = gender,
-                            dateOfBirth = dateOfBirth,
-                            heightCm = h,
-                            weightKg = w,
-                            bloodType = bloodType.ifEmpty { null }
-                        )
-                        profileRepository.createHealthProfile(profile)
+                    val profile = HealthProfile(
+                        userId = userId,
+                        fullName = fullName.trim(),
+                        gender = gender,
+                        dateOfBirth = dateOfBirth,
+                        heightCm = h,
+                        weightKg = w,
+                        bloodType = bloodType.ifEmpty { null }
+                    )
+                    val result = profileRepository.createHealthProfile(profile)
+                    result.onSuccess {
                         onCompleted()
-                    } catch (e: Exception) {
+                    }.onFailure { e ->
                         errorMessage = "Failed to save profile: ${e.message}"
                         isLoading = false
                     }
