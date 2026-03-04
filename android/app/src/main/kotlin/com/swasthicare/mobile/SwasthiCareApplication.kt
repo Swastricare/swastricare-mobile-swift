@@ -3,6 +3,9 @@ package com.swasthicare.mobile
 import android.app.Application
 import android.util.Log
 import com.swasthicare.mobile.di.AppContainer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Application class for SwasthiCare.
@@ -26,21 +29,25 @@ class SwasthiCareApplication : Application() {
         // Initialize AppContainer early so services can access context
         AppContainer.initialize(this)
 
-        // Create all notification channels
+        // Notification channels must be created synchronously (fast, required for immediate notifications)
         AppContainer.notificationService.createNotificationChannels()
 
-        // Schedule notifications based on saved preferences
-        AppContainer.notificationService.scheduleAllNotifications()
+        // Defer heavy work to background to keep app startup fast
+        CoroutineScope(Dispatchers.Default).launch {
+            // Schedule notifications based on saved preferences (I/O-heavy)
+            AppContainer.notificationService.scheduleAllNotifications()
 
-        // Initialize Firebase
-        initializeFirebase()
-
-        // Start custom Supabase analytics service
-        try {
-            AppContainer.appAnalyticsService.start()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to start AppAnalyticsService: ${e.message}")
+            // Start custom Supabase analytics service (triggers Supabase client initialization)
+            try {
+                AppContainer.appAnalyticsService.start()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to start AppAnalyticsService: ${e.message}")
+            }
         }
+
+        // Initialize Firebase (uses reflection to check availability; kept on main thread
+        // because Crashlytics collection should be enabled early for crash reporting)
+        initializeFirebase()
     }
 
     private fun initializeFirebase() {

@@ -34,8 +34,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // Initialize AppContainer
-        AppContainer.initialize(this)
+        // AppContainer is already initialized in SwasthiCareApplication.onCreate()
 
         // Handle deep link from launch intent
         handleDeepLink(intent)
