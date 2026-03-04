@@ -241,6 +241,19 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Called when the Supabase session expires (refresh token invalid).
+     * Resets auth state to Idle so the UI navigates to the login screen.
+     * Unlike [signOut], this does NOT call the Supabase sign-out endpoint
+     * because the session is already invalid.
+     */
+    fun onSessionExpired() {
+        Log.w("AuthViewModel", "Session expired — forcing sign out")
+        _uiState.value = AuthUiState.Idle
+        clearForm()
+        analyticsService.logEvent("session_expired")
+    }
+
     // Form field updates
     fun updateEmail(email: String) {
         _formState.value = _formState.value.copy(email = email)

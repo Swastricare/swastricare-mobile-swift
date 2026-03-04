@@ -18,6 +18,7 @@ import com.swasthicare.mobile.data.services.CrashlyticsService
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.data.services.NotificationService
 import com.swasthicare.mobile.data.services.PoseDetectionService
+import com.swasthicare.mobile.data.services.SessionManager
 import com.swasthicare.mobile.data.services.WeatherService
 import com.swasthicare.mobile.data.services.WorkoutStateManager
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
@@ -111,6 +112,11 @@ object AppContainer {
 
     val biometricService: BiometricService by lazy {
         BiometricService(context)
+    }
+
+    // Session Manager — observes Supabase auth session and detects token expiry
+    val sessionManager: SessionManager by lazy {
+        SessionManager(supabaseClient)
     }
 
     val notificationService: NotificationService by lazy {

@@ -119,6 +119,20 @@ fun AppNavigation(
         return
     }
 
+    // ── Session expiry detection ──
+    // When the Supabase refresh token expires mid-session, navigate to login.
+    val isSessionExpired by AppContainer.sessionManager.isSessionExpired.collectAsState()
+
+    LaunchedEffect(isSessionExpired) {
+        if (isSessionExpired) {
+            authViewModel.onSessionExpired()
+            AppContainer.sessionManager.clearExpiredFlag()
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
     // Determine start destination based on auth state
     val startDestination = when (authState) {
         is AuthUiState.Success -> "main"
@@ -249,6 +263,8 @@ fun AppNavigation(
         composable("main") {
             MainScreen(
                 onSignOut = {
+                    // Clear session manager first to prevent double-trigger
+                    AppContainer.sessionManager.clearExpiredFlag()
                     authViewModel.signOut()
                     navController.navigate("login") {
                         popUpTo("main") { inclusive = true }
