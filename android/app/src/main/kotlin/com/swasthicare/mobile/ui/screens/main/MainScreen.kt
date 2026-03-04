@@ -42,8 +42,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.swasthicare.mobile.navigation.DeepLinkHandler
@@ -383,7 +385,22 @@ fun MainScreen(
                 )
             }
             // Live Workout flow
-            composable("live_workout") {
+            composable(
+                route = "live_workout?type={type}",
+                arguments = listOf(navArgument("type") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                })
+            ) { backStackEntry ->
+                val workoutType = backStackEntry.arguments?.getString("type") ?: ""
+                if (workoutType.isNotEmpty()) {
+                    val wType = try {
+                        com.swasthicare.mobile.ui.screens.runactivity.WorkoutType.valueOf(workoutType.uppercase())
+                    } catch (_: IllegalArgumentException) { null }
+                    if (wType != null) {
+                        AppContainer.liveWorkoutViewModel.setWorkoutType(wType)
+                    }
+                }
                 LiveWorkoutScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSummary = { navController.navigate("workout_summary") }

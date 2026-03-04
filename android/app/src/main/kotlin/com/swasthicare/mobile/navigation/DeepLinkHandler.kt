@@ -121,7 +121,7 @@ object DeepLinkHandler {
         is DeepLinkRoute.HeartRate -> "heart_rate"
         is DeepLinkRoute.Steps -> "steps"
         is DeepLinkRoute.Run -> "steps"
-        is DeepLinkRoute.StartRun -> "live_workout"
+        is DeepLinkRoute.StartRun -> "live_workout?type=${route.type}"
         is DeepLinkRoute.Diet -> "diet"
         is DeepLinkRoute.Vault -> "vault"
         is DeepLinkRoute.AI -> "ai"

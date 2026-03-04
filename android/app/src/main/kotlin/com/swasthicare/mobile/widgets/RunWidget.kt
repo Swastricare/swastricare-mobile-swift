@@ -10,7 +10,6 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.*
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
-import android.content.ComponentName
 import androidx.glance.appwidget.*
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -153,7 +152,7 @@ private fun RunContent(context: Context) {
                     .background(Color(0xFF22C55E))
                     .cornerRadius(10.dp)
                     .padding(vertical = 8.dp, horizontal = 12.dp)
-                    .clickable(actionStartActivity(ComponentName(context, MainActivity::class.java))),
+                    .clickable(actionStartActivity(startRunIntent)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -194,7 +193,7 @@ private fun RunContent(context: Context) {
                     .background(Color(0xFF22C55E))
                     .cornerRadius(10.dp)
                     .padding(vertical = 8.dp, horizontal = 12.dp)
-                    .clickable(actionStartActivity(ComponentName(context, MainActivity::class.java))),
+                    .clickable(actionStartActivity(startRunIntent)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

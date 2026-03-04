@@ -206,6 +206,9 @@ class SupabaseMedicationRepository(
             ) {
                 filter { eq("id", id) }
             }
+            // Invalidate local cache so the deleted medication disappears immediately
+            val cached = getCachedMedications().filter { it.id != id }
+            cacheMedications(cached)
             Result.success(Unit)
         } catch (e: Exception) {
             AppContainer.crashlyticsService.recordException(e)

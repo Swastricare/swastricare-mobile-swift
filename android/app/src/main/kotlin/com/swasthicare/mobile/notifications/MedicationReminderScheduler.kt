@@ -19,11 +19,6 @@ object MedicationReminderScheduler {
     ) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        // Check exact alarm permission on Android 12+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) return
-        }
-
         val intent = Intent(context, MedicationReminderReceiver::class.java).apply {
             putExtra("med_id", medId)
             putExtra("schedule_id", scheduleId)
@@ -46,12 +41,30 @@ object MedicationReminderScheduler {
             }
         }
 
-        alarmManager.setRepeating(
-            AlarmManager.RTC_WAKEUP,
-            cal.timeInMillis,
-            AlarmManager.INTERVAL_DAY,
-            pendingIntent
-        )
+        // Use exact alarm if permission is available, otherwise fall back to inexact
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    cal.timeInMillis,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    cal.timeInMillis,
+                    pendingIntent
+                )
+            }
+        } catch (e: SecurityException) {
+            // Fallback to inexact repeating alarm
+            alarmManager.setRepeating(
+                AlarmManager.RTC_WAKEUP,
+                cal.timeInMillis,
+                AlarmManager.INTERVAL_DAY,
+                pendingIntent
+            )
+        }
     }
 
     fun cancel(context: Context, scheduleId: String) {

@@ -5,7 +5,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.swasthicare.mobile.data.models.HydrationEntry
 import com.swasthicare.mobile.di.AppContainer
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Handles notification-related broadcast intents:
@@ -98,10 +101,20 @@ class NotificationReceiver : BroadcastReceiver() {
                 // Add hydration entry via shared preferences (same as HydrationRepository local storage)
                 try {
                     val entriesJson = prefs.getString("hydration_entries", "[]") ?: "[]"
-                    // Append a new entry (simplified — full integration uses HydrationRepository)
-                    val newEntry = """{"id":"notif_${System.currentTimeMillis()}","amountMl":$amountMl,"timestamp":"${java.time.Instant.now()}","synced":false}"""
-                    val updated = if (entriesJson == "[]") "[$newEntry]" else "${entriesJson.dropLast(1)},$newEntry]"
-                    prefs.edit().putString("hydration_entries", updated).apply()
+                    val existing: List<HydrationEntry> = try {
+                        Json.decodeFromString(entriesJson)
+                    } catch (_: Exception) { emptyList() }
+
+                    val newEntry = HydrationEntry(
+                        id = "notif_${System.currentTimeMillis()}",
+                        drinkType = "water",
+                        amountMl = amountMl,
+                        effectiveMl = amountMl,
+                        consumedAt = java.time.LocalDateTime.now().toString(),
+                        synced = false
+                    )
+                    val updated = existing + newEntry
+                    prefs.edit().putString("hydration_entries", Json.encodeToString(updated)).apply()
                     Log.d(TAG, "Logged $amountMl ml via quick action")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to log water: ${e.message}")

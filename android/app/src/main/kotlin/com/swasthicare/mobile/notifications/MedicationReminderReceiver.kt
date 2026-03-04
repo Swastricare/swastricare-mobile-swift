@@ -41,5 +41,29 @@ class MedicationReminderReceiver : BroadcastReceiver() {
             .build()
 
         manager.notify("${medId}_${scheduleId}".hashCode(), notification)
+
+        // Reschedule for tomorrow (needed since we use one-shot exact alarms)
+        val cal = java.util.Calendar.getInstance().apply {
+            add(java.util.Calendar.DAY_OF_MONTH, 1)
+            set(java.util.Calendar.SECOND, 0)
+        }
+        val rescheduleIntent = Intent(context, MedicationReminderReceiver::class.java).apply {
+            putExtra("med_id", medId)
+            putExtra("schedule_id", scheduleId)
+            putExtra("med_name", medName)
+        }
+        val requestCode = "${medId}_${scheduleId}".hashCode() and Int.MAX_VALUE
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, requestCode, rescheduleIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        try {
+            alarmManager.setAndAllowWhileIdle(
+                android.app.AlarmManager.RTC_WAKEUP,
+                cal.timeInMillis,
+                pendingIntent
+            )
+        } catch (_: SecurityException) { /* permission revoked */ }
     }
 }
