@@ -235,7 +235,7 @@ class HeartRateDetector(private val context: Context) {
     private fun extractRedChannelAverage(imageProxy: ImageProxy): Double {
         val image = imageProxy.image ?: return 0.0
 
-        val yPlane = image.planes[0]
+        val yPlane = image.planes.getOrNull(0) ?: return 0.0
         val buffer: ByteBuffer = yPlane.buffer
         val data = ByteArray(buffer.remaining())
         buffer.get(data)

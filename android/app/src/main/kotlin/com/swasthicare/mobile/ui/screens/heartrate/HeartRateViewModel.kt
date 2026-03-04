@@ -16,6 +16,7 @@ import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -90,11 +91,13 @@ class HeartRateViewModel(
         val readings = getReadings()
         val lastReading = readings.lastOrNull()
         if (lastReading != null) {
-            _uiState.value = _uiState.value.copy(
-                lastBpm = lastReading.bpm,
-                confidence = lastReading.confidence,
-                source = lastReading.source
-            )
+            _uiState.update {
+                it.copy(
+                    lastBpm = lastReading.bpm,
+                    confidence = lastReading.confidence,
+                    source = lastReading.source
+                )
+            }
         }
     }
 
@@ -105,7 +108,7 @@ class HeartRateViewModel(
     private fun collectDetectorFlows() {
         viewModelScope.launch {
             detector.measurementState.collect { state ->
-                _uiState.value = _uiState.value.copy(measurementState = state)
+                _uiState.update { it.copy(measurementState = state) }
 
                 // When detector reaches RESULT, extract the result and save it
                 if (state == MeasurementState.RESULT) {
@@ -114,42 +117,40 @@ class HeartRateViewModel(
 
                 // Surface errors
                 if (state == MeasurementState.ERROR) {
-                    _uiState.value = _uiState.value.copy(
-                        error = "Measurement failed. Please try again."
-                    )
+                    _uiState.update {
+                        it.copy(error = "Measurement failed. Please try again.")
+                    }
                 }
             }
         }
 
         viewModelScope.launch {
             detector.currentBPM.collect { bpm ->
-                _uiState.value = _uiState.value.copy(currentBpm = bpm)
+                _uiState.update { it.copy(currentBpm = bpm) }
             }
         }
 
         viewModelScope.launch {
             detector.progress.collect { progress ->
-                _uiState.value = _uiState.value.copy(measurementProgress = progress)
+                _uiState.update { it.copy(measurementProgress = progress) }
             }
         }
 
         viewModelScope.launch {
             detector.signalQuality.collect { quality ->
-                _uiState.value = _uiState.value.copy(signalQuality = quality)
+                _uiState.update { it.copy(signalQuality = quality) }
             }
         }
 
         viewModelScope.launch {
             detector.phase.collect { phase ->
-                _uiState.value = _uiState.value.copy(phase = phase)
+                _uiState.update { it.copy(phase = phase) }
             }
         }
 
         viewModelScope.launch {
             detector.waveformData.collect { waveform ->
-                _uiState.value = _uiState.value.copy(
-                    waveformData = waveform
-                )
+                _uiState.update { it.copy(waveformData = waveform) }
             }
         }
     }
@@ -157,19 +158,19 @@ class HeartRateViewModel(
     // ── Measurement Control ──
 
     fun startMeasurement(previewView: PreviewView, lifecycleOwner: LifecycleOwner) {
-        _uiState.value = _uiState.value.copy(
-            error = null
-        )
+        _uiState.update { it.copy(error = null) }
         detector.startMeasurement(previewView, lifecycleOwner)
     }
 
     fun cancelMeasurement() {
         detector.stopMeasurement()
-        _uiState.value = _uiState.value.copy(
-            measurementProgress = 0f,
-            currentBpm = 0,
-            error = null
-        )
+        _uiState.update {
+            it.copy(
+                measurementProgress = 0f,
+                currentBpm = 0,
+                error = null
+            )
+        }
     }
 
     // ── Result Handling ──
@@ -189,19 +190,21 @@ class HeartRateViewModel(
                 )
             )
 
-            _uiState.value = _uiState.value.copy(
-                lastBpm = result.bpm,
-                confidence = result.confidence,
-                source = "Camera"
-            )
+            _uiState.update {
+                it.copy(
+                    lastBpm = result.bpm,
+                    confidence = result.confidence,
+                    source = "Camera"
+                )
+            }
 
             // Log heart rate measurement to analytics
             appAnalyticsService.trackHeartbeatMeasurement(result.bpm, result.confidence)
         } else {
             Log.w(TAG, "Measurement completed but no result available")
-            _uiState.value = _uiState.value.copy(
-                error = "Could not determine heart rate. Please try again with your finger firmly on the camera."
-            )
+            _uiState.update {
+                it.copy(error = "Could not determine heart rate. Please try again with your finger firmly on the camera.")
+            }
         }
     }
 
@@ -226,7 +229,7 @@ class HeartRateViewModel(
 
     fun clearReadings() {
         prefs.edit().remove(PREF_KEY_READINGS).apply()
-        _uiState.value = _uiState.value.copy(lastBpm = 0)
+        _uiState.update { it.copy(lastBpm = 0) }
     }
 
     // ── Lifecycle ──
