@@ -76,6 +76,7 @@ class HeartRateViewModel(
     }
 
     private val detector = HeartRateDetector(context)
+    private var resultHandled = false
 
     private val _uiState = MutableStateFlow(HeartRateUiState())
     val uiState: StateFlow<HeartRateUiState> = _uiState.asStateFlow()
@@ -111,7 +112,8 @@ class HeartRateViewModel(
                 _uiState.update { it.copy(measurementState = state) }
 
                 // When detector reaches RESULT, extract the result and save it
-                if (state == MeasurementState.RESULT) {
+                if (state == MeasurementState.RESULT && !resultHandled) {
+                    resultHandled = true
                     handleMeasurementResult()
                 }
 
@@ -158,6 +160,7 @@ class HeartRateViewModel(
     // ── Measurement Control ──
 
     fun startMeasurement(previewView: PreviewView, lifecycleOwner: LifecycleOwner) {
+        resultHandled = false
         _uiState.update { it.copy(error = null) }
         detector.startMeasurement(previewView, lifecycleOwner)
     }

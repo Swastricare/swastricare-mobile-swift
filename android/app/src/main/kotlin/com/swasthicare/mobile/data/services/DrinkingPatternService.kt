@@ -108,7 +108,7 @@ class DrinkingPatternService(
                 val gapIdx = pattern.gapMinutes.indexOf(longestGap)
                 val gapStart = pattern.clusterTimes.getOrNull(gapIdx) ?: return reminders
                 val startMinutes = gapStart.split(":").let { it[0].toInt() * 60 + it[1].toInt() }
-                val midpoint = startMinutes + longestGap / 2
+                val midpoint = (startMinutes + longestGap / 2) % 1440  // 1440 = 24 * 60
                 val midTime = "${(midpoint / 60).toString().padStart(2, '0')}:${(midpoint % 60).toString().padStart(2, '0')}"
                 reminders.add(gapIdx + 1, midTime)
             }

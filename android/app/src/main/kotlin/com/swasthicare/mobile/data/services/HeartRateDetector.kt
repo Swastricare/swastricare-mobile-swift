@@ -68,6 +68,12 @@ class HeartRateDetector(private val context: Context) {
         previewView: PreviewView,
         lifecycleOwner: LifecycleOwner
     ) {
+        if (android.content.pm.PackageManager.PERMISSION_GRANTED !=
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA)) {
+            _measurementState.value = MeasurementState.ERROR
+            return
+        }
+
         processor.reset()
         bpmReadings = Collections.synchronizedList(mutableListOf())
         _measurementState.value = MeasurementState.PREPARING
@@ -221,8 +227,10 @@ class HeartRateDetector(private val context: Context) {
 
             if (elapsed >= MEASUREMENT_DURATION_MS) {
                 _measurementState.value = MeasurementState.RESULT
-                try { camera?.cameraControl?.enableTorch(false) } catch (_: Exception) {}
-                try { cameraProvider?.unbindAll() } catch (_: Exception) {}
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    try { camera?.cameraControl?.enableTorch(false) } catch (_: Exception) {}
+                    try { cameraProvider?.unbindAll() } catch (_: Exception) {}
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Frame processing error", e)
