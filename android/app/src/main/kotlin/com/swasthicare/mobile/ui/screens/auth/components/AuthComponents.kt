@@ -195,39 +195,107 @@ fun PremiumSecureField(
     }
 }
 
+enum class PremiumButtonStyle { PRIMARY, SECONDARY, GHOST }
+
 @Composable
 fun PremiumButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    style: PremiumButtonStyle = PremiumButtonStyle.PRIMARY,
     enabled: Boolean = true,
     isLoading: Boolean = false
 ) {
-    // Matching iOS AuthPrimaryButtonStyle: solid indigo, 56dp, 16 radius, shadow
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .shadow(
-                elevation = if (enabled) 12.dp else 0.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = PremiumColors.RoyalBlue.copy(alpha = 0.3f)
-            )
-            .background(
-                if (enabled) PremiumColors.RoyalBlue else Color.Gray.copy(alpha = 0.3f),
-                RoundedCornerShape(16.dp)
-            )
-            .clickable(enabled = enabled && !isLoading, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-        } else {
-            Text(
-                text,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
-            )
+    when (style) {
+        PremiumButtonStyle.PRIMARY -> {
+            // Matching iOS PremiumButton .primary: gradient fill, shadow
+            Box(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .shadow(
+                        elevation = if (enabled) 12.dp else 0.dp,
+                        shape = RoundedCornerShape(16.dp),
+                        spotColor = PremiumColors.RoyalBlue.copy(alpha = 0.4f)
+                    )
+                    .background(
+                        brush = if (enabled) Brush.linearGradient(
+                            listOf(PremiumColors.RoyalBlue, Color(0xFF4A5FE0))
+                        ) else Brush.linearGradient(
+                            listOf(Color.Gray.copy(alpha = 0.3f), Color.Gray.copy(alpha = 0.3f))
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .clickable(enabled = enabled && !isLoading, onClick = onClick),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text(
+                        text,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                }
+            }
+        }
+        PremiumButtonStyle.SECONDARY -> {
+            // Matching iOS PremiumButton .secondary: outlined, transparent fill
+            Box(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .border(
+                        width = 1.5.dp,
+                        color = if (enabled) PremiumColors.RoyalBlue else Color.Gray.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (enabled) PremiumColors.RoyalBlue.copy(alpha = 0.08f)
+                        else Color.Transparent
+                    )
+                    .clickable(enabled = enabled && !isLoading, onClick = onClick),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = PremiumColors.RoyalBlue,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text(
+                        text,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = if (enabled) PremiumColors.RoyalBlue else Color.Gray
+                    )
+                }
+            }
+        }
+        PremiumButtonStyle.GHOST -> {
+            // Matching iOS PremiumButton .ghost: no border, just text
+            Box(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(enabled = enabled && !isLoading, onClick = onClick),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = PremiumColors.RoyalBlue,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text(
+                        text,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = if (enabled) PremiumColors.RoyalBlue else Color.Gray
+                    )
+                }
+            }
         }
     }
 }

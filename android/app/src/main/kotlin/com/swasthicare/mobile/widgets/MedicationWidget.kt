@@ -91,7 +91,7 @@ private fun MedicationContent(context: Context) {
             Text(
                 text = nextTime,
                 style = TextStyle(
-                    color = ColorProvider(Color(0xFF5E5CE6)),
+                    color = ColorProvider(Color(0xFF4F46E5)),
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp
                 )
@@ -122,7 +122,7 @@ private fun MedicationContent(context: Context) {
                 modifier = GlanceModifier
                     .fillMaxWidth()
                     .cornerRadius(8.dp)
-                    .background(ColorProvider(Color(0x1A32D74B)))
+                    .background(ColorProvider(Color(0x1A22C55E)))
                     .clickable(actionSendBroadcast(markTakenIntent))
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -130,7 +130,7 @@ private fun MedicationContent(context: Context) {
                 Text(
                     text = "Mark as Taken",
                     style = TextStyle(
-                        color = ColorProvider(Color(0xFF32D74B)),
+                        color = ColorProvider(Color(0xFF22C55E)),
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )

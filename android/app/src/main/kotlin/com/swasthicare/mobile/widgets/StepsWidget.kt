@@ -76,7 +76,7 @@ private fun StepsContent(context: Context) {
         Text(
             text = "%,d".format(steps),
             style = TextStyle(
-                color = ColorProvider(Color(0xFF32D74B)),
+                color = ColorProvider(Color(0xFF22C55E)),
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp
             )

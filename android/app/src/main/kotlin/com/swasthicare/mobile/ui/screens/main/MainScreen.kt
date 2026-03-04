@@ -437,7 +437,7 @@ fun MainScreen(
 // MARK: - Floating Glass Navigation Bar
 // ─────────────────────────────────────
 
-private val AIGreenColor = Color(0xFF32D74B) // iOS systemGreen
+private val AIGreenColor = Color(0xFF22C55E) // iOS accentGreen
 
 @Composable
 private fun FloatingGlassNavBar(

@@ -3,10 +3,10 @@ package com.swasthicare.mobile.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// Brand Colors
-val PrimaryColor = Color(0xFF5E5CE6) // A more vibrant Indigo
-val SecondaryColor = Color(0xFF32D74B) // iOS Health Green
-val AccentColor = Color(0xFFFF375F) // Modern Pink
+// Brand Colors — matched to iOS exact hex values
+val PrimaryColor = Color(0xFF4F46E5) // Indigo 600 (iOS accentBlue)
+val SecondaryColor = Color(0xFF22C55E) // Green 500 (iOS accentGreen)
+val AccentColor = Color(0xFFEF4444) // Red 500 (iOS accentRed)
 
 // Background Colors
 val BackgroundLight = Color(0xFFF2F2F7) // Slight grey for depth
@@ -24,7 +24,7 @@ val TextSecondaryDark = Color(0xFF8E8E93)
 
 // Functional Colors
 val HeartRateColor = Color(0xFFFF3B30)
-val SleepColor = Color(0xFF5E5CE6)
+val SleepColor = Color(0xFF4F46E5)
 val ActivityColor = Color(0xFFFF9F0A)
 val HydrationColor = Color(0xFF00C7BE)
 

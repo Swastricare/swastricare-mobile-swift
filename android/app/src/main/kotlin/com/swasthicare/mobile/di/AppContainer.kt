@@ -90,7 +90,7 @@ object AppContainer {
 
     // Auth Repository
     val authRepository: SupabaseAuthRepository by lazy {
-        SupabaseAuthRepository(supabaseClient)
+        SupabaseAuthRepository(supabaseClient, sharedPreferences)
     }
 
     // Auth ViewModel

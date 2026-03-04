@@ -375,7 +375,7 @@ fun DetailedMetricsSection(
                 icon = Icons.Default.Bedtime,
                 title = "Sleep",
                 value = sleepHours,
-                color = Color(0xFF5E5CE6),
+                color = Color(0xFF4F46E5),
                 isVisible = isVisible,
                 delay = 800
             )

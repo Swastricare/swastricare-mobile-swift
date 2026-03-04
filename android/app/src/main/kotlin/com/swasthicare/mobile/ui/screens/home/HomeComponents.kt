@@ -55,28 +55,45 @@ import kotlin.random.Random
 @Composable
 fun Modifier.glass(
     cornerRadius: Dp = 20.dp,
-    opacity: Float = 0.25f, // Increased opacity for better visibility
-    strokeWidth: Dp = 1.dp
+    opacity: Float = 0.25f,
+    strokeWidth: Dp = 0.5.dp,
+    accentColor: Color? = null
 ): Modifier {
     val isDark = isSystemInDarkTheme()
-    val borderColor = if (isDark) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.4f)
+    val borderColor = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.35f)
     val backgroundColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
+
+    // If accentColor provided, use a gradient border from accent to transparent
+    val borderBrush = if (accentColor != null) {
+        Brush.linearGradient(
+            colors = listOf(
+                accentColor.copy(alpha = 0.5f),
+                borderColor.copy(alpha = 0.15f),
+                borderColor.copy(alpha = 0.05f),
+                accentColor.copy(alpha = 0.3f)
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                borderColor,
+                borderColor.copy(alpha = 0.05f),
+                borderColor.copy(alpha = 0.05f),
+                borderColor
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    }
 
     return this
         .clip(RoundedCornerShape(cornerRadius))
         .background(backgroundColor.copy(alpha = opacity))
         .border(
             width = strokeWidth,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    borderColor,
-                    borderColor.copy(alpha = 0.05f),
-                    borderColor.copy(alpha = 0.05f),
-                    borderColor
-                ),
-                start = Offset.Zero,
-                end = Offset.Infinite
-            ),
+            brush = borderBrush,
             shape = RoundedCornerShape(cornerRadius)
         )
 }
@@ -85,7 +102,7 @@ fun Modifier.glass(
 @Composable
 fun Modifier.shimmer(
     enabled: Boolean = true,
-    durationMillis: Int = 1200
+    durationMillis: Int = 1500
 ): Modifier {
     if (!enabled) return this
 
@@ -231,8 +248,8 @@ fun LivingStatusHeader(
     statusColor: Color
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "heartbeat")
-    
-    // Pulsing heart animation (matching iOS)
+
+    // Pulsing heart animation
     val heartScale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.2f,
@@ -242,7 +259,7 @@ fun LivingStatusHeader(
         ),
         label = "heartScale"
     )
-    
+
     val heartAlpha by infiniteTransition.animateFloat(
         initialValue = 0.8f,
         targetValue = 1f,
@@ -256,67 +273,88 @@ fun LivingStatusHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = greeting,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.titleSmall,
                 color = statusColor,
                 fontWeight = FontWeight.Medium
             )
-            
+
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = userName,
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                
-                // Pulsing Heart with scale animation
+
+                // Pulsing Heart
                 Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Favorite,
+                    imageVector = Icons.Default.Favorite,
                     contentDescription = "Heart Rate",
                     tint = Color.Red.copy(alpha = heartAlpha),
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(22.dp)
                         .scale(heartScale)
                 )
             }
         }
-        
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Notification Bell
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Notification Bell with glass
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .glass(cornerRadius = 20.dp)
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                 Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Notifications,
-                    contentDescription = "Notifications",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            
-            // Profile Image Placeholder
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color.Gray.copy(alpha = 0.3f)),
+                    .size(44.dp)
+                    .glass(cornerRadius = 22.dp, opacity = 0.15f),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Person,
-                    contentDescription = "Profile",
-                    tint = Color.White
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Notifications",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
+            }
+
+            // Profile Avatar with animated gradient ring
+            Box(
+                modifier = Modifier.size(44.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Rotating gradient border
+                Canvas(modifier = Modifier.size(44.dp)) {
+                    drawCircle(
+                        brush = Brush.sweepGradient(
+                            colors = listOf(
+                                PremiumColor.RoyalBlueStart,
+                                PremiumColor.NeonGreenEnd,
+                                PremiumColor.SunsetEnd,
+                                PremiumColor.RoyalBlueStart
+                            )
+                        ),
+                        radius = size.minDimension / 2f,
+                        style = Stroke(width = 2.dp.toPx())
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Profile",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -486,7 +524,7 @@ fun VitalCard(
         label = "iconRotation"
     )
     
-    Column(
+    Box(
         modifier = modifier
             .graphicsLayer {
                 alpha = animatedAlpha
@@ -494,74 +532,96 @@ fun VitalCard(
                 scaleY = animatedScale
                 translationY = animatedOffset
             }
-            .glass(cornerRadius = 20.dp)
-            .padding(14.dp)
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .glass(cornerRadius = 20.dp, accentColor = color)
     ) {
-        // Header with Icon and optional camera badge
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Subtle radial glow in top-left corner using category color
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(20.dp))
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                        rotationZ = iconRotation
-                    }
-                    .background(color.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(14.dp)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        color.copy(alpha = 0.12f),
+                        Color.Transparent
+                    ),
+                    center = Offset(0f, 0f),
+                    radius = size.maxDimension * 0.7f
                 )
-            }
-            
-            if (showCameraBadge) {
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Header with Icon and optional camera badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(20.dp)
-                        .background(Color.White.copy(alpha = 0.1f), CircleShape),
+                        .size(36.dp)
+                        .graphicsLayer {
+                            scaleX = iconScale
+                            scaleY = iconScale
+                            rotationZ = iconRotation
+                        }
+                        .background(color.copy(alpha = 0.2f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Favorite,
-                        contentDescription = "Measure",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(10.dp)
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
+
+                if (showCameraBadge) {
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .background(color.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Measure",
+                            tint = color.copy(alpha = 0.7f),
+                            modifier = Modifier.size(11.dp)
+                        )
+                    }
+                }
             }
-        }
-        
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (unit.isNotEmpty()) {
+
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = unit,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        text = value,
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                    if (unit.isNotEmpty()) {
+                        Text(
+                            text = unit,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    }
                 }
             }
         }
@@ -665,7 +725,7 @@ fun NudgeCard(
 
     Box(
         modifier = modifier
-            .width(260.dp)
+            .width(240.dp)
             .glass(cornerRadius = 20.dp)
     ) {
         // Colored left accent bar
@@ -772,11 +832,11 @@ fun DietQuickActionCard(
 
     Box(
         modifier = modifier
-            .height(150.dp)
-            .glass(cornerRadius = 24.dp)
+            .height(120.dp)
+            .glass(cornerRadius = 24.dp, accentColor = DietOrange)
             .clickable { onClick() }
     ) {
-        // Orange liquid fill
+        // Orange liquid fill from bottom
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -788,59 +848,72 @@ fun DietQuickActionCard(
                     .fillMaxWidth()
                     .fillMaxHeight(animatedProgress)
                     .background(
-                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                        brush = Brush.verticalGradient(
                             colors = listOf(
-                                DietOrange.copy(alpha = 0.5f),
-                                DietOrange.copy(alpha = 0.7f)
+                                DietOrange.copy(alpha = 0.4f),
+                                DietOrange.copy(alpha = 0.6f)
                             )
                         )
                     )
             )
         }
 
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Fire icon
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(Color.White.copy(alpha = 0.2f), CircleShape),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocalFireDepartment,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "Diet",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontWeight = FontWeight.Medium
-                )
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        "$calorieCurrent",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        " / $calorieGoal cal",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
+                // Fire icon
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(DietOrange.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocalFireDepartment,
+                        contentDescription = null,
+                        tint = DietOrange,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
+
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "Diet Tracker",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            "$calorieCurrent",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            " / $calorieGoal cal",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
+                        )
+                    }
+                }
             }
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -887,7 +960,7 @@ fun CycleTrackerCard(
                 .fillMaxSize()
                 .clip(RoundedCornerShape(24.dp))
                 .background(
-                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    brush = Brush.horizontalGradient(
                         colors = listOf(
                             CyclePurple.copy(alpha = 0.6f),
                             CyclePurple.copy(alpha = 0.3f)

@@ -1,7 +1,7 @@
 package com.swasthicare.mobile.ui.components
 
-import android.content.Context
 import android.util.Log
+import android.view.SurfaceHolder
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,22 +12,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.sceneview.SceneView
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
+import io.github.sceneview.math.colorOf
 import io.github.sceneview.node.ModelNode
+
+private const val TAG = "ModelViewer"
 
 /**
  * 3D Model Viewer Component using SceneView (Filament wrapper)
  *
- * Displays GLB models with auto-rotation, lighting, and smooth animations.
- * Matching iOS SceneKit ModelViewer implementation.
+ * IMPORTANT: No Compose alpha/scale modifiers are applied to the SceneView AndroidView.
+ * SurfaceView with setZOrderOnTop(true) does not respect View.setAlpha() consistently
+ * across GPU vendors (Mali, Adreno, etc.). The SceneView is always rendered at full opacity.
  */
 @Composable
 fun ModelViewer(
@@ -38,19 +42,6 @@ fun ModelViewer(
     rotationDurationMs: Int = 8000
 ) {
     var isModelLoaded by remember { mutableStateOf(false) }
-
-    // Entrance animation (matching iOS: 0→0.8 opacity, 0.8→1.2 scale)
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (isModelLoaded) 0.8f else 0f,
-        animationSpec = tween(durationMillis = 1000, delayMillis = 200),
-        label = "modelAlpha"
-    )
-
-    val animatedScale by animateFloatAsState(
-        targetValue = if (isModelLoaded) 1f else 0.8f,
-        animationSpec = tween(durationMillis = 1000, delayMillis = 200, easing = FastOutSlowInEasing),
-        label = "modelScale"
-    )
 
     // Auto-rotation animation
     val infiniteTransition = rememberInfiniteTransition(label = "rotation")
@@ -65,16 +56,16 @@ fun ModelViewer(
     )
 
     Box(
-        modifier = modifier,
+        modifier = modifier.clipToBounds(),
         contentAlignment = Alignment.Center
     ) {
-        // Background glow effect
+        // Background glow effect (fades in when model is loaded)
         RadialGlowBackground(
             modifier = Modifier.fillMaxSize(),
             isVisible = isModelLoaded
         )
 
-        // Placeholder while loading
+        // Placeholder while loading (fades out when model loads)
         if (!isModelLoaded) {
             LoadingPlaceholder(
                 modifier = Modifier.fillMaxSize()
@@ -82,14 +73,12 @@ fun ModelViewer(
         }
 
         // SceneView for 3D rendering
+        // CRITICAL: Do NOT apply .alpha() or .scale() to this — breaks SurfaceView on many GPUs
         SceneViewComposable(
             modelName = modelName,
             rotationY = if (autoRotate) rotationY else 0f,
             onModelLoaded = { isModelLoaded = true },
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(animatedAlpha)
-                .scale(animatedScale)
+            modifier = Modifier.fillMaxSize()
         )
 
         // Bottom fade mask (matching iOS gradient mask)
@@ -118,45 +107,82 @@ private fun SceneViewComposable(
 
     AndroidView(
         factory = { ctx ->
-            SceneView(ctx, isOpaque = false).apply {
+            Log.d(TAG, "=== SceneView Factory START ===")
+            try {
+                SceneView(ctx, isOpaque = false).apply {
+                    Log.d(TAG, "SceneView constructed (isOpaque=false)")
 
-                // Configure camera
-                cameraNode.position = Position(z = 4f)
+                    // Debug: Surface lifecycle
+                    holder.addCallback(object : SurfaceHolder.Callback {
+                        override fun surfaceCreated(holder: SurfaceHolder) {
+                            Log.d(TAG, "Surface CREATED")
+                        }
+                        override fun surfaceChanged(holder: SurfaceHolder, format: Int, w: Int, h: Int) {
+                            Log.d(TAG, "Surface CHANGED: ${w}x${h} format=$format")
+                        }
+                        override fun surfaceDestroyed(holder: SurfaceHolder) {
+                            Log.w(TAG, "Surface DESTROYED")
+                        }
+                    })
 
-                // Load model on the main thread after SceneView is fully initialized
-                val assetPath = "models/$modelName.glb"
-                post {
-                    try {
-                        // Read the GLB file as a ByteBuffer from assets
-                        val buffer = ctx.assets.open(assetPath).use { stream ->
-                            val bytes = stream.readBytes()
-                            java.nio.ByteBuffer.allocateDirect(bytes.size).apply {
-                                put(bytes)
-                                rewind()
+                    // Camera: model bbox is ~0.2 x 1.0 x 0.6 units; scale 1.5 → ~0.3 x 1.5 x 0.9
+                    cameraNode.position = Position(z = 3.0f)
+
+                    // Load model on main/GL thread after layout
+                    val assetPath = "models/$modelName.glb"
+                    post {
+                        Log.d(TAG, "Post: view=${width}x${height}")
+                        try {
+                            val buffer = ctx.assets.open(assetPath).use { stream ->
+                                val bytes = stream.readBytes()
+                                java.nio.ByteBuffer.allocateDirect(bytes.size).apply {
+                                    put(bytes)
+                                    rewind()
+                                }
                             }
-                        }
-                        Log.d("ModelViewer", "Read ${buffer.capacity()} bytes from $assetPath")
+                            Log.d(TAG, "Read ${buffer.capacity()} bytes")
 
-                        val instance = modelLoader.createModelInstance(buffer)
-                        val node = ModelNode(
-                            modelInstance = instance
-                        ).apply {
-                            position = Position(y = -0.5f)
-                            scale = io.github.sceneview.math.Scale(1.5f)
+                            val instance = modelLoader.createModelInstance(buffer)
+                            Log.d(TAG, "ModelInstance OK")
+
+                            // Create and apply a programmatic material (ensures visibility on ALL GPUs)
+                            val material = materialLoader.createColorInstance(
+                                color = colorOf(rgb = 0.82f),
+                                metallic = 0.0f,
+                                roughness = 0.65f,
+                                reflectance = 0.35f
+                            )
+
+                            val node = ModelNode(modelInstance = instance).apply {
+                                position = Position(y = -0.5f)
+                                scale = io.github.sceneview.math.Scale(1.5f)
+                                // Apply material to ALL renderable nodes
+                                renderableNodes.forEach { renderable ->
+                                    try {
+                                        renderable.setMaterialInstances(material)
+                                    } catch (e: Exception) {
+                                        Log.w(TAG, "Material apply failed: ${e.message}")
+                                    }
+                                }
+                            }
+                            addChildNode(node)
+                            modelNode = node
+                            onModelLoaded()
+                            Log.d(TAG, "=== SUCCESS: ${node.renderableNodes.size} renderables ===")
+
+                        } catch (e: Exception) {
+                            Log.e(TAG, "!!! LOAD FAILED: ${e.message}", e)
                         }
-                        addChildNode(node)
-                        modelNode = node
-                        onModelLoaded()
-                        Log.d("ModelViewer", "Successfully loaded $modelName.glb")
-                    } catch (e: Exception) {
-                        Log.e("ModelViewer", "Failed to load $modelName.glb: ${e.message}", e)
                     }
                 }
+            } catch (e: Exception) {
+                // SceneView constructor failed (GPU incompatibility, etc.)
+                Log.e(TAG, "!!! SceneView CREATION FAILED: ${e.message}", e)
+                android.widget.FrameLayout(ctx)
             }
         },
         modifier = modifier,
         update = { _ ->
-            // Update rotation
             modelNode?.rotation = Rotation(y = rotationY)
         }
     )

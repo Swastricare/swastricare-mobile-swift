@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.data.repository
 
+import android.content.SharedPreferences
 import com.swasthicare.mobile.data.model.AppUser
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
@@ -14,7 +15,8 @@ import kotlinx.coroutines.withTimeout
  * Matches iOS AuthService.swift implementation exactly
  */
 class SupabaseAuthRepository(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val sharedPreferences: SharedPreferences? = null
 ) : AuthRepository {
     
     override val currentUser: AppUser?
@@ -106,8 +108,9 @@ class SupabaseAuthRepository(
     override suspend fun signOut() {
         // iOS: try await client.auth.signOut()
         supabaseClient.auth.signOut()
+        clearLocalData()
     }
-    
+
     /**
      * Delete current user account
      * Matches iOS implementation (sign out + clear local data)
@@ -115,7 +118,15 @@ class SupabaseAuthRepository(
     override suspend fun deleteAccount() {
         // iOS: try await client.auth.signOut()
         supabaseClient.auth.signOut()
-        // TODO: Clear SharedPreferences if needed
+        clearLocalData()
+    }
+
+    /**
+     * Clear all locally cached data on sign out / account deletion.
+     * Removes health data, widget data, workout state, and notification prefs.
+     */
+    private fun clearLocalData() {
+        sharedPreferences?.edit()?.clear()?.apply()
     }
     
     /**

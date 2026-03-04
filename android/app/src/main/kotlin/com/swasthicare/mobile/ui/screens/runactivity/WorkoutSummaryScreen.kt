@@ -28,7 +28,7 @@ import com.swasthicare.mobile.ui.theme.PrimaryColor
 // MARK: - WorkoutSummaryScreen
 // ─────────────────────────────────────
 
-private val GreenAccent = Color(0xFF32D74B)
+private val GreenAccent = Color(0xFF22C55E)
 private val CyanAccent = Color(0xFF00E5FF)
 private val OrangeAccent = Color(0xFFFF9F0A)
 

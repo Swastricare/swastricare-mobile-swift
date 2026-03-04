@@ -41,11 +41,11 @@ import java.util.Locale
 
 // ---- Color palette for workout types --------------------------------------
 
-private val RunningColor = Color(0xFF32D74B)
+private val RunningColor = Color(0xFF22C55E)
 private val WalkingColor = Color(0xFF64D2FF)
 private val CyclingColor = Color(0xFFFF9F0A)
 private val HikingColor = Color(0xFF30D158)
-private val SwimmingColor = Color(0xFF5E5CE6)
+private val SwimmingColor = Color(0xFF4F46E5)
 private val DiscardRed = Color(0xFFFF453A)
 private val WarningOrange = Color(0xFFFF9F0A)
 

@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.*
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
+import android.content.ComponentName
 import androidx.glance.appwidget.*
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -82,7 +83,7 @@ private fun RunContent(context: Context) {
             Text(
                 text = lastRun.formattedDistance,
                 style = TextStyle(
-                    color = ColorProvider(Color(0xFF32D74B)), // SecondaryColor green
+                    color = ColorProvider(Color(0xFF22C55E)), // SecondaryColor green
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp
                 )
@@ -149,10 +150,10 @@ private fun RunContent(context: Context) {
             Box(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .background(Color(0xFF32D74B))
+                    .background(Color(0xFF22C55E))
                     .cornerRadius(10.dp)
                     .padding(vertical = 8.dp, horizontal = 12.dp)
-                    .clickable(actionStartActivity(startRunIntent)),
+                    .clickable(actionStartActivity(ComponentName(context, MainActivity::class.java))),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -190,10 +191,10 @@ private fun RunContent(context: Context) {
             Box(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .background(Color(0xFF32D74B))
+                    .background(Color(0xFF22C55E))
                     .cornerRadius(10.dp)
                     .padding(vertical = 8.dp, horizontal = 12.dp)
-                    .clickable(actionStartActivity(startRunIntent)),
+                    .clickable(actionStartActivity(ComponentName(context, MainActivity::class.java))),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

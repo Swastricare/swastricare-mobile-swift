@@ -9,7 +9,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,6 +34,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -40,9 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.ui.components.ModelViewer
-import com.swasthicare.mobile.ui.components.WeekDateSelector
-import com.swasthicare.mobile.ui.components.WeeklyStepsChart
-import com.swasthicare.mobile.ui.components.DetailedMetricsSection
 import com.swasthicare.mobile.ui.theme.*
 
 @Composable
@@ -73,7 +73,7 @@ fun HomeScreen(
             }
         } else {
             // Staggered entrance animation state for each section
-            val sectionCount = 8
+            val sectionCount = 7
             val sectionVisible = remember { List(sectionCount) { mutableStateOf(false) } }
             LaunchedEffect(Unit) {
                 sectionVisible.forEachIndexed { index, state ->
@@ -95,8 +95,6 @@ fun HomeScreen(
                     statusColor = SecondaryColor
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
-
                 // Server Nudges (section 0)
                 if (uiState.serverNudges.isNotEmpty()) {
                     StaggeredEntrance(visible = sectionVisible[0].value) {
@@ -105,32 +103,42 @@ fun HomeScreen(
                             onDismiss = { id -> viewModel.dismissNudge(id) }
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // 3. Body Status Section (section 1)
+                // 3. Body Status Section — refined proportions
                 StaggeredEntrance(visible = sectionVisible[1].value) {
-                    Text(
-                        text = "Daily Activity",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                StaggeredEntrance(visible = sectionVisible[2].value) {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .height(300.dp)
+                            .padding(horizontal = 16.dp)
                     ) {
-                        // Activity Stats Column (matching iOS: Calories, Steps, Exercise, Stand Hours)
+                        // 3D Anatomy Model on the right
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .fillMaxHeight()
+                                .fillMaxWidth(0.52f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ModelViewer(
+                                modelName = "anatomy",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .scale(1.2f),
+                                autoRotate = true,
+                                allowInteraction = false,
+                                rotationDurationMs = 8000
+                            )
+                        }
+
+                        // Activity Stats Column on the left
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.weight(0.45f)
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth(0.48f)
+                                .align(Alignment.CenterStart)
                         ) {
                             ActivityStatRow(
                                 icon = Icons.Default.LocalFireDepartment,
@@ -140,117 +148,81 @@ fun HomeScreen(
                                 animationDelay = 300
                             )
                             ActivityStatRow(
-                                icon = Icons.Default.DirectionsWalk,
-                                value = "${uiState.stepCount}",
-                                label = "Step Count",
-                                color = SecondaryColor,
-                                animationDelay = 400
-                            )
-                            ActivityStatRow(
                                 icon = Icons.Default.Favorite,
                                 value = "${uiState.activeMinutes}",
                                 label = "Exercise Min",
-                                color = HydrationColor,
-                                animationDelay = 500
+                                color = DistanceColor,
+                                animationDelay = 400
                             )
                             ActivityStatRow(
                                 icon = Icons.Default.Accessibility,
                                 value = "${uiState.standHours}",
                                 label = "Stand Hours",
                                 color = SleepColor,
-                                animationDelay = 600
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        // 3D Anatomy Model (replacing 2D silhouette)
-                        Box(
-                            modifier = Modifier
-                                .weight(0.55f)
-                                .height(380.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            ModelViewer(
-                                modelName = "anatomy",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .scale(1.4f)
-                                    .alpha(0.8f),
-                                autoRotate = true,
-                                allowInteraction = false,
-                                rotationDurationMs = 8000
+                                animationDelay = 500
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // 4. Vitals Grid (section 3)
-                StaggeredEntrance(visible = sectionVisible[3].value) {
-                    Column {
-                        Text(
-                            text = "Health Vitals",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 20.dp)
-                        )
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            VitalCard(
-                                icon = Icons.Default.Favorite,
-                                title = "Heart Rate",
-                                value = "${uiState.heartRate}",
-                                unit = "BPM",
-                                color = HeartRateColor,
-                                modifier = Modifier.weight(1f),
-                                delay = 100
-                            )
-
-                            VitalCard(
-                                icon = Icons.Default.Bed,
-                                title = "Sleep",
-                                value = uiState.sleepHours,
-                                unit = "",
-                                color = SleepColor,
-                                modifier = Modifier.weight(1f),
-                                delay = 200
-                            )
-
-                             VitalCard(
-                                icon = Icons.Default.DirectionsWalk,
-                                title = "Distance",
-                                value = "${uiState.distance}",
-                                unit = "km",
-                                color = SecondaryColor,
-                                modifier = Modifier.weight(1f),
-                                delay = 300
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // 5. Complex Widgets (Hydration & Medication) (section 4)
-                StaggeredEntrance(visible = sectionVisible[4].value) {
+                // 4. Vitals Grid (section 2)
+                StaggeredEntrance(visible = sectionVisible[2].value) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        VitalCard(
+                            icon = Icons.Default.Favorite,
+                            title = "Heart Rate",
+                            value = "${uiState.heartRate}",
+                            unit = "BPM",
+                            color = HeartRateColor,
+                            modifier = Modifier.weight(1f).height(130.dp),
+                            delay = 100,
+                            showCameraBadge = true
+                        )
+
+                        VitalCard(
+                            icon = Icons.Default.Bed,
+                            title = "Sleep",
+                            value = uiState.sleepHours,
+                            unit = "",
+                            color = SleepColor,
+                            modifier = Modifier.weight(1f).height(130.dp),
+                            delay = 200
+                        )
+
+                        VitalCard(
+                            icon = Icons.Default.DirectionsWalk,
+                            title = "Distance",
+                            value = "${uiState.distance}",
+                            unit = "km",
+                            color = SecondaryColor,
+                            modifier = Modifier.weight(1f).height(130.dp),
+                            delay = 300
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 5. Complex Widgets (Hydration & Medication) (section 3)
+                StaggeredEntrance(visible = sectionVisible[3].value) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Medication Card
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(180.dp)
+                                .height(200.dp)
                                 .glass(cornerRadius = 24.dp)
                                 .clickable { onNavigateToMedications() }
                         ) {
@@ -260,55 +232,65 @@ fun HomeScreen(
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(24.dp))
                             ) {
-                                // Liquid
+                                // Liquid fill
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
                                         .fillMaxWidth()
                                         .fillMaxHeight(progress)
                                         .background(
-                                            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                            brush = Brush.verticalGradient(
                                                 colors = listOf(
-                                                    PrimaryColor.copy(alpha = 0.6f),
-                                                    SleepColor.copy(alpha = 0.6f)
+                                                    PrimaryColor.copy(alpha = 0.5f),
+                                                    SleepColor.copy(alpha = 0.5f)
                                                 )
                                             )
                                         )
                                 ) {
-                                     RisingBubblesEffect(color = Color.White.copy(alpha = 0.3f))
+                                    RisingBubblesEffect(color = Color.White.copy(alpha = 0.3f))
                                 }
                             }
 
-                            // Content
+                            // Content — spread top to bottom
                             Column(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Medication,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                                // Icon with colored background
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(MedicationColor.copy(alpha = 0.2f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Medication,
+                                        contentDescription = null,
+                                        tint = MedicationColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
 
-                                Column {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text(
                                         "Medication",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                     )
                                     Row(verticalAlignment = Alignment.Bottom) {
                                         Text(
                                             "${uiState.medicationsTaken}",
-                                            style = MaterialTheme.typography.headlineMedium,
+                                            style = MaterialTheme.typography.headlineLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             "/${uiState.medicationsTotal}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                            modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
                                         )
                                     }
                                 }
@@ -319,56 +301,83 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(180.dp)
+                                .height(200.dp)
                                 .glass(cornerRadius = 24.dp)
                                 .clickable { onNavigateToHydration() }
                         ) {
                             val progress = uiState.hydrationCurrent.toFloat() / uiState.hydrationGoal.toFloat()
 
                             Box(
-                                 modifier = Modifier
+                                modifier = Modifier
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(24.dp))
                             ) {
-                                 WaterWave(
+                                WaterWave(
                                     progress = progress,
-                                    color = HydrationColor.copy(alpha = 0.3f),
+                                    color = HydrationColor.copy(alpha = 0.25f),
                                     modifier = Modifier.fillMaxSize()
                                 )
                                 WaterWave(
                                     progress = progress,
-                                    color = HydrationColor.copy(alpha = 0.4f),
-                                     modifier = Modifier.fillMaxSize().padding(top = 5.dp)
+                                    color = HydrationColor.copy(alpha = 0.35f),
+                                    modifier = Modifier.fillMaxSize().padding(top = 5.dp)
                                 )
                             }
 
-                             Column(
-                                modifier = Modifier.padding(16.dp),
+                            // Content — spread top to bottom
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocalDrink,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                                // Icon with colored background
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(HydrationColor.copy(alpha = 0.2f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocalDrink,
+                                        contentDescription = null,
+                                        tint = HydrationColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
 
-                                Column {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text(
                                         "Hydration",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                     )
                                     Text(
                                         "${uiState.hydrationCurrent} ml",
-                                        style = MaterialTheme.typography.titleLarge,
+                                        style = MaterialTheme.typography.headlineLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
+                                    // Mini progress bar
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(4.dp)
+                                            .clip(RoundedCornerShape(2.dp))
+                                            .background(HydrationColor.copy(alpha = 0.15f))
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                                                .fillMaxHeight()
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(HydrationColor)
+                                        )
+                                    }
                                     Text(
                                         "Goal: ${uiState.hydrationGoal}",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                     )
                                 }
                             }
@@ -376,75 +385,32 @@ fun HomeScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Quick Actions Row 2 — Diet + [empty half] (section 5)
-                StaggeredEntrance(visible = sectionVisible[5].value) {
-                    Row(
+                // Diet Quick Action — full width (section 4)
+                StaggeredEntrance(visible = sectionVisible[4].value) {
+                    DietQuickActionCard(
+                        calorieCurrent = uiState.calorieCurrent,
+                        calorieGoal = uiState.calorieGoal,
+                        onClick = onNavigateToDiet,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        DietQuickActionCard(
-                            calorieCurrent = uiState.calorieCurrent,
-                            calorieGoal = uiState.calorieGoal,
-                            onClick = onNavigateToDiet,
-                            modifier = Modifier.weight(1f)
-                        )
-                        // Empty spacer on the right (matches iOS layout where diet is left-half)
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                            .padding(horizontal = 16.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Cycle Tracker — full width (section 6)
-                StaggeredEntrance(visible = sectionVisible[6].value) {
+                // Cycle Tracker — full width (section 5)
+                StaggeredEntrance(visible = sectionVisible[5].value) {
                     CycleTrackerCard(
                         phaseLabel = uiState.cyclePhase,
                         onClick = onNavigateToCycleTracker,
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // 6. Tracker Section (section 7)
-                StaggeredEntrance(visible = sectionVisible[7].value) {
-                    Column {
-                        // Date Selector
-                        WeekDateSelector(
-                            weekDates = uiState.weekDates,
-                            selectedDate = uiState.selectedDate,
-                            onDateSelected = { viewModel.selectDate(it) }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Weekly Steps Chart
-                        WeeklyStepsChart(
-                            weeklySteps = uiState.weeklySteps,
-                            selectedDate = uiState.selectedDate
-                        )
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Detailed Metrics
-                        DetailedMetricsSection(
-                            stepCount = uiState.stepCount,
-                            heartRate = uiState.heartRate,
-                            activeCalories = uiState.calories,
-                            exerciseMinutes = uiState.activeMinutes,
-                            standHours = uiState.standHours,
-                            sleepHours = uiState.sleepHours,
-                            distance = uiState.distance,
-                            onMeasureHeartRate = { /* TODO: Implement heart rate measurement */ }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(120.dp)) // Extra space for bottom bar
+                Spacer(modifier = Modifier.height(110.dp)) // Bottom padding for floating nav bar
             }
         }
     }
@@ -477,38 +443,52 @@ fun ActivityStatRow(
         label = "statOffset"
     )
     
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .alpha(animatedAlpha)
             .offset(x = animatedOffset.dp)
-            .glass(cornerRadius = 16.dp)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .glass(cornerRadius = 16.dp, opacity = 0.3f)
     ) {
-        // Icon with background circle
+        // Colored accent strip on left edge
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .background(color.copy(alpha = 0.2f), androidx.compose.foundation.shape.CircleShape),
-            contentAlignment = Alignment.Center
+                .align(Alignment.CenterStart)
+                .width(3.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
+                .background(color)
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-        }
-        
-        // Value and label
-        Column {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Icon with background circle
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(color.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+            }
+
+            // Value and label
+            Column {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

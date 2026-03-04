@@ -19,6 +19,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.swasthicare.mobile.BuildConfig
 import com.swasthicare.mobile.R
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.di.ONBOARDING_COMPLETE_KEY
@@ -75,7 +76,7 @@ fun SplashScreen(
                 .select { filter { eq("key", "min_android_version") } }
                 .decodeSingleOrNull<Map<String, String>>()
             val minVersion = config?.get("value")?.toIntOrNull() ?: 1
-            val currentVersion = 1 // TODO: Use BuildConfig.VERSION_CODE
+            val currentVersion = BuildConfig.VERSION_CODE
 
             if (currentVersion < minVersion) {
                 fadeOut = true

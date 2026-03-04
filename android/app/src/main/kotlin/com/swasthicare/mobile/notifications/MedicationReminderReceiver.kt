@@ -32,7 +32,7 @@ class MedicationReminderReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setSmallIcon(com.swasthicare.mobile.R.drawable.ic_notification)
             .setContentTitle("Time for your medication")
             .setContentText("$medName is due now")
             .setPriority(NotificationCompat.PRIORITY_HIGH)

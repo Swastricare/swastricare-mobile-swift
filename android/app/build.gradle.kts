@@ -30,11 +30,19 @@ android {
             "GOOGLE_WEB_CLIENT_ID",
             "\"${project.findProperty("GOOGLE_WEB_CLIENT_ID") ?: ""}\""
         )
+
+        // OpenWeatherMap API Key (set in gradle.properties: OPENWEATHERMAP_API_KEY=your_key)
+        buildConfigField(
+            "String",
+            "OPENWEATHERMAP_API_KEY",
+            "\"${project.findProperty("OPENWEATHERMAP_API_KEY") ?: ""}\""
+        )
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import com.swasthicare.mobile.ui.screens.home.glass
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,8 +21,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -188,6 +191,30 @@ fun RulerPicker(
 }
 
 // ─────────────────────────────────────
+// MARK: - GlassCard
+// ─────────────────────────────────────
+
+/**
+ * Reusable glass-morphism card wrapper.
+ * Matches iOS GlassCard component: padding + glass effect.
+ */
+@Composable
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 20.dp,
+    contentPadding: Dp = 16.dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = cornerRadius)
+            .padding(contentPadding),
+        content = content
+    )
+}
+
+// ─────────────────────────────────────
 // MARK: - ScaleOnPress Modifier
 // ─────────────────────────────────────
 
@@ -198,12 +225,14 @@ fun RulerPicker(
  */
 fun Modifier.scaleOnPress(
     pressedScale: Float = 0.95f,
+    enableHaptic: Boolean = true,
     animationSpec: AnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessLow
+        dampingRatio = 0.7f,
+        stiffness = 300f
     )
 ): Modifier = composed {
     var isPressed by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
     val scale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
         animationSpec = animationSpec,
@@ -216,6 +245,9 @@ fun Modifier.scaleOnPress(
             detectTapGestures(
                 onPress = {
                     isPressed = true
+                    if (enableHaptic) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
                     tryAwaitRelease()
                     isPressed = false
                 }
@@ -237,7 +269,7 @@ fun Modifier.shimmer(): Modifier = composed {
         initialValue = -1f,
         targetValue = 2f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            animation = tween(durationMillis = 1500, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shimmerTranslate"

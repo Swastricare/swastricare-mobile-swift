@@ -352,7 +352,7 @@ class NotificationService(
         actionIntent: PendingIntent? = null
     ) {
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // TODO: Use app icon
+            .setSmallIcon(com.swasthicare.mobile.R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

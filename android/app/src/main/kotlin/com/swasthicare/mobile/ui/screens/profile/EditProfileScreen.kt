@@ -232,7 +232,7 @@ fun EditProfileScreen(
                 EditSection(title = "ACCOUNT DETAILS") {
                     ReadOnlyRow(
                         icon = Icons.Default.Email,
-                        iconColor = Color(0xFF5E5CE6),
+                        iconColor = Color(0xFF4F46E5),
                         label = "Email",
                         value = uiState.user?.email ?: "Not available"
                     )
@@ -557,7 +557,7 @@ private fun GenderSelector(
                 Icon(
                     imageVector = Icons.Default.People,
                     contentDescription = null,
-                    tint = Color(0xFF5E5CE6),
+                    tint = Color(0xFF4F46E5),
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
@@ -747,7 +747,7 @@ private fun BmiRow(bmi: Double, category: String) {
         Icon(
             imageVector = Icons.Default.Accessibility,
             contentDescription = null,
-            tint = Color(0xFF5E5CE6),
+            tint = Color(0xFF4F46E5),
             modifier = Modifier.size(24.dp)
         )
 

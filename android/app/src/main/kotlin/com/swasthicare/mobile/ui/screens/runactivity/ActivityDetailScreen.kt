@@ -33,6 +33,8 @@ import com.swasthicare.mobile.data.model.HeartRatePoint
 import com.swasthicare.mobile.data.model.RoutePoint
 import com.swasthicare.mobile.data.model.SplitData
 import com.swasthicare.mobile.data.model.WorkoutDetail
+import com.swasthicare.mobile.data.models.RunActivity
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.RouteMapView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
@@ -82,8 +84,11 @@ fun ActivityDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isMapExpanded by remember { mutableStateOf(false) }
 
-    // TODO: Replace with real data fetching from repository
-    val workout = remember { generateSampleWorkout(workoutId) }
+    // Load real data from repository, falling back to sample if not found
+    val workout = remember {
+        val activities = AppContainer.runActivityRepository.loadLocalActivities()
+        activities.find { it.id == workoutId }?.toWorkoutDetail() ?: generateSampleWorkout(workoutId)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
@@ -1296,7 +1301,48 @@ private fun formatDateTime(isoString: String): String {
 }
 
 // ─────────────────────────────────────
-// MARK: - Sample Data Generator
+// MARK: - RunActivity → WorkoutDetail Conversion
+// ─────────────────────────────────────
+
+private fun RunActivity.toWorkoutDetail(): WorkoutDetail {
+    val formatter = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
+    return WorkoutDetail(
+        id = id,
+        type = activityType.dbValue,
+        startTime = startTime?.format(formatter) ?: "",
+        endTime = endTime?.format(formatter) ?: "",
+        durationSeconds = durationSeconds,
+        distanceMeters = distanceMeters,
+        calories = caloriesBurned,
+        elevationGain = routeCoordinates.zipWithNext { a, b ->
+            val diff = b.altitude - a.altitude
+            if (diff > 0) diff else 0.0
+        }.sum(),
+        avgPace = avgPaceSecondsPerKm.toDouble(),
+        avgSpeed = if (durationSeconds > 0) (distanceMeters / 1000.0) / (durationSeconds / 3600.0) else 0.0,
+        maxSpeed = 0.0,
+        routePoints = routeCoordinates.map { coord ->
+            RoutePoint(
+                latitude = coord.latitude,
+                longitude = coord.longitude,
+                altitude = coord.altitude,
+                speed = 0f,
+                timestamp = coord.timestamp
+            )
+        },
+        splits = splits.map { split ->
+            SplitData(
+                kilometer = split.kilometer,
+                timeSeconds = split.timeSeconds,
+                paceSecondsPerKm = split.paceSecondsPerKm,
+                cumulativeSeconds = split.timeSeconds * split.kilometer
+            )
+        }
+    )
+}
+
+// ─────────────────────────────────────
+// MARK: - Sample Data Generator (Fallback)
 // ─────────────────────────────────────
 
 private fun generateSampleWorkout(id: String): WorkoutDetail {

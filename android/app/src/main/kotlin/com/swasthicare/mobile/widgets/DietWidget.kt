@@ -101,7 +101,7 @@ private fun DietContent(context: Context) {
             Spacer(modifier = GlanceModifier.width(12.dp))
             MacroLabel("C", "${carbs}g", Color(0xFFFF9500))
             Spacer(modifier = GlanceModifier.width(12.dp))
-            MacroLabel("F", "${fat}g", Color(0xFF5E5CE6))
+            MacroLabel("F", "${fat}g", Color(0xFF4F46E5))
         }
 
         Spacer(modifier = GlanceModifier.defaultWeight())

@@ -176,7 +176,7 @@ fun CalorieProgressRing(
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
-        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 200f),
         label = "calorieRing"
     )
     val ringColor = when {
@@ -190,7 +190,7 @@ fun CalorieProgressRing(
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 14.dp.toPx()
+            val strokeWidth = 16.dp.toPx()
             val diameter = size.minDimension - strokeWidth
             val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
             val arcSize = Size(diameter, diameter)
@@ -368,7 +368,7 @@ private fun MacroRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(6.dp)
-                .clip(RoundedCornerShape(3.dp)),
+                .clip(RoundedCornerShape(6.dp)),
             color = color,
             trackColor = color.copy(alpha = 0.15f)
         )

@@ -14,6 +14,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import com.swasthicare.mobile.BuildConfig
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.coroutines.resume
@@ -58,8 +59,7 @@ class WeatherService(
     private val prefs: SharedPreferences
 ) {
     companion object {
-        // TODO: Replace with your real OpenWeatherMap API key
-        private const val API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
+        private val API_KEY = BuildConfig.OPENWEATHERMAP_API_KEY
         private const val CACHE_KEY = "weather_cache"
         private const val CACHE_TIMESTAMP_KEY = "weather_cache_timestamp"
         private const val CACHE_TTL_MS = 60 * 60 * 1000L // 1 hour
