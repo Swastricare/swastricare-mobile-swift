@@ -173,7 +173,7 @@ object AppContainer {
     }
 
     val vaultRepository: VaultRepository by lazy {
-        MockVaultRepository()
+        SupabaseVaultRepository(supabaseClient)
     }
 
     val medicationRepository: MedicationRepository by lazy {
