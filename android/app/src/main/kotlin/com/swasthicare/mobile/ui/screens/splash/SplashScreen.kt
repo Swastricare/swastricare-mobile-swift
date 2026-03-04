@@ -26,6 +26,7 @@ import com.swasthicare.mobile.di.ONBOARDING_COMPLETE_KEY
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -70,12 +71,17 @@ fun SplashScreen(
         // Hold on last frame briefly
         delay(500)
 
-        // Check for force update
-        try {
-            val config = AppContainer.supabaseClient.postgrest["app_config"]
-                .select { filter { eq("key", "min_android_version") } }
-                .decodeSingleOrNull<Map<String, String>>()
-            val minVersion = config?.get("value")?.toIntOrNull() ?: 1
+        // Check for force update (3s timeout so splash never blocks on slow/no network)
+        val config = withTimeoutOrNull(3000) {
+            try {
+                AppContainer.supabaseClient.postgrest["app_config"]
+                    .select { filter { eq("key", "min_android_version") } }
+                    .decodeSingleOrNull<Map<String, String>>()
+            } catch (_: Exception) { null }
+        }
+        // If null (timeout or error), skip force update check and proceed
+        if (config != null) {
+            val minVersion = config["value"]?.toIntOrNull() ?: 1
             val currentVersion = BuildConfig.VERSION_CODE
 
             if (currentVersion < minVersion) {
@@ -84,7 +90,7 @@ fun SplashScreen(
                 onForceUpdate()
                 return@LaunchedEffect
             }
-        } catch (_: Exception) { }
+        }
 
         val prefs = AppContainer.dataStore.data.first()
         val onboardingDone = prefs[ONBOARDING_COMPLETE_KEY] ?: false
