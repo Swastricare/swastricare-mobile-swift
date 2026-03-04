@@ -84,124 +84,171 @@ fun ActivityDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isMapExpanded by remember { mutableStateOf(false) }
 
-    // Load real data from repository, falling back to sample if not found
-    val workout = remember {
-        val activities = AppContainer.runActivityRepository.loadLocalActivities()
-        activities.find { it.id == workoutId }?.toWorkoutDetail() ?: generateSampleWorkout(workoutId)
+    var workout by remember { mutableStateOf<WorkoutDetail?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(workoutId) {
+        // Try local first
+        val local = AppContainer.runActivityRepository.loadLocalActivities()
+            .find { it.id == workoutId }?.toWorkoutDetail()
+        if (local != null) {
+            workout = local
+            isLoading = false
+            return@LaunchedEffect
+        }
+
+        // Try Supabase
+        try {
+            val profileId = AppContainer.profileRepository.getHealthProfile(
+                AppContainer.authRepository.currentUser?.id ?: ""
+            )?.id
+            if (profileId != null) {
+                val cloudResult = AppContainer.runActivityRepository
+                    .fetchActivitiesFromCloud(profileId)
+                cloudResult.getOrNull()
+                    ?.find { it.id == workoutId }
+                    ?.toWorkoutDetail()
+                    ?.let { workout = it }
+            }
+        } catch (_: Exception) { }
+        isLoading = false
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-        ) {
-            // ── Top Bar ──
-            ActivityDetailTopBar(
-                onBack = onNavigateBack,
-                onShare = {
-                    val distanceKm = workout.distanceMeters / 1000.0
-                    val duration = formatDuration(workout.durationSeconds)
-                    val typeLabel = workout.type.replaceFirstChar { it.uppercase() }
-                    val shareText = "Completed a ${"%.2f".format(distanceKm)}km $typeLabel in $duration \u2014 SwasthiCare"
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        this.type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                    }
-                    context.startActivity(Intent.createChooser(intent, "Share Workout"))
+    when {
+        isLoading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        workout == null -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.SearchOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text("Workout not found", style = MaterialTheme.typography.titleMedium)
                 }
-            )
+            }
+        }
+        else -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                PremiumBackground()
 
-            // ── Route Map ──
-            RouteMapView(
-                routePoints = workout.routePoints,
-                isLive = false,
-                height = if (isMapExpanded) 350 else 200,
-                onExpand = { isMapExpanded = !isMapExpanded }
-            )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .statusBarsPadding()
+                ) {
+                    // ── Top Bar ──
+                    ActivityDetailTopBar(
+                        onBack = onNavigateBack,
+                        onShare = {
+                            val distanceKm = workout!!.distanceMeters / 1000.0
+                            val duration = formatDuration(workout!!.durationSeconds)
+                            val typeLabel = workout!!.type.replaceFirstChar { it.uppercase() }
+                            val shareText = "Completed a ${"%.2f".format(distanceKm)}km $typeLabel in $duration \u2014 SwasthiCare"
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                this.type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share Workout"))
+                        }
+                    )
 
-            Spacer(Modifier.height(16.dp))
+                    // ── Route Map ──
+                    RouteMapView(
+                        routePoints = workout!!.routePoints,
+                        isLive = false,
+                        height = if (isMapExpanded) 350 else 200,
+                        onExpand = { isMapExpanded = !isMapExpanded }
+                    )
 
-            // ── Activity Header Card ──
-            ActivityHeaderCard(
-                workout = workout,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
+                    Spacer(Modifier.height(16.dp))
 
-            Spacer(Modifier.height(16.dp))
+                    // ── Activity Header Card ──
+                    ActivityHeaderCard(
+                        workout = workout!!,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
 
-            // ── Tab Selector ──
-            DetailTabRow(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
+                    Spacer(Modifier.height(16.dp))
 
-            Spacer(Modifier.height(16.dp))
+                    // ── Tab Selector ──
+                    DetailTabRow(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it },
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
 
-            // ── Tab Content ──
-            when (selectedTab) {
-                DetailTab.OVERVIEW -> OverviewTab(
-                    workout = workout,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                DetailTab.SPLITS -> SplitsTab(
-                    splits = workout.splits,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                DetailTab.PACE -> PaceTab(
-                    splits = workout.splits,
-                    avgPace = workout.avgPace,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                DetailTab.HEART_RATE -> HeartRateTab(
-                    heartRateData = workout.heartRateData,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
+                    Spacer(Modifier.height(16.dp))
+
+                    // ── Tab Content ──
+                    when (selectedTab) {
+                        DetailTab.OVERVIEW -> OverviewTab(
+                            workout = workout!!,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                        DetailTab.SPLITS -> SplitsTab(
+                            splits = workout!!.splits,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                        DetailTab.PACE -> PaceTab(
+                            splits = workout!!.splits,
+                            avgPace = workout!!.avgPace,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                        DetailTab.HEART_RATE -> HeartRateTab(
+                            heartRateData = workout!!.heartRateData,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    // ── Delete Button ──
+                    DeleteWorkoutButton(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+
+                    // Bottom spacer for navigation bar
+                    Spacer(Modifier.height(120.dp))
+                }
             }
 
-            Spacer(Modifier.height(24.dp))
-
-            // ── Delete Button ──
-            DeleteWorkoutButton(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-
-            // Bottom spacer for navigation bar
-            Spacer(Modifier.height(120.dp))
-        }
-    }
-
-    // ── Delete Confirmation Dialog ──
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Workout") },
-            text = { Text("Are you sure you want to delete this workout? This action cannot be undone.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        onDelete(workout.id)
+            // ── Delete Confirmation Dialog ──
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text("Delete Workout") },
+                    text = { Text("Are you sure you want to delete this workout? This action cannot be undone.") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteDialog = false
+                                onDelete(workout!!.id)
+                            },
+                            colors = ButtonDefaults.textButtonColors(contentColor = RedAccent)
+                        ) {
+                            Text("Delete")
+                        }
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = RedAccent)
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = false }) {
+                            Text("Cancel")
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
@@ -1338,65 +1385,5 @@ private fun RunActivity.toWorkoutDetail(): WorkoutDetail {
                 cumulativeSeconds = split.timeSeconds * split.kilometer
             )
         }
-    )
-}
-
-// ─────────────────────────────────────
-// MARK: - Sample Data Generator (Fallback)
-// ─────────────────────────────────────
-
-private fun generateSampleWorkout(id: String): WorkoutDetail {
-    // Generate a realistic sample route (a loop around a park)
-    val baseLat = 12.9716
-    val baseLng = 77.5946
-    val routePoints = (0..100).map { i ->
-        val angle = i * 0.0628 // ~360 degrees over 100 points
-        val radius = 0.005 + 0.001 * kotlin.math.sin(angle * 3) // Slight variation
-        RoutePoint(
-            latitude = baseLat + radius * kotlin.math.cos(angle),
-            longitude = baseLng + radius * kotlin.math.sin(angle),
-            altitude = 920.0 + 5.0 * kotlin.math.sin(angle * 2),
-            speed = (3.0 + kotlin.math.sin(angle) * 0.5).toFloat(),
-            timestamp = System.currentTimeMillis() - (100 - i) * 30000L
-        )
-    }
-
-    val splits = (1..5).map { km ->
-        val basePace = 330L + (km * 5L) + (if (km == 3) -20L else 0L)
-        SplitData(
-            kilometer = km,
-            timeSeconds = basePace,
-            paceSecondsPerKm = basePace,
-            cumulativeSeconds = (1..km).sumOf { k -> 330L + (k * 5L) + (if (k == 3) -20L else 0L) }
-        )
-    }
-
-    val heartRateData = (0..60).map { i ->
-        HeartRatePoint(
-            timestamp = System.currentTimeMillis() - (60 - i) * 60000L,
-            bpm = when {
-                i < 5 -> 72 + i * 3           // Warmup
-                i < 15 -> 85 + i * 2          // Building
-                i < 45 -> 120 + (i % 10) * 3  // Steady state with variation
-                else -> 140 - (i - 45) * 4    // Cooldown
-            }
-        )
-    }
-
-    return WorkoutDetail(
-        id = id,
-        type = "run",
-        startTime = "2026-03-03T07:30:00Z",
-        endTime = "2026-03-03T08:02:00Z",
-        durationSeconds = 1920L,
-        distanceMeters = 5230.0,
-        calories = 420,
-        elevationGain = 45.0,
-        avgPace = 367.0,
-        avgSpeed = 9.8,
-        maxSpeed = 12.5,
-        routePoints = routePoints,
-        splits = splits,
-        heartRateData = heartRateData
     )
 }
