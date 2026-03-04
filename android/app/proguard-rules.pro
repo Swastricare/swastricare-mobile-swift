@@ -128,6 +128,12 @@
 -dontwarn androidx.biometric.**
 
 # ===========================================================================
+# DataStore
+# ===========================================================================
+-keep class androidx.datastore.** { *; }
+-dontwarn androidx.datastore.**
+
+# ===========================================================================
 # App data models and services (ensure serialization works)
 # ===========================================================================
 -keep class com.swasthicare.mobile.data.model.** { *; }

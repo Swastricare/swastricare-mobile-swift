@@ -551,8 +551,8 @@ class HealthConnectService(private val context: Context) {
                 val record = HeartRateRecord(
                     startTime = time.minusSeconds(1),
                     endTime = time,
-                    startZoneOffset = ZoneOffset.systemDefault().rules.getOffset(time),
-                    endZoneOffset = ZoneOffset.systemDefault().rules.getOffset(time),
+                    startZoneOffset = ZoneId.systemDefault().rules.getOffset(time),
+                    endZoneOffset = ZoneId.systemDefault().rules.getOffset(time),
                     samples = listOf(
                         HeartRateRecord.Sample(time = time, beatsPerMinute = bpm)
                     )
@@ -574,8 +574,8 @@ class HealthConnectService(private val context: Context) {
                 val record = HydrationRecord(
                     startTime = time.minusSeconds(1),
                     endTime = time,
-                    startZoneOffset = ZoneOffset.systemDefault().rules.getOffset(time),
-                    endZoneOffset = ZoneOffset.systemDefault().rules.getOffset(time),
+                    startZoneOffset = ZoneId.systemDefault().rules.getOffset(time),
+                    endZoneOffset = ZoneId.systemDefault().rules.getOffset(time),
                     volume = Volume.liters(volumeMl / 1000.0)
                 )
                 hc.insertRecords(listOf(record))
@@ -599,8 +599,8 @@ class HealthConnectService(private val context: Context) {
             val record = ExerciseSessionRecord(
                 startTime = startTime,
                 endTime = endTime,
-                startZoneOffset = ZoneOffset.systemDefault().rules.getOffset(startTime),
-                endZoneOffset = ZoneOffset.systemDefault().rules.getOffset(endTime),
+                startZoneOffset = ZoneId.systemDefault().rules.getOffset(startTime),
+                endZoneOffset = ZoneId.systemDefault().rules.getOffset(endTime),
                 exerciseType = exerciseType,
                 title = title
             )

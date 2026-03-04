@@ -45,42 +45,23 @@ class SwasthiCareApplication : Application() {
             }
         }
 
-        // Initialize Firebase (uses reflection to check availability; kept on main thread
-        // because Crashlytics collection should be enabled early for crash reporting)
+        // Eagerly initialize session manager to observe token expiry
+        AppContainer.sessionManager
+
+        // Initialize Firebase (kept on main thread because Crashlytics
+        // collection should be enabled early for crash reporting)
         initializeFirebase()
     }
 
     private fun initializeFirebase() {
         try {
-            // FirebaseApp.initializeApp(this) is called automatically by the
-            // google-services plugin if google-services.json is present.
-            // We just verify it initialized correctly.
-            val firebaseAvailable = try {
-                Class.forName("com.google.firebase.FirebaseApp")
-                val method = Class.forName("com.google.firebase.FirebaseApp")
-                    .getMethod("initializeApp", android.content.Context::class.java)
-                method.invoke(null, this)
-                true
-            } catch (e: Exception) {
-                false
-            }
-
-            if (firebaseAvailable) {
-                Log.i(TAG, "Firebase initialized successfully")
-
-                // Enable Crashlytics collection
-                try {
-                    val crashlytics = com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
-                    crashlytics.setCrashlyticsCollectionEnabled(true)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Crashlytics not available: ${e.message}")
-                }
-            } else {
-                Log.w(TAG, "Firebase not available - google-services.json may be missing")
-            }
+            val app = com.google.firebase.FirebaseApp.getInstance()
+            // Firebase auto-initialized by google-services plugin
+            val crashlytics = com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
+            crashlytics.setCrashlyticsCollectionEnabled(true)
+            Log.d(TAG, "Firebase initialized, Crashlytics enabled")
         } catch (e: Exception) {
-            // Firebase not configured — this is OK during development
-            Log.w(TAG, "Firebase initialization skipped: ${e.message}")
+            Log.w(TAG, "Firebase not available: ${e.message}")
         }
     }
 
