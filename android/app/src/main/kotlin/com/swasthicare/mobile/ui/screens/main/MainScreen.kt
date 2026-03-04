@@ -76,6 +76,7 @@ import com.swasthicare.mobile.ui.screens.analytics.HealthAnalyticsScreen
 import com.swasthicare.mobile.ui.screens.runactivity.ActivityDetailScreen
 import com.swasthicare.mobile.ui.screens.runactivity.RunCalendarScreen
 import com.swasthicare.mobile.ui.screens.settings.SettingsScreen
+import com.swasthicare.mobile.di.AppContainer
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 sealed class MainTab(
@@ -154,6 +155,17 @@ fun MainScreen(
                 }
             }
             onDeepLinkConsumed()
+        }
+    }
+
+    // Track screen views when tab changes
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != null) {
+            val screenName = items.firstOrNull { it.route == currentRoute }?.title ?: currentRoute
+            AppContainer.firebaseAnalyticsService.logScreenView(screenName)
+            AppContainer.appAnalyticsService.trackScreenView(screenName)
         }
     }
 

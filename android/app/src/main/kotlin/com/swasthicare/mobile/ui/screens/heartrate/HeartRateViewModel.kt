@@ -7,6 +7,7 @@ import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.data.services.HeartRateDetector
 import com.swasthicare.mobile.data.services.MeasurementPhase
 import com.swasthicare.mobile.data.services.MeasurementState
@@ -64,7 +65,8 @@ data class HeartRateUiState(
 
 class HeartRateViewModel(
     private val context: Context = AppContainer.context,
-    private val prefs: SharedPreferences = AppContainer.sharedPreferences
+    private val prefs: SharedPreferences = AppContainer.sharedPreferences,
+    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
 ) : ViewModel() {
 
     companion object {
@@ -192,6 +194,9 @@ class HeartRateViewModel(
                 confidence = result.confidence,
                 source = "Camera"
             )
+
+            // Log heart rate measurement to analytics
+            appAnalyticsService.trackHeartbeatMeasurement(result.bpm, result.confidence)
         } else {
             Log.w(TAG, "Measurement completed but no result available")
             _uiState.value = _uiState.value.copy(

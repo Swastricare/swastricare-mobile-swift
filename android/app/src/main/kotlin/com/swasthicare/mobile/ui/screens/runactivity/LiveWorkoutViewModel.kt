@@ -4,9 +4,12 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.RoutePoint
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.data.services.RouteTracker
 import com.swasthicare.mobile.data.services.SavedWorkoutState
 import com.swasthicare.mobile.data.services.WorkoutStateManager
+import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -107,7 +110,9 @@ data class LiveWorkoutUiState(
 
 class LiveWorkoutViewModel(
     private val context: Context,
-    private val workoutStateManager: WorkoutStateManager
+    private val workoutStateManager: WorkoutStateManager,
+    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
+    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LiveWorkoutUiState())
@@ -240,6 +245,11 @@ class LiveWorkoutViewModel(
                 caloriesBurned = calories
             )
         }
+
+        // Log workout completion to analytics
+        val activityType = state.workoutType.displayName
+        analyticsService.logWorkoutComplete(activityType, state.elapsedSeconds, state.distanceKm)
+        appAnalyticsService.trackWorkoutCompleted(activityType, state.elapsedSeconds, state.distanceMeters)
     }
 
     fun resetWorkout() {
@@ -267,6 +277,11 @@ class LiveWorkoutViewModel(
     private fun beginTracking() {
         _uiState.update { it.copy(phase = WorkoutPhase.TRACKING) }
         workoutStartTime = Instant.now()
+
+        // Log workout start to analytics
+        val activityType = _uiState.value.workoutType.displayName
+        analyticsService.logWorkoutStart(activityType)
+        appAnalyticsService.trackWorkoutStarted(activityType)
 
         // Start GPS if permission granted and workout uses GPS
         val state = _uiState.value

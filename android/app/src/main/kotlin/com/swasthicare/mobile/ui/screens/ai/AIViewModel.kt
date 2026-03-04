@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.services.AIService
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.data.services.SpeechService
 import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,6 +65,8 @@ sealed class AnalysisState {
 class AIViewModel(application: Application) : AndroidViewModel(application) {
     private val aiService = AIService(AppContainer.supabaseClient)
     private val speechService = SpeechService(application.applicationContext)
+    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
+    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
 
     private val _uiState = MutableStateFlow(AIUiState())
     val uiState: StateFlow<AIUiState> = _uiState.asStateFlow()
@@ -96,6 +100,11 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
             showEmptyState = false,
             followUpSuggestions = emptyList()
         )
+
+        // Log AI message sent to analytics
+        val mode = _uiState.value.currentMode.label
+        analyticsService.logAIMessageSent(mode)
+        appAnalyticsService.trackAIMessageSent(mode)
 
         viewModelScope.launch {
             try {

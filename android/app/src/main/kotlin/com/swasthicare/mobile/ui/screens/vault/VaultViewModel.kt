@@ -6,6 +6,8 @@ import com.swasthicare.mobile.data.model.DocumentMetadata
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.data.repository.VaultRepository
+import com.swasthicare.mobile.data.services.AnalyticsService
+import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -56,7 +58,9 @@ enum class VaultViewMode {
 }
 
 class VaultViewModel(
-    private val repository: VaultRepository = AppContainer.vaultRepository
+    private val repository: VaultRepository = AppContainer.vaultRepository,
+    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
+    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VaultUiState())
@@ -99,6 +103,10 @@ class VaultViewModel(
                 )
 
                 _uiState.update { it.copy(uploadProgress = 1.0f) }
+
+                // Log vault upload to analytics
+                analyticsService.logVaultUpload(categoryString)
+                appAnalyticsService.trackVaultUpload(categoryString)
 
                 // Refresh list inline (not via loadDocuments which launches a separate coroutine)
                 try {

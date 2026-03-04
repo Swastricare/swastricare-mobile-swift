@@ -108,12 +108,20 @@ class AppAnalyticsService(
     // ─────────────────────────────────────
 
     /**
-     * Start the analytics service: restore persisted events and begin periodic flush.
+     * Start the analytics service: restore persisted events, begin periodic flush,
+     * and register the ProcessLifecycleOwner observer for automatic app_open/app_background tracking.
      * Called from SwasthiCareApplication.onCreate().
      */
     fun start() {
         loadPersistedEvents()
         startPeriodicFlush()
+        try {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to register lifecycle observer: ${e.message}")
+        }
+        track("app_open")
+        Log.d(TAG, "Analytics started. Session: $sessionId")
     }
 
     /**
