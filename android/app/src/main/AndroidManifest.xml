@@ -48,7 +48,7 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <application
-        android:name=".SwasthiCareApplication"
+        android:name="com.swasthicare.mobile.SwasthiCareApplication"
         android:allowBackup="false"
         android:networkSecurityConfig="@xml/network_security_config"
         android:label="@string/app_name"
@@ -56,7 +56,7 @@
         android:theme="@style/Theme.SwasthiCare">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.swasthicare.mobile.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.SwasthiCare">
@@ -94,7 +94,7 @@
         <activity-alias
             android:name="ViewPermissionUsageActivity"
             android:exported="true"
-            android:targetActivity=".MainActivity"
+            android:targetActivity="com.swasthicare.mobile.MainActivity"
             android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
@@ -104,7 +104,7 @@
 
         <!-- Notification Receiver -->
         <receiver
-            android:name=".data.services.NotificationReceiver"
+            android:name="com.swasthicare.mobile.data.services.NotificationReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="HYDRATION_REMINDER" />
@@ -123,7 +123,7 @@
 
         <!-- Widget Action Receiver -->
         <receiver
-            android:name=".widgets.WidgetActionReceiver"
+            android:name="com.swasthicare.mobile.widgets.WidgetActionReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.swasthicare.widget.LOG_WATER" />
@@ -133,7 +133,7 @@
 
         <!-- Hydration Widget -->
         <receiver
-            android:name=".widgets.HydrationWidgetReceiver"
+            android:name="com.swasthicare.mobile.widgets.HydrationWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -145,7 +145,7 @@
 
         <!-- Medication Widget -->
         <receiver
-            android:name=".widgets.MedicationWidgetReceiver"
+            android:name="com.swasthicare.mobile.widgets.MedicationWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -157,7 +157,7 @@
 
         <!-- Steps Widget -->
         <receiver
-            android:name=".widgets.StepsWidgetReceiver"
+            android:name="com.swasthicare.mobile.widgets.StepsWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -169,7 +169,7 @@
 
         <!-- Diet Widget -->
         <receiver
-            android:name=".widgets.DietWidgetReceiver"
+            android:name="com.swasthicare.mobile.widgets.DietWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -181,7 +181,7 @@
 
         <!-- Run Widget -->
         <receiver
-            android:name=".widgets.RunWidgetReceiver"
+            android:name="com.swasthicare.mobile.widgets.RunWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -193,7 +193,7 @@
 
         <!-- Workout Foreground Notification Service -->
         <service
-            android:name=".data.services.WorkoutNotificationService"
+            android:name="com.swasthicare.mobile.data.services.WorkoutNotificationService"
             android:foregroundServiceType="location"
             android:exported="false" />
     </application>

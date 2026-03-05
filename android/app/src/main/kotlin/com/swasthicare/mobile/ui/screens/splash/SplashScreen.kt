@@ -19,8 +19,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import com.swasthicare.mobile.BuildConfig
-import com.swasthicare.mobile.R
+import com.swastricare.health.BuildConfig
+import com.swastricare.health.R
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.di.ONBOARDING_COMPLETE_KEY
 import io.github.jan.supabase.postgrest.postgrest

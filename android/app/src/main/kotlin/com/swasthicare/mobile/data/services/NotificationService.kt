@@ -352,7 +352,7 @@ class NotificationService(
         actionIntent: PendingIntent? = null
     ) {
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(com.swasthicare.mobile.R.drawable.ic_notification)
+            .setSmallIcon(com.swastricare.health.R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

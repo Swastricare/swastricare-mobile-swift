@@ -130,7 +130,7 @@ class HomeViewModel : ViewModel() {
                     weekDates = weekDates,
                     selectedDate = Date(),
                     weeklySteps = weeklySteps,
-                    calorieCurrent = todayCalories,
+                    calorieCurrent = todayCalories.toInt(),
                     calorieGoal = dietGoals?.dailyCalories ?: 2000
                 )
                 loadNudges()
@@ -153,7 +153,7 @@ class HomeViewModel : ViewModel() {
                         message = nudge.message,
                         icon = nudge.type.name.lowercase(),
                         color = "#007AFF",
-                        deepLink = nudge.deepLink
+                        deepLink = nudge.actionUrl
                     )
                 }
                 _uiState.value = _uiState.value.copy(serverNudges = serverNudges)

@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.data.services
 
+import android.annotation.SuppressLint
 import android.app.*
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -9,7 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.swasthicare.mobile.MainActivity
-import com.swasthicare.mobile.R
+import com.swastricare.health.R
 
 class WorkoutNotificationService : Service() {
 
@@ -49,6 +50,7 @@ class WorkoutNotificationService : Service() {
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -104,13 +106,13 @@ class WorkoutNotificationService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Workout in Progress")
             .setContentText("$time  •  $distance  •  $pace /km")
             .setSubText("$calories cal")
             .setOngoing(true)
             .setContentIntent(pendingTap)
-            .addAction(R.drawable.ic_launcher_foreground, "Stop", stopIntent)
+            .addAction(android.R.drawable.ic_dialog_info, "Stop", stopIntent)
             .setCategory(NotificationCompat.CATEGORY_WORKOUT)
             .build()
     }

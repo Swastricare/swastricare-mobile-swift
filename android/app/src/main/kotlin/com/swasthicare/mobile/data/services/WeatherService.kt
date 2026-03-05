@@ -14,7 +14,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import com.swasthicare.mobile.BuildConfig
+import com.swastricare.health.BuildConfig
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.coroutines.resume

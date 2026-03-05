@@ -151,9 +151,7 @@ class SupabaseProfileRepository(
         val path = "$userId/$fileName"
 
         return try {
-            bucket.upload(path, imageData) {
-                upsert = true
-            }
+            bucket.upload(path, imageData, upsert = true)
             Result.success(bucket.publicUrl(path))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to upload avatar: ${e.message}")

@@ -1,6 +1,6 @@
 package com.swasthicare.mobile.data
 
-import com.swasthicare.mobile.BuildConfig
+import com.swastricare.health.BuildConfig
 
 object SupabaseConfig {
     val SUPABASE_URL: String = BuildConfig.SUPABASE_URL

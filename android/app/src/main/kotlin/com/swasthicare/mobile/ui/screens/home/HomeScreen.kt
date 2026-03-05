@@ -226,7 +226,7 @@ fun HomeScreen(
                                 .glass(cornerRadius = 24.dp)
                                 .clickable { onNavigateToMedications() }
                         ) {
-                            val progress = uiState.medicationsTaken.toFloat() / uiState.medicationsTotal.toFloat()
+                            val progress = if (uiState.medicationsTotal > 0) uiState.medicationsTaken.toFloat() / uiState.medicationsTotal.toFloat() else 0f
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -305,7 +305,7 @@ fun HomeScreen(
                                 .glass(cornerRadius = 24.dp)
                                 .clickable { onNavigateToHydration() }
                         ) {
-                            val progress = uiState.hydrationCurrent.toFloat() / uiState.hydrationGoal.toFloat()
+                            val progress = if (uiState.hydrationGoal > 0) uiState.hydrationCurrent.toFloat() / uiState.hydrationGoal.toFloat() else 0f
 
                             Box(
                                 modifier = Modifier
