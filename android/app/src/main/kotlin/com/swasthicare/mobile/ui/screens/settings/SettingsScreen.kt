@@ -61,6 +61,7 @@ fun SettingsScreen(
         PremiumBackground()
 
         Scaffold(
+            modifier = Modifier.navigationBarsPadding(),
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(

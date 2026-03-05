@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 // APNS (Apple Push Notification Service) configuration
 const APNS_KEY_ID = Deno.env.get('APNS_KEY_ID') || ''
 const APNS_TEAM_ID = Deno.env.get('APNS_TEAM_ID') || ''
-const APNS_TOPIC = Deno.env.get('APNS_TOPIC') || 'com.swastricare.mobile'
+const APNS_TOPIC = Deno.env.get('APNS_TOPIC') || 'com.swastricare.health'
 const APNS_KEY = Deno.env.get('APNS_KEY') || ''
 const APNS_ENDPOINT = Deno.env.get('APNS_ENDPOINT') || 'https://api.sandbox.push.apple.com' // Use api.push.apple.com for production
 

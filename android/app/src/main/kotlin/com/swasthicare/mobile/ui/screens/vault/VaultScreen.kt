@@ -213,7 +213,11 @@ fun VaultScreen(
             )
         } else {
             // Main Vault Content
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) {
                 VaultAppBar(
                     totalDocuments = uiState.documents.size,
                     viewMode = uiState.viewMode,

@@ -410,7 +410,7 @@ fun HomeScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(110.dp)) // Bottom padding for floating nav bar
+                Spacer(modifier = Modifier.height(80.dp)) // Bottom padding for nav bar
             }
         }
     }

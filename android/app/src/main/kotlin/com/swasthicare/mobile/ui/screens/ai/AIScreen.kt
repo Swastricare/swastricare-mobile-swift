@@ -75,6 +75,7 @@ fun AIScreen(
     }
 
     Scaffold(
+        modifier = Modifier.navigationBarsPadding(),
         topBar = {
             // Invisible top bar to respect safe area, content handles headers
         },
