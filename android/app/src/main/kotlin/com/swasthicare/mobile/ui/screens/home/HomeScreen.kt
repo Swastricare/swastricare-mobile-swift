@@ -85,7 +85,6 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
                     .verticalScroll(scrollState)
             ) {
                 // 2. Header
@@ -124,14 +123,30 @@ fun HomeScreen(
                         ) {
                             ModelViewer(
                                 modelName = "anatomy",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .scale(1.2f),
-                                autoRotate = true,
+                                modifier = Modifier.fillMaxSize(),
+                                autoRotate = false,
                                 allowInteraction = false,
                                 rotationDurationMs = 8000
                             )
                         }
+
+                        // Fade gradient at the bottom — blends the model into the background
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .fillMaxWidth(0.52f)
+                                .fillMaxHeight(0.35f)
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
+                                            MaterialTheme.colorScheme.background
+                                        )
+                                    )
+                                )
+                        )
 
                         // Activity Stats Column on the left
                         Column(
@@ -181,7 +196,7 @@ fun HomeScreen(
                             value = "${uiState.heartRate}",
                             unit = "BPM",
                             color = HeartRateColor,
-                            modifier = Modifier.weight(1f).height(130.dp),
+                            modifier = Modifier.weight(1f).height(100.dp),
                             delay = 100,
                             showCameraBadge = true
                         )
@@ -192,7 +207,7 @@ fun HomeScreen(
                             value = uiState.sleepHours,
                             unit = "",
                             color = SleepColor,
-                            modifier = Modifier.weight(1f).height(130.dp),
+                            modifier = Modifier.weight(1f).height(100.dp),
                             delay = 200
                         )
 
@@ -202,7 +217,7 @@ fun HomeScreen(
                             value = "${uiState.distance}",
                             unit = "km",
                             color = SecondaryColor,
-                            modifier = Modifier.weight(1f).height(130.dp),
+                            modifier = Modifier.weight(1f).height(100.dp),
                             delay = 300
                         )
                     }
@@ -211,6 +226,13 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 5. Complex Widgets (Hydration & Medication) (section 3)
+                Text(
+                    "Quick Actions",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
                 StaggeredEntrance(visible = sectionVisible[3].value) {
                     Row(
                         modifier = Modifier
@@ -222,34 +244,12 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(200.dp)
-                                .glass(cornerRadius = 24.dp)
+                                .height(160.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(MedicationColor.copy(alpha = 0.12f))
                                 .clickable { onNavigateToMedications() }
                         ) {
                             val progress = if (uiState.medicationsTotal > 0) uiState.medicationsTaken.toFloat() / uiState.medicationsTotal.toFloat() else 0f
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(24.dp))
-                            ) {
-                                // Liquid fill
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .fillMaxWidth()
-                                        .fillMaxHeight(progress)
-                                        .background(
-                                            brush = Brush.verticalGradient(
-                                                colors = listOf(
-                                                    PrimaryColor.copy(alpha = 0.5f),
-                                                    SleepColor.copy(alpha = 0.5f)
-                                                )
-                                            )
-                                        )
-                                ) {
-                                    RisingBubblesEffect(color = Color.White.copy(alpha = 0.3f))
-                                }
-                            }
 
                             // Content — spread top to bottom
                             Column(
@@ -301,28 +301,24 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(200.dp)
-                                .glass(cornerRadius = 24.dp)
+                                .height(160.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(HydrationColor.copy(alpha = 0.12f))
                                 .clickable { onNavigateToHydration() }
                         ) {
                             val progress = if (uiState.hydrationGoal > 0) uiState.hydrationCurrent.toFloat() / uiState.hydrationGoal.toFloat() else 0f
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(24.dp))
-                            ) {
-                                WaterWave(
-                                    progress = progress,
-                                    color = HydrationColor.copy(alpha = 0.25f),
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                                WaterWave(
-                                    progress = progress,
-                                    color = HydrationColor.copy(alpha = 0.35f),
-                                    modifier = Modifier.fillMaxSize().padding(top = 5.dp)
-                                )
-                            }
+                            // Water wave animation
+                            WaterWave(
+                                progress = progress,
+                                color = HydrationColor.copy(alpha = 0.25f),
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            WaterWave(
+                                progress = progress,
+                                color = HydrationColor.copy(alpha = 0.35f),
+                                modifier = Modifier.fillMaxSize().padding(top = 5.dp)
+                            )
 
                             // Content — spread top to bottom
                             Column(
@@ -410,7 +406,7 @@ fun HomeScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(80.dp)) // Bottom padding for nav bar
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }

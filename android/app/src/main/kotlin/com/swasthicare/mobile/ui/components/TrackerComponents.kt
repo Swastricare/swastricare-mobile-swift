@@ -107,7 +107,8 @@ private fun DateButton(
             .height(60.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isSelected) PremiumColor.RoyalBlueStart else Color.Transparent
+                if (isSelected)
+                     PremiumColor.RoyalBlueStart else Color.Transparent
             )
             .border(
                 width = 1.dp,

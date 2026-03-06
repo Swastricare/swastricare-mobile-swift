@@ -1,107 +1,37 @@
 package com.swasthicare.mobile.ui.screens.main
 
-import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.DirectionsRun
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.DirectionsRun
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.navigation.DeepLinkHandler
 import com.swasthicare.mobile.navigation.DeepLinkRoute
-import com.swasthicare.mobile.ui.screens.ai.AIScreen
-import com.swasthicare.mobile.ui.screens.diet.AddFoodScreen
-import com.swasthicare.mobile.ui.screens.diet.DietScreen
-import com.swasthicare.mobile.ui.screens.diet.FoodSearchScreen
-import com.swasthicare.mobile.ui.screens.ar.ARBodyScanScreen
-import com.swasthicare.mobile.ui.screens.family.FamilyScreen
-import com.swasthicare.mobile.ui.screens.heartrate.HeartRateAnalyticsScreen
-import com.swasthicare.mobile.ui.screens.heartrate.HeartRateScreen
-import com.swasthicare.mobile.ui.screens.home.HomeScreen
-import com.swasthicare.mobile.ui.screens.hydration.HydrationScreen
-import com.swasthicare.mobile.ui.screens.hydration.HydrationSettingsScreen
-import com.swasthicare.mobile.ui.screens.medications.AddMedicationScreen
-import com.swasthicare.mobile.ui.screens.medications.MedicationDetailScreen
-import com.swasthicare.mobile.ui.screens.medications.MedicationsScreen
-import com.swasthicare.mobile.ui.screens.notifications.NotificationHistoryScreen
-import com.swasthicare.mobile.ui.screens.notifications.NotificationSettingsScreen
-import com.swasthicare.mobile.ui.screens.menstrualcycle.MenstrualCycleScreen
-import com.swasthicare.mobile.ui.screens.profile.EditProfileScreen
-import com.swasthicare.mobile.ui.screens.profile.ProfileScreen
+import com.swasthicare.mobile.ui.navigation.BottomNavConfig
+import com.swasthicare.mobile.ui.navigation.BottomNavTab
+import com.swasthicare.mobile.ui.navigation.MainNavGraph
+import com.swasthicare.mobile.ui.navigation.MainScaffold
 import com.swasthicare.mobile.ui.screens.profile.ProfileViewModel
-import com.swasthicare.mobile.ui.screens.runactivity.LiveWorkoutScreen
-import com.swasthicare.mobile.ui.screens.runactivity.RunActivityScreen
-import com.swasthicare.mobile.ui.screens.runactivity.WorkoutSummaryScreen
-import com.swasthicare.mobile.ui.screens.vault.VaultScreen
-import com.swasthicare.mobile.ui.screens.analytics.HealthAnalyticsScreen
-import com.swasthicare.mobile.ui.screens.runactivity.ActivityDetailScreen
-import com.swasthicare.mobile.ui.screens.runactivity.RunCalendarScreen
-import com.swasthicare.mobile.ui.screens.settings.SettingsScreen
-import com.swasthicare.mobile.di.AppContainer
-import androidx.lifecycle.viewmodel.compose.viewModel
 
-sealed class MainTab(
-    val route: String,
-    val title: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
-) {
-    object Vitals : MainTab(
-        route = "vitals",
-        title = "Vitals",
-        selectedIcon = Icons.Filled.Favorite,
-        unselectedIcon = Icons.Outlined.FavoriteBorder
-    )
-    object Vault : MainTab(
-        route = "vault",
-        title = "Vault",
-        selectedIcon = Icons.Filled.Lock,
-        unselectedIcon = Icons.Outlined.Lock
-    )
-    object AI : MainTab(
-        route = "ai",
-        title = "AI",
-        selectedIcon = Icons.Filled.AutoAwesome,
-        unselectedIcon = Icons.Outlined.AutoAwesome
-    )
-    object Steps : MainTab(
-        route = "steps",
-        title = "Steps",
-        selectedIcon = Icons.Filled.DirectionsRun,
-        unselectedIcon = Icons.Outlined.DirectionsRun
-    )
-    object Profile : MainTab(
-        route = "profile",
-        title = "Profile",
-        selectedIcon = Icons.Filled.Person,
-        unselectedIcon = Icons.Outlined.Person
-    )
-}
-
+/**
+ * Main screen with bottom navigation.
+ *
+ * Architecture:
+ * - Scaffold with NavigationBar (hidden on full-screen routes)
+ * - NavHost containing all tab screens and nested screens
+ * - Deep linking support for both tabs and nested routes
+ *
+ * The key to proper padding:
+ * - MainScaffold applies innerPadding from Scaffold to the content Box
+ * - NavHost modifier is set to fillMaxSize() so all screens naturally fill the available space
+ * - Individual screens use fillMaxSize() without extra padding - they occupy exactly what's left
+ */
 @Composable
 fun MainScreen(
     onSignOut: () -> Unit = {},
@@ -109,15 +39,21 @@ fun MainScreen(
     onDeepLinkConsumed: () -> Unit = {}
 ) {
     val navController = rememberNavController()
-    val haptic = LocalHapticFeedback.current
 
-    val items = listOf(
-        MainTab.Vitals,
-        MainTab.Vault,
-        MainTab.AI,
-        MainTab.Steps,
-        MainTab.Profile
-    )
+    // Shared ProfileViewModel scoped to MainScreen so Profile and EditProfile share state
+    val profileViewModel: ProfileViewModel = viewModel()
+
+    // Track current route for analytics and bottom nav visibility
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // Determine if bottom nav should be visible
+    val showBottomNav = remember(currentRoute) {
+        BottomNavConfig.shouldShowBottomNav(currentRoute)
+    }
+
+    // Tab items for deep link handling
+    val tabItems = remember { BottomNavTab.items }
 
     // Handle deep link navigation
     LaunchedEffect(deepLinkRoute) {
@@ -125,7 +61,7 @@ fun MainScreen(
             val navRoute = DeepLinkHandler.toNavRoute(deepLinkRoute)
 
             // Check if it's a tab route or a nested screen route
-            val isTabRoute = items.any { it.route == navRoute }
+            val isTabRoute = tabItems.any { it.route == navRoute }
             if (isTabRoute) {
                 navController.navigate(navRoute) {
                     popUpTo(navController.graph.findStartDestination().id) {
@@ -143,300 +79,25 @@ fun MainScreen(
         }
     }
 
-    // Track screen views when tab changes
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    // Track screen views when route changes
     LaunchedEffect(currentRoute) {
         if (currentRoute != null) {
-            val screenName = items.firstOrNull { it.route == currentRoute }?.title ?: currentRoute
+            val screenName = tabItems.firstOrNull { it.route == currentRoute }?.title ?: currentRoute
             AppContainer.firebaseAnalyticsService.logScreenView(screenName)
             AppContainer.appAnalyticsService.trackScreenView(screenName)
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = navBackStackEntry?.destination?.route
-
-            // Hide nav bar on full-screen routes
-            val hideNavBarRoutes = listOf("live_workout", "workout_summary", "ar_body_scan")
-            if (currentRoute !in hideNavBarRoutes) {
-                NavigationBar {
-                    items.forEach { tab ->
-                        NavigationBarItem(
-                            selected = currentRoute == tab.route,
-                            onClick = {
-                                if (currentRoute != tab.route) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                }
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = if (currentRoute == tab.route) tab.selectedIcon else tab.unselectedIcon,
-                                    contentDescription = tab.title
-                                )
-                            },
-                            label = { Text(tab.title) }
-                        )
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
-        // Shared ProfileViewModel scoped to the MainScreen so Profile and EditProfile share state
-        val profileViewModel: ProfileViewModel = viewModel()
-
-        NavHost(
+    // Main scaffold with bottom navigation
+    MainScaffold(
+        navController = navController,
+        showBottomNav = showBottomNav
+    ) { modifier ->
+        MainNavGraph(
             navController = navController,
-            startDestination = MainTab.Vitals.route,
-            modifier = Modifier.fillMaxSize(),
-            enterTransition = { fadeIn(animationSpec = tween(250)) },
-            exitTransition = { fadeOut(animationSpec = tween(250)) },
-            popEnterTransition = { fadeIn(animationSpec = tween(250)) },
-            popExitTransition = { fadeOut(animationSpec = tween(250)) }
-        ) {
-            composable(MainTab.Vitals.route) {
-                HomeScreen(
-                    onNavigateToMedications = { navController.navigate("medications") },
-                    onNavigateToDiet = { navController.navigate("diet") },
-                    onNavigateToHydration = { navController.navigate("hydration") },
-                    onNavigateToCycleTracker = { navController.navigate("cycle_tracker") },
-                    onNavigateToHeartRate = { navController.navigate("heart_rate") },
-                    onNavigateToBodyScan = { navController.navigate("ar_body_scan") },
-                    onNavigateToNotifications = { navController.navigate("notification_history") },
-                    onNavigateToRoute = { route -> try { navController.navigate(route) } catch (_: Exception) {} }
-                )
-            }
-            composable(MainTab.AI.route) { AIScreen() }
-            composable(MainTab.Vault.route) { VaultScreen() }
-            composable(MainTab.Steps.route) {
-                RunActivityScreen(
-                    onNavigateToLiveWorkout = { navController.navigate("live_workout") },
-                    onNavigateToActivityDetail = { workoutId ->
-                        navController.navigate("activity_detail/$workoutId")
-                    },
-                    onNavigateToCalendar = { navController.navigate("run_calendar") }
-                )
-            }
-            composable(MainTab.Profile.route) {
-                SettingsScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditProfile = { navController.navigate("edit_profile") },
-                    onNavigateToFamily = { navController.navigate("family") },
-                    onNavigateToNotificationSettings = { navController.navigate("notification_settings") },
-                    onNavigateToHydrationSettings = { navController.navigate("hydration_settings") },
-                    onSignOut = onSignOut
-                )
-            }
-            composable("notification_settings") {
-                NotificationSettingsScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable("notification_history") {
-                NotificationHistoryScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable("edit_profile") {
-                EditProfileScreen(
-                    viewModel = profileViewModel,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            // Medications flow
-            composable("medications") {
-                MedicationsScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToAddMedication = { navController.navigate("add_medication") },
-                    onNavigateToDetail = { id -> navController.navigate("medication_detail/$id") },
-                    onNavigateToAI = {
-                        navController.navigate(MainTab.AI.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
-            }
-            composable("add_medication") {
-                AddMedicationScreen(onDismiss = { navController.popBackStack() })
-            }
-            composable("medication_detail/{medicationId}") { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("medicationId") ?: return@composable
-                MedicationDetailScreen(
-                    medicationId = id,
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            // Diet flow
-            composable("diet") {
-                DietScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToAddFood = { mealTypeDb ->
-                        navController.navigate("add_food/$mealTypeDb")
-                    },
-                    onNavigateToFoodSearch = { mealTypeDb ->
-                        navController.navigate("food_search/$mealTypeDb")
-                    },
-                    onNavigateToAI = {
-                        navController.navigate(MainTab.AI.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
-            }
-            composable("add_food/{mealTypeDb}") { backStackEntry ->
-                val mealTypeDb = backStackEntry.arguments?.getString("mealTypeDb") ?: "breakfast"
-                AddFoodScreen(
-                    initialMealTypeDb = mealTypeDb,
-                    onDismiss = { navController.popBackStack() },
-                    onNavigateToFoodSearch = { mt -> navController.navigate("food_search/$mt") }
-                )
-            }
-            composable("food_search/{mealTypeDb}") { backStackEntry ->
-                val mealTypeDb = backStackEntry.arguments?.getString("mealTypeDb") ?: "breakfast"
-                FoodSearchScreen(
-                    mealTypeDb = mealTypeDb,
-                    onFoodSelected = { navController.popBackStack() },
-                    onDismiss = { navController.popBackStack() }
-                )
-            }
-            // AR Body Scan (Feature 16)
-            composable("ar_body_scan") {
-                ARBodyScanScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            // Hydration flow
-            composable("hydration") {
-                HydrationScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToAI = {
-                        navController.navigate(MainTab.AI.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onNavigateToSettings = { navController.navigate("hydration_settings") }
-                )
-            }
-            composable("hydration_settings") {
-                HydrationSettingsScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToNotifications = { navController.navigate("notification_settings") }
-                )
-            }
-            // Menstrual Cycle Tracker
-            composable("cycle_tracker") {
-                MenstrualCycleScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            // Heart Rate Measurement
-            composable("heart_rate") {
-                HeartRateScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToAnalytics = { navController.navigate("heart_rate_analytics") },
-                    onNavigateToAI = {
-                        navController.navigate(MainTab.AI.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
-            }
-            composable("heart_rate_analytics") {
-                HeartRateAnalyticsScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            // Live Workout flow
-            composable(
-                route = "live_workout?type={type}",
-                arguments = listOf(navArgument("type") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                })
-            ) { backStackEntry ->
-                val workoutType = backStackEntry.arguments?.getString("type") ?: ""
-                if (workoutType.isNotEmpty()) {
-                    val wType = try {
-                        com.swasthicare.mobile.ui.screens.runactivity.WorkoutType.valueOf(workoutType.uppercase())
-                    } catch (_: IllegalArgumentException) { null }
-                    if (wType != null) {
-                        AppContainer.liveWorkoutViewModel.setWorkoutType(wType)
-                    }
-                }
-                LiveWorkoutScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToSummary = { navController.navigate("workout_summary") }
-                )
-            }
-            composable("workout_summary") {
-                WorkoutSummaryScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onDone = {
-                        navController.popBackStack("steps", inclusive = false)
-                    }
-                )
-            }
-            // Run Calendar
-            composable("run_calendar") {
-                RunCalendarScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToActivityDetail = { workoutId ->
-                        navController.navigate("activity_detail/$workoutId")
-                    }
-                )
-            }
-            // Health Analytics
-            composable("health_analytics") {
-                HealthAnalyticsScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToAI = {
-                        navController.navigate(MainTab.AI.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
-            }
-            // Activity Detail
-            composable("activity_detail/{workoutId}") { backStackEntry ->
-                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: return@composable
-                ActivityDetailScreen(
-                    workoutId = workoutId,
-                    onNavigateBack = { navController.popBackStack() },
-                    onDelete = { navController.popBackStack() }
-                )
-            }
-            // Family flow
-            composable("family") {
-                FamilyScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable("family_join/{code}") { backStackEntry ->
-                val code = backStackEntry.arguments?.getString("code") ?: ""
-                FamilyScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    initialJoinCode = code
-                )
-            }
-        }
+            modifier = modifier,
+            profileViewModel = profileViewModel,
+            onSignOut = onSignOut
+        )
     }
 }

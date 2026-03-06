@@ -70,13 +70,12 @@ class GoogleAuthHelper(
 
         val credentialManager = CredentialManager.create(activityContext)
 
-        val nonce = generateNonce()
-        val hashedNonce = hashNonce(nonce)
-
+        // Don't set a nonce - Supabase's signInWith(IDToken) generates its own nonce
+        // and expects the ID token to NOT contain a nonce. Setting any nonce causes:
+        // "Passed nonce and nonce in id_token should either both exist or not."
         val googleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)
             .setServerClientId(webClientId)
-            .setNonce(hashedNonce)
             .build()
 
         val request = GetCredentialRequest.Builder()

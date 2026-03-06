@@ -80,16 +80,16 @@ fun ModelViewer(
         // CRITICAL: Do NOT apply .alpha() or .scale() to this — breaks SurfaceView on many GPUs
         SceneViewComposable(
             modelName = modelName,
-            rotationY = if (autoRotate) rotationY else 0f,
+            rotationY = if (autoRotate) rotationY else 270f,
             onModelLoaded = { isModelLoaded = true },
             modifier = Modifier.fillMaxSize()
         )
 
-        // Bottom fade mask (matching iOS gradient mask)
+        // Bottom blending fade mask
         BottomFadeMask(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .fillMaxHeight(0.45f)
                 .align(Alignment.BottomCenter)
         )
     }
@@ -213,8 +213,8 @@ private fun SceneViewComposable(
                     )
 
                     val node = ModelNode(modelInstance = instance).apply {
-                        position = Position(y = -0.5f)
-                        scale = io.github.sceneview.math.Scale(1.5f)
+                        position = Position(y = -0.2f)
+                        scale = io.github.sceneview.math.Scale(2.5f)
                         // Apply material to ALL renderable nodes
                         renderableNodes.forEach { renderable ->
                             try {
@@ -329,9 +329,12 @@ fun BottomFadeMask(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                        MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
+                        MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
                         MaterialTheme.colorScheme.background
-                    )
+                    ),
+                    startY = 0f,
+                    endY = Float.POSITIVE_INFINITY
                 )
             )
     )
