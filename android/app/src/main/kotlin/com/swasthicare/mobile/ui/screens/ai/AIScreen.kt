@@ -256,7 +256,7 @@ fun ChatBubble(message: ChatMessage) {
         ) {
             if (message.isLoading) {
                 TypingIndicator()
-            } else if (!isUser) {
+            } else if (!isUser && message.shouldAnimate) {
                 TypewriterText(
                     fullText = message.content,
                     color = textColor,
@@ -279,22 +279,51 @@ fun TypewriterText(
     fullText: String,
     color: Color,
     style: androidx.compose.ui.text.TextStyle,
-    charDelayMillis: Long = 18L
+    charDelayMillis: Long = 15L
 ) {
     var visibleCount by remember(fullText) { mutableIntStateOf(0) }
     val totalChars = fullText.length
+    val isAnimating = visibleCount < totalChars
+
+    // Blinking cursor while animating
+    val cursorTransition = rememberInfiniteTransition(label = "cursor")
+    val cursorAlpha by cursorTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "cursorAlpha"
+    )
 
     LaunchedEffect(fullText) {
         visibleCount = 0
-        for (i in 1..totalChars) {
+        var i = 0
+        while (i < totalChars) {
             delay(charDelayMillis)
+            // Reveal faster through whitespace/punctuation runs
+            val charsToReveal = when {
+                fullText[i] == ' ' || fullText[i] == '\n' -> 2
+                totalChars > 500 -> 3 // Speed up long messages
+                else -> 1
+            }
+            i = (i + charsToReveal).coerceAtMost(totalChars)
             visibleCount = i
         }
     }
 
     val displayedText = fullText.substring(0, visibleCount)
+    val annotated = buildAnnotatedString {
+        append(parseMarkdown(displayedText))
+        if (isAnimating) {
+            withStyle(SpanStyle(color = color.copy(alpha = cursorAlpha))) {
+                append("▎")
+            }
+        }
+    }
     Text(
-        text = parseMarkdown(displayedText),
+        text = annotated,
         color = color,
         style = style
     )

@@ -11,11 +11,12 @@ data class ChatMessage(
     val content: String,
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val shouldAnimate: Boolean = false
 ) {
     companion object {
         fun userMessage(content: String) = ChatMessage(content = content, isUser = true)
-        fun assistantMessage(content: String) = ChatMessage(content = content, isUser = false)
+        fun assistantMessage(content: String) = ChatMessage(content = content, isUser = false, shouldAnimate = true)
         fun loadingMessage() = ChatMessage(content = "", isUser = false, isLoading = true)
     }
 }
