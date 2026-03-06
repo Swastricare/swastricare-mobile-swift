@@ -106,13 +106,13 @@ class WorkoutNotificationService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Workout in Progress")
             .setContentText("$time  •  $distance  •  $pace /km")
             .setSubText("$calories cal")
             .setOngoing(true)
             .setContentIntent(pendingTap)
-            .addAction(android.R.drawable.ic_dialog_info, "Stop", stopIntent)
+            .addAction(R.drawable.ic_notification, "Stop", stopIntent)
             .setCategory(NotificationCompat.CATEGORY_WORKOUT)
             .build()
     }
