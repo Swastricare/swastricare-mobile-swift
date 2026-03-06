@@ -153,7 +153,7 @@ private fun RunContent(context: Context) {
                     .background(Color(0xFF22C55E))
                     .cornerRadius(10.dp)
                     .padding(vertical = 8.dp, horizontal = 12.dp)
-                    .clickable(actionStartActivity(startRunIntent)),
+                    .clickable(actionStartActivity<MainActivity>()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -194,7 +194,7 @@ private fun RunContent(context: Context) {
                     .background(Color(0xFF22C55E))
                     .cornerRadius(10.dp)
                     .padding(vertical = 8.dp, horizontal = 12.dp)
-                    .clickable(actionStartActivity(startRunIntent)),
+                    .clickable(actionStartActivity<MainActivity>()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
