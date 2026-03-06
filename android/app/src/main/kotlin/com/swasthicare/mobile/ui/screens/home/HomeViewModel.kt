@@ -59,6 +59,7 @@ class HomeViewModel : ViewModel() {
     private val healthConnectService = AppContainer.healthConnectService
     private val hydrationRepository = AppContainer.hydrationRepository
     private val dietRepository = AppContainer.dietRepository
+    private val medicationRepository = AppContainer.medicationRepository
 
     init {
         loadData()
@@ -98,6 +99,19 @@ class HomeViewModel : ViewModel() {
                     .sumOf { it.calories }
                 val dietGoals = try { dietRepository.loadGoals() } catch (_: Exception) { null }
 
+                // Load medication data
+                val profileId = AppContainer.authRepository.currentUser?.id
+                var medsTaken = 0
+                var medsTotal = 0
+                if (profileId != null) {
+                    try {
+                        val schedules = medicationRepository.fetchSchedules(profileId)
+                        val todayLogs = medicationRepository.fetchTodayLogs(profileId)
+                        medsTotal = schedules.size
+                        medsTaken = todayLogs.count { it.status == "taken" }
+                    } catch (_: Exception) { /* medications are non-critical for home */ }
+                }
+
                 // Convert weekly steps to DailyMetric
                 val weekDates = generateWeekDates()
                 val weeklySteps = weeklyStepEntries.map { entry ->
@@ -122,8 +136,8 @@ class HomeViewModel : ViewModel() {
                     distance = summary.distanceKm,
                     hydrationCurrent = todayHydration,
                     hydrationGoal = 2500,
-                    medicationsTaken = 0,
-                    medicationsTotal = 0,
+                    medicationsTaken = medsTaken,
+                    medicationsTotal = medsTotal,
                     isLoading = false,
                     isDemoMode = false,
                     isAuthorized = healthConnectService.isAvailable,
