@@ -3,26 +3,32 @@ package com.swasthicare.mobile.ui.screens.vault
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.AppColors
+import com.swasthicare.mobile.ui.theme.PrimaryColor
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocumentDetailSheet(
     document: MedicalDocument,
@@ -42,36 +48,23 @@ fun DocumentDetailSheet(
         mutableStateOf(VaultCategory.fromValue(document.category))
     }
     var editedNotes by remember(document.id) { mutableStateOf(document.notes ?: "") }
-    var editedTags by remember(document.id) {
-        mutableStateOf(document.tags ?: emptyList())
-    }
-    var newTagText by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
 
-    val hasChanges by remember(editedTitle, editedCategory, editedNotes, editedTags) {
+    val hasChanges by remember(editedTitle, editedCategory, editedNotes) {
         derivedStateOf {
             editedTitle != document.title ||
                 editedCategory.title != document.category ||
-                editedNotes != (document.notes ?: "") ||
-                editedTags != (document.tags ?: emptyList<String>())
+                editedNotes != (document.notes ?: "")
         }
     }
 
-    // Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            icon = {
-                Icon(
-                    Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = AppColors.error
-                )
-            },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = AppColors.error) },
             title = { Text("Delete Document") },
-            text = {
-                Text("Are you sure you want to delete \"${document.title}\"? This action cannot be undone.")
-            },
+            text = { Text("Are you sure you want to delete \"${document.title}\"? This action cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -79,17 +72,11 @@ fun DocumentDetailSheet(
                         onDeleteDocument(document)
                         onDismiss()
                     },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = AppColors.error
-                    )
-                ) {
-                    Text("Delete", fontWeight = FontWeight.Bold)
-                }
+                    colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
+                ) { Text("Delete", fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -97,20 +84,22 @@ fun DocumentDetailSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 16.dp)
             .padding(bottom = 32.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Header
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Document Details",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             IconButton(onClick = onDismiss) {
@@ -118,364 +107,281 @@ fun DocumentDetailSheet(
             }
         }
 
-        // Document Name Section
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .glass(cornerRadius = 16.dp)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Document Name",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = AppColors.onSurfaceVariant
-            )
+        // Document section: editable name + category + file info
+        DetailSectionContainer(title = "Document") {
             OutlinedTextField(
                 value = editedTitle,
                 onValueChange = { editedTitle = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-        }
-
-        // Category Section
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .glass(cornerRadius = 16.dp)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Category",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = AppColors.onSurfaceVariant
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                VaultCategory.values().forEach { category ->
-                    FilterChip(
-                        selected = editedCategory == category,
-                        onClick = { editedCategory = category },
-                        label = { Text(category.title) },
-                        leadingIcon = if (editedCategory == category) {
-                            {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        } else null,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(category.colorHex).copy(alpha = 0.15f),
-                            selectedLabelColor = Color(category.colorHex)
-                        )
-                    )
-                }
-            }
-        }
-
-        // File Info Section (read-only)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .glass(cornerRadius = 16.dp)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "File Information",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = AppColors.onSurfaceVariant
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                InfoRow(
-                    icon = Icons.Default.CalendarToday,
-                    label = "Upload Date",
-                    value = document.createdAt?.substringBefore("T") ?: "Unknown"
+                label = { Text("Name") },
+                shape = RoundedCornerShape(10.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = AppColors.outline.copy(alpha = 0.4f)
                 )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                InfoRow(
-                    icon = Icons.Default.Storage,
-                    label = "File Size",
-                    value = formatFileSize(document.fileSize)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                InfoRow(
-                    icon = Icons.Default.InsertDriveFile,
-                    label = "File Type",
-                    value = document.fileType.uppercase()
-                )
-            }
-
-            if (document.doctorName != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    InfoRow(
-                        icon = Icons.Default.Person,
-                        label = "Doctor",
-                        value = document.doctorName
-                    )
-                }
-            }
-
-            if (document.location != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    InfoRow(
-                        icon = Icons.Default.LocationOn,
-                        label = "Location",
-                        value = document.location
-                    )
-                }
-            }
-        }
-
-        // Tags Section
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .glass(cornerRadius = 16.dp)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Tags",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = AppColors.onSurfaceVariant
             )
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                editedTags.forEach { tag ->
-                    InputChip(
-                        selected = false,
-                        onClick = { },
-                        label = { Text(tag) },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = {
-                                    editedTags = editedTags.filter { it != tag }
-                                },
-                                modifier = Modifier.size(18.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Remove tag",
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
-                    )
-                }
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                color = AppColors.onSurface.copy(alpha = 0.08f)
+            )
 
-                // Add tag input
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Box {
+                DetailInfoRow(
+                    icon = Icons.Default.Label,
+                    label = "Category",
+                    value = editedCategory.title,
+                    valueColor = Color(editedCategory.colorHex),
+                    trailingIcon = Icons.Default.ChevronRight,
+                    onClick = { showCategoryPicker = true }
+                )
+                DropdownMenu(
+                    expanded = showCategoryPicker,
+                    onDismissRequest = { showCategoryPicker = false }
                 ) {
-                    OutlinedTextField(
-                        value = newTagText,
-                        onValueChange = { newTagText = it },
-                        modifier = Modifier
-                            .width(140.dp)
-                            .height(48.dp),
-                        placeholder = { Text("Add tag...", style = MaterialTheme.typography.bodySmall) },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    IconButton(
-                        onClick = {
-                            val trimmed = newTagText.trim()
-                            if (trimmed.isNotEmpty() && trimmed !in editedTags) {
-                                editedTags = editedTags + trimmed
-                                newTagText = ""
+                    VaultCategory.values().forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat.title) },
+                            onClick = { editedCategory = cat; showCategoryPicker = false },
+                            leadingIcon = {
+                                if (editedCategory == cat) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = PrimaryColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
-                        },
-                        enabled = newTagText.isNotBlank()
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Add tag",
-                            tint = if (newTagText.isNotBlank())
-                                AppColors.primary
-                            else
-                                AppColors.onSurfaceVariant.copy(alpha = 0.3f)
                         )
                     }
                 }
             }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = AppColors.onSurface.copy(alpha = 0.08f)
+            )
+
+            DetailInfoRow(
+                icon = Icons.Default.CalendarToday,
+                label = "Date",
+                value = document.createdAt?.substringBefore("T") ?: "Unknown"
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = AppColors.onSurface.copy(alpha = 0.08f)
+            )
+
+            DetailInfoRow(
+                icon = Icons.Default.Storage,
+                label = "Size",
+                value = formatFileSize(document.fileSize)
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = AppColors.onSurface.copy(alpha = 0.08f)
+            )
+
+            DetailInfoRow(
+                icon = Icons.AutoMirrored.Filled.InsertDriveFile,
+                label = "Type",
+                value = document.fileType.uppercase()
+            )
+
+            if (document.doctorName != null) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    color = AppColors.onSurface.copy(alpha = 0.08f)
+                )
+                DetailInfoRow(
+                    icon = Icons.Default.Person,
+                    label = "Doctor",
+                    value = document.doctorName
+                )
+            }
         }
 
-        // Notes Section
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .glass(cornerRadius = 16.dp)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Notes",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = AppColors.onSurfaceVariant
-            )
+        // Notes section
+        DetailSectionContainer(title = "Notes") {
             OutlinedTextField(
                 value = editedNotes,
                 onValueChange = { editedNotes = it },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
-                maxLines = 6,
-                placeholder = { Text("Add notes about this document...") },
-                shape = RoundedCornerShape(12.dp)
+                maxLines = 5,
+                placeholder = {
+                    Text(
+                        "Add notes...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppColors.onSurfaceVariant
+                    )
+                },
+                shape = RoundedCornerShape(10.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = AppColors.outline.copy(alpha = 0.4f)
+                )
             )
         }
 
-        // Action Buttons
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // View Document
-            Button(
-                onClick = { onViewDocument(document) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.primary
-                )
-            ) {
-                Icon(
-                    Icons.Default.Visibility,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("View Document", fontWeight = FontWeight.SemiBold)
-            }
+        Spacer(modifier = Modifier.height(4.dp))
 
-            // Save Changes
-            AnimatedVisibility(
-                visible = hasChanges,
-                enter = expandVertically(),
-                exit = shrinkVertically()
+        // View Document action
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glass()
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { onViewDocument(document) }
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    onClick = {
+                Icon(Icons.Default.Visibility, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                Text(
+                    "View Document",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PrimaryColor
+                )
+            }
+        }
+
+        // Save Changes action (animated — only appears when edits exist)
+        AnimatedVisibility(visible = hasChanges, enter = expandVertically(), exit = shrinkVertically()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glass()
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable {
                         document.id?.let { id ->
                             onSaveChanges(
                                 id,
                                 editedTitle,
                                 editedCategory.title,
                                 editedNotes.takeIf { it.isNotBlank() },
-                                editedTags
+                                document.tags ?: emptyList()
                             )
                         }
                         onDismiss()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4CAF50)
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.Save,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save Changes", fontWeight = FontWeight.SemiBold)
-                }
-            }
-
-            // Delete
-            OutlinedButton(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = AppColors.error
-                ),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    AppColors.error.copy(alpha = 0.5f)
-                )
+                    }
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Delete Document", fontWeight = FontWeight.SemiBold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Save, contentDescription = null, tint = Color(0xFF34C759), modifier = Modifier.size(20.dp))
+                    Text(
+                        "Save Changes",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF34C759)
+                    )
+                }
             }
         }
 
-        // Bottom spacer for safe area
-        Spacer(modifier = Modifier.height(16.dp))
+        // Delete action
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glass()
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { showDeleteDialog = true }
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = null, tint = AppColors.error, modifier = Modifier.size(20.dp))
+                Text(
+                    "Delete Document",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.error
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
 @Composable
-private fun InfoRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String
+private fun DetailSectionContainer(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass()
+            .padding(16.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = AppColors.primary.copy(alpha = 0.7f)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onSurface.copy(alpha = 0.7f),
+            modifier = Modifier.padding(bottom = 12.dp)
         )
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+        content()
+    }
+}
+
+@Composable
+private fun DetailInfoRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    valueColor: Color = AppColors.onSurfaceVariant,
+    trailingIcon: ImageVector? = null,
+    onClick: (() -> Unit)? = null
+) {
+    val rowModifier = if (onClick != null) {
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(vertical = 6.dp)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+    }
+
+    Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = icon, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (trailingIcon != null) {
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = trailingIcon,
+                contentDescription = null,
+                tint = AppColors.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
             )
         }
     }
