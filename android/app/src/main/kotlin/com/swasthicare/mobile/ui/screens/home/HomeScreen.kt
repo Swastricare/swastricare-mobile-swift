@@ -500,14 +500,14 @@ fun ActivityStatRow(
             .glass(cornerRadius = 16.dp, opacity = 0.3f)
     ) {
         // Colored accent strip on left edge
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .width(3.dp)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
-                .background(color)
-        )
+        // Box(
+        //     modifier = Modifier
+        //         .align(Alignment.CenterStart)
+        //         .width(3.dp)
+        //         .fillMaxHeight()
+        //         .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
+        //         .background(color)
+        // )
 
         Row(
             verticalAlignment = Alignment.CenterVertically,

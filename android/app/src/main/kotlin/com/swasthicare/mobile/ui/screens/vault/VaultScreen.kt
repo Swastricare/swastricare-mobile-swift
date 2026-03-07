@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,7 +39,8 @@ import com.swasthicare.mobile.ui.theme.AppColors
 @Composable
 fun VaultScreen(
     viewModel: VaultViewModel = viewModel(),
-    onNavigateToViewer: ((MedicalDocument) -> Unit)? = null
+    onNavigateToViewer: ((MedicalDocument) -> Unit)? = null,
+    onBack: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -218,14 +221,79 @@ fun VaultScreen(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-                VaultAppBar(
-                    totalDocuments = uiState.documents.size,
-                    viewMode = uiState.viewMode,
-                    onViewModeChange = viewModel::setViewMode,
-                    isSelectionMode = uiState.isSelectionMode,
-                    onToggleSelectionMode = viewModel::toggleSelectionMode,
-                    searchQuery = uiState.searchQuery,
-                    onSearchQueryChange = viewModel::setSearchQuery
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Medical Vault",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationIcon = {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                val newMode = when (uiState.viewMode) {
+                                    VaultViewMode.List -> VaultViewMode.Folders
+                                    VaultViewMode.Folders -> VaultViewMode.Timeline
+                                    VaultViewMode.Timeline -> VaultViewMode.List
+                                }
+                                viewModel.setViewMode(newMode)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = when (uiState.viewMode) {
+                                    VaultViewMode.List -> Icons.Default.List
+                                    VaultViewMode.Folders -> Icons.Default.Folder
+                                    VaultViewMode.Timeline -> Icons.Default.CalendarToday
+                                },
+                                contentDescription = "View Mode"
+                            )
+                        }
+                        IconButton(onClick = viewModel::toggleSelectionMode) {
+                            Icon(
+                                imageVector = if (uiState.isSelectionMode) Icons.Default.Close else Icons.Default.CheckCircle,
+                                contentDescription = "Select"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    ),
+                    windowInsets = WindowInsets(0, 0, 0, 0)
+                )
+
+                // Search Bar
+                TextField(
+                    value = uiState.searchQuery,
+                    onValueChange = viewModel::setSearchQuery,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .height(56.dp),
+                    placeholder = { Text("Search documents...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = AppColors.surfaceVariant,
+                        unfocusedContainerColor = AppColors.surfaceVariant,
+                        disabledContainerColor = AppColors.surfaceVariant,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        focusedTextColor = AppColors.onSurface,
+                        unfocusedTextColor = AppColors.onSurface,
+                        focusedLeadingIconColor = AppColors.onSurfaceVariant,
+                        unfocusedLeadingIconColor = AppColors.onSurfaceVariant,
+                        focusedPlaceholderColor = AppColors.onSurfaceVariant,
+                        unfocusedPlaceholderColor = AppColors.onSurfaceVariant
+                    )
                 )
 
                 // Category Filters
