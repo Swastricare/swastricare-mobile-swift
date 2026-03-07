@@ -20,12 +20,14 @@ interface HydrationRepository {
     // Local entries
     fun loadLocalEntries(): List<HydrationEntry>
     fun addLocalEntry(entry: HydrationEntry)
+    fun saveLocalEntries(entries: List<HydrationEntry>)
     fun deleteLocalEntry(id: String)
     fun markEntriesAsSynced(ids: List<String>)
     // Preferences
     fun loadPreferences(): HydrationPreferences
     fun savePreferences(prefs: HydrationPreferences)
     // Supabase
+    suspend fun fetchFromCloud(profileId: String): Result<List<HydrationEntry>>
     suspend fun syncEntriesToCloud(entries: List<HydrationEntry>, profileId: String): Result<Unit>
     suspend fun deleteCloudEntry(id: String): Result<Unit>
 }
@@ -54,6 +56,10 @@ class SupabaseHydrationRepository(
         prefs.edit().putString("hydration_entries", hydrationJson.encodeToString(current)).apply()
     }
 
+    override fun saveLocalEntries(entries: List<HydrationEntry>) {
+        prefs.edit().putString("hydration_entries", hydrationJson.encodeToString(entries)).apply()
+    }
+
     override fun deleteLocalEntry(id: String) {
         val current = loadLocalEntries().filter { it.id != id }
         prefs.edit().putString("hydration_entries", hydrationJson.encodeToString(current)).apply()
@@ -78,6 +84,35 @@ class SupabaseHydrationRepository(
     override fun savePreferences(prefs: HydrationPreferences) {
         this.prefs.edit().putString("hydration_preferences", hydrationJson.encodeToString(prefs)).apply()
     }
+
+    // ── Supabase: Fetch Entries ──
+
+    override suspend fun fetchFromCloud(profileId: String): Result<List<HydrationEntry>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val records = supabaseClient.from("hydration_logs")
+                    .select {
+                        filter { eq("health_profile_id", profileId) }
+                    }
+                    .decodeList<HydrationEntryRecord>()
+                val entries = records.map { record ->
+                    val effectiveMl = (record.amountMl * record.hydrationFactor).toInt()
+                    HydrationEntry(
+                        id = record.id,
+                        drinkType = record.beverageType,
+                        amountMl = record.amountMl,
+                        effectiveMl = effectiveMl,
+                        consumedAt = record.consumedAt,
+                        notes = record.notes,
+                        synced = true
+                    )
+                }
+                Result.success(entries)
+            } catch (e: Exception) {
+                AppContainer.crashlyticsService.recordException(e)
+                Result.failure(e)
+            }
+        }
 
     // ── Supabase: Sync Entries ──
 

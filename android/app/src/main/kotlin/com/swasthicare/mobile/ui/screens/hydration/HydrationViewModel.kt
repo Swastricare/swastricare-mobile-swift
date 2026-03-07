@@ -93,27 +93,45 @@ class HydrationViewModel(
 
     fun loadData() {
         viewModelScope.launch {
-            val entries = repository.loadLocalEntries()
+            // Show local data immediately so UI is not blank
+            val localEntries = repository.loadLocalEntries()
             val prefs = repository.loadPreferences()
             val goal = HydrationCalculator.calculateGoal(prefs)
-            val insights = computeInsights(entries, goal)
 
             _uiState.value = _uiState.value.copy(
-                entries = entries,
+                entries = localEntries,
                 preferences = prefs,
                 goal = goal,
                 baseGoalMl = goal.dailyGoalMl,
-                insights = insights,
+                insights = computeInsights(localEntries, goal),
                 isLoading = false
             )
 
-            // Analyze drinking patterns from loaded entries
             analyzePatterns()
 
-            // Background sync
-            syncInBackground()
+            // Fetch from cloud and merge with local (fixes data loss after reinstall / clear)
+            val profileId = resolveProfileId()
+            if (profileId != null) {
+                repository.fetchFromCloud(profileId).onSuccess { cloudEntries ->
+                    if (cloudEntries.isNotEmpty()) {
+                        val localUnsynced = repository.loadLocalEntries().filter { !it.synced }
+                        val cloudIds = cloudEntries.map { it.id }.toSet()
+                        val merged = cloudEntries + localUnsynced.filter { it.id !in cloudIds }
+                        repository.saveLocalEntries(merged)
+                        _uiState.value = _uiState.value.copy(
+                            entries = merged,
+                            insights = computeInsights(merged, goal)
+                        )
+                        analyzePatterns()
+                        // Push any local-only entries to cloud
+                        val stillUnsynced = merged.filter { !it.synced }
+                        if (stillUnsynced.isNotEmpty()) {
+                            repository.syncEntriesToCloud(stillUnsynced, profileId)
+                        }
+                    }
+                }
+            }
 
-            // Fetch weather for adjustment
             fetchWeatherAdjustment()
         }
     }
@@ -260,14 +278,6 @@ class HydrationViewModel(
             date = date.minusDays(1)
         }
         return streak
-    }
-
-    private suspend fun syncInBackground() {
-        val profileId = resolveProfileId() ?: return
-        val unsynced = _uiState.value.entries.filter { !it.synced }
-        if (unsynced.isNotEmpty()) {
-            repository.syncEntriesToCloud(unsynced, profileId)
-        }
     }
 
     private suspend fun syncEntryToCloud(entry: HydrationEntry) {
