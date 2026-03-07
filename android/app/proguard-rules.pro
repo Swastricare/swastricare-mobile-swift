@@ -134,6 +134,11 @@
 -dontwarn androidx.datastore.**
 
 # ===========================================================================
+# Phosphor Icons (community icon library — keep all icon composables)
+# ===========================================================================
+-keep class com.adamglin.phosphoricons.** { *; }
+
+# ===========================================================================
 # App data models and services (ensure serialization works)
 # ===========================================================================
 -keep class com.swasthicare.mobile.data.model.** { *; }
