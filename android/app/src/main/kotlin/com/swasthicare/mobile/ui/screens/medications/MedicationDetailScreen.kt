@@ -142,9 +142,9 @@ fun MedicationDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
+                            .padding(horizontal = 16.dp)
                             .glass(cornerRadius = 18.dp)
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
+                            .padding(horizontal = 16.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
@@ -193,7 +193,7 @@ fun MedicationDetailScreen(
                     Text(
                         "Today's Doses",
                         fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                     Spacer(Modifier.height(12.dp))
                 }
@@ -203,7 +203,7 @@ fun MedicationDetailScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp)
+                                .padding(horizontal = 16.dp)
                                 .glass(cornerRadius = 16.dp)
                                 .padding(vertical = 32.dp),
                             contentAlignment = Alignment.Center
@@ -230,7 +230,7 @@ fun MedicationDetailScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
+                                .padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             mwd.todayDoses.forEach { dose ->
@@ -276,7 +276,7 @@ fun MedicationDetailScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp)
+                                .padding(horizontal = 16.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Color(0xFFFF3B30).copy(alpha = 0.10f))
                                 .clickable { showDeleteDialog = true }
@@ -355,9 +355,9 @@ private fun DetailsSection(mwd: MedicationWithDoses) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .glass(cornerRadius = 18.dp)
-            .padding(horizontal = 20.dp, vertical = 20.dp),
+            .padding(horizontal = 16.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Details", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -421,9 +421,9 @@ private fun EditFormSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .glass(cornerRadius = 18.dp)
-            .padding(horizontal = 20.dp, vertical = 20.dp),
+            .padding(horizontal = 16.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text("Edit Details", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -518,7 +518,7 @@ private fun AdherenceSection(doses: List<MedicationDose>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
     ) {
         Text("Adherence History", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(12.dp))
@@ -526,7 +526,7 @@ private fun AdherenceSection(doses: List<MedicationDose>) {
             modifier = Modifier
                 .fillMaxWidth()
                 .glass(cornerRadius = 18.dp)
-                .padding(horizontal = 20.dp, vertical = 20.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             MedicationStatCard(

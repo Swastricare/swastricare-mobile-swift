@@ -151,7 +151,7 @@ fun MedicationsScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp)
+                                    .padding(horizontal = 16.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(secondaryBg)
                                     .padding(20.dp),
@@ -200,7 +200,7 @@ fun MedicationsScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
                             ) {
                                 timelineSlots.forEachIndexed { index, slot ->
                                     TimelineSlotRow(
@@ -220,7 +220,7 @@ fun MedicationsScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp)
+                                    .padding(horizontal = 16.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(MedBrandBlue.copy(alpha = 0.08f))
                                     .clickable(
@@ -370,7 +370,7 @@ private fun MedicationsSkeletonContent() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             repeat(7) {
@@ -389,7 +389,7 @@ private fun MedicationsSkeletonContent() {
         Box(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
                 .height(220.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(shimmer)
@@ -400,7 +400,7 @@ private fun MedicationsSkeletonContent() {
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
                     .height(72.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(shimmer)

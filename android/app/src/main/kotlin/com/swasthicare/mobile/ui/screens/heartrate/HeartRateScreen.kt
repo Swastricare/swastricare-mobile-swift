@@ -169,7 +169,7 @@ private fun HeartRateIdleView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -295,7 +295,7 @@ private fun HeartRateMeasuringView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -508,7 +508,7 @@ fun HeartRateResultScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .graphicsLayer { alpha = animatedAlpha },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

@@ -55,7 +55,10 @@ data class AIUiState(
     val followUpSuggestions: List<String> = emptyList(),
     val showModeSwitchDialog: Boolean = false,
     val pendingModeSwitch: AIMode? = null,
-    val snackbarMessage: String? = null
+    val snackbarMessage: String? = null,
+    val showHistorySheet: Boolean = false,
+    val historyConversations: List<com.swasthicare.mobile.data.repository.AIConversation> = emptyList(),
+    val isHistoryLoading: Boolean = false
 )
 
 sealed class AnalysisState {
@@ -139,6 +142,13 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
                 Log.w("AIViewModel", "Failed to persist message: ${e.message}")
             }
         }
+    }
+
+    fun markMessageAnimated(messageId: String) {
+        val updated = _uiState.value.messages.map { msg ->
+            if (msg.id == messageId) msg.copy(shouldAnimate = false) else msg
+        }
+        _uiState.value = _uiState.value.copy(messages = updated)
     }
 
     fun onInputTextChanged(text: String) {
@@ -362,6 +372,74 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearSnackbar() {
         _uiState.value = _uiState.value.copy(snackbarMessage = null)
+    }
+
+    // MARK: - Chat History
+
+    fun openHistorySheet() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(showHistorySheet = true, isHistoryLoading = true)
+            try {
+                val conversations = conversationRepo.getConversations()
+                _uiState.value = _uiState.value.copy(
+                    historyConversations = conversations,
+                    isHistoryLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isHistoryLoading = false)
+            }
+        }
+    }
+
+    fun closeHistorySheet() {
+        _uiState.value = _uiState.value.copy(showHistorySheet = false)
+    }
+
+    fun loadConversation(conversation: com.swasthicare.mobile.data.repository.AIConversation) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(showHistorySheet = false, isLoading = true)
+            try {
+                val records = conversationRepo.getMessages(conversation.id)
+                val messages = records.map { record ->
+                    ChatMessage(
+                        id = record.id,
+                        content = record.content,
+                        isUser = record.role == "user",
+                        shouldAnimate = false
+                    )
+                }
+                currentConversationId = conversation.id
+                _uiState.value = _uiState.value.copy(
+                    messages = messages,
+                    showEmptyState = messages.isEmpty(),
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to load conversation"
+                )
+            }
+        }
+    }
+
+    fun deleteConversationFromHistory(id: String) {
+        viewModelScope.launch {
+            try {
+                conversationRepo.deleteConversation(id)
+                val updated = _uiState.value.historyConversations.filter { it.id != id }
+                _uiState.value = _uiState.value.copy(historyConversations = updated)
+                if (currentConversationId == id) {
+                    currentConversationId = null
+                    _uiState.value = _uiState.value.copy(
+                        messages = emptyList(),
+                        showEmptyState = true
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Failed to delete conversation")
+            }
+        }
     }
 
     fun onMessageCopied() {

@@ -94,7 +94,7 @@ fun PremiumTextField(
             TextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text("", color = PremiumColors.TextGrey.copy(alpha = 0.7f)) },
+                placeholder = { Text("", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -102,8 +102,8 @@ fun PremiumTextField(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     cursorColor = PremiumColors.RoyalBlue,
-                    focusedTextColor = AppColors.onSurface,
-                    unfocusedTextColor = AppColors.onSurface
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
                 keyboardActions = keyboardActions,
@@ -167,7 +167,7 @@ fun PremiumSecureField(
             TextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text("", color = PremiumColors.TextGrey.copy(alpha = 0.7f)) },
+                placeholder = { Text("", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -176,8 +176,8 @@ fun PremiumSecureField(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     cursorColor = PremiumColors.RoyalBlue,
-                    focusedTextColor = AppColors.onSurface,
-                    unfocusedTextColor = AppColors.onSurface
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = imeAction),
                 keyboardActions = keyboardActions,
@@ -346,41 +346,18 @@ fun SocialLoginButton(
 
 @Composable
 fun AnimatedLogo(modifier: Modifier = Modifier) {
-    var isAnimating by remember { mutableStateOf(false) }
-    
-    val heartScale by animateFloatAsState(
-        targetValue = if (isAnimating) 1.15f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
-        label = "heartbeat",
-        finishedListener = { isAnimating = !isAnimating }
-    )
-    
-    val infiniteTransition = rememberInfiniteTransition(label = "float")
-    val floatOffset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = -8f,
-        animationSpec = infiniteRepeatable(tween(2500, easing = EaseInOut), RepeatMode.Reverse),
-        label = "float_offset"
-    )
-    
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.5f,
-        animationSpec = infiniteRepeatable(tween(2500, easing = EaseInOut), RepeatMode.Reverse),
-        label = "glow_alpha"
-    )
-    
-    LaunchedEffect(Unit) { isAnimating = true }
-    
-    Box(modifier = modifier.size(120.dp).offset(y = floatOffset.dp), contentAlignment = Alignment.Center) {
+    val surface = MaterialTheme.colorScheme.surface
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    Box(modifier = modifier.size(120.dp), contentAlignment = Alignment.Center) {
         // Outer Glow
         Box(
             modifier = Modifier
                 .size(90.dp)
                 .blur(40.dp)
-                .background(PremiumColors.RoyalBlue.copy(alpha = glowAlpha))
+                .background(PremiumColors.RoyalBlue.copy(alpha = 0.3f))
         )
-        
+
         // Card Container
         Box(
             modifier = Modifier
@@ -390,14 +367,14 @@ fun AnimatedLogo(modifier: Modifier = Modifier) {
                     shape = RoundedCornerShape(28.dp),
                     spotColor = PremiumColors.RoyalBlue.copy(alpha = 0.3f)
                 )
-                .background(Color.White, RoundedCornerShape(28.dp))
+                .background(surface, RoundedCornerShape(28.dp))
                 .border(
                     1.dp,
                     Brush.linearGradient(
                         listOf(
-                            Color.White,
-                            Color.White.copy(alpha = 0.5f),
-                            Color(0xFFE8EEF5)
+                            surfaceVariant,
+                            surfaceVariant.copy(alpha = 0.5f),
+                            surfaceVariant
                         )
                     ),
                     RoundedCornerShape(28.dp)
@@ -408,7 +385,7 @@ fun AnimatedLogo(modifier: Modifier = Modifier) {
                 imageVector = Icons.Default.Favorite,
                 contentDescription = "Logo",
                 tint = PremiumColors.RoyalBlue,
-                modifier = Modifier.size(48.dp).scale(heartScale)
+                modifier = Modifier.size(48.dp)
             )
         }
     }

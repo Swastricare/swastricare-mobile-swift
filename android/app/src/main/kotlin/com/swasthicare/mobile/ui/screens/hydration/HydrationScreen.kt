@@ -115,7 +115,7 @@ fun HydrationScreen(
                                     city = uiState.weatherData!!.city,
                                     baseGoal = uiState.baseGoalMl,
                                     adjustedGoal = uiState.effectiveGoalMl,
-                                    modifier = Modifier.padding(horizontal = 20.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                                 Spacer(Modifier.height(16.dp))
                             }
@@ -126,7 +126,7 @@ fun HydrationScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp)
+                                    .padding(horizontal = 16.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(secondaryBg)
                                     .padding(20.dp),
@@ -185,12 +185,12 @@ fun HydrationScreen(
                                 "Quick Add",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 20.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                             Spacer(Modifier.height(8.dp))
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(horizontal = 20.dp)
+                                contentPadding = PaddingValues(horizontal = 16.dp)
                             ) {
                                 items(QuickAddPreset.defaults) { preset ->
                                     QuickAddButton(
@@ -208,7 +208,7 @@ fun HydrationScreen(
                                 "Drink Type",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 20.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                             Spacer(Modifier.height(8.dp))
                             DrinkTypePicker(
@@ -223,7 +223,7 @@ fun HydrationScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp),
+                                    .padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
@@ -274,7 +274,7 @@ fun HydrationScreen(
                             item {
                                 HydrationInsightsCard(
                                     insights = insights,
-                                    modifier = Modifier.padding(horizontal = 20.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                                 Spacer(Modifier.height(16.dp))
                             }
@@ -287,7 +287,7 @@ fun HydrationScreen(
                                     "Today's Drinks",
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 20.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                                 Spacer(Modifier.height(8.dp))
                             }
@@ -296,7 +296,7 @@ fun HydrationScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 20.dp)
+                                        .padding(horizontal = 16.dp)
                                         .clip(RoundedCornerShape(16.dp))
                                         .background(secondaryBg)
                                 ) {
@@ -321,7 +321,7 @@ fun HydrationScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                                        .padding(horizontal = 16.dp, vertical = 24.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
@@ -348,7 +348,7 @@ fun HydrationScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp)
+                                    .padding(horizontal = 16.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(HydrationCyan.copy(alpha = 0.08f))
                                     .clickable(
@@ -383,7 +383,7 @@ fun HydrationScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp)
+                                    .padding(horizontal = 16.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(HydrationCyan.copy(alpha = 0.08f))
                                     .clickable(

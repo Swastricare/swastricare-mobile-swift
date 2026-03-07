@@ -37,7 +37,9 @@ import com.swasthicare.mobile.data.services.RouteTracker
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.GpsStatusChip
 import com.swasthicare.mobile.ui.components.RouteMapView
+import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PremiumColor
 
 // ─────────────────────────────────────
@@ -82,19 +84,8 @@ fun LiveWorkoutScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0D0D1A),
-                        Color(0xFF1A1A2E),
-                        Color(0xFF0D0D1A)
-                    )
-                )
-            )
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        PremiumBackground()
         when (uiState.phase) {
             WorkoutPhase.IDLE -> IdlePhaseContent(
                 uiState = uiState,
@@ -166,7 +157,7 @@ private fun IdlePhaseContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Top bar
@@ -179,25 +170,25 @@ private fun IdlePhaseContent(
                 Icon(
                     Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = AppColors.onBackground
                 )
             }
             Text(
                 "Start Workout",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = AppColors.onBackground
             )
             Spacer(Modifier.size(48.dp))
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(16.dp))
 
         // Workout type selector
         Text(
             "Choose Activity",
             style = MaterialTheme.typography.titleMedium,
-            color = Color.White.copy(alpha = 0.7f),
+            color = AppColors.onBackground.copy(alpha = 0.7f),
             fontWeight = FontWeight.Medium
         )
 
@@ -257,7 +248,7 @@ private fun IdlePhaseContent(
                 Text(
                     "GPS ready - route will be recorded",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = AppColors.onSurface.copy(alpha = 0.7f)
                 )
             }
             Spacer(Modifier.height(16.dp))
@@ -270,14 +261,7 @@ private fun IdlePhaseContent(
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            PremiumColor.NeonGreenStart,
-                            PremiumColor.NeonGreenEnd
-                        )
-                    )
-                )
+                .background(PremiumColor.NeonGreenEnd)
                 .clickable { onStart() },
             contentAlignment = Alignment.Center
         ) {
@@ -314,45 +298,34 @@ private fun WorkoutTypeCard(
         WorkoutType.INDOOR_WALK -> Icons.Default.FitnessCenter
     }
 
-    val borderColor = if (isSelected) PremiumColor.NeonGreenEnd else Color.Transparent
-
     Column(
         modifier = modifier
-            .glass(cornerRadius = 16.dp, opacity = if (isSelected) 0.4f else 0.2f)
-            .then(
-                if (isSelected) {
-                    Modifier.background(
-                        color = PremiumColor.NeonGreenEnd.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                } else Modifier
+            .height(88.dp)
+            .glass(
+                cornerRadius = 16.dp,
+                opacity = if (isSelected) 0.35f else 0.2f,
+                accentColor = if (isSelected) PremiumColor.NeonGreenEnd else null
             )
             .clickable { onClick() }
-            .padding(12.dp),
+            .padding(horizontal = 8.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = type.displayName,
-            tint = if (isSelected) PremiumColor.NeonGreenEnd else Color.White.copy(alpha = 0.6f),
+            tint = if (isSelected) PremiumColor.NeonGreenEnd else AppColors.onSurface.copy(alpha = 0.6f),
             modifier = Modifier.size(28.dp)
         )
+        Spacer(Modifier.height(6.dp))
         Text(
             text = type.displayName,
             style = MaterialTheme.typography.labelSmall,
-            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+            color = if (isSelected) AppColors.onSurface else AppColors.onSurface.copy(alpha = 0.6f),
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            maxLines = 2
         )
-        if (type.usesGps) {
-            Icon(
-                Icons.Default.GpsFixed,
-                contentDescription = "GPS",
-                tint = Color.White.copy(alpha = 0.3f),
-                modifier = Modifier.size(10.dp)
-            )
-        }
     }
 }
 
@@ -399,7 +372,7 @@ private fun NoGpsWarningCard(
                 "GPS location is needed to track your route. The workout will still work without it, but no route map will be shown."
             },
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.6f)
+            color = AppColors.onSurface.copy(alpha = 0.7f)
         )
         if (isPermanentlyDenied) {
             TextButton(onClick = onOpenSettings) {
@@ -453,7 +426,7 @@ private fun TrackingPhaseContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(16.dp))
@@ -468,7 +441,7 @@ private fun TrackingPhaseContent(
                 uiState.workoutType.displayName,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = AppColors.onBackground
             )
             if (uiState.workoutType.usesGps) {
                 GpsStatusChip(gpsStatus = uiState.gpsStatus)
@@ -492,7 +465,7 @@ private fun TrackingPhaseContent(
             text = uiState.elapsedFormatted,
             fontSize = 64.sp,
             fontWeight = FontWeight.Black,
-            color = Color.White,
+            color = AppColors.onBackground,
             letterSpacing = 2.sp
         )
 
@@ -622,7 +595,7 @@ private fun PausedPhaseContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(16.dp))
@@ -653,7 +626,7 @@ private fun PausedPhaseContent(
             text = uiState.elapsedFormatted,
             fontSize = 56.sp,
             fontWeight = FontWeight.Black,
-            color = Color.White.copy(alpha = 0.5f),
+            color = AppColors.onBackground.copy(alpha = 0.5f),
             letterSpacing = 2.sp
         )
 
@@ -763,7 +736,7 @@ private fun WorkoutSummaryContent(
         Text(
             uiState.workoutType.displayName,
             style = MaterialTheme.typography.titleMedium,
-            color = Color.White.copy(alpha = 0.6f)
+            color = AppColors.onBackground.copy(alpha = 0.6f)
         )
 
         Spacer(Modifier.height(24.dp))
@@ -853,7 +826,7 @@ private fun WorkoutSummaryContent(
         ) {
             Text(
                 "Discard",
-                color = Color.White.copy(alpha = 0.4f),
+                color = AppColors.onBackground.copy(alpha = 0.4f),
                 fontWeight = FontWeight.Medium
             )
         }
@@ -879,13 +852,13 @@ private fun SummaryRow(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.6f)
+            color = AppColors.onSurface.copy(alpha = 0.6f)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = AppColors.onSurface
         )
     }
 }
@@ -922,12 +895,12 @@ private fun MetricCard(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = AppColors.onSurface
             )
             Text(
                 text = unit,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = AppColors.onSurface.copy(alpha = 0.5f),
                 modifier = Modifier.padding(bottom = 4.dp)
             )
         }

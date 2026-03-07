@@ -160,7 +160,7 @@ private fun JoinGroupContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -260,7 +260,7 @@ private fun FamilyGroupContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
@@ -301,7 +301,7 @@ private fun FamilyGroupContent(
                 "Members",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
 
@@ -316,13 +316,13 @@ private fun FamilyGroupContent(
                 "Invite",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = 16.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(cardBg)
                     .padding(16.dp),
@@ -376,7 +376,7 @@ private fun FamilyGroupContent(
                 onClick = onLeaveGroup,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 16.dp),
                 colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
             ) {
                 Icon(Icons.Default.ExitToApp, null, modifier = Modifier.size(20.dp))
@@ -399,7 +399,7 @@ private fun FamilyMemberRow(member: FamilyMember) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(cardBg)
             .padding(12.dp),

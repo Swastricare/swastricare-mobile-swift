@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bed
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Favorite
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -158,14 +160,14 @@ fun HomeScreen(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
-                                .fillMaxHeight(0.5f)
+                                .fillMaxHeight(0.60f)
                                 .background(
                                     brush = Brush.verticalGradient(
                                         colorStops = arrayOf(
                                             0.0f to Color.Transparent,
-                                            0.3f to AppColors.background.copy(alpha = 0.2f),
-                                            0.55f to AppColors.background.copy(alpha = 0.55f),
-                                            0.75f to AppColors.background.copy(alpha = 0.85f),
+                                            0.18f to AppColors.background.copy(alpha = 0.30f),
+                                            0.40f to AppColors.background.copy(alpha = 0.62f),
+                                            0.65f to AppColors.background.copy(alpha = 0.88f),
                                             1.0f to AppColors.background
                                         )
                                     )
@@ -351,19 +353,42 @@ fun HomeScreen(
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                // Icon with colored background
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .background(HydrationColor.copy(alpha = 0.2f), CircleShape),
-                                    contentAlignment = Alignment.Center
+                                // Icon + quick-add button row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.LocalDrink,
-                                        contentDescription = null,
-                                        tint = HydrationColor,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(HydrationColor.copy(alpha = 0.2f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.LocalDrink,
+                                            contentDescription = null,
+                                            tint = HydrationColor,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .background(HydrationColor.copy(alpha = 0.2f), CircleShape)
+                                            .clickable(
+                                                indication = null,
+                                                interactionSource = remember { MutableInteractionSource() }
+                                            ) { viewModel.incrementHydration() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Add 250ml",
+                                            tint = HydrationColor,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 }
 
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {

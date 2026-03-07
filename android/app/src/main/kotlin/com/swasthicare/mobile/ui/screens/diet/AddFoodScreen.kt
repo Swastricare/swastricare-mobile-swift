@@ -505,7 +505,7 @@ fun FoodQuantitySheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {

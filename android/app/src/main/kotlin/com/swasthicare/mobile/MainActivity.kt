@@ -99,14 +99,19 @@ class MainActivity : FragmentActivity() {
                     val currentDeepLink by pendingDeepLink.collectAsState()
 
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Main app content with deep link support
-                        AppNavigation(
-                            authViewModel = AppContainer.authViewModel,
-                            deepLinkRoute = currentDeepLink,
-                            onDeepLinkConsumed = { pendingDeepLink.value = null }
-                        )
+                        // Only compose the main app when unlocked.
+                        // SurfaceView/GLSurfaceView used by the 3D model viewer renders at the
+                        // hardware compositor level and punches through any Compose overlay,
+                        // so the only safe way to hide it is to remove it from composition.
+                        if (!isLocked) {
+                            AppNavigation(
+                                authViewModel = AppContainer.authViewModel,
+                                deepLinkRoute = currentDeepLink,
+                                onDeepLinkConsumed = { pendingDeepLink.value = null }
+                            )
+                        }
 
-                        // Lock screen overlay
+                        // Lock screen — rendered when app is locked
                         if (isLocked) {
                             LockScreen(viewModel = lockViewModel)
                         }

@@ -54,7 +54,7 @@ fun RunActivityScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
         ) {
             Spacer(Modifier.height(16.dp))
 

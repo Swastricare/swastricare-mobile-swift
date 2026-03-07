@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
+import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.AppColors
 
 @Composable
@@ -72,14 +73,11 @@ fun DocumentCard(
     onTap: () -> Unit,
     onMoreClick: () -> Unit
 ) {
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onTap() },
-        colors = CardDefaults.cardColors(
-            containerColor = AppColors.surface.copy(alpha = 0.7f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+            .glass(cornerRadius = 16.dp)
+            .clickable { onTap() }
     ) {
         Row(
             modifier = Modifier
@@ -182,17 +180,14 @@ fun FolderCard(
     color: Color,
     onClick: () -> Unit
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = AppColors.surface.copy(alpha = 0.6f)),
-        shape = RoundedCornerShape(20.dp)
+            .glass(cornerRadius = 20.dp)
+            .clickable { onClick() }
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
             Box {
                 Icon(
                     imageVector = Icons.Default.Folder,
@@ -231,7 +226,6 @@ fun FolderCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = AppColors.onSurfaceVariant
             )
-        }
     }
 }
 

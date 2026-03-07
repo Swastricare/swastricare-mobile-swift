@@ -87,30 +87,33 @@ fun LockScreen(
         }
     }
 
+    // Solid background renders immediately — hides home screen before fade-in completes
     Box(
         modifier = modifier
             .fillMaxSize()
-            .alpha(fadeAlpha)
+            .background(PremiumColor.MidnightStart)
     ) {
-        // Premium animated background layer
-        PremiumBackground()
+        // Animated content fades in on top of the solid background
+        Box(modifier = Modifier.fillMaxSize().alpha(fadeAlpha)) {
+            PremiumBackground()
 
-        // Dark overlay for readability
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            PremiumColor.MidnightStart.copy(alpha = 0.85f),
-                            PremiumColor.MidnightEnd.copy(alpha = 0.75f),
-                            PrimaryColor.copy(alpha = 0.25f)
+            // Dark overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                PremiumColor.MidnightStart.copy(alpha = 0.85f),
+                                PremiumColor.MidnightEnd.copy(alpha = 0.75f),
+                                PrimaryColor.copy(alpha = 0.25f)
+                            )
                         )
                     )
-                )
-        )
+            )
+        }
 
-        // Content
+        // Content always fully visible (not affected by fade)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -258,3 +261,4 @@ fun LockScreen(
         }
     }
 }
+

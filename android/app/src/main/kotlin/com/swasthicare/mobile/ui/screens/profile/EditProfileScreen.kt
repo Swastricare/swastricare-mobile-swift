@@ -110,7 +110,7 @@ fun EditProfileScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = 16.dp)
                     .padding(top = 8.dp, bottom = 40.dp),
                 verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {

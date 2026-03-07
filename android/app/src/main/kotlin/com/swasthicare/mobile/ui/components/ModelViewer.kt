@@ -2,6 +2,7 @@ package com.swasthicare.mobile.ui.components
 
 import android.util.Log
 import android.view.SurfaceHolder
+import android.view.View
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,7 +18,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.sceneview.SceneView
 import io.github.sceneview.math.Position
@@ -81,6 +85,7 @@ fun ModelViewer(
         SceneViewComposable(
             modelName = modelName,
             rotationY = if (autoRotate) rotationY else 270f,
+            allowInteraction = allowInteraction,
             onModelLoaded = { isModelLoaded = true },
             modifier = Modifier.fillMaxSize()
         )
@@ -89,7 +94,7 @@ fun ModelViewer(
         BottomFadeMask(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.55f)
+                .fillMaxHeight(0.65f)
                 .align(Alignment.BottomCenter)
         )
     }
@@ -99,12 +104,30 @@ fun ModelViewer(
 private fun SceneViewComposable(
     modelName: String,
     rotationY: Float,
+    allowInteraction: Boolean,
     onModelLoaded: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var modelNode by remember { mutableStateOf<ModelNode?>(null) }
     var sceneView by remember { mutableStateOf<SceneView?>(null) }
+
+    // Track whether this screen is currently RESUMED.
+    // When navigation starts an exit transition the back-stack entry goes RESUMED → STARTED.
+    // We set the SurfaceView GONE at that point so it can't punch through the incoming screen.
+    var isScreenActive by remember { mutableStateOf(true) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> isScreenActive = true
+                Lifecycle.Event.ON_PAUSE  -> isScreenActive = false
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // Load the GLB model bytes off the main thread to avoid ANR on large assets (~13MB)
     val assetPath = "models/$modelName.glb"
@@ -182,6 +205,11 @@ private fun SceneViewComposable(
                     // Camera: model bbox is ~0.2 x 1.0 x 0.6 units; scale 1.5 -> ~0.3 x 1.5 x 0.9
                     cameraNode.position = Position(z = 3.0f)
 
+                    // Disable gesture interaction when not allowed
+                    if (!allowInteraction) {
+                        setOnTouchListener { _, _ -> true }
+                    }
+
                     sceneView = this
                 }
             } catch (e: Exception) {
@@ -192,6 +220,11 @@ private fun SceneViewComposable(
         },
         modifier = modifier,
         update = { view ->
+            // Hide the SurfaceView while not RESUMED — prevents it punching through
+            // incoming screens during nav exit transitions (SurfaceView is z-ordered above
+            // the Compose canvas and cannot be masked by any Compose overlay).
+            view.visibility = if (isScreenActive) View.VISIBLE else View.GONE
+
             // Apply rotation on every recomposition
             modelNode?.rotation = Rotation(y = rotationY)
 
@@ -213,7 +246,7 @@ private fun SceneViewComposable(
                     )
 
                     val node = ModelNode(modelInstance = instance).apply {
-                        position = Position(y = -0.65f)
+                        position = Position(y = 0.0f)
                         scale = io.github.sceneview.math.Scale(2.5f)
                         // Apply material to ALL renderable nodes
                         renderableNodes.forEach { renderable ->
@@ -334,10 +367,10 @@ fun BottomFadeMask(
                 brush = Brush.verticalGradient(
                     colorStops = arrayOf(
                         0.0f to Color.Transparent,
-                        0.25f to AppColors.background.copy(alpha = 0.15f),
-                        0.45f to AppColors.background.copy(alpha = 0.4f),
-                        0.65f to AppColors.background.copy(alpha = 0.7f),
-                        0.85f to AppColors.background.copy(alpha = 0.92f),
+                        0.12f to AppColors.background.copy(alpha = 0.25f),
+                        0.30f to AppColors.background.copy(alpha = 0.55f),
+                        0.52f to AppColors.background.copy(alpha = 0.80f),
+                        0.72f to AppColors.background.copy(alpha = 0.94f),
                         1.0f to AppColors.background
                     )
                 )

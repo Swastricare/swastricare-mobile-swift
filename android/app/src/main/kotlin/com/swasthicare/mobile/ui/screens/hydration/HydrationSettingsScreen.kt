@@ -5,13 +5,14 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,6 +33,7 @@ import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.AppColors
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HydrationSettingsScreen(
     onNavigateBack: () -> Unit,
@@ -64,49 +66,61 @@ fun HydrationSettingsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            // ── Top Bar ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, "Back", tint = AppColors.onSurface)
-                }
-                Text(
-                    "Hydration Settings",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-                // Save button
-                TextButton(
-                    onClick = {
-                        val newPrefs = HydrationPreferences(
-                            activityLevel = selectedActivity.dbValue,
-                            weightKg = weightText.toDoubleOrNull(),
-                            customGoalMl = if (useCustomGoal) customGoalText.toIntOrNull() else null
+        Scaffold(
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            "Hydration Settings",
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.onBackground
                         )
-                        vm.updatePreferences(newPrefs)
-                        hasChanges = false
-                        showSavedSnackbar = true
                     },
-                    enabled = hasChanges
-                ) {
-                    Text(
-                        "Save",
-                        fontWeight = FontWeight.Bold,
-                        color = if (hasChanges) HydrationCyan else AppColors.onSurface.copy(alpha = 0.3f)
-                    )
-                }
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = AppColors.onBackground
+                            )
+                        }
+                    },
+                    actions = {
+                        TextButton(
+                            onClick = {
+                                val newPrefs = HydrationPreferences(
+                                    activityLevel = selectedActivity.dbValue,
+                                    weightKg = weightText.toDoubleOrNull(),
+                                    customGoalMl = if (useCustomGoal) customGoalText.toIntOrNull() else null
+                                )
+                                vm.updatePreferences(newPrefs)
+                                hasChanges = false
+                                showSavedSnackbar = true
+                            },
+                            enabled = hasChanges
+                        ) {
+                            Text(
+                                "Save",
+                                fontWeight = FontWeight.Bold,
+                                color = if (hasChanges) HydrationCyan else AppColors.onBackground.copy(alpha = 0.3f)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    ),
+                    windowInsets = WindowInsets(0, 0, 0, 0)
+                )
             }
-
+        ) { padding ->
             // ── Content ──
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Goal Preview Card
@@ -131,7 +145,7 @@ fun HydrationSettingsScreen(
 
                 // Activity Level Section
                 item {
-                    SettingsSection(title = "Activity Level", icon = Icons.Default.DirectionsRun) {
+                    SettingsSection(title = "Activity Level", icon = Icons.AutoMirrored.Filled.DirectionsRun) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             ActivityLevel.entries.forEach { level ->
                                 ActivityLevelOption(
@@ -160,7 +174,13 @@ fun HydrationSettingsScreen(
                                 Switch(
                                     checked = useCustomGoal,
                                     onCheckedChange = { useCustomGoal = it; hasChanges = true },
-                                    colors = SwitchDefaults.colors(checkedTrackColor = HydrationCyan)
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = HydrationCyan,
+                                        uncheckedThumbColor = AppColors.outline,
+                                        uncheckedTrackColor = AppColors.surfaceVariant,
+                                        uncheckedBorderColor = Color.Transparent
+                                    )
                                 )
                             }
                             AnimatedVisibility(
@@ -208,7 +228,13 @@ fun HydrationSettingsScreen(
                                 Switch(
                                     checked = useWeatherAdjustment,
                                     onCheckedChange = { useWeatherAdjustment = it },
-                                    colors = SwitchDefaults.colors(checkedTrackColor = HydrationCyan)
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = HydrationCyan,
+                                        uncheckedThumbColor = AppColors.outline,
+                                        uncheckedTrackColor = AppColors.surfaceVariant,
+                                        uncheckedBorderColor = Color.Transparent
+                                    )
                                 )
                             }
                             if (uiState.weatherData != null) {
@@ -358,13 +384,10 @@ private fun SettingsSection(
     onToggle: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val sectionBg = if (isSystemInDarkTheme()) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(sectionBg)
+            .glass()
             .padding(16.dp)
     ) {
         Row(
@@ -377,8 +400,9 @@ private fun SettingsSection(
             Icon(icon, null, tint = HydrationCyan, modifier = Modifier.size(20.dp))
             Text(
                 title,
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                color = AppColors.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.weight(1f)
             )
             if (collapsible) {
@@ -443,7 +467,6 @@ private fun ActivityLevelOption(
     onSelect: () -> Unit
 ) {
     val bgColor = if (isSelected) HydrationCyan.copy(alpha = 0.15f) else Color.Transparent
-    val borderColor = if (isSelected) HydrationCyan else AppColors.onSurface.copy(alpha = 0.1f)
 
     Row(
         modifier = Modifier

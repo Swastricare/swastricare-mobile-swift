@@ -230,7 +230,7 @@ fun VaultScreen(
 
                 // Category Filters
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     item {
@@ -277,7 +277,7 @@ fun VaultScreen(
                         text = error,
                         color = AppColors.error,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
@@ -432,7 +432,10 @@ fun VaultAppBar(
 ) {
     Column(
         modifier = Modifier
-            .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 8.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .glass()
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -531,8 +534,8 @@ fun SelectionBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .background(AppColors.surfaceVariant.copy(alpha = 0.9f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .glass(cornerRadius = 16.dp)
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -564,7 +567,7 @@ fun DocumentListView(
     onMoreClick: () -> Unit
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(documents) { document ->
@@ -610,7 +613,7 @@ fun TimelineView(
     onDocumentTap: (MedicalDocument) -> Unit
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
@@ -693,7 +696,7 @@ fun FolderDetailView(
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(documents) { document ->
@@ -820,17 +823,13 @@ private fun BatchUploadItemCard(
 ) {
     var showCategoryDropdown by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = AppColors.surface.copy(alpha = 0.7f)
-        ),
-        shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = 14.dp)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -914,7 +913,6 @@ private fun BatchUploadItemCard(
                 }
             }
         }
-    }
 }
 
 @Composable

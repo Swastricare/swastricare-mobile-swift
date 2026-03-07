@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -569,7 +570,7 @@ private fun SettingsHealthProfileSection(
         } else if (uiState.healthProfile != null) {
             // 3 stat tiles
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(96.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 QuickStatTile(
@@ -577,21 +578,21 @@ private fun SettingsHealthProfileSection(
                     value = "${uiState.healthProfile.heightCm} cm",
                     label = "Height",
                     color = Color(0xFF30D158),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 QuickStatTile(
                     icon = Icons.Default.MonitorWeight,
                     value = "${uiState.healthProfile.weightKg} kg",
                     label = "Weight",
                     color = Color(0xFF64D2FF),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 QuickStatTile(
                     icon = Icons.Default.Accessibility,
                     value = profileBMI,
                     label = "BMI",
                     color = Color(0xFFBF5AF2),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
             }
 
@@ -680,7 +681,9 @@ private fun QuickStatTile(
             text = value,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = AppColors.onSurface
+            color = AppColors.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             text = label,

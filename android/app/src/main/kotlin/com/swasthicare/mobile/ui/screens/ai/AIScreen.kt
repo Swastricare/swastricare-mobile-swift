@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,9 +22,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.AutoAwesome
+import com.swasthicare.mobile.data.repository.AIConversation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -94,6 +98,15 @@ fun AIScreen(
                     containerColor = Color.Transparent
                 ),
                 actions = {
+                    IconButton(onClick = { viewModel.openHistorySheet() }) {
+                        Box(
+                            modifier = Modifier
+                                .glass(cornerRadius = 20.dp)
+                                .padding(8.dp)
+                        ) {
+                            Icon(Icons.Default.History, contentDescription = "Chat History", modifier = Modifier.size(16.dp))
+                        }
+                    }
                     IconButton(onClick = { viewModel.clearChat() }) {
                         Box(
                             modifier = Modifier
@@ -120,7 +133,10 @@ fun AIScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(uiState.messages, key = { it.id }) { message ->
-                            ChatBubble(message = message)
+                            ChatBubble(
+                                message = message,
+                                onAnimationComplete = { viewModel.markMessageAnimated(message.id) }
+                            )
                         }
                     }
                 }
@@ -149,6 +165,17 @@ fun AIScreen(
             AnalysisResultOverlay(
                 state = uiState.analysisState,
                 onDismiss = { viewModel.dismissAnalysis() }
+            )
+        }
+
+        // Chat History Sheet
+        if (uiState.showHistorySheet) {
+            ChatHistorySheet(
+                conversations = uiState.historyConversations,
+                isLoading = uiState.isHistoryLoading,
+                onConversationClick = { viewModel.loadConversation(it) },
+                onDeleteClick = { viewModel.deleteConversationFromHistory(it.id) },
+                onDismiss = { viewModel.closeHistorySheet() }
             )
         }
 
@@ -225,7 +252,7 @@ fun IntroView(
 }
 
 @Composable
-fun ChatBubble(message: ChatMessage) {
+fun ChatBubble(message: ChatMessage, onAnimationComplete: () -> Unit = {}) {
     val isUser = message.isUser
     val align = if (isUser) Alignment.End else Alignment.Start
     val bgColor = if (isUser) AppColors.primaryContainer else AppColors.surfaceVariant
@@ -254,7 +281,8 @@ fun ChatBubble(message: ChatMessage) {
                 TypewriterText(
                     fullText = message.content,
                     color = textColor,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    onAnimationComplete = onAnimationComplete
                 )
             } else {
                 Text(
@@ -273,7 +301,8 @@ fun TypewriterText(
     fullText: String,
     color: Color,
     style: androidx.compose.ui.text.TextStyle,
-    charDelayMillis: Long = 15L
+    charDelayMillis: Long = 15L,
+    onAnimationComplete: () -> Unit = {}
 ) {
     var visibleCount by remember(fullText) { mutableIntStateOf(0) }
     val totalChars = fullText.length
@@ -305,6 +334,7 @@ fun TypewriterText(
             i = (i + charsToReveal).coerceAtMost(totalChars)
             visibleCount = i
         }
+        onAnimationComplete()
     }
 
     val displayedText = fullText.substring(0, visibleCount)
@@ -610,5 +640,124 @@ private fun MetricChip(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = AppColors.onSurface)
         Text(label, style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatHistorySheet(
+    conversations: List<AIConversation>,
+    isLoading: Boolean,
+    onConversationClick: (AIConversation) -> Unit,
+    onDeleteClick: (AIConversation) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = "Chat History",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AppColors.primary)
+                    }
+                }
+                conversations.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(
+                                Icons.Default.History,
+                                contentDescription = null,
+                                tint = AppColors.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Text(
+                                "No previous chats",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AppColors.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(conversations, key = { it.id }) { conversation ->
+                            ChatHistoryItem(
+                                conversation = conversation,
+                                onClick = { onConversationClick(conversation) },
+                                onDelete = { onDeleteClick(conversation) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatHistoryItem(
+    conversation: AIConversation,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val formattedDate = remember(conversation.updated_at) {
+        try {
+            val instant = java.time.Instant.parse(conversation.updated_at)
+            val zdt = instant.atZone(java.time.ZoneId.systemDefault())
+            java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy").format(zdt)
+        } catch (_: Exception) { "" }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.4f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = conversation.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = AppColors.onSurface,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+            if (formattedDate.isNotEmpty()) {
+                Text(
+                    text = formattedDate,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.onSurfaceVariant
+                )
+            }
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Delete",
+                tint = AppColors.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }

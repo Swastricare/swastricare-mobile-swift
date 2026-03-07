@@ -166,7 +166,7 @@ private fun TimeRangeSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         TimeRange.entries.forEach { range ->
@@ -206,7 +206,7 @@ private fun SummaryCardsRow(summaries: List<MetricSummary>) {
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         summaries.forEachIndexed { index, summary ->
@@ -314,7 +314,7 @@ private fun MainChartSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .glass(cornerRadius = 20.dp)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -634,7 +634,7 @@ private fun MetricsGrid(summaries: List<MetricSummary>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
@@ -801,7 +801,7 @@ private fun AIInsightsSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .graphicsLayer { alpha = animatedAlpha }
             .glass(cornerRadius = 20.dp)
             .padding(16.dp),

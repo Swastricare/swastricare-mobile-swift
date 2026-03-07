@@ -14,7 +14,11 @@ class LockScreenViewModel : ViewModel() {
     private val biometricService: BiometricService = AppContainer.biometricService
     private val prefs: SharedPreferences = AppContainer.sharedPreferences
 
-    private val _isLocked = MutableStateFlow(false)
+    // Initialise synchronously so the very first frame is already locked when biometric is on.
+    // This prevents app content from flashing for one frame before LaunchedEffect runs.
+    private val _isLocked = MutableStateFlow(
+        prefs.getBoolean("biometric_enabled", false) && biometricService.canAuthenticate()
+    )
     val isLocked: StateFlow<Boolean> = _isLocked.asStateFlow()
 
     private val _authError = MutableStateFlow<String?>(null)

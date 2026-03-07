@@ -57,7 +57,7 @@ fun SwasthiCareNavBar(
                     color = dividerColor,
                     start = Offset(0f, 0f),
                     end = Offset(size.width, 0f),
-                    strokeWidth = 1.dp.toPx()
+                    strokeWidth = 0.3.dp.toPx()
                 )
             }
     ) {

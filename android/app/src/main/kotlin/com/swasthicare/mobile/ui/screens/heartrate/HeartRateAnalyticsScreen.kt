@@ -215,7 +215,7 @@ private fun AnalyticsContent(
             TimeRangeSelector(
                 selectedRange = state.selectedRange,
                 onRangeSelected = onRangeSelected,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
 
@@ -234,7 +234,7 @@ private fun AnalyticsContent(
             Spacer(Modifier.height(20.dp))
             HeartRateTrendChart(
                 readings = state.filteredReadings,
-                modifier = Modifier.padding(horizontal = 20.dp)
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
 
@@ -244,7 +244,7 @@ private fun AnalyticsContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -268,7 +268,7 @@ private fun AnalyticsContent(
             HistoryRow(
                 reading = reading,
                 animationDelay = index * 50,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
         }
     }
@@ -333,7 +333,7 @@ private fun SummaryCardsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SummaryCard(
@@ -828,7 +828,7 @@ private fun AnalyticsSkeletonContent() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(16.dp))
 

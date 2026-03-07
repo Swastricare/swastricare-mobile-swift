@@ -226,7 +226,7 @@ private fun CycleStatusCard(
 
     Box(
         modifier = Modifier
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .graphicsLayer { alpha = cardAlpha; scaleX = cardScale; scaleY = cardScale }
             .glass(cornerRadius = 24.dp)
@@ -400,7 +400,7 @@ private fun CycleCalendar(
 
     Column(
         modifier = Modifier
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .glass(cornerRadius = 20.dp)
             .padding(16.dp)
@@ -562,7 +562,7 @@ private fun PhaseInfoCard(phase: CyclePhase) {
 
     Column(
         modifier = Modifier
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .graphicsLayer { alpha = cardAlpha }
             .glass(cornerRadius = 20.dp)
@@ -695,7 +695,7 @@ private fun TipsSection(phase: CyclePhase) {
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -799,7 +799,7 @@ private fun StatisticsPreviewCard(
 
     Column(
         modifier = Modifier
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha; scaleX = scale; scaleY = scale }
             .glass(cornerRadius = 20.dp)
@@ -1153,7 +1153,7 @@ private fun CycleStatisticsSheet(
                             stats.regularity.color.copy(alpha = 0.12f),
                             RoundedCornerShape(24.dp)
                         )
-                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = "Cycle Regularity: ${stats.regularity.displayName}",

@@ -3,15 +3,21 @@ package com.swasthicare.mobile.ui.screens.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swasthicare.mobile.data.models.CyclePhase
+import com.swasthicare.mobile.data.models.HydrationEntry
+import com.swasthicare.mobile.data.models.MenstrualSettings
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.DailyMetric
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
+import java.util.UUID
 
 data class ServerNudge(
     val id: String,
@@ -59,6 +65,10 @@ class HomeViewModel : ViewModel() {
     private val healthConnectService = AppContainer.healthConnectService
     private val hydrationRepository = AppContainer.hydrationRepository
     private val dietRepository = AppContainer.dietRepository
+    private val medicationRepository = AppContainer.medicationRepository
+    private val menstrualCycleRepository = AppContainer.menstrualCycleRepository
+
+    private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
     init {
         loadData()
@@ -90,7 +100,7 @@ class HomeViewModel : ViewModel() {
                 val weeklyStepEntries = healthConnectService.getWeeklySteps()
 
                 // Load hydration data from local store
-                val todayStr = java.time.LocalDate.now().toString()
+                val todayStr = LocalDate.now().toString()
                 val hydrationEntries = try { hydrationRepository.loadLocalEntries() } catch (_: Exception) { emptyList() }
                 val todayHydration = hydrationEntries
                     .filter { it.consumedAt.startsWith(todayStr) }
@@ -102,6 +112,32 @@ class HomeViewModel : ViewModel() {
                     .filter { it.loggedAt.startsWith(todayStr) }
                     .sumOf { it.calories }
                 val dietGoals = try { dietRepository.loadGoals() } catch (_: Exception) { null }
+
+                // Load medication counts from repository
+                val profileId = AppContainer.authRepository.currentUser?.id
+                val medicationsTotal: Int
+                val medicationsTaken: Int
+                if (profileId != null) {
+                    val medications = try { medicationRepository.fetchMedications(profileId) } catch (_: Exception) { medicationRepository.getCachedMedications() }
+                    val todayLogs = try { medicationRepository.fetchTodayLogs(profileId) } catch (_: Exception) { emptyList() }
+                    medicationsTotal = medications.size
+                    medicationsTaken = todayLogs.count { it.status == "taken" }
+                } else {
+                    medicationsTotal = medicationRepository.getCachedMedications().size
+                    medicationsTaken = 0
+                }
+
+                // Load cycle phase from local cycles
+                val cycles = try { menstrualCycleRepository.loadLocalCycles() } catch (_: Exception) { emptyList() }
+                val settings = try { menstrualCycleRepository.loadSettings() } catch (_: Exception) { MenstrualSettings() }
+                val phase = menstrualCycleRepository.detectCurrentPhase(cycles, settings)
+                val cyclePhaseLabel = when (phase) {
+                    CyclePhase.MENSTRUAL -> "Menstrual"
+                    CyclePhase.FOLLICULAR -> "Follicular"
+                    CyclePhase.OVULATION -> "Ovulation"
+                    CyclePhase.LUTEAL -> "Luteal"
+                    else -> "Cycle Tracker"
+                }
 
                 // Convert weekly steps to DailyMetric
                 val weekDates = generateWeekDates()
@@ -127,8 +163,8 @@ class HomeViewModel : ViewModel() {
                     distance = summary.distanceKm,
                     hydrationCurrent = todayHydration,
                     hydrationGoal = 2500,
-                    medicationsTaken = 0,
-                    medicationsTotal = 0,
+                    medicationsTaken = medicationsTaken,
+                    medicationsTotal = medicationsTotal,
                     isLoading = false,
                     isDemoMode = false,
                     isAuthorized = healthConnectService.isAvailable,
@@ -136,7 +172,8 @@ class HomeViewModel : ViewModel() {
                     selectedDate = Date(),
                     weeklySteps = weeklySteps,
                     calorieCurrent = todayCalories.toInt(),
-                    calorieGoal = dietGoals?.dailyCalories ?: 2000
+                    calorieGoal = dietGoals?.dailyCalories ?: 2000,
+                    cyclePhase = cyclePhaseLabel
                 )
                 loadNudges()
             } catch (e: Exception) {
@@ -174,9 +211,31 @@ class HomeViewModel : ViewModel() {
     }
 
     fun incrementHydration() {
-        val current = _uiState.value
-        if (current.hydrationCurrent < current.hydrationGoal) {
-            _uiState.value = current.copy(hydrationCurrent = current.hydrationCurrent + 250)
+        viewModelScope.launch {
+            val entry = HydrationEntry(
+                id = UUID.randomUUID().toString(),
+                drinkType = "water",
+                amountMl = 250,
+                effectiveMl = 250,
+                consumedAt = LocalDateTime.now().format(isoFormatter),
+                synced = false
+            )
+            hydrationRepository.addLocalEntry(entry)
+
+            // Refresh total from local storage
+            val todayStr = LocalDate.now().toString()
+            val entries = hydrationRepository.loadLocalEntries()
+            val todayTotal = entries.filter { it.consumedAt.startsWith(todayStr) }.sumOf { it.effectiveMl }
+            _uiState.value = _uiState.value.copy(hydrationCurrent = todayTotal)
+
+            // Sync unsynced entries to cloud in background
+            launch syncCloud@{
+                val profileId = AppContainer.authRepository.currentUser?.id ?: return@syncCloud
+                val unsynced = hydrationRepository.loadLocalEntries().filter { !it.synced }
+                if (unsynced.isNotEmpty()) {
+                    hydrationRepository.syncEntriesToCloud(unsynced, profileId)
+                }
+            }
         }
     }
 

@@ -173,7 +173,7 @@ fun ActivityDetailScreen(
                     // ── Activity Header Card ──
                     ActivityHeaderCard(
                         workout = workout!!,
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -182,7 +182,7 @@ fun ActivityDetailScreen(
                     DetailTabRow(
                         selectedTab = selectedTab,
                         onTabSelected = { selectedTab = it },
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -191,20 +191,20 @@ fun ActivityDetailScreen(
                     when (selectedTab) {
                         DetailTab.OVERVIEW -> OverviewTab(
                             workout = workout!!,
-                            modifier = Modifier.padding(horizontal = 20.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         DetailTab.SPLITS -> SplitsTab(
                             splits = workout!!.splits,
-                            modifier = Modifier.padding(horizontal = 20.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         DetailTab.PACE -> PaceTab(
                             splits = workout!!.splits,
                             avgPace = workout!!.avgPace,
-                            modifier = Modifier.padding(horizontal = 20.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         DetailTab.HEART_RATE -> HeartRateTab(
                             heartRateData = workout!!.heartRateData,
-                            modifier = Modifier.padding(horizontal = 20.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
 
@@ -213,7 +213,7 @@ fun ActivityDetailScreen(
                     // ── Delete Button ──
                     DeleteWorkoutButton(
                         onClick = { showDeleteDialog = true },
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
 
                     // Bottom spacer for navigation bar

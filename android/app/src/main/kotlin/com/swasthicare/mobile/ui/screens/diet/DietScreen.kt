@@ -124,7 +124,7 @@ fun DietScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp)
+                                    .padding(horizontal = 16.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(secondaryBg)
                                     .padding(20.dp),
@@ -179,7 +179,7 @@ fun DietScreen(
                                 proteinProgress = uiState.proteinProgress,
                                 carbsProgress = uiState.carbsProgress,
                                 fatProgress = uiState.fatProgress,
-                                modifier = Modifier.padding(horizontal = 20.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                             Spacer(Modifier.height(20.dp))
                         }
@@ -190,7 +190,7 @@ fun DietScreen(
                                 "Today's Meals",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 20.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                             Spacer(Modifier.height(12.dp))
                         }
@@ -215,7 +215,7 @@ fun DietScreen(
                                 entries = vm.getMealLogs(mealType),
                                 onDelete = { entry -> vm.deleteLog(entry) },
                                 onAddFood = { onNavigateToAddFood(mealType.dbValue) },
-                                modifier = Modifier.padding(horizontal = 20.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                             Spacer(Modifier.height(10.dp))
                         }
@@ -226,7 +226,7 @@ fun DietScreen(
                                 Spacer(Modifier.height(4.dp))
                                 InsightsCard(
                                     insights = insights,
-                                    modifier = Modifier.padding(horizontal = 20.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                                 Spacer(Modifier.height(16.dp))
                             }
@@ -238,7 +238,7 @@ fun DietScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp)
+                                    .padding(horizontal = 16.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(DietGreen.copy(alpha = 0.08f))
                                     .clickable(
@@ -386,7 +386,7 @@ private fun DietSkeletonContent() {
     ) {
         // Calendar row
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             repeat(7) {
@@ -395,18 +395,18 @@ private fun DietSkeletonContent() {
         }
         // Progress card
         Box(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                 .height(220.dp).clip(RoundedCornerShape(16.dp)).background(shimmer)
         )
         // Macro card
         Box(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                 .height(140.dp).clip(RoundedCornerShape(16.dp)).background(shimmer)
         )
         // Meal cards
         repeat(3) {
             Box(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                     .height(64.dp).clip(RoundedCornerShape(16.dp)).background(shimmer)
             )
         }
