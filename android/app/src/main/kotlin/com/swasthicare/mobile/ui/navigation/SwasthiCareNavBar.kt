@@ -90,16 +90,14 @@ fun SwasthiCareNavBar(
             BottomNavTab.items.forEach { tab ->
                 key(tab.route) {
                     val selected = currentRoute == tab.route
-                    val onClick = remember(currentRoute, tab.route) {
+                    val onClick = remember(tab.route) {
                         {
-                            if (currentRoute != tab.route) {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
+                            navController.navigate(tab.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
                                 }
+                                launchSingleTop = true
+                                restoreState = true
                             }
                         }
                     }
