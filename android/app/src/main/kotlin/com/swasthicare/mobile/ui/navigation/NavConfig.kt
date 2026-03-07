@@ -2,39 +2,25 @@ package com.swasthicare.mobile.ui.navigation
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.adamglin.phosphoricons.FillGroup
-import com.adamglin.phosphoricons.RegularGroup
-import com.adamglin.phosphoricons.fill.Heart as HeartFillIcon
-import com.adamglin.phosphoricons.fill.Lock as LockFillIcon
-import com.adamglin.phosphoricons.fill.Sneaker as SneakerFillIcon
-import com.adamglin.phosphoricons.fill.Sparkle as SparkleFillIcon
-import com.adamglin.phosphoricons.fill.User as UserFillIcon
-import com.adamglin.phosphoricons.regular.Heart as HeartRegularIcon
-import com.adamglin.phosphoricons.regular.Lock as LockRegularIcon
-import com.adamglin.phosphoricons.regular.Sneaker as SneakerRegularIcon
-import com.adamglin.phosphoricons.regular.Sparkle as SparkleRegularIcon
-import com.adamglin.phosphoricons.regular.User as UserRegularIcon
-import com.swasthicare.mobile.ui.theme.HeartRateColor
-import com.swasthicare.mobile.ui.theme.MedicationColor
+import com.composables.icons.lucide.Footprints
+import com.composables.icons.lucide.Heart
+import com.composables.icons.lucide.Lock
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Sparkles
+import com.composables.icons.lucide.User
 import com.swasthicare.mobile.ui.theme.PrimaryColor
-import com.swasthicare.mobile.ui.theme.StepsColor
-import com.swasthicare.mobile.ui.theme.SystemBlue
 
-// Materialize Phosphor icon ImageVectors by calling the extension properties
-// on their respective receiver objects (RegularGroup / FillGroup singletons).
-private val iconHeartRegular: ImageVector = with(RegularGroup) { HeartRegularIcon }
-private val iconHeartFill: ImageVector = with(FillGroup) { HeartFillIcon }
-private val iconLockRegular: ImageVector = with(RegularGroup) { LockRegularIcon }
-private val iconLockFill: ImageVector = with(FillGroup) { LockFillIcon }
-private val iconSparkleRegular: ImageVector = with(RegularGroup) { SparkleRegularIcon }
-private val iconSparkleFill: ImageVector = with(FillGroup) { SparkleFillIcon }
-private val iconSneakerRegular: ImageVector = with(RegularGroup) { SneakerRegularIcon }
-private val iconSneakerFill: ImageVector = with(FillGroup) { SneakerFillIcon }
-private val iconUserRegular: ImageVector = with(RegularGroup) { UserRegularIcon }
-private val iconUserFill: ImageVector = with(FillGroup) { UserFillIcon }
+// Materialize Lucide icon ImageVectors (stroke-only; same icon for default and selected states —
+// selection is communicated via color change only).
+private val iconHeart: ImageVector = Lucide.Heart
+private val iconLock: ImageVector = Lucide.Lock
+private val iconSparkles: ImageVector = Lucide.Sparkles
+private val iconFootprints: ImageVector = Lucide.Footprints
+private val iconUser: ImageVector = Lucide.User
 
 /**
  * Defines a bottom navigation tab with route, label, icons, and semantic color.
+ * The [color] field is retained for API compatibility but all tabs use [PrimaryColor].
  */
 sealed class BottomNavTab(
     val route: String,
@@ -46,37 +32,37 @@ sealed class BottomNavTab(
     object Vitals : BottomNavTab(
         route = "vitals",
         title = "Vitals",
-        icon = iconHeartRegular,
-        selectedIcon = iconHeartFill,
-        color = HeartRateColor
+        icon = iconHeart,
+        selectedIcon = iconHeart,
+        color = PrimaryColor
     )
     object Vault : BottomNavTab(
         route = "vault",
         title = "Vault",
-        icon = iconLockRegular,
-        selectedIcon = iconLockFill,
-        color = MedicationColor
+        icon = iconLock,
+        selectedIcon = iconLock,
+        color = PrimaryColor
     )
     object AI : BottomNavTab(
         route = "ai",
         title = "AI",
-        icon = iconSparkleRegular,
-        selectedIcon = iconSparkleFill,
+        icon = iconSparkles,
+        selectedIcon = iconSparkles,
         color = PrimaryColor
     )
     object Steps : BottomNavTab(
         route = "steps",
         title = "Steps",
-        icon = iconSneakerRegular,
-        selectedIcon = iconSneakerFill,
-        color = StepsColor
+        icon = iconFootprints,
+        selectedIcon = iconFootprints,
+        color = PrimaryColor
     )
     object Profile : BottomNavTab(
         route = "profile",
         title = "Profile",
-        icon = iconUserRegular,
-        selectedIcon = iconUserFill,
-        color = SystemBlue
+        icon = iconUser,
+        selectedIcon = iconUser,
+        color = PrimaryColor
     )
 
     companion object {

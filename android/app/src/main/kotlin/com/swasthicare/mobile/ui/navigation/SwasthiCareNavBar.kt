@@ -1,10 +1,11 @@
 package com.swasthicare.mobile.ui.navigation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,14 +16,13 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
@@ -37,8 +37,8 @@ import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
 /**
- * Custom bottom navigation bar.
- * Phosphor Icons, primary color for all tabs, no animations.
+ * Custom bottom navigation bar using Lucide Icons.
+ * Selection is indicated by a smooth color-only tint transition — no scale, no pill, no label animation.
  */
 @Composable
 fun SwasthiCareNavBar(
@@ -64,7 +64,7 @@ fun SwasthiCareNavBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(72.dp),
+                .height(68.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -105,8 +105,12 @@ private fun NavBarTabItem(
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val activeColor = PrimaryColor
-    val inactiveColor = AppColors.onSurfaceVariant
+
+    val tint by animateColorAsState(
+        targetValue = if (selected) PrimaryColor else AppColors.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 250),
+        label = "tabTint"
+    )
 
     Column(
         modifier = modifier
@@ -119,40 +123,23 @@ private fun NavBarTabItem(
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 8.dp),
+            .padding(vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            // Pill highlight — shown instantly when selected
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 56.dp, height = 32.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(activeColor.copy(alpha = 0.12f))
-                )
-            }
-
-            Icon(
-                imageVector = if (selected) tab.selectedIcon else tab.icon,
-                contentDescription = tab.title,
-                tint = if (selected) activeColor else inactiveColor,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(2.dp))
-
-        // Label — shown only when selected, no animation
-        if (selected) {
-            Text(
-                text = tab.title,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = activeColor,
-                maxLines = 1
-            )
-        }
+        Icon(
+            imageVector = if (selected) tab.selectedIcon else tab.icon,
+            contentDescription = tab.title,
+            tint = tint,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            text = tab.title,
+            fontSize = 10.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = tint,
+            maxLines = 1
+        )
     }
 }
