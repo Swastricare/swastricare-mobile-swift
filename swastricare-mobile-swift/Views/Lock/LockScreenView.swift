@@ -24,17 +24,6 @@ struct LockScreenView: View {
             VStack(spacing: 30) {
                 Spacer()
                 
-                // App Icon
-                // Image(systemName: "heart.text.square.fill")
-                //     .font(.system(size: 80))
-                //     .foregroundStyle(
-                //         LinearGradient(
-                //             colors: [Color(hex: "2E3192"), Color(hex: "654ea3")],
-                //             startPoint: .topLeading,
-                //             endPoint: .bottomTrailing
-                //         )
-                //     )
-                
                 // Title
                 VStack(spacing: 8) {
                     Text("Swastricare")

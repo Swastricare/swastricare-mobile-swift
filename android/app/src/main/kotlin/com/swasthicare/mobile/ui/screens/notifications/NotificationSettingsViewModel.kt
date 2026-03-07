@@ -13,6 +13,9 @@ data class NotificationSettingsState(
     val medicationEnabled: Boolean = true,
     val dietEnabled: Boolean = true,
     val cycleEnabled: Boolean = false,
+    val appointmentEnabled: Boolean = true,
+    val activityEnabled: Boolean = true,
+    val aiNudgeEnabled: Boolean = true,
     val hydrationIntervalMinutes: Int = 60,
     val quietStart: Int = 22,
     val quietEnd: Int = 7,
@@ -37,6 +40,9 @@ class NotificationSettingsViewModel : ViewModel() {
             medicationEnabled = notifService.medicationEnabled,
             dietEnabled = notifService.dietEnabled,
             cycleEnabled = notifService.cycleEnabled,
+            appointmentEnabled = notifService.appointmentEnabled,
+            activityEnabled = notifService.activityEnabled,
+            aiNudgeEnabled = notifService.aiNudgeEnabled,
             hydrationIntervalMinutes = notifService.hydrationIntervalMinutes,
             quietStart = notifService.quietHoursStart,
             quietEnd = notifService.quietHoursEnd,
@@ -69,6 +75,21 @@ class NotificationSettingsViewModel : ViewModel() {
     fun setCycleEnabled(enabled: Boolean) {
         notifService.cycleEnabled = enabled
         _uiState.update { it.copy(cycleEnabled = enabled) }
+    }
+
+    fun setAppointmentEnabled(enabled: Boolean) {
+        notifService.appointmentEnabled = enabled
+        _uiState.update { it.copy(appointmentEnabled = enabled) }
+    }
+
+    fun setActivityEnabled(enabled: Boolean) {
+        notifService.activityEnabled = enabled
+        _uiState.update { it.copy(activityEnabled = enabled) }
+    }
+
+    fun setAiNudgeEnabled(enabled: Boolean) {
+        notifService.aiNudgeEnabled = enabled
+        _uiState.update { it.copy(aiNudgeEnabled = enabled) }
     }
 
     fun setHydrationInterval(minutes: Int) {
@@ -115,4 +136,7 @@ class NotificationSettingsViewModel : ViewModel() {
     fun testMedication() = notifService.showTestNotification(NotificationService.CHANNEL_MEDICATION)
     fun testDiet() = notifService.showTestNotification(NotificationService.CHANNEL_DIET)
     fun testCycle() = notifService.showTestNotification(NotificationService.CHANNEL_CYCLE)
+    fun testAppointment() = notifService.showTestNotification(NotificationService.CHANNEL_APPOINTMENT)
+    fun testActivity() = notifService.showTestNotification(NotificationService.CHANNEL_ACTIVITY)
+    fun testAiNudge() = notifService.showTestNotification(NotificationService.CHANNEL_AI_NUDGE)
 }

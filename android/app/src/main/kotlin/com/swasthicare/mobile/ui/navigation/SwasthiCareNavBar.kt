@@ -45,7 +45,7 @@ fun SwasthiCareNavBar(
     navController: NavController,
     currentRoute: String?
 ) {
-    val surfaceColor = AppColors.surface
+    val surfaceColor = AppColors.navBar
     val dividerColor = AppColors.outlineVariant
 
     Column(

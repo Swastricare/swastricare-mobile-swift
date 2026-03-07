@@ -41,6 +41,9 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.ui.components.ModelViewer
 import com.swasthicare.mobile.ui.theme.*
@@ -59,11 +62,39 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-    
+
+    // Refresh data when this screen resumes (e.g. navigating back from hydration/diet)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Staggered entrance animation — initialized as visible if data is already loaded
+    // (e.g. returning to the tab), so there's no blank-flash on tab switch.
+    val sectionCount = 7
+    val alreadyLoaded = !uiState.isLoading
+    val sectionVisible = remember { List(sectionCount) { mutableStateOf(alreadyLoaded) } }
+    LaunchedEffect(uiState.isLoading) {
+        if (!uiState.isLoading) {
+            sectionVisible.forEachIndexed { index, state ->
+                if (!state.value) {
+                    kotlinx.coroutines.delay(index * 80L)
+                    state.value = true
+                }
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // 1. Premium Animated Background
         PremiumBackground()
-        
+
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -72,16 +103,6 @@ fun HomeScreen(
                 CircularProgressIndicator(color = AppColors.primary)
             }
         } else {
-            // Staggered entrance animation state for each section
-            val sectionCount = 7
-            val sectionVisible = remember { List(sectionCount) { mutableStateOf(false) } }
-            LaunchedEffect(Unit) {
-                sectionVisible.forEachIndexed { index, state ->
-                    kotlinx.coroutines.delay(index * 80L)
-                    state.value = true
-                }
-            }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -130,19 +151,22 @@ fun HomeScreen(
                             )
                         }
 
-                        // Fade gradient at the bottom — blends the model into the background
+                        // Fade gradient at the bottom — blends the section into content below.
+                        // This covers the Activity Stats (left) and background around the model (right).
+                        // The 3D model itself is viewport-clipped via its Y offset in ModelViewer.
                         Box(
                             modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .fillMaxWidth(0.52f)
-                                .fillMaxHeight(0.35f)
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.5f)
                                 .background(
                                     brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            AppColors.background.copy(alpha = 0.5f),
-                                            AppColors.background.copy(alpha = 0.85f),
-                                            AppColors.background
+                                        colorStops = arrayOf(
+                                            0.0f to Color.Transparent,
+                                            0.3f to AppColors.background.copy(alpha = 0.2f),
+                                            0.55f to AppColors.background.copy(alpha = 0.55f),
+                                            0.75f to AppColors.background.copy(alpha = 0.85f),
+                                            1.0f to AppColors.background
                                         )
                                     )
                                 )
@@ -383,27 +407,30 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Diet Quick Action — full width (section 4)
+                // Diet & Cycle in a row (section 4)
                 StaggeredEntrance(visible = sectionVisible[4].value) {
-                    DietQuickActionCard(
-                        calorieCurrent = uiState.calorieCurrent,
-                        calorieGoal = uiState.calorieGoal,
-                        onClick = onNavigateToDiet,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Cycle Tracker — full width (section 5)
-                StaggeredEntrance(visible = sectionVisible[5].value) {
-                    CycleTrackerCard(
-                        phaseLabel = uiState.cyclePhase,
-                        onClick = onNavigateToCycleTracker,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DietQuickActionCard(
+                            calorieCurrent = uiState.calorieCurrent,
+                            calorieGoal = uiState.calorieGoal,
+                            onClick = onNavigateToDiet,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(160.dp)
+                        )
+                        CycleTrackerCard(
+                            phaseLabel = uiState.cyclePhase,
+                            onClick = onNavigateToCycleTracker,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(160.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

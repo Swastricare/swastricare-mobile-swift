@@ -66,6 +66,7 @@
             android:name="com.swasthicare.mobile.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.SwasthiCare">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -117,9 +118,14 @@
                 <action android:name="HYDRATION_REMINDER" />
                 <action android:name="DIET_REMINDER" />
                 <action android:name="CYCLE_REMINDER" />
+                <action android:name="MEDICATION_REMINDER" />
+                <action android:name="APPOINTMENT_REMINDER" />
                 <action android:name="com.swasthicare.ACTION_LOG_WATER" />
                 <action android:name="com.swasthicare.ACTION_MARK_MED_TAKEN" />
                 <action android:name="com.swasthicare.ACTION_LOG_MEAL" />
+                <action android:name="com.swasthicare.ACTION_APPOINTMENT_DISMISS" />
+                <action android:name="com.swasthicare.ACTION_ACTIVITY_START" />
+                <action android:name="com.swasthicare.ACTION_NUDGE_DISMISS" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

@@ -3,6 +3,7 @@ package com.swasthicare.mobile.data.repository
 import android.util.Log
 import com.swasthicare.mobile.data.model.HealthProfile
 import com.swasthicare.mobile.data.model.Gender
+import com.swasthicare.mobile.data.model.UserProfileRow
 import com.swasthicare.mobile.di.AppContainer
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
@@ -12,6 +13,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 interface ProfileRepository {
+    /** Fetch basic profile row (name, avatar) from the `profiles` table. */
+    suspend fun getUserProfileRow(userId: String): UserProfileRow?
     suspend fun getHealthProfile(userId: String): HealthProfile?
     suspend fun createHealthProfile(profile: HealthProfile): Result<HealthProfile>
     suspend fun updateHealthProfile(profile: HealthProfile): Result<HealthProfile>
@@ -30,6 +33,10 @@ interface ProfileRepository {
 }
 
 class MockProfileRepository : ProfileRepository {
+    override suspend fun getUserProfileRow(userId: String): UserProfileRow? {
+        return UserProfileRow(id = userId, fullName = "Alex Johnson")
+    }
+
     override suspend fun getHealthProfile(userId: String): HealthProfile? {
         return HealthProfile(
             userId = userId,
@@ -70,6 +77,21 @@ class MockProfileRepository : ProfileRepository {
 class SupabaseProfileRepository(
     private val supabaseClient: SupabaseClient
 ) : ProfileRepository {
+
+    override suspend fun getUserProfileRow(userId: String): UserProfileRow? {
+        return try {
+            supabaseClient.postgrest["profiles"]
+                .select {
+                    filter {
+                        eq("id", userId)
+                    }
+                }
+                .decodeSingleOrNull<UserProfileRow>()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch user profile row: ${e.message}")
+            null
+        }
+    }
 
     override suspend fun getHealthProfile(userId: String): HealthProfile? {
         return try {

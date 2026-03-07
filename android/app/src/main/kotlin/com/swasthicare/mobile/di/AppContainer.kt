@@ -20,6 +20,9 @@ import com.swasthicare.mobile.data.services.AppVersionService
 import com.swasthicare.mobile.data.services.BiometricService
 import com.swasthicare.mobile.data.services.CrashlyticsService
 import com.swasthicare.mobile.data.services.HealthConnectService
+import com.swasthicare.mobile.data.services.AppointmentAlarmScheduler
+import com.swasthicare.mobile.data.services.CycleNotificationScheduler
+import com.swasthicare.mobile.data.services.MedicationAlarmScheduler
 import com.swasthicare.mobile.data.services.NotificationService
 import com.swasthicare.mobile.data.services.PoseDetectionService
 import com.swasthicare.mobile.data.services.SessionManager
@@ -170,6 +173,18 @@ object AppContainer {
 
     val notificationService: NotificationService by lazy {
         NotificationService(context, sharedPreferences)
+    }
+
+    val medicationAlarmScheduler: MedicationAlarmScheduler by lazy {
+        MedicationAlarmScheduler(context)
+    }
+
+    val appointmentAlarmScheduler: AppointmentAlarmScheduler by lazy {
+        AppointmentAlarmScheduler(context)
+    }
+
+    val cycleNotificationScheduler: CycleNotificationScheduler by lazy {
+        CycleNotificationScheduler(context)
     }
 
     // Weather Service (for hydration adjustments)

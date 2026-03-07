@@ -117,6 +117,10 @@ object AppColors {
     val outlineVariant: Color
         @Composable @ReadOnlyComposable
         get() = if (isSystemInDarkTheme()) Color(0xFF48484A) else Color(0xFFD1D1D6)
+
+    val navBar: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color.Black else Color.White
 }
 
 // Premium Colors (Ported from iOS)

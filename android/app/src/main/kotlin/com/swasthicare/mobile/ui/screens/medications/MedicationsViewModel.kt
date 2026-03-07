@@ -70,6 +70,7 @@ class MedicationsViewModel(
                 val logs = repository.fetchTodayLogs(profileId, date)
 
                 repository.cacheMedications(medications)
+                AppContainer.medicationAlarmScheduler.scheduleAll(schedules, medications)
 
                 val withDoses = buildMedicationsWithDoses(medications, schedules, logs, date)
                 val stats = computeStats(withDoses)

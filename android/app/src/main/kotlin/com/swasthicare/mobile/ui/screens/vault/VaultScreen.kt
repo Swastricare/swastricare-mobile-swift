@@ -505,9 +505,18 @@ fun VaultAppBar(
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             shape = RoundedCornerShape(14.dp),
             colors = TextFieldDefaults.colors(
+                focusedContainerColor = AppColors.surfaceVariant,
+                unfocusedContainerColor = AppColors.surfaceVariant,
+                disabledContainerColor = AppColors.surfaceVariant,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent
+                disabledIndicatorColor = Color.Transparent,
+                focusedTextColor = AppColors.onSurface,
+                unfocusedTextColor = AppColors.onSurface,
+                focusedLeadingIconColor = AppColors.onSurfaceVariant,
+                unfocusedLeadingIconColor = AppColors.onSurfaceVariant,
+                focusedPlaceholderColor = AppColors.onSurfaceVariant,
+                unfocusedPlaceholderColor = AppColors.onSurfaceVariant
             )
         )
     }

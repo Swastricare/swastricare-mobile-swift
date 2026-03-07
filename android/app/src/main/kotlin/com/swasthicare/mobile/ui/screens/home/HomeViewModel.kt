@@ -64,6 +64,11 @@ class HomeViewModel : ViewModel() {
         loadData()
     }
 
+    /** Re-read local data sources (hydration, diet, etc.) to refresh the home cards. */
+    fun refresh() {
+        loadData()
+    }
+
     private fun loadData() {
         viewModelScope.launch {
             try {

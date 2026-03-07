@@ -16,9 +16,12 @@ import java.util.Calendar
 /**
  * Centralized notification manager handling all categories:
  * - Hydration reminders (configurable frequency, quiet hours)
- * - Medication reminders (existing, kept as-is)
+ * - Medication reminders (scheduled via MedicationAlarmScheduler)
  * - Diet reminders (breakfast, lunch, dinner)
  * - Cycle reminders (period, ovulation, daily log)
+ * - Appointment reminders (24h + 1h before via AppointmentAlarmScheduler)
+ * - Activity reminders (daily step goal check via WorkManager)
+ * - AI nudges (Supabase-driven via AiNudgeWorker)
  * - General notifications
  */
 class NotificationService(
@@ -34,6 +37,9 @@ class NotificationService(
         const val CHANNEL_DIET = "diet_reminders"
         const val CHANNEL_CYCLE = "cycle_reminders"
         const val CHANNEL_GENERAL = "general"
+        const val CHANNEL_APPOINTMENT = "appointment_reminders"
+        const val CHANNEL_ACTIVITY = "activity_reminders"
+        const val CHANNEL_AI_NUDGE = "ai_nudges"
 
         // Notification IDs (base values — individual notifications offset from these)
         const val NOTIF_HYDRATION_BASE = 1000
@@ -43,20 +49,31 @@ class NotificationService(
         const val NOTIF_CYCLE_PERIOD = 3001
         const val NOTIF_CYCLE_OVULATION = 3002
         const val NOTIF_CYCLE_LOG = 3003
+        const val NOTIF_APPOINTMENT_DAY_BASE = 5000
+        const val NOTIF_APPOINTMENT_HOUR_BASE = 5500
+        const val NOTIF_ACTIVITY_DAILY = 6001
+        const val NOTIF_AI_NUDGE_BASE = 7000
 
         // Actions
         const val ACTION_LOG_WATER = "com.swasthicare.ACTION_LOG_WATER"
         const val ACTION_MARK_MED_TAKEN = "com.swasthicare.ACTION_MARK_MED_TAKEN"
         const val ACTION_LOG_MEAL = "com.swasthicare.ACTION_LOG_MEAL"
+        const val ACTION_APPOINTMENT_DISMISS = "com.swasthicare.ACTION_APPOINTMENT_DISMISS"
+        const val ACTION_ACTIVITY_START = "com.swasthicare.ACTION_ACTIVITY_START"
+        const val ACTION_NUDGE_DISMISS = "com.swasthicare.ACTION_NUDGE_DISMISS"
 
         // Preference keys
         const val PREF_HYDRATION_ENABLED = "notif_hydration_enabled"
         const val PREF_MEDICATION_ENABLED = "notif_medication_enabled"
         const val PREF_DIET_ENABLED = "notif_diet_enabled"
         const val PREF_CYCLE_ENABLED = "notif_cycle_enabled"
+        const val PREF_APPOINTMENT_ENABLED = "notif_appointment_enabled"
+        const val PREF_ACTIVITY_ENABLED = "notif_activity_enabled"
+        const val PREF_AI_NUDGE_ENABLED = "notif_ai_nudge_enabled"
+        const val PREF_ACTIVITY_GOAL_STEPS = "notif_activity_goal_steps"
         const val PREF_HYDRATION_INTERVAL_MINUTES = "notif_hydration_interval_min"
-        const val PREF_QUIET_HOURS_START = "notif_quiet_start" // hour (0-23)
-        const val PREF_QUIET_HOURS_END = "notif_quiet_end"     // hour (0-23)
+        const val PREF_QUIET_HOURS_START = "notif_quiet_start"
+        const val PREF_QUIET_HOURS_END = "notif_quiet_end"
         const val PREF_BREAKFAST_HOUR = "notif_breakfast_hour"
         const val PREF_BREAKFAST_MINUTE = "notif_breakfast_min"
         const val PREF_LUNCH_HOUR = "notif_lunch_hour"
@@ -103,7 +120,25 @@ class NotificationService(
                     CHANNEL_GENERAL,
                     "General",
                     NotificationManager.IMPORTANCE_LOW
-                ).apply { description = "General app notifications" }
+                ).apply { description = "General app notifications" },
+
+                NotificationChannel(
+                    CHANNEL_APPOINTMENT,
+                    "Appointment Reminders",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply { description = "Reminders for upcoming doctor appointments" },
+
+                NotificationChannel(
+                    CHANNEL_ACTIVITY,
+                    "Activity Reminders",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply { description = "Daily activity and step count reminders" },
+
+                NotificationChannel(
+                    CHANNEL_AI_NUDGE,
+                    "AI Health Coach",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply { description = "Personalized AI health nudges" }
             )
             channels.forEach { nm.createNotificationChannel(it) }
         }
@@ -127,6 +162,22 @@ class NotificationService(
         get() = prefs.getBoolean(PREF_CYCLE_ENABLED, false)
         set(value) { prefs.edit().putBoolean(PREF_CYCLE_ENABLED, value).apply() }
 
+    var appointmentEnabled: Boolean
+        get() = prefs.getBoolean(PREF_APPOINTMENT_ENABLED, true)
+        set(value) { prefs.edit().putBoolean(PREF_APPOINTMENT_ENABLED, value).apply() }
+
+    var activityEnabled: Boolean
+        get() = prefs.getBoolean(PREF_ACTIVITY_ENABLED, true)
+        set(value) { prefs.edit().putBoolean(PREF_ACTIVITY_ENABLED, value).apply() }
+
+    var aiNudgeEnabled: Boolean
+        get() = prefs.getBoolean(PREF_AI_NUDGE_ENABLED, true)
+        set(value) { prefs.edit().putBoolean(PREF_AI_NUDGE_ENABLED, value).apply() }
+
+    var activityGoalSteps: Int
+        get() = prefs.getInt(PREF_ACTIVITY_GOAL_STEPS, 8000)
+        set(value) { prefs.edit().putInt(PREF_ACTIVITY_GOAL_STEPS, value).apply() }
+
     var hydrationIntervalMinutes: Int
         get() = prefs.getInt(PREF_HYDRATION_INTERVAL_MINUTES, 60)
         set(value) { prefs.edit().putInt(PREF_HYDRATION_INTERVAL_MINUTES, value).apply() }
@@ -140,24 +191,24 @@ class NotificationService(
         set(value) { prefs.edit().putInt(PREF_QUIET_HOURS_END, value).apply() }
 
     var breakfastHour: Int
-        get() = prefs.getInt(PREF_BREAKFAST_HOUR, 8)
+        get() = prefs.getInt(PREF_BREAKFAST_HOUR, 9)
         set(value) { prefs.edit().putInt(PREF_BREAKFAST_HOUR, value).apply() }
     var breakfastMinute: Int
         get() = prefs.getInt(PREF_BREAKFAST_MINUTE, 0)
         set(value) { prefs.edit().putInt(PREF_BREAKFAST_MINUTE, value).apply() }
 
     var lunchHour: Int
-        get() = prefs.getInt(PREF_LUNCH_HOUR, 12)
+        get() = prefs.getInt(PREF_LUNCH_HOUR, 13)
         set(value) { prefs.edit().putInt(PREF_LUNCH_HOUR, value).apply() }
     var lunchMinute: Int
-        get() = prefs.getInt(PREF_LUNCH_MINUTE, 30)
+        get() = prefs.getInt(PREF_LUNCH_MINUTE, 0)
         set(value) { prefs.edit().putInt(PREF_LUNCH_MINUTE, value).apply() }
 
     var dinnerHour: Int
-        get() = prefs.getInt(PREF_DINNER_HOUR, 19)
+        get() = prefs.getInt(PREF_DINNER_HOUR, 21)
         set(value) { prefs.edit().putInt(PREF_DINNER_HOUR, value).apply() }
     var dinnerMinute: Int
-        get() = prefs.getInt(PREF_DINNER_MINUTE, 30)
+        get() = prefs.getInt(PREF_DINNER_MINUTE, 0)
         set(value) { prefs.edit().putInt(PREF_DINNER_MINUTE, value).apply() }
 
     // ── Schedule All ──
@@ -165,8 +216,9 @@ class NotificationService(
     fun scheduleAllNotifications() {
         if (hydrationEnabled) scheduleHydrationReminders() else cancelHydrationReminders()
         if (dietEnabled) scheduleDietReminders() else cancelDietReminders()
-        // Medication is handled by MedicationRepository's existing AlarmManager logic
-        // Cycle reminders would be scheduled when cycle data is available
+        // Medication: scheduled by MedicationAlarmScheduler after data sync
+        // Appointments: scheduled by AppointmentAlarmScheduler after vault sync
+        // Cycle: scheduled by CycleNotificationScheduler after menstrual data sync
     }
 
     // ── Hydration Reminders ──
@@ -179,20 +231,14 @@ class NotificationService(
         val quietStart = quietHoursStart
         val quietEnd = quietHoursEnd
 
-        val now = Calendar.getInstance()
-        val currentHour = now.get(Calendar.HOUR_OF_DAY)
-
-        // Schedule reminders for today's remaining waking hours
         val nextTrigger = Calendar.getInstance().apply {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
             add(Calendar.MINUTE, interval)
         }
 
-        // Ensure not in quiet hours
         val triggerHour = nextTrigger.get(Calendar.HOUR_OF_DAY)
         if (isInQuietHours(triggerHour, quietStart, quietEnd)) {
-            // Schedule for end of quiet hours
             nextTrigger.set(Calendar.HOUR_OF_DAY, quietEnd)
             nextTrigger.set(Calendar.MINUTE, 0)
             if (nextTrigger.before(Calendar.getInstance())) {
@@ -223,7 +269,6 @@ class NotificationService(
             Log.d(TAG, "Hydration reminder scheduled for ${nextTrigger.time}")
         } catch (e: SecurityException) {
             Log.w(TAG, "Cannot set exact alarm: ${e.message}")
-            // Fallback to inexact
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 nextTrigger.timeInMillis,
@@ -341,7 +386,7 @@ class NotificationService(
         }
     }
 
-    // ── Show Notification (used by receiver) ──
+    // ── Show Notification (used by receiver + workers) ──
 
     fun showNotification(
         channelId: String,
@@ -349,20 +394,35 @@ class NotificationService(
         title: String,
         body: String,
         actionLabel: String? = null,
-        actionIntent: PendingIntent? = null
+        actionIntent: PendingIntent? = null,
+        contentIntent: PendingIntent? = null
     ) {
+        // Persist to notification history before showing
+        try {
+            com.swasthicare.mobile.ui.screens.notifications.NotificationHistoryViewModel.saveNotification(
+                prefs, title, body, channelToCategory(channelId)
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to save notification to history: ${e.message}")
+        }
+
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(com.swastricare.health.R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
             .setPriority(
-                if (channelId == CHANNEL_MEDICATION) NotificationCompat.PRIORITY_HIGH
+                if (channelId == CHANNEL_MEDICATION || channelId == CHANNEL_APPOINTMENT)
+                    NotificationCompat.PRIORITY_HIGH
                 else NotificationCompat.PRIORITY_DEFAULT
             )
 
         if (actionLabel != null && actionIntent != null) {
             builder.addAction(0, actionLabel, actionIntent)
+        }
+
+        if (contentIntent != null) {
+            builder.setContentIntent(contentIntent)
         }
 
         try {
@@ -379,6 +439,9 @@ class NotificationService(
             CHANNEL_MEDICATION -> "Test: Medication" to "Don't forget your medication! This is a test."
             CHANNEL_DIET -> "Test: Diet" to "Time to log your meal! This is a test notification."
             CHANNEL_CYCLE -> "Test: Cycle" to "Cycle reminder test notification."
+            CHANNEL_APPOINTMENT -> "Test: Appointment" to "You have an appointment with Dr. Sharma tomorrow at 10am."
+            CHANNEL_ACTIVITY -> "Test: Activity" to "You've walked 3,200 steps today. Keep moving!"
+            CHANNEL_AI_NUDGE -> "Test: AI Coach" to "Great job staying hydrated today! Your streak is 5 days."
             else -> "Test" to "This is a test notification."
         }
         showNotification(channelId, 9999, title, body)
@@ -386,12 +449,23 @@ class NotificationService(
 
     // ── Helpers ──
 
+    private fun channelToCategory(channelId: String): com.swasthicare.mobile.ui.screens.notifications.NotificationCategory {
+        return when (channelId) {
+            CHANNEL_HYDRATION -> com.swasthicare.mobile.ui.screens.notifications.NotificationCategory.HYDRATION
+            CHANNEL_MEDICATION -> com.swasthicare.mobile.ui.screens.notifications.NotificationCategory.MEDICATION
+            CHANNEL_DIET -> com.swasthicare.mobile.ui.screens.notifications.NotificationCategory.DIET
+            CHANNEL_CYCLE -> com.swasthicare.mobile.ui.screens.notifications.NotificationCategory.CYCLE
+            CHANNEL_APPOINTMENT -> com.swasthicare.mobile.ui.screens.notifications.NotificationCategory.APPOINTMENT
+            CHANNEL_ACTIVITY -> com.swasthicare.mobile.ui.screens.notifications.NotificationCategory.ACTIVITY
+            CHANNEL_AI_NUDGE -> com.swasthicare.mobile.ui.screens.notifications.NotificationCategory.AI_NUDGE
+            else -> com.swasthicare.mobile.ui.screens.notifications.NotificationCategory.GENERAL
+        }
+    }
+
     private fun isInQuietHours(hour: Int, start: Int, end: Int): Boolean {
         return if (start <= end) {
-            // e.g., 22..7 wraps around midnight handled below
             hour in start..end
         } else {
-            // Wraps around midnight: quiet from 22 to 7 means 22,23,0,1,2,3,4,5,6,7
             hour >= start || hour <= end
         }
     }

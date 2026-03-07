@@ -1,9 +1,12 @@
 package com.swasthicare.mobile.ui.screens.ai
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
+import com.swasthicare.mobile.data.repository.AIConversationRepository
+import com.swasthicare.mobile.data.repository.AIMessageRecord
 import com.swasthicare.mobile.data.services.AIService
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.AppAnalyticsService
@@ -64,6 +67,7 @@ sealed class AnalysisState {
 
 class AIViewModel(application: Application) : AndroidViewModel(application) {
     private val aiService = AIService(AppContainer.supabaseClient)
+    private val conversationRepo: AIConversationRepository = AppContainer.aiConversationRepository
     private val speechService = SpeechService(application.applicationContext)
     private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
     private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
@@ -71,9 +75,70 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(AIUiState())
     val uiState: StateFlow<AIUiState> = _uiState.asStateFlow()
 
+    private var currentConversationId: String? = null
+
+    init {
+        loadLastConversation()
+    }
+
     override fun onCleared() {
         super.onCleared()
         speechService.cleanup()
+    }
+
+    // MARK: - Persistence
+
+    private fun loadLastConversation() {
+        viewModelScope.launch {
+            try {
+                val conversations = conversationRepo.getConversations()
+                    .filter { !it.is_archived }
+                val latest = conversations.firstOrNull() ?: return@launch
+
+                val records = conversationRepo.getMessages(latest.id)
+                if (records.isEmpty()) return@launch
+
+                currentConversationId = latest.id
+                val messages = records.map { record ->
+                    ChatMessage(
+                        id = record.id,
+                        content = record.content,
+                        isUser = record.role == "user",
+                        shouldAnimate = false
+                    )
+                }
+                _uiState.value = _uiState.value.copy(
+                    messages = messages,
+                    showEmptyState = false
+                )
+            } catch (e: Exception) {
+                Log.w("AIViewModel", "Failed to load conversation history: ${e.message}")
+            }
+        }
+    }
+
+    private suspend fun ensureConversation(): String {
+        currentConversationId?.let { return it }
+        val conversation = conversationRepo.createConversation("Chat")
+        currentConversationId = conversation.id
+        return conversation.id
+    }
+
+    private fun persistMessage(role: String, content: String) {
+        viewModelScope.launch {
+            try {
+                val convId = ensureConversation()
+                conversationRepo.addMessage(
+                    AIMessageRecord(
+                        conversation_id = convId,
+                        role = role,
+                        content = content
+                    )
+                )
+            } catch (e: Exception) {
+                Log.w("AIViewModel", "Failed to persist message: ${e.message}")
+            }
+        }
     }
 
     fun onInputTextChanged(text: String) {
@@ -101,6 +166,9 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
             followUpSuggestions = emptyList()
         )
 
+        // Persist user message
+        persistMessage("user", text)
+
         // Log AI message sent to analytics
         val mode = _uiState.value.currentMode.label
         analyticsService.logAIMessageSent(mode)
@@ -120,6 +188,9 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
                     isLoading = false,
                     followUpSuggestions = suggestions
                 )
+
+                // Persist assistant response
+                persistMessage("assistant", responseText)
             } catch (e: Exception) {
                 val newMessages = _uiState.value.messages.filter { !it.isLoading }
                 _uiState.value = _uiState.value.copy(
@@ -137,6 +208,13 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearChat() {
+        // Archive the current conversation so it doesn't reload next time
+        currentConversationId?.let { id ->
+            viewModelScope.launch {
+                try { conversationRepo.archiveConversation(id) } catch (_: Exception) {}
+            }
+        }
+        currentConversationId = null
         _uiState.value = AIUiState(
             showEmptyState = true,
             currentMode = _uiState.value.currentMode
@@ -227,7 +305,8 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun sendImageForAnalysis(imageType: ImageType) {
-        val userMessage = ChatMessage.userMessage("[Image: ${imageType.label}] Please analyze this ${imageType.label.lowercase()} image.")
+        val userText = "[Image: ${imageType.label}] Please analyze this ${imageType.label.lowercase()} image."
+        val userMessage = ChatMessage.userMessage(userText)
         // Capture prior messages for context BEFORE adding the new user message
         val priorMessages = _uiState.value.messages.filter { !it.isLoading }
         val currentMessages = _uiState.value.messages.toMutableList()
@@ -240,6 +319,8 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
             showEmptyState = false,
             followUpSuggestions = emptyList()
         )
+
+        persistMessage("user", userText)
 
         viewModelScope.launch {
             try {
@@ -259,6 +340,8 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
                     pendingImageUri = null,
                     followUpSuggestions = suggestions
                 )
+
+                persistMessage("assistant", responseText)
             } catch (e: Exception) {
                 val newMessages = _uiState.value.messages.filter { !it.isLoading }
                 _uiState.value = _uiState.value.copy(
@@ -356,8 +439,25 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
+                val healthConnectService = com.swasthicare.mobile.di.AppContainer.healthConnectService
+
+                // Check if Health Connect is available and has permissions
+                if (!healthConnectService.isAvailable) {
+                    _uiState.value = _uiState.value.copy(
+                        analysisState = AnalysisState.Error("Health Connect is not available on this device. Please install Google Health Connect from the Play Store.")
+                    )
+                    return@launch
+                }
+
+                if (!healthConnectService.hasAllPermissions()) {
+                    _uiState.value = _uiState.value.copy(
+                        analysisState = AnalysisState.Error("Health Connect permissions are required. Please grant permissions in Settings > Health Connect.")
+                    )
+                    return@launch
+                }
+
                 // Fetch real health data from Health Connect
-                val summary = com.swasthicare.mobile.di.AppContainer.healthConnectService.getTodaySummary()
+                val summary = healthConnectService.getTodaySummary()
                 val metrics = HealthMetrics(
                     steps = summary.steps,
                     heartRate = summary.heartRate,
@@ -367,6 +467,14 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
                     bloodPressure = summary.bloodPressureFormatted,
                     weight = if (summary.weightKg > 0) "%.1f".format(summary.weightKg) else "--"
                 )
+
+                // Warn if all metrics are empty (no data recorded today)
+                if (metrics.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        analysisState = AnalysisState.Error("No health data found for today. Start tracking your activity, and try again later.")
+                    )
+                    return@launch
+                }
 
                 val response = aiService.analyzeHealth(metrics)
 

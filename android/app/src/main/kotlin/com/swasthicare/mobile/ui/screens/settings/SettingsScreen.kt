@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Info
@@ -36,7 +37,6 @@ import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PremiumColor
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit = {},
@@ -44,6 +44,7 @@ fun SettingsScreen(
     onNavigateToFamily: () -> Unit = {},
     onNavigateToNotificationSettings: () -> Unit = {},
     onNavigateToHydrationSettings: () -> Unit = {},
+    onNavigateToHealthDataSync: () -> Unit = {},
     onSignOut: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel()
 ) {
@@ -62,36 +63,99 @@ fun SettingsScreen(
         PremiumBackground()
 
         Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Settings",
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.onBackground
-                    )
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
-
             if (uiState.isLoading && uiState.user == null) {
                 SettingsLoadingState(modifier = Modifier.fillMaxSize())
             } else {
+                // Hero profile header — only rendered once user data is available
+                val user = uiState.user
+                val avatarUrl = user?.avatarUrl
+                val userName = user?.fullName ?: ""
+                val userEmail = user?.email ?: ""
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
-                    // Profile Header Card
+                    // Profile Header
                     item {
-                        SettingsProfileHeader(
-                            userName = uiState.user?.fullName ?: "User",
-                            userEmail = uiState.user?.email ?: "",
-                            avatarUrl = uiState.user?.avatarUrl,
-                            memberSince = viewModel.memberSince,
-                            onEditProfile = onNavigateToEditProfile
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 28.dp, bottom = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (avatarUrl != null) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(avatarUrl)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Profile Picture",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(90.dp)
+                                        .clip(CircleShape)
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(90.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.linearGradient(
+                                                colors = listOf(
+                                                    PremiumColor.RoyalBlueStart,
+                                                    Color(0xFF4A90E2)
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = userName.take(1).uppercase(),
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = userName.ifEmpty { "User" },
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = AppColors.onBackground,
+                                textAlign = TextAlign.Center
+                            )
+                            if (userEmail.isNotEmpty()) {
+                                Text(
+                                    text = userEmail,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = AppColors.onBackground.copy(alpha = 0.6f),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                            Text(
+                                text = "Member since ${viewModel.memberSince}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AppColors.onBackground.copy(alpha = 0.4f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // Account Section
+                    item {
+                        GlassSectionContainer(title = "Account") {
+                            SettingsNavigationRow(
+                                icon = Icons.Default.AccountCircle,
+                                iconTint = PrimaryColor,
+                                label = "Account Data",
+                                subtitle = "Edit profile, body stats, location",
+                                onClick = onNavigateToEditProfile
+                            )
+                        }
                     }
 
                     // Health Profile Section
@@ -125,13 +189,24 @@ fun SettingsScreen(
                         )
                     }
 
-                    // Security & Sync Section
+                    // Health Data Sync Section
+                    item {
+                        GlassSectionContainer(title = "Health Data") {
+                            SettingsNavigationRow(
+                                icon = Icons.Default.Sync,
+                                iconTint = PrimaryColor,
+                                label = "Health Data Sync",
+                                subtitle = "Connect Health Connect, Google Health & more",
+                                onClick = onNavigateToHealthDataSync
+                            )
+                        }
+                    }
+
+                    // Security Section
                     item {
                         SettingsSecuritySection(
                             biometricEnabled = uiState.biometricEnabled,
-                            healthSyncEnabled = uiState.healthSyncEnabled,
-                            onBiometricToggle = { viewModel.toggleBiometric(it) },
-                            onSyncToggle = { viewModel.toggleHealthSync(it) }
+                            onBiometricToggle = { viewModel.toggleBiometric(it) }
                         )
                     }
 
@@ -289,7 +364,7 @@ private fun SettingsLoadingState(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            "Loading settings...",
+            "Loading profile...",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = AppColors.onBackground
@@ -305,117 +380,6 @@ private fun SettingsLoadingState(modifier: Modifier = Modifier) {
             color = PrimaryColor,
             trackColor = AppColors.surfaceVariant.copy(alpha = 0.3f)
         )
-    }
-}
-
-// MARK: - Profile Header Card
-
-@Composable
-private fun SettingsProfileHeader(
-    userName: String,
-    userEmail: String,
-    avatarUrl: String?,
-    memberSince: String,
-    onEditProfile: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .glass()
-            .clickable { onEditProfile() }
-            .padding(20.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Avatar
-            Box(contentAlignment = Alignment.BottomEnd) {
-                if (avatarUrl != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(avatarUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Profile Picture",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                    )
-                } else {
-                    // Default avatar
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        PremiumColor.RoyalBlueStart,
-                                        Color(0xFF4A90E2)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = userName.take(1).uppercase(),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-                }
-
-                // Edit badge
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Edit Profile",
-                        tint = Color.White,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
-
-            // Info
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = userName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = AppColors.onBackground
-                )
-                Text(
-                    text = userEmail,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.onBackground.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = "Member since $memberSince",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AppColors.onBackground.copy(alpha = 0.5f)
-                )
-            }
-
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = AppColors.onBackground.copy(alpha = 0.4f),
-                modifier = Modifier.size(20.dp)
-            )
-        }
     }
 }
 
@@ -585,84 +549,85 @@ private fun SettingsHealthProfileSection(
     onRefresh: () -> Unit
 ) {
     GlassSectionContainer(
-        title = "Health Profile",
+        title = "Quick Stats",
         headerAction = {
-            if (uiState.healthProfile != null && !uiState.isLoadingHealthProfile) {
-                // Status indicator: green check
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF34C759))
-                    )
-                    Text(
-                        "Complete",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF34C759)
-                    )
-
-                    IconButton(onClick = onRefresh, modifier = Modifier.size(24.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = PrimaryColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            } else if (uiState.healthProfile == null && !uiState.isLoadingHealthProfile) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFF9F0A))
-                    )
-                    Text(
-                        "Incomplete",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFFF9F0A)
-                    )
-                }
+            IconButton(onClick = onRefresh, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Refresh",
+                    tint = PrimaryColor,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     ) {
         if (uiState.isLoadingHealthProfile) {
-            repeat(5) {
+            repeat(3) {
                 SettingsShimmerRow()
-                if (it < 4) Spacer(modifier = Modifier.height(12.dp))
+                if (it < 2) Spacer(modifier = Modifier.height(12.dp))
             }
         } else if (uiState.healthProfile != null) {
-            SettingsInfoRow(icon = Icons.Default.Person, label = "Name", value = uiState.healthProfile.fullName)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
+            // 3 stat tiles
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                QuickStatTile(
+                    icon = Icons.Default.Straighten,
+                    value = "${uiState.healthProfile.heightCm} cm",
+                    label = "Height",
+                    color = Color(0xFF30D158),
+                    modifier = Modifier.weight(1f)
+                )
+                QuickStatTile(
+                    icon = Icons.Default.MonitorWeight,
+                    value = "${uiState.healthProfile.weightKg} kg",
+                    label = "Weight",
+                    color = Color(0xFF64D2FF),
+                    modifier = Modifier.weight(1f)
+                )
+                QuickStatTile(
+                    icon = Icons.Default.Accessibility,
+                    value = profileBMI,
+                    label = "BMI",
+                    color = Color(0xFFBF5AF2),
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-            SettingsInfoRow(icon = Icons.Default.People, label = "Gender", value = uiState.healthProfile.gender.displayName)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
-
-            SettingsInfoRow(icon = Icons.Default.CalendarToday, label = "Age", value = profileAge)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
-
-            SettingsInfoRow(icon = Icons.Default.Straighten, label = "Height", value = "${uiState.healthProfile.heightCm} cm")
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
-
-            SettingsInfoRow(icon = Icons.Default.MonitorWeight, label = "Weight", value = "${uiState.healthProfile.weightKg} kg")
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
-
-            SettingsInfoRow(icon = Icons.Default.Accessibility, label = "BMI", value = profileBMI)
-
-            if (uiState.healthProfile.bloodType != null) {
-                HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
-                SettingsInfoRow(icon = Icons.Default.WaterDrop, iconTint = Color(0xFFFF3B30), label = "Blood Type", value = uiState.healthProfile.bloodType)
+            // Info row: gender, age, blood type
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Default.People, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    Text(uiState.healthProfile.gender.displayName, style = MaterialTheme.typography.bodySmall, color = AppColors.onSurface)
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Default.CalendarToday, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    Text(profileAge, style = MaterialTheme.typography.bodySmall, color = AppColors.onSurface)
+                }
+                if (uiState.healthProfile.bloodType != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Default.WaterDrop, contentDescription = null, tint = Color(0xFFFF3B30), modifier = Modifier.size(16.dp))
+                        Text(uiState.healthProfile.bloodType, style = MaterialTheme.typography.bodySmall, color = AppColors.onSurface)
+                    }
+                }
             }
         } else {
-            // No health profile
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -690,6 +655,38 @@ private fun SettingsHealthProfileSection(
                 }
             }
         }
+    }
+}
+
+// MARK: - Quick Stat Tile
+
+@Composable
+private fun QuickStatTile(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(color.copy(alpha = 0.12f))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = AppColors.onSurfaceVariant
+        )
     }
 }
 
@@ -790,7 +787,7 @@ private fun SettingsHydrationSection(
 ) {
     GlassSectionContainer(title = "Hydration Reminders") {
         SettingsInfoRow(
-            icon = Icons.Default.DirectionsRun,
+            icon = Icons.AutoMirrored.Filled.DirectionsRun,
             label = "Activity Level",
             value = "Moderate"
         )
@@ -821,33 +818,34 @@ private fun SettingsHydrationSection(
     }
 }
 
+// MARK: - Health Data Sync Section
+
+@Composable
+private fun SettingsHealthDataSyncSection(onNavigate: () -> Unit) {
+    GlassSectionContainer(title = "Connected Health Apps") {
+        SettingsNavigationRow(
+            icon = Icons.Default.Sync,
+            iconTint = PrimaryColor,
+            label = "Health Data Sync",
+            subtitle = "Health Connect, Samsung Health, Garmin & more",
+            onClick = onNavigate
+        )
+    }
+}
+
 // MARK: - Security & Sync Section
 
 @Composable
 private fun SettingsSecuritySection(
     biometricEnabled: Boolean,
-    healthSyncEnabled: Boolean,
-    onBiometricToggle: (Boolean) -> Unit,
-    onSyncToggle: (Boolean) -> Unit
+    onBiometricToggle: (Boolean) -> Unit
 ) {
-    GlassSectionContainer(title = "Security & Sync") {
+    GlassSectionContainer(title = "Security") {
         SettingsToggleRow(
             icon = Icons.Default.Fingerprint,
             label = "Biometric Lock",
             checked = biometricEnabled,
             onCheckedChange = onBiometricToggle
-        )
-
-        HorizontalDivider(
-            Modifier.padding(vertical = 8.dp),
-            color = AppColors.onSurface.copy(alpha = 0.1f)
-        )
-
-        SettingsToggleRow(
-            icon = Icons.Default.Sync,
-            label = "Health Sync",
-            checked = healthSyncEnabled,
-            onCheckedChange = onSyncToggle
         )
     }
 }

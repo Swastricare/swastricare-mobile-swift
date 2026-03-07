@@ -38,9 +38,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -248,29 +245,6 @@ fun LivingStatusHeader(
     greeting: String,
     statusColor: Color
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "heartbeat")
-
-    // Pulsing heart animation
-    val heartScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "heartScale"
-    )
-
-    val heartAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "heartAlpha"
-    )
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -294,15 +268,7 @@ fun LivingStatusHeader(
                     color = AppColors.onBackground
                 )
 
-                // Pulsing Heart
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Heart Rate",
-                    tint = Color.Red.copy(alpha = heartAlpha),
-                    modifier = Modifier
-                        .size(22.dp)
-                        .scale(heartScale)
-                )
+
             }
         }
 
@@ -322,41 +288,6 @@ fun LivingStatusHeader(
                 )
             }
 
-            // Profile Avatar with animated gradient ring
-            Box(
-                modifier = Modifier.size(44.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // Rotating gradient border
-                Canvas(modifier = Modifier.size(44.dp)) {
-                    drawCircle(
-                        brush = Brush.sweepGradient(
-                            colors = listOf(
-                                PremiumColor.RoyalBlueStart,
-                                PremiumColor.NeonGreenEnd,
-                                PremiumColor.SunsetEnd,
-                                PremiumColor.RoyalBlueStart
-                            )
-                        ),
-                        radius = size.minDimension / 2f,
-                        style = Stroke(width = 2.dp.toPx())
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Profile",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
         }
     }
 }
@@ -833,8 +764,8 @@ fun DietQuickActionCard(
 
     Box(
         modifier = modifier
-            .height(120.dp)
-            .glass(cornerRadius = 24.dp, accentColor = DietOrange)
+            .clip(RoundedCornerShape(24.dp))
+            .background(DietOrange.copy(alpha = 0.12f))
             .clickable { onClick() }
     ) {
         // Orange liquid fill from bottom
@@ -851,70 +782,76 @@ fun DietQuickActionCard(
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                DietOrange.copy(alpha = 0.4f),
-                                DietOrange.copy(alpha = 0.6f)
+                                DietOrange.copy(alpha = 0.35f),
+                                DietOrange.copy(alpha = 0.55f)
                             )
                         )
                     )
             )
         }
 
-        Row(
+        // Content — spread top to bottom like medication card
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(DietOrange.copy(alpha = 0.2f), CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                // Fire icon
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(DietOrange.copy(alpha = 0.2f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocalFireDepartment,
-                        contentDescription = null,
-                        tint = DietOrange,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = DietOrange,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
 
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "Diet",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppColors.onSurface.copy(alpha = 0.8f)
+                )
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        "Diet Tracker",
-                        style = MaterialTheme.typography.titleMedium,
+                        "$calorieCurrent",
+                        style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = AppColors.onSurface
                     )
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            "$calorieCurrent",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.onSurface
-                        )
-                        Text(
-                            " / $calorieGoal cal",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AppColors.onSurface.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
-                        )
-                    }
+                    Text(
+                        " cal",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppColors.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
+                    )
                 }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(DietOrange.copy(alpha = 0.15f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(animatedProgress)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(DietOrange)
+                    )
+                }
+                Text(
+                    "Goal: $calorieGoal",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.onSurface.copy(alpha = 0.5f)
+                )
             }
-
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = AppColors.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.size(24.dp)
-            )
         }
     }
 }
@@ -950,46 +887,43 @@ fun CycleTrackerCard(
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .glass(cornerRadius = 24.dp)
+            .clip(RoundedCornerShape(24.dp))
             .clickable { onClick() }
     ) {
         // Gradient background
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(24.dp))
                 .background(
-                    brush = Brush.horizontalGradient(
+                    brush = Brush.verticalGradient(
                         colors = listOf(
                             CyclePurple.copy(alpha = 0.6f),
-                            CyclePurple.copy(alpha = 0.3f)
+                            CyclePurple.copy(alpha = 0.35f)
                         )
                     )
                 )
         )
 
-        // Pulsing circle decoration
+        // Pulsing circle decoration in top-right corner
         Box(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 20.dp)
-                .size(80.dp)
+                .align(Alignment.TopEnd)
+                .padding(8.dp)
+                .size(60.dp)
                 .scale(pulseScale)
                 .background(Color.White.copy(alpha = pulseAlpha), CircleShape)
         )
 
-        Row(
+        // Content — spread top to bottom like medication card
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(36.dp)
                     .background(Color.White.copy(alpha = 0.2f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -997,32 +931,23 @@ fun CycleTrackerCard(
                     imageVector = androidx.compose.material.icons.Icons.Default.Favorite,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    "Cycle Tracker",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    "Cycle",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.8f)
                 )
                 Text(
                     phaseLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f)
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(24.dp)
-            )
         }
     }
 }

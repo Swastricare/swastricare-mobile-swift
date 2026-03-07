@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.ui.screens.notifications
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -7,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -134,6 +137,66 @@ fun NotificationSettingsScreen(
                 }
             }
 
+            // ── Appointments ──
+            SectionContainer(title = "Appointment Reminders") {
+                ToggleRow(
+                    icon = Icons.Default.CalendarMonth,
+                    label = "Enable Appointment Reminders",
+                    checked = uiState.appointmentEnabled,
+                    onCheckedChange = { viewModel.setAppointmentEnabled(it) }
+                )
+                if (uiState.appointmentEnabled) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text(
+                        "Reminders 24 hours and 1 hour before each appointment.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    TestButton(onClick = { viewModel.testAppointment() })
+                }
+            }
+
+            // ── Activity ──
+            SectionContainer(title = "Activity Reminders") {
+                ToggleRow(
+                    icon = Icons.Default.DirectionsRun,
+                    label = "Enable Activity Reminders",
+                    checked = uiState.activityEnabled,
+                    onCheckedChange = { viewModel.setActivityEnabled(it) }
+                )
+                if (uiState.activityEnabled) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text(
+                        "Checked daily at 6pm if you're behind on your step goal.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    TestButton(onClick = { viewModel.testActivity() })
+                }
+            }
+
+            // ── AI Health Coach ──
+            SectionContainer(title = "AI Health Coach") {
+                ToggleRow(
+                    icon = Icons.Default.AutoAwesome,
+                    label = "Enable AI Nudges",
+                    checked = uiState.aiNudgeEnabled,
+                    onCheckedChange = { viewModel.setAiNudgeEnabled(it) }
+                )
+                if (uiState.aiNudgeEnabled) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text(
+                        "Personalized AI messages based on your health patterns.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    TestButton(onClick = { viewModel.testAiNudge() })
+                }
+            }
+
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
@@ -217,6 +280,7 @@ private fun TimeRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MealTimeRow(
     mealName: String,
@@ -224,17 +288,40 @@ private fun MealTimeRow(
     minute: Int,
     onTimeChange: (Int, Int) -> Unit
 ) {
+    var showPicker by remember { mutableStateOf(false) }
+    val timePickerState = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = false)
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showPicker = true },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(mealName, style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.weight(1f))
+        Text(mealName, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(
             String.format("%02d:%02d", hour, minute),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = PrimaryColor
+        )
+        Spacer(Modifier.width(4.dp))
+        Icon(Icons.Default.Edit, contentDescription = "Edit time", modifier = Modifier.size(16.dp), tint = PrimaryColor)
+    }
+
+    if (showPicker) {
+        AlertDialog(
+            onDismissRequest = { showPicker = false },
+            title = { Text("$mealName Time") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onTimeChange(timePickerState.hour, timePickerState.minute)
+                    showPicker = false
+                }) { Text("Set") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+            }
         )
     }
 }

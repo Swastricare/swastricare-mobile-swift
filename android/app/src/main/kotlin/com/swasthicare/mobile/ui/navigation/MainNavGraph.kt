@@ -37,6 +37,12 @@ import com.swasthicare.mobile.ui.screens.runactivity.RunActivityScreen
 import com.swasthicare.mobile.ui.screens.runactivity.RunCalendarScreen
 import com.swasthicare.mobile.ui.screens.runactivity.WorkoutSummaryScreen
 import com.swasthicare.mobile.ui.screens.runactivity.WorkoutType
+import com.swasthicare.mobile.ui.screens.settings.GarminConnectSettingsScreen
+import com.swasthicare.mobile.ui.screens.settings.GoogleHealthSettingsScreen
+import com.swasthicare.mobile.ui.screens.settings.HealthAppId
+import com.swasthicare.mobile.ui.screens.settings.HealthConnectSettingsScreen
+import com.swasthicare.mobile.ui.screens.settings.HealthDataSyncScreen
+import com.swasthicare.mobile.ui.screens.settings.SamsungHealthSettingsScreen
 import com.swasthicare.mobile.ui.screens.settings.SettingsScreen
 import com.swasthicare.mobile.di.AppContainer
 
@@ -120,6 +126,7 @@ fun MainNavGraph(
                 onNavigateToFamily = { navController.navigate("family") },
                 onNavigateToNotificationSettings = { navController.navigate("notification_settings") },
                 onNavigateToHydrationSettings = { navController.navigate("hydration_settings") },
+                onNavigateToHealthDataSync = { navController.navigate("health_data_sync") },
                 onSignOut = onSignOut
             )
         }
@@ -352,6 +359,49 @@ fun MainNavGraph(
             EditProfileScreen(
                 viewModel = profileViewModel,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ─── Health Data Sync (list) ───
+        composable("health_data_sync") {
+            HealthDataSyncScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateTo = { appId ->
+                    when (appId) {
+                        HealthAppId.HEALTH_CONNECT -> navController.navigate("health_connect_settings")
+                        HealthAppId.GOOGLE_HEALTH  -> navController.navigate("google_health_settings")
+                        HealthAppId.SAMSUNG_HEALTH -> navController.navigate("samsung_health_settings")
+                        HealthAppId.GARMIN_CONNECT -> navController.navigate("garmin_connect_settings")
+                    }
+                }
+            )
+        }
+
+        // ─── Individual health app screens ───
+        composable("health_connect_settings") {
+            HealthConnectSettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("google_health_settings") {
+            GoogleHealthSettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }
+            )
+        }
+
+        composable("samsung_health_settings") {
+            SamsungHealthSettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }
+            )
+        }
+
+        composable("garmin_connect_settings") {
+            GarminConnectSettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }
             )
         }
     }

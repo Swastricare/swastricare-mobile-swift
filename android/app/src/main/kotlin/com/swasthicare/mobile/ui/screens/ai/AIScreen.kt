@@ -6,6 +6,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -43,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 // import com.swasthicare.mobile.data.models.AnalysisState // Removed
 import com.swasthicare.mobile.data.models.ChatMessage
 import com.swasthicare.mobile.data.models.HealthAnalysisResult
+import com.swasthicare.mobile.data.models.HealthMetrics
 import com.swasthicare.mobile.data.models.QuickAction
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
@@ -81,7 +84,7 @@ fun AIScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding() // Handles keyboard overlap
+                .imePadding()
         ) {
             // Header
             CenterAlignedTopAppBar(
@@ -383,7 +386,7 @@ fun ChatInputBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp)
+            .padding(bottom = 4.dp)
     ) {
         if (showSuggestions) {
             LazyRow(
@@ -517,9 +520,39 @@ fun AnalysisResultOverlay(
                     }
                 }
                 is AnalysisState.Completed -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.verticalScroll(rememberScrollState())
+                    ) {
                         Text("Health Analysis", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        
+
+                        // Health Metrics Summary
+                        Card(colors = CardDefaults.cardColors(containerColor = AppColors.primaryContainer.copy(alpha = 0.3f))) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Your Metrics", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                val m = state.result.metrics
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    MetricChip("Steps", "${m.steps}")
+                                    MetricChip("Heart Rate", "${m.heartRate} bpm")
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    MetricChip("Sleep", m.sleep)
+                                    MetricChip("Calories", "${m.activeCalories} kcal")
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    MetricChip("Exercise", "${m.exerciseMinutes} min")
+                                    MetricChip("BP", m.bloodPressure)
+                                }
+                                if (m.weight != "--") {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    MetricChip("Weight", "${m.weight} kg")
+                                }
+                            }
+                        }
+
                         Card(colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f))) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text("Assessment", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
@@ -528,20 +561,24 @@ fun AnalysisResultOverlay(
                             }
                         }
 
-                        Card(colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f))) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Insights", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(state.result.analysis.insights)
+                        if (state.result.analysis.insights.isNotBlank()) {
+                            Card(colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f))) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text("Insights", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(state.result.analysis.insights)
+                                }
                             }
                         }
-                        
-                        Card(colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f))) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Recommendations", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                state.result.analysis.recommendations.forEachIndexed { index, rec ->
-                                    Text("${index + 1}. $rec", modifier = Modifier.padding(vertical = 4.dp))
+
+                        if (state.result.analysis.recommendations.isNotEmpty()) {
+                            Card(colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f))) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text("Recommendations", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    state.result.analysis.recommendations.forEachIndexed { index, rec ->
+                                        Text("${index + 1}. $rec", modifier = Modifier.padding(vertical = 4.dp))
+                                    }
                                 }
                             }
                         }
@@ -554,12 +591,24 @@ fun AnalysisResultOverlay(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Icon(Icons.Default.Close, contentDescription = null, tint = AppColors.error, modifier = Modifier.size(48.dp))
-                        Text("Analysis failed: ${state.message}")
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                         Button(onClick = onDismiss) { Text("Close") }
                     }
                 }
                 else -> {}
             }
         }
+    }
+}
+
+@Composable
+private fun MetricChip(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = AppColors.onSurface)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
     }
 }

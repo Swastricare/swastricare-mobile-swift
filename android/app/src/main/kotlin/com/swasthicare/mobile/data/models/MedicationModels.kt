@@ -101,7 +101,8 @@ data class MedicationScheduleDto(
     @SerialName("frequency_per_day") val frequencyPerDay: Int = 1,
     @SerialName("dosage_amount") val dosageAmount: Double = 1.0,
     @SerialName("reminder_enabled") val reminderEnabled: Boolean = true,
-    @SerialName("is_active") val isActive: Boolean = true
+    @SerialName("is_active") val isActive: Boolean = true,
+    @SerialName("days_of_week") val daysOfWeek: List<Int>? = null
 )
 
 /** Maps to `medication_logs` table */

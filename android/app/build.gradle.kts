@@ -168,6 +168,9 @@ dependencies {
     // DataStore Preferences (used for onboarding/consent state)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+    // WorkManager — resilient background scheduling for AI nudges + activity checks
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 

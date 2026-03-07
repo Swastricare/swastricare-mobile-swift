@@ -85,11 +85,11 @@ fun ModelViewer(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Bottom blending fade mask
+        // Bottom blending fade mask — visible in transparent scene areas around the model
         BottomFadeMask(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.45f)
+                .fillMaxHeight(0.55f)
                 .align(Alignment.BottomCenter)
         )
     }
@@ -213,7 +213,7 @@ private fun SceneViewComposable(
                     )
 
                     val node = ModelNode(modelInstance = instance).apply {
-                        position = Position(y = -0.2f)
+                        position = Position(y = -0.65f)
                         scale = io.github.sceneview.math.Scale(2.5f)
                         // Apply material to ALL renderable nodes
                         renderableNodes.forEach { renderable ->
@@ -317,7 +317,12 @@ fun LoadingPlaceholder(
 }
 
 /**
- * Gradient mask for bottom fade effect (matching iOS LinearGradient mask)
+ * Gradient mask for bottom fade effect.
+ *
+ * NOTE: SceneView uses SurfaceView with setZOrderOnTop(true), so this gradient
+ * renders on the window surface BELOW the 3D model surface. It is only visible
+ * in the transparent areas of the scene (where the model is NOT rendered).
+ * The model itself is viewport-clipped by pushing its Y position downward.
  */
 @Composable
 fun BottomFadeMask(
@@ -327,14 +332,14 @@ fun BottomFadeMask(
         modifier = modifier
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        AppColors.background.copy(alpha = 0.3f),
-                        AppColors.background.copy(alpha = 0.7f),
-                        AppColors.background
-                    ),
-                    startY = 0f,
-                    endY = Float.POSITIVE_INFINITY
+                    colorStops = arrayOf(
+                        0.0f to Color.Transparent,
+                        0.25f to AppColors.background.copy(alpha = 0.15f),
+                        0.45f to AppColors.background.copy(alpha = 0.4f),
+                        0.65f to AppColors.background.copy(alpha = 0.7f),
+                        0.85f to AppColors.background.copy(alpha = 0.92f),
+                        1.0f to AppColors.background
+                    )
                 )
             )
     )

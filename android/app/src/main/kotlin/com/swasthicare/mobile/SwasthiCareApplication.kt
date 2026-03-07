@@ -37,6 +37,10 @@ class SwasthiCareApplication : Application() {
             // Schedule notifications based on saved preferences (I/O-heavy)
             AppContainer.notificationService.scheduleAllNotifications()
 
+            // Enqueue WorkManager periodic jobs
+            com.swasthicare.mobile.data.workers.AiNudgeWorker.enqueue(this@SwasthiCareApplication)
+            com.swasthicare.mobile.data.workers.ActivityReminderWorker.enqueue(this@SwasthiCareApplication)
+
             // Start custom Supabase analytics service (triggers Supabase client initialization)
             try {
                 AppContainer.appAnalyticsService.start()

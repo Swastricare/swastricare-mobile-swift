@@ -77,7 +77,10 @@ enum class NotificationCategory(val displayName: String, val icon: String, val c
     MEDICATION("Medication", "💊", 0xFF4CAF50),
     DIET("Diet", "🥗", 0xFFFF9800),
     CYCLE("Cycle", "🌸", 0xFFE91E63),
-    GENERAL("General", "🔔", 0xFF2196F3);
+    APPOINTMENT("Appointment", "🏥", 0xFF9C27B0),
+    ACTIVITY("Activity", "🏃", 0xFF2196F3),
+    AI_NUDGE("AI Coach", "🤖", 0xFF00BCD4),
+    GENERAL("General", "🔔", 0xFF607D8B);
 }
 
 // ─────────────────────────────────────
@@ -170,11 +173,12 @@ class NotificationHistoryViewModel : ViewModel() {
             )
 
             val updated = (listOf(record) + existing).take(200) // Keep max 200 records
-            val json = kotlinx.serialization.json.Json.encodeToString(
-                kotlinx.serialization.builtins.ListSerializer(NotificationRecord.serializer()),
-                updated
-            )
-            prefs.edit().putString("notification_history", json).apply()
+            val historyJson = kotlinx.serialization.json.buildJsonArray {
+                updated.forEach { r ->
+                    add(kotlinx.serialization.json.Json.encodeToJsonElement(NotificationRecord.serializer(), r))
+                }
+            }.toString()
+            prefs.edit().putString("notification_history", historyJson).apply()
         }
     }
 }

@@ -139,6 +139,15 @@ class HealthConnectService(private val context: Context) {
         }
     }
 
+    suspend fun getGrantedPermissions(): Set<String> = withContext(Dispatchers.IO) {
+        try {
+            client?.permissionController?.getGrantedPermissions() ?: emptySet()
+        } catch (e: Exception) {
+            Log.w(TAG, "getGrantedPermissions failed: ${e.message}")
+            emptySet()
+        }
+    }
+
     // ── READ: Today's Summary (cached for 60 seconds) ──
 
     suspend fun getTodaySummary(): DailyHealthSummary {

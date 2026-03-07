@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.ui.screens.settings
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.AppUser
@@ -23,7 +24,6 @@ data class SettingsUiState(
     val errorMessage: String? = null,
     val notificationsEnabled: Boolean = true,
     val biometricEnabled: Boolean = false,
-    val healthSyncEnabled: Boolean = true,
     val showSignOutConfirmation: Boolean = false,
     val showDeleteAccountConfirmation: Boolean = false,
     val hasUpdate: Boolean = false
@@ -32,8 +32,11 @@ data class SettingsUiState(
 class SettingsViewModel : ViewModel() {
     private val authRepository = AppContainer.authRepository
     private val profileRepository = AppContainer.profileRepository
+    private val prefs: SharedPreferences = AppContainer.sharedPreferences
 
-    private val _uiState = MutableStateFlow(SettingsUiState())
+    private val _uiState = MutableStateFlow(
+        SettingsUiState(biometricEnabled = AppContainer.sharedPreferences.getBoolean("biometric_enabled", false))
+    )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     // Sign out event for navigation
@@ -51,17 +54,24 @@ class SettingsViewModel : ViewModel() {
                 val user = authRepository.currentUser
                 if (user != null) {
                     _uiState.update { it.copy(user = user, isLoading = false) }
+                    // If auth metadata didn't carry full_name (email sign-ups),
+                    // fetch it from the profiles table directly.
+                    if (user.fullName.isNullOrBlank()) {
+                        val profileRow = profileRepository.getUserProfileRow(user.id)
+                        if (profileRow != null) {
+                            _uiState.update { state ->
+                                state.copy(
+                                    user = state.user?.copy(
+                                        fullName = profileRow.fullName,
+                                        avatarUrl = profileRow.avatarUrl ?: state.user.avatarUrl
+                                    )
+                                )
+                            }
+                        }
+                    }
                     loadHealthProfile(user.id)
                 } else {
-                    // Fallback mock user for UI demonstration
-                    val mockUser = AppUser(
-                        id = "mock-user-1",
-                        email = "john.doe@example.com",
-                        fullName = "John Doe",
-                        createdAt = "2024-01-01T12:00:00Z"
-                    )
-                    _uiState.update { it.copy(user = mockUser, isLoading = false) }
-                    loadHealthProfile(mockUser.id)
+                    _uiState.update { it.copy(isLoading = false) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
@@ -75,8 +85,19 @@ class SettingsViewModel : ViewModel() {
             try {
                 val profile = profileRepository.getHealthProfile(userId)
                 if (profile != null) {
-                    _uiState.update {
-                        it.copy(healthProfile = profile, isLoadingHealthProfile = false)
+                    _uiState.update { state ->
+                        // Auth metadata may not carry fullName for email sign-ups;
+                        // fall back to the health profile's fullName.
+                        val enrichedUser = if (state.user?.fullName.isNullOrBlank()) {
+                            state.user?.copy(fullName = profile.fullName)
+                        } else {
+                            state.user
+                        }
+                        state.copy(
+                            user = enrichedUser,
+                            healthProfile = profile,
+                            isLoadingHealthProfile = false
+                        )
                     }
                 } else {
                     _uiState.update { it.copy(isLoadingHealthProfile = false) }
@@ -97,11 +118,8 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun toggleBiometric(enabled: Boolean) {
+        prefs.edit().putBoolean("biometric_enabled", enabled).apply()
         _uiState.update { it.copy(biometricEnabled = enabled) }
-    }
-
-    fun toggleHealthSync(enabled: Boolean) {
-        _uiState.update { it.copy(healthSyncEnabled = enabled) }
     }
 
     fun setShowSignOutConfirmation(show: Boolean) {

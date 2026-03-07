@@ -9,6 +9,8 @@ import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
 import io.github.jan.supabase.gotrue.user.UserInfo
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Supabase Authentication Repository
@@ -146,11 +148,11 @@ class SupabaseAuthRepository(
         // iOS extracts: avatar_url, picture, full_name from userMetadata
         val metadata = userInfo.userMetadata
         
-        val avatarUrl = metadata?.get("avatar_url") as? String
-            ?: metadata?.get("picture") as? String
-        
-        val fullName = metadata?.get("full_name") as? String
-            ?: metadata?.get("name") as? String
+        val avatarUrl = metadata?.get("avatar_url")?.jsonPrimitive?.contentOrNull
+            ?: metadata?.get("picture")?.jsonPrimitive?.contentOrNull
+
+        val fullName = metadata?.get("full_name")?.jsonPrimitive?.contentOrNull
+            ?: metadata?.get("name")?.jsonPrimitive?.contentOrNull
         
         return AppUser(
             id = userInfo.id, // iOS: user.id.uuidString
