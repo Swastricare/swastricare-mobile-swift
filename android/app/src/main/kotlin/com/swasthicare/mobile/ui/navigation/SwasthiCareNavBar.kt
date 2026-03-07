@@ -1,6 +1,7 @@
 package com.swasthicare.mobile.ui.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.RepeatMode
@@ -28,12 +29,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +44,10 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,7 +67,7 @@ fun SwasthiCareNavBar(
     val surfaceColor = AppColors.surface
     val dividerColor = AppColors.outlineVariant
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(surfaceColor)
@@ -73,34 +79,44 @@ fun SwasthiCareNavBar(
                     strokeWidth = 1.dp.toPx()
                 )
             }
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .height(72.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             BottomNavTab.items.forEach { tab ->
-                val selected = currentRoute == tab.route
-                NavBarTabItem(
-                    tab = tab,
-                    selected = selected,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        if (currentRoute != tab.route) {
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
+                key(tab.route) {
+                    val selected = currentRoute == tab.route
+                    val onClick = remember(currentRoute, tab.route) {
+                        {
+                            if (currentRoute != tab.route) {
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
                         }
                     }
-                )
+                    NavBarTabItem(
+                        tab = tab,
+                        selected = selected,
+                        modifier = Modifier.weight(1f),
+                        onClick = onClick
+                    )
+                }
             }
         }
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsBottomHeight(WindowInsets.navigationBars)
+        )
     }
 }
 
@@ -128,8 +144,18 @@ private fun NavBarTabItem(
 
     val interactionSource = remember { MutableInteractionSource() }
 
+    val iconTint by animateColorAsState(
+        targetValue = if (selected) tab.color else AppColors.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 200),
+        label = "iconTint"
+    )
+
     Column(
         modifier = modifier
+            .semantics {
+                role = Role.Tab
+                this.selected = selected
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -154,7 +180,7 @@ private fun NavBarTabItem(
             Icon(
                 imageVector = if (selected) tab.selectedIcon else tab.icon,
                 contentDescription = tab.title,
-                tint = if (selected) tab.color else AppColors.onSurfaceVariant,
+                tint = iconTint,
                 modifier = Modifier
                     .size(24.dp)
                     .graphicsLayer {
