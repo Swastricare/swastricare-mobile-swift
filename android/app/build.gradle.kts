@@ -103,6 +103,8 @@ dependencies {
     implementation("androidx.compose.foundation:foundation:1.6.0")
     implementation("androidx.navigation:navigation-compose:2.7.6")
     implementation("androidx.compose.material:material-icons-extended")
+    // Phosphor Icons — custom icon pack for nav bar and UI
+    implementation("com.adamglin:phosphor-icon:1.0.0")
 
     // Supabase
     implementation("io.github.jan-tennert.supabase:postgrest-kt:2.6.0")
