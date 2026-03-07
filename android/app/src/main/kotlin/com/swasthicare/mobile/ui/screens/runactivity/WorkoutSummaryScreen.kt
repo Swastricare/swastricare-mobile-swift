@@ -20,8 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.ui.components.RouteMapView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
 // ─────────────────────────────────────
@@ -37,6 +40,9 @@ fun WorkoutSummaryScreen(
     onNavigateBack: () -> Unit = {},
     onDone: () -> Unit = {}
 ) {
+    val viewModel = AppContainer.liveWorkoutViewModel
+    val uiState by viewModel.uiState.collectAsState()
+
     // Entrance animation
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
@@ -50,15 +56,14 @@ fun WorkoutSummaryScreen(
         label = "checkScale"
     )
 
-    // Sample workout data (would come from navigation args in real implementation)
-    val workoutType = "Running"
-    val duration = "32:15"
-    val distance = "4.25 km"
-    val avgPace = "7'35\"/km"
-    val calories = "342 kcal"
-    val avgHeartRate = "145 bpm"
-    val elevationGain = "28 m"
-    val steps = "5,230"
+    // Use real workout data from the ViewModel
+    val workoutType = uiState.workoutType.displayName
+    val duration = uiState.elapsedFormatted
+    val distance = "${uiState.distanceFormatted} km"
+    val avgPace = "${uiState.paceFormatted}/km"
+    val calories = "${uiState.caloriesBurned} kcal"
+    val elevationGain = String.format("%.0f m", uiState.elevationGainMeters)
+    val avgSpeed = String.format("%.1f km/h", uiState.averageSpeedKmh)
 
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
@@ -66,7 +71,6 @@ fun WorkoutSummaryScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -95,7 +99,7 @@ fun WorkoutSummaryScreen(
                 "Workout Complete!",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
 
             Spacer(Modifier.height(4.dp))
@@ -103,10 +107,20 @@ fun WorkoutSummaryScreen(
             Text(
                 workoutType,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = AppColors.onBackground.copy(alpha = 0.6f)
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
+
+            // Route map
+            if (uiState.routePoints.size >= 2) {
+                RouteMapView(
+                    routePoints = uiState.routePoints,
+                    isLive = false,
+                    height = 200
+                )
+                Spacer(Modifier.height(24.dp))
+            }
 
             // Main stats grid
             Row(
@@ -158,9 +172,9 @@ fun WorkoutSummaryScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SummaryStatCard(
-                    icon = Icons.Default.Favorite,
-                    label = "Avg HR",
-                    value = avgHeartRate,
+                    icon = Icons.Default.Speed,
+                    label = "Avg Speed",
+                    value = avgSpeed,
                     color = Color(0xFFFF6B6B),
                     modifier = Modifier.weight(1f)
                 )
@@ -188,7 +202,7 @@ fun WorkoutSummaryScreen(
                 Text("Done", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
 
-            Spacer(Modifier.height(100.dp)) // Bottom bar padding
+            Spacer(Modifier.height(100.dp))
         }
     }
 }
@@ -222,14 +236,14 @@ private fun SummaryStatCard(
                 value,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = AppColors.onSurface,
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 label,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = AppColors.onSurface.copy(alpha = 0.5f)
             )
         }
     }

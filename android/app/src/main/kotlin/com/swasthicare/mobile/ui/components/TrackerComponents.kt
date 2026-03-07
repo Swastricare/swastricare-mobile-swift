@@ -122,13 +122,13 @@ private fun DateButton(
         Text(
             text = dayName,
             style = MaterialTheme.typography.labelSmall,
-            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (isSelected) Color.White else AppColors.onSurfaceVariant
         )
         Text(
             text = "$dayNumber",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+            color = if (isSelected) Color.White else AppColors.onSurface
         )
     }
 }
@@ -267,7 +267,7 @@ fun WeeklyStepsChart(
                             text = metric.dayName,
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isToday) PremiumColor.RoyalBlueStart
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            else AppColors.onSurfaceVariant,
                             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -280,7 +280,7 @@ fun WeeklyStepsChart(
             Text(
                 text = "Goal: %,d steps".format(stepGoal),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
     }
@@ -447,7 +447,7 @@ private fun MetricRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
         
@@ -455,7 +455,7 @@ private fun MetricRow(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
     }
 }
@@ -512,7 +512,7 @@ private fun HeartRateMetricRow(
             Text(
                 text = "Heart Rate",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
         
@@ -524,7 +524,7 @@ private fun HeartRateMetricRow(
                 text = "$heartRate BPM",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             
             // Measure button

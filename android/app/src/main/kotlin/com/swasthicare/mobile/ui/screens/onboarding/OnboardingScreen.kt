@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 import com.swasthicare.mobile.ui.theme.SecondaryColor
 
@@ -42,7 +43,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(AppColors.background)
     ) {
         HorizontalPager(
             state = pagerState,
@@ -70,7 +71,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                     text = p.subtitle,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    color = AppColors.onSurface.copy(alpha = 0.7f)
                 )
             }
         }

@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.services.SavedWorkoutState
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PremiumColor
 import java.time.Instant
 import java.time.ZoneId
@@ -187,7 +188,7 @@ fun WorkoutRecoveryDialog(
                     .width(40.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                    .background(AppColors.onSurfaceVariant.copy(alpha = 0.3f))
             )
 
             // -- Pulsing warning icon
@@ -211,14 +212,14 @@ fun WorkoutRecoveryDialog(
                 text = "Unfinished Workout Detected",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = AppColors.onSurface,
                 textAlign = TextAlign.Center
             )
 
             Text(
                 text = "It looks like your last workout ended unexpectedly. Would you like to pick up where you left off?",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = AppColors.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
@@ -369,13 +370,13 @@ private fun WorkoutInfoCard(
                     text = "$emoji $label",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
             }
 
             // Divider
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
+                color = AppColors.onSurfaceVariant.copy(alpha = 0.12f)
             )
 
             // Details grid
@@ -388,7 +389,7 @@ private fun WorkoutInfoCard(
                     icon = Icons.Default.AccessTime,
                     label = "Started",
                     value = formatStartTime(savedState.startTime),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = AppColors.onSurfaceVariant
                 )
             }
 
@@ -439,13 +440,13 @@ private fun DetailColumn(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
         }
     }

@@ -8,8 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import com.swasthicare.mobile.ui.theme.AppColors
 import androidx.compose.runtime.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.ui.Modifier
@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
             SwasthiCareTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = AppColors.background
                 ) {
                     val lockViewModel: LockScreenViewModel = viewModel()
                     val isLocked by lockViewModel.isLocked.collectAsState()

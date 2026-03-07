@@ -26,6 +26,7 @@ import com.swasthicare.mobile.data.models.FoodCategory
 import com.swasthicare.mobile.data.models.FoodItem
 import com.swasthicare.mobile.data.models.MealType
 import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.ui.theme.AppColors
 
 // ─────────────────────────────────────
 // MARK: - FoodSearchScreen
@@ -53,13 +54,14 @@ fun FoodSearchScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
                     TextField(
                         value = searchText,
                         onValueChange = { searchText = it },
-                        placeholder = { Text("Search foods...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) },
+                        placeholder = { Text("Search foods...", color = AppColors.onSurface.copy(alpha = 0.4f)) },
                         singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -72,13 +74,14 @@ fun FoodSearchScreen(
                 },
                 navigationIcon = {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
+                        Text("Cancel", color = AppColors.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = AppColors.surface
     ) { innerPadding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(innerPadding)
@@ -89,7 +92,7 @@ fun FoodSearchScreen(
                 onCategorySelected = { selectedCategory = it }
             )
 
-            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+            Divider(color = AppColors.onSurface.copy(alpha = 0.06f))
 
             // Food list or empty state
             if (filteredFoods.isEmpty()) {
@@ -107,7 +110,7 @@ fun FoodSearchScreen(
                             onToggleFavorite = { vm.toggleFavorite(food.id) }
                         )
                         Divider(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            color = AppColors.onSurface.copy(alpha = 0.05f),
                             modifier = Modifier.padding(start = 78.dp)
                         )
                     }
@@ -147,7 +150,7 @@ private fun CategoryFilterRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface),
+            .background(AppColors.surface),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -181,7 +184,7 @@ private fun FilterChipItem(
     val isDark = isSystemInDarkTheme()
     val bg = if (isSelected) DietGreen.copy(alpha = 0.15f)
              else if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
-    val textColor = if (isSelected) DietGreen else MaterialTheme.colorScheme.onSurface
+    val textColor = if (isSelected) DietGreen else AppColors.onSurface
 
     Row(
         modifier = Modifier
@@ -217,21 +220,21 @@ private fun FoodSearchEmptyState(hasSearch: Boolean) {
     ) {
         Icon(
             Icons.Default.Search, null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+            tint = AppColors.onSurface.copy(alpha = 0.25f),
             modifier = Modifier.size(60.dp)
         )
         Spacer(Modifier.height(16.dp))
         Text(
             "No foods found",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = AppColors.onSurface.copy(alpha = 0.5f)
         )
         if (hasSearch) {
             Spacer(Modifier.height(8.dp))
             Text(
                 "Try a different search term",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                color = AppColors.onSurface.copy(alpha = 0.4f)
             )
         }
     }

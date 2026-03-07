@@ -26,6 +26,7 @@ import com.swasthicare.mobile.data.models.FamilyMember
 import com.swasthicare.mobile.data.models.FamilyRole
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
 // -----------------------------------------------
@@ -54,7 +55,6 @@ fun FamilyScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             // Top Bar
             Row(
@@ -66,7 +66,7 @@ fun FamilyScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.Default.ArrowBack, "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = AppColors.onSurface
                     )
                 }
                 Text(
@@ -135,7 +135,7 @@ fun FamilyScreen(
                 confirmButton = {
                     TextButton(
                         onClick = { vm.leaveGroup() },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
                     ) { Text("Leave") }
                 },
                 dismissButton = {
@@ -193,7 +193,7 @@ private fun JoinGroupContent(
         Text(
             "Enter an invite code to join your family's health group. You'll be able to view and share health data with your family members.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = AppColors.onSurface.copy(alpha = 0.6f),
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -290,7 +290,7 @@ private fun FamilyGroupContent(
                 Text(
                     "${uiState.members.size} members",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = AppColors.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
@@ -332,7 +332,7 @@ private fun FamilyGroupContent(
                     Text(
                         "Invite Code",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        color = AppColors.onSurface.copy(alpha = 0.5f)
                     )
                     Text(
                         uiState.inviteCode,
@@ -377,7 +377,7 @@ private fun FamilyGroupContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
             ) {
                 Icon(Icons.Default.ExitToApp, null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
@@ -435,7 +435,7 @@ private fun FamilyMemberRow(member: FamilyMember) {
         val roleColor = when (member.roleEnum) {
             FamilyRole.OWNER -> Color(0xFFFF9500)
             FamilyRole.ADMIN -> PrimaryColor
-            FamilyRole.MEMBER -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            FamilyRole.MEMBER -> AppColors.onSurface.copy(alpha = 0.5f)
         }
         Box(
             modifier = Modifier

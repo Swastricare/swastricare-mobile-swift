@@ -31,6 +31,7 @@ import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -216,7 +217,6 @@ fun VaultScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .navigationBarsPadding()
             ) {
                 VaultAppBar(
                     totalDocuments = uiState.documents.size,
@@ -275,7 +275,7 @@ fun VaultScreen(
                 uiState.errorMessage?.let { error ->
                     Text(
                         text = error,
-                        color = MaterialTheme.colorScheme.error,
+                        color = AppColors.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
@@ -321,7 +321,7 @@ fun VaultScreen(
                     onClick = {
                         batchFilePickerLauncher.launch(allowedMimeTypes)
                     },
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = AppColors.primary,
                     contentColor = Color.White,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -432,7 +432,7 @@ fun VaultAppBar(
 ) {
     Column(
         modifier = Modifier
-            .padding(top = 48.dp, start = 20.dp, end = 20.dp, bottom = 8.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -448,7 +448,7 @@ fun VaultAppBar(
                 Text(
                     text = "$totalDocuments documents",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
 
@@ -464,7 +464,7 @@ fun VaultAppBar(
                         onViewModeChange(newMode)
                     },
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f)
                     )
                 ) {
                     Icon(
@@ -481,7 +481,7 @@ fun VaultAppBar(
                 IconButton(
                     onClick = onToggleSelectionMode,
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f)
                     )
                 ) {
                     Icon(
@@ -523,7 +523,7 @@ fun SelectionBar(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 8.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f), RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.9f), RoundedCornerShape(16.dp))
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -536,7 +536,7 @@ fun SelectionBar(
             }
             TextButton(
                 onClick = onDelete,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
             ) {
                 Icon(Icons.Default.Delete, contentDescription = null)
                 Spacer(modifier = Modifier.width(4.dp))
@@ -621,7 +621,7 @@ fun TimelineView(
                 Text(
                     text = date,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = AppColors.primary,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
@@ -650,7 +650,7 @@ fun FolderDetailView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 48.dp, start = 8.dp, end = 20.dp, bottom = 8.dp),
+                .padding(top = 14.dp, start = 8.dp, end = 20.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
@@ -665,7 +665,7 @@ fun FolderDetailView(
                 Text(
                     text = "${documents.size} documents",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -679,7 +679,7 @@ fun FolderDetailView(
                 Text(
                     "This folder is empty",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         } else {
@@ -732,7 +732,7 @@ fun BatchUploadPreviewSheet(
             Text(
                 text = "${items.size} files",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
 
@@ -748,7 +748,7 @@ fun BatchUploadPreviewSheet(
                 Text(
                     text = "Uploading... ${(uploadProgress * 100).toInt()}%",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -814,7 +814,7 @@ private fun BatchUploadItemCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+            containerColor = AppColors.surface.copy(alpha = 0.7f)
         ),
         shape = RoundedCornerShape(14.dp)
     ) {
@@ -835,7 +835,7 @@ private fun BatchUploadItemCard(
                     Icon(
                         imageVector = getFileIcon(item.fileName.substringAfterLast('.', "")),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = AppColors.primary,
                         modifier = Modifier.size(24.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -849,7 +849,7 @@ private fun BatchUploadItemCard(
                         Text(
                             text = formatFileSize(item.fileSize),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = AppColors.onSurfaceVariant
                         )
                     }
                 }
@@ -859,7 +859,7 @@ private fun BatchUploadItemCard(
                             Icons.Default.Close,
                             contentDescription = "Remove",
                             modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.error
+                            tint = AppColors.error
                         )
                     }
                 }
@@ -895,7 +895,7 @@ private fun BatchUploadItemCard(
                                     Icon(
                                         Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = AppColors.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -919,7 +919,7 @@ fun EmptyState() {
             imageVector = Icons.Default.FolderOpen,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            tint = AppColors.primary.copy(alpha = 0.5f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -930,7 +930,7 @@ fun EmptyState() {
         Text(
             text = "Upload your medical records to get started",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
     }
 }

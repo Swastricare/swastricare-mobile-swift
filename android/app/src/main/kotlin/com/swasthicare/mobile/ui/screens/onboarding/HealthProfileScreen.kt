@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.model.Gender
 import com.swasthicare.mobile.data.model.HealthProfile
 import com.swasthicare.mobile.data.repository.ProfileRepository
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 import kotlinx.coroutines.launch
 
@@ -48,7 +49,7 @@ fun HealthProfileScreen(
         Text(
             "We use this to personalize your health insights.",
             fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = AppColors.onSurface.copy(alpha = 0.6f),
             modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
         )
 
@@ -121,7 +122,7 @@ fun HealthProfileScreen(
         }
 
         errorMessage?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp))
+            Text(it, color = AppColors.error, modifier = Modifier.padding(bottom = 8.dp))
         }
 
         Button(
@@ -157,7 +158,7 @@ fun HealthProfileScreen(
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
         ) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = AppColors.onPrimary)
             } else {
                 Text("Save & Continue", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }

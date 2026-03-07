@@ -26,6 +26,7 @@ import com.swasthicare.mobile.data.models.MedicationDose
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.EmptyStateView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.swasthicare.mobile.ui.theme.AppColors
 import java.time.format.DateTimeFormatter
 
 // ─────────────────────────────────────
@@ -90,7 +91,6 @@ fun MedicationsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             // ── Top Bar ──
             Row(
@@ -101,7 +101,7 @@ fun MedicationsScreen(
             ) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(Icons.Default.ArrowBack, "Back",
-                        tint = MaterialTheme.colorScheme.onSurface)
+                        tint = AppColors.onSurface)
                 }
                 Text(
                     "Medications",
@@ -162,7 +162,7 @@ fun MedicationsScreen(
                                     "Today's Progress",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    color = AppColors.onSurface.copy(alpha = 0.5f)
                                 )
                                 PillBottleView(progress = uiState.statistics.adherenceRate)
                                 Row(
@@ -312,7 +312,7 @@ private fun TimelineSlotRow(
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.End,
                 color = if (slot.hasOverdue) Color(0xFFFF3B30)
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        else AppColors.onSurface.copy(alpha = 0.5f)
             )
             Spacer(Modifier.height(6.dp))
             Box(
@@ -327,7 +327,7 @@ private fun TimelineSlotRow(
                         .width(2.dp)
                         .weight(1f)
                         .background(
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+                            AppColors.onSurface.copy(alpha = 0.10f)
                         )
                 )
             } else {
@@ -360,7 +360,7 @@ private fun TimelineSlotRow(
 
 @Composable
 private fun MedicationsSkeletonContent() {
-    val shimmer = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)
+    val shimmer = AppColors.onSurface.copy(alpha = 0.07f)
     Column(
         modifier = Modifier
             .fillMaxSize()

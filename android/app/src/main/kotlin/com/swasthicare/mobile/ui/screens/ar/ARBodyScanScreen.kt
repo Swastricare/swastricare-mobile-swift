@@ -45,6 +45,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.data.services.BodyScanResult
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.HeartRateColor
 import com.swasthicare.mobile.ui.theme.HydrationColor
 import com.swasthicare.mobile.ui.theme.PrimaryColor
@@ -120,7 +121,6 @@ fun ARBodyScanScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -152,7 +152,6 @@ fun ARBodyScanScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .navigationBarsPadding()
                         .padding(bottom = 32.dp)
                 ) {
                     DetectionStatusChip(detectionState = uiState.detectionState)
@@ -174,7 +173,7 @@ fun ARBodyScanScreen(
         ModalBottomSheet(
             onDismissRequest = { viewModel.dismissDetailSheet() },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = AppColors.surface
         ) {
             OrganDetailSheet(organInfo = uiState.selectedOrgan!!)
         }
@@ -521,12 +520,12 @@ private fun OrganDetailSheet(organInfo: OrganInfo) {
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = AppColors.outlineVariant)
 
         Text(
             text = organInfo.detail,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
     }
 }

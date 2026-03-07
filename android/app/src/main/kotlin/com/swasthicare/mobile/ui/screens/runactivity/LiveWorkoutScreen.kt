@@ -134,8 +134,9 @@ fun LiveWorkoutScreen(
             WorkoutPhase.COMPLETED -> WorkoutSummaryContent(
                 uiState = uiState,
                 onDone = {
+                    viewModel.saveCompletedWorkout()
                     viewModel.resetWorkout()
-                    onNavigateToSummary()
+                    onNavigateBack()
                 },
                 onDiscard = {
                     viewModel.resetWorkout()
@@ -165,8 +166,7 @@ private fun IdlePhaseContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
-            .statusBarsPadding(),
+            .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Top bar
@@ -453,8 +453,7 @@ private fun TrackingPhaseContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
-            .statusBarsPadding(),
+            .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(16.dp))
@@ -623,8 +622,7 @@ private fun PausedPhaseContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
-            .statusBarsPadding(),
+            .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(16.dp))
@@ -750,8 +748,7 @@ private fun WorkoutSummaryContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
-            .statusBarsPadding(),
+            .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(16.dp))

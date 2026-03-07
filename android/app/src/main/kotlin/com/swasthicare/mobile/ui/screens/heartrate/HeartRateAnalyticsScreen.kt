@@ -38,6 +38,7 @@ import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.HeartRateColor
 import com.swasthicare.mobile.ui.theme.PremiumColor
+import com.swasthicare.mobile.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -112,7 +113,6 @@ fun HeartRateAnalyticsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             // ── Top Bar ──
             Row(
@@ -124,7 +124,7 @@ fun HeartRateAnalyticsScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.Default.ArrowBack, "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = AppColors.onSurface
                     )
                 }
                 Text(
@@ -138,7 +138,7 @@ fun HeartRateAnalyticsScreen(
                     IconButton(onClick = { state = state.copy(showClearConfirmation = true) }) {
                         Icon(
                             Icons.Default.DeleteOutline, "Clear History",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = AppColors.onSurfaceVariant
                         )
                     }
                 }
@@ -256,7 +256,7 @@ private fun AnalyticsContent(
                 Text(
                     "${state.filteredReadings.size} readings",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -313,7 +313,7 @@ private fun TimeRangeSelector(
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color = if (isSelected) Color.White
-                    else MaterialTheme.colorScheme.onSurface
+                    else AppColors.onSurface
                 )
             }
         }
@@ -418,20 +418,20 @@ private fun SummaryCard(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             if (value != "--") {
                 Text(
                     text = " $unit",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppColors.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
             }
@@ -495,7 +495,7 @@ private fun HeartRateTrendChart(
                 Text(
                     "Not enough data to show trend.\nTake at least 2 measurements.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppColors.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
@@ -753,12 +753,12 @@ private fun HistoryRow(
                 text = formattedDate.first,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 text = formattedDate.second,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
 
@@ -766,7 +766,7 @@ private fun HistoryRow(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Row(
@@ -777,13 +777,13 @@ private fun HistoryRow(
                     imageVector = if (reading.source == "Camera") Icons.Default.CameraAlt
                     else Icons.Default.Favorite,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = AppColors.onSurfaceVariant,
                     modifier = Modifier.size(10.dp)
                 )
                 Text(
                     text = reading.source,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -799,7 +799,7 @@ private fun HistoryRow(
             Text(
                 text = " BPM",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = AppColors.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 2.dp)
             )
         }
@@ -823,7 +823,7 @@ private fun AnalyticsSkeletonContent() {
         label = "shimmerAlpha"
     )
 
-    val shimmerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = shimmerAlpha * 0.1f)
+    val shimmerColor = AppColors.onSurface.copy(alpha = shimmerAlpha * 0.1f)
 
     Column(
         modifier = Modifier
@@ -926,7 +926,7 @@ private fun EmptyAnalyticsContent() {
             "No Readings Yet",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
 
         Spacer(Modifier.height(8.dp))
@@ -934,7 +934,7 @@ private fun EmptyAnalyticsContent() {
         Text(
             "Take your first heart rate measurement to start\ntracking your cardiovascular health over time.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppColors.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }

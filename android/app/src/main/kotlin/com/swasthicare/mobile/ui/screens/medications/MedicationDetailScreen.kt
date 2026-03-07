@@ -24,6 +24,7 @@ import com.swasthicare.mobile.data.models.MedicationWithDoses
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 
 // ─────────────────────────────────────
 // MARK: - MedicationDetailScreen
@@ -73,8 +74,7 @@ fun MedicationDetailScreen(
 
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
+                    .fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 40.dp)
             ) {
                 // ── Top Bar ──
@@ -100,7 +100,7 @@ fun MedicationDetailScreen(
                             Text(
                                 if (isEditing) "Cancel" else "Close",
                                 fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = AppColors.onSurface
                             )
                         }
                         Text(
@@ -130,7 +130,7 @@ fun MedicationDetailScreen(
                                 if (isEditing) "Save" else "Edit",
                                 fontSize = 16.sp,
                                 color = if (isEditing && !hasChanges)
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                    AppColors.onSurface.copy(alpha = 0.4f)
                                 else MedBrandBlue
                             )
                         }
@@ -167,19 +167,19 @@ fun MedicationDetailScreen(
                                 fontSize = 22.sp, fontWeight = FontWeight.Bold)
                             if (mwd.displayDosage.isNotBlank()) {
                                 Text(mwd.displayDosage, fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                    color = AppColors.onSurface.copy(alpha = 0.5f))
                             }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Icon(Icons.Default.Schedule, null,
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    tint = AppColors.onSurface.copy(alpha = 0.5f),
                                     modifier = Modifier.size(12.dp))
                                 Text(
                                     "${mwd.schedules.size} time(s) daily",
                                     fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    color = AppColors.onSurface.copy(alpha = 0.5f)
                                 )
                             }
                         }
@@ -214,13 +214,13 @@ fun MedicationDetailScreen(
                             ) {
                                 Icon(
                                     Icons.Default.CalendarToday, null,
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                    tint = AppColors.onSurface.copy(alpha = 0.3f),
                                     modifier = Modifier.size(32.dp)
                                 )
                                 Text(
                                     "No doses scheduled for today",
                                     fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    color = AppColors.onSurface.copy(alpha = 0.5f)
                                 )
                             }
                         }
@@ -393,10 +393,10 @@ private fun DetailsSection(mwd: MedicationWithDoses) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(Icons.Default.Note, null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        tint = AppColors.onSurface.copy(alpha = 0.5f),
                         modifier = Modifier.size(14.dp))
                     Text("Notes", fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        color = AppColors.onSurface.copy(alpha = 0.5f))
                 }
                 Text(notes, fontSize = 15.sp)
             }
@@ -430,15 +430,15 @@ private fun EditFormSection(
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Name", fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                color = AppColors.onSurface.copy(alpha = 0.5f))
             OutlinedTextField(
                 value = name, onValueChange = onNameChange,
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MedBrandBlue,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                    focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                    unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
+                    focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                    unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f)
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -447,15 +447,15 @@ private fun EditFormSection(
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Dosage", fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                color = AppColors.onSurface.copy(alpha = 0.5f))
             OutlinedTextField(
                 value = dosage, onValueChange = onDosageChange,
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MedBrandBlue,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                    focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                    unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
+                    focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                    unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f)
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -464,15 +464,15 @@ private fun EditFormSection(
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Notes", fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                color = AppColors.onSurface.copy(alpha = 0.5f))
             OutlinedTextField(
                 value = notes, onValueChange = onNotesChange,
                 minLines = 3, maxLines = 5,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MedBrandBlue,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                    focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                    unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
+                    focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                    unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f)
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -491,7 +491,7 @@ private fun EditFormSection(
             Column {
                 Text("Ongoing medication", fontSize = 15.sp)
                 Text("No end date", fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    color = AppColors.onSurface.copy(alpha = 0.5f))
             }
             Switch(
                 checked = isOngoing,

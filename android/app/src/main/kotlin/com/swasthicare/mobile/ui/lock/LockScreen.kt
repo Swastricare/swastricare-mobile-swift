@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PremiumColor
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
@@ -248,7 +249,7 @@ fun LockScreen(
                 Text(
                     text = authError!!,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = AppColors.error,
                     textAlign = TextAlign.Center
                 )
             }

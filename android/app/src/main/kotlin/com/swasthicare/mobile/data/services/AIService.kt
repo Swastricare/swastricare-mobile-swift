@@ -13,6 +13,8 @@ import kotlinx.serialization.json.Json
 
 class AIService(private val client: SupabaseClient) {
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     suspend fun sendChatMessage(message: String, context: List<ChatMessage>): String {
         val contextMessages = context.takeLast(10).map { msg ->
             ContextMessage(
@@ -27,7 +29,7 @@ class AIService(private val client: SupabaseClient) {
             body = request
         )
         val body = response.body<String>()
-        return Json.decodeFromString<ChatResponse>(body).response
+        return json.decodeFromString<ChatResponse>(body).response
     }
 
     suspend fun analyzeHealth(metrics: HealthMetrics): HealthAnalysisResponse {
@@ -40,7 +42,7 @@ class AIService(private val client: SupabaseClient) {
                 )
             )
             val body = response.body<String>()
-            Json.decodeFromString<HealthAnalysisResponse>(body)
+            json.decodeFromString<HealthAnalysisResponse>(body)
         } catch (e: Exception) {
             HealthAnalysisResponse(
                 assessment = "Unable to analyze at this time.",

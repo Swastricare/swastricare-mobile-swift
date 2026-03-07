@@ -34,6 +34,7 @@ import com.swasthicare.mobile.data.model.Gender
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.PremiumColor
+import com.swasthicare.mobile.ui.theme.AppColors
 import java.util.Locale
 
 // ─────────────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ fun EditProfileScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Edit Profile") },
@@ -91,9 +93,10 @@ fun EditProfileScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                )
+                    titleContentColor = AppColors.onBackground,
+                    navigationIconContentColor = AppColors.onBackground
+                ),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
         containerColor = Color.Transparent
@@ -239,7 +242,7 @@ fun EditProfileScreen(
 
                     HorizontalDivider(
                         modifier = Modifier.padding(start = 52.dp, top = 8.dp, bottom = 8.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                        color = AppColors.onSurface.copy(alpha = 0.08f)
                     )
 
                     ReadOnlyRow(
@@ -320,7 +323,7 @@ private fun AvatarSection(
         Text(
             text = email,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            color = AppColors.onBackground.copy(alpha = 0.6f)
         )
     }
 }
@@ -355,12 +358,12 @@ private fun PhoneMissingBanner() {
                 text = "Add your phone number",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
             Text(
                 text = "For family emergency alerts and account recovery",
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = AppColors.onBackground.copy(alpha = 0.6f)
             )
         }
     }
@@ -378,7 +381,7 @@ private fun EditSection(
             text = title,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            color = AppColors.onBackground.copy(alpha = 0.5f),
             letterSpacing = 0.8.sp,
             modifier = Modifier.padding(start = 4.dp)
         )
@@ -410,17 +413,17 @@ private fun EditTextField(
             text = title,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = AppColors.onBackground.copy(alpha = 0.5f)
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
                     1.dp,
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                    AppColors.onBackground.copy(alpha = 0.08f),
                     RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 4.dp),
@@ -440,7 +443,7 @@ private fun EditTextField(
                 placeholder = {
                     Text(
                         placeholder,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                        color = AppColors.onBackground.copy(alpha = 0.3f)
                     )
                 },
                 singleLine = true,
@@ -469,17 +472,17 @@ private fun BioField(
             text = "Bio",
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = AppColors.onBackground.copy(alpha = 0.5f)
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
                     1.dp,
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                    AppColors.onBackground.copy(alpha = 0.08f),
                     RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 4.dp),
@@ -500,7 +503,7 @@ private fun BioField(
                 placeholder = {
                     Text(
                         "Write something about yourself...",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                        color = AppColors.onBackground.copy(alpha = 0.3f)
                     )
                 },
                 minLines = 3,
@@ -531,7 +534,7 @@ private fun GenderSelector(
             text = "Gender",
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = AppColors.onBackground.copy(alpha = 0.5f)
         )
 
         ExposedDropdownMenuBox(
@@ -542,10 +545,10 @@ private fun GenderSelector(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                    .background(AppColors.onBackground.copy(alpha = 0.04f))
                     .border(
                         1.dp,
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                        AppColors.onBackground.copy(alpha = 0.08f),
                         RoundedCornerShape(16.dp)
                     )
                     .menuAnchor()
@@ -563,7 +566,7 @@ private fun GenderSelector(
                 Text(
                     text = selected.displayName,
                     fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = AppColors.onBackground,
                     modifier = Modifier.weight(1f)
                 )
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
@@ -599,17 +602,17 @@ private fun DateOfBirthField(
             text = "Date of Birth",
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = AppColors.onBackground.copy(alpha = 0.5f)
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
                     1.dp,
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                    AppColors.onBackground.copy(alpha = 0.08f),
                     RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 4.dp),
@@ -634,7 +637,7 @@ private fun DateOfBirthField(
                 placeholder = {
                     Text(
                         "yyyy-MM-dd",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                        color = AppColors.onBackground.copy(alpha = 0.3f)
                     )
                 },
                 singleLine = true,
@@ -672,7 +675,7 @@ private fun SliderField(
                 text = label,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                color = AppColors.onBackground.copy(alpha = 0.5f)
             )
             Text(
                 text = valueLabel,
@@ -686,10 +689,10 @@ private fun SliderField(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
                     1.dp,
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                    AppColors.onBackground.copy(alpha = 0.08f),
                     RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 8.dp),
@@ -712,7 +715,7 @@ private fun SliderField(
                 colors = SliderDefaults.colors(
                     thumbColor = PremiumColor.RoyalBlueStart,
                     activeTrackColor = PremiumColor.RoyalBlueStart,
-                    inactiveTrackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
+                    inactiveTrackColor = AppColors.onBackground.copy(alpha = 0.1f)
                 )
             )
         }
@@ -734,10 +737,10 @@ private fun BmiRow(bmi: Double, category: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+            .background(AppColors.onBackground.copy(alpha = 0.04f))
             .border(
                 1.dp,
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                AppColors.onBackground.copy(alpha = 0.08f),
                 RoundedCornerShape(16.dp)
             )
             .padding(14.dp),
@@ -754,7 +757,7 @@ private fun BmiRow(bmi: Double, category: String) {
         Text(
             text = "BMI",
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onBackground
+            color = AppColors.onBackground
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -769,7 +772,7 @@ private fun BmiRow(bmi: Double, category: String) {
         Text(
             text = category,
             fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = AppColors.onBackground.copy(alpha = 0.5f)
         )
     }
 }
@@ -790,7 +793,7 @@ private fun BloodTypeSelector(
             text = "Blood Type",
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = AppColors.onBackground.copy(alpha = 0.5f)
         )
 
         ExposedDropdownMenuBox(
@@ -801,10 +804,10 @@ private fun BloodTypeSelector(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                    .background(AppColors.onBackground.copy(alpha = 0.04f))
                     .border(
                         1.dp,
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                        AppColors.onBackground.copy(alpha = 0.08f),
                         RoundedCornerShape(16.dp)
                     )
                     .menuAnchor()
@@ -823,9 +826,9 @@ private fun BloodTypeSelector(
                     text = selected.ifBlank { "Not set" },
                     fontSize = 16.sp,
                     color = if (selected.isBlank())
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                        AppColors.onBackground.copy(alpha = 0.3f)
                     else
-                        MaterialTheme.colorScheme.onBackground,
+                        AppColors.onBackground,
                     modifier = Modifier.weight(1f)
                 )
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
@@ -883,12 +886,12 @@ private fun ReadOnlyRow(
             Text(
                 text = label,
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                color = AppColors.onBackground.copy(alpha = 0.5f)
             )
             Text(
                 text = value.ifBlank { "Not available" },
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
         }
 
@@ -897,7 +900,7 @@ private fun ReadOnlyRow(
         Icon(
             imageVector = Icons.Default.Lock,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f),
+            tint = AppColors.onBackground.copy(alpha = 0.25f),
             modifier = Modifier.size(14.dp)
         )
     }

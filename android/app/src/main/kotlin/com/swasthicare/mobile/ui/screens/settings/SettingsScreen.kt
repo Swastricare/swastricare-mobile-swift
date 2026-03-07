@@ -32,6 +32,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PremiumColor
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
@@ -60,41 +61,26 @@ fun SettingsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
 
-        Scaffold(
-            modifier = Modifier.navigationBarsPadding(),
-            containerColor = Color.Transparent,
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            "Settings",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Settings",
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.onBackground
                     )
+                },
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
                 )
-            }
-        ) { padding ->
+            )
+
             if (uiState.isLoading && uiState.user == null) {
-                // Loading state with linear progress
-                SettingsLoadingState(modifier = Modifier.padding(padding))
+                SettingsLoadingState(modifier = Modifier.fillMaxSize())
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
                     // Profile Header Card
@@ -191,7 +177,7 @@ fun SettingsScreen(
                     TextButton(
                         onClick = { viewModel.signOut() },
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
+                            contentColor = AppColors.error
                         )
                     ) {
                         Text("Sign Out")
@@ -202,9 +188,9 @@ fun SettingsScreen(
                         Text("Cancel")
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                containerColor = AppColors.surface,
+                titleContentColor = AppColors.onSurface,
+                textContentColor = AppColors.onSurfaceVariant
             )
         }
 
@@ -217,7 +203,7 @@ fun SettingsScreen(
                     TextButton(
                         onClick = { viewModel.deleteAccount() },
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
+                            contentColor = AppColors.error
                         )
                     ) {
                         Text("Delete")
@@ -228,9 +214,9 @@ fun SettingsScreen(
                         Text("Cancel")
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                containerColor = AppColors.surface,
+                titleContentColor = AppColors.onSurface,
+                textContentColor = AppColors.onSurfaceVariant
             )
         }
 
@@ -245,9 +231,9 @@ fun SettingsScreen(
                         Text("OK")
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                containerColor = AppColors.surface,
+                titleContentColor = AppColors.onSurface,
+                textContentColor = AppColors.onSurfaceVariant
             )
         }
     }
@@ -306,7 +292,7 @@ private fun SettingsLoadingState(modifier: Modifier = Modifier) {
             "Loading settings...",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = AppColors.onBackground
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -317,7 +303,7 @@ private fun SettingsLoadingState(modifier: Modifier = Modifier) {
                 .height(6.dp)
                 .clip(RoundedCornerShape(3.dp)),
             color = PrimaryColor,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            trackColor = AppColors.surfaceVariant.copy(alpha = 0.3f)
         )
     }
 }
@@ -409,24 +395,24 @@ private fun SettingsProfileHeader(
                     text = userName,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = AppColors.onBackground
                 )
                 Text(
                     text = userEmail,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    color = AppColors.onBackground.copy(alpha = 0.7f)
                 )
                 Text(
                     text = "Member since $memberSince",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    color = AppColors.onBackground.copy(alpha = 0.5f)
                 )
             }
 
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                tint = AppColors.onBackground.copy(alpha = 0.4f),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -460,7 +446,7 @@ private fun GlassSectionContainer(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    color = AppColors.onSurface.copy(alpha = 0.7f)
                 )
                 headerAction?.invoke()
             }
@@ -492,13 +478,13 @@ private fun SettingsInfoRow(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppColors.onSurfaceVariant,
             textAlign = TextAlign.End
         )
     }
@@ -526,7 +512,7 @@ private fun SettingsToggleRow(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
         Spacer(modifier = Modifier.weight(1f))
         Switch(
@@ -535,8 +521,8 @@ private fun SettingsToggleRow(
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = PrimaryColor,
-                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                uncheckedThumbColor = AppColors.outline,
+                uncheckedTrackColor = AppColors.surfaceVariant,
                 uncheckedBorderColor = Color.Transparent
             )
         )
@@ -570,20 +556,20 @@ private fun SettingsNavigationRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = AppColors.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
     }
@@ -655,24 +641,24 @@ private fun SettingsHealthProfileSection(
             }
         } else if (uiState.healthProfile != null) {
             SettingsInfoRow(icon = Icons.Default.Person, label = "Name", value = uiState.healthProfile.fullName)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
 
             SettingsInfoRow(icon = Icons.Default.People, label = "Gender", value = uiState.healthProfile.gender.displayName)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
 
             SettingsInfoRow(icon = Icons.Default.CalendarToday, label = "Age", value = profileAge)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
 
             SettingsInfoRow(icon = Icons.Default.Straighten, label = "Height", value = "${uiState.healthProfile.heightCm} cm")
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
 
             SettingsInfoRow(icon = Icons.Default.MonitorWeight, label = "Weight", value = "${uiState.healthProfile.weightKg} kg")
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
 
             SettingsInfoRow(icon = Icons.Default.Accessibility, label = "BMI", value = profileBMI)
 
             if (uiState.healthProfile.bloodType != null) {
-                HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                HorizontalDivider(Modifier.padding(vertical = 8.dp), color = AppColors.onSurface.copy(alpha = 0.1f))
                 SettingsInfoRow(icon = Icons.Default.WaterDrop, iconTint = Color(0xFFFF3B30), label = "Blood Type", value = uiState.healthProfile.bloodType)
             }
         } else {
@@ -694,12 +680,12 @@ private fun SettingsHealthProfileSection(
                     Text(
                         "No health profile found",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = AppColors.onSurface
                     )
                     Text(
                         "Complete your health profile during onboarding",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -748,18 +734,18 @@ private fun SettingsFamilySection(onNavigateToFamily: () -> Unit) {
                     "Family Group",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 Text(
                     "Manage family members' health",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = AppColors.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -784,7 +770,7 @@ private fun SettingsNotificationsSection(
 
         HorizontalDivider(
             Modifier.padding(vertical = 8.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+            color = AppColors.onSurface.copy(alpha = 0.1f)
         )
 
         SettingsNavigationRow(
@@ -811,7 +797,7 @@ private fun SettingsHydrationSection(
 
         HorizontalDivider(
             Modifier.padding(vertical = 8.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+            color = AppColors.onSurface.copy(alpha = 0.1f)
         )
 
         SettingsInfoRow(
@@ -823,12 +809,12 @@ private fun SettingsHydrationSection(
 
         HorizontalDivider(
             Modifier.padding(vertical = 8.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+            color = AppColors.onSurface.copy(alpha = 0.1f)
         )
 
         SettingsNavigationRow(
             icon = Icons.Default.Settings,
-            iconTint = MaterialTheme.colorScheme.onSurface,
+            iconTint = AppColors.onSurface,
             label = "Hydration Preferences",
             onClick = onNavigateToHydrationSettings
         )
@@ -854,7 +840,7 @@ private fun SettingsSecuritySection(
 
         HorizontalDivider(
             Modifier.padding(vertical = 8.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+            color = AppColors.onSurface.copy(alpha = 0.1f)
         )
 
         SettingsToggleRow(
@@ -888,13 +874,13 @@ private fun SettingsAppVersionSection(
             Text(
                 "App Version",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 version,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
 
             if (hasUpdate) {
@@ -941,7 +927,7 @@ private fun SettingsSignOutButton(
             CircularProgressIndicator(
                 modifier = Modifier.size(20.dp),
                 strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.error
+                color = AppColors.error
             )
         } else {
             Row(
@@ -951,14 +937,14 @@ private fun SettingsSignOutButton(
                 Icon(
                     Icons.AutoMirrored.Filled.ExitToApp,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = AppColors.error,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
                     "Sign Out",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.error
+                    color = AppColors.error
                 )
             }
         }
@@ -1008,7 +994,7 @@ private fun SettingsDeleteAccountButton(
         Text(
             text = "Permanently delete your account and all associated data.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            color = AppColors.onBackground.copy(alpha = 0.6f),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
     }
@@ -1030,7 +1016,7 @@ private fun SettingsFooterLinks(version: String) {
         Text(
             text = "Version $version",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = AppColors.onBackground.copy(alpha = 0.5f)
         )
 
         Row(
@@ -1048,7 +1034,7 @@ private fun SettingsFooterLinks(version: String) {
             Text(
                 text = "\u2022",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                color = AppColors.onBackground.copy(alpha = 0.5f)
             )
             Text(
                 text = "Privacy Policy",
@@ -1079,8 +1065,8 @@ private fun SettingsShimmerRow() {
         label = "shimmerAnimation"
     )
 
-    val baseColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-    val highlightColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    val baseColor = AppColors.surfaceVariant.copy(alpha = 0.3f)
+    val highlightColor = AppColors.surfaceVariant.copy(alpha = 0.6f)
 
     val brush = Brush.linearGradient(
         colors = listOf(baseColor, highlightColor, baseColor),

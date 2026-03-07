@@ -24,6 +24,7 @@ import com.swasthicare.mobile.data.models.MealType
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.EmptyStateView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.swasthicare.mobile.ui.theme.AppColors
 
 // ─────────────────────────────────────
 // MARK: - DietScreen
@@ -49,7 +50,6 @@ fun DietScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             // ── Top Bar ──
             Row(
@@ -60,7 +60,7 @@ fun DietScreen(
             ) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(Icons.Default.ArrowBack, "Back",
-                        tint = MaterialTheme.colorScheme.onSurface)
+                        tint = AppColors.onSurface)
                 }
                 Text(
                     "Diet Chart",
@@ -134,7 +134,7 @@ fun DietScreen(
                                 Text(
                                     uiState.goalDescription,
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    color = AppColors.onSurface.copy(alpha = 0.5f)
                                 )
                                 CalorieProgressRing(
                                     current = uiState.totalCalories,
@@ -325,12 +325,12 @@ private fun InsightsCard(insights: DietInsights, modifier: Modifier = Modifier) 
         }
 
         if (insights.topFoods.isNotEmpty()) {
-            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            Divider(color = AppColors.onSurface.copy(alpha = 0.08f))
             Text(
                 "Top Foods",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = AppColors.onSurface.copy(alpha = 0.5f)
             )
             insights.topFoods.forEach { food ->
                 Row(
@@ -342,7 +342,7 @@ private fun InsightsCard(insights: DietInsights, modifier: Modifier = Modifier) 
                         tint = DietGreen,
                         modifier = Modifier.size(6.dp)
                     )
-                    Text(food, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text(food, fontSize = 14.sp, color = AppColors.onSurface)
                 }
             }
         }
@@ -355,7 +355,7 @@ private fun InsightsCard(insights: DietInsights, modifier: Modifier = Modifier) 
             Text(
                 "Macro balance: ${insights.macroBalance}",
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = AppColors.onSurface.copy(alpha = 0.6f)
             )
         }
     }
@@ -368,8 +368,8 @@ private fun InsightItem(value: String, label: String, icon: androidx.compose.ui.
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
-        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AppColors.onSurface)
+        Text(label, fontSize = 12.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
     }
 }
 
@@ -379,7 +379,7 @@ private fun InsightItem(value: String, label: String, icon: androidx.compose.ui.
 
 @Composable
 private fun DietSkeletonContent() {
-    val shimmer = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)
+    val shimmer = AppColors.onSurface.copy(alpha = 0.07f)
     Column(
         modifier = Modifier.fillMaxSize().padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)

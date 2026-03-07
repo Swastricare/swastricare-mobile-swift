@@ -33,6 +33,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.swasthicare.mobile.ui.theme.AppColors
 
 // Default scheduled times per schedule type
 private fun defaultScheduleTimes(type: ScheduleType): List<Pair<String, String>> = when (type) {
@@ -77,7 +78,6 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
     ) {
         // ── Top Bar ──
         Row(
@@ -88,7 +88,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
         ) {
             TextButton(onClick = onDismiss) {
                 Text("Cancel", fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface)
+                    color = AppColors.onSurface)
             }
             Text(
                 "Add Medication",
@@ -140,7 +140,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shadowElevation = 8.dp,
-            color = MaterialTheme.colorScheme.surface
+            color = AppColors.surface
         ) {
             Row(
                 modifier = Modifier
@@ -153,7 +153,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                            .background(AppColors.onSurface.copy(alpha = 0.08f))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
@@ -166,11 +166,11 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(Icons.Default.ChevronLeft, null,
-                                tint = MaterialTheme.colorScheme.onSurface,
+                                tint = AppColors.onSurface,
                                 modifier = Modifier.size(18.dp))
                             Text("Back", fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface)
+                                color = AppColors.onSurface)
                         }
                     }
                 }
@@ -227,12 +227,12 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (canProceed) Color.White
-                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                        else AppColors.onSurface.copy(alpha = 0.4f)
                             )
                             if (currentStep < 3) {
                                 Icon(Icons.Default.ChevronRight, null,
                                     tint = if (canProceed) Color.White
-                                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                           else AppColors.onSurface.copy(alpha = 0.4f),
                                     modifier = Modifier.size(18.dp))
                             }
                         }
@@ -307,7 +307,7 @@ private fun MedProgressBar(currentStep: Int) {
                 val filled = step <= currentStep
                 val segColor by animateColorAsState(
                     targetValue = if (filled) MedBrandBlue
-                                  else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                                  else AppColors.onSurface.copy(alpha = 0.15f),
                     animationSpec = tween(durationMillis = 300),
                     label = "seg$step"
                 )
@@ -324,7 +324,7 @@ private fun MedProgressBar(currentStep: Int) {
             "Step $currentStep of 3",
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = AppColors.onSurface.copy(alpha = 0.5f)
         )
     }
 }
@@ -345,7 +345,7 @@ private fun Step1Content(
                 fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("Enter the medication details",
                 fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                color = AppColors.onSurface.copy(alpha = 0.5f))
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -396,7 +396,7 @@ private fun Step2Content(
                 fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("Choose how often you take this medication",
                 fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                color = AppColors.onSurface.copy(alpha = 0.5f))
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -470,7 +470,7 @@ private fun Step3Content(
                 fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("Set the medication duration",
                 fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                color = AppColors.onSurface.copy(alpha = 0.5f))
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -496,7 +496,7 @@ private fun Step3Content(
                 Column {
                     Text("Ongoing medication", fontSize = 15.sp)
                     Text("No end date", fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        color = AppColors.onSurface.copy(alpha = 0.5f))
                 }
                 Switch(
                     checked = isOngoing,
@@ -526,15 +526,15 @@ private fun Step3Content(
                 onValueChange = onNotesChange,
                 placeholder = {
                     Text("Any special instructions…",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                        color = AppColors.onSurface.copy(alpha = 0.4f))
                 },
                 minLines = 4,
                 maxLines = 6,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MedBrandBlue,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                    focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                    unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
+                    focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                    unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f)
                 ),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -559,14 +559,14 @@ private fun MedTextField(
         onValueChange = onValueChange,
         placeholder = {
             Text(placeholder,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                color = AppColors.onSurface.copy(alpha = 0.4f))
         },
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MedBrandBlue,
-            unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-            focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+            unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
+            focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+            unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f)
         ),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
@@ -587,7 +587,7 @@ private fun DateSelectRow(
             .background(cardBg)
             .border(
                 1.dp,
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                AppColors.onSurface.copy(alpha = 0.08f),
                 RoundedCornerShape(16.dp)
             )
             .clickable(

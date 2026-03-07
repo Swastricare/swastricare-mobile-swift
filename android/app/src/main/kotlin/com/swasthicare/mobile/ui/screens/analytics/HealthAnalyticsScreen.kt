@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -62,13 +63,12 @@ fun HealthAnalyticsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                CircularProgressIndicator(color = AppColors.primary)
             }
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
                     .verticalScroll(scrollState)
             ) {
                 // ── Top Bar ─────────────────────────────────────────────
@@ -138,7 +138,7 @@ private fun AnalyticsTopBar(onNavigateBack: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
                 contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = AppColors.onSurface,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -149,7 +149,7 @@ private fun AnalyticsTopBar(onNavigateBack: () -> Unit) {
             text = "Health Analytics",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = AppColors.onBackground
         )
     }
 }
@@ -181,13 +181,13 @@ private fun TimeRangeSelector(
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedContainerColor = AppColors.primary,
+                    selectedLabelColor = AppColors.onPrimary,
                     containerColor = Color.Transparent,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    labelColor = AppColors.onSurfaceVariant
                 ),
                 border = if (isSelected) null else FilterChipDefaults.filterChipBorder(
-                    borderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                    borderColor = AppColors.onSurfaceVariant.copy(alpha = 0.3f),
                     enabled = true,
                     selected = false
                 )
@@ -274,13 +274,13 @@ private fun SummaryCard(
             text = formatValue(summary.currentValue, summary.type),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
 
         Text(
             text = summary.type.label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
     }
 }
@@ -410,7 +410,7 @@ private fun BarChart(
     val textMeasurer = rememberTextMeasurer()
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val yMax = goalValue?.let { maxOf(maxValue, it) * 1.15f } ?: (maxValue * 1.15f)
-    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val labelColor = AppColors.onSurfaceVariant
 
     Canvas(
         modifier = modifier
@@ -518,7 +518,7 @@ private fun LineChart(
     val textMeasurer = rememberTextMeasurer()
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val yMax = goalValue?.let { maxOf(maxValue, it) * 1.15f } ?: (maxValue * 1.15f)
-    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val labelColor = AppColors.onSurfaceVariant
 
     Canvas(
         modifier = modifier
@@ -720,7 +720,7 @@ private fun MetricGridCard(
             Text(
                 text = summary.type.label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
 
@@ -732,12 +732,12 @@ private fun MetricGridCard(
                 text = formatValue(summary.currentValue, summary.type),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 text = summary.type.unit,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = AppColors.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 3.dp)
             )
         }
@@ -770,7 +770,7 @@ private fun MetricGridCard(
             Text(
                 text = "vs prev",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                color = AppColors.onSurfaceVariant.copy(alpha = 0.6f)
             )
         }
     }
@@ -834,14 +834,14 @@ private fun AIInsightsSection(
                 text = "AI Health Insights",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
         }
 
         Text(
             text = insight,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppColors.onSurfaceVariant,
             lineHeight = 22.sp
         )
 
@@ -849,8 +849,8 @@ private fun AIInsightsSection(
             onClick = onAskAI,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                contentColor = MaterialTheme.colorScheme.primary
+                containerColor = AppColors.primary.copy(alpha = 0.15f),
+                contentColor = AppColors.primary
             ),
             shape = RoundedCornerShape(12.dp)
         ) {

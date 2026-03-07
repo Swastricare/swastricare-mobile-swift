@@ -8,8 +8,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import com.swasthicare.mobile.ui.screens.home.glass
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.swasthicare.mobile.ui.theme.AppColors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +52,7 @@ fun RulerPicker(
     minValue: Int = 100,
     maxValue: Int = 250,
     unit: String = "cm",
-    accentColor: Color = MaterialTheme.colorScheme.primary,
+    accentColor: Color = AppColors.primary,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -89,7 +89,7 @@ fun RulerPicker(
                 .fillMaxWidth()
                 .height(rulerHeight)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .background(AppColors.surfaceVariant.copy(alpha = 0.3f))
         ) {
             Canvas(
                 modifier = Modifier

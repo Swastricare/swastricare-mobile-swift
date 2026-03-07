@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
 /**
@@ -58,7 +59,7 @@ fun OptionalUpdateDialog(
                 Text(
                     text = "Version $newVersion is available",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
 
                 if (!releaseNotes.isNullOrBlank()) {
@@ -71,7 +72,7 @@ fun OptionalUpdateDialog(
                     Text(
                         text = releaseNotes,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = AppColors.onSurfaceVariant,
                         textAlign = TextAlign.Start,
                         modifier = Modifier.fillMaxWidth()
                     )

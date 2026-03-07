@@ -10,6 +10,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.DietGoals
+import com.swasthicare.mobile.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +66,7 @@ fun DietSettingsSheet(
             Text(
                 "≈ ${cal * pPct / 400}g protein · ${cal * cPct / 400}g carbs · ${cal * fPct / 900}g fat",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = AppColors.onSurface.copy(alpha = 0.5f),
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 

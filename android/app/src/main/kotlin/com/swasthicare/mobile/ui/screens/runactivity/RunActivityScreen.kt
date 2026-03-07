@@ -22,8 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.data.models.ActivityType
+import com.swasthicare.mobile.data.models.RunActivity
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PremiumColor
 
 // ─────────────────────────────────────
@@ -32,11 +36,17 @@ import com.swasthicare.mobile.ui.theme.PremiumColor
 
 @Composable
 fun RunActivityScreen(
-    onNavigateToLiveWorkout: () -> Unit = {},
+    onNavigateToLiveWorkout: (WorkoutType?) -> Unit = {},
     onNavigateToActivityDetail: (String) -> Unit = {},
     onNavigateToCalendar: () -> Unit = {},
     onNavigateBack: (() -> Unit)? = null
 ) {
+    val viewModel = AppContainer.runActivityViewModel
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Refresh data when screen appears
+    LaunchedEffect(Unit) { viewModel.loadData() }
+
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
 
@@ -44,8 +54,6 @@ fun RunActivityScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-                .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(Modifier.height(16.dp))
@@ -61,7 +69,7 @@ fun RunActivityScreen(
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onBackground
+                            tint = AppColors.onBackground
                         )
                     }
                 }
@@ -70,26 +78,35 @@ fun RunActivityScreen(
                     "Activity",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = AppColors.onBackground,
                     modifier = if (onNavigateBack == null) Modifier else Modifier
                 )
 
                 Spacer(Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
+
+            // Today's stats from Health Connect
+            TodayStatsRow(
+                steps = uiState.todaySteps,
+                distanceKm = uiState.todayDistance,
+                calories = uiState.todayCalories
+            )
+
+            Spacer(Modifier.height(20.dp))
 
             // Start workout hero card
-            StartWorkoutCard(onClick = onNavigateToLiveWorkout)
+            StartWorkoutCard(onClick = { onNavigateToLiveWorkout(null) })
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
             // Quick start buttons
             Text(
                 "Quick Start",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
 
             Spacer(Modifier.height(12.dp))
@@ -102,49 +119,315 @@ fun RunActivityScreen(
                     icon = Icons.Default.DirectionsRun,
                     label = "Run",
                     color = Color(0xFF00E5FF),
-                    onClick = onNavigateToLiveWorkout,
+                    onClick = { onNavigateToLiveWorkout(WorkoutType.RUN) },
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.DirectionsWalk,
                     label = "Walk",
                     color = PremiumColor.NeonGreenEnd,
-                    onClick = onNavigateToLiveWorkout,
+                    onClick = { onNavigateToLiveWorkout(WorkoutType.WALK) },
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.DirectionsBike,
                     label = "Cycle",
                     color = Color(0xFFFFD60A),
-                    onClick = onNavigateToLiveWorkout,
+                    onClick = { onNavigateToLiveWorkout(WorkoutType.CYCLE) },
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.Terrain,
                     label = "Hike",
                     color = Color(0xFFBF5AF2),
-                    onClick = onNavigateToLiveWorkout,
+                    onClick = { onNavigateToLiveWorkout(WorkoutType.HIKE) },
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // Recent workouts placeholder
+            // Weekly statistics
+            if (uiState.statistics.totalActivities > 0) {
+                WeeklyStatsCard(uiState.statistics)
+                Spacer(Modifier.height(24.dp))
+            }
+
+            // Recent workouts
             Text(
                 "Recent Workouts",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
 
             Spacer(Modifier.height(12.dp))
 
-            EmptyWorkoutsCard()
+            if (uiState.activities.isEmpty()) {
+                EmptyWorkoutsCard()
+            } else {
+                // Show up to 10 recent workouts
+                uiState.activities.take(10).forEach { activity ->
+                    WorkoutHistoryCard(
+                        activity = activity,
+                        onClick = { onNavigateToActivityDetail(activity.id) }
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
+            }
 
             // Bottom spacer for navigation bar
             Spacer(Modifier.height(120.dp))
         }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Today's Stats Row
+// ─────────────────────────────────────
+
+@Composable
+private fun TodayStatsRow(steps: Int, distanceKm: Double, calories: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = 20.dp)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        TodayStatItem(
+            icon = Icons.Default.DirectionsWalk,
+            value = if (steps > 0) "%,d".format(steps) else "--",
+            label = "Steps",
+            color = Color(0xFF00E5FF)
+        )
+        TodayStatItem(
+            icon = Icons.Default.Route,
+            value = if (distanceKm > 0) "%.1f".format(distanceKm) else "--",
+            label = "km",
+            color = PremiumColor.NeonGreenEnd
+        )
+        TodayStatItem(
+            icon = Icons.Default.LocalFireDepartment,
+            value = if (calories > 0) "$calories" else "--",
+            label = "kcal",
+            color = Color(0xFFFF9F0A)
+        )
+    }
+}
+
+@Composable
+private fun TodayStatItem(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = color,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Weekly Stats Card
+// ─────────────────────────────────────
+
+@Composable
+private fun WeeklyStatsCard(
+    statistics: com.swasthicare.mobile.data.models.ActivityStatistics
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = 20.dp)
+            .padding(16.dp)
+    ) {
+        Text(
+            "This Period",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onSurface
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            StatColumn(
+                value = String.format("%.1f", statistics.totalDistanceKm),
+                label = "km total",
+                color = PremiumColor.NeonGreenEnd
+            )
+            StatColumn(
+                value = statistics.formattedTotalDuration,
+                label = "duration",
+                color = Color(0xFF00E5FF)
+            )
+            StatColumn(
+                value = "${statistics.totalActivities}",
+                label = "workouts",
+                color = Color(0xFFFFD60A)
+            )
+            StatColumn(
+                value = "${statistics.totalCalories}",
+                label = "kcal",
+                color = Color(0xFFFF9F0A)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatColumn(value: String, label: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Workout History Card (Strava-like)
+// ─────────────────────────────────────
+
+@Composable
+private fun WorkoutHistoryCard(
+    activity: RunActivity,
+    onClick: () -> Unit
+) {
+    val typeIcon = when (activity.activityType) {
+        ActivityType.RUNNING -> Icons.Default.DirectionsRun
+        ActivityType.WALKING -> Icons.Default.DirectionsWalk
+        ActivityType.CYCLING -> Icons.Default.DirectionsBike
+        ActivityType.HIKING -> Icons.Default.Terrain
+    }
+
+    val typeColor = when (activity.activityType) {
+        ActivityType.RUNNING -> Color(0xFF00E5FF)
+        ActivityType.WALKING -> PremiumColor.NeonGreenEnd
+        ActivityType.CYCLING -> Color(0xFFFFD60A)
+        ActivityType.HIKING -> Color(0xFFBF5AF2)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = 16.dp)
+            .clickable { onClick() }
+            .padding(14.dp)
+    ) {
+        // Top row: type icon + name + date
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(typeColor.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = typeIcon,
+                    contentDescription = null,
+                    tint = typeColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(Modifier.width(10.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = activity.activityType.displayName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onSurface
+                )
+                Text(
+                    text = activity.formattedDate,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.onSurfaceVariant
+                )
+            }
+
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = AppColors.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // Stats row: distance, duration, pace
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            WorkoutStatItem(
+                value = activity.formattedDistance,
+                label = "km"
+            )
+            WorkoutStatItem(
+                value = activity.formattedDuration,
+                label = "time"
+            )
+            WorkoutStatItem(
+                value = activity.formattedPace,
+                label = "/km"
+            )
+            WorkoutStatItem(
+                value = "${activity.caloriesBurned}",
+                label = "kcal"
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkoutStatItem(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant.copy(alpha = 0.7f)
+        )
     }
 }
 
@@ -168,7 +451,7 @@ private fun StartWorkoutCard(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(160.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(
                 brush = Brush.linearGradient(
@@ -217,7 +500,7 @@ private fun StartWorkoutCard(onClick: () -> Unit) {
 
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(56.dp)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
@@ -226,7 +509,7 @@ private fun StartWorkoutCard(onClick: () -> Unit) {
                     Icons.Default.PlayArrow,
                     contentDescription = "Start",
                     tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
@@ -269,7 +552,7 @@ private fun QuickStartButton(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = AppColors.onSurface,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
         )
@@ -293,19 +576,19 @@ private fun EmptyWorkoutsCard() {
         Icon(
             Icons.Default.DirectionsRun,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            tint = AppColors.onSurfaceVariant.copy(alpha = 0.4f),
             modifier = Modifier.size(48.dp)
         )
         Text(
             "No workouts yet",
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppColors.onSurfaceVariant,
             fontWeight = FontWeight.Medium
         )
         Text(
             "Start your first workout to see your\nactivity history and route maps here",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            color = AppColors.onSurfaceVariant.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
         )
     }

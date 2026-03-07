@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PremiumColor
 import kotlinx.coroutines.delay
 import kotlin.math.PI
@@ -61,7 +62,7 @@ fun Modifier.glass(
 ): Modifier {
     val isDark = isSystemInDarkTheme()
     val borderColor = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.35f)
-    val backgroundColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
+    val backgroundColor = if (isDark) AppColors.surface else Color.White
 
     // If accentColor provided, use a gradient border from accent to transparent
     val borderBrush = if (accentColor != null) {
@@ -169,7 +170,7 @@ fun PremiumBackground() {
         label = "pulse"
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
         // Gradient overlay for depth
         Box(
             modifier = Modifier
@@ -178,7 +179,7 @@ fun PremiumBackground() {
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f)
+                            AppColors.background.copy(alpha = 0.5f)
                         )
                     )
                 )
@@ -290,7 +291,7 @@ fun LivingStatusHeader(
                     text = userName,
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = AppColors.onBackground
                 )
 
                 // Pulsing Heart
@@ -316,7 +317,7 @@ fun LivingStatusHeader(
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = AppColors.primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -604,7 +605,7 @@ fun VitalCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
 
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -612,13 +613,13 @@ fun VitalCard(
                         text = value,
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = AppColors.onSurface
                     )
                     if (unit.isNotEmpty()) {
                         Text(
                             text = unit,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AppColors.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
                     }
@@ -699,12 +700,12 @@ fun DemoModeBanner(
                 text = "Demo Mode Active",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 text = "Showing sample health data. Enable health access for real data.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
     }
@@ -762,12 +763,12 @@ fun NudgeCard(
                     nudge.title,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 Text(
                     nudge.message,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    color = AppColors.onSurface.copy(alpha = 0.7f),
                     maxLines = 2,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
@@ -776,7 +777,7 @@ fun NudgeCard(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Dismiss",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                tint = AppColors.onSurface.copy(alpha = 0.4f),
                 modifier = Modifier
                     .size(18.dp)
                     .clickable { onDismiss() }
@@ -889,19 +890,19 @@ fun DietQuickActionCard(
                         "Diet Tracker",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = AppColors.onSurface
                     )
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             "$calorieCurrent",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = AppColors.onSurface
                         )
                         Text(
                             " / $calorieGoal cal",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            color = AppColors.onSurface.copy(alpha = 0.6f),
                             modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
                         )
                     }
@@ -911,7 +912,7 @@ fun DietQuickActionCard(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                tint = AppColors.onSurface.copy(alpha = 0.5f),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -1057,7 +1058,7 @@ fun HealthAuthBanner(
         Text(
             text = "Allow SwasthiCare to read your health data for personalized insights",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppColors.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         

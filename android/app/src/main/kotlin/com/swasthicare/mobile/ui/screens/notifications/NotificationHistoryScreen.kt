@@ -29,6 +29,7 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -194,7 +195,7 @@ fun NotificationHistoryScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
 
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar ──
             Row(
                 modifier = Modifier
@@ -203,7 +204,7 @@ fun NotificationHistoryScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(Icons.Default.ArrowBack, "Back", tint = AppColors.onSurface)
                 }
                 Text(
                     "Notifications",
@@ -215,7 +216,7 @@ fun NotificationHistoryScreen(
                     IconButton(onClick = { showClearDialog = true }) {
                         Icon(
                             Icons.Default.DeleteOutline, "Clear",
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            tint = AppColors.onSurface.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -228,7 +229,7 @@ fun NotificationHistoryScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        CircularProgressIndicator(color = AppColors.primary)
                     }
                 }
                 uiState.isEmpty -> {
@@ -267,7 +268,7 @@ fun NotificationHistoryScreen(
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            icon = { Icon(Icons.Default.DeleteOutline, null, tint = MaterialTheme.colorScheme.error) },
+            icon = { Icon(Icons.Default.DeleteOutline, null, tint = AppColors.error) },
             title = { Text("Clear Notification History") },
             text = { Text("This will remove all notification records from the past 7 days.") },
             confirmButton = {
@@ -276,7 +277,7 @@ fun NotificationHistoryScreen(
                         vm.clearHistory()
                         showClearDialog = false
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
                 ) { Text("Clear All") }
             },
             dismissButton = {
@@ -304,7 +305,7 @@ private fun DateHeader(dateKey: String) {
         text = label,
         fontSize = 14.sp,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+        color = AppColors.onSurface.copy(alpha = 0.5f),
         modifier = Modifier.padding(top = 4.dp)
     )
 }
@@ -352,13 +353,13 @@ private fun NotificationCard(record: NotificationRecord) {
                 Text(
                     record.formattedTime,
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    color = AppColors.onSurface.copy(alpha = 0.4f)
                 )
             }
             Text(
                 record.body,
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = AppColors.onSurface.copy(alpha = 0.6f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -381,12 +382,12 @@ private fun EmptyNotificationsView() {
                 "No Notifications",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = AppColors.onSurface.copy(alpha = 0.6f)
             )
             Text(
                 "Your notification history from the\npast 7 days will appear here",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                color = AppColors.onSurface.copy(alpha = 0.4f),
                 textAlign = TextAlign.Center
             )
         }

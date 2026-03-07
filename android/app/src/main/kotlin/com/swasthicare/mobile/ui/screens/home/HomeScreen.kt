@@ -69,7 +69,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                CircularProgressIndicator(color = AppColors.primary)
             }
         } else {
             // Staggered entrance animation state for each section
@@ -140,9 +140,9 @@ fun HomeScreen(
                                     brush = Brush.verticalGradient(
                                         colors = listOf(
                                             Color.Transparent,
-                                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                            MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
-                                            MaterialTheme.colorScheme.background
+                                            AppColors.background.copy(alpha = 0.5f),
+                                            AppColors.background.copy(alpha = 0.85f),
+                                            AppColors.background
                                         )
                                     )
                                 )
@@ -230,7 +230,7 @@ fun HomeScreen(
                     "Quick Actions",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = AppColors.onSurface,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
                 StaggeredEntrance(visible = sectionVisible[3].value) {
@@ -277,19 +277,19 @@ fun HomeScreen(
                                     Text(
                                         "Medication",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                        color = AppColors.onSurface.copy(alpha = 0.8f)
                                     )
                                     Row(verticalAlignment = Alignment.Bottom) {
                                         Text(
                                             "${uiState.medicationsTaken}",
                                             style = MaterialTheme.typography.headlineLarge,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            color = AppColors.onSurface
                                         )
                                         Text(
                                             "/${uiState.medicationsTotal}",
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            color = AppColors.onSurface.copy(alpha = 0.6f),
                                             modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
                                         )
                                     }
@@ -346,13 +346,13 @@ fun HomeScreen(
                                     Text(
                                         "Hydration",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                        color = AppColors.onSurface.copy(alpha = 0.8f)
                                     )
                                     Text(
                                         "${uiState.hydrationCurrent} ml",
                                         style = MaterialTheme.typography.headlineLarge,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = AppColors.onSurface
                                     )
                                     // Mini progress bar
                                     Box(
@@ -373,7 +373,7 @@ fun HomeScreen(
                                     Text(
                                         "Goal: ${uiState.hydrationGoal}",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        color = AppColors.onSurface.copy(alpha = 0.5f)
                                     )
                                 }
                             }
@@ -482,7 +482,7 @@ fun ActivityStatRow(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }

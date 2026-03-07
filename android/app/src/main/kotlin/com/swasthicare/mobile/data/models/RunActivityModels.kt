@@ -160,31 +160,66 @@ data class RunActivityDto(
 
 private val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
-fun RunActivity.toDto(profileId: String): RunActivityDto = RunActivityDto(
-    id = id,
-    healthProfileId = profileId,
-    activityType = activityType.dbValue,
-    startTime = startTime?.format(isoFormatter),
-    endTime = endTime?.format(isoFormatter),
-    distanceMeters = distanceMeters,
-    durationSeconds = durationSeconds,
-    avgPaceSecondsPerKm = avgPaceSecondsPerKm,
-    caloriesBurned = caloriesBurned,
-    avgHeartRate = avgHeartRate,
-    routeCoordinates = null, // Simplified: skip route serialization for now
-    splits = null
+private val routeJson = kotlinx.serialization.json.Json { encodeDefaults = true }
+
+@Serializable
+private data class RouteCoordinateDto(
+    val lat: Double,
+    val lng: Double,
+    val alt: Double = 0.0,
+    val ts: Long = 0
 )
 
-fun RunActivityDto.toDomain(): RunActivity = RunActivity(
-    id = id,
-    userId = healthProfileId,
-    activityType = ActivityType.fromDb(activityType),
-    startTime = startTime?.let { try { LocalDateTime.parse(it, isoFormatter) } catch (_: Exception) { null } },
-    endTime = endTime?.let { try { LocalDateTime.parse(it, isoFormatter) } catch (_: Exception) { null } },
-    distanceMeters = distanceMeters,
-    durationSeconds = durationSeconds,
-    avgPaceSecondsPerKm = avgPaceSecondsPerKm,
-    caloriesBurned = caloriesBurned,
-    avgHeartRate = avgHeartRate,
-    synced = true
-)
+fun RunActivity.toDto(profileId: String): RunActivityDto {
+    val routeCoordsJson = if (routeCoordinates.isNotEmpty()) {
+        routeJson.encodeToString(
+            kotlinx.serialization.builtins.ListSerializer(RouteCoordinateDto.serializer()),
+            routeCoordinates.map { rc ->
+                RouteCoordinateDto(lat = rc.latitude, lng = rc.longitude, alt = rc.altitude, ts = rc.timestamp)
+            }
+        )
+    } else null
+
+    return RunActivityDto(
+        id = id,
+        healthProfileId = profileId,
+        activityType = activityType.dbValue,
+        startTime = startTime?.format(isoFormatter),
+        endTime = endTime?.format(isoFormatter),
+        distanceMeters = distanceMeters,
+        durationSeconds = durationSeconds,
+        avgPaceSecondsPerKm = avgPaceSecondsPerKm,
+        caloriesBurned = caloriesBurned,
+        avgHeartRate = avgHeartRate,
+        routeCoordinates = routeCoordsJson,
+        splits = null
+    )
+}
+
+fun RunActivityDto.toDomain(): RunActivity {
+    val coords = routeCoordinates?.let { json ->
+        try {
+            routeJson.decodeFromString(
+                kotlinx.serialization.builtins.ListSerializer(RouteCoordinateDto.serializer()),
+                json
+            ).map { dto ->
+                RouteCoordinate(latitude = dto.lat, longitude = dto.lng, altitude = dto.alt, timestamp = dto.ts)
+            }
+        } catch (_: Exception) { emptyList() }
+    } ?: emptyList()
+
+    return RunActivity(
+        id = id,
+        userId = healthProfileId,
+        activityType = ActivityType.fromDb(activityType),
+        startTime = startTime?.let { try { LocalDateTime.parse(it, isoFormatter) } catch (_: Exception) { null } },
+        endTime = endTime?.let { try { LocalDateTime.parse(it, isoFormatter) } catch (_: Exception) { null } },
+        distanceMeters = distanceMeters,
+        durationSeconds = durationSeconds,
+        avgPaceSecondsPerKm = avgPaceSecondsPerKm,
+        caloriesBurned = caloriesBurned,
+        avgHeartRate = avgHeartRate,
+        routeCoordinates = coords,
+        synced = true
+    )
+}

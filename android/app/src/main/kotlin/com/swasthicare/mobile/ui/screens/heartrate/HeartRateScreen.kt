@@ -39,6 +39,7 @@ import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.HeartRateColor
 import com.swasthicare.mobile.ui.theme.PremiumColor
+import com.swasthicare.mobile.ui.theme.AppColors
 import kotlinx.coroutines.delay
 
 // Zone colors
@@ -87,7 +88,6 @@ fun HeartRateScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             // Top Bar
             Row(
@@ -99,7 +99,7 @@ fun HeartRateScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.Default.ArrowBack, "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = AppColors.onSurface
                     )
                 }
                 Text(
@@ -195,7 +195,7 @@ private fun HeartRateIdleView(
             Text(
                 text = "Last Reading",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.Bottom) {
@@ -203,12 +203,12 @@ private fun HeartRateIdleView(
                     text = "$lastBpm",
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 Text(
                     text = " BPM",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppColors.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
@@ -238,7 +238,7 @@ private fun HeartRateIdleView(
         Text(
             text = "Place your fingertip over the camera\nand flashlight to measure your heart rate",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppColors.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
@@ -327,12 +327,12 @@ private fun HeartRateMeasuringView(
                         text = "$currentBpm",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = AppColors.onSurface
                     )
                     Text(
                         text = "BPM",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -345,13 +345,13 @@ private fun HeartRateMeasuringView(
             text = phase.displayName,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = "Keep your finger steady on the camera",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
 
         Spacer(Modifier.height(16.dp))
@@ -389,7 +389,7 @@ private fun HeartRateMeasuringView(
                     .fillMaxWidth()
                     .height(80.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
+                    .background(AppColors.surface.copy(alpha = 0.3f))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             )
         } else {
@@ -399,13 +399,13 @@ private fun HeartRateMeasuringView(
                     .fillMaxWidth()
                     .height(80.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
+                    .background(AppColors.surface.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Waiting for signal...",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -539,12 +539,12 @@ fun HeartRateResultScreen(
                     text = "$bpm",
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 Text(
                     text = "BPM",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -608,7 +608,7 @@ fun HeartRateResultScreen(
             Text(
                 text = zone.description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
 
@@ -694,7 +694,7 @@ private fun HeartRateZoneBar(bpm: Int) {
             text = "Heart Rate Zone",
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
 
         Spacer(Modifier.height(12.dp))
@@ -790,11 +790,11 @@ private fun HeartRateZoneBar(bpm: Int) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("40", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("60", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("100", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("120", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("180", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("40", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+            Text("60", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+            Text("100", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+            Text("120", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+            Text("180", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
         }
     }
 }
@@ -828,13 +828,13 @@ private fun InfoCard(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
     }
 }

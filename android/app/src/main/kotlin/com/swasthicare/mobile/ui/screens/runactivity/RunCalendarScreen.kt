@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PremiumColor
 import kotlinx.coroutines.delay
 import java.time.DayOfWeek
@@ -106,7 +107,6 @@ fun RunCalendarScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             // 2. Top Bar
             TopBar(onNavigateBack = onNavigateBack)
@@ -178,7 +178,7 @@ private fun TopBar(onNavigateBack: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
                 contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onBackground
+                tint = AppColors.onBackground
             )
         }
 
@@ -186,7 +186,7 @@ private fun TopBar(onNavigateBack: () -> Unit) {
             text = "Activity Calendar",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = AppColors.onBackground,
             modifier = Modifier.weight(1f)
         )
     }
@@ -248,12 +248,12 @@ private fun MonthNavigationHeader(
                 text = selectedMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
             Text(
                 text = "$activeDays active days",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
 
@@ -333,7 +333,7 @@ private fun CalendarGrid(
                     text = day,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppColors.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
                 )
@@ -399,9 +399,9 @@ private fun CalendarDayCell(
 
     val textColor = when {
         isSelected -> Color.White
-        isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+        isFuture -> AppColors.onSurfaceVariant.copy(alpha = 0.3f)
         isToday -> AccentIndigo
-        else -> MaterialTheme.colorScheme.onSurface
+        else -> AppColors.onSurface
     }
 
     val backgroundColor = when {
@@ -485,7 +485,7 @@ private fun SelectedDaySection(
                 text = date.format(dateFormatter),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
             if (workouts.isNotEmpty()) {
                 Text(
@@ -584,12 +584,12 @@ private fun WorkoutCard(
                 text = workoutTypeLabel(workout.type),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 text = formatDuration(workout.durationMinutes),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
 
@@ -613,14 +613,14 @@ private fun WorkoutCard(
                     Text(
                         text = formatPace(pace),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
                 // Calories
                 Text(
                     text = "${workout.caloriesBurned} cal",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -629,7 +629,7 @@ private fun WorkoutCard(
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = "View detail",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            tint = AppColors.onSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.size(16.dp)
         )
     }
@@ -652,7 +652,7 @@ private fun EmptyDayCard() {
         Icon(
             imageVector = Icons.Default.DirectionsRun,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            tint = AppColors.onSurfaceVariant.copy(alpha = 0.4f),
             modifier = Modifier.size(28.dp)
         )
 
@@ -661,12 +661,12 @@ private fun EmptyDayCard() {
                 text = "No activities",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             Text(
                 text = "Rest day or no tracked workouts",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                color = AppColors.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
     }
@@ -705,7 +705,7 @@ private fun MonthlySummarySection(stats: MonthlyStats) {
             text = "Monthly Summary",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = AppColors.onBackground
         )
 
         Row(
@@ -825,14 +825,14 @@ private fun SummaryStatCard(
             text = value,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = AppColors.onSurface,
             textAlign = TextAlign.Center
         )
 
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppColors.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 1
         )

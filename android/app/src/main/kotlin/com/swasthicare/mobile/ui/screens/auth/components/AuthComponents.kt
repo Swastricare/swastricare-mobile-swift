@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.swasthicare.mobile.ui.theme.AppColors
 
 /**
  * Premium color palette matching iOS
@@ -63,20 +64,20 @@ fun PremiumTextField(
         Text(
             text = placeholder,
             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    AppColors.onSurface.copy(alpha = 0.05f),
                     RoundedCornerShape(16.dp)
                 )
                 .border(
                     width = 1.dp,
-                    color = if (isError) MaterialTheme.colorScheme.error
-                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    color = if (isError) AppColors.error
+                           else AppColors.onSurface.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 16.dp),
@@ -86,7 +87,7 @@ fun PremiumTextField(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (isError) AppColors.error else AppColors.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
 
@@ -101,8 +102,8 @@ fun PremiumTextField(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     cursorColor = PremiumColors.RoyalBlue,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    focusedTextColor = AppColors.onSurface,
+                    unfocusedTextColor = AppColors.onSurface
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
                 keyboardActions = keyboardActions,
@@ -136,20 +137,20 @@ fun PremiumSecureField(
         Text(
             text = placeholder,
             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    AppColors.onSurface.copy(alpha = 0.05f),
                     RoundedCornerShape(16.dp)
                 )
                 .border(
                     width = 1.dp,
-                    color = if (isError) MaterialTheme.colorScheme.error
-                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    color = if (isError) AppColors.error
+                           else AppColors.onSurface.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 16.dp),
@@ -159,7 +160,7 @@ fun PremiumSecureField(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (isError) AppColors.error else AppColors.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
 
@@ -175,8 +176,8 @@ fun PremiumSecureField(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     cursorColor = PremiumColors.RoyalBlue,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    focusedTextColor = AppColors.onSurface,
+                    unfocusedTextColor = AppColors.onSurface
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = imeAction),
                 keyboardActions = keyboardActions,
@@ -189,7 +190,7 @@ fun PremiumSecureField(
                 Icon(
                     imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                     contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -314,12 +315,12 @@ fun SocialLoginButton(
         modifier = modifier
             .height(56.dp)
             .background(
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                AppColors.onSurface.copy(alpha = 0.05f),
                 RoundedCornerShape(16.dp)
             )
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                color = AppColors.onSurface.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(enabled = enabled, onClick = onClick),
@@ -330,7 +331,7 @@ fun SocialLoginButton(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurface
+            tint = AppColors.onSurface
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
@@ -338,7 +339,7 @@ fun SocialLoginButton(
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
     }
 }
@@ -419,7 +420,7 @@ fun PremiumBackground(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(AppColors.background)
     ) {
         // Top Right - Blue circle
         Box(

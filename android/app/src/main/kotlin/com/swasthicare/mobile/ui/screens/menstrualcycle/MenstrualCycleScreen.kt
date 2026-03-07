@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -75,7 +76,6 @@ fun MenstrualCycleScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             // ── Top Bar ──
             Row(
@@ -87,7 +87,7 @@ fun MenstrualCycleScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.Default.ArrowBack, "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = AppColors.onSurface
                     )
                 }
                 Text(
@@ -101,7 +101,7 @@ fun MenstrualCycleScreen(
                 IconButton(onClick = { showSettingsSheet = true }) {
                     Icon(
                         Icons.Default.Settings, "Settings",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -314,7 +314,7 @@ private fun CycleStatusCard(
                     Text(
                         text = "Day",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                     Text(
                         text = "$currentDay",
@@ -325,7 +325,7 @@ private fun CycleStatusCard(
                     Text(
                         text = "of $totalDays",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -360,7 +360,7 @@ private fun CycleStatusCard(
                     Icon(
                         Icons.Default.Schedule,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = AppColors.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -369,7 +369,7 @@ private fun CycleStatusCard(
                         else
                             "Period expected today",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -415,7 +415,7 @@ private fun CycleCalendar(
                 Icon(
                     Icons.Default.ChevronLeft,
                     contentDescription = "Previous month",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = AppColors.onSurfaceVariant
                 )
             }
             Text(
@@ -427,7 +427,7 @@ private fun CycleCalendar(
                 Icon(
                     Icons.Default.ChevronRight,
                     contentDescription = "Next month",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -442,7 +442,7 @@ private fun CycleCalendar(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppColors.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -477,7 +477,7 @@ private fun CycleCalendar(
                         val textColor = when {
                             isLogged -> Color.White
                             isToday -> CyclePink
-                            else -> MaterialTheme.colorScheme.onSurface
+                            else -> AppColors.onSurface
                         }
 
                         Box(
@@ -537,7 +537,7 @@ private fun CalendarLegendItem(color: Color, label: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
     }
 }
@@ -592,7 +592,7 @@ private fun PhaseInfoCard(phase: CyclePhase) {
                 Text(
                     text = "Current Phase",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -614,7 +614,7 @@ private fun PhaseInfoCard(phase: CyclePhase) {
         Text(
             text = phase.description,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            color = AppColors.onSurface.copy(alpha = 0.85f),
             lineHeight = 22.sp
         )
 
@@ -623,7 +623,7 @@ private fun PhaseInfoCard(phase: CyclePhase) {
             text = "Typical Symptoms",
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             phase.symptoms.forEach { symptom ->
@@ -639,7 +639,7 @@ private fun PhaseInfoCard(phase: CyclePhase) {
                     Text(
                         text = symptom,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        color = AppColors.onSurface.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -650,7 +650,7 @@ private fun PhaseInfoCard(phase: CyclePhase) {
             text = "Recommendations",
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             phase.recommendations.forEachIndexed { index, rec ->
@@ -667,7 +667,7 @@ private fun PhaseInfoCard(phase: CyclePhase) {
                     Text(
                         text = rec,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        color = AppColors.onSurface.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -703,7 +703,7 @@ private fun TipsSection(phase: CyclePhase) {
                 text = "Phase Tips",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
 
             tips.forEachIndexed { index, tip ->
@@ -758,12 +758,12 @@ private fun TipCard(tip: PhaseTip, phase: CyclePhase, delay: Int) {
                 text = tip.title,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 text = tip.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = AppColors.onSurface.copy(alpha = 0.7f),
                 lineHeight = 18.sp
             )
         }
@@ -820,7 +820,7 @@ private fun StatisticsPreviewCard(
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = "View details",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = AppColors.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -891,7 +891,7 @@ private fun StatItem(label: String, value: String, color: Color) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
         Text(
             text = value,
@@ -926,7 +926,7 @@ private fun CycleSettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = AppColors.surface
     ) {
         Column(
             modifier = Modifier
@@ -973,8 +973,8 @@ private fun CycleSettingsSheet(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("21", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("45", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("21", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+                    Text("45", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
                 }
             }
 
@@ -1010,12 +1010,12 @@ private fun CycleSettingsSheet(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("2", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("10", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("2", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+                    Text("10", style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = AppColors.outlineVariant)
 
             // Notification Preferences
             Text(
@@ -1034,7 +1034,7 @@ private fun CycleSettingsSheet(
                     Text(
                         "Get notified before your period starts",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
                 Switch(
@@ -1054,7 +1054,7 @@ private fun CycleSettingsSheet(
                     Text(
                         "Get notified during your fertile window",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
                 Switch(
@@ -1074,7 +1074,7 @@ private fun CycleSettingsSheet(
                     Text(
                         "Get tips when PMS phase begins",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
                 Switch(
@@ -1126,7 +1126,7 @@ private fun CycleStatisticsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = AppColors.surface
     ) {
         Column(
             modifier = Modifier
@@ -1206,7 +1206,7 @@ private fun CycleStatisticsSheet(
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = AppColors.outlineVariant)
 
             // History List
             Text(
@@ -1221,7 +1221,7 @@ private fun CycleStatisticsSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                AppColors.surfaceVariant.copy(alpha = 0.5f),
                                 RoundedCornerShape(12.dp)
                             )
                             .padding(12.dp),
@@ -1387,7 +1387,7 @@ private fun SymptomFrequencyBar(
             Text(
                 text = symptom,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 text = "${(percentage * 100).toInt()}%",
@@ -1401,7 +1401,7 @@ private fun SymptomFrequencyBar(
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .background(AppColors.surfaceVariant)
         ) {
             Box(
                 modifier = Modifier

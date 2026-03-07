@@ -6,8 +6,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import com.swasthicare.mobile.ui.theme.AppColors
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -329,9 +329,9 @@ fun BottomFadeMask(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
-                        MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
-                        MaterialTheme.colorScheme.background
+                        AppColors.background.copy(alpha = 0.3f),
+                        AppColors.background.copy(alpha = 0.7f),
+                        AppColors.background
                     ),
                     startY = 0f,
                     endY = Float.POSITIVE_INFINITY

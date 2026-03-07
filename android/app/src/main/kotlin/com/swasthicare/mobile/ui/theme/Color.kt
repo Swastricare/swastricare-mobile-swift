@@ -1,5 +1,8 @@
 package com.swasthicare.mobile.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
@@ -44,6 +47,77 @@ val NutritionFat = Color(0xFFFFD93D)
 // Danger / Warning
 val DangerRed = Color(0xFFFF453A)
 val WarningOrange = Color(0xFFFF9F0A)
+
+// Theme-aware semantic color accessor
+object AppColors {
+    val background: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) BackgroundDark else BackgroundLight
+
+    val surface: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) SurfaceDark else SurfaceLight
+
+    val surfaceVariant: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFF2C2C2E) else Color(0xFFE5E5EA)
+
+    val primary: Color
+        @Composable @ReadOnlyComposable
+        get() = PrimaryColor
+
+    val secondary: Color
+        @Composable @ReadOnlyComposable
+        get() = SecondaryColor
+
+    val error: Color
+        @Composable @ReadOnlyComposable
+        get() = DangerRed
+
+    val errorContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFF93000A) else Color(0xFFFFDAD6)
+
+    val onPrimary: Color
+        @Composable @ReadOnlyComposable
+        get() = Color.White
+
+    val onSecondary: Color
+        @Composable @ReadOnlyComposable
+        get() = Color.Black
+
+    val onBackground: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) TextPrimaryDark else TextPrimaryLight
+
+    val onSurface: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) TextPrimaryDark else TextPrimaryLight
+
+    val onSurfaceVariant: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFFAEAEB2) else TextSecondaryLight
+
+    val onErrorContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFFFFDAD6) else Color(0xFF410002)
+
+    val primaryContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFF2A2570) else Color(0xFFE8E5FF)
+
+    val onPrimaryContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFFE8E5FF) else Color(0xFF1B1464)
+
+    val outline: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFF8E8E93) else Color(0xFFC7C7CC)
+
+    val outlineVariant: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFF48484A) else Color(0xFFD1D1D6)
+}
 
 // Premium Colors (Ported from iOS)
 object PremiumColor {

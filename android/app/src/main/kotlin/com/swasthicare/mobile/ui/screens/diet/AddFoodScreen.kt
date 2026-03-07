@@ -33,6 +33,7 @@ import com.swasthicare.mobile.data.models.FoodItem
 import com.swasthicare.mobile.data.models.MealType
 import com.swasthicare.mobile.data.models.ServingUnit
 import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.ui.theme.AppColors
 
 // ─────────────────────────────────────
 // MARK: - AddFoodScreen
@@ -58,13 +59,14 @@ fun AddFoodScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
                     TextField(
                         value = searchText,
                         onValueChange = { searchText = it },
-                        placeholder = { Text("Search foods...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) },
+                        placeholder = { Text("Search foods...", color = AppColors.onSurface.copy(alpha = 0.4f)) },
                         singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -77,7 +79,7 @@ fun AddFoodScreen(
                 },
                 navigationIcon = {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
+                        Text("Cancel", color = AppColors.onSurface)
                     }
                 },
                 actions = {
@@ -107,10 +109,11 @@ fun AddFoodScreen(
                     }
                     Spacer(Modifier.width(8.dp))
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = AppColors.surface
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -127,7 +130,7 @@ fun AddFoodScreen(
                         Text(
                             "${searchResults.size} results",
                             fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
@@ -139,7 +142,7 @@ fun AddFoodScreen(
                             onToggleFavorite = { vm.toggleFavorite(food.id) }
                         )
                         Divider(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            color = AppColors.onSurface.copy(alpha = 0.05f),
                             modifier = Modifier.padding(start = 78.dp)
                         )
                     }
@@ -232,8 +235,8 @@ private fun RecentFoodsSection(foods: List<FoodItem>, onSelect: (FoodItem) -> Un
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(Icons.Default.History, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.size(15.dp))
-            Text("Recent", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Icon(Icons.Default.History, null, tint = AppColors.onSurface.copy(alpha = 0.5f), modifier = Modifier.size(15.dp))
+            Text("Recent", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AppColors.onSurface.copy(alpha = 0.5f))
         }
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -273,7 +276,7 @@ private fun FavoriteFoodsSection(foods: List<FoodItem>, onSelect: (FoodItem) -> 
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Icon(Icons.Default.Favorite, null, tint = Color(0xFFFF2D55), modifier = Modifier.size(14.dp))
-            Text("Favorites", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Text("Favorites", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AppColors.onSurface.copy(alpha = 0.5f))
         }
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -315,7 +318,7 @@ private fun CategoryGridSection(onCategorySelect: (FoodCategory) -> Unit) {
             "Browse by Category",
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            color = AppColors.onSurface.copy(alpha = 0.5f),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         LazyVerticalGrid(
@@ -343,7 +346,7 @@ private fun CategoryGridSection(onCategorySelect: (FoodCategory) -> Unit) {
                         category.displayName,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = AppColors.onSurface,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -378,7 +381,7 @@ private fun CustomFoodButton(
         Icon(Icons.Default.AddCircle, null, tint = DietGreen, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))
         Text("Add Custom Food", fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-        Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), modifier = Modifier.size(18.dp))
+        Icon(Icons.Default.ChevronRight, null, tint = AppColors.onSurface.copy(alpha = 0.3f), modifier = Modifier.size(18.dp))
     }
 
     if (showDialog) {
@@ -466,9 +469,9 @@ private fun SearchEmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
-        Text("No foods found", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-        Text("Try a different search term", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+        Icon(Icons.Default.Search, null, tint = AppColors.onSurface.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
+        Text("No foods found", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = AppColors.onSurface.copy(alpha = 0.5f))
+        Text("Try a different search term", fontSize = 14.sp, color = AppColors.onSurface.copy(alpha = 0.4f))
     }
 }
 
@@ -497,7 +500,7 @@ fun FoodQuantitySheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = AppColors.surface
     ) {
         Column(
             modifier = Modifier
@@ -528,13 +531,13 @@ fun FoodQuantitySheet(
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(food.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
-                    Text("${food.displayServingSize} per serving", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Text("${food.displayServingSize} per serving", fontSize = 14.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
                 }
                 IconButton(onClick = onToggleFavorite) {
                     Icon(
                         if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         "Favorite",
-                        tint = if (isFavorite) Color(0xFFFF2D55) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        tint = if (isFavorite) Color(0xFFFF2D55) else AppColors.onSurface.copy(alpha = 0.4f),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -548,7 +551,7 @@ fun FoodQuantitySheet(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Servings", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                Text("Servings", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = AppColors.onSurface.copy(alpha = 0.5f))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(24.dp)
@@ -559,7 +562,7 @@ fun FoodQuantitySheet(
                     ) {
                         Icon(
                             Icons.Default.RemoveCircle, "Decrease",
-                            tint = if (quantity > 0.5) DietGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            tint = if (quantity > 0.5) DietGreen else AppColors.onSurface.copy(alpha = 0.3f),
                             modifier = Modifier.size(40.dp)
                         )
                     }
@@ -576,7 +579,7 @@ fun FoodQuantitySheet(
                     ) {
                         Icon(
                             Icons.Default.AddCircle, "Increase",
-                            tint = if (quantity < 10.0) DietGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            tint = if (quantity < 10.0) DietGreen else AppColors.onSurface.copy(alpha = 0.3f),
                             modifier = Modifier.size(40.dp)
                         )
                     }
@@ -625,6 +628,6 @@ private fun NutritionPill(label: String, value: String, color: Color, modifier: 
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color)
-        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        Text(label, fontSize = 11.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,13 +65,13 @@ fun ConsentScreen(onAccepted: () -> Unit) {
                 "Privacy & Consent",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 "Please review and accept the following to continue",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = AppColors.onBackground.copy(alpha = 0.6f)
             )
 
             Spacer(Modifier.height(32.dp))
@@ -142,7 +143,7 @@ fun ConsentScreen(onAccepted: () -> Unit) {
     if (showTermsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showTermsSheet = false },
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = AppColors.surface
         ) {
             ConsentDetailContent(
                 title = "Terms of Service",
@@ -156,7 +157,7 @@ fun ConsentScreen(onAccepted: () -> Unit) {
     if (showPrivacySheet) {
         ModalBottomSheet(
             onDismissRequest = { showPrivacySheet = false },
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = AppColors.surface
         ) {
             ConsentDetailContent(
                 title = "Privacy Policy",
@@ -197,7 +198,7 @@ private fun ConsentCard(
         label = "checkScale"
     )
 
-    val borderColor = if (isChecked) iconColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    val borderColor = if (isChecked) iconColor else AppColors.onSurface.copy(alpha = 0.1f)
 
     Row(
         modifier = Modifier
@@ -205,7 +206,7 @@ private fun ConsentCard(
             .alpha(animAlpha)
             .offset(y = animOffset.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -224,7 +225,7 @@ private fun ConsentCard(
                 )
                 .then(
                     if (!isChecked) Modifier.background(
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                        AppColors.onSurface.copy(alpha = 0.1f),
                         CircleShape
                     ) else Modifier
                 ),
@@ -250,14 +251,14 @@ private fun ConsentCard(
                     title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
             }
             Spacer(Modifier.height(4.dp))
             Text(
                 description,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = AppColors.onSurface.copy(alpha = 0.5f),
                 lineHeight = 16.sp
             )
         }
@@ -269,7 +270,7 @@ private fun ConsentCard(
             ) {
                 Icon(
                     Icons.Default.ChevronRight, "Read More",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    tint = AppColors.onSurface.copy(alpha = 0.4f)
                 )
             }
         }
@@ -304,7 +305,7 @@ private fun ConsentDetailContent(
                 content,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                color = AppColors.onSurface.copy(alpha = 0.8f)
             )
         }
         Spacer(Modifier.height(16.dp))

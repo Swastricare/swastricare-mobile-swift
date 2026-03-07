@@ -36,6 +36,7 @@ import com.swasthicare.mobile.data.models.AdherenceStatus
 import com.swasthicare.mobile.data.models.MedicationDose
 import com.swasthicare.mobile.data.models.MedicationType
 import com.swasthicare.mobile.ui.screens.home.WaterWave
+import com.swasthicare.mobile.ui.theme.AppColors
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -166,7 +167,7 @@ private fun CalendarDay(
                 text = dayAbbr,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = if (isSelected) Color.White else AppColors.onSurface.copy(alpha = 0.5f)
             )
             // Number inside circle when selected
             Box(
@@ -182,7 +183,7 @@ private fun CalendarDay(
                     text = date.dayOfMonth.toString(),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                    color = if (isSelected) Color.White else AppColors.onSurface
                 )
             }
         }
@@ -307,7 +308,7 @@ fun PillBottleView(
                     text = "${(animatedFill * 100).toInt()}%",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 if (animatedFill >= 1f) {
                     Icon(
@@ -355,12 +356,12 @@ fun MedicationStatPill(
             text = value,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
         Text(
             text = label,
             fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            color = AppColors.onSurface.copy(alpha = 0.5f),
             maxLines = 1
         )
     }
@@ -427,7 +428,7 @@ fun TimelineMedicationCard(
                     text = dose.medicationName,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = AppColors.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -439,12 +440,12 @@ fun TimelineMedicationCard(
                         Text(
                             text = dose.dosage,
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            color = AppColors.onSurface.copy(alpha = 0.5f)
                         )
                         Text(
                             text = "·",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            color = AppColors.onSurface.copy(alpha = 0.5f)
                         )
                     }
                     Row(
@@ -532,7 +533,7 @@ fun DoseCard(
                     text = dose.scheduledTime.format(timeFormatter),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -572,7 +573,7 @@ fun DoseCard(
                     Text(
                         text = "at ${dose.takenAt.format(timeFormatter)}",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        color = AppColors.onSurface.copy(alpha = 0.5f)
                     )
                 }
             }
@@ -613,21 +614,21 @@ fun DetailRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                tint = AppColors.onSurface.copy(alpha = 0.5f),
                 modifier = Modifier.size(14.dp)
             )
             Text(
                 text = label,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = AppColors.onSurface.copy(alpha = 0.5f)
             )
         }
         Text(
             text = value,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
     }
 }
@@ -660,7 +661,7 @@ fun MedicationStatCard(
         Text(
             text = title,
             fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = AppColors.onSurface.copy(alpha = 0.5f)
         )
     }
 }
@@ -686,12 +687,12 @@ fun MedicationTypeCard(
             .clip(RoundedCornerShape(14.dp))
             .background(
                 if (isSelected) MedBrandBlue
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                else AppColors.onSurface.copy(alpha = 0.05f)
             )
             .border(
                 width = 1.dp,
                 color = if (isSelected) Color.Transparent
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                        else AppColors.onSurface.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(14.dp)
             )
             .clickable(
@@ -715,7 +716,7 @@ fun MedicationTypeCard(
                 text = type.displayName,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                color = if (isSelected) Color.White else AppColors.onSurface
             )
         }
     }
@@ -765,12 +766,12 @@ fun ScheduleTemplateCard(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 Text(
                     text = description,
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = AppColors.onSurface.copy(alpha = 0.5f)
                 )
             }
             if (isSelected) {

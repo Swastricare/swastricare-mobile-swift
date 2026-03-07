@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.ui.screens.auth.components.*
+import com.swasthicare.mobile.ui.theme.AppColors
 import kotlinx.coroutines.delay
 
 @Composable
@@ -174,7 +175,7 @@ fun LoginScreen(
                                 errorMessage ?: "",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.error,
+                                color = AppColors.error,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -198,9 +199,9 @@ fun LoginScreen(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                                Text("OR", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                HorizontalDivider(modifier = Modifier.weight(1f), color = AppColors.onSurface.copy(alpha = 0.1f))
+                                Text("OR", style = MaterialTheme.typography.bodySmall, color = AppColors.onSurfaceVariant)
+                                HorizontalDivider(modifier = Modifier.weight(1f), color = AppColors.onSurface.copy(alpha = 0.1f))
                             }
 
                             // Two social buttons side-by-side (matching iOS)

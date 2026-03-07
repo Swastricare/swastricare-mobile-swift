@@ -46,6 +46,7 @@ import com.swasthicare.mobile.data.models.HealthAnalysisResult
 import com.swasthicare.mobile.data.models.QuickAction
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -74,103 +75,93 @@ fun AIScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.navigationBarsPadding(),
-        topBar = {
-            // Invisible top bar to respect safe area, content handles headers
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            PremiumBackground()
-            
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .imePadding() // Handles keyboard overlap
-            ) {
-                // Header
-                CenterAlignedTopAppBar(
-                    title = { Text("Swastri AI", fontWeight = FontWeight.Bold) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
-                    ),
-                    actions = {
-                        IconButton(onClick = { viewModel.clearChat() }) {
-                            Box(
-                                modifier = Modifier
-                                    .glass(cornerRadius = 20.dp)
-                                    .padding(8.dp)
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear Chat", modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        PremiumBackground()
 
-                Box(modifier = Modifier.weight(1f)) {
-                    if (uiState.messages.isEmpty() && uiState.showEmptyState) {
-                        IntroView(
-                            onAnalyzeClick = { viewModel.sendQuickAction(QuickAction.suggestions[0]) },
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxSize()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding() // Handles keyboard overlap
+        ) {
+            // Header
+            CenterAlignedTopAppBar(
+                title = { Text("Swastri AI", fontWeight = FontWeight.Bold) },
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent
+                ),
+                actions = {
+                    IconButton(onClick = { viewModel.clearChat() }) {
+                        Box(
+                            modifier = Modifier
+                                .glass(cornerRadius = 20.dp)
+                                .padding(8.dp)
                         ) {
-                            items(uiState.messages, key = { it.id }) { message ->
-                                ChatBubble(message = message)
-                            }
+                            Icon(Icons.Default.Close, contentDescription = "Clear Chat", modifier = Modifier.size(16.dp))
                         }
                     }
                 }
+            )
 
-                ChatInputBar(
-                    inputText = uiState.inputText,
-                    onTextChanged = viewModel::onInputTextChanged,
-                    onSendClick = viewModel::sendMessage,
-                    onQuickActionClick = viewModel::sendQuickAction,
-                    onMicClick = {
-                        // Check logic handled inside viewmodel? No, permission check here first
-                        if (uiState.isRecording) {
-                             viewModel.toggleRecording()
-                        } else {
-                            // Check permission
-                            permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+            Box(modifier = Modifier.weight(1f)) {
+                if (uiState.messages.isEmpty() && uiState.showEmptyState) {
+                    IntroView(
+                        onAnalyzeClick = { viewModel.sendQuickAction(QuickAction.suggestions[0]) },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(uiState.messages, key = { it.id }) { message ->
+                            ChatBubble(message = message)
                         }
-                    },
-                    isRecording = uiState.isRecording,
-                    showSuggestions = uiState.messages.isEmpty(),
-                    isLoading = uiState.isLoading
-                )
-            }
-            
-            // Analysis Overlay
-            if (uiState.analysisState !is AnalysisState.Idle) {
-                AnalysisResultOverlay(
-                    state = uiState.analysisState,
-                    onDismiss = { viewModel.dismissAnalysis() }
-                )
-            }
-
-            // Error Toast
-            if (uiState.error != null) {
-                Snackbar(
-                    modifier = Modifier.padding(16.dp).align(Alignment.TopCenter),
-                    action = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Dismiss", color = MaterialTheme.colorScheme.onErrorContainer)
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                ) {
-                    Text(uiState.error!!)
+                    }
                 }
+            }
+
+            ChatInputBar(
+                inputText = uiState.inputText,
+                onTextChanged = viewModel::onInputTextChanged,
+                onSendClick = viewModel::sendMessage,
+                onQuickActionClick = viewModel::sendQuickAction,
+                onMicClick = {
+                    if (uiState.isRecording) {
+                         viewModel.toggleRecording()
+                    } else {
+                        permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                isRecording = uiState.isRecording,
+                showSuggestions = uiState.messages.isEmpty(),
+                isLoading = uiState.isLoading
+            )
+        }
+
+        // Analysis Overlay
+        if (uiState.analysisState !is AnalysisState.Idle) {
+            AnalysisResultOverlay(
+                state = uiState.analysisState,
+                onDismiss = { viewModel.dismissAnalysis() }
+            )
+        }
+
+        // Error Toast
+        if (uiState.error != null) {
+            Snackbar(
+                modifier = Modifier.padding(16.dp).align(Alignment.TopCenter),
+                action = {
+                    TextButton(onClick = { viewModel.clearError() }) {
+                        Text("Dismiss", color = AppColors.onErrorContainer)
+                    }
+                },
+                containerColor = AppColors.errorContainer,
+                contentColor = AppColors.onErrorContainer
+            ) {
+                Text(uiState.error!!)
             }
         }
     }
@@ -189,13 +180,13 @@ fun IntroView(
         Box(
             modifier = Modifier
                 .size(80.dp)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                .background(AppColors.primary.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Rounded.AutoAwesome,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = AppColors.primary,
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -210,7 +201,7 @@ fun IntroView(
             Text(
                 text = "Your personal health assistant.\nAsk me anything about your vitals, diet, or fitness.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = AppColors.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 lineHeight = 24.sp
             )
@@ -219,7 +210,7 @@ fun IntroView(
         Button(
             onClick = onAnalyzeClick,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = AppColors.primary
             ),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
         ) {
@@ -234,16 +225,16 @@ fun IntroView(
 fun ChatBubble(message: ChatMessage) {
     val isUser = message.isUser
     val align = if (isUser) Alignment.End else Alignment.Start
-    val bgColor = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-    val textColor = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    val bgColor = if (isUser) AppColors.primaryContainer else AppColors.surfaceVariant
+    val textColor = if (isUser) AppColors.onPrimaryContainer else AppColors.onSurfaceVariant
     val shape = if (isUser) RoundedCornerShape(20.dp, 4.dp, 20.dp, 20.dp) else RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
 
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = align) {
         if (!isUser) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
-                Text("Swastri", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                Text("just now", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(12.dp), tint = AppColors.primary)
+                Text("Swastri", style = MaterialTheme.typography.labelSmall, color = AppColors.secondary)
+                Text("just now", style = MaterialTheme.typography.labelSmall, color = AppColors.outline)
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
@@ -372,9 +363,9 @@ fun TypingIndicator() {
         )
     )
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = alpha), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = alpha), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = alpha), CircleShape))
     }
 }
 
@@ -437,7 +428,7 @@ fun ChatInputBar(
                 enabled = inputText.isNotEmpty() && !isLoading,
                 modifier = Modifier
                     .background(
-                        if (inputText.isNotEmpty()) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f),
+                        if (inputText.isNotEmpty()) AppColors.primary else Color.Gray.copy(alpha = 0.3f),
                         CircleShape
                     )
                     .size(40.dp)
@@ -457,7 +448,7 @@ fun ChatInputBar(
                 onClick = onMicClick,
                 modifier = Modifier
                     .background(
-                        if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        if (isRecording) AppColors.error else AppColors.surfaceVariant.copy(alpha = 0.5f),
                         CircleShape
                     )
                     .size(40.dp)
@@ -465,7 +456,7 @@ fun ChatInputBar(
                 Icon(
                     if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
                     contentDescription = "Mic",
-                    tint = if (isRecording) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isRecording) Color.White else AppColors.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -488,11 +479,11 @@ fun QuickActionButton(action: QuickAction, onClick: () -> Unit) {
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(action.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+            Text(action.title, style = MaterialTheme.typography.titleSmall, color = AppColors.onSurface)
             Text(
                 action.prompt,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = AppColors.onSurfaceVariant,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
@@ -529,25 +520,25 @@ fun AnalysisResultOverlay(
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("Health Analysis", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
+                        Card(colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f))) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Assessment", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                                Text("Assessment", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(state.result.analysis.assessment)
                             }
                         }
 
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
+                        Card(colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f))) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Insights", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                                Text("Insights", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(state.result.analysis.insights)
                             }
                         }
                         
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
+                        Card(colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f))) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Recommendations", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                                Text("Recommendations", style = MaterialTheme.typography.titleMedium, color = AppColors.primary)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 state.result.analysis.recommendations.forEachIndexed { index, rec ->
                                     Text("${index + 1}. $rec", modifier = Modifier.padding(vertical = 4.dp))
@@ -562,7 +553,7 @@ fun AnalysisResultOverlay(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
+                        Icon(Icons.Default.Close, contentDescription = null, tint = AppColors.error, modifier = Modifier.size(48.dp))
                         Text("Analysis failed: ${state.message}")
                         Button(onClick = onDismiss) { Text("Close") }
                     }

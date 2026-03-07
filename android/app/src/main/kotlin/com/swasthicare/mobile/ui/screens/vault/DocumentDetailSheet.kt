@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -64,7 +65,7 @@ fun DocumentDetailSheet(
                 Icon(
                     Icons.Default.Warning,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
+                    tint = AppColors.error
                 )
             },
             title = { Text("Delete Document") },
@@ -79,7 +80,7 @@ fun DocumentDetailSheet(
                         onDismiss()
                     },
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
+                        contentColor = AppColors.error
                     )
                 ) {
                     Text("Delete", fontWeight = FontWeight.Bold)
@@ -129,7 +130,7 @@ fun DocumentDetailSheet(
                 text = "Document Name",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             OutlinedTextField(
                 value = editedTitle,
@@ -152,7 +153,7 @@ fun DocumentDetailSheet(
                 text = "Category",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -193,7 +194,7 @@ fun DocumentDetailSheet(
                 text = "File Information",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
 
             Row(
@@ -268,7 +269,7 @@ fun DocumentDetailSheet(
                 text = "Tags",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
 
             FlowRow(
@@ -327,9 +328,9 @@ fun DocumentDetailSheet(
                             Icons.Default.Add,
                             contentDescription = "Add tag",
                             tint = if (newTagText.isNotBlank())
-                                MaterialTheme.colorScheme.primary
+                                AppColors.primary
                             else
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                AppColors.onSurfaceVariant.copy(alpha = 0.3f)
                         )
                     }
                 }
@@ -348,7 +349,7 @@ fun DocumentDetailSheet(
                 text = "Notes",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             OutlinedTextField(
                 value = editedNotes,
@@ -372,7 +373,7 @@ fun DocumentDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = AppColors.primary
                 )
             ) {
                 Icon(
@@ -425,11 +426,11 @@ fun DocumentDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
+                    contentColor = AppColors.error
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                    AppColors.error.copy(alpha = 0.5f)
                 )
             ) {
                 Icon(
@@ -461,13 +462,13 @@ private fun InfoRow(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            tint = AppColors.primary.copy(alpha = 0.7f)
         )
         Column {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             Text(
                 text = value,

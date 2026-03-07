@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.*
+import com.swasthicare.mobile.ui.theme.AppColors
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -226,7 +227,7 @@ private fun HydrationCalendarDay(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = if (isSelected) Color.White
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                else AppColors.onSurface.copy(alpha = 0.5f)
             )
             Box(
                 modifier = Modifier
@@ -242,7 +243,7 @@ private fun HydrationCalendarDay(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isSelected) Color.White
-                    else MaterialTheme.colorScheme.onSurface
+                    else AppColors.onSurface
                 )
             }
         }
@@ -279,12 +280,12 @@ fun HydrationStatPill(
             text = value,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
         Text(
             text = label,
             fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            color = AppColors.onSurface.copy(alpha = 0.5f),
             maxLines = 1,
             textAlign = TextAlign.Center
         )
@@ -313,7 +314,7 @@ fun DrinkTypePicker(
                 label = "drinkChip"
             )
             val textColor = if (isSelected) Color.White
-            else MaterialTheme.colorScheme.onSurface
+            else AppColors.onSurface
 
             Box(
                 modifier = Modifier
@@ -325,7 +326,7 @@ fun DrinkTypePicker(
                     ) { onTypeSelected(type) }
                     .then(
                         if (!isSelected) Modifier.background(
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                            AppColors.onSurface.copy(alpha = 0.06f),
                             RoundedCornerShape(20.dp)
                         ) else Modifier
                     )
@@ -420,14 +421,14 @@ fun HydrationEntryCard(
                 text = drinkType.displayName,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = AppColors.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "${entry.amountMl}ml · ${entry.effectiveMl}ml effective · ${entry.formattedTime}",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = AppColors.onSurface.copy(alpha = 0.5f)
             )
         }
 
@@ -480,7 +481,7 @@ fun HydrationInsightsCard(
         }
 
         insights.mostCommonDrink?.let { drink ->
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            HorizontalDivider(color = AppColors.onSurface.copy(alpha = 0.08f))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -489,7 +490,7 @@ fun HydrationInsightsCard(
                 Text(
                     "Most common: $drink",
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = AppColors.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
@@ -503,7 +504,7 @@ fun HydrationInsightsCard(
                 Text(
                     "Caffeine today: ${insights.caffeineAmountMl}ml (${insights.caffeineCount} drinks)",
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = AppColors.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
@@ -522,8 +523,8 @@ private fun InsightItem(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
-        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AppColors.onSurface)
+        Text(label, fontSize = 12.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
     }
 }
 
@@ -543,7 +544,7 @@ fun UrineColorGuideSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = AppColors.surface
     ) {
         Column(
             modifier = Modifier
@@ -562,7 +563,7 @@ fun UrineColorGuideSheet(
             Text(
                 "Tap a color to check your hydration level",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = AppColors.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -573,8 +574,8 @@ fun UrineColorGuideSheet(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(
-                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            if (isSelected) AppColors.primaryContainer
+                            else AppColors.surfaceVariant.copy(alpha = 0.3f)
                         )
                         .clickable { selectedLevel = if (isSelected) null else level.level }
                         .padding(12.dp),
@@ -588,7 +589,7 @@ fun UrineColorGuideSheet(
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color(level.colorHex))
                             .then(
-                                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                                if (isSelected) Modifier.border(2.dp, AppColors.primary, RoundedCornerShape(8.dp))
                                 else Modifier
                             )
                     )
@@ -598,7 +599,7 @@ fun UrineColorGuideSheet(
                             level.name,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = AppColors.onSurface
                         )
                         Text(
                             level.status,
@@ -613,7 +614,7 @@ fun UrineColorGuideSheet(
                         Text(
                             level.recommendation,
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
                             maxLines = if (isSelected) Int.MAX_VALUE else 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -730,12 +731,12 @@ fun WeatherAdjustmentBanner(
                 text = "It's ${String.format("%.0f", temperature)}\u00B0C in $city",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 text = "Your hydration goal has been increased by 20% (${baseGoal}ml \u2192 ${adjustedGoal}ml)",
                 fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = AppColors.onSurface.copy(alpha = 0.6f)
             )
         }
     }
@@ -747,7 +748,7 @@ fun WeatherAdjustmentBanner(
 
 @Composable
 fun HydrationSkeletonContent() {
-    val shimmer = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)
+    val shimmer = AppColors.onSurface.copy(alpha = 0.07f)
     Column(
         modifier = Modifier.fillMaxSize().padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)

@@ -31,6 +31,7 @@ import com.swasthicare.mobile.data.models.QuickAddPreset
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 
 // ─────────────────────────────────────
 // MARK: - HydrationScreen
@@ -60,7 +61,6 @@ fun HydrationScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             // ── Top Bar ──
             Row(
@@ -72,7 +72,7 @@ fun HydrationScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.Default.ArrowBack, "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = AppColors.onSurface
                     )
                 }
                 Text(
@@ -82,7 +82,7 @@ fun HydrationScreen(
                     modifier = Modifier.weight(1f).padding(start = 4.dp)
                 )
                 IconButton(onClick = onNavigateToSettings) {
-                    Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    Icon(Icons.Default.Settings, "Settings", tint = AppColors.onSurface.copy(alpha = 0.7f))
                 }
                 IconButton(onClick = onNavigateToAI) {
                     Icon(Icons.Default.AutoAwesome, "Ask AI", tint = HydrationCyan)
@@ -139,7 +139,7 @@ fun HydrationScreen(
                                     else
                                         "Goal: ${uiState.effectiveGoalMl}ml",
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    color = AppColors.onSurface.copy(alpha = 0.5f)
                                 )
 
                                 // Water Glass
@@ -307,7 +307,7 @@ fun HydrationScreen(
                                         )
                                         if (index < uiState.todaysEntries.lastIndex) {
                                             HorizontalDivider(
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                                                color = AppColors.onSurface.copy(alpha = 0.06f),
                                                 modifier = Modifier.padding(start = 60.dp)
                                             )
                                         }
@@ -330,12 +330,12 @@ fun HydrationScreen(
                                         "No drinks logged yet",
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        color = AppColors.onSurface.copy(alpha = 0.6f)
                                     )
                                     Text(
                                         "Tap a Quick Add button or enter a custom amount to start tracking",
                                         fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        color = AppColors.onSurface.copy(alpha = 0.4f),
                                         textAlign = TextAlign.Center
                                     )
                                 }

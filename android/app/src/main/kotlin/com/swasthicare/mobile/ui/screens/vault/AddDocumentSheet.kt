@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.swasthicare.mobile.data.model.DocumentMetadata
 import com.swasthicare.mobile.data.model.VaultCategory
+import com.swasthicare.mobile.ui.theme.AppColors
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -78,7 +79,7 @@ fun AddDocumentSheet(
         
         // File Info
         Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -88,7 +89,7 @@ fun AddDocumentSheet(
                 Icon(
                     imageVector = getFileIcon(fileName.substringAfterLast('.', "")),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = AppColors.primary
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
@@ -96,7 +97,7 @@ fun AddDocumentSheet(
                     Text(
                         text = "${fileSize / 1024} KB",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -123,7 +124,7 @@ fun AddDocumentSheet(
             selectedTabIndex = VaultCategory.values().indexOf(selectedCategory),
             edgePadding = 0.dp,
             containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.primary,
+            contentColor = AppColors.primary,
             indicator = {},
             divider = {}
         ) {

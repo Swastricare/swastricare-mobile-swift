@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
+import com.swasthicare.mobile.ui.theme.AppColors
 
 @Composable
 fun FilterPill(
@@ -45,18 +46,18 @@ fun FilterPill(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                color = if (isSelected) Color.White else AppColors.onSurface
             )
             Spacer(modifier = Modifier.width(6.dp))
             Surface(
-                color = if (isSelected) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                color = if (isSelected) Color.White.copy(alpha = 0.2f) else AppColors.surfaceVariant,
                 shape = RoundedCornerShape(4.dp)
             ) {
                 Text(
                     text = count.toString(),
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isSelected) Color.White else AppColors.onSurfaceVariant
                 )
             }
         }
@@ -76,7 +77,7 @@ fun DocumentCard(
             .fillMaxWidth()
             .clickable { onTap() },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+            containerColor = AppColors.surface.copy(alpha = 0.7f)
         ),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -90,7 +91,7 @@ fun DocumentCard(
                 Icon(
                     imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Outlined.Circle,
                     contentDescription = null,
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
+                    tint = if (isSelected) AppColors.primary else Color.Gray,
                     modifier = Modifier.padding(end = 16.dp)
                 )
             } else {
@@ -138,7 +139,7 @@ fun DocumentCard(
                         Text(
                             text = document.documentDate.substringBefore("T"), // Simple formatting
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = AppColors.onSurfaceVariant
                         )
                     }
                 }
@@ -149,13 +150,13 @@ fun DocumentCard(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = AppColors.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = document.doctorName,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = AppColors.onSurfaceVariant
                         )
                     }
                 }
@@ -166,7 +167,7 @@ fun DocumentCard(
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "More",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -185,7 +186,7 @@ fun FolderCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = AppColors.surface.copy(alpha = 0.6f)),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -202,7 +203,7 @@ fun FolderCard(
                 if (count > 0) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = AppColors.primary,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .offset(x = 4.dp, y = (-4).dp)
@@ -228,7 +229,7 @@ fun FolderCard(
             Text(
                 text = "$count items",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
     }

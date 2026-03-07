@@ -40,6 +40,7 @@ import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.swasthicare.mobile.ui.theme.AppColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -60,6 +61,7 @@ fun DocumentViewerScreen(
 
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 TopAppBar(
                     title = {
@@ -97,7 +99,8 @@ fun DocumentViewerScreen(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent
-                    )
+                    ),
+                    windowInsets = WindowInsets(0, 0, 0, 0)
                 )
             }
         ) { innerPadding ->
@@ -191,7 +194,7 @@ private fun ImageViewer(document: MedicalDocument) {
             exit = fadeOut()
         ) {
             CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.primary
+                color = AppColors.primary
             )
         }
 
@@ -357,7 +360,7 @@ private fun PdfViewer(document: MedicalDocument) {
                     Text(
                         "Loading PDF...",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -432,7 +435,7 @@ private fun PdfViewer(document: MedicalDocument) {
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 24.dp),
                         shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        color = AppColors.surface.copy(alpha = 0.9f),
                         shadowElevation = 4.dp
                     ) {
                         Text(
@@ -459,7 +462,7 @@ private fun UnsupportedFileView(fileType: String) {
             imageVector = Icons.Default.BrokenImage,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            tint = AppColors.onSurfaceVariant.copy(alpha = 0.5f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -471,7 +474,7 @@ private fun UnsupportedFileView(fileType: String) {
         Text(
             text = "Cannot preview .$fileType files in the app",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
     }
 }
@@ -489,7 +492,7 @@ private fun ErrorView(message: String) {
             imageVector = Icons.Default.BrokenImage,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+            tint = AppColors.error.copy(alpha = 0.7f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -501,7 +504,7 @@ private fun ErrorView(message: String) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
     }
 }

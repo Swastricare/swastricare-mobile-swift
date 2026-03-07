@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.RoutePoint
+import com.swasthicare.mobile.data.models.ActivityType
+import com.swasthicare.mobile.data.models.RouteCoordinate
+import com.swasthicare.mobile.data.models.RunActivity
+import com.swasthicare.mobile.data.repository.RunActivityRepository
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.data.services.RouteTracker
@@ -112,6 +116,7 @@ data class LiveWorkoutUiState(
 class LiveWorkoutViewModel(
     private val context: Context,
     private val workoutStateManager: WorkoutStateManager,
+    private val runActivityRepository: RunActivityRepository = AppContainer.runActivityRepository,
     private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
     private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
 ) : ViewModel() {
@@ -275,6 +280,51 @@ class LiveWorkoutViewModel(
     }
 
     fun getRouteSnapshot(): List<RoutePoint> = routeTracker.getRouteSnapshot()
+
+    /**
+     * Save the completed workout as a RunActivity and persist it locally.
+     * Called when user taps "Save Workout" on the summary.
+     */
+    fun saveCompletedWorkout() {
+        val state = _uiState.value
+        if (state.phase != WorkoutPhase.COMPLETED) return
+
+        val activityType = when (state.workoutType) {
+            WorkoutType.RUN, WorkoutType.INDOOR_RUN -> ActivityType.RUNNING
+            WorkoutType.WALK, WorkoutType.INDOOR_WALK -> ActivityType.WALKING
+            WorkoutType.CYCLE -> ActivityType.CYCLING
+            WorkoutType.HIKE -> ActivityType.HIKING
+        }
+
+        val routeCoords = state.routePoints.map { rp ->
+            RouteCoordinate(
+                latitude = rp.latitude,
+                longitude = rp.longitude,
+                altitude = rp.altitude,
+                timestamp = rp.timestamp
+            )
+        }
+
+        val paceSecondsPerKm = if (state.distanceMeters > 10) {
+            (state.elapsedSeconds / (state.distanceMeters / 1000.0)).toLong()
+        } else 0L
+
+        val activity = RunActivity(
+            activityType = activityType,
+            startTime = workoutStartTime?.let {
+                java.time.LocalDateTime.ofInstant(it, java.time.ZoneId.systemDefault())
+            },
+            endTime = java.time.LocalDateTime.now(),
+            distanceMeters = state.distanceMeters,
+            durationSeconds = state.elapsedSeconds,
+            avgPaceSecondsPerKm = paceSecondsPerKm,
+            caloriesBurned = state.caloriesBurned,
+            routeCoordinates = routeCoords,
+            synced = false
+        )
+
+        runActivityRepository.addLocalActivity(activity)
+    }
 
     // ─────────────────────────────────────
     // MARK: - Private

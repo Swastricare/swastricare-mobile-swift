@@ -39,6 +39,7 @@ import com.swasthicare.mobile.data.models.NutritionSummary
 import com.swasthicare.mobile.ui.theme.NutritionProtein
 import com.swasthicare.mobile.ui.theme.NutritionCarbs
 import com.swasthicare.mobile.ui.theme.NutritionFat
+import com.swasthicare.mobile.ui.theme.AppColors
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -140,7 +141,7 @@ private fun DietCalendarDay(
                 text = dayAbbr,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = if (isSelected) Color.White else AppColors.onSurface.copy(alpha = 0.5f)
             )
             Box(
                 modifier = Modifier
@@ -155,7 +156,7 @@ private fun DietCalendarDay(
                     text = date.dayOfMonth.toString(),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                    color = if (isSelected) Color.White else AppColors.onSurface
                 )
             }
         }
@@ -228,12 +229,12 @@ fun CalorieProgressRing(
                 text = "$current",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 text = "of $goal cal",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = AppColors.onSurface.copy(alpha = 0.5f)
             )
         }
     }
@@ -272,12 +273,12 @@ fun DietStatPill(
             text = value,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
         Text(
             text = label,
             fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            color = AppColors.onSurface.copy(alpha = 0.5f),
             maxLines = 1,
             textAlign = TextAlign.Center
         )
@@ -315,7 +316,7 @@ fun MacroBreakdownCard(
             "Macro Breakdown",
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = AppColors.onSurface.copy(alpha = 0.5f)
         )
         MacroRow(
             label = "Protein",
@@ -359,11 +360,11 @@ private fun MacroRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = AppColors.onSurface)
             Text(
                 "${current}g / ${goal}g",
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = AppColors.onSurface.copy(alpha = 0.5f)
             )
         }
         LinearProgressIndicator(
@@ -438,19 +439,19 @@ fun MealSectionCard(
                     mealType.displayName,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 if (entries.isNotEmpty()) {
                     Text(
                         "$mealCalories cal · ${entries.size} item${if (entries.size == 1) "" else "s"}",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        color = AppColors.onSurface.copy(alpha = 0.5f)
                     )
                 } else {
                     Text(
                         mealType.typicalTime,
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        color = AppColors.onSurface.copy(alpha = 0.4f)
                     )
                 }
             }
@@ -467,14 +468,14 @@ fun MealSectionCard(
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                tint = AppColors.onSurface.copy(alpha = 0.3f),
                 modifier = Modifier.size(20.dp)
             )
         }
 
         // Food entries
         if (expanded && entries.isNotEmpty()) {
-            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+            Divider(color = AppColors.onSurface.copy(alpha = 0.06f))
             entries.forEachIndexed { index, entry ->
                 FoodEntryRow(
                     entry = entry,
@@ -482,7 +483,7 @@ fun MealSectionCard(
                 )
                 if (index < entries.lastIndex) {
                     Divider(
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f),
+                        color = AppColors.onSurface.copy(alpha = 0.04f),
                         modifier = Modifier.padding(start = 60.dp)
                     )
                 }
@@ -524,14 +525,14 @@ fun FoodEntryRow(
                 text = entry.foodName,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = AppColors.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "${entry.quantity.toInt()} ${entry.servingUnitEnum.displayName} · ${entry.calories.toInt()} cal",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = AppColors.onSurface.copy(alpha = 0.5f)
             )
         }
         // Delete button
@@ -592,7 +593,7 @@ fun FoodItemRow(
                 text = food.name,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = AppColors.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -600,7 +601,7 @@ fun FoodItemRow(
                 Text(
                     text = food.brand,
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = AppColors.onSurface.copy(alpha = 0.5f)
                 )
             }
             Row(
@@ -610,9 +611,9 @@ fun FoodItemRow(
                 Text(
                     text = food.displayServingSize,
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = AppColors.onSurface.copy(alpha = 0.5f)
                 )
-                Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                Text("·", fontSize = 13.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
                 Text(
                     text = food.caloriesPerServing,
                     fontSize = 13.sp,
@@ -623,7 +624,7 @@ fun FoodItemRow(
             Text(
                 text = food.macroSummary,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                color = AppColors.onSurface.copy(alpha = 0.4f)
             )
         }
 
@@ -633,7 +634,7 @@ fun FoodItemRow(
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (isFavorite) "Unfavorite" else "Favorite",
-                    tint = if (isFavorite) Color(0xFFFF2D55) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    tint = if (isFavorite) Color(0xFFFF2D55) else AppColors.onSurface.copy(alpha = 0.4f),
                     modifier = Modifier.size(20.dp)
                 )
             }

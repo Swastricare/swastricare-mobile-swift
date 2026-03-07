@@ -32,6 +32,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swasthicare.mobile.data.model.AppUser
 import com.swasthicare.mobile.ui.theme.PrimaryColor
+import com.swasthicare.mobile.ui.theme.AppColors
 
 @Composable
 fun ProfileScreen(
@@ -103,7 +104,7 @@ fun ProfileScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(AppColors.background)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -171,14 +172,14 @@ fun ProfileScreenContent(
                         Text(
                             text = "All Settings",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = AppColors.onSurface
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = AppColors.onSurfaceVariant
                         )
                     }
                 }
@@ -237,7 +238,7 @@ fun ConfirmationDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
             ) {
                 Text(confirmText)
             }
@@ -247,9 +248,9 @@ fun ConfirmationDialog(
                 Text("Cancel")
             }
         },
-        containerColor = MaterialTheme.colorScheme.surface,
-        titleContentColor = MaterialTheme.colorScheme.onSurface,
-        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        containerColor = AppColors.surface,
+        titleContentColor = AppColors.onSurface,
+        textContentColor = AppColors.onSurfaceVariant
     )
 }
 
@@ -312,17 +313,17 @@ fun ProfileHeader(
                 text = userName,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = AppColors.onBackground
             )
             Text(
                 text = userEmail,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                color = AppColors.onBackground.copy(alpha = 0.7f)
             )
             Text(
                 text = "Member since $memberSince",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                color = AppColors.onBackground.copy(alpha = 0.5f)
             )
         }
     }
@@ -361,7 +362,7 @@ fun SectionContainer(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = AppColors.surface,
         tonalElevation = 2.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -377,7 +378,7 @@ fun SectionContainer(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    color = AppColors.onSurface.copy(alpha = 0.7f)
                 )
                 headerAction?.invoke()
             }
@@ -451,12 +452,12 @@ fun HealthProfileSection(
                     Text(
                         "No health profile found",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = AppColors.onSurface
                     )
                     Text(
                         "Complete your health profile during onboarding",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -481,12 +482,12 @@ fun HealthProfileRow(
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppColors.onSurfaceVariant,
             textAlign = TextAlign.End
         )
     }
@@ -501,9 +502,9 @@ fun HydrationSection() {
         ) {
             Icon(Icons.Default.DirectionsRun, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Activity Level", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text("Activity Level", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
             Spacer(modifier = Modifier.weight(1f))
-            Text("Moderate", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Moderate", color = AppColors.onSurfaceVariant)
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -514,9 +515,9 @@ fun HydrationSection() {
         ) {
             Icon(Icons.Default.WaterDrop, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Daily Goal", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text("Daily Goal", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
             Spacer(modifier = Modifier.weight(1f))
-            Text("2000 ml", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("2000 ml", color = AppColors.onSurfaceVariant)
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -526,11 +527,11 @@ fun HydrationSection() {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-             Icon(Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+             Icon(Icons.Default.Settings, contentDescription = null, tint = AppColors.onSurface, modifier = Modifier.size(20.dp))
              Spacer(modifier = Modifier.width(12.dp))
-             Text("Hydration Preferences", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+             Text("Hydration Preferences", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
              Spacer(modifier = Modifier.weight(1f))
-             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -554,13 +555,13 @@ fun SettingsSection(
         ) {
             Icon(imageVector = Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(20.dp), tint = PrimaryColor)
             Spacer(modifier = Modifier.width(12.dp))
-            Text(text = "Notification Settings", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = "Notification Settings", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
             Spacer(modifier = Modifier.weight(1f))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = AppColors.onSurfaceVariant
             )
         }
 
@@ -597,7 +598,7 @@ fun SettingToggleRow(
     ) {
         Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = PrimaryColor)
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
         Spacer(modifier = Modifier.weight(1f))
         Switch(
             checked = checked,
@@ -605,8 +606,8 @@ fun SettingToggleRow(
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = PrimaryColor,
-                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                uncheckedThumbColor = AppColors.outline,
+                uncheckedTrackColor = AppColors.surfaceVariant,
                 uncheckedBorderColor = Color.Transparent
             )
         )
@@ -622,9 +623,9 @@ fun AboutSection(version: String) {
         ) {
             Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(20.dp), tint = PrimaryColor)
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Version", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text("Version", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
             Spacer(modifier = Modifier.weight(1f))
-            Text(version, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(version, color = AppColors.onSurfaceVariant)
         }
     }
 }
@@ -641,7 +642,7 @@ fun SignOutSection(
                 onClick = onDeleteAccount,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
             ) {
                  Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -654,7 +655,7 @@ fun SignOutSection(
         Text(
             text = "Permanently delete your account and all associated data.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            color = AppColors.onBackground.copy(alpha = 0.6f),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
 
@@ -665,7 +666,7 @@ fun SignOutSection(
                 onClick = onSignOut,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
             ) {
                  if (isLoading) {
                      CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -699,18 +700,18 @@ fun FamilySection(onNavigateToFamily: () -> Unit) {
                 Text(
                     "Family Group",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 Text(
                     "View or join a family health group",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = AppColors.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -733,8 +734,8 @@ fun ShimmerRow() {
     )
 
     // Adjust shimmer colors for dark mode
-    val baseColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-    val highlightColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    val baseColor = AppColors.surfaceVariant.copy(alpha = 0.3f)
+    val highlightColor = AppColors.surfaceVariant.copy(alpha = 0.6f)
 
     val brush = Brush.linearGradient(
         colors = listOf(

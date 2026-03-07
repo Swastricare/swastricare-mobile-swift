@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.ui.theme.AppColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
 @Composable
@@ -35,7 +36,7 @@ fun ForceUpdateScreen() {
             "A newer version of SwasthiCare is available. Please update to continue.",
             fontSize = 16.sp,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            color = AppColors.onSurface.copy(alpha = 0.7f)
         )
         Spacer(Modifier.height(32.dp))
         Button(

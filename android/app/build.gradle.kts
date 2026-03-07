@@ -38,6 +38,10 @@ android {
             "\"${project.findProperty("OPENWEATHERMAP_API_KEY") ?: ""}\""
         )
 
+        // Google Maps API Key (set in gradle.properties: GOOGLE_MAPS_API_KEY=your_key)
+        val mapsKey = project.findProperty("GOOGLE_MAPS_API_KEY") ?: ""
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = mapsKey
+
         // Supabase credentials (set in gradle.properties)
         buildConfigField(
             "String",
@@ -147,6 +151,10 @@ dependencies {
 
     // Google Location Services for GPS workout tracking + weather-based hydration
     implementation("com.google.android.gms:play-services-location:21.2.0")
+
+    // Google Maps SDK + Compose integration
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.maps.android:maps-compose:4.3.3")
 
     // Accompanist permissions helper
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")

@@ -1,8 +1,8 @@
 package com.swasthicare.mobile.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.swasthicare.mobile.ui.theme.AppColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +28,6 @@ fun EmptyStateView(
         Text(title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(subtitle, fontSize = 14.sp, textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            color = AppColors.onSurface.copy(alpha = 0.6f))
     }
 }

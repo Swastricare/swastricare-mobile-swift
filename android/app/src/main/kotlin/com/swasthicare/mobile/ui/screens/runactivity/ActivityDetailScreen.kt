@@ -38,6 +38,7 @@ import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.RouteMapView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -127,7 +128,7 @@ fun ActivityDetailScreen(
                         Icons.Default.SearchOff,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = AppColors.onSurfaceVariant
                     )
                     Spacer(Modifier.height(16.dp))
                     Text("Workout not found", style = MaterialTheme.typography.titleMedium)
@@ -142,7 +143,6 @@ fun ActivityDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .statusBarsPadding()
                 ) {
                     // ── Top Bar ──
                     ActivityDetailTopBar(
@@ -243,9 +243,9 @@ fun ActivityDetailScreen(
                             Text("Cancel")
                         }
                     },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    containerColor = AppColors.surface,
+                    titleContentColor = AppColors.onSurface,
+                    textContentColor = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -272,7 +272,7 @@ private fun ActivityDetailTopBar(
             Icon(
                 Icons.Default.ArrowBack,
                 contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onBackground
+                tint = AppColors.onBackground
             )
         }
 
@@ -280,14 +280,14 @@ private fun ActivityDetailTopBar(
             "Activity Detail",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = AppColors.onBackground
         )
 
         IconButton(onClick = onShare) {
             Icon(
                 Icons.Default.Share,
                 contentDescription = "Share",
-                tint = MaterialTheme.colorScheme.onBackground
+                tint = AppColors.onBackground
             )
         }
     }
@@ -371,18 +371,18 @@ private fun ActivityHeaderCard(
                     text = typeLabel,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 Text(
                     text = formatDateTime(workout.startTime),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
 
         HorizontalDivider(
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+            color = AppColors.onSurface.copy(alpha = 0.1f),
             thickness = 1.dp
         )
 
@@ -426,13 +426,13 @@ private fun HeaderStat(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppColors.onSurface
             )
             if (unit.isNotEmpty()) {
                 Text(
                     text = unit,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppColors.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 2.dp, start = 2.dp)
                 )
             }
@@ -440,7 +440,7 @@ private fun HeaderStat(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AppColors.onSurfaceVariant
         )
     }
 }
@@ -461,12 +461,12 @@ private fun DetailTabRow(
             .clip(RoundedCornerShape(16.dp))
             .glass(cornerRadius = 16.dp, opacity = 0.15f),
         containerColor = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        contentColor = AppColors.onSurface,
         indicator = { tabPositions ->
             TabRowDefaults.SecondaryIndicator(
                 modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab.ordinal]),
                 height = 3.dp,
-                color = MaterialTheme.colorScheme.primary
+                color = AppColors.primary
             )
         },
         divider = {}
@@ -482,9 +482,9 @@ private fun DetailTabRow(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (isSelected)
-                            MaterialTheme.colorScheme.primary
+                            AppColors.primary
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            AppColors.onSurfaceVariant
                     )
                 }
             )
@@ -606,20 +606,20 @@ private fun StatCardContent(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = value,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppColors.onSurface
                 )
                 if (unit.isNotEmpty()) {
                     Text(
                         text = unit,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = AppColors.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 3.dp, start = 2.dp)
                     )
                 }
@@ -658,7 +658,7 @@ private fun SplitsTab(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
+                .background(AppColors.surface.copy(alpha = 0.3f))
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -669,7 +669,7 @@ private fun SplitsTab(
         }
 
         HorizontalDivider(
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+            color = AppColors.onSurface.copy(alpha = 0.1f),
             thickness = 1.dp
         )
 
@@ -681,7 +681,7 @@ private fun SplitsTab(
                 isFastest -> GreenAccent.copy(alpha = 0.1f)
                 isSlowest -> RedAccent.copy(alpha = 0.1f)
                 index % 2 == 0 -> Color.Transparent
-                else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
+                else -> AppColors.surface.copy(alpha = 0.1f)
             }
 
             Row(
@@ -697,7 +697,7 @@ private fun SplitsTab(
                     text = "${split.kilometer}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = AppColors.onSurface,
                     modifier = Modifier.weight(0.8f)
                 )
 
@@ -705,7 +705,7 @@ private fun SplitsTab(
                 Text(
                     text = formatDuration(split.timeSeconds),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = AppColors.onSurface,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -737,7 +737,7 @@ private fun SplitsTab(
                         color = when {
                             isFastest -> GreenAccent
                             isSlowest -> RedAccent
-                            else -> MaterialTheme.colorScheme.onSurface
+                            else -> AppColors.onSurface
                         }
                     )
                 }
@@ -746,14 +746,14 @@ private fun SplitsTab(
                 Text(
                     text = formatDuration(split.cumulativeSeconds),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppColors.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
                 )
             }
 
             if (index < splits.size - 1) {
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    color = AppColors.onSurface.copy(alpha = 0.05f),
                     thickness = 0.5.dp,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
@@ -768,7 +768,7 @@ private fun SplitHeaderCell(text: String, modifier: Modifier = Modifier) {
         text = text,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = AppColors.onSurfaceVariant,
         modifier = modifier
     )
 }
@@ -805,7 +805,7 @@ private fun PaceTab(
             text = "Pace (min/km)",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
 
         Canvas(
@@ -979,7 +979,7 @@ private fun PaceTab(
             Text(
                 "Pace",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
             Spacer(Modifier.width(16.dp))
             Canvas(modifier = Modifier.size(12.dp, 2.dp)) {
@@ -1001,7 +1001,7 @@ private fun PaceTab(
             Text(
                 "Average",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppColors.onSurfaceVariant
             )
         }
     }
@@ -1038,7 +1038,7 @@ private fun HeartRateTab(
             text = "Heart Rate (bpm)",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = AppColors.onSurface
         )
 
         Canvas(
@@ -1208,14 +1208,14 @@ private fun HrZoneLegendItem(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = AppColors.onSurfaceVariant,
                 fontSize = 9.sp
             )
         }
         Text(
             text = zone,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            color = AppColors.onSurfaceVariant.copy(alpha = 0.7f),
             fontSize = 8.sp
         )
     }
@@ -1285,13 +1285,13 @@ private fun EmptyTabPlaceholder(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            tint = AppColors.onSurfaceVariant.copy(alpha = 0.4f),
             modifier = Modifier.size(40.dp)
         )
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            color = AppColors.onSurfaceVariant.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
         )
     }

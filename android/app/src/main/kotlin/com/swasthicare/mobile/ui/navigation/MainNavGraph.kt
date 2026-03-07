@@ -98,7 +98,13 @@ fun MainNavGraph(
         // Tab: Steps
         composable(BottomNavTab.Steps.route) {
             RunActivityScreen(
-                onNavigateToLiveWorkout = { navController.navigate("live_workout") },
+                onNavigateToLiveWorkout = { workoutType ->
+                    if (workoutType != null) {
+                        navController.navigate("live_workout?workout_type=${workoutType.name}")
+                    } else {
+                        navController.navigate("live_workout")
+                    }
+                },
                 onNavigateToActivityDetail = { workoutId ->
                     navController.navigate("activity_detail/$workoutId")
                 },

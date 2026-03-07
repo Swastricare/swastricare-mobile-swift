@@ -30,6 +30,7 @@ import com.swasthicare.mobile.data.models.HydrationPreferences
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
+import com.swasthicare.mobile.ui.theme.AppColors
 
 @Composable
 fun HydrationSettingsScreen(
@@ -63,7 +64,7 @@ fun HydrationSettingsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
 
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar ──
             Row(
                 modifier = Modifier
@@ -72,7 +73,7 @@ fun HydrationSettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(Icons.Default.ArrowBack, "Back", tint = AppColors.onSurface)
                 }
                 Text(
                     "Hydration Settings",
@@ -97,7 +98,7 @@ fun HydrationSettingsScreen(
                     Text(
                         "Save",
                         fontWeight = FontWeight.Bold,
-                        color = if (hasChanges) HydrationCyan else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        color = if (hasChanges) HydrationCyan else AppColors.onSurface.copy(alpha = 0.3f)
                     )
                 }
             }
@@ -180,7 +181,7 @@ fun HydrationSettingsScreen(
                                 Text(
                                     "Auto-calculated: ${previewGoal.dailyGoalMl}ml (${previewGoal.breakdown.description})",
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    color = AppColors.onSurface.copy(alpha = 0.5f)
                                 )
                             }
                         }
@@ -201,7 +202,7 @@ fun HydrationSettingsScreen(
                                     Text(
                                         "Increases goal when temperature exceeds 30°C",
                                         fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        color = AppColors.onSurface.copy(alpha = 0.5f)
                                     )
                                 }
                                 Switch(
@@ -257,7 +258,7 @@ fun HydrationSettingsScreen(
                             Text("Hydration Reminder Settings", style = MaterialTheme.typography.bodyLarge)
                             Icon(
                                 Icons.Default.ChevronRight, null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                tint = AppColors.onSurface.copy(alpha = 0.4f)
                             )
                         }
                     }
@@ -328,7 +329,7 @@ private fun GoalPreviewCard(goalMl: Int, breakdown: com.swasthicare.mobile.data.
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Daily Goal", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            Text("Daily Goal", fontSize = 14.sp, color = AppColors.onSurface.copy(alpha = 0.6f))
             Text(
                 "${goalMl}ml",
                 fontSize = 36.sp,
@@ -338,7 +339,7 @@ private fun GoalPreviewCard(goalMl: Int, breakdown: com.swasthicare.mobile.data.
             Text(
                 breakdown.description,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                color = AppColors.onSurface.copy(alpha = 0.4f)
             )
         }
     }
@@ -384,7 +385,7 @@ private fun SettingsSection(
                 Icon(
                     if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     "Toggle",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    tint = AppColors.onSurface.copy(alpha = 0.4f)
                 )
             }
         }
@@ -417,7 +418,7 @@ private fun SettingsTextField(
             onValueChange = { newVal ->
                 onValueChange(newVal.filter { it.isDigit() || it == '.' })
             },
-            placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)) },
+            placeholder = { Text(placeholder, color = AppColors.onSurface.copy(alpha = 0.3f)) },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             singleLine = true,
             modifier = Modifier.weight(1f),
@@ -427,7 +428,7 @@ private fun SettingsTextField(
                 cursorColor = HydrationCyan
             )
         )
-        Text(suffix, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        Text(suffix, fontSize = 14.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
     }
 }
 
@@ -442,7 +443,7 @@ private fun ActivityLevelOption(
     onSelect: () -> Unit
 ) {
     val bgColor = if (isSelected) HydrationCyan.copy(alpha = 0.15f) else Color.Transparent
-    val borderColor = if (isSelected) HydrationCyan else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    val borderColor = if (isSelected) HydrationCyan else AppColors.onSurface.copy(alpha = 0.1f)
 
     Row(
         modifier = Modifier
@@ -459,12 +460,12 @@ private fun ActivityLevelOption(
             Text(
                 level.displayName,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isSelected) HydrationCyan else MaterialTheme.colorScheme.onSurface
+                color = if (isSelected) HydrationCyan else AppColors.onSurface
             )
             Text(
                 level.description,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = AppColors.onSurface.copy(alpha = 0.5f)
             )
         }
         if (isSelected) {
@@ -474,7 +475,7 @@ private fun ActivityLevelOption(
             "${(level.multiplier * 100).toInt() - 100}%".let { if (!it.startsWith("-")) "+$it" else it },
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            color = AppColors.onSurface.copy(alpha = 0.4f)
         )
     }
 }
@@ -487,6 +488,6 @@ private fun ActivityLevelOption(
 private fun AboutItem(title: String, description: String) {
     Column {
         Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        Text(description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        Text(description, fontSize = 12.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
     }
 }
