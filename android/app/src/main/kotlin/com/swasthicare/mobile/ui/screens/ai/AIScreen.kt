@@ -319,7 +319,7 @@ fun ChatBubble(
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(message.id) { visible = true }
 
-    var showMenu by remember { mutableStateOf(false) }
+    var showMenu by remember(message.id) { mutableStateOf(false) }
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 
