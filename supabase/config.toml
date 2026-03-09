@@ -356,5 +356,7 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
+# cycle-ai-nudges cron schedule: "0 7 * * *" (daily 7 AM UTC)
+# Set via Supabase Dashboard → Edge Functions → cycle-ai-nudges → Schedule
+# (requires CLI v2.75+ to configure via config.toml)
 [functions.cycle-ai-nudges]
-schedule = "0 7 * * *"
