@@ -410,8 +410,8 @@ fun TypingIndicator() {
 
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         val a1 = dot(0)
-        val a2 = dot(200)
-        val a3 = dot(400)
+        val a2 = dot(150)
+        val a3 = dot(300)
         Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a1), CircleShape))
         Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a2), CircleShape))
         Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a3), CircleShape))
