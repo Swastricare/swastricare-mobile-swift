@@ -316,7 +316,7 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun sendImageForAnalysis(imageType: ImageType) {
         val userText = "[Image: ${imageType.label}] Please analyze this ${imageType.label.lowercase()} image."
-        val userMessage = ChatMessage.userMessage(userText)
+        val userMessage = ChatMessage.userMessage(userText, _uiState.value.pendingImageUri)
         // Capture prior messages for context BEFORE adding the new user message
         val priorMessages = _uiState.value.messages.filter { !it.isLoading }
         val currentMessages = _uiState.value.messages.toMutableList()

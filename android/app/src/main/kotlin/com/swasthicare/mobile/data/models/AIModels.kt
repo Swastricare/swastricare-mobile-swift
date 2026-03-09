@@ -12,10 +12,12 @@ data class ChatMessage(
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis(),
     val isLoading: Boolean = false,
-    val shouldAnimate: Boolean = false
+    val shouldAnimate: Boolean = false,
+    val imageUri: String? = null
 ) {
     companion object {
         fun userMessage(content: String) = ChatMessage(content = content, isUser = true)
+        fun userMessage(content: String, imageUri: String?) = ChatMessage(content = content, isUser = true, imageUri = imageUri)
         fun assistantMessage(content: String) = ChatMessage(content = content, isUser = false, shouldAnimate = true)
         fun loadingMessage() = ChatMessage(content = "", isUser = false, isLoading = true)
     }
@@ -105,7 +107,8 @@ data class HealthMetrics(
 @Serializable
 data class ChatRequest(
     val message: String,
-    val conversationHistory: List<ContextMessage>
+    val conversationHistory: List<ContextMessage>,
+    val imageData: String? = null
 )
 
 @Serializable

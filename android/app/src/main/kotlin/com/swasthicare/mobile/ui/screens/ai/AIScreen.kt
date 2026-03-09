@@ -63,6 +63,9 @@ import com.swasthicare.mobile.data.models.QuickAction
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.AppColors
+import android.net.Uri
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -356,7 +359,37 @@ fun ChatBubble(
                     )
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                if (message.isLoading) {
+                if (message.isUser && message.imageUri != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AsyncImage(
+                            model = Uri.parse(message.imageUri),
+                            contentDescription = "Attached image",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 180.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                        // Extract image type label from content "[Image: X-Ray] Please analyze..."
+                        val typeLabel = message.content
+                            .removePrefix("[Image: ")
+                            .substringBefore("]")
+                        if (typeLabel.isNotBlank() && typeLabel != message.content) {
+                            Box(
+                                modifier = Modifier
+                                    .background(AppColors.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    typeLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AppColors.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                } else if (message.isLoading) {
                     TypingIndicator()
                 } else if (!isUser && message.shouldAnimate) {
                     TypewriterText(
