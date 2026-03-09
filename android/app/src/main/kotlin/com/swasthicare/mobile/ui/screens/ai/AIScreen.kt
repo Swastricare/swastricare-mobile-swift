@@ -24,7 +24,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -305,7 +304,7 @@ fun IntroView(
             ),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
         ) {
-            Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text("Analyze Health")
         }
@@ -343,7 +342,7 @@ fun ChatBubble(
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = align) {
             if (!isUser) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(12.dp), tint = AppColors.primary)
+                    Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(12.dp), tint = AppColors.primary)
                     Text("Swastri", style = MaterialTheme.typography.labelSmall, color = AppColors.secondary)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -509,7 +508,7 @@ fun TypewriterText(
 private val INLINE_MARKDOWN_REGEX = "\\*\\*(.*?)\\*\\*|`(.*?)`|\\*(.*?)\\*|_(.*?)_".toRegex()
 
 // Basic markdown parser for bold/italic
-fun parseMarkdown(text: String): AnnotatedString {
+private fun parseMarkdown(text: String): AnnotatedString {
     val builder = AnnotatedString.Builder()
     val lines = text.split("\n")
 

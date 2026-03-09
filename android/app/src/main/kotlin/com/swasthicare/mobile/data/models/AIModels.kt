@@ -2,7 +2,6 @@ package com.swasthicare.mobile.data.models
 
 import kotlinx.serialization.Serializable
 import java.util.UUID
-import java.util.Date
 
 // MARK: - Chat Message Model
 
