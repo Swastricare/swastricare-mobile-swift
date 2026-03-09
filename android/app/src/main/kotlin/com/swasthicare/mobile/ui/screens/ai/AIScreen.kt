@@ -56,7 +56,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-// import com.swasthicare.mobile.data.models.AnalysisState // Removed
 import com.swasthicare.mobile.data.models.ChatMessage
 import com.swasthicare.mobile.data.models.HealthAnalysisResult
 import com.swasthicare.mobile.data.models.HealthMetrics
@@ -150,11 +149,12 @@ fun AIScreen(
                                 onBookmark = { viewModel.onMessageBookmarked() }
                             )
                             // Show health metric card below AI bubble if response discusses health metrics and analysis data exists
-                            if (!message.isUser && !message.isLoading && containsHealthMetrics(message.content)) {
-                                val completedState = uiState.analysisState as? AnalysisState.Completed
-                                if (completedState != null) {
-                                    HealthInsightCard(metrics = completedState.result.metrics)
-                                }
+                            val hasHealthMetrics = remember(message.id, message.content) {
+                                containsHealthMetrics(message.content)
+                            }
+                            val completedAnalysis = uiState.analysisState as? AnalysisState.Completed
+                            if (!message.isUser && !message.isLoading && hasHealthMetrics && completedAnalysis != null) {
+                                HealthInsightCard(metrics = completedAnalysis.result.metrics)
                             }
                             // Show follow-up chips below the last AI message only
                             val isLastMessage = index == uiState.messages.size - 1
@@ -843,7 +843,7 @@ private fun MetricChip(label: String, value: String) {
 }
 
 @Composable
-fun HealthInsightCard(metrics: HealthMetrics) {
+private fun HealthInsightCard(metrics: HealthMetrics) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -886,7 +886,7 @@ fun HealthInsightCard(metrics: HealthMetrics) {
                 if (metrics.bloodPressure != "--/--") {
                     MetricChip("BP", metrics.bloodPressure)
                 } else {
-                    Spacer(modifier = Modifier.weight(1f))
+                    Box(modifier = Modifier.width(60.dp)) // invisible placeholder matching MetricChip width
                 }
             }
         }
