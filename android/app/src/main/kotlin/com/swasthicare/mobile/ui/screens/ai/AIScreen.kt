@@ -369,6 +369,8 @@ fun TypewriterText(
     )
 }
 
+private val INLINE_MARKDOWN_REGEX = "\\*\\*(.*?)\\*\\*|`(.*?)`|\\*(.*?)\\*|_(.*?)_".toRegex()
+
 // Basic markdown parser for bold/italic
 fun parseMarkdown(text: String): AnnotatedString {
     val builder = AnnotatedString.Builder()
@@ -377,8 +379,8 @@ fun parseMarkdown(text: String): AnnotatedString {
     lines.forEachIndexed { lineIndex, rawLine ->
         if (lineIndex > 0) builder.append("\n")
 
-        val isH1 = rawLine.startsWith("# ")
         val isH2 = rawLine.startsWith("## ")
+        val isH1 = !isH2 && rawLine.startsWith("# ")
         val isBullet = rawLine.startsWith("- ") || rawLine.startsWith("* ")
 
         val line = when {
@@ -389,10 +391,10 @@ fun parseMarkdown(text: String): AnnotatedString {
         }
 
         if (isH1) builder.pushStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp))
-        if (isH2) builder.pushStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp))
+        else if (isH2) builder.pushStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp))
 
         // Inline: bold (**), italic (* or _), code (`)
-        val inlineRegex = "\\*\\*(.*?)\\*\\*|`(.*?)`|\\*(.*?)\\*|_(.*?)_".toRegex()
+        val inlineRegex = INLINE_MARKDOWN_REGEX
         var cursor = 0
         for (match in inlineRegex.findAll(line)) {
             if (match.range.first > cursor) builder.append(line.substring(cursor, match.range.first))
