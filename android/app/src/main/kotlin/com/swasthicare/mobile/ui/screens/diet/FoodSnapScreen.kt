@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -751,7 +750,7 @@ private fun MealTypeChips(
             color = AppColors.onSurface.copy(alpha = 0.5f)
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(MealType.entries.toTypedArray()) { mealType ->
+            items(MealType.values()) { mealType ->
                 val isSelected = mealType == selected
                 FilterChip(
                     selected = isSelected,
@@ -875,7 +874,7 @@ private fun ErrorContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Icon(
-                    Icons.Default.ErrorOutline,
+                    Icons.Default.Warning,
                     contentDescription = null,
                     tint = Color(0xFFFF453A),
                     modifier = Modifier.size(48.dp)
@@ -1086,9 +1085,12 @@ private fun ReviewForm(
 // MARK: - Util: clickable without ripple overlay
 // ─────────────────────────────────────
 
-private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
-    this.clickable(
-        interactionSource = MutableInteractionSource(),
+@Composable
+private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return this.clickable(
+        interactionSource = interactionSource,
         indication = null,
         onClick = onClick
     )
+}
