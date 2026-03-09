@@ -210,7 +210,6 @@ fun AIScreen(
                 inputText = uiState.inputText,
                 onTextChanged = viewModel::onInputTextChanged,
                 onSendClick = viewModel::sendMessage,
-                onQuickActionClick = viewModel::sendQuickAction,
                 onMicClick = {
                     if (uiState.isRecording) {
                          viewModel.toggleRecording()
@@ -219,7 +218,6 @@ fun AIScreen(
                     }
                 },
                 isRecording = uiState.isRecording,
-                showSuggestions = uiState.messages.isEmpty(),
                 isLoading = uiState.isLoading
             )
         }
@@ -787,29 +785,29 @@ fun ChatInputBar(
     inputText: String,
     onTextChanged: (String) -> Unit,
     onSendClick: () -> Unit,
-    onQuickActionClick: (QuickAction) -> Unit,
     onMicClick: () -> Unit,
     isRecording: Boolean,
-    showSuggestions: Boolean,
     isLoading: Boolean
 ) {
+    val sendEnabled = inputText.isNotEmpty() && !isLoading
+
+    // Mic pulse animation
+    val micPulse = rememberInfiniteTransition(label = "micPulse")
+    val micRingScale by micPulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "micRing"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 4.dp)
     ) {
-        if (showSuggestions) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                items(QuickAction.suggestions) { action ->
-                    QuickActionButton(action = action, onClick = { onQuickActionClick(action) })
-                }
-            }
-        }
-
         Row(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
@@ -820,7 +818,7 @@ fun ChatInputBar(
             TextField(
                 value = inputText,
                 onValueChange = onTextChanged,
-                placeholder = { Text("Ask Swastri...", fontSize = 14.sp) },
+                placeholder = { Text("Ask anything...", fontSize = 14.sp, color = Color.White.copy(alpha = 0.4f)) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -835,16 +833,21 @@ fun ChatInputBar(
                 keyboardActions = KeyboardActions(onSend = { onSendClick() })
             )
 
-            // Send Button
-            IconButton(
-                onClick = onSendClick,
-                enabled = inputText.isNotEmpty() && !isLoading,
+            // Gradient Send Button
+            Box(
                 modifier = Modifier
-                    .background(
-                        if (inputText.isNotEmpty()) AppColors.primary else Color.Gray.copy(alpha = 0.3f),
-                        CircleShape
-                    )
                     .size(40.dp)
+                    .background(
+                        brush = if (sendEnabled) Brush.linearGradient(
+                            colors = listOf(PrimaryColor, Color(0xFF7C3AED))
+                        ) else Brush.linearGradient(
+                            colors = listOf(Color.Gray.copy(alpha = 0.3f), Color.Gray.copy(alpha = 0.3f))
+                        ),
+                        shape = CircleShape
+                    )
+                    .clip(CircleShape)
+                    .clickable(enabled = sendEnabled) { onSendClick() },
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.ArrowUpward,
@@ -853,56 +856,40 @@ fun ChatInputBar(
                     modifier = Modifier.size(20.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(8.dp))
-            
-            // Mic Button
-             IconButton(
-                onClick = onMicClick,
-                modifier = Modifier
-                    .background(
-                        if (isRecording) AppColors.error else AppColors.surfaceVariant.copy(alpha = 0.5f),
-                        CircleShape
+
+            // Pulsing Mic Button
+            Box(contentAlignment = Alignment.Center) {
+                if (isRecording) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .scale(micRingScale)
+                            .background(AppColors.error.copy(alpha = 0.2f), CircleShape)
                     )
-                    .size(40.dp)
-            ) {
-                Icon(
-                    if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                    contentDescription = "Mic",
-                    tint = if (isRecording) Color.White else AppColors.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
+                }
+                IconButton(
+                    onClick = onMicClick,
+                    modifier = Modifier
+                        .background(
+                            if (isRecording) AppColors.error else Color.White.copy(alpha = 0.1f),
+                            CircleShape
+                        )
+                        .size(40.dp)
+                ) {
+                    Icon(
+                        if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = "Mic",
+                        tint = if (isRecording) Color.White else Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
 }
 
-@Composable
-fun QuickActionButton(action: QuickAction, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-        contentPadding = PaddingValues(0.dp),
-        modifier = Modifier.glass(cornerRadius = 16.dp).width(200.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(action.title, style = MaterialTheme.typography.titleSmall, color = AppColors.onSurface)
-            Text(
-                action.prompt,
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.onSurfaceVariant,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
-        }
-    }
-}
 
 @Composable
 fun FollowUpChips(suggestions: List<String>, onChipClick: (String) -> Unit) {
@@ -917,22 +904,20 @@ fun FollowUpChips(suggestions: List<String>, onChipClick: (String) -> Unit) {
             modifier = Modifier.padding(top = 8.dp)
         ) {
             items(suggestions) { suggestion ->
-                SuggestionChip(
-                    onClick = { onChipClick(suggestion) },
-                    label = {
-                        Text(
-                            text = suggestion,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                    },
-                    modifier = Modifier.widthIn(max = 220.dp),
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = AppColors.primaryContainer.copy(alpha = 0.4f),
-                        labelColor = AppColors.primary
+                Box(
+                    modifier = Modifier
+                        .glass(cornerRadius = 20.dp)
+                        .clickable { onChipClick(suggestion) }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = suggestion,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PrimaryColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                )
+                }
             }
         }
     }
