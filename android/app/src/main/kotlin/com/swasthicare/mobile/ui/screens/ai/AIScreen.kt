@@ -386,19 +386,35 @@ fun parseMarkdown(text: String): AnnotatedString {
 
 @Composable
 fun TypingIndicator() {
-    val transition = rememberInfiniteTransition()
-    val alpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+    val transition = rememberInfiniteTransition(label = "typing")
+
+    @Composable
+    fun dot(delayMillis: Int): Float {
+        val alpha by transition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = keyframes {
+                    durationMillis = 900
+                    0.3f at delayMillis using LinearEasing
+                    1f at (delayMillis + 300) using LinearEasing
+                    0.3f at (delayMillis + 600) using LinearEasing
+                    0.3f at 900 using LinearEasing
+                },
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "dot$delayMillis"
         )
-    )
+        return alpha
+    }
+
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = alpha), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = alpha), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = alpha), CircleShape))
+        val a1 = dot(0)
+        val a2 = dot(200)
+        val a3 = dot(400)
+        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a1), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a2), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a3), CircleShape))
     }
 }
 
