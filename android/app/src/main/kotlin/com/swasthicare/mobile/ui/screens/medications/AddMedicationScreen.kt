@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.MedicationType
 import com.swasthicare.mobile.data.models.ScheduleType
 import com.swasthicare.mobile.di.AppContainer
+import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -75,165 +76,169 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
 
     val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        // ── Top Bar ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", fontSize = 16.sp,
-                    color = AppColors.onSurface)
-            }
-            Text(
-                "Add Medication",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.width(72.dp))
-        }
+    Box(modifier = Modifier.fillMaxSize()) {
+        PremiumBackground()
 
-        // ── Progress Bar (3 segments, iOS-style) ──
-        MedProgressBar(currentStep = currentStep)
-
-        // ── Step Content ──
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(top = 24.dp, bottom = 100.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .fillMaxSize()
         ) {
-            when (currentStep) {
-                1 -> Step1Content(
-                    name = name, onNameChange = { name = it },
-                    dosage = dosage, onDosageChange = { dosage = it },
-                    selectedType = selectedType, onTypeSelected = { selectedType = it }
-                )
-                2 -> Step2Content(
-                    selectedSchedule = selectedSchedule,
-                    onScheduleSelected = { selectedSchedule = it }
-                )
-                3 -> Step3Content(
-                    startDate = startDate,
-                    endDate = endDate,
-                    isOngoing = isOngoing,
-                    notes = notes,
-                    onNotesChange = { notes = it },
-                    onIsOngoingChange = { isOngoing = it },
-                    onShowStartDatePicker = { showStartDatePicker = true },
-                    onShowEndDatePicker = { showEndDatePicker = true },
-                    dateFormatter = dateFormatter
-                )
-            }
-        }
-
-        // ── Navigation Buttons (sticky bottom) ──
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shadowElevation = 8.dp,
-            color = AppColors.surface
-        ) {
+            // ── Top Bar (matches MedicationsScreen / MedicationDetailScreen) ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (currentStep > 1) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel", fontSize = 16.sp,
+                        color = AppColors.onSurface)
+                }
+                Text(
+                    "Add Medication",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.width(72.dp))
+            }
+
+            // ── Progress Bar (3 segments, iOS-style) ──
+            MedProgressBar(currentStep = currentStep)
+
+            // ── Step Content ──
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 24.dp, bottom = 100.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                when (currentStep) {
+                    1 -> Step1Content(
+                        name = name, onNameChange = { name = it },
+                        dosage = dosage, onDosageChange = { dosage = it },
+                        selectedType = selectedType, onTypeSelected = { selectedType = it }
+                    )
+                    2 -> Step2Content(
+                        selectedSchedule = selectedSchedule,
+                        onScheduleSelected = { selectedSchedule = it }
+                    )
+                    3 -> Step3Content(
+                        startDate = startDate,
+                        endDate = endDate,
+                        isOngoing = isOngoing,
+                        notes = notes,
+                        onNotesChange = { notes = it },
+                        onIsOngoingChange = { isOngoing = it },
+                        onShowStartDatePicker = { showStartDatePicker = true },
+                        onShowEndDatePicker = { showEndDatePicker = true },
+                        dateFormatter = dateFormatter
+                    )
+                }
+            }
+
+            // ── Navigation Buttons (sticky bottom) ──
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 8.dp,
+                color = AppColors.surface
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (currentStep > 1) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(AppColors.onSurface.copy(alpha = 0.08f))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { currentStep-- }
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Default.ChevronLeft, null,
+                                    tint = AppColors.onSurface,
+                                    modifier = Modifier.size(18.dp))
+                                Text("Back", fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = AppColors.onSurface)
+                            }
+                        }
+                    }
+
+                    val canProceed = currentStep != 1 || name.isNotBlank()
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(AppColors.onSurface.copy(alpha = 0.08f))
+                            .background(
+                                if (canProceed) MedBrandBlue
+                                else Color.Gray.copy(alpha = 0.2f)
+                            )
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { currentStep-- }
+                                indication = null,
+                                enabled = canProceed && !isLoading
+                            ) {
+                                if (currentStep < 3) {
+                                    currentStep++
+                                } else {
+                                    isLoading = true
+                                    vm.addMedication(
+                                        name = name,
+                                        dosage = dosage,
+                                        dosageUnit = "",
+                                        type = selectedType,
+                                        scheduleType = selectedSchedule,
+                                        scheduleTimes = scheduleTimeStrings(selectedSchedule),
+                                        startDate = startDate,
+                                        endDate = if (isOngoing) null else endDate,
+                                        isOngoing = isOngoing,
+                                        notes = notes.ifBlank { null }
+                                    )
+                                    onDismiss()
+                                }
+                            }
                             .padding(vertical = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Default.ChevronLeft, null,
-                                tint = AppColors.onSurface,
-                                modifier = Modifier.size(18.dp))
-                            Text("Back", fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = AppColors.onSurface)
-                        }
-                    }
-                }
-
-                val canProceed = currentStep != 1 || name.isNotBlank()
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            if (canProceed) MedBrandBlue
-                            else Color.Gray.copy(alpha = 0.2f)
-                        )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            enabled = canProceed && !isLoading
-                        ) {
-                            if (currentStep < 3) {
-                                currentStep++
-                            } else {
-                                isLoading = true
-                                vm.addMedication(
-                                    name = name,
-                                    dosage = dosage,
-                                    dosageUnit = "",
-                                    type = selectedType,
-                                    scheduleType = selectedSchedule,
-                                    scheduleTimes = scheduleTimeStrings(selectedSchedule),
-                                    startDate = startDate,
-                                    endDate = if (isOngoing) null else endDate,
-                                    isOngoing = isOngoing,
-                                    notes = notes.ifBlank { null }
-                                )
-                                onDismiss()
-                            }
-                        }
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                if (currentStep == 3) "Save" else "Next",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (canProceed) Color.White
-                                        else AppColors.onSurface.copy(alpha = 0.4f)
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
                             )
-                            if (currentStep < 3) {
-                                Icon(Icons.Default.ChevronRight, null,
-                                    tint = if (canProceed) Color.White
-                                           else AppColors.onSurface.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(18.dp))
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    if (currentStep == 3) "Save" else "Next",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (canProceed) Color.White
+                                            else AppColors.onSurface.copy(alpha = 0.4f)
+                                )
+                                if (currentStep < 3) {
+                                    Icon(Icons.Default.ChevronRight, null,
+                                        tint = if (canProceed) Color.White
+                                               else AppColors.onSurface.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                     }

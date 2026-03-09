@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -392,7 +393,7 @@ private fun DetailsSection(mwd: MedicationWithDoses) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(Icons.Default.Note, null,
+                    Icon(Icons.AutoMirrored.Filled.Note, null,
                         tint = AppColors.onSurface.copy(alpha = 0.5f),
                         modifier = Modifier.size(14.dp))
                     Text("Notes", fontSize = 14.sp, fontWeight = FontWeight.Medium,

@@ -3,12 +3,13 @@ package com.swasthicare.mobile.ui.screens.medications
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +27,7 @@ import com.swasthicare.mobile.data.models.MedicationDose
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.EmptyStateView
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
+import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.AppColors
 import java.time.format.DateTimeFormatter
 
@@ -73,9 +75,6 @@ fun MedicationsScreen(
     val uiState by vm.uiState.collectAsState()
     var skipDialogDose by remember { mutableStateOf<MedicationDose?>(null) }
 
-    val isDark = isSystemInDarkTheme()
-    val secondaryBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-
     val slotFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val timelineSlots = remember(uiState.allDosesToday) {
         uiState.allDosesToday
@@ -100,7 +99,7 @@ fun MedicationsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, "Back",
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back",
                         tint = AppColors.onSurface)
                 }
                 Text(
@@ -152,8 +151,7 @@ fun MedicationsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(secondaryBg)
+                                    .glass(cornerRadius = 18.dp)
                                     .padding(20.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -184,7 +182,7 @@ fun MedicationsScreen(
                                         modifier = Modifier.weight(1f)
                                     )
                                     MedicationStatPill(
-                                        icon = Icons.Default.ShowChart,
+                                        icon = Icons.AutoMirrored.Filled.ShowChart,
                                         iconColor = Color(0xFF34C759),
                                         value = "${(uiState.statistics.adherenceRate * 100).toInt()}%",
                                         label = "adherence",

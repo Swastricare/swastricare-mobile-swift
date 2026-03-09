@@ -69,6 +69,7 @@ class HomeViewModel : ViewModel() {
     private val hydrationRepository = AppContainer.hydrationRepository
     private val dietRepository = AppContainer.dietRepository
     private val medicationRepository = AppContainer.medicationRepository
+    private val profileRepository = AppContainer.profileRepository
     private val menstrualCycleRepository = AppContainer.menstrualCycleRepository
 
     private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
@@ -120,13 +121,16 @@ class HomeViewModel : ViewModel() {
                     .sumOf { it.calories }
                 val dietGoals = try { dietRepository.loadGoals() } catch (_: Exception) { null }
 
-                // Load medication counts from repository
-                val profileId = AppContainer.authRepository.currentUser?.id
+                // Load medication counts — resolve health_profile_id (not auth user ID)
+                val userId = AppContainer.authRepository.currentUser?.id
+                val healthProfileId = if (userId != null) {
+                    try { profileRepository.getHealthProfile(userId)?.id } catch (_: Exception) { null }
+                } else null
                 val medicationsTotal: Int
                 val medicationsTaken: Int
-                if (profileId != null) {
-                    val medications = try { medicationRepository.fetchMedications(profileId) } catch (_: Exception) { medicationRepository.getCachedMedications() }
-                    val todayLogs = try { medicationRepository.fetchTodayLogs(profileId) } catch (_: Exception) { emptyList() }
+                if (healthProfileId != null) {
+                    val medications = try { medicationRepository.fetchMedications(healthProfileId) } catch (_: Exception) { medicationRepository.getCachedMedications() }
+                    val todayLogs = try { medicationRepository.fetchTodayLogs(healthProfileId) } catch (_: Exception) { emptyList() }
                     medicationsTotal = medications.size
                     medicationsTaken = todayLogs.count { it.status == "taken" }
                 } else {

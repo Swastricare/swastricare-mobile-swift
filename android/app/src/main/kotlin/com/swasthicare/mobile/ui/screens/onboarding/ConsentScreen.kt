@@ -74,7 +74,47 @@ fun ConsentScreen(onAccepted: () -> Unit) {
                 color = AppColors.onBackground.copy(alpha = 0.6f)
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
+
+            // Select All toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        val newValue = !allAccepted
+                        termsAccepted = newValue
+                        privacyAccepted = newValue
+                        dataProcessingAccepted = newValue
+                    }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Checkbox(
+                    checked = allAccepted,
+                    onCheckedChange = { newValue ->
+                        termsAccepted = newValue
+                        privacyAccepted = newValue
+                        dataProcessingAccepted = newValue
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = PrimaryColor,
+                        uncheckedColor = AppColors.onSurface.copy(alpha = 0.4f)
+                    )
+                )
+                Text(
+                    "Accept All",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onSurface
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
 
             // Three consent cards with staggered animation
             ConsentCard(

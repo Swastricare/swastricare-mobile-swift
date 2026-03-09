@@ -69,6 +69,7 @@ import com.swasthicare.mobile.ui.theme.PremiumColor
 import android.net.Uri
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Canvas
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -187,18 +188,22 @@ fun AIScreen(
                             .align(Alignment.BottomEnd)
                             .padding(8.dp)
                     ) {
-                        SmallFloatingActionButton(
-                            onClick = {
-                                scope.launch {
-                                    listState.animateScrollToItem(uiState.messages.size - 1)
-                                }
-                            },
-                            containerColor = AppColors.primaryContainer,
-                            contentColor = AppColors.primary
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .glass(cornerRadius = 24.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    scope.launch {
+                                        listState.animateScrollToItem(uiState.messages.size - 1)
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.ArrowDownward,
                                 contentDescription = "Scroll to bottom",
+                                tint = PrimaryColor,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -1037,8 +1042,8 @@ fun AnalysisResultOverlay(
 @Composable
 private fun MetricChip(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = AppColors.onSurface)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = PrimaryColor)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
     }
 }
 
@@ -1048,10 +1053,26 @@ private fun HealthInsightCard(metrics: HealthMetrics) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp)
-            .glass(cornerRadius = 16.dp)
-            .padding(16.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Radial glow behind card
+        Canvas(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(16.dp)
+        ) {
+            drawCircle(
+                color = PrimaryColor.copy(alpha = 0.08f),
+                radius = 200.dp.toPx(),
+                center = center
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glass(cornerRadius = 16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1059,14 +1080,14 @@ private fun HealthInsightCard(metrics: HealthMetrics) {
                 Icon(
                     Icons.Rounded.AutoAwesome,
                     contentDescription = null,
-                    tint = AppColors.primary,
+                    tint = PrimaryColor,
                     modifier = Modifier.size(14.dp)
                 )
                 Text(
                     "Health Snapshot",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = AppColors.primary
+                    color = PrimaryColor
                 )
             }
             Row(
@@ -1086,7 +1107,7 @@ private fun HealthInsightCard(metrics: HealthMetrics) {
                 if (metrics.bloodPressure != "--/--") {
                     MetricChip("BP", metrics.bloodPressure)
                 } else {
-                    Box(modifier = Modifier.width(60.dp)) // invisible placeholder matching MetricChip width
+                    Box(modifier = Modifier.width(60.dp))
                 }
             }
         }
@@ -1113,6 +1134,7 @@ fun ChatHistorySheet(
                 text = "Chat History",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
+                color = Color.White,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -1134,13 +1156,13 @@ fun ChatHistorySheet(
                             Icon(
                                 Icons.Default.History,
                                 contentDescription = null,
-                                tint = AppColors.onSurfaceVariant.copy(alpha = 0.4f),
+                                tint = Color.White.copy(alpha = 0.3f),
                                 modifier = Modifier.size(40.dp)
                             )
                             Text(
                                 "No previous chats",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = AppColors.onSurfaceVariant
+                                color = Color.White.copy(alpha = 0.5f)
                             )
                         }
                     }
@@ -1178,26 +1200,32 @@ private fun ChatHistoryItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(AppColors.surfaceVariant.copy(alpha = 0.4f))
+            .glass(cornerRadius = 12.dp)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(36.dp)
+                .background(PrimaryColor, RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = conversation.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = AppColors.onSurface,
+                color = Color.White,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis
             )
             if (formattedDate.isNotEmpty()) {
                 Text(
                     text = formattedDate,
                     style = MaterialTheme.typography.bodySmall,
-                    color = AppColors.onSurfaceVariant
+                    color = Color.White.copy(alpha = 0.5f)
                 )
             }
         }
@@ -1205,7 +1233,7 @@ private fun ChatHistoryItem(
             Icon(
                 Icons.Default.Delete,
                 contentDescription = "Delete",
-                tint = AppColors.onSurfaceVariant.copy(alpha = 0.6f),
+                tint = Color.White.copy(alpha = 0.4f),
                 modifier = Modifier.size(18.dp)
             )
         }
