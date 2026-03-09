@@ -426,7 +426,8 @@ private fun HeroPhotoHeader(
 
 @Composable
 private fun CalorieSummarySection(
-    calories: Int,
+    calories: String,
+    onCaloriesChange: (String) -> Unit,
     progress: Float,
     dailyGoal: Int
 ) {
@@ -439,12 +440,20 @@ private fun CalorieSummarySection(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = calories.toString(),
-                fontSize = 52.sp,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.onSurface,
-                lineHeight = 52.sp
+            // Inline-editable calorie number
+            BasicTextField(
+                value = calories,
+                onValueChange = { if (it.length <= 5) onCaloriesChange(it) },
+                textStyle = TextStyle(
+                    fontSize = 52.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.onSurface,
+                    textAlign = TextAlign.End
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                cursorBrush = SolidColor(SnapGreen),
+                singleLine = true,
+                modifier = Modifier.widthIn(min = 60.dp, max = 160.dp)
             )
             Text(
                 text = "kcal",
@@ -488,11 +497,11 @@ private val MacroFatColor     = Color(0xFFFFD600)
 @Composable
 private fun MacroPillsRow(
     proteinG: String,
+    onProteinChange: (String) -> Unit,
     carbsG: String,
+    onCarbsChange: (String) -> Unit,
     fatG: String,
-    onEditProtein: () -> Unit,
-    onEditCarbs: () -> Unit,
-    onEditFat: () -> Unit
+    onFatChange: (String) -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
     val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
@@ -504,25 +513,25 @@ private fun MacroPillsRow(
         MacroPill(
             label = "Protein",
             value = proteinG,
+            onValueChange = onProteinChange,
             accentColor = MacroProteinColor,
             cardBg = cardBg,
-            onClick = onEditProtein,
             modifier = Modifier.weight(1f)
         )
         MacroPill(
             label = "Carbs",
             value = carbsG,
+            onValueChange = onCarbsChange,
             accentColor = MacroCarbsColor,
             cardBg = cardBg,
-            onClick = onEditCarbs,
             modifier = Modifier.weight(1f)
         )
         MacroPill(
             label = "Fat",
             value = fatG,
+            onValueChange = onFatChange,
             accentColor = MacroFatColor,
             cardBg = cardBg,
-            onClick = onEditFat,
             modifier = Modifier.weight(1f)
         )
     }
@@ -532,13 +541,13 @@ private fun MacroPillsRow(
 private fun MacroPill(
     label: String,
     value: String,
+    onValueChange: (String) -> Unit,
     accentColor: Color,
     cardBg: Color,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -559,60 +568,41 @@ private fun MacroPill(
                     .fillMaxWidth()
                     .padding(vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = "${value}g",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = AppColors.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    BasicTextField(
+                        value = value,
+                        onValueChange = { if (it.length <= 4) onValueChange(it) },
+                        textStyle = TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.onSurface,
+                            textAlign = TextAlign.End
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        cursorBrush = SolidColor(accentColor),
+                        singleLine = true,
+                        modifier = Modifier.widthIn(min = 28.dp, max = 52.dp)
+                    )
+                    Text(
+                        text = "g",
+                        fontSize = 13.sp,
+                        color = AppColors.onSurface.copy(alpha = 0.45f),
+                        modifier = Modifier.padding(bottom = 1.dp)
+                    )
+                }
                 Text(
                     text = label,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = AppColors.onSurface.copy(alpha = 0.5f)
                 )
             }
         }
     }
-}
-
-@Composable
-private fun MacroEditDialog(
-    label: String,
-    currentValue: String,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var text by remember { mutableStateOf(currentValue) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(label, fontWeight = FontWeight.SemiBold) },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                suffix = { Text("g") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = SnapGreen,
-                    focusedLabelColor = SnapGreen
-                )
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { if (text.toDoubleOrNull() != null) onConfirm(text) }) {
-                Text("Done", color = SnapGreen, fontWeight = FontWeight.SemiBold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = AppColors.onSurface.copy(alpha = 0.5f))
-            }
-        }
-    )
 }
 
 // ─────────────────────────────────────
@@ -947,9 +937,6 @@ private fun ReviewForm(
     var selectedMealType by remember { mutableStateOf(autoMealType) }
     var isLogging by remember { mutableStateOf(false) }
 
-    // Which macro is being edited (null = none)
-    var editingMacro by remember { mutableStateOf<String?>(null) }
-
     val isValid = foodName.isNotBlank() && calories.toDoubleOrNull() != null
 
     val calorieProgress = remember(calories, dailyCalorieGoal) {
@@ -984,18 +971,19 @@ private fun ReviewForm(
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 CalorieSummarySection(
-                    calories = calories.toIntOrNull() ?: 0,
+                    calories = calories,
+                    onCaloriesChange = { calories = it },
                     progress = calorieProgress,
                     dailyGoal = dailyCalorieGoal
                 )
 
                 MacroPillsRow(
                     proteinG = proteinG,
+                    onProteinChange = { proteinG = it },
                     carbsG = carbsG,
+                    onCarbsChange = { carbsG = it },
                     fatG = fatG,
-                    onEditProtein = { editingMacro = "protein" },
-                    onEditCarbs   = { editingMacro = "carbs" },
-                    onEditFat     = { editingMacro = "fat" }
+                    onFatChange = { fatG = it }
                 )
 
                 ServingRow(
@@ -1052,32 +1040,6 @@ private fun ReviewForm(
             }
         }
 
-        // Macro edit dialog (rendered on top)
-        if (editingMacro != null) {
-            val currentValue = when (editingMacro) {
-                "protein" -> proteinG
-                "carbs"   -> carbsG
-                else      -> fatG
-            }
-            val label = when (editingMacro) {
-                "protein" -> "Protein (g)"
-                "carbs"   -> "Carbs (g)"
-                else      -> "Fat (g)"
-            }
-            MacroEditDialog(
-                label = label,
-                currentValue = currentValue,
-                onConfirm = { newVal ->
-                    when (editingMacro) {
-                        "protein" -> proteinG = newVal
-                        "carbs"   -> carbsG = newVal
-                        else      -> fatG = newVal
-                    }
-                    editingMacro = null
-                },
-                onDismiss = { editingMacro = null }
-            )
-        }
     }
 }
 
