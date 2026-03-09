@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.AutoAwesome
 import com.swasthicare.mobile.data.repository.AIConversation
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -147,6 +149,37 @@ fun AIScreen(
                                     onChipClick = { viewModel.sendFollowUp(it) }
                                 )
                             }
+                        }
+                    }
+                    // Scroll-to-bottom FAB
+                    val showScrollFab by remember {
+                        derivedStateOf {
+                            listState.firstVisibleItemIndex < (uiState.messages.size - 2) &&
+                                uiState.messages.size > 2
+                        }
+                    }
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showScrollFab,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut(),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp)
+                    ) {
+                        SmallFloatingActionButton(
+                            onClick = {
+                                scope.launch {
+                                    listState.animateScrollToItem(uiState.messages.size - 1)
+                                }
+                            },
+                            containerColor = AppColors.primaryContainer,
+                            contentColor = AppColors.primary
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowDownward,
+                                contentDescription = "Scroll to bottom",
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                 }
