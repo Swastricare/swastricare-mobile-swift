@@ -20,7 +20,7 @@ class CycleNotificationScheduler(private val context: Context) {
         predictedPeriodStart: LocalDate?,
         predictedOvulation: LocalDate?
     ) {
-        val notifService = NotificationService(context, AppContainer.sharedPreferences)
+        val notifService = AppContainer.notificationService
         if (!notifService.cycleEnabled) return
 
         predictedPeriodStart?.let { date ->
