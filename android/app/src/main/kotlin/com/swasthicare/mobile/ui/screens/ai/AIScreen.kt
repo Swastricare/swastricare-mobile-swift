@@ -149,6 +149,13 @@ fun AIScreen(
                                 onCopy = { viewModel.onMessageCopied() },
                                 onBookmark = { viewModel.onMessageBookmarked() }
                             )
+                            // Show health metric card below AI bubble if response discusses health metrics and analysis data exists
+                            if (!message.isUser && !message.isLoading && containsHealthMetrics(message.content)) {
+                                val completedState = uiState.analysisState as? AnalysisState.Completed
+                                if (completedState != null) {
+                                    HealthInsightCard(metrics = completedState.result.metrics)
+                                }
+                            }
                             // Show follow-up chips below the last AI message only
                             val isLastMessage = index == uiState.messages.size - 1
                             if (isLastMessage && !message.isUser && !message.isLoading) {
@@ -517,6 +524,12 @@ fun parseMarkdown(text: String): AnnotatedString {
 }
 
 
+private fun containsHealthMetrics(text: String): Boolean {
+    val lower = text.lowercase()
+    val keywords = listOf("steps", "heart rate", "sleep", "calorie", "blood pressure", "exercise", "weight")
+    return keywords.count { lower.contains(it) } >= 2
+}
+
 private const val DOT_CYCLE_MS = 900
 private const val DOT_RISE_MS = 300
 private const val DOT_STAGGER_MS = 150
@@ -826,6 +839,57 @@ private fun MetricChip(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = AppColors.onSurface)
         Text(label, style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
+    }
+}
+
+@Composable
+fun HealthInsightCard(metrics: HealthMetrics) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .glass(cornerRadius = 16.dp)
+            .padding(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    tint = AppColors.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    "Health Snapshot",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.primary
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                MetricChip("Steps", "${metrics.steps}")
+                MetricChip("Heart Rate", "${metrics.heartRate} bpm")
+                MetricChip("Calories", "${metrics.activeCalories} kcal")
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                MetricChip("Sleep", metrics.sleep)
+                MetricChip("Exercise", "${metrics.exerciseMinutes} min")
+                if (metrics.bloodPressure != "--/--") {
+                    MetricChip("BP", metrics.bloodPressure)
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
     }
 }
 
