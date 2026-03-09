@@ -437,10 +437,6 @@ fun ChatBubble(
     onBookmark: () -> Unit = {}
 ) {
     val isUser = message.isUser
-    val align = if (isUser) Alignment.End else Alignment.Start
-    val bgColor = if (isUser) AppColors.primaryContainer else AppColors.surfaceVariant
-    val textColor = if (isUser) AppColors.onPrimaryContainer else AppColors.onSurfaceVariant
-    val shape = if (isUser) RoundedCornerShape(20.dp, 4.dp, 20.dp, 20.dp) else RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
 
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(message.id) { visible = true }
@@ -456,99 +452,168 @@ fun ChatBubble(
             animationSpec = tween(300, easing = LinearOutSlowInEasing)
         ) + fadeIn(animationSpec = tween(300))
     ) {
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = align) {
-            if (!isUser) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(12.dp), tint = AppColors.primary)
-                    Text("Swastri", style = MaterialTheme.typography.labelSmall, color = AppColors.secondary)
+        if (isUser) {
+            // --- User bubble: glassmorphic with accent border ---
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 48.dp),
+                horizontalAlignment = Alignment.End
+            ) {
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = 300.dp)
+                        .glass(cornerRadius = 16.dp, accentColor = PrimaryColor)
+                        .combinedClickable(
+                            onClick = {},
+                            onLongClick = { if (!message.isLoading) showMenu = true }
+                        )
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    if (!message.imageUri.isNullOrEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            AsyncImage(
+                                model = Uri.parse(message.imageUri),
+                                contentDescription = "Attached image",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 180.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+                            // Extract image type label from content "[Image: X-Ray] Please analyze..."
+                            val rawContent = message.content
+                            val typeLabel = if (rawContent.contains("[Image: ") && rawContent.contains("]")) {
+                                rawContent.removePrefix("[Image: ").substringBefore("]").trim()
+                            } else ""
+                            if (typeLabel.isNotBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(PrimaryColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        typeLabel,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = PrimaryColor,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = parseMarkdown(message.content),
+                            color = Color.White.copy(alpha = 0.95f),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Copy") },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(message.content))
+                                showMenu = false
+                                onCopy()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share") },
+                            leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, message.content)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Share message"))
+                                showMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+        } else {
+            // --- AI bubble: borderless, text floats on the gradient ---
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 48.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = PrimaryColor
+                    )
+                    Text("Swastri", style = MaterialTheme.typography.labelSmall, color = PrimaryColor)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-            }
 
-            Box(
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .background(bgColor, shape)
-                    .combinedClickable(
-                        onClick = {},
-                        onLongClick = { if (!message.isLoading) showMenu = true }
-                    )
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                if (message.isUser && !message.imageUri.isNullOrEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AsyncImage(
-                            model = Uri.parse(message.imageUri),
-                            contentDescription = "Attached image",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 180.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                Box(
+                    modifier = Modifier
+                        .combinedClickable(
+                            onClick = {},
+                            onLongClick = { if (!message.isLoading) showMenu = true }
                         )
-                        // Extract image type label from content "[Image: X-Ray] Please analyze..."
-                        val rawContent = message.content
-                        val typeLabel = if (rawContent.contains("[Image: ") && rawContent.contains("]")) {
-                            rawContent.removePrefix("[Image: ").substringBefore("]").trim()
-                        } else ""
-                        if (typeLabel.isNotBlank()) {
-                            Box(
-                                modifier = Modifier
-                                    .background(AppColors.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    typeLabel,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = AppColors.primary,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                } else if (message.isLoading) {
-                    TypingIndicator()
-                } else if (!isUser && message.shouldAnimate) {
-                    TypewriterText(
-                        fullText = message.content,
-                        color = textColor,
-                        style = MaterialTheme.typography.bodyLarge,
-                        onAnimationComplete = onAnimationComplete
-                    )
-                } else {
-                    Text(
-                        text = parseMarkdown(message.content),
-                        color = textColor,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Copy") },
-                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(message.content))
-                            showMenu = false
-                            onCopy()
+                    if (message.isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .glass(cornerRadius = 14.dp)
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            TypingIndicator()
                         }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Share") },
-                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, message.content)
+                    } else if (message.shouldAnimate) {
+                        TypewriterText(
+                            fullText = message.content,
+                            color = Color.White.copy(alpha = 0.95f),
+                            style = MaterialTheme.typography.bodyLarge,
+                            onAnimationComplete = onAnimationComplete
+                        )
+                    } else {
+                        Text(
+                            text = parseMarkdown(message.content),
+                            color = Color.White.copy(alpha = 0.95f),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Copy") },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(message.content))
+                                showMenu = false
+                                onCopy()
                             }
-                            context.startActivity(Intent.createChooser(intent, "Share message"))
-                            showMenu = false
-                        }
-                    )
-                    if (!isUser) {
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share") },
+                            leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, message.content)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Share message"))
+                                showMenu = false
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("Bookmark") },
                             leadingIcon = { Icon(Icons.Default.BookmarkBorder, contentDescription = null, modifier = Modifier.size(18.dp)) },
@@ -711,9 +776,9 @@ fun TypingIndicator() {
     val a2 = TypingDot(transition, DOT_STAGGER_MS)
     val a3 = TypingDot(transition, DOT_STAGGER_MS * 2)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a1), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a2), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a3), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(PrimaryColor.copy(alpha = a1), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(PrimaryColor.copy(alpha = a2), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(PrimaryColor.copy(alpha = a3), CircleShape))
     }
 }
 
