@@ -257,6 +257,7 @@ fun IntroView(
 fun ChatBubble(
     message: ChatMessage,
     onAnimationComplete: () -> Unit = {},
+    // onCopy and onBookmark are wired in Task 6 (long-press menu)
     onCopy: () -> Unit = {},
     onBookmark: () -> Unit = {}
 ) {
