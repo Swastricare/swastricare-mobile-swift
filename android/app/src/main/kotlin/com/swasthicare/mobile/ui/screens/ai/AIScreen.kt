@@ -4,7 +4,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import android.content.Intent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -22,10 +25,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.AutoAwesome
 import com.swasthicare.mobile.data.repository.AIConversation
@@ -37,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -294,11 +302,11 @@ fun IntroView(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatBubble(
     message: ChatMessage,
     onAnimationComplete: () -> Unit = {},
-    // onCopy and onBookmark are wired in Task 6 (long-press menu)
     onCopy: () -> Unit = {},
     onBookmark: () -> Unit = {}
 ) {
@@ -310,6 +318,10 @@ fun ChatBubble(
 
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(message.id) { visible = true }
+
+    var showMenu by remember { mutableStateOf(false) }
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
 
     AnimatedVisibility(
         visible = visible,
@@ -331,6 +343,10 @@ fun ChatBubble(
                 modifier = Modifier
                     .widthIn(max = 280.dp)
                     .background(bgColor, shape)
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = { if (!message.isLoading) showMenu = true }
+                    )
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 if (message.isLoading) {
@@ -348,6 +364,43 @@ fun ChatBubble(
                         color = textColor,
                         style = MaterialTheme.typography.bodyLarge
                     )
+                }
+
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Copy") },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(message.content))
+                            showMenu = false
+                            onCopy()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Share") },
+                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, message.content)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share message"))
+                            showMenu = false
+                        }
+                    )
+                    if (!isUser) {
+                        DropdownMenuItem(
+                            text = { Text("Bookmark") },
+                            leadingIcon = { Icon(Icons.Default.BookmarkBorder, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                showMenu = false
+                                onBookmark()
+                            }
+                        )
+                    }
                 }
             }
         }
