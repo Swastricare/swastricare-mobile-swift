@@ -62,6 +62,10 @@ import com.swasthicare.mobile.data.models.QuickAction
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
 import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.AppColors
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextOverflow
+import com.swasthicare.mobile.ui.theme.PrimaryColor
+import com.swasthicare.mobile.ui.theme.PremiumColor
 import android.net.Uri
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
@@ -133,7 +137,7 @@ fun AIScreen(
             Box(modifier = Modifier.weight(1f)) {
                 if (uiState.messages.isEmpty() && uiState.showEmptyState) {
                     IntroView(
-                        onAnalyzeClick = { viewModel.sendQuickAction(QuickAction.suggestions[0]) },
+                        onQuickActionClick = { viewModel.sendQuickAction(it) },
                         modifier = Modifier.align(Alignment.Center)
                     )
                 } else {
@@ -259,54 +263,167 @@ fun AIScreen(
 
 @Composable
 fun IntroView(
-    onAnalyzeClick: () -> Unit,
+    onQuickActionClick: (QuickAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val quickActionIcons = listOf(
+        Icons.Rounded.AutoAwesome,
+        Icons.Default.Mic,
+        Icons.Default.ArrowUpward,
+        Icons.Default.ContentCopy
+    )
+
+    // Pulse animation for glow ring
+    val infiniteTransition = rememberInfiniteTransition(label = "avatarPulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
+    )
+
+    // Staggered card visibility states
+    val cardVisible = remember { List(4) { mutableStateOf(false) } }
+    cardVisible.forEachIndexed { index, state ->
+        LaunchedEffect(Unit) {
+            delay(80L * index)
+            state.value = true
+        }
+    }
+
     Column(
-        modifier = modifier.padding(32.dp),
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
+        // Animated AI Avatar
         Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(AppColors.primary.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Rounded.AutoAwesome,
-                contentDescription = null,
-                tint = AppColors.primary,
-                modifier = Modifier.size(40.dp)
+            // Outer glow ring (120dp) with pulse
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .scale(pulseScale)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                PrimaryColor.copy(alpha = glowAlpha),
+                                PremiumColor.RoyalBlueEnd.copy(alpha = glowAlpha * 0.4f),
+                                Color.Transparent
+                            )
+                        ),
+                        shape = CircleShape
+                    )
             )
+            // Avatar circle (100dp) with gradient fill
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(PrimaryColor, PremiumColor.RoyalBlueEnd)
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(44.dp)
+                )
+            }
         }
-        
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+        // Welcome text
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Text(
                 text = "Swastri AI",
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
-            
             Text(
-                text = "Your personal health assistant.\nAsk me anything about your vitals, diet, or fitness.",
+                text = "How can I help you today?",
                 style = MaterialTheme.typography.bodyLarge,
-                color = AppColors.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                lineHeight = 24.sp
+                color = Color.White.copy(alpha = 0.6f)
             )
         }
-        
-        Button(
-            onClick = onAnalyzeClick,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AppColors.primary
-            ),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
-        ) {
-            Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Analyze Health")
+
+        // 2x2 Glass Quick Action Grid
+        val actions = QuickAction.suggestions
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            for (row in 0..1) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    for (col in 0..1) {
+                        val index = row * 2 + col
+                        val action = actions[index]
+                        val icon = quickActionIcons[index]
+                        val visible = cardVisible[index].value
+
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = slideInVertically(
+                                initialOffsetY = { it / 2 },
+                                animationSpec = tween(400, easing = FastOutSlowInEasing)
+                            ) + fadeIn(animationSpec = tween(400)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .glass(cornerRadius = 16.dp)
+                                    .clickable { onQuickActionClick(action) }
+                                    .padding(14.dp)
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = PrimaryColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = action.title,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = action.prompt,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
