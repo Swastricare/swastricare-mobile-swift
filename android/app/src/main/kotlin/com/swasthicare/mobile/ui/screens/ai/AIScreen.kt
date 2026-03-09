@@ -4,7 +4,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
@@ -252,7 +251,6 @@ fun IntroView(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatBubble(
     message: ChatMessage,
@@ -274,7 +272,7 @@ fun ChatBubble(
         visible = visible,
         enter = slideInVertically(
             initialOffsetY = { it / 2 },
-            animationSpec = tween(300, easing = FastOutSlowInEasing)
+            animationSpec = tween(300, easing = LinearOutSlowInEasing)
         ) + fadeIn(animationSpec = tween(300))
     ) {
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = align) {
@@ -357,7 +355,7 @@ fun TypewriterText(
 
     val displayedText = fullText.substring(0, visibleCount)
     val annotated = buildAnnotatedString {
-        append(parseMarkdown(displayedText))
+        append(displayedText)
         if (isAnimating) {
             withStyle(SpanStyle(color = color.copy(alpha = cursorAlpha))) {
                 append("▎")
