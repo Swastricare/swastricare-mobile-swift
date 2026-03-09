@@ -212,6 +212,22 @@ class VaultViewModel(
         _uiState.update { it.copy(selectedDocumentDetail = document) }
     }
 
+    /**
+     * Resolves a signed URL for the document before opening the viewer.
+     * The stored fileUrl is a raw storage path — we need a signed URL to actually load it.
+     */
+    fun openDocumentViewer(doc: MedicalDocument, onResolved: (MedicalDocument) -> Unit) {
+        viewModelScope.launch {
+            val resolvedDoc = try {
+                val signedUrl = repository.getSignedUrl(doc.fileUrl)
+                doc.copy(fileUrl = signedUrl)
+            } catch (e: Exception) {
+                doc // fall back to original if signing fails
+            }
+            onResolved(resolvedDoc)
+        }
+    }
+
     fun updateDocumentMetadata(
         documentId: String,
         title: String,

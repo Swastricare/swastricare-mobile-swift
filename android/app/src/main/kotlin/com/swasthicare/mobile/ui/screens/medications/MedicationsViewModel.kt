@@ -262,9 +262,13 @@ class MedicationsViewModel(
     // MARK: - Private Helpers
     // ─────────────────────────────────────
 
-    private fun resolveProfileId(): String {
-        return AppContainer.authRepository.currentUser?.id
+    private suspend fun resolveProfileId(): String {
+        val userId = AppContainer.authRepository.currentUser?.id
             ?: throw IllegalStateException("No authenticated user")
+        val healthProfile = profileRepository.getHealthProfile(userId)
+            ?: throw IllegalStateException("No health profile found")
+        return healthProfile.id
+            ?: throw IllegalStateException("Health profile has no ID")
     }
 
     private fun buildMedicationsWithDoses(

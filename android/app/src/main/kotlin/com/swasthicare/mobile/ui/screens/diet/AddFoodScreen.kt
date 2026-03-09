@@ -44,7 +44,8 @@ import com.swasthicare.mobile.ui.theme.AppColors
 fun AddFoodScreen(
     initialMealTypeDb: String,
     onDismiss: () -> Unit,
-    onNavigateToFoodSearch: (String) -> Unit  // mealType.dbValue
+    onNavigateToFoodSearch: (String) -> Unit,  // mealType.dbValue
+    onNavigateToFoodSnap: (String) -> Unit = {}
 ) {
     val vm = remember { AppContainer.dietViewModel }
     val uiState by vm.uiState.collectAsState()
@@ -167,6 +168,20 @@ fun AddFoodScreen(
                             foods = favorites,
                             onSelect = { selectedFoodForQuantity = it }
                         )
+                    }
+                }
+
+                // Snap Food Photo Button
+                item {
+                    OutlinedButton(
+                        onClick = { onNavigateToFoodSnap(currentMealType.dbValue) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Snap Food Photo")
                     }
                 }
 

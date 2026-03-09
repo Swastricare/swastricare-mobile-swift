@@ -214,3 +214,31 @@ data class DietLogRecord(
         )
     }
 }
+
+// ─────────────────────────────────────
+// MARK: - Food Snap Result
+// ─────────────────────────────────────
+
+data class SnapFoodResult(
+    val name: String,
+    val calories: Double,
+    val proteinG: Double,
+    val carbsG: Double,
+    val fatG: Double,
+    val fiberG: Double = 0.0,
+    val servingSize: Double = 1.0,
+    val servingUnit: String = "piece",
+    val category: String = "other"
+) {
+    fun toFoodItem(): FoodItem = FoodItem(
+        name = name,
+        servingSize = servingSize,
+        servingUnit = servingUnit,
+        calories = calories,
+        proteinG = proteinG,
+        carbsG = carbsG,
+        fatG = fatG,
+        fiberG = fiberG,
+        category = category
+    )
+}

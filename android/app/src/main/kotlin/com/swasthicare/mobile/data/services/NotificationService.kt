@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -406,8 +407,10 @@ class NotificationService(
             Log.w(TAG, "Failed to save notification to history: ${e.message}")
         }
 
+        val largeIcon = BitmapFactory.decodeResource(context.resources, com.swastricare.health.R.mipmap.ic_launcher)
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(com.swastricare.health.R.drawable.ic_notification)
+            .setLargeIcon(largeIcon)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

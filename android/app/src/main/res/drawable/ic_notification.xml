@@ -2,10 +2,15 @@
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
-    android:viewportHeight="24"
-    android:tint="#FFFFFF">
-    <!-- Heart with pulse line — SwasthiCare health app notification icon -->
+    android:viewportHeight="24">
+    <!-- SwasthiCare notification icon: cloud with medical cross and sparkle -->
+    <!-- Cloud shape with cross cutout using fillType evenOdd -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M12,21.35l-1.45,-1.32C5.4,15.36 2,12.28 2,8.5 2,5.42 4.42,3 7.5,3c1.74,0 3.41,0.81 4.5,2.09C13.09,3.81 14.76,3 16.5,3 19.58,3 22,5.42 22,8.5c0,3.78 -3.4,6.86 -8.55,11.54L12,21.35z" />
+        android:fillType="evenOdd"
+        android:pathData="M6.5,20C4.98,20 3.68,19.47 2.61,18.41C1.54,17.34 1,16.05 1,14.5C1,13.12 1.43,11.91 2.29,10.88C3.15,9.84 4.24,9.18 5.56,8.9C5.97,7.28 6.83,5.97 8.14,4.97C9.45,3.97 10.93,3.47 12.58,3.47C14.58,3.47 16.28,4.17 17.68,5.57C19.08,6.97 19.78,8.67 19.78,10.67V11.17C21.03,11.23 22.08,11.7 22.93,12.58C23.78,13.45 24.2,14.5 24.2,15.72C24.2,16.88 23.79,17.88 22.98,18.7C22.16,19.53 21.18,19.94 20.03,19.94L6.5,20ZM10.5,9.5h3v2.5h2.5v3h-2.5v2.5h-3v-2.5h-2.5v-3h2.5z" />
+    <!-- Sparkle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M19.5,2.5l0.75,1.75L22,5l-1.75,0.75L19.5,7.5l-0.75,-1.75L17,5l1.75,-0.75z" />
 </vector>

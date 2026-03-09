@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.DietRepository
 import com.swasthicare.mobile.data.repository.ProfileRepository
+import com.swasthicare.mobile.data.services.AIService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +14,17 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+
+// ─────────────────────────────────────
+// MARK: - Snap Analysis State
+// ─────────────────────────────────────
+
+sealed class SnapAnalysisState {
+    object Idle : SnapAnalysisState()
+    object Analyzing : SnapAnalysisState()
+    data class Result(val food: SnapFoodResult) : SnapAnalysisState()
+    data class Error(val message: String) : SnapAnalysisState()
+}
 
 // ─────────────────────────────────────
 // MARK: - UI State
@@ -27,7 +39,9 @@ data class DietUiState(
     val insights: DietInsights? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val selectedDate: LocalDate = LocalDate.now()
+    val selectedDate: LocalDate = LocalDate.now(),
+    val snapState: SnapAnalysisState = SnapAnalysisState.Idle,
+    val snapImageUri: String? = null
 ) {
     /** Logs for selectedDate, sorted newest first */
     val todaysLogs: List<DietLogEntry> get() {
@@ -69,6 +83,8 @@ class DietViewModel(
 
     private val _uiState = MutableStateFlow(DietUiState(isLoading = true))
     val uiState: StateFlow<DietUiState> = _uiState.asStateFlow()
+
+    private val aiService = AIService(com.swasthicare.mobile.di.AppContainer.supabaseClient)
 
     private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
@@ -220,6 +236,34 @@ class DietViewModel(
         return _uiState.value.foodItemsCache.filter { ids.contains(it.id) }
     }
 
+    fun analyzeFood(context: android.content.Context, imageUri: android.net.Uri) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                snapState = SnapAnalysisState.Analyzing,
+                snapImageUri = imageUri.toString()
+            )
+            try {
+                val base64 = com.swasthicare.mobile.data.services.ImageUtils.compressAndEncode(context, imageUri)
+                    ?: throw Exception("Failed to process image")
+                val result = aiService.analyzeFoodImage(base64)
+                _uiState.value = _uiState.value.copy(
+                    snapState = SnapAnalysisState.Result(result)
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    snapState = SnapAnalysisState.Error(e.message ?: "Analysis failed")
+                )
+            }
+        }
+    }
+
+    fun clearSnapState() {
+        _uiState.value = _uiState.value.copy(
+            snapState = SnapAnalysisState.Idle,
+            snapImageUri = null
+        )
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
@@ -321,8 +365,12 @@ class DietViewModel(
         }
     }
 
-    private fun resolveProfileId(): String {
-        return com.swasthicare.mobile.di.AppContainer.authRepository.currentUser?.id
+    private suspend fun resolveProfileId(): String {
+        val userId = com.swasthicare.mobile.di.AppContainer.authRepository.currentUser?.id
             ?: throw IllegalStateException("No authenticated user")
+        val healthProfile = profileRepository.getHealthProfile(userId)
+            ?: throw IllegalStateException("No health profile found")
+        return healthProfile.id
+            ?: throw IllegalStateException("Health profile has no ID")
     }
 }

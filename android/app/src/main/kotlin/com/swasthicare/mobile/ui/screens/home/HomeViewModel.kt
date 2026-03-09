@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.CyclePhase
+import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.data.models.HydrationEntry
 import com.swasthicare.mobile.data.models.MenstrualSettings
 import com.swasthicare.mobile.di.AppContainer
@@ -55,7 +56,9 @@ data class HomeState(
     val calorieCurrent: Int = 0,
     val calorieGoal: Int = 2000,
     // Cycle tracker stub
-    val cyclePhase: String = "Cycle Tracker"
+    val cyclePhase: String = "Cycle Tracker",
+    // True when HC is authorized but no data exists (e.g. no fitness app writing to HC)
+    val hasNoHealthData: Boolean = false
 )
 
 class HomeViewModel : ViewModel() {
@@ -95,9 +98,13 @@ class HomeViewModel : ViewModel() {
                     ?: AppContainer.authRepository.currentUser?.email?.substringBefore("@")
                     ?: ""
 
-                // Load real data from Health Connect
-                val summary = healthConnectService.getTodaySummary()
-                val weeklyStepEntries = healthConnectService.getWeeklySteps()
+                // Check Health Connect READ permissions before reading data
+                val hasPermissions = healthConnectService.hasReadPermissions()
+                Log.d("HomeViewModel", "HC available=${healthConnectService.isAvailable}, hasReadPermissions=$hasPermissions")
+
+                // Load real data from Health Connect (only if permissions granted)
+                val summary = if (hasPermissions) healthConnectService.getTodaySummary() else HealthConnectService.DailyHealthSummary()
+                val weeklyStepEntries = if (hasPermissions) healthConnectService.getWeeklySteps() else emptyList()
 
                 // Load hydration data from local store
                 val todayStr = LocalDate.now().toString()
@@ -167,7 +174,8 @@ class HomeViewModel : ViewModel() {
                     medicationsTotal = medicationsTotal,
                     isLoading = false,
                     isDemoMode = false,
-                    isAuthorized = healthConnectService.isAvailable,
+                    isAuthorized = hasPermissions,
+                    hasNoHealthData = hasPermissions && summary.steps == 0 && summary.heartRate == 0 && summary.activeCalories == 0,
                     weekDates = weekDates,
                     selectedDate = Date(),
                     weeklySteps = weeklySteps,

@@ -117,6 +117,66 @@ fun HomeScreen(
                     statusColor = SecondaryColor
                 )
 
+                // Health Connect status banner
+                val showPermissionBanner = !uiState.isAuthorized
+                val showNoDataBanner = uiState.isAuthorized && uiState.hasNoHealthData
+                if (showPermissionBanner || showNoDataBanner) {
+                    val bannerTitle = if (showPermissionBanner) "Connect Health Data" else "No Health Data Found"
+                    val bannerSubtitle = if (showPermissionBanner)
+                        "Grant Health Connect permissions to see your vitals"
+                    else
+                        "Open Google Fit or Samsung Health to start recording your activity"
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clickable { onNavigateToRoute("health_connect_settings") },
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C2A3A)),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4FC3F7),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                androidx.compose.foundation.layout.Column {
+                                    Text(
+                                        text = bannerTitle,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = bannerSubtitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 // Server Nudges (section 0)
                 if (uiState.serverNudges.isNotEmpty()) {
                     StaggeredEntrance(visible = sectionVisible[0].value) {
@@ -184,7 +244,7 @@ fun HomeScreen(
                             ActivityStatRow(
                                 icon = Icons.Default.LocalFireDepartment,
                                 value = "${uiState.calories}",
-                                label = "Active Calories",
+                                label = "Calories",
                                 color = ActivityColor,
                                 animationDelay = 300
                             )

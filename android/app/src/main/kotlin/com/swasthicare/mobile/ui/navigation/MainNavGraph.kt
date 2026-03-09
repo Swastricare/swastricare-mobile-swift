@@ -17,6 +17,7 @@ import com.swasthicare.mobile.ui.screens.ar.ARBodyScanScreen
 import com.swasthicare.mobile.ui.screens.diet.AddFoodScreen
 import com.swasthicare.mobile.ui.screens.diet.DietScreen
 import com.swasthicare.mobile.ui.screens.diet.FoodSearchScreen
+import com.swasthicare.mobile.ui.screens.diet.FoodSnapScreen
 import com.swasthicare.mobile.ui.screens.family.FamilyScreen
 import com.swasthicare.mobile.ui.screens.heartrate.HeartRateAnalyticsScreen
 import com.swasthicare.mobile.ui.screens.heartrate.HeartRateScreen
@@ -172,7 +173,10 @@ fun MainNavGraph(
                 onNavigateToFoodSearch = { mealTypeDb ->
                     navController.navigate("food_search/$mealTypeDb")
                 },
-                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) }
+                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) },
+                onNavigateToFoodSnap = { mealTypeDb ->
+                    navController.navigate("food_snap/$mealTypeDb")
+                }
             )
         }
 
@@ -189,7 +193,8 @@ fun MainNavGraph(
             AddFoodScreen(
                 initialMealTypeDb = mealTypeDb,
                 onDismiss = { navController.popBackStack() },
-                onNavigateToFoodSearch = { mt -> navController.navigate("food_search/$mt") }
+                onNavigateToFoodSearch = { mt -> navController.navigate("food_search/$mt") },
+                onNavigateToFoodSnap = { mt -> navController.navigate("food_snap/$mt") }
             )
         }
 
@@ -207,6 +212,23 @@ fun MainNavGraph(
                 mealTypeDb = mealTypeDb,
                 onFoodSelected = { navController.popBackStack() },
                 onDismiss = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "food_snap/{${NavArgs.MEAL_TYPE}}",
+            arguments = listOf(
+                navArgument(NavArgs.MEAL_TYPE) {
+                    type = NavType.StringType
+                    defaultValue = "breakfast"
+                }
+            )
+        ) { backStackEntry ->
+            val mealTypeDb = backStackEntry.arguments?.getString(NavArgs.MEAL_TYPE) ?: "breakfast"
+            FoodSnapScreen(
+                mealTypeDb = mealTypeDb,
+                onDismiss = { navController.popBackStack() },
+                onNavigateToAddFood = { mt -> navController.navigate("add_food/$mt") }
             )
         }
 

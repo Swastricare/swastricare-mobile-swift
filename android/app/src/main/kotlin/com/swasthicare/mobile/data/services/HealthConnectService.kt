@@ -139,6 +139,17 @@ class HealthConnectService(private val context: Context) {
         }
     }
 
+    /** Returns true if the read permissions needed to display home vitals are granted. */
+    suspend fun hasReadPermissions(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val granted = client?.permissionController?.getGrantedPermissions() ?: return@withContext false
+            READ_PERMISSIONS.all { it in granted }
+        } catch (e: Exception) {
+            Log.w(TAG, "Read permission check failed: ${e.message}")
+            false
+        }
+    }
+
     suspend fun getGrantedPermissions(): Set<String> = withContext(Dispatchers.IO) {
         try {
             client?.permissionController?.getGrantedPermissions() ?: emptySet()
@@ -260,10 +271,14 @@ class HealthConnectService(private val context: Context) {
             AppContainer.crashlyticsService.recordException(e)
         }
 
+        // Google Fit only writes TotalCaloriesBurnedRecord (not ActiveCaloriesBurnedRecord).
+        // Fall back to totalCal when activeCal is unavailable so the home screen shows a value.
+        val displayCalories = if (activeCal > 0) activeCal else totalCal
+
         DailyHealthSummary(
             steps = steps,
             heartRate = heartRate,
-            activeCalories = activeCal,
+            activeCalories = displayCalories,
             totalCalories = totalCal,
             sleepMinutes = sleepMin,
             distanceKm = distanceKm,

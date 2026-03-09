@@ -442,10 +442,12 @@ fun VaultScreen(
                     onDismiss = { viewModel.selectDocumentForDetail(null) },
                     onViewDocument = { doc ->
                         viewModel.selectDocumentForDetail(null)
-                        if (onNavigateToViewer != null) {
-                            onNavigateToViewer(doc)
-                        } else {
-                            viewingDocument = doc
+                        viewModel.openDocumentViewer(doc) { resolvedDoc ->
+                            if (onNavigateToViewer != null) {
+                                onNavigateToViewer(resolvedDoc)
+                            } else {
+                                viewingDocument = resolvedDoc
+                            }
                         }
                     },
                     onSaveChanges = { id, title, category, notes, tags ->

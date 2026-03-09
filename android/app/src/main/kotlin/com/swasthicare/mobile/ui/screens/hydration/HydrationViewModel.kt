@@ -289,7 +289,9 @@ class HydrationViewModel(
         }
     }
 
-    private fun resolveProfileId(): String? {
-        return AppContainer.authRepository.currentUser?.id
+    private suspend fun resolveProfileId(): String? {
+        val userId = AppContainer.authRepository.currentUser?.id ?: return null
+        val healthProfile = profileRepository.getHealthProfile(userId) ?: return null
+        return healthProfile.id
     }
 }

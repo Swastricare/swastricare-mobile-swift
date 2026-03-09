@@ -35,7 +35,8 @@ fun DietScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddFood: (String) -> Unit,   // mealType.dbValue
     onNavigateToFoodSearch: (String) -> Unit, // mealType.dbValue
-    onNavigateToAI: () -> Unit
+    onNavigateToAI: () -> Unit,
+    onNavigateToFoodSnap: (String) -> Unit = {}
 ) {
     val vm = remember { AppContainer.dietViewModel }
     val uiState by vm.uiState.collectAsState()
@@ -270,6 +271,27 @@ fun DietScreen(
                     }
                 }
             }
+        }
+
+        // FAB — Snap Food Photo
+        FloatingActionButton(
+            onClick = {
+                val hour = java.time.LocalTime.now().hour
+                val mealType = when {
+                    hour < 10 -> MealType.BREAKFAST
+                    hour < 14 -> MealType.LUNCH
+                    hour < 17 -> MealType.EVENING_SNACK
+                    else -> MealType.DINNER
+                }
+                onNavigateToFoodSnap(mealType.dbValue)
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 16.dp),
+            containerColor = Color(0xFF4CAF50),
+            contentColor = Color.White
+        ) {
+            Icon(Icons.Default.CameraAlt, contentDescription = "Snap Food")
         }
 
         // Error snackbar

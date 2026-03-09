@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.swasthicare.mobile.MainActivity
@@ -31,8 +32,10 @@ class MedicationReminderReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val largeIcon = BitmapFactory.decodeResource(context.resources, com.swastricare.health.R.mipmap.ic_launcher)
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(com.swastricare.health.R.drawable.ic_notification)
+            .setLargeIcon(largeIcon)
             .setContentTitle("Time for your medication")
             .setContentText("$medName is due now")
             .setPriority(NotificationCompat.PRIORITY_HIGH)

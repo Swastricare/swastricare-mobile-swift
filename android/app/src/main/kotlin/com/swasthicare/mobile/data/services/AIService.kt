@@ -6,6 +6,7 @@ import com.swasthicare.mobile.data.models.ChatResponse
 import com.swasthicare.mobile.data.models.ContextMessage
 import com.swasthicare.mobile.data.models.HealthAnalysisResponse
 import com.swasthicare.mobile.data.models.HealthMetrics
+import com.swasthicare.mobile.data.models.SnapFoodResult
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.ktor.client.call.body
@@ -65,6 +66,56 @@ class AIService(private val client: SupabaseClient) {
                 recommendations = listOf("Please check your connection and try again.")
             )
         }
+    }
+
+    suspend fun analyzeFoodImage(imageBase64: String): SnapFoodResult {
+        val prompt = buildString {
+            appendLine("Identify the food in this image. This is likely Indian cuisine.")
+            appendLine("Respond ONLY with this exact format:")
+            appendLine()
+            appendLine("FOOD: <name>")
+            appendLine("CALORIES: <number>")
+            appendLine("PROTEIN: <grams as number>")
+            appendLine("CARBS: <grams as number>")
+            appendLine("FAT: <grams as number>")
+            appendLine("FIBER: <grams as number>")
+            appendLine("SERVING_SIZE: <number>")
+            appendLine("SERVING_UNIT: <unit like piece, bowl, plate, cup, g>")
+            appendLine("CATEGORY: <fruits|vegetables|grains|protein|dairy|beverages|snacks|sweets|other>")
+        }
+
+        val request = ChatRequest(
+            message = prompt,
+            conversationHistory = emptyList(),
+            imageData = imageBase64
+        )
+
+        val response = client.functions.invoke(
+            function = "ai-router",
+            body = request
+        )
+        val body = response.body<String>()
+        val responseText = json.decodeFromString<ChatResponse>(body).response
+        return parseFoodSnapResponse(responseText)
+    }
+
+    private fun parseFoodSnapResponse(text: String): SnapFoodResult {
+        fun extractValue(key: String): String? {
+            val regex = Regex("$key:\\s*(.+)", RegexOption.IGNORE_CASE)
+            return regex.find(text)?.groupValues?.get(1)?.trim()
+        }
+
+        return SnapFoodResult(
+            name = extractValue("FOOD") ?: "Unknown Food",
+            calories = extractValue("CALORIES")?.toDoubleOrNull() ?: 0.0,
+            proteinG = extractValue("PROTEIN")?.toDoubleOrNull() ?: 0.0,
+            carbsG = extractValue("CARBS")?.toDoubleOrNull() ?: 0.0,
+            fatG = extractValue("FAT")?.toDoubleOrNull() ?: 0.0,
+            fiberG = extractValue("FIBER")?.toDoubleOrNull() ?: 0.0,
+            servingSize = extractValue("SERVING_SIZE")?.toDoubleOrNull() ?: 1.0,
+            servingUnit = extractValue("SERVING_UNIT") ?: "piece",
+            category = extractValue("CATEGORY") ?: "other"
+        )
     }
 
     private fun parseHealthAnalysisResponse(text: String): HealthAnalysisResponse {

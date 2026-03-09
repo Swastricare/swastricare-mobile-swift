@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(supabase functions deploy cycle-ai-nudges)",
+      "Bash(supabase --version)",
+      "Bash(git add supabase/config.toml)",
+      "Bash(supabase functions invoke cycle-ai-nudges --no-verify-jwt)",
+      "Bash(curl -s -X POST \"https://jlumbeyukpnuicyxzvre.supabase.co/functions/v1/cycle-ai-nudges\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsdW1iZXl1a3BudWljeXh6dnJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2Nzc2MzAsImV4cCI6MjA4MzI1MzYzMH0.JYn8tZGP5OomXh968K4zV7L9h7Gam1zVW5YZ81DLC98\" -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(git add android/app/src/main/kotlin/com/swasthicare/mobile/data/models/AIModels.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/ai/AIViewModel.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/ai/AIScreen.kt)",
+      "Bash(git add android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/diet/FoodSnapScreen.kt)",
+      "Bash(./gradlew test)",
+      "Bash(git add android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/ai/AIScreen.kt android/app/src/main/kotlin/com/swasthicare/mobile/data/models/AIModels.kt)",
+      "Bash(git add android/app/src/main/AndroidManifest.xml android/app/src/main/kotlin/com/swasthicare/mobile/data/models/DietModels.kt android/app/src/main/kotlin/com/swasthicare/mobile/data/services/AIService.kt android/app/src/main/kotlin/com/swasthicare/mobile/data/services/HealthConnectService.kt android/app/src/main/kotlin/com/swasthicare/mobile/data/services/NotificationService.kt android/app/src/main/kotlin/com/swasthicare/mobile/data/services/WorkoutNotificationService.kt android/app/src/main/kotlin/com/swasthicare/mobile/notifications/MedicationReminderReceiver.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/navigation/MainNavGraph.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/diet/AddFoodScreen.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/diet/DietScreen.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/diet/DietViewModel.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/home/HomeScreen.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/home/HomeViewModel.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/hydration/HydrationViewModel.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/medications/MedicationsViewModel.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/vault/VaultScreen.kt android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/vault/VaultViewModel.kt android/app/src/main/res/drawable/ic_notification.xml android/app/src/main/kotlin/com/swasthicare/mobile/data/services/ImageUtils.kt android/app/src/main/res/values/colors.xml docs/plans/ .claude/)"
+    ]
+  }
+}
