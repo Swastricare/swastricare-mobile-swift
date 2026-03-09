@@ -384,34 +384,37 @@ fun parseMarkdown(text: String): AnnotatedString {
 }
 
 
+private const val DOT_CYCLE_MS = 900
+private const val DOT_RISE_MS = 300
+private const val DOT_STAGGER_MS = 150
+private const val DOT_MIN_ALPHA = 0.3f
+
+@Composable
+private fun TypingDot(transition: InfiniteTransition, delayMillis: Int): Float {
+    val alpha by transition.animateFloat(
+        initialValue = DOT_MIN_ALPHA,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = DOT_CYCLE_MS
+                DOT_MIN_ALPHA at delayMillis using LinearEasing
+                1f at (delayMillis + DOT_RISE_MS) using LinearEasing
+                DOT_MIN_ALPHA at (delayMillis + DOT_RISE_MS * 2) using LinearEasing
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "dot$delayMillis"
+    )
+    return alpha
+}
+
 @Composable
 fun TypingIndicator() {
     val transition = rememberInfiniteTransition(label = "typing")
-
-    @Composable
-    fun dot(delayMillis: Int): Float {
-        val alpha by transition.animateFloat(
-            initialValue = 0.3f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = keyframes {
-                    durationMillis = 900
-                    0.3f at delayMillis using LinearEasing
-                    1f at (delayMillis + 300) using LinearEasing
-                    0.3f at (delayMillis + 600) using LinearEasing
-                    0.3f at 900 using LinearEasing
-                },
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "dot$delayMillis"
-        )
-        return alpha
-    }
-
+    val a1 = TypingDot(transition, 0)
+    val a2 = TypingDot(transition, DOT_STAGGER_MS)
+    val a3 = TypingDot(transition, DOT_STAGGER_MS * 2)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        val a1 = dot(0)
-        val a2 = dot(150)
-        val a3 = dot(300)
         Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a1), CircleShape))
         Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a2), CircleShape))
         Box(modifier = Modifier.size(8.dp).background(AppColors.onSurfaceVariant.copy(alpha = a3), CircleShape))
