@@ -22,7 +22,10 @@ interface VaultRepository {
         title: String,
         category: String,
         notes: String?,
-        tags: List<String>
+        tags: List<String>,
+        doctorName: String? = null,
+        location: String? = null,
+        appointmentDate: String? = null
     ): MedicalDocument
 }
 
@@ -102,7 +105,10 @@ class MockVaultRepository : VaultRepository {
         title: String,
         category: String,
         notes: String?,
-        tags: List<String>
+        tags: List<String>,
+        doctorName: String?,
+        location: String?,
+        appointmentDate: String?
     ): MedicalDocument {
         delay(500)
         val index = documents.indexOfFirst { it.id == documentId }
@@ -112,6 +118,9 @@ class MockVaultRepository : VaultRepository {
             category = category,
             notes = notes,
             tags = tags,
+            doctorName = doctorName,
+            location = location,
+            appointmentDate = appointmentDate,
             updatedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         )
         documents[index] = updated

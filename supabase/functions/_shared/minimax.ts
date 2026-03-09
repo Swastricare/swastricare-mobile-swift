@@ -45,6 +45,8 @@ export async function callMiniMax(
       messages,
       temperature,
       max_tokens: maxTokens,
+      // Disable thinking to prevent <think> tags in response
+      thinking: { type: "text" },
     }
 
     if (responseFormat === 'json_object') {
@@ -75,7 +77,11 @@ export async function callMiniMax(
       throw new Error('No response content from MiniMax')
     }
 
-    return data.choices[0].message.content.trim()
+    // Strip thinking tags from response
+    let content = data.choices[0].message.content.trim()
+    content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+
+    return content
   } catch (error) {
     clearTimeout(timeoutId)
     if (error.name === 'AbortError') {

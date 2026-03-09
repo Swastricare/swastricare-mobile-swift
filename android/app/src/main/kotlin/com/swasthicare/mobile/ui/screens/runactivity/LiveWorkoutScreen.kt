@@ -9,6 +9,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,10 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,6 +36,8 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.shouldShowRationale
+import com.swasthicare.mobile.data.models.WorkoutTemplate
+import com.swasthicare.mobile.data.services.GpsMode
 import com.swasthicare.mobile.data.services.RouteTracker
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.GpsStatusChip
@@ -95,6 +100,7 @@ fun LiveWorkoutScreen(
                     !it.status.isGranted && !it.status.shouldShowRationale
                 } && !locationPermissions.allPermissionsGranted,
                 onSelectWorkoutType = { viewModel.setWorkoutType(it) },
+                onSelectTemplate = { viewModel.selectTemplate(it) },
                 onStart = { viewModel.startWorkout() },
                 onBack = onNavigateBack,
                 onOpenSettings = {
@@ -149,10 +155,13 @@ private fun IdlePhaseContent(
     usesGps: Boolean,
     isPermanentlyDenied: Boolean,
     onSelectWorkoutType: (WorkoutType) -> Unit,
+    onSelectTemplate: (WorkoutTemplate) -> Unit,
     onStart: () -> Unit,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -206,7 +215,10 @@ private fun IdlePhaseContent(
                         WorkoutTypeCard(
                             type = type,
                             isSelected = uiState.workoutType == type,
-                            onClick = { onSelectWorkoutType(type) },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onSelectWorkoutType(type)
+                            },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -254,6 +266,36 @@ private fun IdlePhaseContent(
             Spacer(Modifier.height(16.dp))
         }
 
+        // Templates section
+        if (uiState.templates.isNotEmpty()) {
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                "Templates",
+                style = MaterialTheme.typography.titleMedium,
+                color = AppColors.onBackground.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(uiState.templates) { template ->
+                    TemplateCard(
+                        template = template,
+                        isSelected = uiState.activeTemplate?.id == template.id,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSelectTemplate(template)
+                        }
+                    )
+                }
+            }
+        }
+
         Spacer(Modifier.weight(1f))
 
         // Start button
@@ -262,7 +304,10 @@ private fun IdlePhaseContent(
                 .size(120.dp)
                 .clip(CircleShape)
                 .background(PremiumColor.NeonGreenEnd)
-                .clickable { onStart() },
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onStart()
+                },
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -275,6 +320,85 @@ private fun IdlePhaseContent(
         }
 
         Spacer(Modifier.height(40.dp))
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Template Card
+// ─────────────────────────────────────
+
+@Composable
+private fun TemplateCard(
+    template: WorkoutTemplate,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(140.dp)
+            .glass(
+                cornerRadius = 16.dp,
+                opacity = if (isSelected) 0.35f else 0.2f,
+                accentColor = if (isSelected) PremiumColor.NeonGreenEnd else null
+            )
+            .clickable { onClick() }
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = template.name,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isSelected) AppColors.onSurface else AppColors.onSurface.copy(alpha = 0.8f),
+            maxLines = 1
+        )
+        Text(
+            text = template.formattedTarget,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant,
+            maxLines = 1
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Target Progress Row
+// ─────────────────────────────────────
+
+@Composable
+private fun TargetProgressRow(
+    template: WorkoutTemplate,
+    currentDistanceMeters: Double,
+    currentDurationSeconds: Long
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = 12.dp, opacity = 0.2f)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            template.name,
+            style = MaterialTheme.typography.labelMedium,
+            color = AppColors.onSurface.copy(alpha = 0.6f)
+        )
+
+        val progress = when {
+            template.targetDistanceMeters != null ->
+                (currentDistanceMeters / template.targetDistanceMeters).coerceIn(0.0, 1.0)
+            template.targetDurationSeconds != null ->
+                (currentDurationSeconds.toDouble() / template.targetDurationSeconds).coerceIn(0.0, 1.0)
+            else -> 0.0
+        }
+
+        Text(
+            "${(progress * 100).toInt()}%",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (progress >= 1.0) PremiumColor.NeonGreenEnd else Color(0xFF00E5FF)
+        )
     }
 }
 
@@ -422,11 +546,13 @@ private fun TrackingPhaseContent(
     onPause: () -> Unit,
     onStop: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(16.dp))
@@ -444,7 +570,27 @@ private fun TrackingPhaseContent(
                 color = AppColors.onBackground
             )
             if (uiState.workoutType.usesGps) {
-                GpsStatusChip(gpsStatus = uiState.gpsStatus)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    GpsStatusChip(gpsStatus = uiState.gpsStatus)
+                    if (uiState.gpsMode != GpsMode.HIGH_ACCURACY) {
+                        Text(
+                            uiState.gpsMode.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when (uiState.gpsMode) {
+                                GpsMode.BALANCED -> Color(0xFFFFD60A)
+                                GpsMode.LOW_POWER -> Color(0xFFFF9F0A)
+                                else -> AppColors.onSurfaceVariant
+                            },
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .glass(cornerRadius = 8.dp, opacity = 0.2f)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             }
         }
 
@@ -468,6 +614,16 @@ private fun TrackingPhaseContent(
             color = AppColors.onBackground,
             letterSpacing = 2.sp
         )
+
+        // Target progress
+        uiState.activeTemplate?.let { template ->
+            Spacer(Modifier.height(8.dp))
+            TargetProgressRow(
+                template = template,
+                currentDistanceMeters = uiState.distanceMeters,
+                currentDurationSeconds = uiState.elapsedSeconds
+            )
+        }
 
         Spacer(Modifier.height(24.dp))
 
@@ -520,8 +676,8 @@ private fun TrackingPhaseContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 40.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .padding(bottom = 48.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Stop button
@@ -529,32 +685,33 @@ private fun TrackingPhaseContent(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFF4757).copy(alpha = 0.2f))
-                    .clickable { onStop() },
+                    .background(Color(0xFFFF4757))
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onStop()
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Stop,
                     contentDescription = "Stop",
-                    tint = Color(0xFFFF4757),
+                    tint = Color.White,
                     modifier = Modifier.size(28.dp)
                 )
             }
+
+            Spacer(Modifier.width(32.dp))
 
             // Pause button (large)
             Box(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                PremiumColor.RoyalBlueStart,
-                                PremiumColor.RoyalBlueEnd
-                            )
-                        )
-                    )
-                    .clickable { onPause() },
+                    .background(Color(0xFF5B7FFF))
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onPause()
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -564,9 +721,6 @@ private fun TrackingPhaseContent(
                     modifier = Modifier.size(36.dp)
                 )
             }
-
-            // Spacer for symmetry
-            Spacer(Modifier.size(64.dp))
         }
     }
 }
@@ -581,6 +735,7 @@ private fun PausedPhaseContent(
     onResume: () -> Unit,
     onStop: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val pulseAnim = rememberInfiniteTransition(label = "pausePulse")
     val pulseAlpha by pulseAnim.animateFloat(
         initialValue = 0.5f,
@@ -595,7 +750,7 @@ private fun PausedPhaseContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(16.dp))
@@ -659,8 +814,8 @@ private fun PausedPhaseContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 40.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .padding(bottom = 48.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Stop button
@@ -668,32 +823,33 @@ private fun PausedPhaseContent(
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFF4757).copy(alpha = 0.2f))
-                    .clickable { onStop() },
+                    .background(Color(0xFFFF4757))
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onStop()
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Stop,
                     contentDescription = "Stop",
-                    tint = Color(0xFFFF4757),
+                    tint = Color.White,
                     modifier = Modifier.size(32.dp)
                 )
             }
+
+            Spacer(Modifier.width(32.dp))
 
             // Resume button (large, green)
             Box(
                 modifier = Modifier
                     .size(88.dp)
                     .clip(CircleShape)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                PremiumColor.NeonGreenStart,
-                                PremiumColor.NeonGreenEnd
-                            )
-                        )
-                    )
-                    .clickable { onResume() },
+                    .background(PremiumColor.NeonGreenEnd)
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onResume()
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -717,6 +873,8 @@ private fun WorkoutSummaryContent(
     onDone: () -> Unit,
     onDiscard: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -732,6 +890,8 @@ private fun WorkoutSummaryContent(
             fontWeight = FontWeight.Black,
             color = PremiumColor.NeonGreenEnd
         )
+
+        Spacer(Modifier.height(4.dp))
 
         Text(
             uiState.workoutType.displayName,
@@ -754,33 +914,27 @@ private fun WorkoutSummaryContent(
         // Summary metrics
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Duration
             SummaryRow(label = "Duration", value = uiState.elapsedFormatted)
 
-            // Distance
             SummaryRow(
                 label = "Distance",
                 value = "${uiState.distanceFormatted} km"
             )
 
-            // Average Pace
             SummaryRow(label = "Avg Pace", value = "${uiState.paceFormatted} /km")
 
-            // Average Speed
             SummaryRow(
                 label = "Avg Speed",
                 value = String.format("%.1f km/h", uiState.averageSpeedKmh)
             )
 
-            // Max Speed
             SummaryRow(
                 label = "Max Speed",
                 value = String.format("%.1f km/h", uiState.maxSpeedMps * 3.6f)
             )
 
-            // Elevation Gain
             if (uiState.elevationGainMeters > 0) {
                 SummaryRow(
                     label = "Elevation Gain",
@@ -788,7 +942,6 @@ private fun WorkoutSummaryContent(
                 )
             }
 
-            // Calories
             if (uiState.caloriesBurned > 0) {
                 SummaryRow(
                     label = "Calories",
@@ -799,14 +952,17 @@ private fun WorkoutSummaryContent(
 
         Spacer(Modifier.height(32.dp))
 
-        // Done button
+        // Save button
         Button(
-            onClick = onDone,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onDone()
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PremiumColor.NeonGreenStart
+                containerColor = PremiumColor.NeonGreenEnd
             ),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -821,12 +977,15 @@ private fun WorkoutSummaryContent(
 
         // Discard button
         TextButton(
-            onClick = onDiscard,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onDiscard()
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 "Discard",
-                color = AppColors.onBackground.copy(alpha = 0.4f),
+                color = Color(0xFFFF4757).copy(alpha = 0.6f),
                 fontWeight = FontWeight.Medium
             )
         }

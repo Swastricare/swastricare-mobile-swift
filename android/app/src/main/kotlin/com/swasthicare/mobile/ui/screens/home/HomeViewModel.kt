@@ -3,7 +3,9 @@ package com.swasthicare.mobile.ui.screens.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swasthicare.mobile.data.models.AdherenceStatus
 import com.swasthicare.mobile.data.models.CyclePhase
+import com.swasthicare.mobile.data.models.MedicationDose
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.data.models.HydrationEntry
 import com.swasthicare.mobile.data.models.MenstrualSettings
@@ -43,6 +45,7 @@ data class HomeState(
     val hydrationGoal: Int = 2500,
     val medicationsTaken: Int = 0,
     val medicationsTotal: Int = 0,
+    val pendingMedicationDoses: List<MedicationDose> = emptyList(),
     val isLoading: Boolean = true,
     val isDemoMode: Boolean = false,
     val isAuthorized: Boolean = false,

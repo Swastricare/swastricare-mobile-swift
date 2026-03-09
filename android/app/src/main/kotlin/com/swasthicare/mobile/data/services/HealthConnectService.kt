@@ -39,18 +39,23 @@ class HealthConnectService(private val context: Context) {
     companion object {
         private const val TAG = "HealthConnectService"
 
-        // All required permissions
-        val READ_PERMISSIONS = setOf(
+        // Core permissions needed for home screen - used for permission checks
+        val CORE_READ_PERMISSIONS = setOf(
             HealthPermission.getReadPermission(StepsRecord::class),
             HealthPermission.getReadPermission(HeartRateRecord::class),
             HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
             HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
             HealthPermission.getReadPermission(SleepSessionRecord::class),
             HealthPermission.getReadPermission(DistanceRecord::class),
-            HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class)
+        )
+
+        // All required permissions (includes optional ones)
+        val READ_PERMISSIONS = CORE_READ_PERMISSIONS + setOf(
             HealthPermission.getReadPermission(BloodPressureRecord::class),
             HealthPermission.getReadPermission(WeightRecord::class),
-            HealthPermission.getReadPermission(HeightRecord::class)
+            HealthPermission.getReadPermission(HeightRecord::class),
+            HealthPermission.getReadPermission(Vo2MaxRecord::class)
         )
 
         val WRITE_PERMISSIONS = setOf(
@@ -139,11 +144,11 @@ class HealthConnectService(private val context: Context) {
         }
     }
 
-    /** Returns true if the read permissions needed to display home vitals are granted. */
+    /** Returns true if the core read permissions needed to display home vitals are granted. */
     suspend fun hasReadPermissions(): Boolean = withContext(Dispatchers.IO) {
         try {
             val granted = client?.permissionController?.getGrantedPermissions() ?: return@withContext false
-            READ_PERMISSIONS.all { it in granted }
+            CORE_READ_PERMISSIONS.all { it in granted }
         } catch (e: Exception) {
             Log.w(TAG, "Read permission check failed: ${e.message}")
             false
@@ -562,6 +567,27 @@ class HealthConnectService(private val context: Context) {
             Log.w(TAG, "estimateStandHours failed: ${e.message}")
             AppContainer.crashlyticsService.recordException(e)
             0
+        }
+    }
+
+    /** Reads the most recent Vo2MaxRecord from the last 90 days. Returns ml/min/kg or null. */
+    suspend fun getVo2Max(): Double? {
+        return try {
+            val hc = client ?: return null
+            val now = java.time.Instant.now()
+            val response = hc.readRecords(
+                ReadRecordsRequest(
+                    recordType = Vo2MaxRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(
+                        now.minus(90, ChronoUnit.DAYS),
+                        now
+                    )
+                )
+            )
+            response.records.maxByOrNull { it.time }?.vo2MillilitersPerMinuteKilogram
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to read VO2Max: ${e.message}")
+            null
         }
     }
 

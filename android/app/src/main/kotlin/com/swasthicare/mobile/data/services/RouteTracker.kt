@@ -2,13 +2,21 @@ package com.swasthicare.mobile.data.services
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.location.Location
+import android.os.BatteryManager
 import android.os.Looper
 import com.google.android.gms.location.*
 import com.swasthicare.mobile.data.model.RoutePoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * GPS route tracking service using FusedLocationProviderClient.
@@ -16,7 +24,17 @@ import kotlinx.coroutines.flow.asStateFlow
  * Collects GPS coordinates at regular intervals during an active workout,
  * exposes a live route via StateFlow, and computes total distance.
  */
-class RouteTracker(context: Context) {
+// ─────────────────────────────────────
+// MARK: - Battery-Aware GPS Mode
+// ─────────────────────────────────────
+
+enum class GpsMode(val label: String) {
+    HIGH_ACCURACY("High Accuracy"),
+    BALANCED("Balanced"),
+    LOW_POWER("Low Power")
+}
+
+class RouteTracker(private val context: Context) {
 
     // ─────────────────────────────────────
     // MARK: - GPS Fix Quality
@@ -51,18 +69,10 @@ class RouteTracker(context: Context) {
     private var isTracking = false
     private var isPaused = false
 
-    // ─────────────────────────────────────
-    // MARK: - Location Request Config
-    // ─────────────────────────────────────
+    private val _gpsMode = MutableStateFlow(GpsMode.HIGH_ACCURACY)
+    val gpsMode: StateFlow<GpsMode> = _gpsMode.asStateFlow()
 
-    private val locationRequest = LocationRequest.Builder(
-        Priority.PRIORITY_HIGH_ACCURACY,
-        3_000L // 3-second interval
-    ).apply {
-        setMinUpdateIntervalMillis(2_000L)
-        setMinUpdateDistanceMeters(2f) // At least 2m moved
-        setWaitForAccurateLocation(false)
-    }.build()
+    private var batteryCheckJob: Job? = null
 
     // ─────────────────────────────────────
     // MARK: - Location Callback
@@ -128,11 +138,21 @@ class RouteTracker(context: Context) {
         _routePoints.value = emptyList()
         _totalDistanceMeters.value = 0.0
 
+        updateGpsMode()
+
         fusedClient.requestLocationUpdates(
-            locationRequest,
+            buildLocationRequest(_gpsMode.value),
             locationCallback,
             Looper.getMainLooper()
         )
+
+        // Check battery every 60s
+        batteryCheckJob = CoroutineScope(Dispatchers.Main).launch {
+            while (isTracking) {
+                delay(60_000)
+                updateGpsMode()
+            }
+        }
     }
 
     /**
@@ -161,7 +181,9 @@ class RouteTracker(context: Context) {
         isTracking = false
         isPaused = false
         _gpsStatus.value = GpsStatus.OFF
+        _gpsMode.value = GpsMode.HIGH_ACCURACY
         fusedClient.removeLocationUpdates(locationCallback)
+        batteryCheckJob?.cancel()
     }
 
     /**
@@ -182,6 +204,55 @@ class RouteTracker(context: Context) {
         _totalDistanceMeters.value = 0.0
         _currentSpeed.value = 0f
         _gpsStatus.value = GpsStatus.OFF
+    }
+
+    // ─────────────────────────────────────
+    // MARK: - Battery-Aware GPS
+    // ─────────────────────────────────────
+
+    private fun getBatteryPercent(): Int {
+        val batteryStatus = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+        return if (level >= 0 && scale > 0) (level * 100 / scale) else 100
+    }
+
+    private fun updateGpsMode() {
+        val battery = getBatteryPercent()
+        val newMode = when {
+            battery > 20 -> GpsMode.HIGH_ACCURACY
+            battery > 10 -> GpsMode.BALANCED
+            else -> GpsMode.LOW_POWER
+        }
+        if (newMode != _gpsMode.value) {
+            _gpsMode.value = newMode
+            applyGpsMode(newMode)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun applyGpsMode(mode: GpsMode) {
+        if (!isTracking) return
+        fusedClient.removeLocationUpdates(locationCallback)
+        fusedClient.requestLocationUpdates(
+            buildLocationRequest(mode),
+            locationCallback,
+            Looper.getMainLooper()
+        )
+    }
+
+    private fun buildLocationRequest(mode: GpsMode): LocationRequest {
+        return when (mode) {
+            GpsMode.HIGH_ACCURACY -> LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3_000L)
+                .setMinUpdateIntervalMillis(2_000L)
+                .setMinUpdateDistanceMeters(2f)
+            GpsMode.BALANCED -> LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 5_000L)
+                .setMinUpdateIntervalMillis(3_000L)
+                .setMinUpdateDistanceMeters(5f)
+            GpsMode.LOW_POWER -> LocationRequest.Builder(Priority.PRIORITY_LOW_POWER, 10_000L)
+                .setMinUpdateIntervalMillis(5_000L)
+                .setMinUpdateDistanceMeters(10f)
+        }.setWaitForAccurateLocation(false).build()
     }
 
     // ─────────────────────────────────────

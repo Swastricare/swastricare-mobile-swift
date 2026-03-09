@@ -1,19 +1,23 @@
 package com.swasthicare.mobile.ui.screens.vault
 
+import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.DocumentMetadata
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
 import com.swasthicare.mobile.data.repository.VaultRepository
+import com.swasthicare.mobile.data.services.AIService
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.AppAnalyticsService
+import com.swasthicare.mobile.data.services.AppointmentAlarmScheduler
 import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class VaultUiState(
     val documents: List<MedicalDocument> = emptyList(),
@@ -30,7 +34,10 @@ data class VaultUiState(
     val selectedDocumentDetail: MedicalDocument? = null,
     val showBatchUploadPreview: Boolean = false,
     val batchUploadItems: List<BatchUploadItem> = emptyList(),
-    val openFolderName: String? = null
+    val openFolderName: String? = null,
+    val aiAnalysisResult: String? = null,
+    val isAnalyzingAI: Boolean = false,
+    val isEditMode: Boolean = false
 )
 
 data class BatchUploadItem(
@@ -60,7 +67,9 @@ enum class VaultViewMode {
 class VaultViewModel(
     private val repository: VaultRepository = AppContainer.vaultRepository,
     private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
-    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
+    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService,
+    private val aiService: AIService = AppContainer.aiService,
+    private val appointmentScheduler: AppointmentAlarmScheduler = AppContainer.appointmentAlarmScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VaultUiState())
@@ -209,7 +218,7 @@ class VaultViewModel(
     }
 
     fun selectDocumentForDetail(document: MedicalDocument?) {
-        _uiState.update { it.copy(selectedDocumentDetail = document) }
+        _uiState.update { it.copy(selectedDocumentDetail = document, aiAnalysisResult = null, isAnalyzingAI = false, isEditMode = false) }
     }
 
     /**
@@ -233,17 +242,63 @@ class VaultViewModel(
         title: String,
         category: String,
         notes: String?,
-        tags: List<String>
+        tags: List<String>,
+        doctorName: String? = null,
+        location: String? = null,
+        appointmentDate: String? = null
     ) {
         viewModelScope.launch {
             try {
-                repository.updateDocument(documentId, title, category, notes, tags)
+                repository.updateDocument(documentId, title, category, notes, tags, doctorName, location, appointmentDate)
+
+                // Schedule or cancel appointment notifications
+                if (appointmentDate != null) {
+                    val apptInfo = AppointmentAlarmScheduler.AppointmentInfo(
+                        id = documentId,
+                        scheduledAtIso = appointmentDate,
+                        doctorName = doctorName ?: "Doctor",
+                        location = location ?: ""
+                    )
+                    appointmentScheduler.schedule(apptInfo)
+                } else {
+                    appointmentScheduler.cancel(documentId)
+                }
+
+                _uiState.update { it.copy(isEditMode = false) }
                 loadDocuments()
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Failed to update document: ${e.message}") }
             }
         }
     }
+
+    fun analyzeDocumentWithAI(document: MedicalDocument) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAnalyzingAI = true, aiAnalysisResult = null) }
+            try {
+                val signedUrl = repository.getSignedUrl(document.fileUrl)
+                val imageBytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    java.net.URL(signedUrl).readBytes()
+                }
+                val base64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+                val prompt = "Analyze this medical document. Provide a brief summary of what this document contains, key findings, and any important dates or values mentioned. Keep it concise (3-4 sentences)."
+                val response = aiService.sendImageMessage(prompt, base64)
+                _uiState.update { it.copy(isAnalyzingAI = false, aiAnalysisResult = response) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isAnalyzingAI = false, aiAnalysisResult = "Unable to analyze document: ${e.message}") }
+            }
+        }
+    }
+
+    fun clearAIAnalysis() {
+        _uiState.update { it.copy(aiAnalysisResult = null, isAnalyzingAI = false) }
+    }
+
+    fun setEditMode(editing: Boolean) {
+        _uiState.update { it.copy(isEditMode = editing) }
+    }
+
+    suspend fun resolveSignedUrl(path: String): String = repository.getSignedUrl(path)
 
     fun deleteDocument(documentId: String) {
         viewModelScope.launch {

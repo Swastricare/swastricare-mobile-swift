@@ -107,7 +107,8 @@ data class HealthMetrics(
 data class ChatRequest(
     val message: String,
     val conversationHistory: List<ContextMessage>,
-    val imageData: String? = null
+    val imageData: String? = null,
+    val healthContext: String? = null
 )
 
 @Serializable

@@ -178,6 +178,14 @@ private val permissionGroups = listOf(
         permissions = setOf(
             HealthPermission.getWritePermission(HydrationRecord::class)
         )
+    ),
+    PermissionGroup(
+        label = "Cardio Fitness",
+        description = "VO2 max measurements",
+        icon = Icons.Default.FavoriteBorder,
+        permissions = setOf(
+            HealthPermission.getReadPermission(Vo2MaxRecord::class)
+        )
     )
 )
 

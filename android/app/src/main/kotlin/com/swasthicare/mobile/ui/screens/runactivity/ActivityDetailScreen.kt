@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swasthicare.mobile.data.services.GpxExporter
 import com.swasthicare.mobile.data.model.HeartRatePoint
 import com.swasthicare.mobile.data.model.RoutePoint
 import com.swasthicare.mobile.data.model.SplitData
@@ -67,6 +68,7 @@ private enum class DetailTab(val label: String) {
     OVERVIEW("Overview"),
     SPLITS("Splits"),
     PACE("Pace"),
+    ELEVATION("Elevation"),
     HEART_RATE("Heart Rate")
 }
 
@@ -157,7 +159,16 @@ fun ActivityDetailScreen(
                                 putExtra(Intent.EXTRA_TEXT, shareText)
                             }
                             context.startActivity(Intent.createChooser(intent, "Share Workout"))
-                        }
+                        },
+                        onExportGpx = {
+                            val file = GpxExporter.exportToGpx(
+                                context = context,
+                                routePoints = workout!!.routePoints,
+                                activityType = workout!!.type
+                            )
+                            file?.let { GpxExporter.shareGpxFile(context, it) }
+                        },
+                        hasRoute = workout!!.routePoints.size >= 2
                     )
 
                     // ── Route Map ──
@@ -200,6 +211,10 @@ fun ActivityDetailScreen(
                         DetailTab.PACE -> PaceTab(
                             splits = workout!!.splits,
                             avgPace = workout!!.avgPace,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        DetailTab.ELEVATION -> ElevationTab(
+                            routePoints = workout!!.routePoints,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         DetailTab.HEART_RATE -> HeartRateTab(
@@ -259,7 +274,9 @@ fun ActivityDetailScreen(
 @Composable
 private fun ActivityDetailTopBar(
     onBack: () -> Unit,
-    onShare: () -> Unit
+    onShare: () -> Unit,
+    onExportGpx: () -> Unit,
+    hasRoute: Boolean
 ) {
     Row(
         modifier = Modifier
@@ -283,12 +300,23 @@ private fun ActivityDetailTopBar(
             color = AppColors.onBackground
         )
 
-        IconButton(onClick = onShare) {
-            Icon(
-                Icons.Default.Share,
-                contentDescription = "Share",
-                tint = AppColors.onBackground
-            )
+        Row {
+            if (hasRoute) {
+                IconButton(onClick = onExportGpx) {
+                    Icon(
+                        Icons.Default.FileDownload,
+                        contentDescription = "Export GPX",
+                        tint = AppColors.onBackground
+                    )
+                }
+            }
+            IconButton(onClick = onShare) {
+                Icon(
+                    Icons.Default.Share,
+                    contentDescription = "Share",
+                    tint = AppColors.onBackground
+                )
+            }
         }
     }
 }

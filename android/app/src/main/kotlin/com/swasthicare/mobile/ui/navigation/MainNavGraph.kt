@@ -94,7 +94,13 @@ fun MainNavGraph(
 
         // Tab: Vault
         composable(BottomNavTab.Vault.route) {
-            com.swasthicare.mobile.ui.screens.vault.VaultScreen()
+            com.swasthicare.mobile.ui.screens.vault.VaultScreen(
+                onNavigateToAIChat = {
+                    navController.navigate(BottomNavTab.AI.route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
 
         // Tab: AI

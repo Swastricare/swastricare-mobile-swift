@@ -9,7 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,7 +71,9 @@ fun DocumentCard(
     isSelectionMode: Boolean,
     isSelected: Boolean,
     onTap: () -> Unit,
-    onMoreClick: () -> Unit
+    onViewClick: (MedicalDocument) -> Unit,
+    onEditClick: (MedicalDocument) -> Unit,
+    onDeleteClick: (MedicalDocument) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -161,12 +163,36 @@ fun DocumentCard(
             }
 
             if (!isSelectionMode) {
-                IconButton(onClick = onMoreClick) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More",
-                        tint = AppColors.onSurfaceVariant
-                    )
+                var showMenu by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More",
+                            tint = AppColors.onSurfaceVariant
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("View") },
+                            onClick = { showMenu = false; onViewClick(document) },
+                            leadingIcon = { Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = { showMenu = false; onEditClick(document) },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text("Delete", color = AppColors.error) },
+                            onClick = { showMenu = false; onDeleteClick(document) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = AppColors.error, modifier = Modifier.size(20.dp)) }
+                        )
+                    }
                 }
             }
         }

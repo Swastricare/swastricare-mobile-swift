@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.ui.screens.medications
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
@@ -46,6 +47,10 @@ class MedicationsViewModel(
     private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
 ) : ViewModel() {
 
+    companion object {
+        private const val TAG = "MedicationsVM"
+    }
+
     private val _uiState = MutableStateFlow(MedicationsUiState(isLoading = true))
     val uiState: StateFlow<MedicationsUiState> = _uiState.asStateFlow()
 
@@ -65,9 +70,11 @@ class MedicationsViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val profileId = resolveProfileId()
+                Log.d(TAG, "loadMedications: profileId=$profileId, date=$date")
                 val medications = repository.fetchMedications(profileId)
                 val schedules = repository.fetchSchedules(profileId)
                 val logs = repository.fetchTodayLogs(profileId, date)
+                Log.d(TAG, "loadMedications: ${medications.size} meds, ${schedules.size} schedules, ${logs.size} logs")
 
                 repository.cacheMedications(medications)
                 AppContainer.medicationAlarmScheduler.scheduleAll(schedules, medications)
@@ -82,6 +89,7 @@ class MedicationsViewModel(
                     isLoading = false
                 )
             } catch (e: Exception) {
+                Log.e(TAG, "loadMedications failed", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = e.message ?: "Failed to load medications"
@@ -182,7 +190,11 @@ class MedicationsViewModel(
             if (result.isSuccess) {
                 val savedMed = result.getOrThrow()
                 val schedules = buildSchedules(savedMed.id, profileId, scheduleType, scheduleTimes)
-                repository.upsertSchedules(schedules)
+                Log.d(TAG, "addMedication: upserting ${schedules.size} schedules for med=${savedMed.id}")
+                val schedResult = repository.upsertSchedules(schedules)
+                if (schedResult.isFailure) {
+                    Log.e(TAG, "addMedication: schedule upsert FAILED", schedResult.exceptionOrNull())
+                }
 
                 // Schedule reminders for each schedule
                 schedules.forEach { schedule ->

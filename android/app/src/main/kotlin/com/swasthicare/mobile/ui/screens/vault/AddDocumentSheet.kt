@@ -4,13 +4,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.swasthicare.mobile.data.model.DocumentMetadata
 import com.swasthicare.mobile.data.model.VaultCategory
@@ -39,7 +40,11 @@ fun AddDocumentSheet(
     var documentDate by remember { mutableStateOf(LocalDate.now()) }
     var showDatePicker by remember { mutableStateOf(false) }
 
+    var appointmentDate by remember { mutableStateOf<LocalDate?>(null) }
+    var showAppointmentDatePicker by remember { mutableStateOf(false) }
+
     val dateState = rememberDatePickerState()
+    val appointmentDateState = rememberDatePickerState()
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -64,6 +69,26 @@ fun AddDocumentSheet(
         }
     }
 
+    if (showAppointmentDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showAppointmentDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    appointmentDateState.selectedDateMillis?.let { millis ->
+                        appointmentDate = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                    }
+                    showAppointmentDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAppointmentDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = appointmentDateState)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -79,23 +104,29 @@ fun AddDocumentSheet(
         
         // File Info
         Card(
-            colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f)),
+            colors = CardDefaults.cardColors(containerColor = AppColors.surfaceVariant.copy(alpha = 0.3f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = getFileIcon(fileName.substringAfterLast('.', "")),
                     contentDescription = null,
-                    tint = AppColors.primary
+                    tint = AppColors.primary,
+                    modifier = Modifier.size(32.dp)
                 )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(text = fileName, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${fileSize / 1024} KB",
+                        text = fileName,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = formatFileSize(fileSize),
                         style = MaterialTheme.typography.bodySmall,
                         color = AppColors.onSurfaceVariant
                     )
@@ -173,9 +204,32 @@ fun AddDocumentSheet(
             },
             modifier = Modifier.fillMaxWidth()
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
+        OutlinedTextField(
+            value = appointmentDate?.format(DateTimeFormatter.ISO_LOCAL_DATE) ?: "",
+            onValueChange = {},
+            label = { Text("Appointment Date (Optional)") },
+            readOnly = true,
+            placeholder = { Text("Set reminder for follow-up") },
+            trailingIcon = {
+                Row {
+                    if (appointmentDate != null) {
+                        IconButton(onClick = { appointmentDate = null }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    IconButton(onClick = { showAppointmentDatePicker = true }) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Set Appointment")
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             OutlinedTextField(
                 value = doctorName,
@@ -209,6 +263,7 @@ fun AddDocumentSheet(
                     description = description.takeIf { it.isNotBlank() },
                     folderName = folderName.takeIf { it.isNotBlank() },
                     documentDate = documentDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                    appointmentDate = appointmentDate?.format(DateTimeFormatter.ISO_LOCAL_DATE),
                     doctorName = doctorName.takeIf { it.isNotBlank() },
                     location = location.takeIf { it.isNotBlank() },
                     tags = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }

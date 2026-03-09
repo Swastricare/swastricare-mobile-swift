@@ -1,6 +1,7 @@
 package com.swasthicare.mobile.data.repository
 
 import android.content.SharedPreferences
+import android.util.Log
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.di.AppContainer
 import io.github.jan.supabase.SupabaseClient
@@ -56,6 +57,10 @@ class SupabaseMedicationRepository(
     private val prefs: SharedPreferences
 ) : MedicationRepository {
 
+    companion object {
+        private const val TAG = "MedicationRepo"
+    }
+
     private val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
     override suspend fun fetchMedications(profileId: String): List<MedicationDto> {
@@ -75,13 +80,16 @@ class SupabaseMedicationRepository(
 
     override suspend fun fetchSchedules(profileId: String): List<MedicationScheduleDto> {
         return try {
-            supabaseClient.from("medication_schedules").select {
+            val result = supabaseClient.from("medication_schedules").select {
                 filter {
                     eq("health_profile_id", profileId)
                     eq("is_active", true)
                 }
             }.decodeList<MedicationScheduleDto>()
+            Log.d(TAG, "fetchSchedules: got ${result.size} schedules for profile=$profileId")
+            result
         } catch (e: Exception) {
+            Log.e(TAG, "fetchSchedules FAILED for profile=$profileId", e)
             AppContainer.crashlyticsService.recordException(e)
             emptyList()
         }
@@ -135,10 +143,13 @@ class SupabaseMedicationRepository(
     override suspend fun upsertSchedules(schedules: List<MedicationScheduleDto>): Result<Unit> {
         return try {
             if (schedules.isNotEmpty()) {
+                Log.d(TAG, "upsertSchedules: upserting ${schedules.size} schedules")
                 supabaseClient.from("medication_schedules").upsert(schedules)
+                Log.d(TAG, "upsertSchedules: success")
             }
             Result.success(Unit)
         } catch (e: Exception) {
+            Log.e(TAG, "upsertSchedules FAILED", e)
             AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
@@ -158,6 +169,7 @@ class SupabaseMedicationRepository(
             val log = MedicationLogDto(
                 id = id,
                 medicationId = medicationId,
+                scheduleId = scheduleId,
                 healthProfileId = profileId,
                 scheduledTime = scheduledStr,
                 takenTime = nowStr,
@@ -185,6 +197,7 @@ class SupabaseMedicationRepository(
             val log = MedicationLogDto(
                 id = id,
                 medicationId = medicationId,
+                scheduleId = scheduleId,
                 healthProfileId = profileId,
                 scheduledTime = scheduledStr,
                 status = "skipped",

@@ -17,6 +17,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bed
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalDrink
@@ -47,7 +49,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.components.ModelViewer
+import com.swasthicare.mobile.ui.screens.medications.MedicationsViewModel
 import com.swasthicare.mobile.ui.theme.*
 
 @Composable
@@ -64,6 +68,13 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val medicationsViewModel = remember { AppContainer.medicationsViewModel }
+    val medicationsState by medicationsViewModel.uiState.collectAsState()
+
+    // Load medications on first composition
+    LaunchedEffect(Unit) {
+        medicationsViewModel.loadMedications()
+    }
 
     // Refresh data when this screen resumes (e.g. navigating back from hydration/diet)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -71,6 +82,7 @@ fun HomeScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refresh()
+                medicationsViewModel.loadMedications()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -335,7 +347,12 @@ fun HomeScreen(
                                 .background(MedicationColor.copy(alpha = 0.12f))
                                 .clickable { onNavigateToMedications() }
                         ) {
-                            val progress = if (uiState.medicationsTotal > 0) uiState.medicationsTaken.toFloat() / uiState.medicationsTotal.toFloat() else 0f
+                            // Use MedicationsViewModel data for consistent counts
+                            val allDoses = medicationsState.allDosesToday
+                            val medicationsTaken = allDoses.count { it.status == com.swasthicare.mobile.data.models.AdherenceStatus.TAKEN || it.status == com.swasthicare.mobile.data.models.AdherenceStatus.LATE || it.status == com.swasthicare.mobile.data.models.AdherenceStatus.EARLY }
+                            val medicationsTotal = allDoses.size
+                            val progress = if (medicationsTotal > 0) medicationsTaken.toFloat() / medicationsTotal.toFloat() else 0f
+                            val pendingDoses = allDoses.filter { it.status == com.swasthicare.mobile.data.models.AdherenceStatus.PENDING }.take(3)
 
                             // Content — spread top to bottom
                             Column(
@@ -344,19 +361,44 @@ fun HomeScreen(
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                // Icon with colored background
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .background(MedicationColor.copy(alpha = 0.2f), CircleShape),
-                                    contentAlignment = Alignment.Center
+                                // Icon + quick-log button row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Medication,
-                                        contentDescription = null,
-                                        tint = MedicationColor,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(MedicationColor.copy(alpha = 0.2f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Medication,
+                                            contentDescription = null,
+                                            tint = MedicationColor,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    if (pendingDoses.isNotEmpty()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .background(MedicationColor.copy(alpha = 0.2f), CircleShape)
+                                                .clickable(
+                                                    indication = null,
+                                                    interactionSource = remember { MutableInteractionSource() }
+                                                ) { medicationsViewModel.markAsTaken(pendingDoses.first()) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.CheckCircle,
+                                                contentDescription = "Take next dose",
+                                                tint = MedicationColor,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
                                 }
 
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -367,17 +409,58 @@ fun HomeScreen(
                                     )
                                     Row(verticalAlignment = Alignment.Bottom) {
                                         Text(
-                                            "${uiState.medicationsTaken}",
+                                            "$medicationsTaken",
                                             style = MaterialTheme.typography.headlineLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = AppColors.onSurface
                                         )
                                         Text(
-                                            "/${uiState.medicationsTotal}",
+                                            "/$medicationsTotal",
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = AppColors.onSurface.copy(alpha = 0.6f),
                                             modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
                                         )
+                                    }
+                                }
+
+                                // Show pending doses with quick-log
+                                if (pendingDoses.isNotEmpty()) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        pendingDoses.take(2).forEach { dose ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(MedicationColor.copy(alpha = 0.1f))
+                                                    .clickable { medicationsViewModel.markAsTaken(dose) }
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = dose.medicationName,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = AppColors.onSurface,
+                                                    maxLines = 1,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Take",
+                                                    tint = MedicationColor,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                        if (pendingDoses.size > 2) {
+                                            Text(
+                                                text = "+${pendingDoses.size - 2} more",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = AppColors.onSurface.copy(alpha = 0.5f)
+                                            )
+                                        }
                                     }
                                 }
                             }

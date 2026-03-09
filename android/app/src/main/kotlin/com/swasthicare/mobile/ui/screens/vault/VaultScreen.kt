@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import com.swasthicare.mobile.data.model.MedicalDocument
 import com.swasthicare.mobile.data.model.VaultCategory
@@ -40,6 +41,7 @@ import com.swasthicare.mobile.ui.theme.AppColors
 fun VaultScreen(
     viewModel: VaultViewModel = viewModel(),
     onNavigateToViewer: ((MedicalDocument) -> Unit)? = null,
+    onNavigateToAIChat: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -352,7 +354,7 @@ fun VaultScreen(
                 // Content
                 Box(modifier = Modifier.weight(1f)) {
                     if (uiState.isLoading && uiState.documents.isEmpty()) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        ShimmerDocumentList()
                     } else if (viewModel.filteredDocuments.isEmpty()) {
                         EmptyState()
                     } else {
@@ -368,7 +370,14 @@ fun VaultScreen(
                                         viewModel.selectDocumentForDetail(it)
                                     }
                                 },
-                                onMoreClick = { /* Show options */ }
+                                onViewClick = { doc ->
+                                    viewModel.openDocumentViewer(doc) { resolvedDoc ->
+                                        if (onNavigateToViewer != null) onNavigateToViewer(resolvedDoc)
+                                        else viewingDocument = resolvedDoc
+                                    }
+                                },
+                                onEditClick = { viewModel.selectDocumentForDetail(it) },
+                                onDeleteClick = { it.id?.let { id -> viewModel.deleteDocument(id) } }
                             )
                             VaultViewMode.Folders -> FoldersGridView(
                                 groupedDocuments = viewModel.groupedDocuments,
@@ -432,6 +441,19 @@ fun VaultScreen(
         }
 
         // Document Detail Sheet
+        var detailImageUrl by remember { mutableStateOf<String?>(null) }
+
+        LaunchedEffect(uiState.selectedDocumentDetail?.id) {
+            detailImageUrl = null
+            uiState.selectedDocumentDetail?.let { doc ->
+                try {
+                    detailImageUrl = viewModel.resolveSignedUrl(doc.fileUrl)
+                } catch (_: Exception) {
+                    detailImageUrl = null
+                }
+            }
+        }
+
         if (uiState.selectedDocumentDetail != null) {
             ModalBottomSheet(
                 onDismissRequest = { viewModel.selectDocumentForDetail(null) },
@@ -439,22 +461,33 @@ fun VaultScreen(
             ) {
                 DocumentDetailSheet(
                     document = uiState.selectedDocumentDetail!!,
+                    signedImageUrl = detailImageUrl,
+                    isEditMode = uiState.isEditMode,
+                    aiAnalysisResult = uiState.aiAnalysisResult,
+                    isAnalyzingAI = uiState.isAnalyzingAI,
                     onDismiss = { viewModel.selectDocumentForDetail(null) },
                     onViewDocument = { doc ->
                         viewModel.selectDocumentForDetail(null)
                         viewModel.openDocumentViewer(doc) { resolvedDoc ->
-                            if (onNavigateToViewer != null) {
-                                onNavigateToViewer(resolvedDoc)
-                            } else {
-                                viewingDocument = resolvedDoc
-                            }
+                            if (onNavigateToViewer != null) onNavigateToViewer(resolvedDoc)
+                            else viewingDocument = resolvedDoc
                         }
                     },
-                    onSaveChanges = { id, title, category, notes, tags ->
-                        viewModel.updateDocumentMetadata(id, title, category, notes, tags)
+                    onToggleEditMode = { viewModel.setEditMode(it) },
+                    onSaveChanges = { id, title, category, notes, tags, doctorName, location, appointmentDate ->
+                        viewModel.updateDocumentMetadata(id, title, category, notes, tags, doctorName, location, appointmentDate)
                     },
                     onDeleteDocument = { doc ->
                         doc.id?.let { viewModel.deleteDocument(it) }
+                    },
+                    onAskAI = { viewModel.analyzeDocumentWithAI(it) },
+                    onContinueInAIChat = { doc, analysis ->
+                        com.swasthicare.mobile.ui.screens.ai.PendingAIContext.set(
+                            title = doc.title,
+                            analysis = analysis
+                        )
+                        viewModel.selectDocumentForDetail(null)
+                        onNavigateToAIChat?.invoke()
                     }
                 )
             }
@@ -634,7 +667,9 @@ fun DocumentListView(
     isSelectionMode: Boolean,
     selectedDocuments: Set<String>,
     onDocumentTap: (MedicalDocument) -> Unit,
-    onMoreClick: () -> Unit
+    onViewClick: (MedicalDocument) -> Unit,
+    onEditClick: (MedicalDocument) -> Unit,
+    onDeleteClick: (MedicalDocument) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
@@ -646,7 +681,9 @@ fun DocumentListView(
                 isSelectionMode = isSelectionMode,
                 isSelected = selectedDocuments.contains(document.id),
                 onTap = { onDocumentTap(document) },
-                onMoreClick = onMoreClick
+                onViewClick = onViewClick,
+                onEditClick = onEditClick,
+                onDeleteClick = onDeleteClick
             )
         }
     }
@@ -713,7 +750,9 @@ fun TimelineView(
                     isSelectionMode = false,
                     isSelected = false,
                     onTap = { onDocumentTap(document) },
-                    onMoreClick = {}
+                    onViewClick = { onDocumentTap(it) },
+                    onEditClick = { onDocumentTap(it) },
+                    onDeleteClick = { }
                 )
             }
         }
@@ -775,7 +814,9 @@ fun FolderDetailView(
                         isSelectionMode = false,
                         isSelected = false,
                         onTap = { onDocumentTap(document) },
-                        onMoreClick = {}
+                        onViewClick = { onDocumentTap(it) },
+                        onEditClick = { onDocumentTap(it) },
+                        onDeleteClick = { }
                     )
                 }
             }

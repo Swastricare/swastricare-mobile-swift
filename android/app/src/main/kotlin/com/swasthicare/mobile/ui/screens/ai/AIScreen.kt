@@ -369,12 +369,12 @@ fun IntroView(
                 text = "Swastri AI",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = AppColors.onBackground
             )
             Text(
                 text = "How can I help you today?",
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.6f)
+                color = AppColors.onBackground.copy(alpha = 0.6f)
             )
         }
 
@@ -421,14 +421,14 @@ fun IntroView(
                                         text = action.title,
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White,
+                                        color = AppColors.onBackground,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = action.prompt,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = AppColors.onBackground.copy(alpha = 0.5f),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -518,7 +518,7 @@ fun ChatBubble(
                     } else {
                         Text(
                             text = parseMarkdown(message.content),
-                            color = Color.White.copy(alpha = 0.95f),
+                            color = AppColors.onBackground,
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -591,14 +591,14 @@ fun ChatBubble(
                     } else if (message.shouldAnimate) {
                         TypewriterText(
                             fullText = message.content,
-                            color = Color.White.copy(alpha = 0.95f),
+                            color = AppColors.onBackground,
                             style = MaterialTheme.typography.bodyLarge,
                             onAnimationComplete = onAnimationComplete
                         )
                     } else {
                         Text(
                             text = parseMarkdown(message.content),
-                            color = Color.White.copy(alpha = 0.95f),
+                            color = AppColors.onBackground,
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -834,7 +834,7 @@ fun ChatInputBar(
             TextField(
                 value = inputText,
                 onValueChange = onTextChanged,
-                placeholder = { Text("Ask anything...", fontSize = 14.sp, color = Color.White.copy(alpha = 0.4f)) },
+                placeholder = { Text("Ask anything...", fontSize = 14.sp, color = AppColors.onBackground.copy(alpha = 0.4f)) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -889,7 +889,7 @@ fun ChatInputBar(
                     onClick = onMicClick,
                     modifier = Modifier
                         .background(
-                            if (isRecording) AppColors.error else Color.White.copy(alpha = 0.1f),
+                            if (isRecording) AppColors.error else AppColors.onBackground.copy(alpha = 0.1f),
                             CircleShape
                         )
                         .size(40.dp)
@@ -897,7 +897,7 @@ fun ChatInputBar(
                     Icon(
                         if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
                         contentDescription = "Mic",
-                        tint = if (isRecording) Color.White else Color.White.copy(alpha = 0.7f),
+                        tint = if (isRecording) Color.White else AppColors.onBackground.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -1054,7 +1054,7 @@ fun AnalysisResultOverlay(
 private fun MetricChip(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = PrimaryColor)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = AppColors.onSurfaceVariant)
     }
 }
 
@@ -1145,7 +1145,7 @@ fun ChatHistorySheet(
                 text = "Chat History",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = AppColors.onBackground,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -1167,13 +1167,13 @@ fun ChatHistorySheet(
                             Icon(
                                 Icons.Default.History,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.3f),
+                                tint = AppColors.onBackground.copy(alpha = 0.3f),
                                 modifier = Modifier.size(40.dp)
                             )
                             Text(
                                 "No previous chats",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.5f)
+                                color = AppColors.onSurfaceVariant
                             )
                         }
                     }
@@ -1228,7 +1228,7 @@ private fun ChatHistoryItem(
                 text = conversation.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = Color.White,
+                color = AppColors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1236,7 +1236,7 @@ private fun ChatHistoryItem(
                 Text(
                     text = formattedDate,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = AppColors.onSurfaceVariant
                 )
             }
         }
@@ -1244,7 +1244,7 @@ private fun ChatHistoryItem(
             Icon(
                 Icons.Default.Delete,
                 contentDescription = "Delete",
-                tint = Color.White.copy(alpha = 0.4f),
+                tint = AppColors.onBackground.copy(alpha = 0.4f),
                 modifier = Modifier.size(18.dp)
             )
         }

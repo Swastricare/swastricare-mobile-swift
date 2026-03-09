@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.models.*
 import com.swasthicare.mobile.data.repository.ProfileRepository
 import com.swasthicare.mobile.data.repository.RunActivityRepository
+import com.swasthicare.mobile.data.services.FitnessAnalyticsService
 import com.swasthicare.mobile.data.services.HealthConnectService
 import com.swasthicare.mobile.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +26,12 @@ data class RunActivityUiState(
     // Health Connect demo data
     val todaySteps: Int = 0,
     val todayDistance: Double = 0.0,
-    val todayCalories: Int = 0
+    val todayCalories: Int = 0,
+    // Fitness analytics
+    val vo2Max: Double? = null,
+    val vo2MaxSource: String = "",
+    val weeklyTrainingLoad: Int = 0,
+    val loadTrend: FitnessAnalyticsService.LoadTrend = FitnessAnalyticsService.LoadTrend.MAINTAINING
 )
 
 // ------------------------------------
@@ -67,6 +73,17 @@ class RunActivityViewModel(
                 )
 
                 syncInBackground()
+
+                // Load fitness analytics
+                try {
+                    val fitnessData = AppContainer.fitnessAnalyticsService.getFitnessData(activities)
+                    _uiState.value = _uiState.value.copy(
+                        vo2Max = fitnessData.vo2Max,
+                        vo2MaxSource = fitnessData.vo2MaxSource,
+                        weeklyTrainingLoad = fitnessData.weeklyTrainingLoad,
+                        loadTrend = fitnessData.loadTrend
+                    )
+                } catch (_: Exception) { }
             } catch (_: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }

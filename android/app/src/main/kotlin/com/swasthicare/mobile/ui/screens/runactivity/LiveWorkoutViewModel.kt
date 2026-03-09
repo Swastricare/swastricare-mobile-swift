@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.RoutePoint
 import com.swasthicare.mobile.data.models.ActivityType
+import com.swasthicare.mobile.data.models.WorkoutTemplate
 import com.swasthicare.mobile.data.models.RouteCoordinate
 import com.swasthicare.mobile.data.models.RunActivity
 import com.swasthicare.mobile.data.repository.RunActivityRepository
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.AppAnalyticsService
+import com.swasthicare.mobile.data.services.GpsMode
 import com.swasthicare.mobile.data.services.RouteTracker
 import com.swasthicare.mobile.data.services.SavedWorkoutState
 import com.swasthicare.mobile.data.services.WorkoutNotificationService
@@ -72,11 +74,16 @@ data class LiveWorkoutUiState(
     // GPS
     val routePoints: List<RoutePoint> = emptyList(),
     val gpsStatus: RouteTracker.GpsStatus = RouteTracker.GpsStatus.OFF,
+    val gpsMode: GpsMode = GpsMode.HIGH_ACCURACY,
     val hasLocationPermission: Boolean = false,
 
     // Summary data
     val maxSpeedMps: Float = 0f,
-    val elevationGainMeters: Double = 0.0
+    val elevationGainMeters: Double = 0.0,
+
+    // Templates
+    val templates: List<WorkoutTemplate> = emptyList(),
+    val activeTemplate: WorkoutTemplate? = null
 ) {
     val elapsedFormatted: String get() {
         val hours = elapsedSeconds / 3600
@@ -179,11 +186,36 @@ class LiveWorkoutViewModel(
                 ) }
             }
         }
+
+        viewModelScope.launch {
+            routeTracker.gpsMode.collect { mode ->
+                _uiState.update { it.copy(gpsMode = mode) }
+            }
+        }
+
+        loadTemplates()
     }
 
     // ─────────────────────────────────────
     // MARK: - Public Actions
     // ─────────────────────────────────────
+
+    fun loadTemplates() {
+        val templates = WorkoutTemplate.loadTemplates(AppContainer.sharedPreferences)
+        _uiState.update { it.copy(templates = templates) }
+    }
+
+    fun selectTemplate(template: WorkoutTemplate) {
+        val type = WorkoutType.entries.find { it.name == template.activityType } ?: WorkoutType.RUN
+        _uiState.update { it.copy(
+            workoutType = type,
+            activeTemplate = template
+        ) }
+    }
+
+    fun clearTemplate() {
+        _uiState.update { it.copy(activeTemplate = null) }
+    }
 
     fun setWorkoutType(type: WorkoutType) {
         _uiState.update { it.copy(workoutType = type) }

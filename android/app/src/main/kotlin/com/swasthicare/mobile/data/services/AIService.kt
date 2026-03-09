@@ -16,14 +16,22 @@ class AIService(private val client: SupabaseClient) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun sendChatMessage(message: String, context: List<ChatMessage>): String {
+    suspend fun sendChatMessage(
+        message: String,
+        context: List<ChatMessage>,
+        healthContext: String? = null
+    ): String {
         val contextMessages = context.takeLast(10).map { msg ->
             ContextMessage(
                 role = if (msg.isUser) "user" else "assistant",
                 content = msg.content
             )
         }
-        val request = ChatRequest(message = message, conversationHistory = contextMessages)
+        val request = ChatRequest(
+            message = message,
+            conversationHistory = contextMessages,
+            healthContext = healthContext
+        )
 
         val response = client.functions.invoke(
             function = "ai-router",
@@ -66,6 +74,24 @@ class AIService(private val client: SupabaseClient) {
                 recommendations = listOf("Please check your connection and try again.")
             )
         }
+    }
+
+    /**
+     * Sends a prompt together with base64-encoded image data to the AI router.
+     * Returns the raw response text.
+     */
+    suspend fun sendImageMessage(prompt: String, imageBase64: String): String {
+        val request = ChatRequest(
+            message = prompt,
+            conversationHistory = emptyList(),
+            imageData = imageBase64
+        )
+        val response = client.functions.invoke(
+            function = "ai-router",
+            body = request
+        )
+        val body = response.body<String>()
+        return json.decodeFromString<ChatResponse>(body).response
     }
 
     suspend fun analyzeFoodImage(imageBase64: String): SnapFoodResult {

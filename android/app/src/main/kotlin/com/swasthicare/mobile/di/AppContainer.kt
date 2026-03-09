@@ -15,6 +15,7 @@ import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
 import com.swasthicare.mobile.data.services.AIService
+import com.swasthicare.mobile.data.services.HealthContextProvider
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.data.services.AppVersionService
@@ -28,6 +29,7 @@ import com.swasthicare.mobile.data.services.NotificationService
 import com.swasthicare.mobile.data.services.PoseDetectionService
 import com.swasthicare.mobile.data.services.SessionManager
 import com.swasthicare.mobile.data.services.WeatherService
+import com.swasthicare.mobile.data.services.FitnessAnalyticsService
 import com.swasthicare.mobile.data.services.WorkoutStateManager
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
 import com.swasthicare.mobile.ui.screens.diet.DietViewModel
@@ -192,6 +194,19 @@ object AppContainer {
         AIService(supabaseClient)
     }
 
+    val healthContextProvider: HealthContextProvider by lazy {
+        HealthContextProvider(
+            profileRepository = profileRepository,
+            healthConnectService = healthConnectService,
+            hydrationRepository = hydrationRepository,
+            dietRepository = dietRepository,
+            medicationRepository = medicationRepository,
+            runActivityRepository = runActivityRepository,
+            menstrualCycleRepository = menstrualCycleRepository,
+            vaultRepository = vaultRepository
+        )
+    }
+
     // Weather Service (for hydration adjustments)
     val weatherService: WeatherService by lazy {
         WeatherService(context, sharedPreferences)
@@ -316,6 +331,12 @@ object AppContainer {
 
     val workoutStateManager: WorkoutStateManager by lazy {
         WorkoutStateManager(sharedPreferences)
+    }
+
+    // ── Fitness Analytics ──
+
+    val fitnessAnalyticsService: FitnessAnalyticsService by lazy {
+        FitnessAnalyticsService(healthConnectService)
     }
 
     // Nudge Repository (Feature 10: Live Server Nudges)

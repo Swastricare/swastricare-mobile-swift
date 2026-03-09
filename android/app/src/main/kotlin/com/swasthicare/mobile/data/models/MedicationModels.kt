@@ -1,5 +1,8 @@
 package com.swasthicare.mobile.data.models
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.EncodeDefault.Mode.ALWAYS
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
@@ -74,46 +77,50 @@ enum class TimePeriod(val label: String, val startHour: Int, val endHour: Int) {
 // ─────────────────────────────────────
 
 /** Maps to `medications` table */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class MedicationDto(
-    val id: String = UUID.randomUUID().toString(),
-    @SerialName("health_profile_id") val healthProfileId: String = "",
-    val name: String = "",
+    @EncodeDefault(ALWAYS) val id: String = UUID.randomUUID().toString(),
+    @EncodeDefault(ALWAYS) @SerialName("health_profile_id") val healthProfileId: String = "",
+    @EncodeDefault(ALWAYS) val name: String = "",
     val dosage: String? = null,
     @SerialName("dosage_unit") val dosageUnit: String? = null,
-    val form: String? = "tablet",
+    @EncodeDefault(ALWAYS) val form: String? = "tablet",
     @SerialName("start_date") val startDate: String? = null,
     @SerialName("end_date") val endDate: String? = null,
-    @SerialName("is_ongoing") val isOngoing: Boolean = true,
+    @EncodeDefault(ALWAYS) @SerialName("is_ongoing") val isOngoing: Boolean = true,
     val notes: String? = null,
-    val status: String = "active",
+    @EncodeDefault(ALWAYS) val status: String = "active",
     @SerialName("created_at") val createdAt: String? = null
 )
 
 /** Maps to `medication_schedules` table */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class MedicationScheduleDto(
-    val id: String = UUID.randomUUID().toString(),
-    @SerialName("medication_id") val medicationId: String = "",
-    @SerialName("health_profile_id") val healthProfileId: String = "",
-    @SerialName("schedule_type") val scheduleType: String = "daily",
-    @SerialName("time_of_day") val timeOfDay: String = "08:00:00",   // HH:mm:ss from DB
-    @SerialName("frequency_per_day") val frequencyPerDay: Int = 1,
-    @SerialName("dosage_amount") val dosageAmount: Double = 1.0,
-    @SerialName("reminder_enabled") val reminderEnabled: Boolean = true,
-    @SerialName("is_active") val isActive: Boolean = true,
+    @EncodeDefault(ALWAYS) val id: String = UUID.randomUUID().toString(),
+    @EncodeDefault(ALWAYS) @SerialName("medication_id") val medicationId: String = "",
+    @EncodeDefault(ALWAYS) @SerialName("health_profile_id") val healthProfileId: String = "",
+    @EncodeDefault(ALWAYS) @SerialName("schedule_type") val scheduleType: String = "daily",
+    @EncodeDefault(ALWAYS) @SerialName("time_of_day") val timeOfDay: String = "08:00:00",   // HH:mm:ss from DB
+    @EncodeDefault(ALWAYS) @SerialName("frequency_per_day") val frequencyPerDay: Int = 1,
+    @EncodeDefault(ALWAYS) @SerialName("dosage_amount") val dosageAmount: Double = 1.0,
+    @EncodeDefault(ALWAYS) @SerialName("reminder_enabled") val reminderEnabled: Boolean = true,
+    @EncodeDefault(ALWAYS) @SerialName("is_active") val isActive: Boolean = true,
     @SerialName("days_of_week") val daysOfWeek: List<Int>? = null
 )
 
 /** Maps to `medication_logs` table */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class MedicationLogDto(
-    val id: String = UUID.randomUUID().toString(),
-    @SerialName("medication_id") val medicationId: String = "",
-    @SerialName("health_profile_id") val healthProfileId: String = "",
+    @EncodeDefault(ALWAYS) val id: String = UUID.randomUUID().toString(),
+    @EncodeDefault(ALWAYS) @SerialName("medication_id") val medicationId: String = "",
+    @SerialName("schedule_id") val scheduleId: String? = null,
+    @EncodeDefault(ALWAYS) @SerialName("health_profile_id") val healthProfileId: String = "",
     @SerialName("scheduled_time") val scheduledTime: String? = null,
     @SerialName("taken_time") val takenTime: String? = null,
-    val status: String = "missed",
+    @EncodeDefault(ALWAYS) val status: String = "missed",
     @SerialName("skip_reason") val skipReason: String? = null,
     val notes: String? = null
 )

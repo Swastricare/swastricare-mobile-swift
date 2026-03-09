@@ -187,17 +187,23 @@ class SupabaseVaultRepository(
         title: String,
         category: String,
         notes: String?,
-        tags: List<String>
+        tags: List<String>,
+        doctorName: String?,
+        location: String?,
+        appointmentDate: String?
     ): MedicalDocument = withContext(Dispatchers.IO) {
         val userId = requireUserId()
 
         val updatePayload = buildJsonObject {
             put("title", title)
             put("category", category)
-            if (notes != null) put("notes", notes)
+            if (notes != null) put("notes", notes) else put("notes", kotlinx.serialization.json.JsonNull)
             putJsonArray("tags") {
                 tags.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) }
             }
+            if (doctorName != null) put("doctor_name", doctorName) else put("doctor_name", kotlinx.serialization.json.JsonNull)
+            if (location != null) put("location", location) else put("location", kotlinx.serialization.json.JsonNull)
+            if (appointmentDate != null) put("appointment_date", appointmentDate) else put("appointment_date", kotlinx.serialization.json.JsonNull)
         }
 
         try {

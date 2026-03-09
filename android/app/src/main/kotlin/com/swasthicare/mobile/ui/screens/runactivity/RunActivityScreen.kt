@@ -15,14 +15,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.ActivityType
+import com.swasthicare.mobile.data.services.FitnessAnalyticsService
 import com.swasthicare.mobile.data.models.RunActivity
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
@@ -43,6 +45,7 @@ fun RunActivityScreen(
 ) {
     val viewModel = AppContainer.runActivityViewModel
     val uiState by viewModel.uiState.collectAsState()
+    val haptic = LocalHapticFeedback.current
 
     // Refresh data when screen appears
     LaunchedEffect(Unit) { viewModel.loadData() }
@@ -54,7 +57,7 @@ fun RunActivityScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 20.dp)
         ) {
             Spacer(Modifier.height(16.dp))
 
@@ -94,10 +97,24 @@ fun RunActivityScreen(
                 calories = uiState.todayCalories
             )
 
+            // Fitness insights
+            if (uiState.vo2Max != null || uiState.weeklyTrainingLoad > 0) {
+                Spacer(Modifier.height(16.dp))
+                FitnessCard(
+                    vo2Max = uiState.vo2Max,
+                    vo2MaxSource = uiState.vo2MaxSource,
+                    weeklyLoad = uiState.weeklyTrainingLoad,
+                    loadTrend = uiState.loadTrend
+                )
+            }
+
             Spacer(Modifier.height(20.dp))
 
             // Start workout hero card
-            StartWorkoutCard(onClick = { onNavigateToLiveWorkout(null) })
+            StartWorkoutCard(onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onNavigateToLiveWorkout(null)
+            })
 
             Spacer(Modifier.height(20.dp))
 
@@ -119,28 +136,40 @@ fun RunActivityScreen(
                     icon = Icons.Default.DirectionsRun,
                     label = "Run",
                     color = Color(0xFF00E5FF),
-                    onClick = { onNavigateToLiveWorkout(WorkoutType.RUN) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onNavigateToLiveWorkout(WorkoutType.RUN)
+                    },
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.DirectionsWalk,
                     label = "Walk",
                     color = PremiumColor.NeonGreenEnd,
-                    onClick = { onNavigateToLiveWorkout(WorkoutType.WALK) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onNavigateToLiveWorkout(WorkoutType.WALK)
+                    },
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.DirectionsBike,
                     label = "Cycle",
                     color = Color(0xFFFFD60A),
-                    onClick = { onNavigateToLiveWorkout(WorkoutType.CYCLE) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onNavigateToLiveWorkout(WorkoutType.CYCLE)
+                    },
                     modifier = Modifier.weight(1f)
                 )
                 QuickStartButton(
                     icon = Icons.Default.Terrain,
                     label = "Hike",
                     color = Color(0xFFBF5AF2),
-                    onClick = { onNavigateToLiveWorkout(WorkoutType.HIKE) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onNavigateToLiveWorkout(WorkoutType.HIKE)
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -170,7 +199,10 @@ fun RunActivityScreen(
                 uiState.activities.take(10).forEach { activity ->
                     WorkoutHistoryCard(
                         activity = activity,
-                        onClick = { onNavigateToActivityDetail(activity.id) }
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onNavigateToActivityDetail(activity.id)
+                        }
                     )
                     Spacer(Modifier.height(10.dp))
                 }
@@ -453,14 +485,7 @@ private fun StartWorkoutCard(onClick: () -> Unit) {
             .fillMaxWidth()
             .height(160.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        PremiumColor.NeonGreenStart.copy(alpha = 0.8f),
-                        PremiumColor.NeonGreenEnd.copy(alpha = 0.6f)
-                    )
-                )
-            )
+            .background(PremiumColor.NeonGreenEnd.copy(alpha = 0.85f))
             .clickable { onClick() }
     ) {
         // Decorative circle
@@ -556,6 +581,93 @@ private fun QuickStartButton(
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Fitness Insights Card
+// ─────────────────────────────────────
+
+@Composable
+private fun FitnessCard(
+    vo2Max: Double?,
+    vo2MaxSource: String,
+    weeklyLoad: Int,
+    loadTrend: FitnessAnalyticsService.LoadTrend
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = 20.dp)
+            .padding(16.dp)
+    ) {
+        Text(
+            "Fitness Insights",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onSurface
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            if (vo2Max != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "%.1f".format(vo2Max),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF00E5FF)
+                    )
+                    Text(
+                        "VO2 Max",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AppColors.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (weeklyLoad > 0) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "$weeklyLoad",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = PremiumColor.NeonGreenEnd
+                    )
+                    Text(
+                        "Weekly Load",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AppColors.onSurfaceVariant
+                    )
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val (trendIcon, trendColor, trendLabel) = when (loadTrend) {
+                    FitnessAnalyticsService.LoadTrend.INCREASING ->
+                        Triple(Icons.Default.TrendingUp, PremiumColor.NeonGreenEnd, "Building")
+                    FitnessAnalyticsService.LoadTrend.DECREASING ->
+                        Triple(Icons.Default.TrendingDown, Color(0xFFFF9F0A), "Tapering")
+                    FitnessAnalyticsService.LoadTrend.MAINTAINING ->
+                        Triple(Icons.Default.TrendingFlat, Color(0xFF00E5FF), "Steady")
+                }
+                Icon(
+                    trendIcon,
+                    contentDescription = null,
+                    tint = trendColor,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    trendLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 

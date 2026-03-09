@@ -29,6 +29,7 @@
     <uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
     <uses-permission android:name="android.permission.health.READ_HEIGHT" />
+    <uses-permission android:name="android.permission.health.READ_VO2_MAX" />
 
     <!-- Health Connect permissions (write) -->
     <uses-permission android:name="android.permission.health.WRITE_HEART_RATE" />
@@ -217,6 +218,17 @@
             android:name="com.swasthicare.mobile.data.services.WorkoutNotificationService"
             android:foregroundServiceType="location"
             android:exported="false" />
+
+        <!-- FileProvider for GPX exports -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>
