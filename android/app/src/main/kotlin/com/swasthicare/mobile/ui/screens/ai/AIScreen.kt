@@ -372,30 +372,49 @@ fun TypewriterText(
 // Basic markdown parser for bold/italic
 fun parseMarkdown(text: String): AnnotatedString {
     val builder = AnnotatedString.Builder()
-    var currentIndex = 0
-    val boldRegex = "\\*\\*(.*?)\\*\\*".toRegex()
-    
-    val matches = boldRegex.findAll(text)
-    
-    for (match in matches) {
-        // Append text before match
-        if (match.range.first > currentIndex) {
-            builder.append(text.substring(currentIndex, match.range.first))
+    val lines = text.split("\n")
+
+    lines.forEachIndexed { lineIndex, rawLine ->
+        if (lineIndex > 0) builder.append("\n")
+
+        val isH1 = rawLine.startsWith("# ")
+        val isH2 = rawLine.startsWith("## ")
+        val isBullet = rawLine.startsWith("- ") || rawLine.startsWith("* ")
+
+        val line = when {
+            isH2 -> rawLine.removePrefix("## ")
+            isH1 -> rawLine.removePrefix("# ")
+            isBullet -> "• ${rawLine.drop(2)}"
+            else -> rawLine
         }
-        
-        // Append bold text
-        builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(match.groupValues[1])
+
+        if (isH1) builder.pushStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp))
+        if (isH2) builder.pushStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp))
+
+        // Inline: bold (**), italic (* or _), code (`)
+        val inlineRegex = "\\*\\*(.*?)\\*\\*|`(.*?)`|\\*(.*?)\\*|_(.*?)_".toRegex()
+        var cursor = 0
+        for (match in inlineRegex.findAll(line)) {
+            if (match.range.first > cursor) builder.append(line.substring(cursor, match.range.first))
+            val full = match.value
+            when {
+                full.startsWith("**") -> builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(match.groupValues[1]) }
+                full.startsWith("`") -> builder.withStyle(
+                    SpanStyle(
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        background = androidx.compose.ui.graphics.Color(0x22888888)
+                    )
+                ) { append(match.groupValues[2]) }
+                full.startsWith("*") -> builder.withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(match.groupValues[3]) }
+                full.startsWith("_") -> builder.withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(match.groupValues[4]) }
+            }
+            cursor = match.range.last + 1
         }
-        
-        currentIndex = match.range.last + 1
+        if (cursor < line.length) builder.append(line.substring(cursor))
+
+        if (isH1 || isH2) builder.pop()
     }
-    
-    // Append remaining text
-    if (currentIndex < text.length) {
-        builder.append(text.substring(currentIndex))
-    }
-    
+
     return builder.toAnnotatedString()
 }
 
