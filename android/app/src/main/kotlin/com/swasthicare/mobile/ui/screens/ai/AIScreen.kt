@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.AutoAwesome
 import com.swasthicare.mobile.data.repository.AIConversation
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,9 +41,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasthicare.mobile.data.models.ChatMessage
-import com.swasthicare.mobile.data.models.HealthAnalysisResult
 import com.swasthicare.mobile.data.models.HealthMetrics
 import com.swasthicare.mobile.data.models.QuickAction
 import com.swasthicare.mobile.ui.screens.home.PremiumBackground
@@ -81,6 +80,7 @@ fun AIScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
     
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -138,7 +138,10 @@ fun AIScreen(
             Box(modifier = Modifier.weight(1f)) {
                 if (uiState.messages.isEmpty() && uiState.showEmptyState) {
                     IntroView(
-                        onQuickActionClick = { viewModel.sendQuickAction(it) },
+                        onQuickActionClick = { action ->
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            viewModel.sendQuickAction(action)
+                        },
                         modifier = Modifier.align(Alignment.Center)
                     )
                 } else {
@@ -214,8 +217,12 @@ fun AIScreen(
             ChatInputBar(
                 inputText = uiState.inputText,
                 onTextChanged = viewModel::onInputTextChanged,
-                onSendClick = viewModel::sendMessage,
+                onSendClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    viewModel.sendMessage()
+                },
                 onMicClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                     if (uiState.isRecording) {
                          viewModel.toggleRecording()
                     } else {
@@ -269,6 +276,7 @@ fun IntroView(
     onQuickActionClick: (QuickAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     val quickActionIcons = listOf(
         Icons.Rounded.AutoAwesome,
         Icons.Default.Mic,
@@ -396,7 +404,10 @@ fun IntroView(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .glass(cornerRadius = 16.dp)
-                                    .clickable { onQuickActionClick(action) }
+                                    .clickable {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onQuickActionClick(action)
+                                    }
                                     .padding(14.dp)
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
