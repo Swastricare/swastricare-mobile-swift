@@ -1,6 +1,7 @@
 package com.swasthicare.mobile.data.services
 
 import android.content.Context
+import com.swasthicare.mobile.data.workers.CycleAINudgeWorker
 import android.util.Log
 import com.swasthicare.mobile.di.AppContainer
 import java.time.LocalDate
@@ -17,8 +18,7 @@ class CycleNotificationScheduler(private val context: Context) {
 
     fun scheduleFromPredictions(
         predictedPeriodStart: LocalDate?,
-        predictedOvulation: LocalDate?,
-        dailyLogEnabled: Boolean
+        predictedOvulation: LocalDate?
     ) {
         val notifService = NotificationService(context, AppContainer.sharedPreferences)
         if (!notifService.cycleEnabled) return
@@ -38,17 +38,8 @@ class CycleNotificationScheduler(private val context: Context) {
             }
         }
 
-        if (dailyLogEnabled) {
-            val cal = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 21)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-                if (before(Calendar.getInstance())) add(Calendar.DAY_OF_MONTH, 1)
-            }
-            notifService.scheduleCycleReminder("log", cal,
-                "Log Today's Cycle", "Don't forget to log your cycle symptoms and mood for today.")
-        }
+        // Enqueue daily AI-generated phase tip
+        CycleAINudgeWorker.enqueue(context)
 
         Log.d(TAG, "Cycle notifications scheduled")
     }

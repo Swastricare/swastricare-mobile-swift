@@ -14,6 +14,7 @@ import com.swastricare.health.BuildConfig
 import com.swasthicare.mobile.data.SupabaseConfig
 import com.swasthicare.mobile.data.helpers.GoogleAuthHelper
 import com.swasthicare.mobile.data.repository.*
+import com.swasthicare.mobile.data.services.AIService
 import com.swasthicare.mobile.data.services.AnalyticsService
 import com.swasthicare.mobile.data.services.AppAnalyticsService
 import com.swasthicare.mobile.data.services.AppVersionService
@@ -185,6 +186,10 @@ object AppContainer {
 
     val cycleNotificationScheduler: CycleNotificationScheduler by lazy {
         CycleNotificationScheduler(context)
+    }
+
+    val aiService: AIService by lazy {
+        AIService(supabaseClient)
     }
 
     // Weather Service (for hydration adjustments)
