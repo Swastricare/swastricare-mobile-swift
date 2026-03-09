@@ -132,11 +132,21 @@ fun AIScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(uiState.messages, key = { it.id }) { message ->
+                        itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
                             ChatBubble(
                                 message = message,
-                                onAnimationComplete = { viewModel.markMessageAnimated(message.id) }
+                                onAnimationComplete = { viewModel.markMessageAnimated(message.id) },
+                                onCopy = { viewModel.onMessageCopied() },
+                                onBookmark = { viewModel.onMessageBookmarked() }
                             )
+                            // Show follow-up chips below the last AI message only
+                            val isLastMessage = index == uiState.messages.size - 1
+                            if (isLastMessage && !message.isUser && !message.isLoading) {
+                                FollowUpChips(
+                                    suggestions = uiState.followUpSuggestions,
+                                    onChipClick = { viewModel.sendFollowUp(it) }
+                                )
+                            }
                         }
                     }
                 }
@@ -576,6 +586,40 @@ fun QuickActionButton(action: QuickAction, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+@Composable
+fun FollowUpChips(suggestions: List<String>, onChipClick: (String) -> Unit) {
+    AnimatedVisibility(
+        visible = suggestions.isNotEmpty(),
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically()
+    ) {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            items(suggestions) { suggestion ->
+                SuggestionChip(
+                    onClick = { onChipClick(suggestion) },
+                    label = {
+                        Text(
+                            text = suggestion,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    },
+                    modifier = Modifier.widthIn(max = 220.dp),
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        containerColor = AppColors.primaryContainer.copy(alpha = 0.4f),
+                        labelColor = AppColors.primary
+                    )
+                )
+            }
         }
     }
 }
