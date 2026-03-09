@@ -359,7 +359,7 @@ fun ChatBubble(
                     )
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                if (message.isUser && message.imageUri != null) {
+                if (message.isUser && !message.imageUri.isNullOrEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AsyncImage(
                             model = Uri.parse(message.imageUri),
@@ -371,10 +371,11 @@ fun ChatBubble(
                                 .clip(RoundedCornerShape(12.dp))
                         )
                         // Extract image type label from content "[Image: X-Ray] Please analyze..."
-                        val typeLabel = message.content
-                            .removePrefix("[Image: ")
-                            .substringBefore("]")
-                        if (typeLabel.isNotBlank() && typeLabel != message.content) {
+                        val rawContent = message.content
+                        val typeLabel = if (rawContent.contains("[Image: ") && rawContent.contains("]")) {
+                            rawContent.removePrefix("[Image: ").substringBefore("]").trim()
+                        } else ""
+                        if (typeLabel.isNotBlank()) {
                             Box(
                                 modifier = Modifier
                                     .background(AppColors.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
