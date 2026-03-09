@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
@@ -251,45 +252,61 @@ fun IntroView(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ChatBubble(message: ChatMessage, onAnimationComplete: () -> Unit = {}) {
+fun ChatBubble(
+    message: ChatMessage,
+    onAnimationComplete: () -> Unit = {},
+    onCopy: () -> Unit = {},
+    onBookmark: () -> Unit = {}
+) {
     val isUser = message.isUser
     val align = if (isUser) Alignment.End else Alignment.Start
     val bgColor = if (isUser) AppColors.primaryContainer else AppColors.surfaceVariant
     val textColor = if (isUser) AppColors.onPrimaryContainer else AppColors.onSurfaceVariant
     val shape = if (isUser) RoundedCornerShape(20.dp, 4.dp, 20.dp, 20.dp) else RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
 
-    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = align) {
-        if (!isUser) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(12.dp), tint = AppColors.primary)
-                Text("Swastri", style = MaterialTheme.typography.labelSmall, color = AppColors.secondary)
-                Text("just now", style = MaterialTheme.typography.labelSmall, color = AppColors.outline)
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-        }
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(message.id) { visible = true }
 
-        Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .background(bgColor, shape)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            if (message.isLoading) {
-                TypingIndicator()
-            } else if (!isUser && message.shouldAnimate) {
-                TypewriterText(
-                    fullText = message.content,
-                    color = textColor,
-                    style = MaterialTheme.typography.bodyLarge,
-                    onAnimationComplete = onAnimationComplete
-                )
-            } else {
-                Text(
-                    text = parseMarkdown(message.content),
-                    color = textColor,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(
+            initialOffsetY = { it / 2 },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ) + fadeIn(animationSpec = tween(300))
+    ) {
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = align) {
+            if (!isUser) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(12.dp), tint = AppColors.primary)
+                    Text("Swastri", style = MaterialTheme.typography.labelSmall, color = AppColors.secondary)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .background(bgColor, shape)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                if (message.isLoading) {
+                    TypingIndicator()
+                } else if (!isUser && message.shouldAnimate) {
+                    TypewriterText(
+                        fullText = message.content,
+                        color = textColor,
+                        style = MaterialTheme.typography.bodyLarge,
+                        onAnimationComplete = onAnimationComplete
+                    )
+                } else {
+                    Text(
+                        text = parseMarkdown(message.content),
+                        color = textColor,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }
