@@ -146,3 +146,8 @@
 -keep class com.swasthicare.mobile.data.services.** { *; }
 -keep class com.swasthicare.mobile.widgets.** { *; }
 -keep class com.swasthicare.mobile.notifications.** { *; }
+
+# ===========================================================================
+# SLF4J (used by Ktor/Supabase internals — no runtime impl needed on Android)
+# ===========================================================================
+-dontwarn org.slf4j.impl.StaticLoggerBinder

@@ -8,9 +8,8 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import java.security.MessageDigest
-import java.util.UUID
 
 /**
  * Google Authentication Helper
@@ -32,7 +31,7 @@ import java.util.UUID
  *       - Paste the Web Client ID as "Client ID"
  *       - Paste the Web Client Secret as "Client Secret"
  * 9. In Google Cloud Console, also create an "Android" OAuth client:
- *       - Package name: com.swasthicare.mobile
+ *       - Package name: com.swastricare.health
  *       - SHA-1 fingerprint: from your signing key (debug or release)
  *         Debug: keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android
  */
@@ -55,10 +54,15 @@ class GoogleAuthHelper(
      * Initiate Google Sign-In flow.
      * Returns Google ID token to be used with Supabase.
      *
+     * Step 1: Try GetGoogleIdOption (One Tap — fast, works if app is already authorized).
+     * Step 2: If NoCredentialException, fall back to GetSignInWithGoogleOption (full account
+     *         picker — works for first-time sign-in or when the Android OAuth client
+     *         SHA-1/package name isn't pre-authorized in Google Cloud Console).
+     *
      * @param activityContext MUST be an Activity context (not Application) for Credential Manager UI
      * @throws GoogleSignInNotConfiguredException if webClientId is blank
      * @throws GoogleSignInCancelledException if user cancelled
-     * @throws NoGoogleAccountException if no Google accounts found
+     * @throws NoGoogleAccountException if no Google accounts found on device
      * @throws GoogleSignInException for other errors
      */
     suspend fun signIn(activityContext: Context): String {
@@ -70,16 +74,49 @@ class GoogleAuthHelper(
 
         val credentialManager = CredentialManager.create(activityContext)
 
-        // Don't set a nonce - Supabase's signInWith(IDToken) generates its own nonce
-        // and expects the ID token to NOT contain a nonce. Setting any nonce causes:
-        // "Passed nonce and nonce in id_token should either both exist or not."
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(webClientId)
+        // Step 1: One Tap (preferred — silent/quick if already authorized).
+        // Don't set a nonce — Supabase's signInWith(IDToken) generates its own nonce.
+        val oneTapRequest = GetCredentialRequest.Builder()
+            .addCredentialOption(
+                GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(webClientId)
+                    .build()
+            )
             .build()
 
+        return try {
+            val result = credentialManager.getCredential(
+                request = oneTapRequest,
+                context = activityContext
+            )
+            Log.d(TAG, "Google Sign-In succeeded via One Tap")
+            GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+        } catch (e: GetCredentialCancellationException) {
+            Log.d(TAG, "Google Sign-In cancelled by user")
+            throw GoogleSignInCancelledException("Sign-in was cancelled")
+        } catch (e: NoCredentialException) {
+            // One Tap found no eligible credentials — fall back to full account picker.
+            // This commonly happens on first install or when the Android OAuth client
+            // SHA-1/package name isn't pre-authorized in Google Cloud Console.
+            Log.w(TAG, "One Tap found no credentials, falling back to Sign in with Google: ${e.message}")
+            signInWithGooglePicker(activityContext, credentialManager)
+        } catch (e: GetCredentialException) {
+            Log.e(TAG, "Google Sign-In failed: ${e.message}")
+            throw GoogleSignInException("Google Sign-In failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Fallback: full "Sign in with Google" bottom-sheet account picker.
+     * Works even without a pre-authorized session.
+     */
+    private suspend fun signInWithGooglePicker(
+        activityContext: Context,
+        credentialManager: CredentialManager
+    ): String {
         val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
+            .addCredentialOption(GetSignInWithGoogleOption.Builder(webClientId).build())
             .build()
 
         return try {
@@ -87,31 +124,20 @@ class GoogleAuthHelper(
                 request = request,
                 context = activityContext
             )
-
-            val credential = GoogleIdTokenCredential.createFrom(result.credential.data)
-            Log.d(TAG, "Google Sign-In succeeded")
-            credential.idToken
+            Log.d(TAG, "Google Sign-In succeeded via account picker")
+            GoogleIdTokenCredential.createFrom(result.credential.data).idToken
         } catch (e: GetCredentialCancellationException) {
             Log.d(TAG, "Google Sign-In cancelled by user")
             throw GoogleSignInCancelledException("Sign-in was cancelled")
         } catch (e: NoCredentialException) {
-            Log.w(TAG, "No Google accounts found: ${e.message}")
-            throw NoGoogleAccountException("No Google accounts found on this device")
+            Log.w(TAG, "No Google accounts on device: ${e.message}")
+            throw NoGoogleAccountException(
+                "No Google account found. Please add a Google account in your device Settings."
+            )
         } catch (e: GetCredentialException) {
-            Log.e(TAG, "Google Sign-In failed: ${e.message}")
+            Log.e(TAG, "Google Sign-In (picker) failed: ${e.message}")
             throw GoogleSignInException("Google Sign-In failed: ${e.message}")
         }
-    }
-
-    private fun generateNonce(): String {
-        return UUID.randomUUID().toString()
-    }
-
-    private fun hashNonce(nonce: String): String {
-        val bytes = nonce.toByteArray()
-        val md = MessageDigest.getInstance("SHA-256")
-        val digest = md.digest(bytes)
-        return digest.fold("") { str, it -> str + "%02x".format(it) }
     }
 }
 
