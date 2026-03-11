@@ -102,13 +102,24 @@ class HomeViewModel : ViewModel() {
                     ?: AppContainer.authRepository.currentUser?.email?.substringBefore("@")
                     ?: ""
 
-                // Check Health Connect READ permissions before reading data
+                // Check Health Connect READ permissions (for logging and UI state)
                 val hasPermissions = healthConnectService.hasReadPermissions()
                 Log.d("HomeViewModel", "HC available=${healthConnectService.isAvailable}, hasReadPermissions=$hasPermissions")
 
-                // Load real data from Health Connect (only if permissions granted)
-                val summary = if (hasPermissions) healthConnectService.getTodaySummary() else HealthConnectService.DailyHealthSummary()
-                val weeklyStepEntries = if (hasPermissions) healthConnectService.getWeeklySteps() else emptyList()
+                // Load real data from Health Connect — use try/catch to handle
+                // permissions being revoked between the check and the read
+                val summary = try {
+                    healthConnectService.getTodaySummary()
+                } catch (e: SecurityException) {
+                    Log.w("HomeViewModel", "HC SecurityException reading summary: ${e.message}")
+                    HealthConnectService.DailyHealthSummary()
+                }
+                val weeklyStepEntries = try {
+                    healthConnectService.getWeeklySteps()
+                } catch (e: SecurityException) {
+                    Log.w("HomeViewModel", "HC SecurityException reading weekly steps: ${e.message}")
+                    emptyList()
+                }
 
                 // Load hydration data from local store
                 val todayStr = LocalDate.now().toString()

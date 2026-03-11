@@ -172,12 +172,14 @@ fun ActivityDetailScreen(
                     )
 
                     // ── Route Map ──
-                    RouteMapView(
-                        routePoints = workout!!.routePoints,
-                        isLive = false,
-                        height = if (isMapExpanded) 350 else 200,
-                        onExpand = { isMapExpanded = !isMapExpanded }
-                    )
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        RouteMapView(
+                            routePoints = workout!!.routePoints,
+                            isLive = false,
+                            height = if (isMapExpanded) 350 else 200,
+                            onExpand = { isMapExpanded = !isMapExpanded }
+                        )
+                    }
 
                     Spacer(Modifier.height(16.dp))
 

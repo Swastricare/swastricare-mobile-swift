@@ -9,7 +9,7 @@ kotlin.code.style=official
 # 2. Create OAuth 2.0 Web Client ID
 # 3. Paste the value below (ends in .apps.googleusercontent.com)
 # 4. Also configure in Supabase Dashboard -> Auth -> Providers -> Google
-GOOGLE_WEB_CLIENT_ID=5434673166-6r2i53pm96o9otvhd5ms0k2ogf0gvqul.apps.googleusercontent.com
+GOOGLE_WEB_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
 android.defaults.buildfeatures.resvalues=true
 android.sdk.defaultTargetSdkToCompileSdkIfUnset=false
 android.enableAppCompileTimeRClass=false
@@ -23,8 +23,8 @@ android.newDsl=false
 
 # Google Maps API Key
 # To configure: Google Cloud Console -> APIs & Services -> Credentials -> Create API Key -> Restrict to Maps SDK
-GOOGLE_MAPS_API_KEY=AIzaSyBqc6VCLmAEiLPVwCRkElEPpLh2FKTipDE
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 
 # Supabase credentials
-SUPABASE_URL=https://jlumbeyukpnuicyxzvre.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsdW1iZXl1a3BudWljeXh6dnJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2Nzc2MzAsImV4cCI6MjA4MzI1MzYzMH0.JYn8tZGP5OomXh968K4zV7L9h7Gam1zVW5YZ81DLC98
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key

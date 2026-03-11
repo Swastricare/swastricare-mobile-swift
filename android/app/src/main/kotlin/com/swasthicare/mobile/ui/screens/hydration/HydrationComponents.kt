@@ -9,11 +9,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -59,6 +61,7 @@ fun WaterGlassView(
     progress: Float,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isSystemInDarkTheme()
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
@@ -105,52 +108,65 @@ fun WaterGlassView(
             close()
         }
 
-        // Glass outline
+        // Empty glass background fill
         drawPath(
             path = glassPath,
-            color = Color.White.copy(alpha = 0.3f),
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+            color = if (isDark) Color.White.copy(alpha = 0.04f) else HydrationCyan.copy(alpha = 0.07f),
+            style = Fill
         )
 
-        // Clip waves inside the glass
+        // Animated waves clipped to glass interior
         clipPath(glassPath) {
             val glassHeight = bottomY - topY
             val waterTop = bottomY - (glassHeight * animatedProgress)
-            val amplitude = glassHeight * 0.03f
+            val amplitude = glassHeight * 0.05f  // visible waves
 
-            // Wave 1 (back)
+            // Wave 1 — back layer
             val wavePath1 = Path().apply {
                 moveTo(0f, h)
                 for (x in 0..w.toInt() step 4) {
                     val xf = x.toFloat()
-                    val angle = (xf / w) * 2 * PI.toFloat() + phase1
-                    val yf = waterTop + sin(angle) * amplitude
-                    lineTo(xf, yf)
+                    val angle = (xf / w) * 2f * PI.toFloat() + phase1
+                    lineTo(xf, waterTop + sin(angle) * amplitude)
                 }
                 lineTo(w, h)
                 close()
             }
-            drawPath(wavePath1, HydrationCyan.copy(alpha = 0.25f), style = Fill)
+            drawPath(wavePath1, HydrationCyan.copy(alpha = 0.45f), style = Fill)
 
-            // Wave 2 (front)
+            // Wave 2 — front layer (more opaque, different freq)
             val wavePath2 = Path().apply {
                 moveTo(0f, h)
                 for (x in 0..w.toInt() step 4) {
                     val xf = x.toFloat()
-                    val angle = (xf / w) * 2.5f * PI.toFloat() + phase2
-                    val yf = waterTop + sin(angle) * amplitude * 1.3f
-                    lineTo(xf, yf)
+                    val angle = (xf / w) * 2.4f * PI.toFloat() + phase2
+                    lineTo(xf, waterTop + sin(angle) * amplitude * 1.4f)
                 }
                 lineTo(w, h)
                 close()
             }
-            drawPath(wavePath2, HydrationCyan.copy(alpha = 0.4f), style = Fill)
+            drawPath(wavePath2, HydrationCyan.copy(alpha = 0.75f), style = Fill)
         }
 
-        // Percentage text in center
+        // Glass outline drawn on top of waves
+        drawPath(
+            path = glassPath,
+            color = if (isDark) Color.White.copy(alpha = 0.35f) else HydrationCyan,
+            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+        )
+
+        // Percentage text — always white when water covers it, adaptive otherwise
+        val waterY = bottomY - ((bottomY - topY) * animatedProgress)
+        val textY = h / 2f
+        val textColor = if (textY > waterY) {
+            // text is inside the water — always white
+            android.graphics.Color.WHITE
+        } else {
+            if (isDark) android.graphics.Color.WHITE else android.graphics.Color.parseColor("#1C1C1E")
+        }
         val textPaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.WHITE
-            textSize = (h * 0.12f)
+            color = textColor
+            textSize = h * 0.13f
             textAlign = android.graphics.Paint.Align.CENTER
             isFakeBoldText = true
             isAntiAlias = true
@@ -158,7 +174,7 @@ fun WaterGlassView(
         drawContext.canvas.nativeCanvas.drawText(
             percentText,
             w / 2,
-            h / 2 + textPaint.textSize / 3,
+            textY + textPaint.textSize / 3,
             textPaint
         )
     }
@@ -267,7 +283,7 @@ fun HydrationStatPill(
         verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(iconColor.copy(alpha = 0.08f))
+            .background(AppColors.surfaceVariant)
             .padding(vertical = 10.dp, horizontal = 8.dp)
     ) {
         Icon(
@@ -326,7 +342,7 @@ fun DrinkTypePicker(
                     ) { onTypeSelected(type) }
                     .then(
                         if (!isSelected) Modifier.background(
-                            AppColors.onSurface.copy(alpha = 0.06f),
+                            AppColors.surfaceVariant,
                             RoundedCornerShape(20.dp)
                         ) else Modifier
                     )
@@ -362,7 +378,7 @@ fun QuickAddButton(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(HydrationCyan.copy(alpha = 0.1f))
+            .background(AppColors.surfaceVariant)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -409,7 +425,7 @@ fun HydrationEntryCard(
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(HydrationCyan.copy(alpha = 0.1f)),
+                .background(AppColors.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             Text(drinkType.icon, fontSize = 22.sp)
@@ -453,77 +469,150 @@ fun HydrationInsightsCard(
     insights: HydrationInsights,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(cardBg)
-            .padding(20.dp),
+            .background(AppColors.surface)
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(Icons.Default.TrendingUp, null, tint = HydrationCyan, modifier = Modifier.size(20.dp))
-            Text("Insights", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            InsightItem("${insights.streakDays}", "Day Streak", Icons.Default.LocalFireDepartment, Color(0xFFFF9500))
-            InsightItem("${insights.avgDailyIntake}ml", "Avg/Day", Icons.Default.BarChart, HydrationCyan)
-        }
-
-        insights.mostCommonDrink?.let { drink ->
-            HorizontalDivider(color = AppColors.onSurface.copy(alpha = 0.08f))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(HydrationCyan.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.WaterDrop, null, tint = HydrationCyan, modifier = Modifier.size(16.dp))
-                Text(
-                    "Most common: $drink",
-                    fontSize = 13.sp,
-                    color = AppColors.onSurface.copy(alpha = 0.6f)
-                )
+                Icon(Icons.AutoMirrored.Filled.TrendingUp, null, tint = HydrationCyan, modifier = Modifier.size(20.dp))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text("Insights", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AppColors.onSurface)
+                Text("Your hydration patterns", fontSize = 12.sp, color = AppColors.onSurface.copy(alpha = 0.45f))
             }
         }
 
+        // Stat cards — side by side
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            InsightStatCard(
+                value = "${insights.streakDays}",
+                unit = "days",
+                label = "Streak",
+                icon = Icons.Default.LocalFireDepartment,
+                color = Color(0xFFFF9500),
+                modifier = Modifier.weight(1f)
+            )
+            InsightStatCard(
+                value = "${insights.avgDailyIntake}",
+                unit = "ml",
+                label = "Daily avg",
+                icon = Icons.Default.BarChart,
+                color = HydrationCyan,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Most common drink
+        insights.mostCommonDrink?.let { drink ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(AppColors.surfaceVariant)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(HydrationCyan.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.WaterDrop, null, tint = HydrationCyan, modifier = Modifier.size(16.dp))
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text("Favourite drink", fontSize = 11.sp, color = AppColors.onSurface.copy(alpha = 0.45f))
+                    Text(drink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = AppColors.onSurface)
+                }
+            }
+        }
+
+        // Caffeine info
         if (insights.caffeineCount > 0) {
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(AppColors.surfaceVariant)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(Icons.Default.LocalCafe, null, tint = Color(0xFF8B6914), modifier = Modifier.size(16.dp))
-                Text(
-                    "Caffeine today: ${insights.caffeineAmountMl}ml (${insights.caffeineCount} drinks)",
-                    fontSize = 13.sp,
-                    color = AppColors.onSurface.copy(alpha = 0.6f)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFFF9500).copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.LocalCafe, null, tint = Color(0xFFFF9500), modifier = Modifier.size(16.dp))
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text("Caffeine today", fontSize = 11.sp, color = AppColors.onSurface.copy(alpha = 0.45f))
+                    Text(
+                        "${insights.caffeineAmountMl}ml · ${insights.caffeineCount} drinks",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppColors.onSurface
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun InsightItem(
+private fun InsightStatCard(
     value: String,
+    unit: String,
     label: String,
     icon: ImageVector,
-    color: Color
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(AppColors.surfaceVariant)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
-        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AppColors.onSurface)
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(color.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
+        }
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = AppColors.onSurface)
+            Text(unit, fontSize = 12.sp, color = AppColors.onSurface.copy(alpha = 0.5f), modifier = Modifier.padding(bottom = 3.dp))
+        }
         Text(label, fontSize = 12.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
     }
 }
@@ -546,95 +635,143 @@ fun UrineColorGuideSheet(
         sheetState = sheetState,
         containerColor = AppColors.surface
     ) {
+        // Fixed header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 40.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(bottom = 4.dp)
         ) {
             Text(
                 "Urine Color Guide",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                fontWeight = FontWeight.Bold
             )
-
+            Spacer(Modifier.height(4.dp))
             Text(
                 "Tap a color to check your hydration level",
                 fontSize = 14.sp,
-                color = AppColors.onSurface.copy(alpha = 0.6f),
-                modifier = Modifier.padding(bottom = 12.dp)
+                color = AppColors.onSurface.copy(alpha = 0.55f)
             )
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = AppColors.outline.copy(alpha = 0.3f))
+        }
 
-            UrineColorLevel.guide.forEach { level ->
+        // Scrollable level cards
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(UrineColorLevel.guide) { level ->
                 val isSelected = selectedLevel == level.level
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (isSelected) AppColors.primaryContainer
-                            else AppColors.surfaceVariant.copy(alpha = 0.3f)
-                        )
-                        .clickable { selectedLevel = if (isSelected) null else level.level }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Color swatch
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(level.colorHex))
-                            .then(
-                                if (isSelected) Modifier.border(2.dp, AppColors.primary, RoundedCornerShape(8.dp))
-                                else Modifier
-                            )
-                    )
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            level.name,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AppColors.onSurface
-                        )
-                        Text(
-                            level.status,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = when {
-                                level.level <= 2 -> Color(0xFF34C759)
-                                level.level <= 4 -> Color(0xFFFF9500)
-                                else -> Color(0xFFFF3B30)
-                            }
-                        )
-                        Text(
-                            level.recommendation,
-                            fontSize = 11.sp,
-                            color = AppColors.onSurface.copy(alpha = 0.5f),
-                            maxLines = if (isSelected) Int.MAX_VALUE else 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                val levelColor = Color(level.colorHex)
+                val statusColor = when {
+                    level.level <= 2 -> Color(0xFF34C759)
+                    level.level <= 4 -> Color(0xFFFF9500)
+                    else -> Color(0xFFFF3B30)
                 }
 
-                if (isSelected && level.level > 2) {
-                    Button(
-                        onClick = {
-                            onLogWater(250)
-                            onDismiss()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C7BE)),
-                        shape = RoundedCornerShape(12.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(AppColors.surfaceVariant)
+                        .then(
+                            if (isSelected) Modifier.border(
+                                width = 2.dp,
+                                color = levelColor,
+                                shape = RoundedCornerShape(14.dp)
+                            ) else Modifier
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { selectedLevel = if (isSelected) null else level.level }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Log 250ml Water", fontWeight = FontWeight.SemiBold)
+                        // Color swatch with level number
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(levelColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "${level.level}",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
+
+                        // Name + status + recommendation
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    level.name,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = AppColors.onSurface
+                                )
+                                // Status chip
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(statusColor.copy(alpha = 0.15f))
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text(
+                                        level.status,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = statusColor
+                                    )
+                                }
+                            }
+                            Text(
+                                level.recommendation,
+                                fontSize = 12.sp,
+                                color = AppColors.onSurface.copy(alpha = 0.55f),
+                                maxLines = if (isSelected) Int.MAX_VALUE else 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    // Expanded: log water button for dehydrated levels
+                    if (isSelected && level.level > 2) {
+                        Button(
+                            onClick = { onLogWater(250); onDismiss() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .padding(bottom = 12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C7BE)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.WaterDrop, null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Log 250ml Water", fontWeight = FontWeight.SemiBold, color = Color.White)
+                        }
                     }
                 }
             }
+
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }

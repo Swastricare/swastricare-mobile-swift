@@ -110,7 +110,14 @@ data class MenstrualSettingsDto(
     @SerialName("average_period_length") val averagePeriodLength: Int = 5,
     @SerialName("reminder_enabled") val reminderEnabled: Boolean = true,
     @SerialName("reminder_time") val reminderTime: String = "09:00:00"
-)
+) {
+    /**
+     * Returns a validated cycle length constrained to medical normal range (21-45 days).
+     * Use this for predictions to prevent invalid calculations.
+     */
+    val validatedCycleLength: Int
+        get() = averageCycleLength.coerceIn(21, 45)
+}
 
 // ------------------------------------
 // MARK: - UI Domain Models
@@ -152,7 +159,14 @@ data class MenstrualSettings(
     val averagePeriodLength: Int = 5,
     val reminderEnabled: Boolean = true,
     val reminderTime: String = "09:00"
-)
+) {
+    /**
+     * Returns a validated cycle length constrained to medical normal range (21-45 days).
+     * Use this for predictions to prevent invalid calculations.
+     */
+    val validatedCycleLength: Int
+        get() = averageCycleLength.coerceIn(21, 45)
+}
 
 data class CyclePrediction(
     val nextPeriodDate: LocalDate,

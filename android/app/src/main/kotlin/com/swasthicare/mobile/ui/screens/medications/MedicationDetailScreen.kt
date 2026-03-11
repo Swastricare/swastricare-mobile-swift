@@ -271,32 +271,30 @@ fun MedicationDetailScreen(
                     Spacer(Modifier.height(20.dp))
                 }
 
-                // ── Delete Button (visible when editing) ──
-                if (isEditing) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color(0xFFFF3B30).copy(alpha = 0.10f))
-                                .clickable { showDeleteDialog = true }
-                                .padding(vertical = 16.dp),
-                            contentAlignment = Alignment.Center
+                // ── Delete Button (always visible) ──
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFFF3B30).copy(alpha = 0.10f))
+                            .clickable { showDeleteDialog = true }
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.Default.Delete, null,
-                                    tint = Color(0xFFFF3B30), modifier = Modifier.size(16.dp))
-                                Text("Delete Medication",
-                                    fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFFFF3B30))
-                            }
+                            Icon(Icons.Default.Delete, null,
+                                tint = Color(0xFFFF3B30), modifier = Modifier.size(16.dp))
+                            Text("Delete Medication",
+                                fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFFF3B30))
                         }
-                        Spacer(Modifier.height(20.dp))
                     }
+                    Spacer(Modifier.height(20.dp))
                 }
             }
         }

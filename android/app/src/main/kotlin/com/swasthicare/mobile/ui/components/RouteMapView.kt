@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Icon
@@ -24,11 +25,15 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.*
+import com.swastricare.health.R
 import com.swasthicare.mobile.data.model.RoutePoint
 import com.swasthicare.mobile.data.services.RouteTracker
 import com.swasthicare.mobile.ui.screens.home.glass
@@ -70,12 +75,13 @@ fun RouteMapView(
     routePoints: List<RoutePoint>,
     isLive: Boolean = false,
     height: Int = 200,
+    currentSpeedMps: Float = 0f,
+    currentLatLng: Pair<Double, Double>? = null,
     onExpand: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val hasGoogleMaps = remember {
         try {
-            // Check if Google Maps is available (API key configured)
             val ai = context.packageManager.getApplicationInfo(
                 context.packageName,
                 android.content.pm.PackageManager.GET_META_DATA
@@ -87,25 +93,80 @@ fun RouteMapView(
         }
     }
 
+    var showFullscreen by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(height.dp)
             .clip(RoundedCornerShape(20.dp))
-            .then(if (onExpand != null) Modifier.clickable { onExpand() } else Modifier)
+            .clickable {
+                if (onExpand != null) onExpand()
+                else showFullscreen = true
+            }
     ) {
-        if (routePoints.size < 2) {
-            EmptyMapState(isLive = isLive)
-        } else if (hasGoogleMaps) {
-            GoogleMapsRouteView(
-                routePoints = routePoints,
-                isLive = isLive
+        if (routePoints.size >= 2) {
+            if (hasGoogleMaps) {
+                GoogleMapsRouteView(
+                    routePoints = routePoints,
+                    isLive = isLive,
+                    currentSpeedMps = currentSpeedMps
+                )
+            } else {
+                CanvasRouteMapView(
+                    routePoints = routePoints,
+                    isLive = isLive
+                )
+            }
+        } else if (hasGoogleMaps && currentLatLng != null) {
+            // Show Google Map centered on current location before route is built
+            GoogleMapsCurrentLocationView(
+                latitude = currentLatLng.first,
+                longitude = currentLatLng.second
             )
         } else {
-            CanvasRouteMapView(
-                routePoints = routePoints,
-                isLive = isLive
+            EmptyMapState(isLive = isLive)
+        }
+
+        // Expand hint icon (bottom-right corner)
+        if (routePoints.size >= 2) {
+            Icon(
+                Icons.Default.Fullscreen,
+                contentDescription = "Expand map",
+                tint = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+                    .size(20.dp)
             )
+        }
+    }
+
+    // Fullscreen map dialog
+    if (showFullscreen && routePoints.size >= 2) {
+        Dialog(
+            onDismissRequest = { showFullscreen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MapBackground)
+                    .clickable { showFullscreen = false }
+            ) {
+                if (hasGoogleMaps) {
+                    GoogleMapsRouteView(
+                        routePoints = routePoints,
+                        isLive = isLive,
+                        currentSpeedMps = currentSpeedMps
+                    )
+                } else {
+                    CanvasRouteMapView(
+                        routePoints = routePoints,
+                        isLive = isLive
+                    )
+                }
+            }
         }
     }
 }
@@ -117,24 +178,47 @@ fun RouteMapView(
 @Composable
 private fun GoogleMapsRouteView(
     routePoints: List<RoutePoint>,
-    isLive: Boolean
+    isLive: Boolean,
+    currentSpeedMps: Float = 0f
 ) {
+    val context = LocalContext.current
     val latLngs = remember(routePoints) {
         routePoints.map { LatLng(it.latitude, it.longitude) }
     }
 
     val cameraPositionState = rememberCameraPositionState()
 
+    // Adaptive zoom: zoom out at higher speeds
+    val adaptiveZoom = remember(currentSpeedMps) {
+        val speedKmh = currentSpeedMps * 3.6f
+        when {
+            speedKmh > 30f -> 14f   // cycling fast / driving
+            speedKmh > 15f -> 15f   // cycling / fast run
+            speedKmh > 5f  -> 16f   // running
+            else           -> 17f   // walking / stationary
+        }
+    }
+
     // Camera: follow user during live tracking, fit bounds in review
-    LaunchedEffect(latLngs) {
+    LaunchedEffect(latLngs, adaptiveZoom) {
         if (latLngs.size < 2) return@LaunchedEffect
 
         if (isLive && latLngs.isNotEmpty()) {
-            // Follow the current position during live tracking
             val current = latLngs.last()
+            // Use bearing from last two points for direction-facing camera
+            val bearing = if (latLngs.size >= 2) {
+                val prev = latLngs[latLngs.size - 2]
+                computeBearing(prev, current)
+            } else 0f
+
             cameraPositionState.animate(
                 CameraUpdateFactory.newCameraPosition(
-                    CameraPosition.fromLatLngZoom(current, 16f)
+                    CameraPosition.Builder()
+                        .target(current)
+                        .zoom(adaptiveZoom)
+                        .bearing(bearing)
+                        .tilt(if (currentSpeedMps > 2f) 30f else 0f)
+                        .build()
                 ),
                 durationMs = 500
             )
@@ -148,7 +232,6 @@ private fun GoogleMapsRouteView(
                     durationMs = 300
                 )
             } catch (_: Exception) {
-                // Fallback if bounds are invalid (all points same location)
                 cameraPositionState.animate(
                     CameraUpdateFactory.newCameraPosition(
                         CameraPosition.fromLatLngZoom(latLngs.first(), 15f)
@@ -158,10 +241,19 @@ private fun GoogleMapsRouteView(
         }
     }
 
-    val mapProperties = remember {
+    val darkStyle = remember {
+        try {
+            MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style_dark)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    val mapProperties = remember(darkStyle) {
         MapProperties(
             mapType = MapType.NORMAL,
-            isMyLocationEnabled = false
+            isMyLocationEnabled = false,
+            mapStyleOptions = darkStyle
         )
     }
 
@@ -171,8 +263,8 @@ private fun GoogleMapsRouteView(
             mapToolbarEnabled = false,
             myLocationButtonEnabled = false,
             compassEnabled = false,
-            scrollGesturesEnabled = !isLive,
-            zoomGesturesEnabled = !isLive,
+            scrollGesturesEnabled = true,
+            zoomGesturesEnabled = true,
             tiltGesturesEnabled = false,
             rotationGesturesEnabled = false
         )
@@ -186,18 +278,18 @@ private fun GoogleMapsRouteView(
     ) {
         // Route polyline with gradient effect using multiple segments
         if (latLngs.size >= 2) {
-            // Draw the full route as a polyline
-            Polyline(
-                points = latLngs,
-                color = androidx.compose.ui.graphics.Color(0xFF00E5FF),
-                width = 12f
-            )
-
             // Glow effect (wider, semi-transparent polyline underneath)
             Polyline(
                 points = latLngs,
                 color = androidx.compose.ui.graphics.Color(0xFF00E5FF).copy(alpha = 0.2f),
                 width = 24f
+            )
+
+            // Draw the full route as a polyline
+            Polyline(
+                points = latLngs,
+                color = androidx.compose.ui.graphics.Color(0xFF00E5FF),
+                width = 12f
             )
 
             // Start marker
@@ -246,6 +338,73 @@ private fun GoogleMapsRouteView(
                 }
             }
         }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Google Maps Current Location (pre-route)
+// ─────────────────────────────────────
+
+@Composable
+private fun GoogleMapsCurrentLocationView(
+    latitude: Double,
+    longitude: Double
+) {
+    val context = LocalContext.current
+    val position = LatLng(latitude, longitude)
+    val cameraPositionState = rememberCameraPositionState {
+        this.position = CameraPosition.fromLatLngZoom(position, 16f)
+    }
+
+    LaunchedEffect(latitude, longitude) {
+        cameraPositionState.animate(
+            CameraUpdateFactory.newLatLngZoom(position, 16f),
+            durationMs = 500
+        )
+    }
+
+    val darkStyle = remember {
+        try {
+            MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style_dark)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    val mapProperties = remember(darkStyle) {
+        MapProperties(
+            mapType = MapType.NORMAL,
+            isMyLocationEnabled = false,
+            mapStyleOptions = darkStyle
+        )
+    }
+
+    val mapUiSettings = remember {
+        MapUiSettings(
+            zoomControlsEnabled = false,
+            mapToolbarEnabled = false,
+            myLocationButtonEnabled = false,
+            compassEnabled = false,
+            scrollGesturesEnabled = true,
+            zoomGesturesEnabled = true,
+            tiltGesturesEnabled = false,
+            rotationGesturesEnabled = false
+        )
+    }
+
+    GoogleMap(
+        modifier = Modifier.fillMaxSize(),
+        cameraPositionState = cameraPositionState,
+        properties = mapProperties,
+        uiSettings = mapUiSettings
+    ) {
+        Circle(
+            center = position,
+            radius = 8.0,
+            fillColor = Color(0xFF00B4D8),
+            strokeColor = Color.White,
+            strokeWidth = 3f
+        )
     }
 }
 
@@ -503,6 +662,21 @@ private fun EmptyMapState(isLive: Boolean) {
 }
 
 // ─────────────────────────────────────
+// MARK: - Bearing Calculation
+// ─────────────────────────────────────
+
+private fun computeBearing(from: LatLng, to: LatLng): Float {
+    val fromLat = Math.toRadians(from.latitude)
+    val toLat = Math.toRadians(to.latitude)
+    val dLng = Math.toRadians(to.longitude - from.longitude)
+
+    val y = sin(dLng) * cos(toLat)
+    val x = cos(fromLat) * sin(toLat) - sin(fromLat) * cos(toLat) * cos(dLng)
+    val bearing = Math.toDegrees(atan2(y, x)).toFloat()
+    return (bearing + 360f) % 360f
+}
+
+// ─────────────────────────────────────
 // MARK: - GPS Status Chip
 // ─────────────────────────────────────
 
@@ -515,6 +689,7 @@ fun GpsStatusChip(
         RouteTracker.GpsStatus.OFF -> Color.Gray to "GPS Off"
         RouteTracker.GpsStatus.SEARCHING -> Color(0xFFFFA500) to "Searching..."
         RouteTracker.GpsStatus.POOR -> Color(0xFFFF6B6B) to "Poor Signal"
+        RouteTracker.GpsStatus.FAIR -> Color(0xFFFFD60A) to "Fair Signal"
         RouteTracker.GpsStatus.GOOD -> Color(0xFF38EF7D) to "GPS Fixed"
     }
 

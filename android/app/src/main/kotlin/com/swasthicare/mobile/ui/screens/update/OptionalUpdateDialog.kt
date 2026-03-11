@@ -20,12 +20,14 @@ import com.swasthicare.mobile.ui.theme.PrimaryColor
 /**
  * OptionalUpdateDialog
  * Dismissable dialog shown when a non-mandatory update is available.
+ * Uses server-provided title/message when available.
  * "Later" dismisses for 24 hours.
  */
 @Composable
 fun OptionalUpdateDialog(
     newVersion: String,
-    releaseNotes: String?,
+    updateTitle: String? = null,
+    updateMessage: String? = null,
     storeUrl: String?,
     onDismiss: () -> Unit
 ) {
@@ -44,7 +46,7 @@ fun OptionalUpdateDialog(
         },
         title = {
             Text(
-                text = "Update Available",
+                text = updateTitle ?: "Update Available",
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -57,26 +59,12 @@ fun OptionalUpdateDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Version $newVersion is available",
+                    text = updateMessage
+                        ?: "Version $newVersion is available with improvements and bug fixes.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.onSurfaceVariant
+                    color = AppColors.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
-
-                if (!releaseNotes.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "What's new:",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = releaseNotes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppColors.onSurfaceVariant,
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
             }
         },
         confirmButton = {
@@ -85,7 +73,7 @@ fun OptionalUpdateDialog(
                     val url = storeUrl ?: "market://details?id=com.swasthicare.mobile"
                     try {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         context.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
@@ -101,7 +89,7 @@ fun OptionalUpdateDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Later")
+                Text("Maybe Later")
             }
         }
     )

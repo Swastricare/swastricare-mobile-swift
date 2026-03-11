@@ -4,7 +4,6 @@ import android.util.Log
 import com.swasthicare.mobile.data.model.HealthProfile
 import com.swasthicare.mobile.data.model.Gender
 import com.swasthicare.mobile.data.model.UserProfileRow
-import com.swasthicare.mobile.di.AppContainer
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
@@ -104,7 +103,6 @@ class SupabaseProfileRepository(
                 .decodeSingleOrNull<HealthProfile>()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch health profile: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
             null
         }
     }
@@ -116,7 +114,6 @@ class SupabaseProfileRepository(
             Result.success(profile)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to create health profile: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -132,7 +129,6 @@ class SupabaseProfileRepository(
             Result.success(profile)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to update health profile: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
@@ -163,12 +159,18 @@ class SupabaseProfileRepository(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to update user profile: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }
 
     override suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): Result<String> {
+        // Validate file extension
+        val allowedExtensions = listOf("jpg", "jpeg", "png", "webp")
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+        if (extension !in allowedExtensions) {
+            return Result.failure(IllegalArgumentException("Only image files (jpg, png, webp) are allowed for avatars"))
+        }
+
         val bucket = supabaseClient.storage["avatars"]
         val path = "$userId/$fileName"
 
@@ -179,7 +181,6 @@ class SupabaseProfileRepository(
             Result.success(bucket.publicUrl(path))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to upload avatar: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
             Result.failure(e)
         }
     }

@@ -28,6 +28,7 @@ fun SignUpScreen(
     viewModel: AuthViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onNavigateToEmailVerification: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -35,11 +36,15 @@ fun SignUpScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    var hasAttemptedSignUp by remember { mutableStateOf(false) }
+
     var nameFocused by remember { mutableStateOf(false) }
+    var phoneFocused by remember { mutableStateOf(false) }
     var emailFocused by remember { mutableStateOf(false) }
     var passwordFocused by remember { mutableStateOf(false) }
     var confirmPasswordFocused by remember { mutableStateOf(false) }
 
+    val phoneFocusRequester = remember { FocusRequester() }
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
     val confirmPasswordFocusRequester = remember { FocusRequester() }
@@ -47,8 +52,10 @@ fun SignUpScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState) {
-        if (uiState is AuthUiState.Success) {
-            onNavigateToHome()
+        when (uiState) {
+            is AuthUiState.Success -> onNavigateToHome()
+            is AuthUiState.EmailVerificationRequired -> onNavigateToEmailVerification()
+            else -> {}
         }
     }
 
@@ -110,9 +117,25 @@ fun SignUpScreen(
                             icon = Icons.Default.Person,
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Next,
-                            keyboardActions = KeyboardActions(onNext = { emailFocusRequester.requestFocus() }),
+                            keyboardActions = KeyboardActions(onNext = { phoneFocusRequester.requestFocus() }),
                             isFocused = nameFocused,
-                            modifier = Modifier.onFocusChanged { nameFocused = it.isFocused }
+                            modifier = Modifier.onFocusChanged { nameFocused = it.isFocused },
+                            isError = hasAttemptedSignUp && formState.fullName.isBlank(),
+                            errorText = "Full name is required"
+                        )
+
+                        PremiumTextField(
+                            value = formState.phone,
+                            onValueChange = { viewModel.updatePhone(it) },
+                            placeholder = "Phone Number (optional)",
+                            icon = Icons.Default.Phone,
+                            keyboardType = KeyboardType.Phone,
+                            imeAction = ImeAction.Next,
+                            keyboardActions = KeyboardActions(onNext = { emailFocusRequester.requestFocus() }),
+                            isFocused = phoneFocused,
+                            modifier = Modifier.focusRequester(phoneFocusRequester).onFocusChanged { phoneFocused = it.isFocused },
+                            isError = hasAttemptedSignUp && !formState.isValidPhone,
+                            errorText = "Enter a valid phone number"
                         )
 
                         PremiumTextField(
@@ -124,7 +147,9 @@ fun SignUpScreen(
                             imeAction = ImeAction.Next,
                             keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
                             isFocused = emailFocused,
-                            modifier = Modifier.focusRequester(emailFocusRequester).onFocusChanged { emailFocused = it.isFocused }
+                            modifier = Modifier.focusRequester(emailFocusRequester).onFocusChanged { emailFocused = it.isFocused },
+                            isError = hasAttemptedSignUp && !formState.isValidEmail,
+                            errorText = "Enter a valid email address"
                         )
 
                         PremiumSecureField(
@@ -135,7 +160,9 @@ fun SignUpScreen(
                             imeAction = ImeAction.Next,
                             keyboardActions = KeyboardActions(onNext = { confirmPasswordFocusRequester.requestFocus() }),
                             isFocused = passwordFocused,
-                            modifier = Modifier.focusRequester(passwordFocusRequester).onFocusChanged { passwordFocused = it.isFocused }
+                            modifier = Modifier.focusRequester(passwordFocusRequester).onFocusChanged { passwordFocused = it.isFocused },
+                            isError = hasAttemptedSignUp && !formState.isValidPassword,
+                            errorText = formState.passwordError
                         )
 
                         PremiumSecureField(
@@ -144,17 +171,25 @@ fun SignUpScreen(
                             placeholder = "Confirm Password",
                             icon = Icons.Default.CheckCircle,
                             imeAction = ImeAction.Done,
-                            keyboardActions = KeyboardActions(onDone = { if (formState.isValidForSignUp) viewModel.signUp() }),
+                            keyboardActions = KeyboardActions(onDone = {
+                                hasAttemptedSignUp = true
+                                if (formState.isValidForSignUp) viewModel.signUp()
+                            }),
                             isFocused = confirmPasswordFocused,
-                            modifier = Modifier.focusRequester(confirmPasswordFocusRequester).onFocusChanged { confirmPasswordFocused = it.isFocused }
+                            modifier = Modifier.focusRequester(confirmPasswordFocusRequester).onFocusChanged { confirmPasswordFocused = it.isFocused },
+                            isError = hasAttemptedSignUp && !formState.passwordsMatch,
+                            errorText = if (formState.confirmPassword.isNotEmpty()) "Passwords do not match" else "Please confirm your password"
                         )
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         PremiumButton(
                             "Create Account",
-                            onClick = { viewModel.signUp() },
-                            enabled = formState.isValidForSignUp && !isLoading,
+                            onClick = {
+                                hasAttemptedSignUp = true
+                                viewModel.signUp()
+                            },
+                            enabled = !isLoading,
                             isLoading = isLoading
                         )
 

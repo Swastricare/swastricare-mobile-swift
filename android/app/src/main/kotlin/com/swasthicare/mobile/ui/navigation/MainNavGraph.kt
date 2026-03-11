@@ -86,6 +86,7 @@ fun MainNavGraph(
                 onNavigateToHeartRate = { navController.navigate("heart_rate") },
                 onNavigateToBodyScan = { navController.navigate("ar_body_scan") },
                 onNavigateToNotifications = { navController.navigate("notification_history") },
+                onNavigateToAnalytics = { navController.navigate("health_analytics") },
                 onNavigateToRoute = { route ->
                     try { navController.navigate(route) } catch (_: Exception) { }
                 }
@@ -330,6 +331,7 @@ fun MainNavGraph(
         // ─── Health Analytics ───
         composable("health_analytics") {
             HealthAnalyticsScreen(
+                viewModel = AppContainer.healthAnalyticsViewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) }
             )

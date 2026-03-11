@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.swasthicare.mobile.data.services.AppUpdateCheckResult
 import com.swasthicare.mobile.data.services.AppUpdateStatus
 import com.swasthicare.mobile.di.AppContainer
 import com.swasthicare.mobile.di.CONSENT_ACCEPTED_KEY
@@ -22,6 +23,7 @@ import com.swasthicare.mobile.navigation.DeepLinkRoute
 import com.swasthicare.mobile.ui.screens.ar.ARBodyScanScreen
 import com.swasthicare.mobile.ui.screens.auth.AuthUiState
 import com.swasthicare.mobile.ui.screens.auth.AuthViewModel
+import com.swasthicare.mobile.ui.screens.auth.EmailVerificationScreen
 import com.swasthicare.mobile.ui.screens.auth.LoginScreen
 import com.swasthicare.mobile.ui.screens.auth.ResetPasswordScreen
 import com.swasthicare.mobile.ui.screens.auth.SignUpScreen
@@ -29,9 +31,8 @@ import com.swasthicare.mobile.ui.screens.main.MainScreen
 import com.swasthicare.mobile.ui.screens.onboarding.ConsentScreen
 import com.swasthicare.mobile.ui.screens.onboarding.HealthProfileScreen
 import com.swasthicare.mobile.ui.screens.onboarding.OnboardingScreen
-import com.swasthicare.mobile.ui.screens.splash.ForceUpdateScreen
 import com.swasthicare.mobile.ui.screens.splash.SplashScreen
-import com.swasthicare.mobile.ui.screens.update.ForceUpdateScreen as UpdateForceUpdateScreen
+import com.swasthicare.mobile.ui.screens.update.ForceUpdateScreen
 import com.swasthicare.mobile.ui.screens.update.OptionalUpdateDialog
 import kotlinx.coroutines.launch
 
@@ -51,55 +52,38 @@ fun AppNavigation(
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Version check state (Feature 18)
-    var updateStatus by remember { mutableStateOf(AppUpdateStatus.UP_TO_DATE) }
-    var updateVersion by remember { mutableStateOf("") }
-    var updateReleaseNotes by remember { mutableStateOf<String?>(null) }
-    var updateStoreUrl by remember { mutableStateOf<String?>(null) }
+    // Version check state (matches iOS AppVersionService flow)
+    var updateResult by remember { mutableStateOf<AppUpdateCheckResult?>(null) }
     var showOptionalDialog by remember { mutableStateOf(false) }
 
-    // Check for updates on launch
-    LaunchedEffect(Unit) {
+    // Helper to run version check
+    suspend fun performVersionCheck() {
         try {
-            val result = AppContainer.appVersionService.checkForUpdate(AppContainer.currentVersionName)
-            updateStatus = result.status
-            result.versionInfo?.let { info ->
-                updateVersion = info.version
-                updateReleaseNotes = info.releaseNotes
-                updateStoreUrl = info.storeUrl
-            }
+            val result = AppContainer.appVersionService.checkForUpdate(
+                AppContainer.currentVersionName,
+                AppContainer.currentVersionCode
+            )
+            updateResult = result
             if (result.status == AppUpdateStatus.OPTIONAL_UPDATE &&
                 AppContainer.appVersionService.shouldShowOptionalUpdate()
             ) {
                 showOptionalDialog = true
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Version check failure should not block the app
         }
+    }
+
+    // Check for updates on launch
+    LaunchedEffect(Unit) {
+        performVersionCheck()
     }
 
     // Re-check on ON_RESUME (hourly, guarded by cache TTL in service)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                scope.launch {
-                    try {
-                        val result = AppContainer.appVersionService.checkForUpdate(
-                            AppContainer.currentVersionName
-                        )
-                        updateStatus = result.status
-                        result.versionInfo?.let { info ->
-                            updateVersion = info.version
-                            updateReleaseNotes = info.releaseNotes
-                            updateStoreUrl = info.storeUrl
-                        }
-                        if (result.status == AppUpdateStatus.OPTIONAL_UPDATE &&
-                            AppContainer.appVersionService.shouldShowOptionalUpdate()
-                        ) {
-                            showOptionalDialog = true
-                        }
-                    } catch (_: Exception) { }
-                }
+                scope.launch { performVersionCheck() }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -108,13 +92,14 @@ fun AppNavigation(
         }
     }
 
-    // Force Update blocks everything
-    if (updateStatus == AppUpdateStatus.FORCE_UPDATE) {
-        UpdateForceUpdateScreen(
+    // Force Update blocks everything — no way to dismiss
+    if (updateResult?.status == AppUpdateStatus.FORCE_UPDATE) {
+        ForceUpdateScreen(
             currentVersion = AppContainer.currentVersionName,
-            requiredVersion = updateVersion,
-            releaseNotes = updateReleaseNotes,
-            storeUrl = updateStoreUrl
+            latestVersion = updateResult?.record?.latestVersion ?: "",
+            updateTitle = updateResult?.record?.updateTitle,
+            updateMessage = updateResult?.record?.updateMessage,
+            storeUrl = updateResult?.record?.updateUrl
         )
         return
     }
@@ -160,18 +145,8 @@ fun AppNavigation(
                     navController.navigate("onboarding") {
                         popUpTo("splash") { inclusive = true }
                     }
-                },
-                onForceUpdate = {
-                    navController.navigate("force_update") {
-                        popUpTo("splash") { inclusive = true }
-                    }
                 }
             )
-        }
-
-        // Force Update Screen
-        composable("force_update") {
-            ForceUpdateScreen()
         }
 
         // Onboarding Screen
@@ -228,6 +203,28 @@ fun AppNavigation(
                 onNavigateToHome = {
                     navController.navigate("main") {
                         popUpTo("login") { inclusive = true }
+                    }
+                },
+                onNavigateToEmailVerification = {
+                    navController.navigate("email_verification") {
+                        popUpTo("signup") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Email Verification Screen
+        composable("email_verification") {
+            EmailVerificationScreen(
+                viewModel = authViewModel,
+                onNavigateToHome = {
+                    navController.navigate("main") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onNavigateBack = {
+                    navController.navigate("signup") {
+                        popUpTo("email_verification") { inclusive = true }
                     }
                 }
             )
@@ -286,11 +283,12 @@ fun AppNavigation(
     }
 
     // Optional Update Dialog overlay (Feature 18)
-    if (showOptionalDialog) {
+    if (showOptionalDialog && updateResult != null) {
         OptionalUpdateDialog(
-            newVersion = updateVersion,
-            releaseNotes = updateReleaseNotes,
-            storeUrl = updateStoreUrl,
+            newVersion = updateResult?.record?.latestVersion ?: "",
+            updateTitle = updateResult?.record?.updateTitle,
+            updateMessage = updateResult?.record?.updateMessage,
+            storeUrl = updateResult?.record?.updateUrl,
             onDismiss = {
                 showOptionalDialog = false
                 AppContainer.appVersionService.dismissOptionalUpdate()

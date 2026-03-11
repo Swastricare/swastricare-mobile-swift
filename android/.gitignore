@@ -1,4 +1,5 @@
 key.properties
+gradle.properties
 *.iml
 .gradle
 /local.properties
@@ -12,6 +13,8 @@ key.properties
 *.aab
 *.ap_
 *.dex
+*.jks
+*.keystore
 .navigation/
 captures/
 output.json

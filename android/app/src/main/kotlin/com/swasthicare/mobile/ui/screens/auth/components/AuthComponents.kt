@@ -53,18 +53,17 @@ fun PremiumTextField(
     imeAction: ImeAction = ImeAction.Next,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     isFocused: Boolean = false,
-    isError: Boolean = false
+    isError: Boolean = false,
+    errorText: String? = null
 ) {
-    // Matching iOS AuthTextField: label above, icon + field inside rounded container
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Label above (matching iOS)
         Text(
             text = placeholder,
             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-            color = AppColors.onSurfaceVariant
+            color = if (isError) AppColors.error else AppColors.onSurfaceVariant
         )
 
         Row(
@@ -112,6 +111,15 @@ fun PremiumTextField(
                 isError = isError
             )
         }
+
+        if (isError && !errorText.isNullOrBlank()) {
+            Text(
+                text = errorText,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.error,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
     }
 }
 
@@ -125,11 +133,11 @@ fun PremiumSecureField(
     imeAction: ImeAction = ImeAction.Done,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     isFocused: Boolean = false,
-    isError: Boolean = false
+    isError: Boolean = false,
+    errorText: String? = null
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // Matching iOS AuthSecureField: label above, icon + field + eye toggle
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -137,7 +145,7 @@ fun PremiumSecureField(
         Text(
             text = placeholder,
             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-            color = AppColors.onSurfaceVariant
+            color = if (isError) AppColors.error else AppColors.onSurfaceVariant
         )
 
         Row(
@@ -193,6 +201,15 @@ fun PremiumSecureField(
                     tint = AppColors.onSurfaceVariant
                 )
             }
+        }
+
+        if (isError && !errorText.isNullOrBlank()) {
+            Text(
+                text = errorText,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.error,
+                modifier = Modifier.padding(start = 4.dp)
+            )
         }
     }
 }

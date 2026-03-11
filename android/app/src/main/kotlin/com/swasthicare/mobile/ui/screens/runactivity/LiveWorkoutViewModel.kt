@@ -3,6 +3,7 @@ package com.swasthicare.mobile.ui.screens.runactivity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import com.swasthicare.mobile.data.model.RoutePoint
 import com.swasthicare.mobile.data.models.ActivityType
 import com.swasthicare.mobile.data.models.WorkoutTemplate
@@ -66,7 +67,7 @@ data class LiveWorkoutUiState(
 
     // Metrics
     val distanceMeters: Double = 0.0,
-    val currentSpeedMps: Float = 0f,       // meters per second
+    val currentSpeedMps: Float = 0f,       // meters per second (smoothed)
     val averageSpeedMps: Float = 0f,
     val caloriesBurned: Int = 0,
     val currentAltitude: Double = 0.0,
@@ -76,6 +77,8 @@ data class LiveWorkoutUiState(
     val gpsStatus: RouteTracker.GpsStatus = RouteTracker.GpsStatus.OFF,
     val gpsMode: GpsMode = GpsMode.HIGH_ACCURACY,
     val hasLocationPermission: Boolean = false,
+    val isAutopaused: Boolean = false,
+    val currentLocation: Pair<Double, Double>? = null,
 
     // Summary data
     val maxSpeedMps: Float = 0f,
@@ -137,30 +140,42 @@ class LiveWorkoutViewModel(
     private var autoSaveJob: Job? = null
     private var countdownJob: Job? = null
     private var maxSpeed: Float = 0f
-    private var lastAltitude: Double? = null
     private var totalElevationGain: Double = 0.0
     private var workoutStartTime: Instant? = null
+
+    // Elevation smoothing: rolling window to filter GPS altitude noise
+    private val altitudeBuffer = ArrayDeque<Double>(5)
+    private val ALTITUDE_BUFFER_SIZE = 5
+    private val MIN_ELEVATION_CHANGE = 3.0  // ignore < 3m altitude fluctuations
+    private var smoothedAltitude: Double? = null
 
     private val autoSaveJson = Json { encodeDefaults = true }
     private val isoFormatter = DateTimeFormatter.ISO_INSTANT
 
     init {
-        // Collect route updates
+        // Collect route updates with elevation smoothing
         viewModelScope.launch {
             routeTracker.routePoints.collect { points ->
                 _uiState.update { it.copy(routePoints = points) }
-                // Track elevation gain
                 if (points.isNotEmpty()) {
-                    val currentAlt = points.last().altitude
-                    _uiState.update { it.copy(currentAltitude = currentAlt) }
-                    lastAltitude?.let { prev ->
-                        val gain = currentAlt - prev
-                        if (gain > 0) {
+                    val rawAlt = points.last().altitude
+
+                    // Rolling average for altitude smoothing
+                    if (altitudeBuffer.size >= ALTITUDE_BUFFER_SIZE) altitudeBuffer.removeFirst()
+                    altitudeBuffer.addLast(rawAlt)
+                    val currentSmoothedAlt = altitudeBuffer.average()
+
+                    _uiState.update { it.copy(currentAltitude = currentSmoothedAlt) }
+
+                    // Only count elevation gain above the noise threshold
+                    smoothedAltitude?.let { prev ->
+                        val gain = currentSmoothedAlt - prev
+                        if (gain > MIN_ELEVATION_CHANGE) {
                             totalElevationGain += gain
                             _uiState.update { it.copy(elevationGainMeters = totalElevationGain) }
                         }
                     }
-                    lastAltitude = currentAlt
+                    smoothedAltitude = currentSmoothedAlt
                 }
             }
         }
@@ -190,6 +205,20 @@ class LiveWorkoutViewModel(
         viewModelScope.launch {
             routeTracker.gpsMode.collect { mode ->
                 _uiState.update { it.copy(gpsMode = mode) }
+            }
+        }
+
+        // Collect auto-pause state from RouteTracker
+        viewModelScope.launch {
+            routeTracker.isAutopaused.collect { autopaused ->
+                _uiState.update { it.copy(isAutopaused = autopaused) }
+            }
+        }
+
+        // Collect raw current location (for map centering before route is built)
+        viewModelScope.launch {
+            routeTracker.currentLocation.collect { loc ->
+                _uiState.update { it.copy(currentLocation = loc) }
             }
         }
 
@@ -305,7 +334,8 @@ class LiveWorkoutViewModel(
         workoutStateManager.clearState()
 
         maxSpeed = 0f
-        lastAltitude = null
+        smoothedAltitude = null
+        altitudeBuffer.clear()
         totalElevationGain = 0.0
         workoutStartTime = null
         _uiState.value = LiveWorkoutUiState()
@@ -356,6 +386,22 @@ class LiveWorkoutViewModel(
         )
 
         runActivityRepository.addLocalActivity(activity)
+
+        // Write exercise session to Health Connect
+        viewModelScope.launch {
+            val hcExerciseType = when (activityType) {
+                ActivityType.RUNNING -> ExerciseSessionRecord.EXERCISE_TYPE_RUNNING
+                ActivityType.WALKING -> ExerciseSessionRecord.EXERCISE_TYPE_WALKING
+                ActivityType.CYCLING -> ExerciseSessionRecord.EXERCISE_TYPE_BIKING
+                ActivityType.HIKING -> ExerciseSessionRecord.EXERCISE_TYPE_HIKING
+            }
+            AppContainer.healthConnectService.writeExerciseSession(
+                exerciseType = hcExerciseType,
+                startTime = workoutStartTime ?: Instant.now().minusSeconds(state.elapsedSeconds),
+                endTime = Instant.now(),
+                title = state.workoutType.displayName
+            )
+        }
     }
 
     // ─────────────────────────────────────

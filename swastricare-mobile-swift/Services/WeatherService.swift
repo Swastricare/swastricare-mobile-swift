@@ -41,8 +41,14 @@ final class WeatherService: NSObject, WeatherServiceProtocol {
     private var locationContinuation: CheckedContinuation<CLLocation?, Never>?
     
     // Using OpenWeatherMap free tier API
-    // Note: In production, move this to server-side or use environment variables
-    private let apiKey = "YOUR_OPENWEATHERMAP_API_KEY"
+    // Configure via Info.plist key "OPENWEATHERMAP_API_KEY" or replace directly
+    private let apiKey: String = {
+        if let key = Bundle.main.object(forInfoDictionaryKey: "OPENWEATHERMAP_API_KEY") as? String,
+           !key.isEmpty, key != "YOUR_OPENWEATHERMAP_API_KEY" {
+            return key
+        }
+        return ""
+    }()
     private let baseURL = "https://api.openweathermap.org/data/2.5/weather"
     
     private override init() {
@@ -55,11 +61,14 @@ final class WeatherService: NSObject, WeatherServiceProtocol {
     
     /// Fetches current temperature in Celsius
     func fetchCurrentTemperature() async -> Double? {
+        // Weather API not configured — gracefully degrade
+        guard !apiKey.isEmpty else { return nil }
+
         // Return cached value if still valid
         if let cached = cachedWeather, !cached.isExpired {
             return cached.temperature
         }
-        
+
         // Try to get location
         guard let location = await requestLocation() else {
             // Fall back to default warm climate for India

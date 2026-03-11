@@ -29,7 +29,8 @@ class SessionManager(
         private const val TAG = "SessionManager"
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(job + Dispatchers.Main.immediate)
 
     private val _isSessionExpired = MutableStateFlow(false)
 
@@ -88,5 +89,10 @@ class SessionManager(
     fun clearExpiredFlag() {
         _isSessionExpired.value = false
         wasAuthenticated = false
+    }
+
+    /** Cancel the observation scope to prevent leaks. */
+    fun cleanup() {
+        job.cancel()
     }
 }

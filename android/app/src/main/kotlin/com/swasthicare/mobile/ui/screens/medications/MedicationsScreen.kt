@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.ui.screens.medications
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -74,6 +75,8 @@ fun MedicationsScreen(
     val vm = remember { AppContainer.medicationsViewModel }
     val uiState by vm.uiState.collectAsState()
     var skipDialogDose by remember { mutableStateOf<MedicationDose?>(null) }
+    var deleteMedicationId by remember { mutableStateOf<String?>(null) }
+    var deleteMedicationName by remember { mutableStateOf("") }
 
     val slotFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val timelineSlots = remember(uiState.allDosesToday) {
@@ -206,7 +209,11 @@ fun MedicationsScreen(
                                         isLast = index == timelineSlots.lastIndex,
                                         onTaken = { dose -> vm.markAsTaken(dose) },
                                         onSkip  = { dose -> skipDialogDose = dose },
-                                        onTap   = { dose -> onNavigateToDetail(dose.medicationId) }
+                                        onTap   = { dose -> onNavigateToDetail(dose.medicationId) },
+                                        onDelete = { dose ->
+                                            deleteMedicationId = dose.medicationId
+                                            deleteMedicationName = dose.medicationName
+                                        }
                                     )
                                 }
                             }
@@ -276,19 +283,41 @@ fun MedicationsScreen(
             onDismiss = { skipDialogDose = null }
         )
     }
+
+    // ── Delete Confirmation Dialog ──
+    deleteMedicationId?.let { medId ->
+        AlertDialog(
+            onDismissRequest = { deleteMedicationId = null },
+            title = { Text("Delete Medication") },
+            text = {
+                Text("Are you sure you want to delete $deleteMedicationName? This will cancel all scheduled reminders.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.deleteMedication(medId)
+                    deleteMedicationId = null
+                }) { Text("Delete", color = Color(0xFFFF3B30)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteMedicationId = null }) { Text("Cancel") }
+            }
+        )
+    }
 }
 
 // ─────────────────────────────────────
 // MARK: - Timeline Slot Row
 // ─────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimelineSlotRow(
     slot: TimelineSlot,
     isLast: Boolean,
     onTaken: (MedicationDose) -> Unit,
     onSkip: (MedicationDose) -> Unit,
-    onTap: (MedicationDose) -> Unit
+    onTap: (MedicationDose) -> Unit,
+    onDelete: (MedicationDose) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -333,7 +362,7 @@ private fun TimelineSlotRow(
             }
         }
 
-        // Right column: medication cards
+        // Right column: medication cards with swipe-to-delete
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -341,12 +370,49 @@ private fun TimelineSlotRow(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             slot.doses.forEach { dose ->
-                TimelineMedicationCard(
-                    dose = dose,
-                    onTaken = { onTaken(dose) },
-                    onTap   = { onTap(dose) },
-                    modifier = Modifier.fillMaxWidth()
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value == SwipeToDismissBoxValue.EndToStart) {
+                            onDelete(dose)
+                            false // Don't auto-dismiss; let the dialog handle it
+                        } else false
+                    }
                 )
+                SwipeToDismissBox(
+                    state = dismissState,
+                    enableDismissFromStartToEnd = false,
+                    backgroundContent = {
+                        val color by animateColorAsState(
+                            when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.EndToStart -> Color(0xFFFF3B30)
+                                else -> Color.Transparent
+                            },
+                            label = "swipeDeleteBg"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(color)
+                                .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                ) {
+                    TimelineMedicationCard(
+                        dose = dose,
+                        onTaken = { onTaken(dose) },
+                        onTap = { onTap(dose) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }

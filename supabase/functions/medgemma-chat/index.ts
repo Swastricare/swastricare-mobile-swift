@@ -46,8 +46,10 @@ serve(async (req) => {
 
     if (!message || typeof message !== 'string') {
       return new Response(JSON.stringify({
-        response: "Please provide a valid medical question.",
-        model: "minimax-medical"
+        response: "Please provide a valid medical question." + MEDICAL_DISCLAIMER,
+        model: "minimax-medical",
+        isMedical: true,
+        hasDisclaimer: true
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

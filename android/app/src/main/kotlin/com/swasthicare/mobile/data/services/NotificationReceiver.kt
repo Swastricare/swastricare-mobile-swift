@@ -9,8 +9,9 @@ import android.util.Log
 import com.swasthicare.mobile.MainActivity
 import com.swasthicare.mobile.data.models.HydrationEntry
 import com.swasthicare.mobile.di.AppContainer
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -22,7 +23,6 @@ class NotificationReceiver : BroadcastReceiver() {
         private const val TAG = "NotificationReceiver"
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onReceive(context: Context, intent: Intent) {
         AppContainer.initialize(context)
         val prefs = AppContainer.sharedPreferences
@@ -178,7 +178,8 @@ class NotificationReceiver : BroadcastReceiver() {
                 val scheduleId = intent.getStringExtra("schedule_id") ?: return
                 Log.d(TAG, "Quick action: mark medication $medicationId taken")
                 val profileId = prefs.getString("current_profile_id", "") ?: ""
-                GlobalScope.launch {
+                val pendingResult = goAsync()
+                CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
                     try {
                         AppContainer.medicationRepository.markAsTaken(
                             medicationId = medicationId,
@@ -190,6 +191,8 @@ class NotificationReceiver : BroadcastReceiver() {
                         Log.d(TAG, "Medication $medicationId marked as taken")
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to mark med taken: ${e.message}")
+                    } finally {
+                        pendingResult.finish()
                     }
                 }
             }

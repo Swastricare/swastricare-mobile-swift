@@ -60,6 +60,12 @@ class SupabaseVaultRepository(
     ): MedicalDocument = withContext(Dispatchers.IO) {
         val userId = requireUserId()
 
+        // Validate file size (50 MB limit)
+        val maxFileSize = 50 * 1024 * 1024L // 50 MB
+        if (fileData.size > maxFileSize) {
+            throw IllegalArgumentException("File size exceeds maximum allowed size of 50MB")
+        }
+
         // Build a unique storage path: {userId}/{UUID}_{fileName}
         val sanitizedName = sanitizeFileName(fileName)
         val uniqueFileName = "${UUID.randomUUID()}_$sanitizedName"

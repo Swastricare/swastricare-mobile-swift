@@ -243,7 +243,8 @@ fun PremiumBackground() {
 fun LivingStatusHeader(
     userName: String,
     greeting: String,
-    statusColor: Color
+    statusColor: Color,
+    onNotificationClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -277,7 +278,8 @@ fun LivingStatusHeader(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .glass(cornerRadius = 22.dp, opacity = 0.15f),
+                    .glass(cornerRadius = 22.dp, opacity = 0.15f)
+                    .clickable { onNotificationClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -464,26 +466,26 @@ fun VitalCard(
                 scaleY = animatedScale
                 translationY = animatedOffset
             }
-            .glass(cornerRadius = 20.dp, accentColor = color)
-    ) {
-        // Subtle radial glow in top-left corner using category color
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(20.dp))
-        ) {
-            drawCircle(
-                brush = Brush.radialGradient(
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                brush = Brush.linearGradient(
                     colors = listOf(
-                        color.copy(alpha = 0.12f),
-                        Color.Transparent
-                    ),
-                    center = Offset(0f, 0f),
-                    radius = size.maxDimension * 0.7f
+                        color.copy(alpha = 0.25f),
+                        color.copy(alpha = 0.10f)
+                    )
                 )
             )
-        }
-
+//            .border(
+//                width = 0.dp,
+//                brush = Brush.linearGradient(
+//                    colors = listOf(
+//                        color.copy(alpha = 0.5f),
+//                        color.copy(alpha = 0.15f)
+//                    )
+//                ),
+//                shape = RoundedCornerShape(20.dp)
+//            )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -504,7 +506,7 @@ fun VitalCard(
                             scaleY = iconScale
                             rotationZ = iconRotation
                         }
-                        .background(color.copy(alpha = 0.2f), CircleShape),
+                        .background(color.copy(alpha = 0.3f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

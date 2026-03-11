@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +30,7 @@ import com.swasthicare.mobile.ui.lock.LockScreen
 import com.swasthicare.mobile.ui.lock.LockScreenViewModel
 import com.swasthicare.mobile.ui.navigation.AppNavigation
 import com.swasthicare.mobile.ui.theme.SwasthiCareTheme
+import io.github.jan.supabase.gotrue.handleDeeplinks
 
 class MainActivity : FragmentActivity() {
 
@@ -128,6 +130,27 @@ class MainActivity : FragmentActivity() {
 
     private fun handleDeepLink(intent: Intent?) {
         val uri = intent?.data ?: return
+
+        // Handle Supabase auth callbacks (email verification, OAuth redirect)
+        if (uri.scheme == "swastricareapp" && uri.host == "auth-callback") {
+            try {
+                AppContainer.supabaseClient.handleDeeplinks(intent = intent) { session ->
+                    Log.d("Auth", "Deep link auth session established for: ${session.user?.email}")
+                    CoroutineScope(Dispatchers.Main).launch {
+                        AppContainer.authViewModel.onAuthCallback()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("Auth", "Failed to handle auth deep link: ${e.message}", e)
+                // Fallback: try to check session anyway (link may have verified the email server-side)
+                CoroutineScope(Dispatchers.Main).launch {
+                    AppContainer.authViewModel.onAuthCallback()
+                }
+            }
+            return
+        }
+
+        // Handle app navigation deep links
         val route = DeepLinkHandler.parse(uri) ?: return
         if (route is DeepLinkRoute.Unknown) return
         pendingDeepLink.value = route

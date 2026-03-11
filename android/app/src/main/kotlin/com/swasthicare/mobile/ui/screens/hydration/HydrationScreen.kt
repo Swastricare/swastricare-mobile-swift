@@ -1,5 +1,6 @@
 package com.swasthicare.mobile.ui.screens.hydration
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -29,8 +30,6 @@ import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.DrinkType
 import com.swasthicare.mobile.data.models.QuickAddPreset
 import com.swasthicare.mobile.di.AppContainer
-import com.swasthicare.mobile.ui.screens.home.PremiumBackground
-import com.swasthicare.mobile.ui.screens.home.glass
 import com.swasthicare.mobile.ui.theme.AppColors
 
 // ─────────────────────────────────────
@@ -46,17 +45,13 @@ fun HydrationScreen(
     val vm = remember { AppContainer.hydrationViewModel }
     val uiState by vm.uiState.collectAsState()
 
-    val isDark = isSystemInDarkTheme()
-    val secondaryBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-
     // Local state for custom drink input
     var selectedDrinkType by remember { mutableStateOf(DrinkType.WATER) }
     var customAmountText by remember { mutableStateOf("") }
     var showUrineGuide by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
 
         Column(
             modifier = Modifier
@@ -95,7 +90,7 @@ fun HydrationScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 120.dp)
+                        contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         // Calendar Strip
                         item {
@@ -128,7 +123,7 @@ fun HydrationScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(secondaryBg)
+                                    .background(AppColors.surface)
                                     .padding(20.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -298,7 +293,7 @@ fun HydrationScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = 16.dp)
                                         .clip(RoundedCornerShape(16.dp))
-                                        .background(secondaryBg)
+                                        .background(AppColors.surface)
                                 ) {
                                     uiState.todaysEntries.forEachIndexed { index, entry ->
                                         HydrationEntryCard(
@@ -345,70 +340,56 @@ fun HydrationScreen(
 
                         // Urine Color Guide Button
                         item {
-                            Box(
+                            OutlinedButton(
+                                onClick = { showUrineGuide = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(HydrationCyan.copy(alpha = 0.08f))
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null
-                                    ) { showUrineGuide = true }
-                                    .padding(vertical = 14.dp),
-                                contentAlignment = Alignment.Center
+                                    .height(48.dp),
+                                border = BorderStroke(1.dp, Color(0xFF00C7BE)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color(0xFF00C7BE)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Colorize, null,
-                                        tint = HydrationCyan,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        "Urine Color Guide",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = HydrationCyan
-                                    )
-                                }
+                                Icon(
+                                    Icons.Default.Colorize, null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Urine Color Guide",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                             Spacer(Modifier.height(8.dp))
                         }
 
                         // Ask AI button
                         item {
-                            Box(
+                            OutlinedButton(
+                                onClick = onNavigateToAI,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(HydrationCyan.copy(alpha = 0.08f))
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null
-                                    ) { onNavigateToAI() }
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center
+                                    .height(48.dp),
+                                border = BorderStroke(1.dp, HydrationCyan),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = HydrationCyan
+                                ),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.AutoAwesome, null,
-                                        tint = HydrationCyan,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        "Ask AI about my hydration",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = HydrationCyan
-                                    )
-                                }
+                                Icon(
+                                    Icons.Default.AutoAwesome, null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Ask AI about my hydration",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                             Spacer(Modifier.height(24.dp))
                         }

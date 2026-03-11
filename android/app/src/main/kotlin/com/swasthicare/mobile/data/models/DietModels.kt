@@ -92,11 +92,22 @@ data class FoodItem(
     @SerialName("is_vegan") val isVegan: Boolean = false,
     val category: String = "other"
 ) {
+    init {
+        require(servingSize > 0) { "Serving size must be positive" }
+    }
+
     val categoryEnum: FoodCategory get() = FoodCategory.fromDb(category)
     val servingUnitEnum: ServingUnit get() = ServingUnit.fromDb(servingUnit)
     val displayServingSize: String get() = "${servingSize.toInt()} ${servingUnitEnum.displayName}"
-    val caloriesPerServing: String get() = "${calories.toInt()} cal"
-    val macroSummary: String get() = "P: ${proteinG.toInt()}g · C: ${carbsG.toInt()}g · F: ${fatG.toInt()}g"
+    val caloriesPerServing: String get() = "${validatedCalories.toInt()} cal"
+    val macroSummary: String get() = "P: ${validatedProteinG.toInt()}g · C: ${validatedCarbsG.toInt()}g · F: ${validatedFatG.toInt()}g"
+
+    // Validated nutrition values
+    val validatedCalories: Double get() = calories.coerceAtLeast(0.0)
+    val validatedProteinG: Double get() = proteinG.coerceAtLeast(0.0)
+    val validatedCarbsG: Double get() = carbsG.coerceAtLeast(0.0)
+    val validatedFatG: Double get() = fatG.coerceAtLeast(0.0)
+    val validatedFiberG: Double get() = fiberG?.coerceAtLeast(0.0) ?: 0.0
 }
 
 // ─────────────────────────────────────
@@ -122,6 +133,13 @@ data class DietLogEntry(
 ) {
     val mealTypeEnum: MealType get() = MealType.fromDb(mealType)
     val servingUnitEnum: ServingUnit get() = ServingUnit.fromDb(servingUnit)
+
+    // Validated nutrition values
+    val validatedCalories: Double get() = calories.coerceAtLeast(0.0)
+    val validatedProteinG: Double get() = proteinG.coerceAtLeast(0.0)
+    val validatedCarbsG: Double get() = carbsG.coerceAtLeast(0.0)
+    val validatedFatG: Double get() = fatG.coerceAtLeast(0.0)
+    val validatedFiberG: Double get() = fiberG?.coerceAtLeast(0.0) ?: 0.0
 }
 
 // ─────────────────────────────────────
@@ -160,6 +178,20 @@ data class NutritionSummary(
 ) {
     companion object {
         val Empty = NutritionSummary()
+
+        /**
+         * Creates a nutrition summary from diet log entries with validated values
+         */
+        fun fromEntries(entries: List<DietLogEntry>): NutritionSummary {
+            return NutritionSummary(
+                totalCalories = entries.sumOf { it.validatedCalories },
+                totalProteinG = entries.sumOf { it.validatedProteinG },
+                totalCarbsG = entries.sumOf { it.validatedCarbsG },
+                totalFatG = entries.sumOf { it.validatedFatG },
+                totalFiberG = entries.sumOf { it.validatedFiberG },
+                mealCount = entries.size
+            )
+        }
     }
 }
 
@@ -204,11 +236,11 @@ data class DietLogRecord(
             foodName = entry.foodName,
             quantity = entry.quantity,
             servingUnit = entry.servingUnit,
-            calories = entry.calories,
-            proteinG = entry.proteinG,
-            carbsG = entry.carbsG,
-            fatG = entry.fatG,
-            fiberG = entry.fiberG,
+            calories = entry.validatedCalories,
+            proteinG = entry.validatedProteinG,
+            carbsG = entry.validatedCarbsG,
+            fatG = entry.validatedFatG,
+            fiberG = entry.validatedFiberG,
             loggedAt = entry.loggedAt,
             notes = entry.notes
         )
@@ -230,15 +262,19 @@ data class SnapFoodResult(
     val servingUnit: String = "piece",
     val category: String = "other"
 ) {
+    init {
+        require(servingSize > 0) { "Serving size must be positive" }
+    }
+
     fun toFoodItem(): FoodItem = FoodItem(
         name = name,
         servingSize = servingSize,
         servingUnit = servingUnit,
-        calories = calories,
-        proteinG = proteinG,
-        carbsG = carbsG,
-        fatG = fatG,
-        fiberG = fiberG,
+        calories = calories.coerceAtLeast(0.0),
+        proteinG = proteinG.coerceAtLeast(0.0),
+        carbsG = carbsG.coerceAtLeast(0.0),
+        fatG = fatG.coerceAtLeast(0.0),
+        fiberG = fiberG.coerceAtLeast(0.0),
         category = category
     )
 }

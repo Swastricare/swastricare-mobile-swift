@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -64,6 +65,7 @@ fun HomeScreen(
     onNavigateToHeartRate: () -> Unit = {},
     onNavigateToBodyScan: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {},
     onNavigateToRoute: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -91,7 +93,7 @@ fun HomeScreen(
 
     // Staggered entrance animation — initialized as visible if data is already loaded
     // (e.g. returning to the tab), so there's no blank-flash on tab switch.
-    val sectionCount = 7
+    val sectionCount = 8
     val alreadyLoaded = !uiState.isLoading
     val sectionVisible = remember { List(sectionCount) { mutableStateOf(alreadyLoaded) } }
     LaunchedEffect(uiState.isLoading) {
@@ -126,7 +128,8 @@ fun HomeScreen(
                 LivingStatusHeader(
                     userName = uiState.userName,
                     greeting = uiState.greeting,
-                    statusColor = SecondaryColor
+                    statusColor = SecondaryColor,
+                    onNotificationClick = onNavigateToNotifications
                 )
 
                 // Health Connect status banner
@@ -201,80 +204,62 @@ fun HomeScreen(
                 }
 
                 // 3. Body Status Section — refined proportions
-                StaggeredEntrance(visible = sectionVisible[1].value) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(320.dp)   // enough height for full body
+                ) {
+
+                    // 3D Model Section
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                            .padding(horizontal = 16.dp)
+                            .align(Alignment.BottomEnd)
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.60f),
+                        contentAlignment = Alignment.BottomCenter
                     ) {
-                        // 3D Anatomy Model on the right
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .fillMaxHeight()
-                                .fillMaxWidth(0.52f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            ModelViewer(
-                                modelName = "anatomy",
-                                modifier = Modifier.fillMaxSize(),
-                                autoRotate = false,
-                                allowInteraction = false,
-                                rotationDurationMs = 8000
-                            )
-                        }
 
-                        // Fade gradient at the bottom — blends the section into content below.
-                        // This covers the Activity Stats (left) and background around the model (right).
-                        // The 3D model itself is viewport-clipped via its Y offset in ModelViewer.
-                        Box(
+                        ModelViewer(
+                            modelName = "anatomy.2",
                             modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth()
-                                .fillMaxHeight(0.60f)
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colorStops = arrayOf(
-                                            0.0f to Color.Transparent,
-                                            0.18f to AppColors.background.copy(alpha = 0.30f),
-                                            0.40f to AppColors.background.copy(alpha = 0.62f),
-                                            0.65f to AppColors.background.copy(alpha = 0.88f),
-                                            1.0f to AppColors.background
-                                        )
-                                    )
-                                )
+                                .fillMaxSize(), // prevents cropping
+                            autoRotate = false,
+                            allowInteraction = false,
+                            rotationDurationMs = 8000
+                        )
+                    }
+
+                    // Left Stats Section
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth(0.48f)
+                            .align(Alignment.CenterStart)
+                    ) {
+
+                        ActivityStatRow(
+                            icon = Icons.Default.LocalFireDepartment,
+                            value = "${uiState.calories}",
+                            label = "Calories",
+                            color = ActivityColor,
+                            animationDelay = 300
                         )
 
-                        // Activity Stats Column on the left
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier
-                                .fillMaxWidth(0.48f)
-                                .align(Alignment.CenterStart)
-                        ) {
-                            ActivityStatRow(
-                                icon = Icons.Default.LocalFireDepartment,
-                                value = "${uiState.calories}",
-                                label = "Calories",
-                                color = ActivityColor,
-                                animationDelay = 300
-                            )
-                            ActivityStatRow(
-                                icon = Icons.Default.Favorite,
-                                value = "${uiState.activeMinutes}",
-                                label = "Exercise Min",
-                                color = DistanceColor,
-                                animationDelay = 400
-                            )
-                            ActivityStatRow(
-                                icon = Icons.Default.Accessibility,
-                                value = "${uiState.standHours}",
-                                label = "Stand Hours",
-                                color = SleepColor,
-                                animationDelay = 500
-                            )
-                        }
+                        ActivityStatRow(
+                            icon = Icons.Default.Favorite,
+                            value = "${uiState.activeMinutes}",
+                            label = "Exercise Min",
+                            color = DistanceColor,
+                            animationDelay = 400
+                        )
+
+                        ActivityStatRow(
+                            icon = Icons.Default.Accessibility,
+                            value = "${uiState.standHours}",
+                            label = "Stand Hours",
+                            color = SleepColor,
+                            animationDelay = 500
+                        )
                     }
                 }
 
@@ -293,10 +278,9 @@ fun HomeScreen(
                             title = "Heart Rate",
                             value = "${uiState.heartRate}",
                             unit = "BPM",
-                            color = HeartRateColor,
+                            color = Color(0xFFF44336),
                             modifier = Modifier.weight(1f).height(100.dp),
-                            delay = 100,
-                            showCameraBadge = true
+                            delay = 100
                         )
 
                         VitalCard(
@@ -304,7 +288,7 @@ fun HomeScreen(
                             title = "Sleep",
                             value = uiState.sleepHours,
                             unit = "",
-                            color = SleepColor,
+                            color = Color(0xFF3F51B5),
                             modifier = Modifier.weight(1f).height(100.dp),
                             delay = 200
                         )
@@ -314,7 +298,7 @@ fun HomeScreen(
                             title = "Distance",
                             value = "${uiState.distance}",
                             unit = "km",
-                            color = SecondaryColor,
+                            color = StepsColor,
                             modifier = Modifier.weight(1f).height(100.dp),
                             delay = 300
                         )
@@ -323,7 +307,78 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 5. Complex Widgets (Hydration & Medication) (section 3)
+                // Health Analytics card (section 3)
+                StaggeredEntrance(visible = sectionVisible[3].value) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF7C4DFF).copy(alpha = 0.15f),
+                                        Color(0xFF448AFF).copy(alpha = 0.15f)
+                                    )
+                                )
+                            )
+                            .clickable { onNavigateToAnalytics() }
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .background(
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(Color(0xFF7C4DFF), Color(0xFF448AFF))
+                                            ),
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        "Health Analytics",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = AppColors.onSurface
+                                    )
+                                    Text(
+                                        "Track trends & insights",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = AppColors.onSurface.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = AppColors.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 5. Complex Widgets (Hydration & Medication) (section 4)
                 Text(
                     "Quick Actions",
                     style = MaterialTheme.typography.titleMedium,
@@ -331,7 +386,7 @@ fun HomeScreen(
                     color = AppColors.onSurface,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
-                StaggeredEntrance(visible = sectionVisible[3].value) {
+                StaggeredEntrance(visible = sectionVisible[4].value) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -575,8 +630,8 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Diet & Cycle in a row (section 4)
-                StaggeredEntrance(visible = sectionVisible[4].value) {
+                // Diet & Cycle in a row (section 5)
+                StaggeredEntrance(visible = sectionVisible[5].value) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

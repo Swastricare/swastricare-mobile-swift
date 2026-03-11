@@ -23,6 +23,9 @@ import kotlinx.coroutines.launch
  *
  * Collects GPS coordinates at regular intervals during an active workout,
  * exposes a live route via StateFlow, and computes total distance.
+ *
+ * Applies accuracy filtering, Kalman smoothing, teleportation guards,
+ * and stationary jitter rejection for clean route data.
  */
 // ─────────────────────────────────────
 // MARK: - Battery-Aware GPS Mode
@@ -34,6 +37,51 @@ enum class GpsMode(val label: String) {
     LOW_POWER("Low Power")
 }
 
+// ─────────────────────────────────────
+// MARK: - Kalman Filter for GPS
+// ─────────────────────────────────────
+
+/**
+ * Lightweight 1D Kalman filter applied independently to latitude and longitude.
+ * Smooths GPS noise while remaining responsive to real movement.
+ */
+class GpsKalmanFilter(
+    private var processNoise: Double = 0.00001,  // Q: how much we expect position to change
+    private var measurementNoise: Double = 3.0    // R: GPS measurement noise in degrees (~3m)
+) {
+    private var estimate: Double = 0.0
+    private var errorCovariance: Double = 1.0
+    private var initialized = false
+
+    fun update(measurement: Double, accuracy: Float): Double {
+        // Scale measurement noise by reported GPS accuracy
+        val scaledMeasurementNoise = measurementNoise * (accuracy / 5.0).coerceAtLeast(1.0)
+
+        if (!initialized) {
+            estimate = measurement
+            errorCovariance = scaledMeasurementNoise
+            initialized = true
+            return estimate
+        }
+
+        // Prediction step
+        errorCovariance += processNoise
+
+        // Update step
+        val kalmanGain = errorCovariance / (errorCovariance + scaledMeasurementNoise)
+        estimate += kalmanGain * (measurement - estimate)
+        errorCovariance *= (1.0 - kalmanGain)
+
+        return estimate
+    }
+
+    fun reset() {
+        estimate = 0.0
+        errorCovariance = 1.0
+        initialized = false
+    }
+}
+
 class RouteTracker(private val context: Context) {
 
     // ─────────────────────────────────────
@@ -43,8 +91,9 @@ class RouteTracker(private val context: Context) {
     enum class GpsStatus {
         OFF,        // Not tracking / no permission
         SEARCHING,  // Waiting for first fix
-        POOR,       // Accuracy > 30m
-        GOOD        // Accuracy <= 30m
+        POOR,       // Accuracy > 25m
+        FAIR,       // Accuracy 15-25m
+        GOOD        // Accuracy <= 15m
     }
 
     // ─────────────────────────────────────
@@ -63,8 +112,14 @@ class RouteTracker(private val context: Context) {
     private val _gpsStatus = MutableStateFlow(GpsStatus.OFF)
     val gpsStatus: StateFlow<GpsStatus> = _gpsStatus.asStateFlow()
 
-    private val _currentSpeed = MutableStateFlow(0f) // m/s
+    private val _currentSpeed = MutableStateFlow(0f) // m/s (smoothed)
     val currentSpeed: StateFlow<Float> = _currentSpeed.asStateFlow()
+
+    private val _currentLocation = MutableStateFlow<Pair<Double, Double>?>(null)
+    val currentLocation: StateFlow<Pair<Double, Double>?> = _currentLocation.asStateFlow()
+
+    private val _isAutopaused = MutableStateFlow(false)
+    val isAutopaused: StateFlow<Boolean> = _isAutopaused.asStateFlow()
 
     private var isTracking = false
     private var isPaused = false
@@ -73,6 +128,26 @@ class RouteTracker(private val context: Context) {
     val gpsMode: StateFlow<GpsMode> = _gpsMode.asStateFlow()
 
     private var batteryCheckJob: Job? = null
+    private var autopauseJob: Job? = null
+
+    // Kalman filters for lat/lng smoothing
+    private val latKalman = GpsKalmanFilter()
+    private val lngKalman = GpsKalmanFilter()
+
+    // Speed smoothing buffer (rolling average of last 5 samples)
+    private val speedBuffer = ArrayDeque<Float>(5)
+    private val SPEED_BUFFER_SIZE = 5
+
+    // Auto-pause: track consecutive stationary readings
+    private var stationaryCount = 0
+    private val STATIONARY_THRESHOLD = 3  // ~9s at 3s intervals to trigger auto-pause
+    private val STATIONARY_SPEED = 0.5f   // m/s — reported speed below this is "not moving"
+    private val STATIONARY_DISTANCE = 5.0 // meters — actual movement below this is "not moving"
+
+    // Accuracy & teleportation thresholds
+    private val MAX_ACCURACY_METERS = 25f           // reject points with worse accuracy
+    private val MAX_DISTANCE_PER_UPDATE_METERS = 80.0 // ~96 km/h max, prevents teleportation
+    private val MIN_DISTANCE_METERS = 2.0           // ignore sub-2m jitter
 
     // ─────────────────────────────────────
     // MARK: - Location Callback
@@ -89,37 +164,88 @@ class RouteTracker(private val context: Context) {
     }
 
     private fun processLocation(location: Location) {
-        // Update GPS quality
         val accuracy = location.accuracy
+
+        // Always update raw current location (for map centering before route is built)
+        _currentLocation.value = Pair(location.latitude, location.longitude)
+
+        // Update GPS quality with finer tiers
         _gpsStatus.value = when {
-            accuracy <= 30f -> GpsStatus.GOOD
+            accuracy <= 15f -> GpsStatus.GOOD
+            accuracy <= 25f -> GpsStatus.FAIR
             else -> GpsStatus.POOR
         }
 
-        // Update current speed
-        _currentSpeed.value = if (location.hasSpeed()) location.speed else 0f
+        // Reject points with poor accuracy — they produce jagged routes
+        if (accuracy > MAX_ACCURACY_METERS) return
+
+        // Apply Kalman filter to smooth lat/lng
+        val smoothedLat = latKalman.update(location.latitude, accuracy)
+        val smoothedLng = lngKalman.update(location.longitude, accuracy)
 
         val newPoint = RoutePoint(
-            latitude = location.latitude,
-            longitude = location.longitude,
+            latitude = smoothedLat,
+            longitude = smoothedLng,
             altitude = if (location.hasAltitude()) location.altitude else 0.0,
-            speed = if (location.hasSpeed()) location.speed else 0f,
+            speed = 0f, // will be set below
             timestamp = location.time
         )
 
+        // Calculate actual distance from last accepted point
         val current = _routePoints.value
-        val updated = current + newPoint
-        _routePoints.value = updated
+        val actualDistance = if (current.isNotEmpty()) {
+            distanceBetween(current.last(), newPoint)
+        } else 0.0
 
-        // Recalculate distance from last point
-        if (current.isNotEmpty()) {
-            val prev = current.last()
-            val dist = distanceBetween(prev, newPoint)
-            // Filter out GPS jitter: only add distance if > 1m
-            if (dist > 1.0) {
-                _totalDistanceMeters.value += dist
+        // Compute speed from actual distance (more reliable than location.speed)
+        val timeDelta = if (current.isNotEmpty()) {
+            (location.time - current.last().timestamp).coerceAtLeast(1L) / 1000.0
+        } else 1.0
+        val computedSpeed = (actualDistance / timeDelta).toFloat()
+
+        // Also consider GPS-reported speed, but prefer computed
+        val rawGpsSpeed = if (location.hasSpeed()) location.speed else 0f
+        // Use the lower of computed vs GPS speed to be conservative about movement
+        val effectiveSpeed = minOf(computedSpeed, rawGpsSpeed.takeIf { it > 0f } ?: computedSpeed)
+
+        // Smooth speed with rolling average
+        if (speedBuffer.size >= SPEED_BUFFER_SIZE) speedBuffer.removeFirst()
+        speedBuffer.addLast(effectiveSpeed)
+        val smoothedSpeed = speedBuffer.average().toFloat()
+        _currentSpeed.value = smoothedSpeed
+
+        // Auto-pause: use BOTH speed AND actual distance to detect stationary state
+        // GPS can report false speed while sitting still due to signal noise
+        val isStationary = smoothedSpeed < STATIONARY_SPEED && actualDistance < STATIONARY_DISTANCE
+
+        if (isStationary) {
+            stationaryCount++
+            if (stationaryCount >= STATIONARY_THRESHOLD && !_isAutopaused.value) {
+                _isAutopaused.value = true
             }
+            // While autopaused, don't add route points (prevents GPS drift cluster)
+            if (_isAutopaused.value) return
+        } else {
+            if (_isAutopaused.value) {
+                _isAutopaused.value = false
+            }
+            stationaryCount = 0
         }
+
+        // Update the point with smoothed speed
+        val finalPoint = newPoint.copy(speed = smoothedSpeed)
+
+        if (current.isNotEmpty()) {
+            // Teleportation guard: reject impossibly large jumps
+            if (actualDistance > MAX_DISTANCE_PER_UPDATE_METERS) return
+
+            // Jitter filter: ignore sub-threshold movement
+            if (actualDistance < MIN_DISTANCE_METERS) return
+
+            _totalDistanceMeters.value += actualDistance
+        }
+
+        _routePoints.value = current + finalPoint
     }
 
     // ─────────────────────────────────────
@@ -137,6 +263,11 @@ class RouteTracker(private val context: Context) {
         _gpsStatus.value = GpsStatus.SEARCHING
         _routePoints.value = emptyList()
         _totalDistanceMeters.value = 0.0
+        _isAutopaused.value = false
+        stationaryCount = 0
+        speedBuffer.clear()
+        latKalman.reset()
+        lngKalman.reset()
 
         updateGpsMode()
 
@@ -182,8 +313,10 @@ class RouteTracker(private val context: Context) {
         isPaused = false
         _gpsStatus.value = GpsStatus.OFF
         _gpsMode.value = GpsMode.HIGH_ACCURACY
+        _isAutopaused.value = false
         fusedClient.removeLocationUpdates(locationCallback)
         batteryCheckJob?.cancel()
+        autopauseJob?.cancel()
     }
 
     /**
@@ -203,7 +336,13 @@ class RouteTracker(private val context: Context) {
         _routePoints.value = emptyList()
         _totalDistanceMeters.value = 0.0
         _currentSpeed.value = 0f
+        _currentLocation.value = null
         _gpsStatus.value = GpsStatus.OFF
+        _isAutopaused.value = false
+        stationaryCount = 0
+        speedBuffer.clear()
+        latKalman.reset()
+        lngKalman.reset()
     }
 
     // ─────────────────────────────────────
@@ -211,10 +350,9 @@ class RouteTracker(private val context: Context) {
     // ─────────────────────────────────────
 
     private fun getBatteryPercent(): Int {
-        val batteryStatus = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-        val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
-        val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
-        return if (level >= 0 && scale > 0) (level * 100 / scale) else 100
+        val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+        return batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            ?.takeIf { it in 0..100 } ?: 100
     }
 
     private fun updateGpsMode() {
@@ -246,13 +384,16 @@ class RouteTracker(private val context: Context) {
             GpsMode.HIGH_ACCURACY -> LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3_000L)
                 .setMinUpdateIntervalMillis(2_000L)
                 .setMinUpdateDistanceMeters(2f)
+                .setWaitForAccurateLocation(true)
             GpsMode.BALANCED -> LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 5_000L)
                 .setMinUpdateIntervalMillis(3_000L)
                 .setMinUpdateDistanceMeters(5f)
+                .setWaitForAccurateLocation(false)
             GpsMode.LOW_POWER -> LocationRequest.Builder(Priority.PRIORITY_LOW_POWER, 10_000L)
                 .setMinUpdateIntervalMillis(5_000L)
                 .setMinUpdateDistanceMeters(10f)
-        }.setWaitForAccurateLocation(false).build()
+                .setWaitForAccurateLocation(false)
+        }.build()
     }
 
     // ─────────────────────────────────────

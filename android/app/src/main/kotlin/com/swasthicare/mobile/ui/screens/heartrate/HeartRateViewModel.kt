@@ -203,6 +203,11 @@ class HeartRateViewModel(
 
             // Log heart rate measurement to analytics
             appAnalyticsService.trackHeartbeatMeasurement(result.bpm, result.confidence)
+
+            // Write to Health Connect
+            viewModelScope.launch {
+                AppContainer.healthConnectService.writeHeartRate(result.bpm.toLong())
+            }
         } else {
             Log.w(TAG, "Measurement completed but no result available")
             _uiState.update {

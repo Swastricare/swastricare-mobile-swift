@@ -1,5 +1,10 @@
 package com.swasthicare.mobile.ui.screens.medications
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swasthicare.mobile.data.models.MedicationType
@@ -33,6 +40,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.ceil
 
 // Default scheduled times per schedule type
 private fun defaultScheduleTimes(type: ScheduleType): List<Pair<String, String>> = when (type) {
@@ -71,6 +79,27 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
     var isLoading by remember { mutableStateOf(false) }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
+
+    // Quantity-based end date calculation
+    var totalQuantity by remember { mutableStateOf("") }
+    var dosagePerIntake by remember { mutableStateOf("1") }
+    var useQuantityCalculation by remember { mutableStateOf(false) }
+
+    // Auto-calculate end date from quantity
+    val dosesPerDay = selectedSchedule.dosesPerDay
+    val perIntake = dosagePerIntake.toIntOrNull() ?: 1
+    val totalTablets = totalQuantity.toIntOrNull()
+    val calculatedDays = if (totalTablets != null && totalTablets > 0 && dosesPerDay > 0 && perIntake > 0) {
+        ceil(totalTablets.toDouble() / (dosesPerDay * perIntake)).toInt()
+    } else null
+    val calculatedEndDate = calculatedDays?.let { startDate.plusDays(it.toLong() - 1) }
+
+    // Sync calculated end date
+    LaunchedEffect(calculatedEndDate, useQuantityCalculation) {
+        if (useQuantityCalculation && calculatedEndDate != null) {
+            endDate = calculatedEndDate
+        }
+    }
 
     val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
     val canSave = name.isNotBlank()
@@ -243,13 +272,102 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                         )
                     }
 
-                    // End date (shown when not ongoing)
-                    if (!isOngoing) {
-                        DateRow(
-                            label = "End Date",
-                            dateText = endDate.format(dateFormatter),
-                            onClick = { showEndDatePicker = true }
-                        )
+                    // End date options (shown when not ongoing)
+                    AnimatedVisibility(
+                        visible = !isOngoing,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Toggle: Calculate from quantity vs manual end date
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                DurationModeChip(
+                                    label = "Set End Date",
+                                    icon = Icons.Default.CalendarToday,
+                                    isSelected = !useQuantityCalculation,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { useQuantityCalculation = false }
+                                )
+                                DurationModeChip(
+                                    label = "From Quantity",
+                                    icon = Icons.Default.Calculate,
+                                    isSelected = useQuantityCalculation,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { useQuantityCalculation = true }
+                                )
+                            }
+
+                            if (useQuantityCalculation) {
+                                // Quantity inputs
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    MedTextField(
+                                        value = totalQuantity,
+                                        onValueChange = { totalQuantity = it.filter { c -> c.isDigit() } },
+                                        placeholder = "Total tablets",
+                                        leadingIcon = Icons.Default.Inventory2,
+                                        modifier = Modifier.weight(1f),
+                                        keyboardType = KeyboardType.Number
+                                    )
+                                    MedTextField(
+                                        value = dosagePerIntake,
+                                        onValueChange = { dosagePerIntake = it.filter { c -> c.isDigit() } },
+                                        placeholder = "Per dose",
+                                        leadingIcon = Icons.Default.Medication,
+                                        modifier = Modifier.weight(1f),
+                                        keyboardType = KeyboardType.Number
+                                    )
+                                }
+
+                                // Calculation preview
+                                if (calculatedDays != null && calculatedEndDate != null) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MedTealGreen.copy(alpha = 0.08f))
+                                            .border(
+                                                1.dp,
+                                                MedTealGreen.copy(alpha = 0.15f),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.AutoAwesome, null,
+                                            tint = MedTealGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                "$totalTablets tablets  ×  $perIntake per dose  ×  ${dosesPerDay}x/day",
+                                                fontSize = 12.sp,
+                                                color = AppColors.onSurface.copy(alpha = 0.6f)
+                                            )
+                                            Text(
+                                                "$calculatedDays days — ends ${calculatedEndDate.format(dateFormatter)}",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MedTealGreen
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Manual end date picker
+                                DateRow(
+                                    label = "End Date",
+                                    dateText = endDate.format(dateFormatter),
+                                    onClick = { showEndDatePicker = true }
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -410,7 +528,8 @@ private fun MedTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     leadingIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Text
 ) {
     OutlinedTextField(
         value = value,
@@ -428,6 +547,7 @@ private fun MedTextField(
             }
         },
         singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MedBrandBlue,
             unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
@@ -437,6 +557,58 @@ private fun MedTextField(
         shape = RoundedCornerShape(12.dp),
         modifier = modifier.fillMaxWidth()
     )
+}
+
+// ─────────────────────────────────────
+// MARK: - Duration Mode Chip
+// ─────────────────────────────────────
+
+@Composable
+private fun DurationModeChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isSelected) MedBrandBlue
+                else AppColors.onSurface.copy(alpha = 0.05f)
+            )
+            .border(
+                width = 1.dp,
+                color = if (isSelected) Color.Transparent
+                        else AppColors.onSurface.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) Color.White else MedBrandBlue,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isSelected) Color.White else AppColors.onSurface
+            )
+        }
+    }
 }
 
 // ─────────────────────────────────────

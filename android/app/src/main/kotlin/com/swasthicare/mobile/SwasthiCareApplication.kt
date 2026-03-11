@@ -26,6 +26,17 @@ class SwasthiCareApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // Install global uncaught exception handler for crash reporting
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            Log.e(TAG, "Uncaught exception on thread ${thread.name}", throwable)
+            try {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
+                    .recordException(throwable)
+            } catch (_: Exception) { /* Crashlytics not available */ }
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
+
         // Initialize AppContainer early so services can access context
         AppContainer.initialize(this)
 

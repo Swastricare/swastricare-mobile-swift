@@ -879,6 +879,8 @@ private fun iconForMetric(type: MetricType): ImageVector = when (type) {
     MetricType.Sleep -> Icons.Default.Bedtime
     MetricType.Exercise -> Icons.Default.FitnessCenter
     MetricType.Distance -> Icons.Default.NearMe
+    MetricType.Hydration -> Icons.Default.LocalDrink
+    MetricType.MedAdherence -> Icons.Default.Medication
 }
 
 private fun formatValue(value: Float, type: MetricType): String = when (type) {
@@ -888,6 +890,8 @@ private fun formatValue(value: Float, type: MetricType): String = when (type) {
     MetricType.Sleep -> String.format("%.1f", value)
     MetricType.Exercise -> "${value.roundToInt()}"
     MetricType.Distance -> String.format("%.1f", value)
+    MetricType.Hydration -> "${value.roundToInt()}"
+    MetricType.MedAdherence -> "${value.roundToInt()}"
 }
 
 private fun formatAxisValue(value: Float): String =

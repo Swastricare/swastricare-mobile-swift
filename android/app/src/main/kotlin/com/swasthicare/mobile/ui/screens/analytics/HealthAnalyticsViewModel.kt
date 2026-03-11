@@ -1,16 +1,27 @@
 package com.swasthicare.mobile.ui.screens.analytics
 
+import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import com.swasthicare.mobile.data.repository.DietRepository
+import com.swasthicare.mobile.data.repository.HydrationRepository
+import com.swasthicare.mobile.data.repository.MedicationRepository
+import com.swasthicare.mobile.data.repository.ProfileRepository
+import com.swasthicare.mobile.data.repository.RunActivityRepository
+import com.swasthicare.mobile.data.services.HealthConnectService
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlin.random.Random
 
 // ── Time Range ──────────────────────────────────────────────────────────────
 enum class TimeRange(val label: String) {
@@ -31,7 +42,9 @@ enum class MetricType(
     HeartRate("Heart Rate", "BPM", Color(0xFFF44336), null),
     Sleep("Sleep", "hrs", Color(0xFF3F51B5), 8f),
     Exercise("Exercise", "min", Color(0xFF4CAF50), 30f),
-    Distance("Distance", "km", Color(0xFF00BCD4), 5f)
+    Distance("Distance", "km", Color(0xFF00BCD4), 5f),
+    Hydration("Hydration", "ml", Color(0xFF03A9F4), 2500f),
+    MedAdherence("Medication", "%", Color(0xFFE91E63), 100f)
 }
 
 // ── Trend Direction ─────────────────────────────────────────────────────────
@@ -62,10 +75,32 @@ data class HealthAnalyticsState(
     val aiInsight: String = ""
 )
 
-class HealthAnalyticsViewModel : ViewModel() {
+class HealthAnalyticsViewModel(
+    private val healthConnectService: HealthConnectService,
+    private val hydrationRepository: HydrationRepository,
+    private val dietRepository: DietRepository,
+    private val medicationRepository: MedicationRepository,
+    private val runActivityRepository: RunActivityRepository,
+    private val profileRepository: ProfileRepository,
+    private val supabaseClient: SupabaseClient
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HealthAnalyticsState())
     val uiState: StateFlow<HealthAnalyticsState> = _uiState.asStateFlow()
+
+    // Cached data for chart generation
+    private var weeklyStepCounts: List<Pair<LocalDate, Long>> = emptyList()
+    private var hydrationByDay: Map<LocalDate, Int> = emptyMap()
+    private var dietCaloriesByDay: Map<LocalDate, Double> = emptyMap()
+    private var runActivitiesByDay: Map<LocalDate, Double> = emptyMap() // distance in km
+    private var todaySteps: Int = 0
+    private var todayCalories: Int = 0
+    private var todayHeartRate: Int = 0
+    private var todaySleepHours: Float = 0f
+    private var todayExerciseMin: Int = 0
+    private var todayDistanceKm: Float = 0f
+    private var todayHydrationMl: Int = 0
+    private var todayMedAdherence: Float = 0f
 
     init {
         loadData()
@@ -87,33 +122,161 @@ class HealthAnalyticsViewModel : ViewModel() {
 
     private fun loadData() {
         viewModelScope.launch {
-            delay(800)
+            try {
+                val today = LocalDate.now()
+                val yesterday = today.minusDays(1)
 
-            val summaries = MetricType.entries.map { type ->
-                val (current, previous) = generateSummaryValues(type)
-                val change = if (previous != 0f) ((current - previous) / previous * 100f) else 0f
-                val trend = when {
-                    change > 2f -> TrendDirection.Up
-                    change < -2f -> TrendDirection.Down
-                    else -> TrendDirection.Flat
+                // Fetch data from all sources concurrently
+                coroutineScope {
+                    val summaryDeferred = async { fetchHealthConnectData() }
+                    val weeklyStepsDeferred = async { fetchWeeklySteps() }
+                    val hydrationDeferred = async { fetchHydrationData(today) }
+                    val dietDeferred = async { fetchDietData(today) }
+                    val medDeferred = async { fetchMedicationAdherence(today) }
+                    val runDeferred = async { fetchRunActivityData() }
+
+                    summaryDeferred.await()
+                    weeklyStepsDeferred.await()
+                    hydrationDeferred.await()
+                    dietDeferred.await()
+                    medDeferred.await()
+                    runDeferred.await()
                 }
-                MetricSummary(
-                    type = type,
-                    currentValue = current,
-                    previousValue = previous,
-                    trend = trend,
-                    changePercent = change
-                )
-            }
 
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                summaries = summaries,
-                aiInsight = generateInsight(summaries)
-            )
-            refreshChart()
+                // Compute previous values for comparison
+                val yesterdaySteps = weeklyStepCounts
+                    .find { it.first == yesterday }?.second?.toInt() ?: 0
+                val weekAvgSteps = if (weeklyStepCounts.isNotEmpty()) {
+                    weeklyStepCounts.map { it.second }.average().toFloat()
+                } else 0f
+
+                val yesterdayHydration = hydrationByDay[yesterday] ?: 0
+                val yesterdayDietCal = dietCaloriesByDay[yesterday] ?: 0.0
+
+                // Build summaries for all metrics
+                val summaries = buildSummaries(
+                    prevSteps = if (yesterdaySteps > 0) yesterdaySteps.toFloat() else weekAvgSteps,
+                    prevHydration = yesterdayHydration.toFloat()
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    summaries = summaries,
+                    aiInsight = generateInsight(summaries)
+                )
+                refreshChart()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to load analytics data", e)
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
         }
     }
+
+    private suspend fun fetchHealthConnectData() {
+        try {
+            val summary = healthConnectService.getTodaySummary()
+            todaySteps = summary.steps
+            todayCalories = summary.activeCalories
+            todayHeartRate = summary.heartRate
+            todaySleepHours = summary.sleepMinutes / 60f
+            todayExerciseMin = summary.exerciseMinutes
+            todayDistanceKm = summary.distanceKm.toFloat()
+        } catch (e: Exception) {
+            Log.w(TAG, "HealthConnect data unavailable", e)
+        }
+    }
+
+    private suspend fun fetchWeeklySteps() {
+        try {
+            val counts = healthConnectService.getWeeklyStepCounts()
+            weeklyStepCounts = counts.map { it.date to it.steps }
+        } catch (e: Exception) {
+            Log.w(TAG, "Weekly steps unavailable", e)
+        }
+    }
+
+    private fun fetchHydrationData(today: LocalDate) {
+        try {
+            val entries = hydrationRepository.loadLocalEntries()
+            hydrationByDay = entries.groupBy { parseDateFromIso(it.consumedAt) }
+                .mapValues { (_, list) -> list.sumOf { it.amountMl } }
+            todayHydrationMl = hydrationByDay[today] ?: 0
+        } catch (e: Exception) {
+            Log.w(TAG, "Hydration data unavailable", e)
+        }
+    }
+
+    private fun fetchDietData(today: LocalDate) {
+        try {
+            val logs = dietRepository.loadLocalLogs()
+            dietCaloriesByDay = logs.groupBy { parseDateFromIso(it.loggedAt) }
+                .mapValues { (_, list) -> list.sumOf { it.calories } }
+        } catch (e: Exception) {
+            Log.w(TAG, "Diet data unavailable", e)
+        }
+    }
+
+    private suspend fun fetchMedicationAdherence(today: LocalDate) {
+        try {
+            val userId = supabaseClient.auth.currentSessionOrNull()?.user?.id ?: return
+            val profile = profileRepository.getHealthProfile(userId) ?: return
+            val profileId = profile.id ?: return
+            val todayLogs = medicationRepository.fetchTodayLogs(profileId, today)
+            if (todayLogs.isNotEmpty()) {
+                val taken = todayLogs.count { it.status == "taken" || it.status == "late" || it.status == "early" }
+                todayMedAdherence = (taken.toFloat() / todayLogs.size) * 100f
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Medication adherence unavailable", e)
+        }
+    }
+
+    private fun fetchRunActivityData() {
+        try {
+            val activities = runActivityRepository.loadLocalActivities()
+            runActivitiesByDay = activities
+                .filter { it.startTime != null }
+                .groupBy { it.startTime!!.toLocalDate() }
+                .mapValues { (_, list) -> list.sumOf { it.distanceMeters } / 1000.0 }
+        } catch (e: Exception) {
+            Log.w(TAG, "Run activity data unavailable", e)
+        }
+    }
+
+    // ── Build summaries ──────────────────────────────────────────────────────
+
+    private fun buildSummaries(
+        prevSteps: Float,
+        prevHydration: Float
+    ): List<MetricSummary> {
+        return MetricType.entries.map { type ->
+            val (current, previous) = when (type) {
+                MetricType.Steps -> todaySteps.toFloat() to prevSteps
+                MetricType.Calories -> todayCalories.toFloat() to todayCalories.toFloat()
+                MetricType.HeartRate -> todayHeartRate.toFloat() to todayHeartRate.toFloat()
+                MetricType.Sleep -> todaySleepHours to todaySleepHours
+                MetricType.Exercise -> todayExerciseMin.toFloat() to todayExerciseMin.toFloat()
+                MetricType.Distance -> todayDistanceKm to todayDistanceKm
+                MetricType.Hydration -> todayHydrationMl.toFloat() to prevHydration
+                MetricType.MedAdherence -> todayMedAdherence to todayMedAdherence
+            }
+            val change = if (previous != 0f) ((current - previous) / previous * 100f) else 0f
+            val trend = when {
+                change > 2f -> TrendDirection.Up
+                change < -2f -> TrendDirection.Down
+                else -> TrendDirection.Flat
+            }
+            MetricSummary(
+                type = type,
+                currentValue = current,
+                previousValue = previous,
+                trend = trend,
+                changePercent = change
+            )
+        }
+    }
+
+    // ── Chart data generation ────────────────────────────────────────────────
 
     private fun refreshChart() {
         val state = _uiState.value
@@ -121,100 +284,173 @@ class HealthAnalyticsViewModel : ViewModel() {
         _uiState.value = state.copy(chartData = data)
     }
 
-    // ── Sample data generators ──────────────────────────────────────────────
-
-    private fun generateSummaryValues(type: MetricType): Pair<Float, Float> = when (type) {
-        MetricType.Steps -> 8432f to 7350f
-        MetricType.Calories -> 450f to 410f
-        MetricType.HeartRate -> 72f to 74f
-        MetricType.Sleep -> 7.5f to 6.8f
-        MetricType.Exercise -> 45f to 38f
-        MetricType.Distance -> 5.2f to 4.8f
-    }
-
     private fun generateChartData(
         metric: MetricType,
         range: TimeRange
     ): List<ChartDataPoint> {
-        val rng = Random(metric.ordinal.toLong() + range.ordinal.toLong())
+        val today = LocalDate.now()
         return when (range) {
-            TimeRange.Day -> {
-                // Hourly data (24 bars)
-                (0..23).map { hour ->
-                    val label = if (hour % 4 == 0) "${hour}h" else ""
-                    val base = baseValueForHour(metric, hour)
-                    ChartDataPoint(label, base * (0.7f + rng.nextFloat() * 0.6f))
-                }
-            }
-            TimeRange.Week -> {
-                val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-                days.map { day ->
-                    val base = baseDailyValue(metric)
-                    ChartDataPoint(day, base * (0.6f + rng.nextFloat() * 0.8f))
-                }
-            }
-            TimeRange.Month -> {
-                (1..30).map { day ->
-                    val label = if (day % 5 == 0 || day == 1) "$day" else ""
-                    val base = baseDailyValue(metric)
-                    ChartDataPoint(label, base * (0.5f + rng.nextFloat() * 1.0f))
-                }
-            }
+            TimeRange.Day -> generateDayChart(metric, today)
+            TimeRange.Week -> generateWeekChart(metric, today)
+            TimeRange.Month -> generateMonthChart(metric, today)
         }
     }
 
-    private fun baseValueForHour(metric: MetricType, hour: Int): Float {
-        // Simulate activity distribution across the day
-        val activityMultiplier = when (hour) {
-            in 0..5 -> 0.1f
-            in 6..8 -> 0.8f
-            in 9..11 -> 0.6f
-            12 -> 0.5f
-            in 13..16 -> 0.5f
-            in 17..19 -> 0.9f
-            in 20..22 -> 0.3f
-            else -> 0.1f
+    private fun generateDayChart(metric: MetricType, today: LocalDate): List<ChartDataPoint> {
+        // For day view, distribute today's total across time-of-day activity pattern
+        val totalValue = when (metric) {
+            MetricType.Steps -> todaySteps.toFloat()
+            MetricType.Calories -> todayCalories.toFloat()
+            MetricType.HeartRate -> todayHeartRate.toFloat()
+            MetricType.Sleep -> todaySleepHours
+            MetricType.Exercise -> todayExerciseMin.toFloat()
+            MetricType.Distance -> todayDistanceKm
+            MetricType.Hydration -> todayHydrationMl.toFloat()
+            MetricType.MedAdherence -> todayMedAdherence
         }
+
+        return (0..23).map { hour ->
+            val label = if (hour % 4 == 0) "${hour}h" else ""
+            val multiplier = hourlyActivityMultiplier(hour)
+            val value = when (metric) {
+                MetricType.HeartRate -> if (todayHeartRate > 0) 60f + 20f * multiplier else 0f
+                MetricType.Sleep -> if (hour in 0..7 || hour >= 23) todaySleepHours / 8f else 0f
+                MetricType.MedAdherence -> if (hour == 8 || hour == 20) todayMedAdherence / 2f else 0f
+                else -> totalValue * multiplier / HOURLY_MULTIPLIER_SUM
+            }
+            ChartDataPoint(label, value.coerceAtLeast(0f))
+        }
+    }
+
+    private fun generateWeekChart(metric: MetricType, today: LocalDate): List<ChartDataPoint> {
+        val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
+        val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+        return days.map { date ->
+            val label = dayLabels[date.dayOfWeek.value - 1]
+            val value = getDailyValueForMetric(metric, date)
+            ChartDataPoint(label, value)
+        }
+    }
+
+    private fun generateMonthChart(metric: MetricType, today: LocalDate): List<ChartDataPoint> {
+        return (29 downTo 0).map { daysAgo ->
+            val date = today.minusDays(daysAgo.toLong())
+            val dayNum = date.dayOfMonth
+            val label = if (dayNum % 5 == 0 || dayNum == 1) "$dayNum" else ""
+            val value = getDailyValueForMetric(metric, date)
+            ChartDataPoint(label, value)
+        }
+    }
+
+    private fun getDailyValueForMetric(metric: MetricType, date: LocalDate): Float {
+        val today = LocalDate.now()
         return when (metric) {
-            MetricType.Steps -> 500f * activityMultiplier
-            MetricType.Calories -> 30f * activityMultiplier
-            MetricType.HeartRate -> 65f + 20f * activityMultiplier
-            MetricType.Sleep -> if (hour in 0..7 || hour >= 23) 1f else 0f
-            MetricType.Exercise -> 5f * activityMultiplier
-            MetricType.Distance -> 0.3f * activityMultiplier
+            MetricType.Steps -> {
+                if (date == today) todaySteps.toFloat()
+                else weeklyStepCounts.find { it.first == date }?.second?.toFloat() ?: 0f
+            }
+            MetricType.Calories -> {
+                if (date == today) todayCalories.toFloat() else 0f
+            }
+            MetricType.HeartRate -> {
+                if (date == today) todayHeartRate.toFloat() else 0f
+            }
+            MetricType.Sleep -> {
+                if (date == today) todaySleepHours else 0f
+            }
+            MetricType.Exercise -> {
+                if (date == today) todayExerciseMin.toFloat() else 0f
+            }
+            MetricType.Distance -> {
+                val runDistance = runActivitiesByDay[date]?.toFloat() ?: 0f
+                if (date == today) maxOf(todayDistanceKm, runDistance) else runDistance
+            }
+            MetricType.Hydration -> {
+                (hydrationByDay[date] ?: 0).toFloat()
+            }
+            MetricType.MedAdherence -> {
+                if (date == today) todayMedAdherence else 0f
+            }
         }
     }
 
-    private fun baseDailyValue(metric: MetricType): Float = when (metric) {
-        MetricType.Steps -> 8000f
-        MetricType.Calories -> 450f
-        MetricType.HeartRate -> 72f
-        MetricType.Sleep -> 7f
-        MetricType.Exercise -> 40f
-        MetricType.Distance -> 5f
-    }
+    // ── Insights generation ──────────────────────────────────────────────────
 
     private fun generateInsight(summaries: List<MetricSummary>): String {
-        val stepsSummary = summaries.find { it.type == MetricType.Steps }
-        val sleepSummary = summaries.find { it.type == MetricType.Sleep }
         val parts = mutableListOf<String>()
+
+        val stepsSummary = summaries.find { it.type == MetricType.Steps }
         stepsSummary?.let {
             val pct = abs(it.changePercent).roundToInt()
-            if (it.trend == TrendDirection.Up) {
-                parts.add("Your step count has increased by $pct% compared to last period. Keep up the great work!")
-            } else if (it.trend == TrendDirection.Down) {
-                parts.add("Your step count decreased by $pct%. Try taking short walks between tasks.")
-            } else {
-                // Flat trend — no insight to add
+            when {
+                it.currentValue == 0f -> parts.add("No step data available yet. Connect Health Connect to track your daily steps.")
+                it.trend == TrendDirection.Up -> parts.add("Your step count has increased by $pct% compared to your recent average. Keep up the great work!")
+                it.trend == TrendDirection.Down -> parts.add("Your step count decreased by $pct%. Try taking short walks between tasks.")
+                else -> parts.add("You've taken ${it.currentValue.roundToInt()} steps today. Aim for ${MetricType.Steps.goal?.roundToInt() ?: 10000} to hit your goal!")
             }
         }
+
+        val sleepSummary = summaries.find { it.type == MetricType.Sleep }
         sleepSummary?.let {
-            if (it.currentValue >= 7f) {
-                parts.add("You are getting a healthy amount of sleep. Consistency is key.")
-            } else {
-                parts.add("Consider aiming for 7-8 hours of sleep for optimal recovery.")
+            when {
+                it.currentValue == 0f -> {} // no data, skip
+                it.currentValue >= 7f -> parts.add("You are getting a healthy amount of sleep. Consistency is key.")
+                it.currentValue > 0f -> parts.add("Consider aiming for 7-8 hours of sleep for optimal recovery.")
             }
         }
+
+        val hydrationSummary = summaries.find { it.type == MetricType.Hydration }
+        hydrationSummary?.let {
+            val goal = MetricType.Hydration.goal ?: 2500f
+            when {
+                it.currentValue >= goal -> parts.add("Great hydration today! You've hit your daily water goal.")
+                it.currentValue > 0f -> parts.add("You've had ${it.currentValue.roundToInt()}ml of water. Keep drinking to reach your ${goal.roundToInt()}ml goal.")
+            }
+        }
+
+        if (parts.isEmpty()) {
+            parts.add("Start tracking your health data to receive personalized insights.")
+        }
+
         return parts.joinToString(" ")
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private fun parseDateFromIso(dateTimeStr: String): LocalDate {
+        return try {
+            LocalDate.parse(dateTimeStr.take(10), DateTimeFormatter.ISO_LOCAL_DATE)
+        } catch (_: Exception) {
+            LocalDate.now()
+        }
+    }
+
+    private fun hourlyActivityMultiplier(hour: Int): Float = when (hour) {
+        in 0..5 -> 0.1f
+        in 6..8 -> 0.8f
+        in 9..11 -> 0.6f
+        12 -> 0.5f
+        in 13..16 -> 0.5f
+        in 17..19 -> 0.9f
+        in 20..22 -> 0.3f
+        else -> 0.1f
+    }
+
+    companion object {
+        private const val TAG = "HealthAnalyticsVM"
+        // Sum of all hourly multipliers for normalization
+        private val HOURLY_MULTIPLIER_SUM = (0..23).sumOf { hour ->
+            when (hour) {
+                in 0..5 -> 10
+                in 6..8 -> 80
+                in 9..11 -> 60
+                12 -> 50
+                in 13..16 -> 50
+                in 17..19 -> 90
+                in 20..22 -> 30
+                else -> 10
+            }
+        }.toFloat() / 100f
     }
 }

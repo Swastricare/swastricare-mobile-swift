@@ -96,6 +96,8 @@ class HealthConnectSettingsViewModel : ViewModel() {
 
     fun onPermissionsResult(granted: Set<String>) {
         _uiState.update { it.copy(grantedPermissions = granted) }
+        // Clear cached health data so the next refresh fetches with new permissions
+        healthConnectService.invalidateCache()
     }
 
     fun toggleSync(enabled: Boolean) {

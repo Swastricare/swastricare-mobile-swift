@@ -24,7 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swasthicare.mobile.data.services.AppVersionInfo
 import com.swasthicare.mobile.ui.screens.auth.components.PremiumColors
 import com.swasthicare.mobile.ui.theme.PrimaryColor
 
@@ -32,13 +31,17 @@ import com.swasthicare.mobile.ui.theme.PrimaryColor
  * ForceUpdateScreen
  * Blocking full-screen overlay requiring the user to update the app.
  * No back/dismiss option. Matches iOS ForceUpdateView.
+ *
+ * Uses server-provided updateTitle/updateMessage when available,
+ * falls back to defaults.
  */
 @Composable
 fun ForceUpdateScreen(
     currentVersion: String,
-    requiredVersion: String,
-    releaseNotes: String?,
-    storeUrl: String?
+    latestVersion: String,
+    updateTitle: String? = null,
+    updateMessage: String? = null,
+    storeUrl: String? = null
 ) {
     val context = LocalContext.current
 
@@ -129,9 +132,9 @@ fun ForceUpdateScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Title
+            // Title (server-provided or default)
             Text(
-                text = "Update Required",
+                text = updateTitle ?: "Update Required",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = PremiumColors.TextDark,
@@ -146,19 +149,21 @@ fun ForceUpdateScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = PremiumColors.TextGrey
             )
-            Text(
-                text = "Required: v$requiredVersion",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = PrimaryColor
-            )
+            if (latestVersion.isNotBlank()) {
+                Text(
+                    text = "Latest: v$latestVersion",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PrimaryColor
+                )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Description
+            // Description (server-provided or default)
             Text(
-                text = releaseNotes
-                    ?: "A new version of SwasthiCare is available with important updates and improvements. Please update to continue using the app.",
+                text = updateMessage
+                    ?: "A critical update is required to continue using SwasthiCare. Please update to the latest version for the best experience.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = PremiumColors.TextGrey,
                 textAlign = TextAlign.Center,
@@ -173,8 +178,7 @@ fun ForceUpdateScreen(
                     val url = storeUrl ?: "market://details?id=com.swasthicare.mobile"
                     try {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    } catch (e: Exception) {
-                        // Fallback to web Play Store
+                    } catch (_: Exception) {
                         context.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,

@@ -152,6 +152,7 @@ class HydrationViewModel(
             repository.addLocalEntry(entry)
             refreshFromLocal()
             launch { syncEntryToCloud(entry) }
+            launch { AppContainer.healthConnectService.writeHydration(amountMl.toDouble()) }
         }
     }
 

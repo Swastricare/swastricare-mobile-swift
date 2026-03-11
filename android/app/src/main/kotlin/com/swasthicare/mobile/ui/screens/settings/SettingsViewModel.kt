@@ -2,6 +2,7 @@ package com.swasthicare.mobile.ui.screens.settings
 
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
+import com.swastricare.health.BuildConfig
 import androidx.lifecycle.viewModelScope
 import com.swasthicare.mobile.data.model.AppUser
 import com.swasthicare.mobile.data.model.HealthProfile
@@ -226,5 +227,5 @@ class SettingsViewModel : ViewModel() {
             return String.format(Locale.US, "%.1f", bmi)
         }
 
-    val appVersion: String = "1.0.0 (1)"
+    val appVersion: String = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
 }

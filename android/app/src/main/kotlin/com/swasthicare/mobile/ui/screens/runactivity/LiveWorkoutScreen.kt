@@ -601,9 +601,41 @@ private fun TrackingPhaseContent(
             RouteMapView(
                 routePoints = uiState.routePoints,
                 isLive = true,
-                height = 200
+                height = 200,
+                currentSpeedMps = uiState.currentSpeedMps,
+                currentLatLng = uiState.currentLocation
             )
             Spacer(Modifier.height(16.dp))
+        }
+
+        // Auto-pause indicator
+        if (uiState.isAutopaused) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = Color(0xFFFFD60A).copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Default.PauseCircle,
+                    contentDescription = null,
+                    tint = Color(0xFFFFD60A),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Auto-paused - standing still",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFFFD60A),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Spacer(Modifier.height(8.dp))
         }
 
         // Main timer display
@@ -611,7 +643,8 @@ private fun TrackingPhaseContent(
             text = uiState.elapsedFormatted,
             fontSize = 64.sp,
             fontWeight = FontWeight.Black,
-            color = AppColors.onBackground,
+            color = if (uiState.isAutopaused) AppColors.onBackground.copy(alpha = 0.5f)
+                    else AppColors.onBackground,
             letterSpacing = 2.sp
         )
 

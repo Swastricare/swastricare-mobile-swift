@@ -38,6 +38,7 @@ import com.swasthicare.mobile.ui.screens.heartrate.HeartRateViewModel
 import com.swasthicare.mobile.ui.screens.hydration.HydrationViewModel
 import com.swasthicare.mobile.ui.screens.medications.MedicationsViewModel
 import com.swasthicare.mobile.ui.screens.menstrualcycle.MenstrualCycleViewModel
+import com.swasthicare.mobile.ui.screens.analytics.HealthAnalyticsViewModel
 import com.swasthicare.mobile.ui.screens.runactivity.LiveWorkoutViewModel
 import com.swasthicare.mobile.ui.screens.runactivity.RunActivityViewModel
 import io.github.jan.supabase.SupabaseClient
@@ -129,8 +130,10 @@ object AppContainer {
             migratePrefsIfNeeded(context, encrypted)
             encrypted
         } catch (e: Exception) {
-            Log.w("AppContainer", "EncryptedSharedPreferences unavailable, using plain", e)
-            context.getSharedPreferences("swasthicare_prefs", Context.MODE_PRIVATE)
+            Log.e("AppContainer", "EncryptedSharedPreferences failed — secure storage required", e)
+            crashlyticsService.log("encrypted_prefs_init_failed")
+            crashlyticsService.recordException(e)
+            throw IllegalStateException("Secure storage unavailable. Please update your device.", e)
         }
     }
 
@@ -162,7 +165,7 @@ object AppContainer {
     // ── Services ──
 
     val healthConnectService: HealthConnectService by lazy {
-        HealthConnectService(context)
+        HealthConnectService(context, crashlyticsService)
     }
 
     val biometricService: BiometricService by lazy {
@@ -248,6 +251,12 @@ object AppContainer {
     val currentVersionName: String
         get() = BuildConfig.VERSION_NAME
 
+    /**
+     * Current app version code (build number) from BuildConfig.
+     */
+    val currentVersionCode: Int
+        get() = BuildConfig.VERSION_CODE
+
     // ─────────────────────────────────────
     // MARK: - Repositories
     // ─────────────────────────────────────
@@ -331,6 +340,20 @@ object AppContainer {
 
     val workoutStateManager: WorkoutStateManager by lazy {
         WorkoutStateManager(sharedPreferences)
+    }
+
+    // ── Health Analytics ──
+
+    val healthAnalyticsViewModel: HealthAnalyticsViewModel by lazy {
+        HealthAnalyticsViewModel(
+            healthConnectService = healthConnectService,
+            hydrationRepository = hydrationRepository,
+            dietRepository = dietRepository,
+            medicationRepository = medicationRepository,
+            runActivityRepository = runActivityRepository,
+            profileRepository = profileRepository,
+            supabaseClient = supabaseClient
+        )
     }
 
     // ── Fitness Analytics ──

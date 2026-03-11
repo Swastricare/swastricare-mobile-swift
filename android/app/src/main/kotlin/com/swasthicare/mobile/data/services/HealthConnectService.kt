@@ -3,16 +3,18 @@ package com.swasthicare.mobile.data.services
 import android.content.Context
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
-import com.swasthicare.mobile.di.AppContainer
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.time.*
 import java.time.temporal.ChronoUnit
+import kotlin.reflect.KClass
 
 // -----------------------------------------------
 // MARK: - DailyStepCount (used by weekly steps chart)
@@ -34,7 +36,10 @@ data class DailyStepCount(
  * WRITE permissions:
  *   HeartRateRecord, HydrationRecord, ExerciseSessionRecord
  */
-class HealthConnectService(private val context: Context) {
+class HealthConnectService(
+    private val context: Context,
+    private val crashlyticsService: CrashlyticsService
+) {
 
     companion object {
         private const val TAG = "HealthConnectService"
@@ -164,6 +169,20 @@ class HealthConnectService(private val context: Context) {
         }
     }
 
+    private suspend fun hasWritePermission(recordClass: KClass<out Record>): Boolean {
+        return try {
+            val granted = client?.permissionController?.getGrantedPermissions() ?: return false
+            HealthPermission.getWritePermission(recordClass) in granted
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun invalidateCache() {
+        cachedSummary = null
+        cacheTimestamp = 0L
+    }
+
     // ── READ: Today's Summary (cached for 60 seconds) ──
 
     suspend fun getTodaySummary(): DailyHealthSummary {
@@ -184,116 +203,138 @@ class HealthConnectService(private val context: Context) {
         val startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()
         val todayFilter = TimeRangeFilter.between(startOfDay, now)
 
-        var steps = 0
-        var heartRate = 0
-        var activeCal = 0
-        var totalCal = 0
-        var sleepMin = 0
-        var distanceKm = 0.0
-        var exerciseMin = 0
-        var standHours = 0
-        var systolic = 0
-        var diastolic = 0
-        var weightKg = 0.0
-        var heightCm = 0.0
+        coroutineScope {
+            val stepsDeferred = async {
+                try {
+                    val records = hc.readRecords(ReadRecordsRequest(StepsRecord::class, todayFilter))
+                    records.records.sumOf { it.count }.toInt()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error reading steps: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0
+                }
+            }
 
-        try {
-            // Steps
-            val stepsRecords = hc.readRecords(ReadRecordsRequest(StepsRecord::class, todayFilter))
-            steps = stepsRecords.records.sumOf { it.count }.toInt()
+            val hrDeferred = async {
+                try {
+                    val records = hc.readRecords(ReadRecordsRequest(HeartRateRecord::class, todayFilter))
+                    records.records.lastOrNull()?.samples?.lastOrNull()?.beatsPerMinute?.toInt() ?: 0
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error reading heart rate: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0
+                }
+            }
 
-            // Heart Rate (latest)
-            val hrRecords = hc.readRecords(ReadRecordsRequest(HeartRateRecord::class, todayFilter))
-            heartRate = hrRecords.records.lastOrNull()?.samples?.lastOrNull()?.beatsPerMinute?.toInt() ?: 0
+            val activeCalDeferred = async {
+                try {
+                    val records = hc.readRecords(ReadRecordsRequest(ActiveCaloriesBurnedRecord::class, todayFilter))
+                    records.records.sumOf { it.energy.inKilocalories }.toInt()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error reading active calories: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0
+                }
+            }
 
-            // Active Calories
-            val activeCalRecords = hc.readRecords(ReadRecordsRequest(ActiveCaloriesBurnedRecord::class, todayFilter))
-            activeCal = activeCalRecords.records.sumOf { it.energy.inKilocalories }.toInt()
+            val totalCalDeferred = async {
+                try {
+                    val records = hc.readRecords(ReadRecordsRequest(TotalCaloriesBurnedRecord::class, todayFilter))
+                    records.records.sumOf { it.energy.inKilocalories }.toInt()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error reading total calories: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0
+                }
+            }
 
-            // Total Calories
-            val totalCalRecords = hc.readRecords(ReadRecordsRequest(TotalCaloriesBurnedRecord::class, todayFilter))
-            totalCal = totalCalRecords.records.sumOf { it.energy.inKilocalories }.toInt()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error reading basic metrics: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            val sleepDeferred = async {
+                try { getTodaySleep() } catch (e: Exception) {
+                    Log.w(TAG, "Error reading sleep: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0
+                }
+            }
+
+            val distDeferred = async {
+                try { getTodayDistance() } catch (e: Exception) {
+                    Log.w(TAG, "Error reading distance: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0.0
+                }
+            }
+
+            val exerciseDeferred = async {
+                try { getTodayExercise() } catch (e: Exception) {
+                    Log.w(TAG, "Error reading exercise: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0
+                }
+            }
+
+            val standDeferred = async {
+                try { estimateStandHours() } catch (e: Exception) {
+                    Log.w(TAG, "Error estimating stand hours: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0
+                }
+            }
+
+            val bpDeferred = async {
+                try { getLatestBloodPressure() } catch (e: Exception) {
+                    Log.w(TAG, "Error reading blood pressure: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    Pair(0, 0)
+                }
+            }
+
+            val weightDeferred = async {
+                try { getLatestWeight() } catch (e: Exception) {
+                    Log.w(TAG, "Error reading weight: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0.0
+                }
+            }
+
+            val heightDeferred = async {
+                try { getLatestHeight() } catch (e: Exception) {
+                    Log.w(TAG, "Error reading height: ${e.message}")
+                    crashlyticsService.recordException(e)
+                    0.0
+                }
+            }
+
+            val steps = stepsDeferred.await()
+            val heartRate = hrDeferred.await()
+            val activeCal = activeCalDeferred.await()
+            val totalCal = totalCalDeferred.await()
+            val sleepMin = sleepDeferred.await()
+            val distanceKm = distDeferred.await()
+            val exerciseMin = exerciseDeferred.await()
+            val standHours = standDeferred.await()
+            val bp = bpDeferred.await()
+            val weightKg = weightDeferred.await()
+            val heightCm = heightDeferred.await()
+
+            // Google Fit only writes TotalCaloriesBurnedRecord (not ActiveCaloriesBurnedRecord).
+            // Fall back to totalCal when activeCal is unavailable so the home screen shows a value.
+            val displayCalories = if (activeCal > 0) activeCal else totalCal
+
+            DailyHealthSummary(
+                steps = steps,
+                heartRate = heartRate,
+                activeCalories = displayCalories,
+                totalCalories = totalCal,
+                sleepMinutes = sleepMin,
+                distanceKm = distanceKm,
+                exerciseMinutes = exerciseMin,
+                standHours = standHours,
+                systolic = bp.first,
+                diastolic = bp.second,
+                weightKg = weightKg,
+                heightCm = heightCm
+            )
         }
-
-        try {
-            // Sleep (look at last night: 6pm yesterday to now)
-            sleepMin = getTodaySleep()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error reading sleep: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
-        }
-
-        try {
-            // Distance
-            distanceKm = getTodayDistance()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error reading distance: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
-        }
-
-        try {
-            // Exercise Minutes
-            exerciseMin = getTodayExercise()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error reading exercise: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
-        }
-
-        try {
-            // Estimate stand hours from activity (if steps > 250 in an hour, count as standing)
-            standHours = estimateStandHours()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error estimating stand hours: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
-        }
-
-        try {
-            // Blood Pressure (latest)
-            val bp = getLatestBloodPressure()
-            systolic = bp.first
-            diastolic = bp.second
-        } catch (e: Exception) {
-            Log.w(TAG, "Error reading blood pressure: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
-        }
-
-        try {
-            // Weight (latest)
-            weightKg = getLatestWeight()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error reading weight: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
-        }
-
-        try {
-            // Height (latest)
-            heightCm = getLatestHeight()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error reading height: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
-        }
-
-        // Google Fit only writes TotalCaloriesBurnedRecord (not ActiveCaloriesBurnedRecord).
-        // Fall back to totalCal when activeCal is unavailable so the home screen shows a value.
-        val displayCalories = if (activeCal > 0) activeCal else totalCal
-
-        DailyHealthSummary(
-            steps = steps,
-            heartRate = heartRate,
-            activeCalories = displayCalories,
-            totalCalories = totalCal,
-            sleepMinutes = sleepMin,
-            distanceKm = distanceKm,
-            exerciseMinutes = exerciseMin,
-            standHours = standHours,
-            systolic = systolic,
-            diastolic = diastolic,
-            weightKg = weightKg,
-            heightCm = heightCm
-        )
     }
 
     // ── READ: Individual Metrics ──
@@ -313,7 +354,7 @@ class HealthConnectService(private val context: Context) {
             }.toInt()
         } catch (e: Exception) {
             Log.w(TAG, "getTodaySleep failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             0
         }
     }
@@ -330,7 +371,7 @@ class HealthConnectService(private val context: Context) {
             records.records.sumOf { it.distance.inKilometers }
         } catch (e: Exception) {
             Log.w(TAG, "getTodayDistance failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             0.0
         }
     }
@@ -349,7 +390,7 @@ class HealthConnectService(private val context: Context) {
             }.toInt()
         } catch (e: Exception) {
             Log.w(TAG, "getTodayExercise failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             0
         }
     }
@@ -366,7 +407,7 @@ class HealthConnectService(private val context: Context) {
             records.records.lastOrNull()?.weight?.inKilograms ?: 0.0
         } catch (e: Exception) {
             Log.w(TAG, "getLatestWeight failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             0.0
         }
     }
@@ -384,7 +425,7 @@ class HealthConnectService(private val context: Context) {
             meters * 100.0
         } catch (e: Exception) {
             Log.w(TAG, "getLatestHeight failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             0.0
         }
     }
@@ -407,7 +448,7 @@ class HealthConnectService(private val context: Context) {
             } else Pair(0, 0)
         } catch (e: Exception) {
             Log.w(TAG, "getLatestBloodPressure failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             Pair(0, 0)
         }
     }
@@ -445,7 +486,7 @@ class HealthConnectService(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.w(TAG, "getWeeklySteps failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             emptyList()
         }
     }
@@ -553,19 +594,19 @@ class HealthConnectService(private val context: Context) {
                 )
             ).records
 
-            // Count hours (6..21) that have at least one overlapping step record with count > 0
+            // Count hours (6..21) that have meaningful movement (>= 250 steps per hour)
             (6..21).count { hour ->
                 val hourStart = today.atTime(hour, 0).atZone(zone).toInstant()
                 val hourEnd = today.atTime(hour + 1, 0).atZone(zone).toInstant()
                 // Only count completed hours (or current hour up to now)
                 if (hourStart.isAfter(now)) return@count false
-                records.any { record ->
-                    record.startTime < hourEnd && record.endTime > hourStart && record.count > 0
-                }
+                records.filter { record ->
+                    record.startTime < hourEnd && record.endTime > hourStart
+                }.sumOf { it.count } >= 250
             }
         } catch (e: Exception) {
             Log.w(TAG, "estimateStandHours failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             0
         }
     }
@@ -597,6 +638,7 @@ class HealthConnectService(private val context: Context) {
     suspend fun writeHeartRate(bpm: Long, time: Instant = Instant.now()): Boolean =
         withContext(Dispatchers.IO) {
             val hc = client ?: return@withContext false
+            if (!hasWritePermission(HeartRateRecord::class)) return@withContext false
             try {
                 val record = HeartRateRecord(
                     startTime = time.minusSeconds(1),
@@ -611,7 +653,7 @@ class HealthConnectService(private val context: Context) {
                 true
             } catch (e: Exception) {
                 Log.e(TAG, "writeHeartRate failed: ${e.message}")
-                AppContainer.crashlyticsService.recordException(e)
+                crashlyticsService.recordException(e)
                 false
             }
         }
@@ -620,6 +662,7 @@ class HealthConnectService(private val context: Context) {
     suspend fun writeHydration(volumeMl: Double, time: Instant = Instant.now()): Boolean =
         withContext(Dispatchers.IO) {
             val hc = client ?: return@withContext false
+            if (!hasWritePermission(HydrationRecord::class)) return@withContext false
             try {
                 val record = HydrationRecord(
                     startTime = time.minusSeconds(1),
@@ -632,7 +675,7 @@ class HealthConnectService(private val context: Context) {
                 true
             } catch (e: Exception) {
                 Log.e(TAG, "writeHydration failed: ${e.message}")
-                AppContainer.crashlyticsService.recordException(e)
+                crashlyticsService.recordException(e)
                 false
             }
         }
@@ -645,6 +688,7 @@ class HealthConnectService(private val context: Context) {
         title: String? = null
     ): Boolean = withContext(Dispatchers.IO) {
         val hc = client ?: return@withContext false
+        if (!hasWritePermission(ExerciseSessionRecord::class)) return@withContext false
         try {
             val record = ExerciseSessionRecord(
                 startTime = startTime,
@@ -658,7 +702,7 @@ class HealthConnectService(private val context: Context) {
             true
         } catch (e: Exception) {
             Log.e(TAG, "writeExerciseSession failed: ${e.message}")
-            AppContainer.crashlyticsService.recordException(e)
+            crashlyticsService.recordException(e)
             false
         }
     }
