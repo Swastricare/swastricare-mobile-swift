@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -28,7 +27,6 @@ import com.swastricare.health.data.models.ActivityType
 import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.data.models.RunActivity
 import com.swastricare.health.di.AppContainer
-import kotlinx.coroutines.delay
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -92,11 +90,11 @@ fun RunActivityScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // Weekly steps progress card
-            WeeklyStepsProgressCard(
-                thisWeekSteps = uiState.thisWeekSteps,
-                delta = uiState.weeklyStepsDelta,
-                trend = uiState.weeklyStepsTrend
+            // Today's stats from Health Connect
+            TodayStatsRow(
+                steps = uiState.todaySteps,
+                distanceKm = uiState.todayDistance,
+                calories = uiState.todayCalories
             )
 
             // Fitness insights
@@ -705,195 +703,5 @@ private fun EmptyWorkoutsCard() {
             color = AppColors.onSurfaceVariant.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
         )
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Weekly Steps Progress Card
-// ─────────────────────────────────────
-
-@Composable
-private fun WeeklyStepsProgressCard(
-    thisWeekSteps: Int,
-    delta: Int,
-    trend: StepTrend,
-    modifier: Modifier = Modifier
-) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(100)
-        isVisible = true
-    }
-
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(600, easing = FastOutSlowInEasing),
-        label = "cardAlpha"
-    )
-
-    val animatedScale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.95f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "cardScale"
-    )
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(220.dp)
-            .graphicsLayer {
-                alpha = animatedAlpha
-                scaleX = animatedScale
-                scaleY = animatedScale
-            }
-            .clip(RoundedCornerShape(24.dp))
-            .background(PremiumColor.ProgressGradient)
-    ) {
-        // Decorative circles for depth
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 60.dp, y = (-40).dp)
-                .size(140.dp)
-                .background(Color.White.copy(alpha = 0.1f), CircleShape)
-        )
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = (-30).dp, y = 30.dp)
-                .size(100.dp)
-                .background(Color.White.copy(alpha = 0.08f), CircleShape)
-        )
-
-        // Content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp)
-        ) {
-            // Header section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.White.copy(alpha = 0.2f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsWalk,
-                        contentDescription = null,
-                        tint = Color(0xFFFF9F0A),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Color.White.copy(alpha = 0.25f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Title section
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "Progress Report",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-                Text(
-                    text = "Your weekly steps goals",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Stats section
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = formatStepsDisplay(thisWeekSteps),
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 44.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color.White,
-                    maxLines = 1
-                )
-
-                // Comparison badge
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val (icon, deltaText, trendColor) = when (trend) {
-                        StepTrend.INCREASING -> Triple(
-                            Icons.Default.TrendingUp,
-                            "+${formatStepsDisplay(delta)} Steps",
-                            Color.White
-                        )
-                        StepTrend.DECREASING -> Triple(
-                            Icons.Default.TrendingDown,
-                            "${formatStepsDisplay(delta)} Steps",
-                            Color.White.copy(alpha = 0.8f)
-                        )
-                        StepTrend.NEUTRAL -> Triple(
-                            Icons.Default.TrendingFlat,
-                            "Steady",
-                            Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-
-                    if (trend != StepTrend.NEUTRAL) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = trendColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Text(
-                        text = deltaText,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = trendColor,
-                        maxLines = 1
-                    )
-                }
-
-                Text(
-                    text = "Compared to Last week",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f),
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-private fun formatStepsDisplay(steps: Int): String {
-    return when {
-        steps >= 10000 -> String.format("%.1fK", steps / 1000.0)
-        steps >= 1000 -> String.format("%.2fK", steps / 1000.0)
-        else -> steps.toString()
     }
 }

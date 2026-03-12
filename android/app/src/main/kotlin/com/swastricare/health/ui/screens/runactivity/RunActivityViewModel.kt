@@ -14,16 +14,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 // ------------------------------------
-// MARK: - Step Trend Enum
-// ------------------------------------
-
-enum class StepTrend {
-    INCREASING,  // Up by >5%
-    NEUTRAL,     // Within ±5%
-    DECREASING   // Down by >5%
-}
-
-// ------------------------------------
 // MARK: - UI State
 // ------------------------------------
 
@@ -37,11 +27,6 @@ data class RunActivityUiState(
     val todaySteps: Int = 0,
     val todayDistance: Double = 0.0,
     val todayCalories: Int = 0,
-    // Weekly comparison data
-    val thisWeekSteps: Int = 0,
-    val lastWeekSteps: Int = 0,
-    val weeklyStepsDelta: Int = 0,
-    val weeklyStepsTrend: StepTrend = StepTrend.NEUTRAL,
     // Fitness analytics
     val vo2Max: Double? = null,
     val vo2MaxSource: String = "",
@@ -78,20 +63,13 @@ class RunActivityViewModel(
                 // Load real data from Health Connect
                 val summary = healthConnectService.getTodaySummary()
 
-                // Calculate weekly comparison
-                val weeklyComparison = calculateWeeklyStepsComparison()
-
                 _uiState.value = _uiState.value.copy(
                     activities = activities,
                     statistics = stats,
                     isLoading = false,
                     todaySteps = summary.steps,
                     todayDistance = summary.distanceKm,
-                    todayCalories = summary.activeCalories,
-                    thisWeekSteps = weeklyComparison.thisWeek,
-                    lastWeekSteps = weeklyComparison.lastWeek,
-                    weeklyStepsDelta = weeklyComparison.delta,
-                    weeklyStepsTrend = weeklyComparison.trend
+                    todayCalories = summary.activeCalories
                 )
 
                 syncInBackground()
@@ -136,54 +114,6 @@ class RunActivityViewModel(
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
-
-    private suspend fun calculateWeeklyStepsComparison(): WeeklyStepsComparison {
-        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val last14Days = healthConnectService.getLast14DaysSteps()
-
-                val today = java.time.LocalDate.now()
-                val thisWeekStart = today.minusDays(6)
-                val lastWeekStart = today.minusDays(13)
-                val lastWeekEnd = today.minusDays(7)
-
-                // This week: last 7 days
-                val thisWeekSteps = last14Days
-                    .filter { it.date >= thisWeekStart }
-                    .sumOf { it.steps.toInt() }
-
-                // Last week: days 7-13 ago
-                val lastWeekSteps = last14Days
-                    .filter { it.date >= lastWeekStart && it.date <= lastWeekEnd }
-                    .sumOf { it.steps.toInt() }
-
-                val delta = thisWeekSteps - lastWeekSteps
-                val trend = when {
-                    lastWeekSteps == 0 -> StepTrend.NEUTRAL
-                    delta > lastWeekSteps * 0.05 -> StepTrend.INCREASING
-                    delta < -lastWeekSteps * 0.05 -> StepTrend.DECREASING
-                    else -> StepTrend.NEUTRAL
-                }
-
-                WeeklyStepsComparison(
-                    thisWeek = thisWeekSteps,
-                    lastWeek = lastWeekSteps,
-                    delta = delta,
-                    trend = trend
-                )
-            } catch (e: Exception) {
-                android.util.Log.w("RunActivityVM", "Weekly comparison failed: ${e.message}")
-                WeeklyStepsComparison()
-            }
-        }
-    }
-
-    private data class WeeklyStepsComparison(
-        val thisWeek: Int = 0,
-        val lastWeek: Int = 0,
-        val delta: Int = 0,
-        val trend: StepTrend = StepTrend.NEUTRAL
-    )
 
     private suspend fun syncInBackground() {
         try {

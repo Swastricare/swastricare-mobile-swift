@@ -529,45 +529,6 @@ class HealthConnectService(
     }
 
     /**
-     * Query StepsRecord for the last 14 days for week-over-week comparison.
-     */
-    suspend fun getLast14DaysSteps(): List<DailyStepCount> = withContext(Dispatchers.IO) {
-        val healthClient = client ?: return@withContext emptyList()
-
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now()
-        val fourteenDaysAgo = today.minusDays(13)
-
-        val startInstant = fourteenDaysAgo.atStartOfDay(zone).toInstant()
-        val endInstant = today.plusDays(1).atStartOfDay(zone).toInstant()
-
-        try {
-            val response = healthClient.readRecords(
-                ReadRecordsRequest(
-                    recordType = StepsRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(startInstant, endInstant)
-                )
-            )
-
-            val records = response.records
-
-            // Group by day
-            (0..13).map { dayOffset ->
-                val date = today.minusDays(dayOffset.toLong())
-                val dayStart = date.atStartOfDay(zone).toInstant()
-                val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
-                val steps = records.filter { it.startTime >= dayStart && it.startTime < dayEnd }
-                    .sumOf { it.count }
-                DailyStepCount(date = date, steps = steps)
-            }.reversed()
-        } catch (e: Exception) {
-            Log.w(TAG, "getLast14DaysSteps failed: ${e.message}")
-            crashlyticsService.recordException(e)
-            emptyList()
-        }
-    }
-
-    /**
      * Get today's step count from Health Connect.
      */
     suspend fun getTodaySteps(): Long {

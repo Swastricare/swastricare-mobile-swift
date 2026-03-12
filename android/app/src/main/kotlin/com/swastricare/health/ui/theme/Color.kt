@@ -136,23 +136,14 @@ object PremiumColor {
     
     val DeepPurpleStart = Color(0xFF654EA3)
     val DeepPurpleEnd = Color(0xFFEAAFC8)
-
+    
     val MidnightStart = Color(0xFF232526)
     val MidnightEnd = Color(0xFF414345)
-
-    // Progress gradient colors (darker)
-    val ProgressBlue = Color(0xFF0066CC)
-    val ProgressTeal = Color(0xFF008B85)
-    val ProgressPink = Color(0xFFCC2474)
-    val ProgressRed = Color(0xFFCC3730)
-
+    
     // Gradients
     val RoyalBlue = Brush.linearGradient(listOf(RoyalBlueStart, RoyalBlueEnd))
     val Sunset = Brush.linearGradient(listOf(SunsetStart, SunsetEnd))
     val NeonGreen = Brush.linearGradient(listOf(NeonGreenStart, NeonGreenEnd))
     val DeepPurple = Brush.linearGradient(listOf(DeepPurpleStart, DeepPurpleEnd))
     val Midnight = Brush.verticalGradient(listOf(MidnightStart, MidnightEnd))
-    val ProgressGradient = Brush.linearGradient(
-        listOf(ProgressBlue, ProgressTeal, ProgressPink, ProgressRed)
-    )
 }
