@@ -26,7 +26,7 @@ android {
         applicationId = "com.swastricare.health"
         minSdk = 26 // Raised from 24 to 26 for Health Connect support
         targetSdk = 35
-        versionCode = 1
+        versionCode = 3
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -100,6 +100,13 @@ android {
     // Don't compress 3D model files — binary formats break when AAPT compresses them
     androidResources {
         noCompress += listOf("glb", "gltf", "hdr", "ktx")
+    }
+
+    // 16 KB page size support — required for Android 15 (API 35) on Google Play
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
     }
 }
 

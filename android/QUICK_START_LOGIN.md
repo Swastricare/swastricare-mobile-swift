@@ -16,7 +16,7 @@ Your Android app now has a complete login system matching iOS:
 
 ### 1. Add Google Web Client ID
 
-**File:** `android/app/src/main/kotlin/com/swasthicare/mobile/di/AppContainer.kt`
+**File:** `android/app/src/main/kotlin/com/swastricare/mobile/di/AppContainer.kt`
 
 **Line 44:** Replace this:
 ```kotlin

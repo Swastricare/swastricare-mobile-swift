@@ -1,4 +1,4 @@
-# Running SwasthiCare Android App
+# Running SwastriCare Android App
 
 Complete guide to build and run the Android app on emulator or physical device.
 
@@ -63,7 +63,7 @@ Check if everything is set up:
 
 5. **Launch the App**
    ```bash
-   ~/Library/Android/sdk/platform-tools/adb shell am start -n com.swasthicare.mobile/com.swasthicare.mobile.MainActivity
+   ~/Library/Android/sdk/platform-tools/adb shell am start -n com.swastricare.health/com.swastricare.health.MainActivity
    ```
 
 ## Running on Emulator
@@ -106,7 +106,7 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew installDebug
 
 # Launch
-~/Library/Android/sdk/platform-tools/adb shell am start -n com.swasthicare.mobile/com.swasthicare.mobile.MainActivity
+~/Library/Android/sdk/platform-tools/adb shell am start -n com.swastricare.health/com.swastricare.health.MainActivity
 ```
 
 ## Running on Physical Device
@@ -190,17 +190,17 @@ Same commands as emulator - ADB will automatically detect the connected device.
 
 **Uninstall:**
 ```bash
-~/Library/Android/sdk/platform-tools/adb uninstall com.swasthicare.mobile
+~/Library/Android/sdk/platform-tools/adb uninstall com.swastricare.health
 ```
 
 **Clear app data:**
 ```bash
-~/Library/Android/sdk/platform-tools/adb shell pm clear com.swasthicare.mobile
+~/Library/Android/sdk/platform-tools/adb shell pm clear com.swastricare.health
 ```
 
 **Force stop:**
 ```bash
-~/Library/Android/sdk/platform-tools/adb shell am force-stop com.swasthicare.mobile
+~/Library/Android/sdk/platform-tools/adb shell am force-stop com.swastricare.health
 ```
 
 ### Build Commands
@@ -339,7 +339,7 @@ android/
 │   │   └── main/
 │   │       ├── AndroidManifest.xml
 │   │       ├── kotlin/
-│   │       │   └── com/swasthicare/mobile/
+│   │       │   └── com/swastricare/mobile/
 │   │       │       ├── MainActivity.kt
 │   │       │       ├── ui/          # UI components
 │   │       │       ├── data/        # Data layer
@@ -400,4 +400,4 @@ cd "/Users/onwords/i do coding/i do flutter coding/swastricare-mobile-swift/andr
 
 **Last Updated**: January 11, 2026  
 **App Version**: 1.0.0  
-**Package**: com.swasthicare.mobile
+**Package**: com.swastricare.health

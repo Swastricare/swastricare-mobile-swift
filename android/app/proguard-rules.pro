@@ -21,11 +21,11 @@
 -keepclassmembers class kotlinx.serialization.json.** { *** Companion; }
 
 # Keep `serializer()` on Companion objects of all @Serializable classes
--keep,includedescriptorclasses class com.swasthicare.mobile.**$$serializer { *; }
--keepclassmembers class com.swasthicare.mobile.** {
+-keep,includedescriptorclasses class com.swastricare.health.**$$serializer { *; }
+-keepclassmembers class com.swastricare.health.** {
     *** Companion;
 }
--keepclasseswithmembers class com.swasthicare.mobile.** {
+-keepclasseswithmembers class com.swastricare.health.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
@@ -141,11 +141,11 @@
 # ===========================================================================
 # App data models and services (ensure serialization works)
 # ===========================================================================
--keep class com.swasthicare.mobile.data.model.** { *; }
--keep class com.swasthicare.mobile.data.models.** { *; }
--keep class com.swasthicare.mobile.data.services.** { *; }
--keep class com.swasthicare.mobile.widgets.** { *; }
--keep class com.swasthicare.mobile.notifications.** { *; }
+-keep class com.swastricare.health.data.model.** { *; }
+-keep class com.swastricare.health.data.models.** { *; }
+-keep class com.swastricare.health.data.services.** { *; }
+-keep class com.swastricare.health.widgets.** { *; }
+-keep class com.swastricare.health.notifications.** { *; }
 
 # ===========================================================================
 # SLF4J (used by Ktor/Supabase internals — no runtime impl needed on Android)

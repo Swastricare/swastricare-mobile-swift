@@ -1,7 +1,7 @@
-# SwasthiCare Android App
+# SwastriCare Android App
 
 ## Overview
-SwasthiCare is a health companion app built with Kotlin and Jetpack Compose.
+SwastriCare is a health companion app built with Kotlin and Jetpack Compose.
 
 ## Tech Stack
 - **Language**: Kotlin
@@ -15,13 +15,13 @@ SwasthiCare is a health companion app built with Kotlin and Jetpack Compose.
 ```
 app/
 ├── src/main/
-│   ├── kotlin/com/swasthicare/mobile/
+│   ├── kotlin/com/swastricare/mobile/
 │   │   ├── ui/
 │   │   │   ├── screens/        # App screens
 │   │   │   ├── theme/          # App theme & colors
 │   │   │   └── navigation/     # Navigation setup
 │   │   ├── MainActivity.kt
-│   │   └── SwasthiCareApplication.kt
+│   │   └── SwastriCareApplication.kt
 │   ├── res/                    # Resources
 │   └── AndroidManifest.xml
 └── build.gradle.kts

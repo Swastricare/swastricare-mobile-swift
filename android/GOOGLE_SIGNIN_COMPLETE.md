@@ -72,9 +72,9 @@ User authenticated!
 - `io.github.jan-tennert.supabase:gotrue-kt:2.6.0`
 
 ### Files Modified
-1. `/android/app/src/main/kotlin/com/swasthicare/mobile/ui/screens/auth/AuthViewModel.kt`
-2. `/android/app/src/main/kotlin/com/swasthicare/mobile/data/repository/SupabaseAuthRepository.kt`
-3. `/android/app/src/main/kotlin/com/swasthicare/mobile/di/AppContainer.kt`
+1. `/android/app/src/main/kotlin/com/swastricare/mobile/ui/screens/auth/AuthViewModel.kt`
+2. `/android/app/src/main/kotlin/com/swastricare/mobile/data/repository/SupabaseAuthRepository.kt`
+3. `/android/app/src/main/kotlin/com/swastricare/mobile/di/AppContainer.kt`
 
 ### Files Created
 1. `/android/GOOGLE_SIGNIN_SETUP.md` - Complete setup guide
@@ -88,7 +88,7 @@ User authenticated!
    - **Web Application Client** (for Supabase)
      - Redirect URI: `https://jlumbeyukpnuicyxzvre.supabase.co/auth/v1/callback`
    - **Android Client** (for native app)
-     - Package: `com.swasthicare.mobile`
+     - Package: `com.swastricare.health`
      - SHA-1: Get from `cd android && ./gradlew signingReport`
 
 ### Step 2: Configure Supabase
@@ -100,7 +100,7 @@ User authenticated!
 
 ### Step 3: Update App
 
-1. Open `/android/app/src/main/kotlin/com/swasthicare/mobile/di/AppContainer.kt`
+1. Open `/android/app/src/main/kotlin/com/swastricare/mobile/di/AppContainer.kt`
 2. Replace placeholder:
    ```kotlin
    webClientId = "YOUR_ACTUAL_WEB_CLIENT_ID.apps.googleusercontent.com"

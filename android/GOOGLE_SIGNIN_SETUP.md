@@ -1,6 +1,6 @@
 # Google Sign-In Setup for Android (Supabase)
 
-This guide explains how to configure Google Sign-In for your SwasthiCare Android app using Supabase OAuth.
+This guide explains how to configure Google Sign-In for your SwastriCare Android app using Supabase OAuth.
 
 ## Overview
 
@@ -27,7 +27,7 @@ The app uses:
 #### Create Web Application Client (Required for Supabase)
 
 1. Select **Application type**: **Web application**
-2. Name: `SwasthiCare Web Client`
+2. Name: `SwastriCare Web Client`
 3. Add **Authorized redirect URIs**:
    ```
    https://jlumbeyukpnuicyxzvre.supabase.co/auth/v1/callback
@@ -41,8 +41,8 @@ The app uses:
 
 1. Click **Create Credentials** → **OAuth Client ID** again
 2. Select **Application type**: **Android**
-3. Name: `SwasthiCare Android`
-4. **Package name**: `com.swasthicare.mobile`
+3. Name: `SwastriCare Android`
+4. **Package name**: `com.swastricare.health`
 5. **Get SHA-1 Certificate Fingerprint**:
 
    **Debug SHA-1** (for testing):
@@ -62,7 +62,7 @@ The app uses:
 
 ### 3. Update Android App Configuration
 
-1. Open `android/app/src/main/kotlin/com/swasthicare/mobile/di/AppContainer.kt`
+1. Open `android/app/src/main/kotlin/com/swastricare/mobile/di/AppContainer.kt`
 2. Replace the placeholder with your **Web Client ID** (not Android client ID):
    ```kotlin
    webClientId = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
@@ -140,7 +140,7 @@ User is logged in
 ### Error: "Google Sign-In failed"
 - Verify Web Client ID is correct in `AppContainer.kt`
 - Check SHA-1 fingerprint matches in Google Cloud Console
-- Ensure package name is `com.swasthicare.mobile`
+- Ensure package name is `com.swastricare.health`
 
 ### Error: "Invalid redirect URI"
 - Verify Supabase redirect URI in Google Cloud Console

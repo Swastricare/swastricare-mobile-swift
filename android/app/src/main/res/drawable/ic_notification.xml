@@ -3,7 +3,7 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- SwasthiCare notification icon: cloud with medical cross and sparkle -->
+    <!-- SwastriCare notification icon: cloud with medical cross and sparkle -->
     <!-- Cloud shape with cross cutout using fillType evenOdd -->
     <path
         android:fillColor="#FFFFFF"

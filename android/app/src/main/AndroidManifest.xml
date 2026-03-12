@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Remove advertising ID permission added by Firebase/Play Services -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -15,8 +19,6 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Health Connect permissions (read) -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
@@ -49,14 +51,14 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <application
-        android:name="com.swasthicare.mobile.SwasthiCareApplication"
+        android:name="com.swastricare.health.SwastriCareApplication"
         android:allowBackup="false"
         android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SwasthiCare">
+        android:theme="@style/Theme.SwastriCare">
 
         <!-- Default notification icon and color for FCM -->
         <meta-data
@@ -71,12 +73,17 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${GOOGLE_MAPS_API_KEY}" />
 
+        <!-- Disable advertising ID collection — app does not use ads -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+
         <activity
-            android:name="com.swasthicare.mobile.MainActivity"
+            android:name="com.swastricare.health.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.SwasthiCare">
+            android:theme="@style/Theme.SwastriCare">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -111,7 +118,7 @@
         <activity-alias
             android:name="ViewPermissionUsageActivity"
             android:exported="true"
-            android:targetActivity="com.swasthicare.mobile.MainActivity"
+            android:targetActivity="com.swastricare.health.MainActivity"
             android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
@@ -121,7 +128,7 @@
 
         <!-- Notification Receiver -->
         <receiver
-            android:name="com.swasthicare.mobile.data.services.NotificationReceiver"
+            android:name="com.swastricare.health.data.services.NotificationReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="HYDRATION_REMINDER" />
@@ -129,12 +136,12 @@
                 <action android:name="CYCLE_REMINDER" />
                 <action android:name="MEDICATION_REMINDER" />
                 <action android:name="APPOINTMENT_REMINDER" />
-                <action android:name="com.swasthicare.ACTION_LOG_WATER" />
-                <action android:name="com.swasthicare.ACTION_MARK_MED_TAKEN" />
-                <action android:name="com.swasthicare.ACTION_LOG_MEAL" />
-                <action android:name="com.swasthicare.ACTION_APPOINTMENT_DISMISS" />
-                <action android:name="com.swasthicare.ACTION_ACTIVITY_START" />
-                <action android:name="com.swasthicare.ACTION_NUDGE_DISMISS" />
+                <action android:name="com.swastricare.ACTION_LOG_WATER" />
+                <action android:name="com.swastricare.ACTION_MARK_MED_TAKEN" />
+                <action android:name="com.swastricare.ACTION_LOG_MEAL" />
+                <action android:name="com.swastricare.ACTION_APPOINTMENT_DISMISS" />
+                <action android:name="com.swastricare.ACTION_ACTIVITY_START" />
+                <action android:name="com.swastricare.ACTION_NUDGE_DISMISS" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -145,17 +152,17 @@
 
         <!-- Widget Action Receiver -->
         <receiver
-            android:name="com.swasthicare.mobile.widgets.WidgetActionReceiver"
+            android:name="com.swastricare.health.widgets.WidgetActionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.swasthicare.widget.LOG_WATER" />
-                <action android:name="com.swasthicare.widget.MARK_MEDICATION_TAKEN" />
+                <action android:name="com.swastricare.widget.LOG_WATER" />
+                <action android:name="com.swastricare.widget.MARK_MEDICATION_TAKEN" />
             </intent-filter>
         </receiver>
 
         <!-- Hydration Widget -->
         <receiver
-            android:name="com.swasthicare.mobile.widgets.HydrationWidgetReceiver"
+            android:name="com.swastricare.health.widgets.HydrationWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -167,7 +174,7 @@
 
         <!-- Medication Widget -->
         <receiver
-            android:name="com.swasthicare.mobile.widgets.MedicationWidgetReceiver"
+            android:name="com.swastricare.health.widgets.MedicationWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -179,7 +186,7 @@
 
         <!-- Steps Widget -->
         <receiver
-            android:name="com.swasthicare.mobile.widgets.StepsWidgetReceiver"
+            android:name="com.swastricare.health.widgets.StepsWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -191,7 +198,7 @@
 
         <!-- Diet Widget -->
         <receiver
-            android:name="com.swasthicare.mobile.widgets.DietWidgetReceiver"
+            android:name="com.swastricare.health.widgets.DietWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -203,7 +210,7 @@
 
         <!-- Run Widget -->
         <receiver
-            android:name="com.swasthicare.mobile.widgets.RunWidgetReceiver"
+            android:name="com.swastricare.health.widgets.RunWidgetReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -215,7 +222,7 @@
 
         <!-- Workout Foreground Notification Service -->
         <service
-            android:name="com.swasthicare.mobile.data.services.WorkoutNotificationService"
+            android:name="com.swastricare.health.data.services.WorkoutNotificationService"
             android:foregroundServiceType="location"
             android:exported="false" />
 
