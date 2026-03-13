@@ -2,10 +2,16 @@ package com.swastricare.health
 
 import android.app.Application
 import android.util.Log
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
+import com.swastricare.health.data.services.AppAnalyticsService
+import com.swastricare.health.data.services.NotificationService
+import com.swastricare.health.data.services.SessionManager
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Application class for SwastriCare.
@@ -22,7 +28,19 @@ import kotlinx.coroutines.launch
  * Without google-services.json, Firebase features (Analytics, Crashlytics, Performance)
  * will be gracefully disabled — the app will continue to function normally.
  */
-class SwastriCareApplication : Application() {
+@HiltAndroidApp
+class SwastriCareApplication : Application(), Configuration.Provider {
+
+    @Inject lateinit var notificationService: NotificationService
+    @Inject lateinit var appAnalyticsService: AppAnalyticsService
+    @Inject lateinit var sessionManager: SessionManager
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
+
     override fun onCreate() {
         super.onCreate()
 
@@ -37,16 +55,13 @@ class SwastriCareApplication : Application() {
             defaultHandler?.uncaughtException(thread, throwable)
         }
 
-        // Initialize AppContainer early so services can access context
-        AppContainer.initialize(this)
-
         // Notification channels must be created synchronously (fast, required for immediate notifications)
-        AppContainer.notificationService.createNotificationChannels()
+        notificationService.createNotificationChannels()
 
         // Defer heavy work to background to keep app startup fast
         CoroutineScope(Dispatchers.Default).launch {
             // Schedule notifications based on saved preferences (I/O-heavy)
-            AppContainer.notificationService.scheduleAllNotifications()
+            notificationService.scheduleAllNotifications()
 
             // Enqueue WorkManager periodic jobs
             com.swastricare.health.data.workers.AiNudgeWorker.enqueue(this@SwastriCareApplication)
@@ -54,14 +69,14 @@ class SwastriCareApplication : Application() {
 
             // Start custom Supabase analytics service (triggers Supabase client initialization)
             try {
-                AppContainer.appAnalyticsService.start()
+                appAnalyticsService.start()
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to start AppAnalyticsService: ${e.message}")
             }
         }
 
-        // Eagerly initialize session manager to observe token expiry
-        AppContainer.sessionManager
+        // Eagerly touch sessionManager so its coroutine observer starts immediately
+        sessionManager.toString()
 
         // Initialize Firebase (kept on main thread because Crashlytics
         // collection should be enabled early for crash reporting)
@@ -86,7 +101,7 @@ class SwastriCareApplication : Application() {
         // (onTerminate is never called on real devices)
         if (level >= TRIM_MEMORY_MODERATE) {
             try {
-                AppContainer.appAnalyticsService.stop()
+                appAnalyticsService.stop()
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to stop AppAnalyticsService: ${e.message}")
             }

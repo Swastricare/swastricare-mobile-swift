@@ -1,6 +1,7 @@
 package com.swastricare.health.data.services
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
 import com.swastricare.health.domain.model.heartrate.MeasurementPhase
@@ -19,7 +20,7 @@ import javax.inject.Inject
  * Adapts the old service to the new domain interface.
  */
 class HeartRateDetectorServiceImpl @Inject constructor(
-    context: Context
+    @ApplicationContext context: Context
 ) : HeartRateDetectorService {
 
     private val detector = HeartRateDetector(context)

@@ -6,11 +6,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.swastricare.health.di.AppContainer
 import com.swastricare.health.navigation.DeepLinkHandler
 import com.swastricare.health.navigation.DeepLinkRoute
 import com.swastricare.health.ui.navigation.BottomNavConfig
@@ -39,9 +38,10 @@ fun MainScreen(
     onDeepLinkConsumed: () -> Unit = {}
 ) {
     val navController = rememberNavController()
+    val mainScreenViewModel: MainScreenViewModel = hiltViewModel()
 
     // Shared ProfileViewModel scoped to MainScreen so Profile and EditProfile share state
-    val profileViewModel: ProfileViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = hiltViewModel()
 
     // Track current route for analytics and bottom nav visibility
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -83,8 +83,7 @@ fun MainScreen(
     LaunchedEffect(currentRoute) {
         if (currentRoute != null) {
             val screenName = tabItems.firstOrNull { it.route == currentRoute }?.title ?: currentRoute
-            AppContainer.firebaseAnalyticsService.logScreenView(screenName)
-            AppContainer.appAnalyticsService.trackScreenView(screenName)
+            mainScreenViewModel.trackScreenView(screenName)
         }
     }
 

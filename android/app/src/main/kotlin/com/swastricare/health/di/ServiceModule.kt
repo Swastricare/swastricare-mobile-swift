@@ -8,7 +8,10 @@ import com.swastricare.health.core.logger.LoggerImpl
 import com.swastricare.health.data.repository.ProfileRepository
 import com.swastricare.health.data.repository.SupabaseAuthRepository
 import com.swastricare.health.data.repository.SupabaseProfileRepository
+import com.swastricare.health.data.repository.SupabaseRunActivityRepository
 import com.swastricare.health.data.services.AIService
+import com.swastricare.health.data.services.HeartRateDetectorServiceImpl
+import com.swastricare.health.domain.usecase.heartrate.HeartRateDetectorService
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.BiometricService
 import com.swastricare.health.data.services.CrashlyticsService
@@ -132,6 +135,18 @@ object ServiceModule {
     ): ProfileRepository {
         return SupabaseProfileRepository(supabaseClient)
     }
+
+    /**
+     * Provides the data-layer RunActivityRepository (SupabaseRunActivityRepository).
+     * Used by RunActivityViewModel and LiveWorkoutViewModel which use the data-layer interface.
+     */
+    @Provides
+    @Singleton
+    fun provideDataLayerRunActivityRepository(
+        impl: SupabaseRunActivityRepository
+    ): com.swastricare.health.data.repository.RunActivityRepository {
+        return impl
+    }
 }
 
 /**
@@ -155,4 +170,11 @@ abstract class ServiceBindsModule {
     @Binds
     @Singleton
     abstract fun bindLogger(impl: LoggerImpl): Logger
+
+    /**
+     * Binds HeartRateDetectorServiceImpl as the HeartRateDetectorService implementation.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindHeartRateDetectorService(impl: HeartRateDetectorServiceImpl): HeartRateDetectorService
 }

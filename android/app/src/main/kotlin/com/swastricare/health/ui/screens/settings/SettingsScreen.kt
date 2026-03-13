@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swastricare.health.ui.screens.home.PremiumBackground
@@ -47,7 +47,7 @@ fun SettingsScreen(
     onNavigateToHydrationSettings: () -> Unit = {},
     onNavigateToHealthDataSync: () -> Unit = {},
     onSignOut: () -> Unit = {},
-    viewModel: SettingsViewModel = viewModel()
+    viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()

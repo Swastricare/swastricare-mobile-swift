@@ -44,7 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -95,7 +95,7 @@ private fun workoutTypeLabel(type: String): String = when (type) {
 fun RunCalendarScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToActivityDetail: (String) -> Unit = {},
-    viewModel: RunCalendarViewModel = viewModel()
+    viewModel: RunCalendarViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()

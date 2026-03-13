@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.data.services.BodyScanResult
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.HeartRateColor
@@ -56,7 +56,7 @@ import java.util.concurrent.Executors
 @Composable
 fun ARBodyScanScreen(
     onNavigateBack: () -> Unit,
-    viewModel: ARBodyScanViewModel = viewModel()
+    viewModel: ARBodyScanViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current

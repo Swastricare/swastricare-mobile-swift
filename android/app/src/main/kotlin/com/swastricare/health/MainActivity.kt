@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.swastricare.health.di.AppContainer
 import com.swastricare.health.navigation.DeepLinkHandler
 import com.swastricare.health.navigation.DeepLinkRoute
 import com.swastricare.health.ui.lock.LockScreen
@@ -32,9 +31,16 @@ import com.swastricare.health.ui.lock.LockScreenViewModel
 import com.swastricare.health.ui.navigation.AppNavigation
 import com.swastricare.health.ui.screens.auth.AuthViewModel
 import com.swastricare.health.ui.theme.SwastriCareTheme
+import dagger.hilt.android.AndroidEntryPoint
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.handleDeeplinks
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+
+    @Inject lateinit var notificationService: com.swastricare.health.data.services.NotificationService
+    @Inject lateinit var supabaseClient: SupabaseClient
 
     // AuthViewModel obtained at Activity level so deep link callbacks can call it
     // outside of Compose composition (e.g. from onNewIntent).
@@ -48,7 +54,7 @@ class MainActivity : FragmentActivity() {
     ) { granted ->
         if (granted) {
             CoroutineScope(Dispatchers.Default).launch {
-                AppContainer.notificationService.scheduleAllNotifications()
+                notificationService.scheduleAllNotifications()
             }
         }
     }
@@ -56,8 +62,6 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
-        // AppContainer is already initialized in SwastriCareApplication.onCreate()
 
         // Request POST_NOTIFICATIONS permission on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -140,7 +144,7 @@ class MainActivity : FragmentActivity() {
         // Handle Supabase auth callbacks (email verification, OAuth redirect)
         if (uri.scheme == "swastricareapp" && uri.host == "auth-callback") {
             try {
-                AppContainer.supabaseClient.handleDeeplinks(intent = intent) { session ->
+                supabaseClient.handleDeeplinks(intent = intent) { session ->
                     Log.d("Auth", "Deep link auth session established for: ${session.user?.email}")
                     CoroutineScope(Dispatchers.Main).launch {
                         authViewModel.onAuthCallback()

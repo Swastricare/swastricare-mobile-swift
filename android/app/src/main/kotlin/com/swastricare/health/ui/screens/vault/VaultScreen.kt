@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import com.swastricare.health.data.model.MedicalDocument
@@ -39,7 +39,7 @@ import com.swastricare.health.ui.theme.AppColors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VaultScreen(
-    viewModel: VaultViewModel = viewModel(),
+    viewModel: VaultViewModel = hiltViewModel(),
     onNavigateToViewer: ((MedicalDocument) -> Unit)? = null,
     onNavigateToAIChat: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null

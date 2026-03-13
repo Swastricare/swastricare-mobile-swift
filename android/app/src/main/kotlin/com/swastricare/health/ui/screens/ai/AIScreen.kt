@@ -54,7 +54,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.data.models.ChatMessage
 import com.swastricare.health.data.models.HealthMetrics
 import com.swastricare.health.data.models.QuickAction
@@ -75,7 +75,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIScreen(
-    viewModel: AIViewModel = viewModel()
+    viewModel: AIViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
