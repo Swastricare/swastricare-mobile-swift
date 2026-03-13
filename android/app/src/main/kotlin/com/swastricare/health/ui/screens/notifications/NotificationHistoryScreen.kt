@@ -24,10 +24,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import kotlinx.coroutines.delay
@@ -99,11 +102,12 @@ data class NotificationHistoryState(
     val isEmpty: Boolean get() = records.isEmpty() && !isLoading
 }
 
-class NotificationHistoryViewModel : ViewModel() {
+@HiltViewModel
+class NotificationHistoryViewModel @Inject constructor(
+    private val prefs: SharedPreferences
+) : ViewModel() {
     private val _uiState = MutableStateFlow(NotificationHistoryState())
     val uiState: StateFlow<NotificationHistoryState> = _uiState.asStateFlow()
-
-    private val prefs = AppContainer.sharedPreferences
 
     init {
         loadHistory()
@@ -192,7 +196,7 @@ class NotificationHistoryViewModel : ViewModel() {
 fun NotificationHistoryScreen(
     onNavigateBack: () -> Unit
 ) {
-    val vm: NotificationHistoryViewModel = remember { NotificationHistoryViewModel() }
+    val vm: NotificationHistoryViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }
 

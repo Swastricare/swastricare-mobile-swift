@@ -2,7 +2,9 @@ package com.swastricare.health.util
 
 import com.swastricare.health.data.models.HydrationEntry
 import com.swastricare.health.data.models.HydrationPreferences
-import com.swastricare.health.domain.model.Auth
+import com.swastricare.health.domain.model.AuthCredentials
+import com.swastricare.health.domain.model.SignUpData
+import com.swastricare.health.domain.model.User
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -24,16 +26,12 @@ object MockFactory {
         amountMl: Int = 250,
         drinkType: String = "water",
         consumedAt: String = LocalDateTime.now().format(isoFormatter),
-        synced: Boolean = false,
-        healthProfileId: String = "test-profile-id",
         effectiveMl: Int = amountMl
     ) = HydrationEntry(
         id = id,
         amountMl = amountMl,
         drinkType = drinkType,
         consumedAt = consumedAt,
-        synced = synced,
-        healthProfileId = healthProfileId,
         effectiveMl = effectiveMl
     )
 
@@ -49,36 +47,42 @@ object MockFactory {
 
     fun createHydrationPreferences(
         weightKg: Double = 70.0,
-        gender: String = "male",
-        activityLevel: String = "moderate",
-        climate: String = "temperate"
+        activityLevel: String = "moderate"
     ) = HydrationPreferences(
         weightKg = weightKg,
-        gender = gender,
-        activityLevel = activityLevel,
-        climate = climate
+        activityLevel = activityLevel
     )
 
     // ─────────────────────────────────────
     // MARK: - Auth Test Data
     // ─────────────────────────────────────
 
-    fun createAuthUser(
+    fun createUser(
         id: String = "test-user-id",
         email: String = "test@example.com"
-    ) = Auth.User(
+    ) = User(
         id = id,
         email = email
     )
 
-    fun createAuthSession(
-        accessToken: String = "test-access-token",
-        refreshToken: String = "test-refresh-token",
-        user: Auth.User = createAuthUser()
-    ) = Auth.Session(
-        accessToken = accessToken,
-        refreshToken = refreshToken,
-        user = user
+    fun createAuthCredentials(
+        email: String = TEST_EMAIL,
+        password: String = "testPassword123"
+    ) = AuthCredentials(
+        email = email,
+        password = password
+    )
+
+    fun createSignUpData(
+        email: String = TEST_EMAIL,
+        password: String = "testPassword123",
+        fullName: String = "Test User",
+        phone: String = ""
+    ) = SignUpData(
+        email = email,
+        password = password,
+        fullName = fullName,
+        phone = phone
     )
 
     // ─────────────────────────────────────

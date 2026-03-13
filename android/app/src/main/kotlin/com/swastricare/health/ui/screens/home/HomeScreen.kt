@@ -1,6 +1,8 @@
 package com.swastricare.health.ui.screens.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -321,6 +323,7 @@ fun HomeScreen(
                                     )
                                 )
                             )
+                            .semantics { contentDescription = "Health Analytics" }
                             .clickable { onNavigateToAnalytics() }
                             .padding(horizontal = 20.dp, vertical = 16.dp)
                     ) {

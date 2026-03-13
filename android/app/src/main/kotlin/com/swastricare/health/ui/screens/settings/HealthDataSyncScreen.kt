@@ -25,9 +25,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.swastricare.health.data.services.HealthConnectService
-import com.swastricare.health.di.AppContainer
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -97,9 +98,10 @@ data class HealthDataSyncUiState(
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 
-class HealthDataSyncViewModel : ViewModel() {
-
-    private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
+@HiltViewModel
+class HealthDataSyncViewModel @Inject constructor(
+    private val healthConnectService: HealthConnectService
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HealthDataSyncUiState())
     val uiState: StateFlow<HealthDataSyncUiState> = _uiState.asStateFlow()
@@ -142,7 +144,7 @@ class HealthDataSyncViewModel : ViewModel() {
 fun HealthDataSyncScreen(
     onNavigateBack: () -> Unit,
     onNavigateTo: (HealthAppId) -> Unit,
-    viewModel: HealthDataSyncViewModel = viewModel()
+    viewModel: HealthDataSyncViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current

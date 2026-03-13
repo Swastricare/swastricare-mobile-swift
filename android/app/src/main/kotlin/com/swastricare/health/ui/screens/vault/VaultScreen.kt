@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import com.swastricare.health.data.model.MedicalDocument
+import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.VaultCategory
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
@@ -417,28 +418,22 @@ fun VaultScreen(
         }
 
         // Add Document Sheet (single file)
-        if (uiState.showAddSheet && pendingFileData != null) {
-            ModalBottomSheet(
-                onDismissRequest = { viewModel.setShowAddSheet(false) },
-                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            ) {
-                AddDocumentSheet(
-                    fileName = pendingFileName,
-                    fileSize = pendingFileSize,
-                    onUpload = { name, category, metadata ->
-                        pendingFileData?.let { data ->
-                            viewModel.uploadDocument(
-                                fileData = data,
-                                fileName = pendingFileName,
-                                category = category,
-                                metadata = metadata
-                            )
-                        }
-                    },
-                    onDismiss = { viewModel.setShowAddSheet(false) }
-                )
-            }
-        }
+        AddDocumentBottomSheet(
+            show = uiState.showAddSheet && pendingFileData != null,
+            fileName = pendingFileName,
+            fileSize = pendingFileSize,
+            onUpload = { name, category, metadata ->
+                pendingFileData?.let { data ->
+                    viewModel.uploadDocument(
+                        fileData = data,
+                        fileName = pendingFileName,
+                        category = category,
+                        metadata = metadata
+                    )
+                }
+            },
+            onDismiss = { viewModel.setShowAddSheet(false) }
+        )
 
         // Document Detail Sheet
         var detailImageUrl by remember { mutableStateOf<String?>(null) }
@@ -454,44 +449,37 @@ fun VaultScreen(
             }
         }
 
-        if (uiState.selectedDocumentDetail != null) {
-            ModalBottomSheet(
-                onDismissRequest = { viewModel.selectDocumentForDetail(null) },
-                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            ) {
-                DocumentDetailSheet(
-                    document = uiState.selectedDocumentDetail!!,
-                    signedImageUrl = detailImageUrl,
-                    isEditMode = uiState.isEditMode,
-                    aiAnalysisResult = uiState.aiAnalysisResult,
-                    isAnalyzingAI = uiState.isAnalyzingAI,
-                    onDismiss = { viewModel.selectDocumentForDetail(null) },
-                    onViewDocument = { doc ->
-                        viewModel.selectDocumentForDetail(null)
-                        viewModel.openDocumentViewer(doc) { resolvedDoc ->
-                            if (onNavigateToViewer != null) onNavigateToViewer(resolvedDoc)
-                            else viewingDocument = resolvedDoc
-                        }
-                    },
-                    onToggleEditMode = { viewModel.setEditMode(it) },
-                    onSaveChanges = { id, title, category, notes, tags, doctorName, location, appointmentDate ->
-                        viewModel.updateDocumentMetadata(id, title, category, notes, tags, doctorName, location, appointmentDate)
-                    },
-                    onDeleteDocument = { doc ->
-                        doc.id?.let { viewModel.deleteDocument(it) }
-                    },
-                    onAskAI = { viewModel.analyzeDocumentWithAI(it) },
-                    onContinueInAIChat = { doc, analysis ->
-                        com.swastricare.health.ui.screens.ai.PendingAIContext.set(
-                            title = doc.title,
-                            analysis = analysis
-                        )
-                        viewModel.selectDocumentForDetail(null)
-                        onNavigateToAIChat?.invoke()
-                    }
+        DocumentDetailBottomSheet(
+            document = uiState.selectedDocumentDetail,
+            signedImageUrl = detailImageUrl,
+            isEditMode = uiState.isEditMode,
+            aiAnalysisResult = uiState.aiAnalysisResult,
+            isAnalyzingAI = uiState.isAnalyzingAI,
+            onDismiss = { viewModel.selectDocumentForDetail(null) },
+            onViewDocument = { doc ->
+                viewModel.selectDocumentForDetail(null)
+                viewModel.openDocumentViewer(doc) { resolvedDoc ->
+                    if (onNavigateToViewer != null) onNavigateToViewer(resolvedDoc)
+                    else viewingDocument = resolvedDoc
+                }
+            },
+            onToggleEditMode = { viewModel.setEditMode(it) },
+            onSaveChanges = { id, title, category, notes, tags, doctorName, location, appointmentDate ->
+                viewModel.updateDocumentMetadata(id, title, category, notes, tags, doctorName, location, appointmentDate)
+            },
+            onDeleteDocument = { doc ->
+                doc.id?.let { viewModel.deleteDocument(it) }
+            },
+            onAskAI = { viewModel.analyzeDocumentWithAI(it) },
+            onContinueInAIChat = { doc, analysis ->
+                com.swastricare.health.ui.screens.ai.PendingAIContext.set(
+                    title = doc.title,
+                    analysis = analysis
                 )
+                viewModel.selectDocumentForDetail(null)
+                onNavigateToAIChat?.invoke()
             }
-        }
+        )
 
         // Snackbar Host (overlays all content)
         SnackbarHost(
@@ -502,24 +490,121 @@ fun VaultScreen(
         )
 
         // Batch Upload Preview Sheet
-        if (uiState.showBatchUploadPreview) {
-            ModalBottomSheet(
-                onDismissRequest = { viewModel.dismissBatchUpload() },
-                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            ) {
-                BatchUploadPreviewSheet(
-                    items = uiState.batchUploadItems,
-                    isUploading = uiState.isUploading,
-                    uploadProgress = uiState.uploadProgress,
-                    onCategoryChange = { index, category ->
-                        viewModel.updateBatchItemCategory(index, category)
-                    },
-                    onRemoveItem = { index -> viewModel.removeBatchItem(index) },
-                    onUploadAll = { viewModel.batchUploadDocuments() },
-                    onDismiss = { viewModel.dismissBatchUpload() }
-                )
-            }
-        }
+        BatchUploadBottomSheet(
+            show = uiState.showBatchUploadPreview,
+            items = uiState.batchUploadItems,
+            isUploading = uiState.isUploading,
+            uploadProgress = uiState.uploadProgress,
+            onCategoryChange = { index, category ->
+                viewModel.updateBatchItemCategory(index, category)
+            },
+            onRemoveItem = { index -> viewModel.removeBatchItem(index) },
+            onUploadAll = { viewModel.batchUploadDocuments() },
+            onDismiss = { viewModel.dismissBatchUpload() }
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Bottom Sheet Wrappers
+// ─────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddDocumentBottomSheet(
+    show: Boolean,
+    fileName: String,
+    fileSize: Long,
+    onUpload: (String, VaultCategory, DocumentMetadata) -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (!show) return
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        AddDocumentSheet(
+            fileName = fileName,
+            fileSize = fileSize,
+            onUpload = onUpload,
+            onDismiss = onDismiss
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DocumentDetailBottomSheet(
+    document: MedicalDocument?,
+    signedImageUrl: String?,
+    isEditMode: Boolean,
+    aiAnalysisResult: String?,
+    isAnalyzingAI: Boolean,
+    onDismiss: () -> Unit,
+    onViewDocument: (MedicalDocument) -> Unit,
+    onToggleEditMode: (Boolean) -> Unit,
+    onSaveChanges: (
+        documentId: String,
+        title: String,
+        category: String,
+        notes: String?,
+        tags: List<String>,
+        doctorName: String?,
+        location: String?,
+        appointmentDate: String?
+    ) -> Unit,
+    onDeleteDocument: (MedicalDocument) -> Unit,
+    onAskAI: (MedicalDocument) -> Unit,
+    onContinueInAIChat: (MedicalDocument, String) -> Unit
+) {
+    if (document == null) return
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        DocumentDetailSheet(
+            document = document,
+            signedImageUrl = signedImageUrl,
+            isEditMode = isEditMode,
+            aiAnalysisResult = aiAnalysisResult,
+            isAnalyzingAI = isAnalyzingAI,
+            onDismiss = onDismiss,
+            onViewDocument = onViewDocument,
+            onToggleEditMode = onToggleEditMode,
+            onSaveChanges = onSaveChanges,
+            onDeleteDocument = onDeleteDocument,
+            onAskAI = onAskAI,
+            onContinueInAIChat = onContinueInAIChat
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BatchUploadBottomSheet(
+    show: Boolean,
+    items: List<BatchUploadItem>,
+    isUploading: Boolean,
+    uploadProgress: Float,
+    onCategoryChange: (Int, VaultCategory) -> Unit,
+    onRemoveItem: (Int) -> Unit,
+    onUploadAll: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (!show) return
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        BatchUploadPreviewSheet(
+            items = items,
+            isUploading = isUploading,
+            uploadProgress = uploadProgress,
+            onCategoryChange = onCategoryChange,
+            onRemoveItem = onRemoveItem,
+            onUploadAll = onUploadAll,
+            onDismiss = onDismiss
+        )
     }
 }
 

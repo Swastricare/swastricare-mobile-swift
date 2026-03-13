@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -20,10 +21,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.swastricare.health.R
-import com.swastricare.health.di.AppContainer
-import com.swastricare.health.di.ONBOARDING_COMPLETE_KEY
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
 // Version checking is handled by AppVersionService in AppNavigation (matches iOS pattern).
@@ -37,6 +35,7 @@ fun SplashScreen(
     onNavigateToOnboarding: () -> Unit
 ) {
     val context = LocalContext.current
+    val splashVm: SplashViewModel = hiltViewModel()
 
     // Fade-out overlay for cinematic exit (matches iOS)
     var fadeOut by remember { mutableStateOf(false) }
@@ -73,8 +72,7 @@ fun SplashScreen(
         // Hold on last frame briefly
         delay(500)
 
-        val prefs = AppContainer.dataStore.data.first()
-        val onboardingDone = prefs[ONBOARDING_COMPLETE_KEY] ?: false
+        val onboardingDone = splashVm.isOnboardingComplete()
 
         fadeOut = true
         delay(400)

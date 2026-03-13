@@ -25,9 +25,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.swastricare.health.data.services.HealthConnectService
-import com.swastricare.health.di.AppContainer
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -50,9 +51,10 @@ data class SamsungHealthUiState(
     val healthConnectGranted: Boolean = false
 )
 
-class SamsungHealthSettingsViewModel : ViewModel() {
-
-    private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
+@HiltViewModel
+class SamsungHealthSettingsViewModel @Inject constructor(
+    private val healthConnectService: HealthConnectService
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SamsungHealthUiState())
     val uiState: StateFlow<SamsungHealthUiState> = _uiState.asStateFlow()
@@ -91,7 +93,7 @@ class SamsungHealthSettingsViewModel : ViewModel() {
 fun SamsungHealthSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToHealthConnect: () -> Unit,
-    viewModel: SamsungHealthSettingsViewModel = viewModel()
+    viewModel: SamsungHealthSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -262,7 +264,7 @@ private fun SamsungHealthInstalledCard(
         ) {
             Icon(
                 Icons.Default.CheckCircle,
-                contentDescription = null,
+                contentDescription = "Installed",
                 tint = Color(0xFF34C759),
                 modifier = Modifier.size(18.dp)
             )

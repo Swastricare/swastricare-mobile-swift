@@ -2,10 +2,15 @@ package com.swastricare.health.data.workers
 
 import android.content.Context
 import android.util.Log
+import androidx.hilt.work.HiltWorker
 import androidx.work.*
-import com.swastricare.health.data.models.CyclePhase
+import com.swastricare.health.data.services.AIService
 import com.swastricare.health.data.services.NotificationService
-import com.swastricare.health.di.AppContainer
+import com.swastricare.health.domain.model.menstrualcycle.CyclePhase
+import com.swastricare.health.domain.model.menstrualcycle.CycleSettings
+import com.swastricare.health.domain.repository.MenstrualCycleRepository
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -13,24 +18,26 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 
-class CycleAINudgeWorker(appContext: Context, params: WorkerParameters) :
-    CoroutineWorker(appContext, params) {
+@HiltWorker
+class CycleAINudgeWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val notificationService: NotificationService,
+    private val menstrualCycleRepository: MenstrualCycleRepository,
+    private val aiService: AIService
+) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            AppContainer.initialize(applicationContext)
-            val notifService = AppContainer.notificationService
-
             // Early exit if cycle notifications are disabled
-            if (!notifService.cycleEnabled) return@withContext Result.success()
+            if (!notificationService.cycleEnabled) return@withContext Result.success()
 
-            val repo = AppContainer.menstrualCycleRepository
-            val cycles = repo.loadLocalCycles()
+            val cycles = menstrualCycleRepository.getCycles().getOrNull() ?: emptyList()
 
             // Early exit if no cycles logged
             if (cycles.isEmpty()) return@withContext Result.success()
 
-            val settings = repo.loadSettings()
+            val settings = menstrualCycleRepository.getSettings().getOrNull() ?: CycleSettings()
             val today = LocalDate.now()
 
             // Find the most recent cycle (sorted descending by start date)
@@ -42,15 +49,20 @@ class CycleAINudgeWorker(appContext: Context, params: WorkerParameters) :
             if (dayInCycle < 1) return@withContext Result.success() // future-dated cycle start
             val daysUntilPeriod = (cycleLength - dayInCycle).coerceAtLeast(0)
 
-            val currentPhase = repo.detectCurrentPhase(cycles, settings)
-            val predictions = repo.calculatePredictions(cycles, settings)
-            val stats = repo.calculateStatistics(cycles)
+            val currentPhase = menstrualCycleRepository.getCurrentPhase().getOrNull()
+                ?: CyclePhase.UNKNOWN
+            val predictions = menstrualCycleRepository.getPrediction().getOrNull()
+            val stats = menstrualCycleRepository.getStatistics().getOrNull()
+                ?: return@withContext Result.success()
 
             val isFertile = predictions?.let { p ->
                 !today.isBefore(p.fertileWindowStart) && !today.isAfter(p.fertileWindowEnd)
             } ?: false
 
-            val logs = repo.loadLocalDailyLogs()
+            // Fetch recent logs (last 30 days), then filter to last 3 days in the worker
+            val recentStart = today.minusDays(30)
+            val logs = menstrualCycleRepository.getDailyLogs(recentStart, today).getOrNull()
+                ?: emptyList()
 
             // Last 3 days of logs
             val recentLogs = logs.filter { ChronoUnit.DAYS.between(it.date, today) in 0..2 }
@@ -97,14 +109,14 @@ class CycleAINudgeWorker(appContext: Context, params: WorkerParameters) :
             """.trimIndent()
 
             val message = try {
-                AppContainer.aiService.sendChatMessage(prompt, emptyList())
+                aiService.sendChatMessage(prompt, emptyList())
                     .trim()
             } catch (e: Exception) {
                 Log.w(TAG, "AI call failed, using static fallback: ${e.message}")
                 staticFallback(currentPhase)
             }
 
-            notifService.showNotification(
+            notificationService.showNotification(
                 channelId = NotificationService.CHANNEL_CYCLE,
                 notificationId = NotificationService.NOTIF_CYCLE_LOG,
                 title = "Today's Cycle Tip",

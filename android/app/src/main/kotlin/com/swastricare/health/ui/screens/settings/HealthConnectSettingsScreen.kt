@@ -26,9 +26,10 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.swastricare.health.data.services.HealthConnectService
-import com.swastricare.health.di.AppContainer
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -62,9 +63,10 @@ data class HealthConnectSettingsUiState(
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 
-class HealthConnectSettingsViewModel : ViewModel() {
-
-    private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
+@HiltViewModel
+class HealthConnectSettingsViewModel @Inject constructor(
+    private val healthConnectService: HealthConnectService
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HealthConnectSettingsUiState())
     val uiState: StateFlow<HealthConnectSettingsUiState> = _uiState.asStateFlow()
@@ -197,10 +199,18 @@ private val permissionGroups = listOf(
 @Composable
 fun HealthConnectSettingsScreen(
     onNavigateBack: () -> Unit,
-    viewModel: HealthConnectSettingsViewModel = viewModel()
+    viewModel: HealthConnectSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { msg ->
+            snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
+            viewModel.clearError()
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = PermissionController.createRequestPermissionResultContract()
@@ -303,6 +313,11 @@ fun HealthConnectSettingsScreen(
                 }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp)
+        )
     }
 }
 

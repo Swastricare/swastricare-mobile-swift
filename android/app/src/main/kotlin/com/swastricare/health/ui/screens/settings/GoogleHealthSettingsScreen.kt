@@ -24,9 +24,10 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.swastricare.health.data.services.HealthConnectService
-import com.swastricare.health.di.AppContainer
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -106,9 +107,10 @@ data class GoogleHealthUiState(
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 
-class GoogleHealthSettingsViewModel : ViewModel() {
-
-    private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
+@HiltViewModel
+class GoogleHealthSettingsViewModel @Inject constructor(
+    private val healthConnectService: HealthConnectService
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GoogleHealthUiState())
     val uiState: StateFlow<GoogleHealthUiState> = _uiState.asStateFlow()
@@ -146,7 +148,7 @@ class GoogleHealthSettingsViewModel : ViewModel() {
 fun GoogleHealthSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToHealthConnect: () -> Unit,
-    viewModel: GoogleHealthSettingsViewModel = viewModel()
+    viewModel: GoogleHealthSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

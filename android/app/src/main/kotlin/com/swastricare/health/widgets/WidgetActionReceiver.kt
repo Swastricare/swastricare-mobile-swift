@@ -3,11 +3,10 @@ package com.swastricare.health.widgets
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.updateAll
 import com.swastricare.health.data.models.DrinkType
 import com.swastricare.health.data.models.HydrationEntry
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,8 +46,11 @@ class WidgetActionReceiver : BroadcastReceiver() {
         val amountMl = intent.getIntExtra(EXTRA_WATER_AMOUNT, 250)
 
         try {
-            // Initialize AppContainer if needed
-            AppContainer.initialize(context)
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                WidgetEntryPoint::class.java
+            )
+            val hydrationRepository = entryPoint.hydrationRepository()
 
             val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
             val effectiveMl = (amountMl * DrinkType.WATER.hydrationMultiplier).toInt()
@@ -60,10 +62,10 @@ class WidgetActionReceiver : BroadcastReceiver() {
                 consumedAt = LocalDateTime.now().format(isoFormatter),
                 synced = false
             )
-            AppContainer.hydrationRepository.addLocalEntry(entry)
+            hydrationRepository.addLocalEntry(entry)
 
             // Update widget data
-            val entries = AppContainer.hydrationRepository.loadLocalEntries()
+            val entries = hydrationRepository.loadLocalEntries()
             val todayStr = java.time.LocalDate.now().toString()
             val todayTotal = entries
                 .filter { it.consumedAt.startsWith(todayStr) }
@@ -81,10 +83,15 @@ class WidgetActionReceiver : BroadcastReceiver() {
         val scheduleId = intent.getStringExtra(EXTRA_SCHEDULE_ID) ?: return
 
         try {
-            AppContainer.initialize(context)
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                WidgetEntryPoint::class.java
+            )
+            val authRepository = entryPoint.authRepository()
+            val medicationRepository = entryPoint.medicationRepository()
 
-            val profileId = AppContainer.authRepository.currentUser?.id ?: return
-            AppContainer.medicationRepository.markAsTaken(
+            val profileId = authRepository.currentUser?.id ?: return
+            medicationRepository.markAsTaken(
                 medicationId = medicationId,
                 scheduleId = scheduleId,
                 profileId = profileId,

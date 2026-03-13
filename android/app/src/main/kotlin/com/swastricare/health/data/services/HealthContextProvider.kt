@@ -2,12 +2,13 @@ package com.swastricare.health.data.services
 
 import android.util.Log
 import com.swastricare.health.data.repository.*
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import java.time.LocalDate
 import java.time.Period
 import java.time.format.DateTimeFormatter
 
-class HealthContextProvider(
+class HealthContextProvider @javax.inject.Inject constructor(
     private val profileRepository: ProfileRepository,
     private val healthConnectService: HealthConnectService,
     private val hydrationRepository: HydrationRepository,
@@ -15,7 +16,8 @@ class HealthContextProvider(
     private val medicationRepository: MedicationRepository,
     private val runActivityRepository: RunActivityRepository,
     private val menstrualCycleRepository: MenstrualCycleRepository,
-    private val vaultRepository: VaultRepository
+    private val vaultRepository: VaultRepository,
+    private val supabaseClient: SupabaseClient
 ) {
     companion object {
         private const val TAG = "HealthContextProvider"
@@ -263,7 +265,7 @@ class HealthContextProvider(
 
     private fun getCurrentUserId(): String? {
         return try {
-            com.swastricare.health.di.AppContainer.supabaseClient.auth.currentUserOrNull()?.id
+            supabaseClient.auth.currentUserOrNull()?.id
         } catch (_: Exception) { null }
     }
 

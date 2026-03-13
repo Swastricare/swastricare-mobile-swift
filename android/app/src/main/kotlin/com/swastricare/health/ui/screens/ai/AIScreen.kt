@@ -145,72 +145,21 @@ fun AIScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 } else {
-                    LazyColumn(
-                        state = listState,
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
-                            ChatBubble(
-                                message = message,
-                                onAnimationComplete = { viewModel.markMessageAnimated(message.id) },
-                                onCopy = { viewModel.onMessageCopied() },
-                                onBookmark = { viewModel.onMessageBookmarked() }
-                            )
-                            // Show health metric card below AI bubble if response discusses health metrics and analysis data exists
-                            val hasHealthMetrics = remember(message.id, message.content) {
-                                containsHealthMetrics(message.content)
-                            }
-                            val completedAnalysis = uiState.analysisState as? AnalysisState.Completed
-                            if (!message.isUser && !message.isLoading && hasHealthMetrics && completedAnalysis != null) {
-                                HealthInsightCard(metrics = completedAnalysis.result.metrics)
-                            }
-                            // Show follow-up chips below the last AI message only
-                            val isLastMessage = index == uiState.messages.size - 1
-                            if (isLastMessage && !message.isUser && !message.isLoading) {
-                                FollowUpChips(
-                                    suggestions = uiState.followUpSuggestions,
-                                    onChipClick = { viewModel.sendFollowUp(it) }
-                                )
+                    ChatMessageList(
+                        messages = uiState.messages,
+                        listState = listState,
+                        analysisState = uiState.analysisState,
+                        followUpSuggestions = uiState.followUpSuggestions,
+                        onMarkMessageAnimated = { viewModel.markMessageAnimated(it) },
+                        onMessageCopied = { viewModel.onMessageCopied() },
+                        onMessageBookmarked = { viewModel.onMessageBookmarked() },
+                        onFollowUpChipClick = { viewModel.sendFollowUp(it) },
+                        onScrollToBottomClick = {
+                            scope.launch {
+                                listState.animateScrollToItem(uiState.messages.size - 1)
                             }
                         }
-                    }
-                    // Scroll-to-bottom FAB
-                    val showScrollFab by remember {
-                        derivedStateOf {
-                            listState.firstVisibleItemIndex < (uiState.messages.size - 2) &&
-                                uiState.messages.size > 2
-                        }
-                    }
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = showScrollFab,
-                        enter = fadeIn() + scaleIn(),
-                        exit = fadeOut() + scaleOut(),
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .glass(cornerRadius = 24.dp)
-                                .clip(CircleShape)
-                                .clickable {
-                                    scope.launch {
-                                        listState.animateScrollToItem(uiState.messages.size - 1)
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.ArrowDownward,
-                                contentDescription = "Scroll to bottom",
-                                tint = PrimaryColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
+                    )
                 }
             }
 
@@ -266,6 +215,91 @@ fun AIScreen(
                 contentColor = AppColors.onErrorContainer
             ) {
                 Text(uiState.error!!)
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - ChatMessageList
+// ─────────────────────────────────────
+
+@Composable
+private fun ChatMessageList(
+    messages: List<ChatMessage>,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    analysisState: AnalysisState,
+    followUpSuggestions: List<String>,
+    onMarkMessageAnimated: (String) -> Unit,
+    onMessageCopied: () -> Unit,
+    onMessageBookmarked: () -> Unit,
+    onFollowUpChipClick: (String) -> Unit,
+    onScrollToBottomClick: () -> Unit
+) {
+    // Scroll-to-bottom FAB visibility — must be computed before Box to avoid snapshot issues
+    val showScrollFab by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex < (messages.size - 2) &&
+                messages.size > 2
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            itemsIndexed(messages, key = { _, msg -> msg.id }) { index, message ->
+                ChatBubble(
+                    message = message,
+                    onAnimationComplete = { onMarkMessageAnimated(message.id) },
+                    onCopy = onMessageCopied,
+                    onBookmark = onMessageBookmarked
+                )
+                // Show health metric card below AI bubble if response discusses health metrics
+                val hasHealthMetrics = remember(message.id, message.content) {
+                    containsHealthMetrics(message.content)
+                }
+                val completedAnalysis = analysisState as? AnalysisState.Completed
+                if (!message.isUser && !message.isLoading && hasHealthMetrics && completedAnalysis != null) {
+                    HealthInsightCard(metrics = completedAnalysis.result.metrics)
+                }
+                // Show follow-up chips below the last AI message only
+                val isLastMessage = index == messages.size - 1
+                if (isLastMessage && !message.isUser && !message.isLoading) {
+                    FollowUpChips(
+                        suggestions = followUpSuggestions,
+                        onChipClick = onFollowUpChipClick
+                    )
+                }
+            }
+        }
+
+        // Scroll-to-bottom FAB
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showScrollFab,
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut() + scaleOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .glass(cornerRadius = 24.dp)
+                    .clip(CircleShape)
+                    .clickable { onScrollToBottomClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.ArrowDownward,
+                    contentDescription = "Scroll to bottom",
+                    tint = PrimaryColor,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

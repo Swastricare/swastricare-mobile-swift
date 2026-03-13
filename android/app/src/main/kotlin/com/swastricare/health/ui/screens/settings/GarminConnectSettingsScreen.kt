@@ -26,9 +26,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.swastricare.health.data.services.HealthConnectService
-import com.swastricare.health.di.AppContainer
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -51,9 +52,10 @@ data class GarminConnectUiState(
     val healthConnectGranted: Boolean = false
 )
 
-class GarminConnectSettingsViewModel : ViewModel() {
-
-    private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
+@HiltViewModel
+class GarminConnectSettingsViewModel @Inject constructor(
+    private val healthConnectService: HealthConnectService
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GarminConnectUiState())
     val uiState: StateFlow<GarminConnectUiState> = _uiState.asStateFlow()
@@ -92,7 +94,7 @@ class GarminConnectSettingsViewModel : ViewModel() {
 fun GarminConnectSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToHealthConnect: () -> Unit,
-    viewModel: GarminConnectSettingsViewModel = viewModel()
+    viewModel: GarminConnectSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current

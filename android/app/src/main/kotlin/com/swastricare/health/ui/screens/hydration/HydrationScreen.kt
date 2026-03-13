@@ -399,12 +399,17 @@ fun HydrationScreen(
         }
 
         // Error snackbar
-        uiState.error?.let { errorMsg ->
-            Snackbar(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                action = { TextButton(onClick = { vm.clearError() }) { Text("Dismiss") } }
-            ) { Text(errorMsg) }
+        val snackbarHostState = remember { SnackbarHostState() }
+        LaunchedEffect(uiState.error) {
+            uiState.error?.let { msg ->
+                snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
+                vm.clearError()
+            }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp)
+        )
 
         // Urine Color Guide Bottom Sheet
         if (showUrineGuide) {

@@ -4,10 +4,13 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.provider.Settings
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.math.abs
 
 /**
@@ -76,8 +79,9 @@ data class AppUpdateCheckResult(
  *
  * Caches results for 1 hour. On error, defaults to UP_TO_DATE.
  */
-class AppVersionService(
-    private val context: Context,
+@Singleton
+class AppVersionService @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val supabaseClient: SupabaseClient
 ) {
     companion object {

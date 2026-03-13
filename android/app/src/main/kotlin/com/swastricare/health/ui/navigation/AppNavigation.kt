@@ -6,7 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.datastore.preferences.core.edit
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -15,9 +15,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.swastricare.health.data.services.AppUpdateCheckResult
 import com.swastricare.health.data.services.AppUpdateStatus
-import com.swastricare.health.di.AppContainer
-import com.swastricare.health.di.CONSENT_ACCEPTED_KEY
-import com.swastricare.health.di.ONBOARDING_COMPLETE_KEY
 import com.swastricare.health.navigation.DeepLinkHandler
 import com.swastricare.health.navigation.DeepLinkRoute
 import com.swastricare.health.ui.screens.ar.ARBodyScanScreen
@@ -30,6 +27,7 @@ import com.swastricare.health.ui.screens.auth.SignUpScreen
 import com.swastricare.health.ui.screens.main.MainScreen
 import com.swastricare.health.ui.screens.onboarding.ConsentScreen
 import com.swastricare.health.ui.screens.onboarding.HealthProfileScreen
+import com.swastricare.health.ui.screens.onboarding.HealthProfileViewModel
 import com.swastricare.health.ui.screens.onboarding.OnboardingScreen
 import com.swastricare.health.ui.screens.splash.SplashScreen
 import com.swastricare.health.ui.screens.update.ForceUpdateScreen
@@ -47,6 +45,7 @@ fun AppNavigation(
     deepLinkRoute: DeepLinkRoute? = null,
     onDeepLinkConsumed: () -> Unit = {}
 ) {
+    val navVm: AppNavigationViewModel = hiltViewModel()
     val navController = rememberNavController()
     val authState by authViewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
@@ -58,19 +57,12 @@ fun AppNavigation(
 
     // Helper to run version check
     suspend fun performVersionCheck() {
-        try {
-            val result = AppContainer.appVersionService.checkForUpdate(
-                AppContainer.currentVersionName,
-                AppContainer.currentVersionCode
-            )
-            updateResult = result
-            if (result.status == AppUpdateStatus.OPTIONAL_UPDATE &&
-                AppContainer.appVersionService.shouldShowOptionalUpdate()
-            ) {
-                showOptionalDialog = true
-            }
-        } catch (_: Exception) {
-            // Version check failure should not block the app
+        val result = navVm.checkForUpdate() ?: return
+        updateResult = result
+        if (result.status == AppUpdateStatus.OPTIONAL_UPDATE &&
+            navVm.shouldShowOptionalUpdate()
+        ) {
+            showOptionalDialog = true
         }
     }
 
@@ -95,7 +87,7 @@ fun AppNavigation(
     // Force Update blocks everything — no way to dismiss
     if (updateResult?.status == AppUpdateStatus.FORCE_UPDATE) {
         ForceUpdateScreen(
-            currentVersion = AppContainer.currentVersionName,
+            currentVersion = navVm.currentVersionName,
             latestVersion = updateResult?.record?.latestVersion ?: "",
             updateTitle = updateResult?.record?.updateTitle,
             updateMessage = updateResult?.record?.updateMessage,
@@ -106,12 +98,12 @@ fun AppNavigation(
 
     // ── Session expiry detection ──
     // When the Supabase refresh token expires mid-session, navigate to login.
-    val isSessionExpired by AppContainer.sessionManager.isSessionExpired.collectAsState()
+    val isSessionExpired by navVm.sessionManager.isSessionExpired.collectAsState()
 
     LaunchedEffect(isSessionExpired) {
         if (isSessionExpired) {
             authViewModel.onSessionExpired()
-            AppContainer.sessionManager.clearExpiredFlag()
+            navVm.sessionManager.clearExpiredFlag()
             navController.navigate("login") {
                 popUpTo(0) { inclusive = true }
             }
@@ -165,8 +157,7 @@ fun AppNavigation(
             ConsentScreen(
                 onAccepted = {
                     scope.launch {
-                        AppContainer.dataStore.edit { it[CONSENT_ACCEPTED_KEY] = true }
-                        AppContainer.dataStore.edit { it[ONBOARDING_COMPLETE_KEY] = true }
+                        navVm.markOnboardingComplete()
                     }
                     navController.navigate("login") {
                         popUpTo("consent") { inclusive = true }
@@ -242,12 +233,13 @@ fun AppNavigation(
 
         // Health Profile Questionnaire
         composable("health_profile") {
+            val healthProfileVm: HealthProfileViewModel = hiltViewModel()
             val userId = authViewModel.uiState.value.let {
                 (it as? AuthUiState.Success)?.user?.id ?: ""
             }
             HealthProfileScreen(
                 userId = userId,
-                profileRepository = AppContainer.profileRepository,
+                profileRepository = healthProfileVm.profileRepository,
                 onCompleted = {
                     navController.navigate("main") {
                         popUpTo("health_profile") { inclusive = true }
@@ -261,7 +253,7 @@ fun AppNavigation(
             MainScreen(
                 onSignOut = {
                     // Clear session manager first to prevent double-trigger
-                    AppContainer.sessionManager.clearExpiredFlag()
+                    navVm.sessionManager.clearExpiredFlag()
                     authViewModel.signOut()
                     navController.navigate("login") {
                         popUpTo("main") { inclusive = true }
@@ -291,7 +283,7 @@ fun AppNavigation(
             storeUrl = updateResult?.record?.updateUrl,
             onDismiss = {
                 showOptionalDialog = false
-                AppContainer.appVersionService.dismissOptionalUpdate()
+                navVm.dismissOptionalUpdate()
             }
         )
     }

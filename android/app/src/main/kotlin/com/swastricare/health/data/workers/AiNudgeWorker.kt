@@ -2,12 +2,16 @@ package com.swastricare.health.data.workers
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Log
+import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.swastricare.health.MainActivity
 import com.swastricare.health.data.services.NotificationService
-import com.swastricare.health.di.AppContainer
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
@@ -15,8 +19,14 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import java.util.concurrent.TimeUnit
 
-class AiNudgeWorker(appContext: Context, params: WorkerParameters) :
-    CoroutineWorker(appContext, params) {
+@HiltWorker
+class AiNudgeWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val notificationService: NotificationService,
+    private val sharedPreferences: SharedPreferences,
+    private val supabaseClient: SupabaseClient
+) : CoroutineWorker(context, params) {
 
     @Serializable
     private data class AiNudgeRow(
@@ -30,14 +40,12 @@ class AiNudgeWorker(appContext: Context, params: WorkerParameters) :
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            AppContainer.initialize(applicationContext)
-            val notifService = AppContainer.notificationService
-            if (!notifService.aiNudgeEnabled) return@withContext Result.success()
+            if (!notificationService.aiNudgeEnabled) return@withContext Result.success()
 
-            val userId = AppContainer.sharedPreferences.getString("current_user_id", null)
+            val userId = sharedPreferences.getString("current_user_id", null)
                 ?: return@withContext Result.success()
 
-            val nudges = AppContainer.supabaseClient
+            val nudges = supabaseClient
                 .from("ai_nudges")
                 .select {
                     filter {
@@ -64,7 +72,7 @@ class AiNudgeWorker(appContext: Context, params: WorkerParameters) :
                     )
                 }
 
-                notifService.showNotification(
+                notificationService.showNotification(
                     channelId = NotificationService.CHANNEL_AI_NUDGE,
                     notificationId = notifId,
                     title = nudge.title,
@@ -73,7 +81,7 @@ class AiNudgeWorker(appContext: Context, params: WorkerParameters) :
                 )
 
                 try {
-                    AppContainer.supabaseClient.from("ai_nudges").update({
+                    supabaseClient.from("ai_nudges").update({
                         set("push_sent", true)
                     }) { filter { eq("id", nudge.id) } }
                 } catch (e: Exception) {

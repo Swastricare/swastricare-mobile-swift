@@ -46,6 +46,8 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     // Handle sign out navigation
     LaunchedEffect(signOutEvent) {
         if (signOutEvent) {
@@ -54,29 +56,43 @@ fun ProfileScreen(
         }
     }
 
-    ProfileScreenContent(
-        uiState = uiState,
-        memberSince = viewModel.memberSince,
-        profileAge = viewModel.profileAge,
-        profileBMI = viewModel.profileBMI,
-        appVersion = viewModel.appVersion,
-        onRefreshHealthProfile = viewModel::refreshHealthProfile,
-        onEditProfile = {
-            viewModel.initEditForm()
-            onNavigateToEditProfile()
-        },
-        onNotificationToggle = onNavigateToNotificationSettings,
-        onBiometricToggle = viewModel::toggleBiometric,
-        onSyncToggle = viewModel::toggleHealthSync,
-        onSignOutClick = { viewModel.setShowSignOutConfirmation(true) },
-        onDeleteAccountClick = { viewModel.setShowDeleteAccountConfirmation(true) },
-        onConfirmSignOut = viewModel::signOut,
-        onConfirmDeleteAccount = viewModel::deleteAccount,
-        onDismissSignOutDialog = { viewModel.setShowSignOutConfirmation(false) },
-        onDismissDeleteAccountDialog = { viewModel.setShowDeleteAccountConfirmation(false) },
-        onNavigateToFamily = onNavigateToFamily,
-        onNavigateToSettings = onNavigateToSettings
-    )
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { msg ->
+            snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
+            viewModel.clearError()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        ProfileScreenContent(
+            uiState = uiState,
+            memberSince = viewModel.memberSince,
+            profileAge = viewModel.profileAge,
+            profileBMI = viewModel.profileBMI,
+            appVersion = viewModel.appVersion,
+            onRefreshHealthProfile = viewModel::refreshHealthProfile,
+            onEditProfile = {
+                viewModel.initEditForm()
+                onNavigateToEditProfile()
+            },
+            onNotificationToggle = onNavigateToNotificationSettings,
+            onBiometricToggle = viewModel::toggleBiometric,
+            onSyncToggle = viewModel::toggleHealthSync,
+            onSignOutClick = { viewModel.setShowSignOutConfirmation(true) },
+            onDeleteAccountClick = { viewModel.setShowDeleteAccountConfirmation(true) },
+            onConfirmSignOut = viewModel::signOut,
+            onConfirmDeleteAccount = viewModel::deleteAccount,
+            onDismissSignOutDialog = { viewModel.setShowSignOutConfirmation(false) },
+            onDismissDeleteAccountDialog = { viewModel.setShowDeleteAccountConfirmation(false) },
+            onNavigateToFamily = onNavigateToFamily,
+            onNavigateToSettings = onNavigateToSettings
+        )
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp)
+        )
+    }
 }
 
 @Composable

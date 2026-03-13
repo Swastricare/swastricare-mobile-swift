@@ -1,6 +1,8 @@
 package com.swastricare.health.ui.screens.settings
 
 import androidx.compose.animation.core.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -244,74 +246,22 @@ fun SettingsScreen(
         }
 
         // Dialogs
-        if (uiState.showSignOutConfirmation) {
-            AlertDialog(
-                onDismissRequest = { viewModel.setShowSignOutConfirmation(false) },
-                title = { Text("Sign Out") },
-                text = { Text("Are you sure you want to sign out?") },
-                confirmButton = {
-                    TextButton(
-                        onClick = { viewModel.signOut() },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = AppColors.error
-                        )
-                    ) {
-                        Text("Sign Out")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.setShowSignOutConfirmation(false) }) {
-                        Text("Cancel")
-                    }
-                },
-                containerColor = AppColors.surface,
-                titleContentColor = AppColors.onSurface,
-                textContentColor = AppColors.onSurfaceVariant
-            )
-        }
+        SettingsSignOutDialog(
+            show = uiState.showSignOutConfirmation,
+            onDismiss = { viewModel.setShowSignOutConfirmation(false) },
+            onConfirm = { viewModel.signOut() }
+        )
 
-        if (uiState.showDeleteAccountConfirmation) {
-            AlertDialog(
-                onDismissRequest = { viewModel.setShowDeleteAccountConfirmation(false) },
-                title = { Text("Delete Account") },
-                text = { Text("This action cannot be undone. All your data will be permanently deleted.") },
-                confirmButton = {
-                    TextButton(
-                        onClick = { viewModel.deleteAccount() },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = AppColors.error
-                        )
-                    ) {
-                        Text("Delete")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.setShowDeleteAccountConfirmation(false) }) {
-                        Text("Cancel")
-                    }
-                },
-                containerColor = AppColors.surface,
-                titleContentColor = AppColors.onSurface,
-                textContentColor = AppColors.onSurfaceVariant
-            )
-        }
+        SettingsDeleteAccountDialog(
+            show = uiState.showDeleteAccountConfirmation,
+            onDismiss = { viewModel.setShowDeleteAccountConfirmation(false) },
+            onConfirm = { viewModel.deleteAccount() }
+        )
 
-        // Error dialog
-        if (uiState.errorMessage != null) {
-            AlertDialog(
-                onDismissRequest = { viewModel.clearError() },
-                title = { Text("Error") },
-                text = { Text(uiState.errorMessage ?: "") },
-                confirmButton = {
-                    TextButton(onClick = { viewModel.clearError() }) {
-                        Text("OK")
-                    }
-                },
-                containerColor = AppColors.surface,
-                titleContentColor = AppColors.onSurface,
-                textContentColor = AppColors.onSurfaceVariant
-            )
-        }
+        SettingsErrorDialog(
+            errorMessage = uiState.errorMessage,
+            onDismiss = { viewModel.clearError() }
+        )
     }
 }
 
@@ -920,6 +870,7 @@ private fun SettingsSignOutButton(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .glass()
+            .semantics { contentDescription = "Sign Out" }
             .clickable(enabled = !isLoading) { onClick() }
             .padding(16.dp),
         contentAlignment = Alignment.Center
@@ -969,6 +920,7 @@ private fun SettingsDeleteAccountButton(
                 .fillMaxWidth()
                 .padding(vertical = 6.dp)
                 .glass()
+                .semantics { contentDescription = "Delete Account" }
                 .clickable(enabled = !isLoading) { onClick() }
                 .padding(16.dp),
             contentAlignment = Alignment.Center
@@ -1092,5 +1044,92 @@ private fun SettingsShimmerRow() {
                 .background(brush)
         )
     }
+}
+
+// MARK: - Dialog Composables
+
+@Composable
+private fun SettingsSignOutDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    if (!show) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sign Out") },
+        text = { Text("Are you sure you want to sign out?") },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = AppColors.error
+                )
+            ) {
+                Text("Sign Out")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        containerColor = AppColors.surface,
+        titleContentColor = AppColors.onSurface,
+        textContentColor = AppColors.onSurfaceVariant
+    )
+}
+
+@Composable
+private fun SettingsDeleteAccountDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    if (!show) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Account") },
+        text = { Text("This action cannot be undone. All your data will be permanently deleted.") },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = AppColors.error
+                )
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        containerColor = AppColors.surface,
+        titleContentColor = AppColors.onSurface,
+        textContentColor = AppColors.onSurfaceVariant
+    )
+}
+
+@Composable
+private fun SettingsErrorDialog(
+    errorMessage: String?,
+    onDismiss: () -> Unit
+) {
+    if (errorMessage == null) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Error") },
+        text = { Text(errorMessage) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK")
+            }
+        },
+        containerColor = AppColors.surface,
+        titleContentColor = AppColors.onSurface,
+        textContentColor = AppColors.onSurfaceVariant
+    )
 }
 

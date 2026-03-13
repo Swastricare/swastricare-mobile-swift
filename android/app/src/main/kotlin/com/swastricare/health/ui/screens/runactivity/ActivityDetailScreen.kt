@@ -29,13 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.data.services.GpxExporter
 import com.swastricare.health.data.model.HeartRatePoint
 import com.swastricare.health.data.model.RoutePoint
 import com.swastricare.health.data.model.SplitData
 import com.swastricare.health.data.model.WorkoutDetail
 import com.swastricare.health.data.models.RunActivity
-import com.swastricare.health.di.AppContainer
 import com.swastricare.health.ui.components.RouteMapView
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
@@ -83,38 +83,17 @@ fun ActivityDetailScreen(
     onDelete: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val viewModel: ActivityDetailViewModel = hiltViewModel()
     var selectedTab by remember { mutableStateOf(DetailTab.OVERVIEW) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isMapExpanded by remember { mutableStateOf(false) }
 
-    var workout by remember { mutableStateOf<WorkoutDetail?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    val uiState by viewModel.uiState.collectAsState()
+    val workout = uiState.workout
+    val isLoading = uiState.isLoading
 
     LaunchedEffect(workoutId) {
-        // Try local first
-        val local = AppContainer.runActivityRepository.loadLocalActivities()
-            .find { it.id == workoutId }?.toWorkoutDetail()
-        if (local != null) {
-            workout = local
-            isLoading = false
-            return@LaunchedEffect
-        }
-
-        // Try Supabase
-        try {
-            val profileId = AppContainer.profileRepository.getHealthProfile(
-                AppContainer.authRepository.currentUser?.id ?: ""
-            )?.id
-            if (profileId != null) {
-                val cloudResult = AppContainer.runActivityRepository
-                    .fetchActivitiesFromCloud(profileId)
-                cloudResult.getOrNull()
-                    ?.find { it.id == workoutId }
-                    ?.toWorkoutDetail()
-                    ?.let { workout = it }
-            }
-        } catch (_: Exception) { }
-        isLoading = false
+        viewModel.loadActivity(workoutId)
     }
 
     when {
@@ -390,7 +369,7 @@ private fun ActivityHeaderCard(
             ) {
                 Icon(
                     imageVector = typeIcon,
-                    contentDescription = null,
+                    contentDescription = typeLabel,
                     tint = typeColor,
                     modifier = Modifier.size(24.dp)
                 )

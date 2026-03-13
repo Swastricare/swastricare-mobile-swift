@@ -46,9 +46,17 @@ fun RunActivityScreen(
     val viewModel: RunActivityViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
     val haptic = LocalHapticFeedback.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Refresh data when screen appears
     LaunchedEffect(Unit) { viewModel.loadData() }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { msg ->
+            snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
+            viewModel.clearError()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         PremiumBackground()
@@ -211,6 +219,11 @@ fun RunActivityScreen(
             // Bottom spacer for navigation bar
             Spacer(Modifier.height(120.dp))
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp)
+        )
     }
 }
 

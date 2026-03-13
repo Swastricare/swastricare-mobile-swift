@@ -8,7 +8,7 @@ import android.net.Uri
 import android.util.Log
 import com.swastricare.health.MainActivity
 import com.swastricare.health.data.models.HydrationEntry
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,8 +24,11 @@ class NotificationReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        AppContainer.initialize(context)
-        val prefs = AppContainer.sharedPreferences
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            NotificationEntryPoint::class.java
+        )
+        val prefs = entryPoint.sharedPreferences()
         val notificationService = NotificationService(context, prefs)
 
         when (intent.action) {
@@ -178,10 +181,11 @@ class NotificationReceiver : BroadcastReceiver() {
                 val scheduleId = intent.getStringExtra("schedule_id") ?: return
                 Log.d(TAG, "Quick action: mark medication $medicationId taken")
                 val profileId = prefs.getString("current_profile_id", "") ?: ""
+                val medicationRepository = entryPoint.medicationRepository()
                 val pendingResult = goAsync()
                 CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
                     try {
-                        AppContainer.medicationRepository.markAsTaken(
+                        medicationRepository.markAsTaken(
                             medicationId = medicationId,
                             scheduleId = scheduleId,
                             profileId = profileId,
