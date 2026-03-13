@@ -8,6 +8,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private val aiJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -52,7 +54,8 @@ interface AIConversationRepository {
 
 // ── Supabase Implementation ──
 
-class SupabaseAIConversationRepository(
+@Singleton
+class SupabaseAIConversationRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val prefs: SharedPreferences
 ) : AIConversationRepository {

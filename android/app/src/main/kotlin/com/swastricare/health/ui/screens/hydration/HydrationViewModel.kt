@@ -5,11 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
 import com.swastricare.health.data.repository.HydrationRepository
 import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.data.repository.SupabaseHydrationRepository
+import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.DrinkingPatternService
+import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.data.services.WeatherData
 import com.swastricare.health.data.services.WeatherService
-import com.swastricare.health.di.AppContainer
+import com.swastricare.health.domain.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +22,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import javax.inject.Inject
 
 // -----------------------------------------------
 // MARK: - UI State
@@ -74,12 +79,15 @@ data class HydrationUiState(
 // MARK: - ViewModel
 // -----------------------------------------------
 
-class HydrationViewModel(
-    private val repository: HydrationRepository,
-    private val profileRepository: ProfileRepository,
-    private val weatherService: WeatherService? = null,
-    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
-    private val patternService: DrinkingPatternService = DrinkingPatternService(AppContainer.sharedPreferences)
+@HiltViewModel
+class HydrationViewModel @Inject constructor(
+    private val repository: SupabaseHydrationRepository,
+    private val profileRepository: SupabaseProfileRepository,
+    private val weatherService: WeatherService,
+    private val analyticsService: AnalyticsService,
+    private val healthConnectService: HealthConnectService,
+    private val authRepository: AuthRepository,
+    private val patternService: DrinkingPatternService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HydrationUiState(isLoading = true))
@@ -152,7 +160,7 @@ class HydrationViewModel(
             repository.addLocalEntry(entry)
             refreshFromLocal()
             launch { syncEntryToCloud(entry) }
-            launch { AppContainer.healthConnectService.writeHydration(amountMl.toDouble()) }
+            launch { healthConnectService.writeHydration(amountMl.toDouble()) }
         }
     }
 
@@ -191,10 +199,9 @@ class HydrationViewModel(
     // -----------------------------------------------
 
     private fun fetchWeatherAdjustment() {
-        val service = weatherService ?: return
         viewModelScope.launch {
             try {
-                val weather = service.getCurrentWeather()
+                val weather = weatherService.getCurrentWeather()
                 val factor = if (weather != null && weather.temperatureCelsius > WeatherService.HOT_WEATHER_THRESHOLD) {
                     WeatherService.HOT_WEATHER_MULTIPLIER
                 } else {
@@ -291,7 +298,7 @@ class HydrationViewModel(
     }
 
     private suspend fun resolveProfileId(): String? {
-        val userId = AppContainer.authRepository.currentUser?.id ?: return null
+        val userId = authRepository.getCurrentUser()?.id ?: return null
         val healthProfile = profileRepository.getHealthProfile(userId) ?: return null
         return healthProfile.id
     }

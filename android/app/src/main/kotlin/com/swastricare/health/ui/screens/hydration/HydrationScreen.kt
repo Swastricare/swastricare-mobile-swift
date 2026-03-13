@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.DrinkType
 import com.swastricare.health.data.models.QuickAddPreset
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.theme.AppColors
 
 // ─────────────────────────────────────
@@ -42,7 +42,7 @@ fun HydrationScreen(
     onNavigateToAI: () -> Unit,
     onNavigateToSettings: () -> Unit = {}
 ) {
-    val vm = remember { AppContainer.hydrationViewModel }
+    val vm: HydrationViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
 
     // Local state for custom drink input

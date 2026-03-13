@@ -1,6 +1,7 @@
 package com.swastricare.health.ui.screens.runactivity
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.health.connect.client.records.ExerciseSessionRecord
@@ -13,11 +14,13 @@ import com.swastricare.health.data.repository.RunActivityRepository
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.data.services.GpsMode
+import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.data.services.RouteTracker
 import com.swastricare.health.data.services.SavedWorkoutState
 import com.swastricare.health.data.services.WorkoutNotificationService
 import com.swastricare.health.data.services.WorkoutStateManager
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -27,6 +30,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
 
 // ─────────────────────────────────────
 // MARK: - Workout Types
@@ -123,12 +127,15 @@ data class LiveWorkoutUiState(
 // MARK: - ViewModel
 // ─────────────────────────────────────
 
-class LiveWorkoutViewModel(
-    private val context: Context,
+@HiltViewModel
+class LiveWorkoutViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val workoutStateManager: WorkoutStateManager,
-    private val runActivityRepository: RunActivityRepository = AppContainer.runActivityRepository,
-    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
-    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
+    private val runActivityRepository: RunActivityRepository,
+    private val analyticsService: AnalyticsService,
+    private val appAnalyticsService: AppAnalyticsService,
+    private val sharedPreferences: SharedPreferences,
+    private val healthConnectService: HealthConnectService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LiveWorkoutUiState())
@@ -230,7 +237,7 @@ class LiveWorkoutViewModel(
     // ─────────────────────────────────────
 
     fun loadTemplates() {
-        val templates = WorkoutTemplate.loadTemplates(AppContainer.sharedPreferences)
+        val templates = WorkoutTemplate.loadTemplates(sharedPreferences)
         _uiState.update { it.copy(templates = templates) }
     }
 
@@ -395,7 +402,7 @@ class LiveWorkoutViewModel(
                 ActivityType.CYCLING -> ExerciseSessionRecord.EXERCISE_TYPE_BIKING
                 ActivityType.HIKING -> ExerciseSessionRecord.EXERCISE_TYPE_HIKING
             }
-            AppContainer.healthConnectService.writeExerciseSession(
+            healthConnectService.writeExerciseSession(
                 exerciseType = hcExerciseType,
                 startTime = workoutStartTime ?: Instant.now().minusSeconds(state.elapsedSeconds),
                 endTime = Instant.now(),

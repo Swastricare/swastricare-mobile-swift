@@ -9,10 +9,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.data.services.HeartRateDetector
+import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.data.services.MeasurementPhase
 import com.swastricare.health.data.services.MeasurementState
 import com.swastricare.health.data.services.SignalQuality
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +25,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
 
 // ─────────────────────────────────────
 // MARK: - Data Models
@@ -64,10 +67,12 @@ data class LegacyHeartRateUiState(
 // MARK: - ViewModel
 // ─────────────────────────────────────
 
-class HeartRateViewModel(
-    private val context: Context = AppContainer.context,
-    private val prefs: SharedPreferences = AppContainer.sharedPreferences,
-    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
+@HiltViewModel
+class HeartRateViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val prefs: SharedPreferences,
+    private val appAnalyticsService: AppAnalyticsService,
+    private val healthConnectService: HealthConnectService
 ) : ViewModel() {
 
     companion object {
@@ -206,7 +211,7 @@ class HeartRateViewModel(
 
             // Write to Health Connect
             viewModelScope.launch {
-                AppContainer.healthConnectService.writeHeartRate(result.bpm.toLong())
+                healthConnectService.writeHeartRate(result.bpm.toLong())
             }
         } else {
             Log.w(TAG, "Measurement completed but no result available")

@@ -49,7 +49,8 @@ data class WorkoutRecoveryState(
 // MARK: - Supabase Implementation
 // ------------------------------------
 
-class SupabaseRunActivityRepository(
+@javax.inject.Singleton
+class SupabaseRunActivityRepository @javax.inject.Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val prefs: SharedPreferences
 ) : RunActivityRepository {

@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.ActivityType
 import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.data.models.RunActivity
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -43,7 +43,7 @@ fun RunActivityScreen(
     onNavigateToCalendar: () -> Unit = {},
     onNavigateBack: (() -> Unit)? = null
 ) {
-    val viewModel = AppContainer.runActivityViewModel
+    val viewModel: RunActivityViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
     val haptic = LocalHapticFeedback.current
 

@@ -19,6 +19,7 @@ import com.swastricare.health.domain.model.FoodEntry
 import com.swastricare.health.domain.model.FoodItem
 import com.swastricare.health.domain.repository.DietRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -405,15 +406,15 @@ class DietRepositoryImpl @Inject constructor(
     // MARK: - Helpers
     // ─────────────────────────────────────
 
+    @kotlinx.serialization.Serializable
+    private data class HealthProfileIdRow(val id: String)
+
     private suspend fun resolveHealthProfileId(): String? {
         return try {
-            // This should be injected via AuthRepository in production
-            // For now, we'll use the AppContainer pattern as a fallback
-            val userId = com.swastricare.health.di.AppContainer.authRepository.currentUser?.id
-                ?: return null
-            val profile = com.swastricare.health.di.AppContainer.profileRepository.getHealthProfile(userId)
-                ?: return null
-            profile.id
+            val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return null
+            supabaseClient.from("health_profiles")
+                .select { filter { eq("user_id", userId) } }
+                .decodeSingleOrNull<HealthProfileIdRow>()?.id
         } catch (_: Exception) {
             null
         }

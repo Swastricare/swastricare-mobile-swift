@@ -49,15 +49,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.ModelViewer
 import com.swastricare.health.ui.screens.medications.MedicationsViewModel
 import com.swastricare.health.ui.theme.*
 
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel(),
+    viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToMedications: () -> Unit = {},
     onNavigateToDiet: () -> Unit = {},
     onNavigateToHydration: () -> Unit = {},
@@ -70,7 +69,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-    val medicationsViewModel = remember { AppContainer.medicationsViewModel }
+    val medicationsViewModel: MedicationsViewModel = hiltViewModel()
     val medicationsState by medicationsViewModel.uiState.collectAsState()
 
     // Load medications on first composition

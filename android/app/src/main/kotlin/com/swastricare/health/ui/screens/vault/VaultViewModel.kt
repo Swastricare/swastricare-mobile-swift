@@ -6,18 +6,20 @@ import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.MedicalDocument
 import com.swastricare.health.data.model.VaultCategory
+import com.swastricare.health.data.repository.SupabaseVaultRepository
 import com.swastricare.health.data.repository.VaultRepository
 import com.swastricare.health.data.services.AIService
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.data.services.AppointmentAlarmScheduler
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 data class VaultUiState(
     val documents: List<MedicalDocument> = emptyList(),
@@ -64,12 +66,13 @@ enum class VaultViewMode {
     List, Folders, Timeline
 }
 
-class VaultViewModel(
-    private val repository: VaultRepository = AppContainer.vaultRepository,
-    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
-    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService,
-    private val aiService: AIService = AppContainer.aiService,
-    private val appointmentScheduler: AppointmentAlarmScheduler = AppContainer.appointmentAlarmScheduler
+@HiltViewModel
+class VaultViewModel @Inject constructor(
+    private val repository: SupabaseVaultRepository,
+    private val analyticsService: AnalyticsService,
+    private val appAnalyticsService: AppAnalyticsService,
+    private val aiService: AIService,
+    private val appointmentScheduler: AppointmentAlarmScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VaultUiState())
@@ -173,7 +176,7 @@ class VaultViewModel(
     fun clearSelection() {
         _uiState.update { it.copy(selectedDocuments = emptySet()) }
     }
-    
+
     fun deleteSelectedDocuments() {
         viewModelScope.launch {
              _uiState.update { it.copy(isLoading = true) }
@@ -212,7 +215,7 @@ class VaultViewModel(
             }
         }
     }
-    
+
     fun setShowAddSheet(show: Boolean) {
         _uiState.update { it.copy(showAddSheet = show) }
     }
@@ -399,10 +402,10 @@ class VaultViewModel(
         get() {
             val state = uiState.value
             return state.documents.filter { doc ->
-                val matchesCategory = state.selectedCategory == null || 
+                val matchesCategory = state.selectedCategory == null ||
                     doc.category.equals(state.selectedCategory.title, ignoreCase = true)
-                
-                val matchesSearch = state.searchQuery.isEmpty() || 
+
+                val matchesSearch = state.searchQuery.isEmpty() ||
                     doc.title.contains(state.searchQuery, ignoreCase = true) ||
                     (doc.doctorName?.contains(state.searchQuery, ignoreCase = true) == true) ||
                     (doc.description?.contains(state.searchQuery, ignoreCase = true) == true)
@@ -410,7 +413,7 @@ class VaultViewModel(
                 matchesCategory && matchesSearch
             }
         }
-        
+
     val groupedDocuments: Map<String, List<MedicalDocument>>
         get() = filteredDocuments.groupBy { it.folderName ?: it.documentDate?.substringBefore("T") ?: "Other" }
 }

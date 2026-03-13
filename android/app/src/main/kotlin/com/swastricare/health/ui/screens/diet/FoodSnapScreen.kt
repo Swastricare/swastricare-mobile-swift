@@ -41,7 +41,7 @@ import coil.compose.AsyncImage
 import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.ServingUnit
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.theme.AppColors
 import java.io.File
@@ -71,7 +71,7 @@ fun FoodSnapScreen(
     onDismiss: () -> Unit,
     onNavigateToAddFood: (String) -> Unit
 ) {
-    val vm = remember { AppContainer.dietViewModel }
+    val vm: DietViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     val context = LocalContext.current
 

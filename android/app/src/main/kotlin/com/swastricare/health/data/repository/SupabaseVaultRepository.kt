@@ -4,6 +4,8 @@ import android.util.Log
 import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.MedicalDocument
 import io.github.jan.supabase.SupabaseClient
+import javax.inject.Inject
+import javax.inject.Singleton
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
@@ -21,7 +23,8 @@ import kotlin.time.Duration.Companion.hours
  * Reads/writes to `medical_documents` table and `medical-vault` storage bucket.
  * Mirrors iOS SupabaseManager.swift vault operations.
  */
-class SupabaseVaultRepository(
+@Singleton
+class SupabaseVaultRepository @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) : VaultRepository {
 

@@ -5,7 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -45,7 +45,7 @@ import com.swastricare.health.ui.screens.settings.HealthConnectSettingsScreen
 import com.swastricare.health.ui.screens.settings.HealthDataSyncScreen
 import com.swastricare.health.ui.screens.settings.SamsungHealthSettingsScreen
 import com.swastricare.health.ui.screens.settings.SettingsScreen
-import com.swastricare.health.di.AppContainer
+import com.swastricare.health.ui.screens.runactivity.LiveWorkoutViewModel
 
 /**
  * Navigation graph for the main content area (inside Scaffold).
@@ -295,12 +295,13 @@ fun MainNavGraph(
             )
         ) { backStackEntry ->
             val workoutType = backStackEntry.arguments?.getString(NavArgs.WORKOUT_TYPE) ?: ""
+            val liveWorkoutViewModel: LiveWorkoutViewModel = hiltViewModel()
             if (workoutType.isNotEmpty()) {
                 val wType = try {
                     WorkoutType.valueOf(workoutType.uppercase())
                 } catch (_: IllegalArgumentException) { null }
                 if (wType != null) {
-                    AppContainer.liveWorkoutViewModel.setWorkoutType(wType)
+                    liveWorkoutViewModel.setWorkoutType(wType)
                 }
             }
             LiveWorkoutScreen(
@@ -331,7 +332,6 @@ fun MainNavGraph(
         // ─── Health Analytics ───
         composable("health_analytics") {
             HealthAnalyticsScreen(
-                viewModel = AppContainer.healthAnalyticsViewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) }
             )

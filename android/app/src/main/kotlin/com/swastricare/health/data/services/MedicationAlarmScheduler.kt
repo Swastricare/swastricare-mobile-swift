@@ -7,12 +7,18 @@ import android.content.Intent
 import android.util.Log
 import com.swastricare.health.data.models.MedicationDto
 import com.swastricare.health.data.models.MedicationScheduleDto
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class MedicationAlarmScheduler(private val context: Context) {
+@Singleton
+class MedicationAlarmScheduler @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 

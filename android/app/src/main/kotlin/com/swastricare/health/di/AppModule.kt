@@ -1,13 +1,9 @@
 package com.swastricare.health.di
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.swastricare.health.BuildConfig
 import com.swastricare.health.data.helpers.GoogleAuthHelper
 import com.swastricare.health.data.services.AppAnalyticsService
-import com.swastricare.health.data.services.CrashlyticsService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,33 +35,6 @@ object AppModule {
     }
 
     /**
-     * Provides encrypted SharedPreferences for secure data storage.
-     * Falls back to regular SharedPreferences if encryption is not available.
-     */
-    @Provides
-    @Singleton
-    fun provideSharedPreferences(
-        @ApplicationContext context: Context
-    ): SharedPreferences {
-        return try {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-
-            EncryptedSharedPreferences.create(
-                context,
-                "swastricare_secure_prefs",
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
-        } catch (e: Exception) {
-            // Fallback to regular SharedPreferences if encryption fails
-            context.getSharedPreferences("swastricare_prefs", Context.MODE_PRIVATE)
-        }
-    }
-
-    /**
      * Provides app analytics service backed by Supabase event pipeline.
      */
     @Provides
@@ -77,12 +46,4 @@ object AppModule {
         return AppAnalyticsService(context, supabaseClient)
     }
 
-    /**
-     * Provides Firebase Crashlytics service.
-     */
-    @Provides
-    @Singleton
-    fun provideCrashlyticsService(): CrashlyticsService {
-        return CrashlyticsService()
-    }
 }

@@ -32,23 +32,6 @@ import com.swastricare.health.data.services.SessionManager
 import com.swastricare.health.data.services.WeatherService
 import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.data.services.WorkoutStateManager
-import com.swastricare.health.domain.usecase.family.AcceptInvitationUseCase
-import com.swastricare.health.domain.usecase.family.CreateFamilyGroupUseCase
-import com.swastricare.health.domain.usecase.family.GetFamilyMembersUseCase
-import com.swastricare.health.domain.usecase.family.InviteMemberUseCase
-import com.swastricare.health.domain.usecase.family.LeaveFamilyGroupUseCase
-import com.swastricare.health.domain.usecase.family.RemoveMemberUseCase
-import com.swastricare.health.domain.usecase.family.UpdatePermissionsUseCase
-import com.swastricare.health.ui.screens.auth.AuthViewModel
-import com.swastricare.health.ui.screens.diet.DietViewModel
-import com.swastricare.health.ui.screens.family.FamilyViewModel
-import com.swastricare.health.ui.screens.heartrate.HeartRateViewModel
-import com.swastricare.health.ui.screens.hydration.HydrationViewModel
-import com.swastricare.health.ui.screens.medications.MedicationsViewModel
-import com.swastricare.health.ui.screens.menstrualcycle.MenstrualCycleViewModel
-import com.swastricare.health.ui.screens.analytics.HealthAnalyticsViewModel
-import com.swastricare.health.ui.screens.runactivity.LiveWorkoutViewModel
-import com.swastricare.health.ui.screens.runactivity.RunActivityViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
@@ -109,10 +92,7 @@ object AppContainer {
         SupabaseAuthRepository(supabaseClient, sharedPreferences)
     }
 
-    // Auth ViewModel
-    val authViewModel: AuthViewModel by lazy {
-        AuthViewModel(authRepository, googleAuthHelper)
-    }
+    // Auth ViewModel is now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     // Shared preferences — encrypted at rest (AES-256-GCM) with automatic migration
     // from the old plain-text "swastricare_prefs" file on first launch after upgrade.
@@ -277,25 +257,19 @@ object AppContainer {
         SupabaseMedicationRepository(supabaseClient, sharedPreferences)
     }
 
-    val medicationsViewModel: MedicationsViewModel by lazy {
-        MedicationsViewModel(medicationRepository, profileRepository)
-    }
+    // MedicationsViewModel is now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     val dietRepository: DietRepository by lazy {
         SupabaseDietRepository(supabaseClient, sharedPreferences)
     }
 
-    val dietViewModel: DietViewModel by lazy {
-        DietViewModel(dietRepository, profileRepository)
-    }
+    // DietViewModel is now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     val hydrationRepository: HydrationRepository by lazy {
         SupabaseHydrationRepository(supabaseClient, sharedPreferences)
     }
 
-    val hydrationViewModel: HydrationViewModel by lazy {
-        HydrationViewModel(hydrationRepository, profileRepository, weatherService)
-    }
+    // HydrationViewModel is now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     // Family — domain-layer repository implementation (used by FamilyViewModel and use cases)
     val domainFamilyRepository: com.swastricare.health.domain.repository.FamilyRepository by lazy {
@@ -322,21 +296,7 @@ object AppContainer {
         })
     }
 
-    val familyViewModel: FamilyViewModel by lazy {
-        val repo = domainFamilyRepository
-        FamilyViewModel(
-            familyRepository = repo,
-            authRepository = domainAuthRepository,
-            createFamilyGroupUseCase = CreateFamilyGroupUseCase(repo),
-            acceptInvitationUseCase = AcceptInvitationUseCase(repo),
-            getFamilyMembersUseCase = GetFamilyMembersUseCase(repo),
-            inviteMemberUseCase = InviteMemberUseCase(repo),
-            leaveFamilyGroupUseCase = LeaveFamilyGroupUseCase(repo),
-            removeMemberUseCase = RemoveMemberUseCase(repo),
-            updatePermissionsUseCase = UpdatePermissionsUseCase(repo),
-            logger = appLogger
-        )
-    }
+    // FamilyViewModel is now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     val aiConversationRepository: AIConversationRepository by lazy {
         SupabaseAIConversationRepository(supabaseClient, sharedPreferences)
@@ -348,15 +308,10 @@ object AppContainer {
         SupabaseMenstrualCycleRepository(supabaseClient, sharedPreferences)
     }
 
-    val menstrualCycleViewModel: MenstrualCycleViewModel by lazy {
-        MenstrualCycleViewModel()
-    }
+    // MenstrualCycleViewModel is now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     // ── Heart Rate ──
-
-    val heartRateViewModel: HeartRateViewModel by lazy {
-        HeartRateViewModel(context, sharedPreferences)
-    }
+    // HeartRateViewModel is now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     // ── Run Activity ──
 
@@ -364,13 +319,7 @@ object AppContainer {
         SupabaseRunActivityRepository(supabaseClient, sharedPreferences)
     }
 
-    val runActivityViewModel: RunActivityViewModel by lazy {
-        RunActivityViewModel(runActivityRepository, profileRepository)
-    }
-
-    val liveWorkoutViewModel: LiveWorkoutViewModel by lazy {
-        LiveWorkoutViewModel(context, workoutStateManager)
-    }
+    // RunActivityViewModel, LiveWorkoutViewModel are now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     // ── Workout Recovery ──
 
@@ -379,18 +328,7 @@ object AppContainer {
     }
 
     // ── Health Analytics ──
-
-    val healthAnalyticsViewModel: HealthAnalyticsViewModel by lazy {
-        HealthAnalyticsViewModel(
-            healthConnectService = healthConnectService,
-            hydrationRepository = hydrationRepository,
-            dietRepository = dietRepository,
-            medicationRepository = medicationRepository,
-            runActivityRepository = runActivityRepository,
-            profileRepository = profileRepository,
-            supabaseClient = supabaseClient
-        )
-    }
+    // HealthAnalyticsViewModel is now @HiltViewModel — use hiltViewModel() in Compose screens.
 
     // ── Fitness Analytics ──
 

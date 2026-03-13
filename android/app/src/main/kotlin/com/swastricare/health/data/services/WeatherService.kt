@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -17,6 +18,8 @@ import kotlinx.serialization.json.Json
 import com.swastricare.health.BuildConfig
 import java.net.HttpURLConnection
 import java.net.URL
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 // -----------------------------------------------
@@ -54,8 +57,9 @@ private data class OwmWeather(
 // MARK: - WeatherService
 // -----------------------------------------------
 
-class WeatherService(
-    private val context: Context,
+@Singleton
+class WeatherService @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val prefs: SharedPreferences
 ) {
     companion object {

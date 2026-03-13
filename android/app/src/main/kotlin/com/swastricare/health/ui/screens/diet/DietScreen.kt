@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.DietInsights
 import com.swastricare.health.data.models.MealType
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.EmptyStateView
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.theme.AppColors
@@ -38,7 +38,7 @@ fun DietScreen(
     onNavigateToAI: () -> Unit,
     onNavigateToFoodSnap: (String) -> Unit = {}
 ) {
-    val vm = remember { AppContainer.dietViewModel }
+    val vm: DietViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
 
     val isDark = isSystemInDarkTheme()

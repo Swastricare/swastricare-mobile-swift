@@ -36,7 +36,7 @@ interface Logger {
 /**
  * Implementation using Timber and Firebase Crashlytics.
  */
-class LoggerImpl(
+class LoggerImpl @javax.inject.Inject constructor(
     private val crashReporter: CrashReporter
 ) : Logger {
 

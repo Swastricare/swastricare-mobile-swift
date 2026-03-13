@@ -32,7 +32,7 @@ import com.swastricare.health.data.models.FoodCategory
 import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.ServingUnit
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.theme.AppColors
 
 // ─────────────────────────────────────
@@ -47,7 +47,7 @@ fun AddFoodScreen(
     onNavigateToFoodSearch: (String) -> Unit,  // mealType.dbValue
     onNavigateToFoodSnap: (String) -> Unit = {}
 ) {
-    val vm = remember { AppContainer.dietViewModel }
+    val vm: DietViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
 
     var searchText by remember { mutableStateOf("") }

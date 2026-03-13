@@ -1,22 +1,26 @@
 package com.swastricare.health.ui.screens.ai
 
-import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
 import com.swastricare.health.data.repository.AIConversationRepository
 import com.swastricare.health.data.repository.AIMessageRecord
+import com.swastricare.health.data.repository.SupabaseAIConversationRepository
 import com.swastricare.health.data.services.AIService
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.AppAnalyticsService
+import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.data.services.SpeechService
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
+import javax.inject.Inject
 
 // MARK: - AI Mode
 
@@ -68,12 +72,17 @@ sealed class AnalysisState {
     data class Error(val message: String) : AnalysisState()
 }
 
-class AIViewModel(application: Application) : AndroidViewModel(application) {
-    private val aiService = AIService(AppContainer.supabaseClient)
-    private val conversationRepo: AIConversationRepository = AppContainer.aiConversationRepository
-    private val speechService = SpeechService(application.applicationContext)
-    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
-    private val appAnalyticsService: AppAnalyticsService = AppContainer.appAnalyticsService
+@HiltViewModel
+class AIViewModel @Inject constructor(
+    private val aiService: AIService,
+    private val conversationRepo: SupabaseAIConversationRepository,
+    private val analyticsService: AnalyticsService,
+    private val appAnalyticsService: AppAnalyticsService,
+    private val healthConnectService: HealthConnectService,
+    @ApplicationContext private val appContext: Context
+) : ViewModel() {
+
+    private val speechService = SpeechService(appContext)
 
     private val _uiState = MutableStateFlow(AIUiState())
     val uiState: StateFlow<AIUiState> = _uiState.asStateFlow()
@@ -517,8 +526,6 @@ class AIViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val healthConnectService = com.swastricare.health.di.AppContainer.healthConnectService
-
                 // Check if Health Connect is available and has permissions
                 if (!healthConnectService.isAvailable) {
                     _uiState.value = _uiState.value.copy(

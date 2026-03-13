@@ -5,9 +5,15 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.ZonedDateTime
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AppointmentAlarmScheduler(private val context: Context) {
+@Singleton
+class AppointmentAlarmScheduler @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 

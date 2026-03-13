@@ -12,7 +12,8 @@ import kotlinx.serialization.json.Json
  * workout so that the app can detect and recover abandoned sessions on the next
  * launch.  Mirrors the iOS `WorkoutStateManager` behaviour.
  */
-class WorkoutStateManager(
+@javax.inject.Singleton
+class WorkoutStateManager @javax.inject.Inject constructor(
     private val sharedPreferences: SharedPreferences
 ) {
 

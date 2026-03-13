@@ -39,7 +39,7 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.swastricare.health.data.models.WorkoutTemplate
 import com.swastricare.health.data.services.GpsMode
 import com.swastricare.health.data.services.RouteTracker
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.GpsStatusChip
 import com.swastricare.health.ui.components.RouteMapView
 import com.swastricare.health.ui.screens.home.PremiumBackground
@@ -58,7 +58,7 @@ fun LiveWorkoutScreen(
     onNavigateToSummary: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val viewModel = AppContainer.liveWorkoutViewModel
+    val viewModel: LiveWorkoutViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     // ── Location Permission ──

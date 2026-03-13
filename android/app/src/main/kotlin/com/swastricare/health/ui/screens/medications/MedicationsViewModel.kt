@@ -1,20 +1,25 @@
 package com.swastricare.health.ui.screens.medications
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
-import com.swastricare.health.data.repository.MedicationRepository
-import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.data.repository.SupabaseMedicationRepository
+import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.data.services.AnalyticsService
-import com.swastricare.health.di.AppContainer
+import com.swastricare.health.data.services.MedicationAlarmScheduler
+import com.swastricare.health.domain.repository.AuthRepository
 import com.swastricare.health.notifications.MedicationReminderScheduler
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.UUID
+import javax.inject.Inject
 
 // ─────────────────────────────────────
 // MARK: - UI State
@@ -41,10 +46,14 @@ data class MedicationsUiState(
 // MARK: - ViewModel
 // ─────────────────────────────────────
 
-class MedicationsViewModel(
-    private val repository: MedicationRepository,
-    private val profileRepository: ProfileRepository,
-    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService
+@HiltViewModel
+class MedicationsViewModel @Inject constructor(
+    private val repository: SupabaseMedicationRepository,
+    private val profileRepository: SupabaseProfileRepository,
+    private val analyticsService: AnalyticsService,
+    private val medicationAlarmScheduler: MedicationAlarmScheduler,
+    private val authRepository: AuthRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     companion object {
@@ -77,7 +86,7 @@ class MedicationsViewModel(
                 Log.d(TAG, "loadMedications: ${medications.size} meds, ${schedules.size} schedules, ${logs.size} logs")
 
                 repository.cacheMedications(medications)
-                AppContainer.medicationAlarmScheduler.scheduleAll(schedules, medications)
+                medicationAlarmScheduler.scheduleAll(schedules, medications)
 
                 val withDoses = buildMedicationsWithDoses(medications, schedules, logs, date)
                 val stats = computeStats(withDoses)
@@ -202,7 +211,7 @@ class MedicationsViewModel(
                     val hour = parts.getOrNull(0)?.toIntOrNull() ?: return@forEach
                     val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
                     MedicationReminderScheduler.schedule(
-                        context = AppContainer.context,
+                        context = context,
                         medId = savedMed.id,
                         scheduleId = schedule.id,
                         medName = savedMed.name,
@@ -232,7 +241,7 @@ class MedicationsViewModel(
             if (result.isSuccess) {
                 // Cancel reminders for deleted medication's schedules
                 schedulesToCancel.forEach { schedule ->
-                    MedicationReminderScheduler.cancel(AppContainer.context, schedule.id)
+                    MedicationReminderScheduler.cancel(context, schedule.id)
                 }
                 loadMedications()
             } else {
@@ -275,7 +284,7 @@ class MedicationsViewModel(
     // ─────────────────────────────────────
 
     private suspend fun resolveProfileId(): String {
-        val userId = AppContainer.authRepository.currentUser?.id
+        val userId = authRepository.getCurrentUser()?.id
             ?: throw IllegalStateException("No authenticated user")
         val healthProfile = profileRepository.getHealthProfile(userId)
             ?: throw IllegalStateException("No health profile found")

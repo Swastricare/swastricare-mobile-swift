@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.RouteMapView
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
@@ -40,7 +40,7 @@ fun WorkoutSummaryScreen(
     onNavigateBack: () -> Unit = {},
     onDone: () -> Unit = {}
 ) {
-    val viewModel = AppContainer.liveWorkoutViewModel
+    val viewModel: LiveWorkoutViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     // Entrance animation

@@ -6,10 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.services.BodyScanResult
 import com.swastricare.health.data.services.PoseDetectionService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Detection state for body scanning.
@@ -52,7 +54,8 @@ data class ARBodyScanState(
  * ViewModel for AR Body Scan screen.
  * Manages camera permission state, body detection, and health data overlays.
  */
-class ARBodyScanViewModel : ViewModel() {
+@HiltViewModel
+class ARBodyScanViewModel @Inject constructor() : ViewModel() {
 
     private val poseDetectionService = PoseDetectionService()
 

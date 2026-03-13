@@ -3,7 +3,6 @@ package com.swastricare.health.data.repository
 import android.content.SharedPreferences
 import android.util.Log
 import com.swastricare.health.data.models.*
-import com.swastricare.health.di.AppContainer
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.encodeToString
@@ -13,6 +12,8 @@ import kotlinx.serialization.json.put
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 private const val PREF_KEY_MEDICATIONS = "cached_medications"
@@ -22,7 +23,8 @@ private const val PREF_KEY_MEDICATIONS = "cached_medications"
 // ─────────────────────────────────────
 
 @Suppress("DEPRECATION")
-class SupabaseMedicationRepository(
+@javax.inject.Singleton
+class SupabaseMedicationRepository @javax.inject.Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val prefs: SharedPreferences
 ) : MedicationRepository {
@@ -43,7 +45,7 @@ class SupabaseMedicationRepository(
             }.decodeList<MedicationDto>()
         } catch (e: Exception) {
             // Fall back to cache on network error
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             getCachedMedications()
         }
     }
@@ -60,7 +62,7 @@ class SupabaseMedicationRepository(
             result
         } catch (e: Exception) {
             Log.e(TAG, "fetchSchedules FAILED for profile=$profileId", e)
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             emptyList()
         }
     }
@@ -77,7 +79,7 @@ class SupabaseMedicationRepository(
                 }
             }.decodeList<MedicationLogDto>()
         } catch (e: Exception) {
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             emptyList()
         }
     }
@@ -94,7 +96,7 @@ class SupabaseMedicationRepository(
                 }
             }.decodeList<MedicationLogDto>()
         } catch (e: Exception) {
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             emptyList()
         }
     }
@@ -105,7 +107,7 @@ class SupabaseMedicationRepository(
             supabaseClient.from("medications").upsert(medication)
             Result.success(medication)
         } catch (e: Exception) {
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -120,7 +122,7 @@ class SupabaseMedicationRepository(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "upsertSchedules FAILED", e)
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -148,7 +150,7 @@ class SupabaseMedicationRepository(
             supabaseClient.from("medication_logs").upsert(log)
             Result.success(id)
         } catch (e: Exception) {
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -176,7 +178,7 @@ class SupabaseMedicationRepository(
             supabaseClient.from("medication_logs").upsert(log)
             Result.success(id)
         } catch (e: Exception) {
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -194,7 +196,7 @@ class SupabaseMedicationRepository(
             cacheMedications(cached)
             Result.success(Unit)
         } catch (e: Exception) {
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
             Result.failure(e)
         }
     }

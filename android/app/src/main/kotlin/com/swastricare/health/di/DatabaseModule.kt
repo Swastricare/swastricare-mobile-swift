@@ -115,6 +115,16 @@ object DatabaseModule {
     }
 
     /**
+     * Provides the default (non-qualified) SharedPreferences binding.
+     * Delegates to the encrypted prefs so all repositories get secure storage by default.
+     */
+    @Provides
+    @Singleton
+    fun provideDefaultSharedPreferences(
+        @EncryptedPrefs encryptedPrefs: SharedPreferences
+    ): SharedPreferences = encryptedPrefs
+
+    /**
      * Provides DataStore for persistent preferences (onboarding, consent, etc.).
      * Uses Preferences DataStore for type-safe key-value storage.
      */

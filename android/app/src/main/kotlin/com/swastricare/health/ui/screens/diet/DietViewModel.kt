@@ -3,9 +3,11 @@ package com.swastricare.health.ui.screens.diet
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
-import com.swastricare.health.data.repository.DietRepository
-import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.data.repository.SupabaseDietRepository
+import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.data.services.AIService
+import com.swastricare.health.domain.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +16,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import javax.inject.Inject
 
 // ─────────────────────────────────────
 // MARK: - Snap Analysis State
@@ -76,15 +79,16 @@ data class DietUiState(
 // MARK: - ViewModel
 // ─────────────────────────────────────
 
-class DietViewModel(
-    private val repository: DietRepository,
-    private val profileRepository: ProfileRepository
+@HiltViewModel
+class DietViewModel @Inject constructor(
+    private val repository: SupabaseDietRepository,
+    private val profileRepository: SupabaseProfileRepository,
+    private val aiService: AIService,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DietUiState(isLoading = true))
     val uiState: StateFlow<DietUiState> = _uiState.asStateFlow()
-
-    private val aiService = AIService(com.swastricare.health.di.AppContainer.supabaseClient)
 
     private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
@@ -366,7 +370,7 @@ class DietViewModel(
     }
 
     private suspend fun resolveProfileId(): String {
-        val userId = com.swastricare.health.di.AppContainer.authRepository.currentUser?.id
+        val userId = authRepository.getCurrentUser()?.id
             ?: throw IllegalStateException("No authenticated user")
         val healthProfile = profileRepository.getHealthProfile(userId)
             ?: throw IllegalStateException("No health profile found")

@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -48,7 +48,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthAnalyticsScreen(
-    viewModel: HealthAnalyticsViewModel = viewModel(),
+    viewModel: HealthAnalyticsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     onNavigateToAI: () -> Unit = {}
 ) {

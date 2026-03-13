@@ -10,6 +10,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private val mcJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -51,7 +53,8 @@ interface MenstrualCycleRepository {
 // MARK: - Supabase Implementation
 // ------------------------------------
 
-class SupabaseMenstrualCycleRepository(
+@Singleton
+class SupabaseMenstrualCycleRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val prefs: SharedPreferences
 ) : MenstrualCycleRepository {

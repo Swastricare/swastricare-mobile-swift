@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.swastricare.health.core.logger.Logger
 import com.swastricare.health.core.result.ResultWrapper
 import com.swastricare.health.domain.repository.ProfileRepository
+import com.swastricare.health.domain.repository.AuthRepository
 import com.swastricare.health.domain.repository.HydrationRepository
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.DrinkingPatternService
@@ -43,10 +44,11 @@ class HydrationViewModel @Inject constructor(
     private val updateHydrationPreferencesUseCase: UpdateHydrationPreferencesUseCase,
     private val profileRepository: ProfileRepository,
     private val hydrationRepository: HydrationRepository,
-    private val weatherService: WeatherService?,
+    private val weatherService: WeatherService,
     private val analyticsService: AnalyticsService,
     private val patternService: DrinkingPatternService,
     private val healthConnectService: HealthConnectService,
+    private val authRepository: AuthRepository,
     private val logger: Logger
 ) : ViewModel() {
 
@@ -331,12 +333,7 @@ class HydrationViewModel @Inject constructor(
 
     private suspend fun resolveProfileId(): String? {
         return try {
-            val userId = when (val authResult = profileRepository.getUserProfile("")) {
-                // Cannot get userId from ProfileRepository directly - use AppContainer as fallback
-                else -> null
-            }
-            // Use AppContainer to get the current user ID since domain AuthRepository is not injected here
-            val currentUserId = com.swastricare.health.di.AppContainer.authRepository.currentUser?.id
+            val currentUserId = authRepository.getCurrentUser()?.id
                 ?: return null
             val healthProfileResult = profileRepository.getHealthProfile(currentUserId)
             when (healthProfileResult) {

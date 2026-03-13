@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.HeartRateColor
@@ -97,7 +97,7 @@ data class HeartRateAnalyticsState(
 fun HeartRateAnalyticsScreen(
     onNavigateBack: () -> Unit = {}
 ) {
-    val heartRateViewModel = AppContainer.heartRateViewModel
+    val heartRateViewModel: HeartRateViewModel = hiltViewModel()
     var state by remember { mutableStateOf(HeartRateAnalyticsState()) }
 
     // Load data

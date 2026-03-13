@@ -40,7 +40,8 @@ interface DietRepository {
 // MARK: - Supabase Implementation
 // ─────────────────────────────────────
 
-class SupabaseDietRepository(
+@javax.inject.Singleton
+class SupabaseDietRepository @javax.inject.Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val prefs: SharedPreferences
 ) : DietRepository {

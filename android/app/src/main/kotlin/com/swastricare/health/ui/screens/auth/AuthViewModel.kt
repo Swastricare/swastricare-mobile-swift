@@ -1,5 +1,7 @@
 package com.swastricare.health.ui.screens.auth
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.helpers.GoogleAuthHelper
@@ -10,24 +12,24 @@ import com.swastricare.health.data.helpers.NoGoogleAccountException
 import com.swastricare.health.data.repository.SupabaseAuthRepository
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.CrashlyticsService
-import com.swastricare.health.di.AppContainer
-import android.content.Context
-import android.util.Log
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Authentication ViewModel
  * Manages authentication state and user interactions
  * Mirrors logic from Swift's AuthViewModel.swift
  */
-class AuthViewModel(
+@HiltViewModel
+class AuthViewModel @Inject constructor(
     private val authRepository: SupabaseAuthRepository,
     private val googleAuthHelper: GoogleAuthHelper,
-    private val analyticsService: AnalyticsService = AppContainer.firebaseAnalyticsService,
-    private val crashlyticsService: CrashlyticsService = AppContainer.crashlyticsService
+    private val analyticsService: AnalyticsService,
+    private val crashlyticsService: CrashlyticsService
 ) : ViewModel() {
 
     // UI State

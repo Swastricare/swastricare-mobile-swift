@@ -6,8 +6,11 @@ import com.swastricare.health.BuildConfig
 import com.swastricare.health.data.model.AppUser
 import com.swastricare.health.data.model.Gender
 import com.swastricare.health.data.model.HealthProfile
-import com.swastricare.health.di.AppContainer
+import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.data.repository.SupabaseAuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import javax.inject.Inject
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -49,9 +52,11 @@ data class EditProfileFormState(
     val saveError: String? = null
 )
 
-class ProfileViewModel : ViewModel() {
-    private val authRepository = AppContainer.authRepository
-    private val profileRepository = AppContainer.profileRepository
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    private val authRepository: SupabaseAuthRepository,
+    private val profileRepository: ProfileRepository
+) : ViewModel() {
     
     // Expose sign out event for navigation
     private val _signOutEvent = MutableStateFlow(false)

@@ -5,13 +5,16 @@ import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.ktx.Firebase
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Firebase Analytics wrapper service.
  * Matches iOS AnalyticsService pattern.
  * Gracefully handles cases where Firebase is not configured (missing google-services.json).
  */
-class AnalyticsService {
+@Singleton
+class AnalyticsService @Inject constructor() {
 
     private val analytics: FirebaseAnalytics? = try {
         Firebase.analytics

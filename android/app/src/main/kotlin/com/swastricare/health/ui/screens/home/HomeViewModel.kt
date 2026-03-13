@@ -9,8 +9,20 @@ import com.swastricare.health.data.models.MedicationDose
 import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.data.models.HydrationEntry
 import com.swastricare.health.data.models.MenstrualSettings
-import com.swastricare.health.di.AppContainer
+import com.swastricare.health.data.repository.DietRepository
+import com.swastricare.health.data.repository.HydrationRepository
+import com.swastricare.health.data.repository.MenstrualCycleRepository
+import com.swastricare.health.data.repository.NudgeRepository
+import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.data.repository.SupabaseAuthRepository
+import com.swastricare.health.data.repository.SupabaseDietRepository
+import com.swastricare.health.data.repository.SupabaseHydrationRepository
+import com.swastricare.health.data.repository.SupabaseMenstrualCycleRepository
+import com.swastricare.health.data.repository.SupabaseMedicationRepository
+import com.swastricare.health.data.repository.SupabaseNudgeRepository
+import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.ui.components.DailyMetric
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +33,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.UUID
+import javax.inject.Inject
 
 data class ServerNudge(
     val id: String,
@@ -64,16 +77,20 @@ data class HomeState(
     val hasNoHealthData: Boolean = false
 )
 
-class HomeViewModel : ViewModel() {
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val healthConnectService: HealthConnectService,
+    private val hydrationRepository: SupabaseHydrationRepository,
+    private val dietRepository: SupabaseDietRepository,
+    private val medicationRepository: SupabaseMedicationRepository,
+    private val profileRepository: SupabaseProfileRepository,
+    private val menstrualCycleRepository: SupabaseMenstrualCycleRepository,
+    private val authRepository: SupabaseAuthRepository,
+    private val nudgeRepository: SupabaseNudgeRepository
+) : ViewModel() {
+
     private val _uiState = MutableStateFlow(HomeState())
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
-
-    private val healthConnectService = AppContainer.healthConnectService
-    private val hydrationRepository = AppContainer.hydrationRepository
-    private val dietRepository = AppContainer.dietRepository
-    private val medicationRepository = AppContainer.medicationRepository
-    private val profileRepository = AppContainer.profileRepository
-    private val menstrualCycleRepository = AppContainer.menstrualCycleRepository
 
     private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
@@ -98,8 +115,8 @@ class HomeViewModel : ViewModel() {
                 }
 
                 // Resolve user name
-                val userName = AppContainer.authRepository.currentUser?.fullName
-                    ?: AppContainer.authRepository.currentUser?.email?.substringBefore("@")
+                val userName = authRepository.currentUser?.fullName
+                    ?: authRepository.currentUser?.email?.substringBefore("@")
                     ?: ""
 
                 // Check Health Connect READ permissions (for logging and UI state)
@@ -136,7 +153,7 @@ class HomeViewModel : ViewModel() {
                 val dietGoals = try { dietRepository.loadGoals() } catch (_: Exception) { null }
 
                 // Load medication counts — resolve health_profile_id (not auth user ID)
-                val userId = AppContainer.authRepository.currentUser?.id
+                val userId = authRepository.currentUser?.id
                 val healthProfileId = if (userId != null) {
                     try { profileRepository.getHealthProfile(userId)?.id } catch (_: Exception) { null }
                 } else null
@@ -212,8 +229,8 @@ class HomeViewModel : ViewModel() {
     fun loadNudges() {
         viewModelScope.launch {
             try {
-                val profileId = AppContainer.authRepository.currentUser?.id ?: return@launch
-                val nudges = AppContainer.nudgeRepository.fetchActiveNudges(profileId)
+                val profileId = authRepository.currentUser?.id ?: return@launch
+                val nudges = nudgeRepository.fetchActiveNudges(profileId)
                 val serverNudges = nudges.map { nudge ->
                     ServerNudge(
                         id = nudge.id,
@@ -256,7 +273,7 @@ class HomeViewModel : ViewModel() {
 
             // Sync unsynced entries to cloud in background
             launch syncCloud@{
-                val profileId = AppContainer.authRepository.currentUser?.id ?: return@syncCloud
+                val profileId = authRepository.currentUser?.id ?: return@syncCloud
                 val unsynced = hydrationRepository.loadLocalEntries().filter { !it.synced }
                 if (unsynced.isNotEmpty()) {
                     hydrationRepository.syncEntriesToCloud(unsynced, profileId)

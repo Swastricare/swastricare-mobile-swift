@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swastricare.health.data.services.MeasurementPhase
 import com.swastricare.health.data.services.SignalQuality
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.HeartRateColor
@@ -64,7 +64,7 @@ fun HeartRateScreen(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToAI: () -> Unit = {}
 ) {
-    val viewModel = AppContainer.heartRateViewModel
+    val viewModel: HeartRateViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     val context = LocalContext.current

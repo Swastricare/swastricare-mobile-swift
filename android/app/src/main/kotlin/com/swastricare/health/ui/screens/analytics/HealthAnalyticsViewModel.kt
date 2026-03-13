@@ -4,12 +4,13 @@ import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.swastricare.health.data.repository.DietRepository
-import com.swastricare.health.data.repository.HydrationRepository
-import com.swastricare.health.data.repository.MedicationRepository
-import com.swastricare.health.data.repository.ProfileRepository
-import com.swastricare.health.data.repository.RunActivityRepository
+import com.swastricare.health.data.repository.SupabaseDietRepository
+import com.swastricare.health.data.repository.SupabaseHydrationRepository
+import com.swastricare.health.data.repository.SupabaseMedicationRepository
+import com.swastricare.health.data.repository.SupabaseProfileRepository
+import com.swastricare.health.data.repository.SupabaseRunActivityRepository
 import com.swastricare.health.data.services.HealthConnectService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.async
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -75,13 +77,14 @@ data class LegacyHealthAnalyticsState(
     val aiInsight: String = ""
 )
 
-class HealthAnalyticsViewModel(
+@HiltViewModel
+class HealthAnalyticsViewModel @Inject constructor(
     private val healthConnectService: HealthConnectService,
-    private val hydrationRepository: HydrationRepository,
-    private val dietRepository: DietRepository,
-    private val medicationRepository: MedicationRepository,
-    private val runActivityRepository: RunActivityRepository,
-    private val profileRepository: ProfileRepository,
+    private val hydrationRepository: SupabaseHydrationRepository,
+    private val dietRepository: SupabaseDietRepository,
+    private val medicationRepository: SupabaseMedicationRepository,
+    private val runActivityRepository: SupabaseRunActivityRepository,
+    private val profileRepository: SupabaseProfileRepository,
     private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 

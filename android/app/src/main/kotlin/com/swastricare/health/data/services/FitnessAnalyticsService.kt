@@ -3,8 +3,11 @@ package com.swastricare.health.data.services
 import com.swastricare.health.data.models.RunActivity
 import com.swastricare.health.data.models.ActivityType
 import java.time.LocalDateTime
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class FitnessAnalyticsService(
+@Singleton
+class FitnessAnalyticsService @Inject constructor(
     private val healthConnectService: HealthConnectService
 ) {
     data class FitnessData(

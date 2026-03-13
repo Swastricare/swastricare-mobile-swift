@@ -1,11 +1,13 @@
 package com.swastricare.health.ui.screens.runactivity
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
 import java.time.YearMonth
+import javax.inject.Inject
 import kotlin.random.Random
 
 // ─────────────────────────────────────
@@ -42,7 +44,8 @@ data class RunCalendarUiState(
 // MARK: - ViewModel
 // ─────────────────────────────────────
 
-class RunCalendarViewModel : ViewModel() {
+@HiltViewModel
+class RunCalendarViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(RunCalendarUiState(isLoading = true))
     val uiState: StateFlow<RunCalendarUiState> = _uiState.asStateFlow()

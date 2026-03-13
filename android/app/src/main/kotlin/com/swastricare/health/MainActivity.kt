@@ -8,12 +8,14 @@ import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import com.swastricare.health.ui.theme.AppColors
 import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,17 +24,21 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swastricare.health.di.AppContainer
 import com.swastricare.health.navigation.DeepLinkHandler
 import com.swastricare.health.navigation.DeepLinkRoute
 import com.swastricare.health.ui.lock.LockScreen
 import com.swastricare.health.ui.lock.LockScreenViewModel
 import com.swastricare.health.ui.navigation.AppNavigation
+import com.swastricare.health.ui.screens.auth.AuthViewModel
 import com.swastricare.health.ui.theme.SwastriCareTheme
 import io.github.jan.supabase.gotrue.handleDeeplinks
 
 class MainActivity : FragmentActivity() {
+
+    // AuthViewModel obtained at Activity level so deep link callbacks can call it
+    // outside of Compose composition (e.g. from onNewIntent).
+    private val authViewModel: AuthViewModel by viewModels()
 
     // Deep link route parsed from intent, observed by AppNavigation
     private val pendingDeepLink = MutableStateFlow<DeepLinkRoute?>(null)
@@ -69,7 +75,7 @@ class MainActivity : FragmentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = AppColors.background
                 ) {
-                    val lockViewModel: LockScreenViewModel = viewModel()
+                    val lockViewModel: LockScreenViewModel = hiltViewModel()
                     val isLocked by lockViewModel.isLocked.collectAsState()
 
                     // Lifecycle observer: lock app when going to background
@@ -107,7 +113,7 @@ class MainActivity : FragmentActivity() {
                         // so the only safe way to hide it is to remove it from composition.
                         if (!isLocked) {
                             AppNavigation(
-                                authViewModel = AppContainer.authViewModel,
+                                authViewModel = authViewModel,
                                 deepLinkRoute = currentDeepLink,
                                 onDeepLinkConsumed = { pendingDeepLink.value = null }
                             )
@@ -137,14 +143,14 @@ class MainActivity : FragmentActivity() {
                 AppContainer.supabaseClient.handleDeeplinks(intent = intent) { session ->
                     Log.d("Auth", "Deep link auth session established for: ${session.user?.email}")
                     CoroutineScope(Dispatchers.Main).launch {
-                        AppContainer.authViewModel.onAuthCallback()
+                        authViewModel.onAuthCallback()
                     }
                 }
             } catch (e: Exception) {
                 Log.e("Auth", "Failed to handle auth deep link: ${e.message}", e)
                 // Fallback: try to check session anyway (link may have verified the email server-side)
                 CoroutineScope(Dispatchers.Main).launch {
-                    AppContainer.authViewModel.onAuthCallback()
+                    authViewModel.onAuthCallback()
                 }
             }
             return

@@ -17,14 +17,17 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Supabase Authentication Repository
  * Matches iOS AuthService.swift implementation exactly
  */
-class SupabaseAuthRepository(
+@Singleton
+class SupabaseAuthRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
-    private val sharedPreferences: SharedPreferences? = null
+    private val sharedPreferences: SharedPreferences
 ) : AuthRepository {
     
     override val currentUser: AppUser?

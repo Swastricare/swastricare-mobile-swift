@@ -2,11 +2,12 @@ package com.swastricare.health.ui.screens.notifications
 
 import androidx.lifecycle.ViewModel
 import com.swastricare.health.data.services.NotificationService
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
 data class NotificationSettingsState(
     val hydrationEnabled: Boolean = true,
@@ -27,9 +28,10 @@ data class NotificationSettingsState(
     val dinnerMinute: Int = 30
 )
 
-class NotificationSettingsViewModel : ViewModel() {
-
-    private val notifService: NotificationService = AppContainer.notificationService
+@HiltViewModel
+class NotificationSettingsViewModel @Inject constructor(
+    private val notifService: NotificationService
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(loadFromService())
     val uiState: StateFlow<NotificationSettingsState> = _uiState.asStateFlow()

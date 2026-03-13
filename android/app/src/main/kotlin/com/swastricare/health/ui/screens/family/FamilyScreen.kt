@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.domain.model.FamilyMember
 import com.swastricare.health.domain.model.FamilyRole
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.presentation.feature.family.FamilyUiState
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.theme.AppColors
@@ -39,7 +39,7 @@ fun FamilyScreen(
     onNavigateBack: () -> Unit,
     initialJoinCode: String? = null
 ) {
-    val vm = remember { AppContainer.familyViewModel }
+    val vm: FamilyViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     val clipboardManager = LocalClipboardManager.current
 

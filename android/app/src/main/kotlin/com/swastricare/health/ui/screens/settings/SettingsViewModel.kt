@@ -6,7 +6,9 @@ import com.swastricare.health.BuildConfig
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.model.AppUser
 import com.swastricare.health.data.model.HealthProfile
-import com.swastricare.health.di.AppContainer
+import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.data.repository.SupabaseAuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +18,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import javax.inject.Inject
 
 data class SettingsUiState(
     val user: AppUser? = null,
@@ -30,13 +33,15 @@ data class SettingsUiState(
     val hasUpdate: Boolean = false
 )
 
-class SettingsViewModel : ViewModel() {
-    private val authRepository = AppContainer.authRepository
-    private val profileRepository = AppContainer.profileRepository
-    private val prefs: SharedPreferences = AppContainer.sharedPreferences
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val authRepository: SupabaseAuthRepository,
+    private val profileRepository: ProfileRepository,
+    private val prefs: SharedPreferences
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
-        SettingsUiState(biometricEnabled = AppContainer.sharedPreferences.getBoolean("biometric_enabled", false))
+        SettingsUiState(biometricEnabled = prefs.getBoolean("biometric_enabled", false))
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 

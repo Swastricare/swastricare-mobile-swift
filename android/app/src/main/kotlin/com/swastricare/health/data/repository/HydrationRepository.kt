@@ -2,13 +2,14 @@ package com.swastricare.health.data.repository
 
 import android.content.SharedPreferences
 import com.swastricare.health.data.models.*
-import com.swastricare.health.di.AppContainer
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private val hydrationJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -36,7 +37,8 @@ interface HydrationRepository {
 // MARK: - Supabase Implementation
 // ─────────────────────────────────────
 
-class SupabaseHydrationRepository(
+@javax.inject.Singleton
+class SupabaseHydrationRepository @javax.inject.Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val prefs: SharedPreferences
 ) : HydrationRepository {
@@ -109,7 +111,7 @@ class SupabaseHydrationRepository(
                 }
                 Result.success(entries)
             } catch (e: Exception) {
-                AppContainer.crashlyticsService.recordException(e)
+                android.util.Log.e("HydrationRepo", "Error: ${e.message}", e)
                 Result.failure(e)
             }
         }
@@ -127,7 +129,7 @@ class SupabaseHydrationRepository(
             markEntriesAsSynced(entries.map { it.id })
             Result.success(Unit)
         } catch (e: Exception) {
-            AppContainer.crashlyticsService.recordException(e)
+            android.util.Log.e("HydrationRepo", "Sync error: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -140,7 +142,7 @@ class SupabaseHydrationRepository(
                 }
                 Result.success(Unit)
             } catch (e: Exception) {
-                AppContainer.crashlyticsService.recordException(e)
+                android.util.Log.e("HydrationRepo", "Error: ${e.message}", e)
                 Result.failure(e)
             }
         }

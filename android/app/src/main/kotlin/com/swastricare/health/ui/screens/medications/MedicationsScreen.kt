@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.AdherenceStatus
 import com.swastricare.health.data.models.MedicationDose
-import com.swastricare.health.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.EmptyStateView
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
@@ -72,7 +72,7 @@ fun MedicationsScreen(
     onNavigateToDetail: (String) -> Unit,
     onNavigateToAI: () -> Unit
 ) {
-    val vm = remember { AppContainer.medicationsViewModel }
+    val vm: MedicationsViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     var skipDialogDose by remember { mutableStateOf<MedicationDose?>(null) }
     var deleteMedicationId by remember { mutableStateOf<String?>(null) }

@@ -73,7 +73,8 @@ class MockProfileRepository : ProfileRepository {
  * Supabase-backed profile repository.
  * Reads/writes to `health_profiles` table and `avatars` storage bucket.
  */
-class SupabaseProfileRepository(
+@javax.inject.Singleton
+class SupabaseProfileRepository @javax.inject.Inject constructor(
     private val supabaseClient: SupabaseClient
 ) : ProfileRepository {
 

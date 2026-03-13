@@ -4,13 +4,15 @@ import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
+import com.swastricare.health.core.logger.CrashReporter
+import javax.inject.Inject
 
 /**
  * Firebase Crashlytics wrapper service.
  * Matches iOS CrashlyticsService pattern.
  * Gracefully handles cases where Firebase is not configured.
  */
-class CrashlyticsService {
+class CrashlyticsService @Inject constructor() : CrashReporter {
 
     private val crashlytics: FirebaseCrashlytics? = try {
         Firebase.crashlytics
@@ -19,19 +21,19 @@ class CrashlyticsService {
         null
     }
 
-    fun setUserId(userId: String) {
+    override fun setUserId(userId: String) {
         crashlytics?.setUserId(userId)
     }
 
-    fun setCustomKey(key: String, value: String) {
+    override fun setCustomKey(key: String, value: String) {
         crashlytics?.setCustomKey(key, value)
     }
 
-    fun recordException(throwable: Throwable) {
+    override fun recordException(throwable: Throwable) {
         crashlytics?.recordException(throwable)
     }
 
-    fun log(message: String) {
+    override fun log(message: String) {
         crashlytics?.log(message)
     }
 

@@ -4,15 +4,17 @@ import android.content.SharedPreferences
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import com.swastricare.health.data.services.BiometricService
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
 
-class LockScreenViewModel : ViewModel() {
-
-    private val biometricService: BiometricService = AppContainer.biometricService
-    private val prefs: SharedPreferences = AppContainer.sharedPreferences
+@HiltViewModel
+class LockScreenViewModel @Inject constructor(
+    private val biometricService: BiometricService,
+    private val prefs: SharedPreferences
+) : ViewModel() {
 
     // Initialise synchronously so the very first frame is already locked when biometric is on.
     // This prevents app content from flashing for one frame before LaunchedEffect runs.

@@ -4,6 +4,8 @@ import android.content.SharedPreferences
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Serializable
 data class DrinkingPattern(
@@ -14,7 +16,8 @@ data class DrinkingPattern(
     val updatedAt: String
 )
 
-class DrinkingPatternService(
+@Singleton
+class DrinkingPatternService @Inject constructor(
     private val prefs: SharedPreferences
 ) {
     companion object {

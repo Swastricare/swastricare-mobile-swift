@@ -35,7 +35,7 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
-    private val sharedPreferences: SharedPreferences? = null
+    private val sharedPreferences: SharedPreferences
 ) : AuthRepository {
 
     override suspend fun getCurrentUser(): User? {
@@ -179,6 +179,6 @@ class AuthRepositoryImpl @Inject constructor(
      * Removes health data, widget data, workout state, and notification prefs.
      */
     private fun clearLocalData() {
-        sharedPreferences?.edit()?.clear()?.apply()
+        sharedPreferences.edit().clear().apply()
     }
 }

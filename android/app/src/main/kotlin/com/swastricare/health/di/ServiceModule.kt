@@ -1,9 +1,25 @@
 package com.swastricare.health.di
 
+import android.content.Context
+import android.content.SharedPreferences
+import com.swastricare.health.core.logger.CrashReporter
+import com.swastricare.health.core.logger.Logger
+import com.swastricare.health.core.logger.LoggerImpl
+import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.data.repository.SupabaseAuthRepository
+import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.data.services.AIService
+import com.swastricare.health.data.services.AnalyticsService
+import com.swastricare.health.data.services.BiometricService
+import com.swastricare.health.data.services.CrashlyticsService
+import com.swastricare.health.data.services.HealthConnectService
+import com.swastricare.health.data.services.NotificationService
+import com.swastricare.health.data.services.SessionManager
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import javax.inject.Singleton
@@ -27,4 +43,116 @@ object ServiceModule {
     ): AIService {
         return AIService(supabaseClient)
     }
+
+    /**
+     * Provides HealthConnectService singleton.
+     * Requires Context and CrashlyticsService for Health Connect access.
+     */
+    @Provides
+    @Singleton
+    fun provideHealthConnectService(
+        @ApplicationContext context: Context,
+        crashlyticsService: CrashlyticsService
+    ): HealthConnectService {
+        return HealthConnectService(context, crashlyticsService)
+    }
+
+    /**
+     * Provides SupabaseAuthRepository (data-layer concrete type, not yet domain-abstracted).
+     * Used directly by AuthViewModel.
+     */
+    @Provides
+    @Singleton
+    fun provideSupabaseAuthRepository(
+        supabaseClient: SupabaseClient,
+        sharedPreferences: SharedPreferences
+    ): SupabaseAuthRepository {
+        return SupabaseAuthRepository(supabaseClient, sharedPreferences)
+    }
+
+    /**
+     * Provides Firebase AnalyticsService singleton.
+     * No constructor parameters — Firebase initialises itself via google-services.json.
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseAnalyticsService(): AnalyticsService {
+        return AnalyticsService()
+    }
+
+    /**
+     * Provides NotificationService singleton.
+     * Requires Context for AlarmManager / NotificationManager access and
+     * SharedPreferences to persist per-category toggle state.
+     */
+    @Provides
+    @Singleton
+    fun provideNotificationService(
+        @ApplicationContext context: Context,
+        sharedPreferences: SharedPreferences
+    ): NotificationService {
+        return NotificationService(context, sharedPreferences)
+    }
+
+    /**
+     * Provides BiometricService singleton.
+     * Requires Context for BiometricManager / BiometricPrompt access.
+     */
+    @Provides
+    @Singleton
+    fun provideBiometricService(
+        @ApplicationContext context: Context
+    ): BiometricService {
+        return BiometricService(context)
+    }
+
+    /**
+     * Provides SessionManager singleton.
+     * Observes Supabase auth session and detects token expiry.
+     */
+    @Provides
+    @Singleton
+    fun provideSessionManager(
+        supabaseClient: SupabaseClient
+    ): SessionManager {
+        return SessionManager(supabaseClient)
+    }
+
+    /**
+     * Provides the data-layer ProfileRepository (SupabaseProfileRepository).
+     * Used by ProfileViewModel and SettingsViewModel which pre-date the domain-layer migration.
+     * This is com.swastricare.health.data.repository.ProfileRepository — a distinct type
+     * from the domain interface (com.swastricare.health.domain.repository.ProfileRepository),
+     * so no qualifier is needed.
+     */
+    @Provides
+    @Singleton
+    fun provideDataLayerProfileRepository(
+        supabaseClient: SupabaseClient
+    ): ProfileRepository {
+        return SupabaseProfileRepository(supabaseClient)
+    }
+}
+
+/**
+ * Abstract module for interface-to-implementation bindings.
+ * Kept separate from ServiceModule (object) because @Binds requires an abstract class.
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class ServiceBindsModule {
+
+    /**
+     * Binds CrashlyticsService as the CrashReporter implementation.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindCrashReporter(impl: CrashlyticsService): CrashReporter
+
+    /**
+     * Binds LoggerImpl as the Logger implementation.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindLogger(impl: LoggerImpl): Logger
 }

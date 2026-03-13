@@ -3,15 +3,18 @@ package com.swastricare.health.ui.screens.runactivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
-import com.swastricare.health.data.repository.ProfileRepository
 import com.swastricare.health.data.repository.RunActivityRepository
+import com.swastricare.health.data.repository.ProfileRepository
 import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.data.services.HealthConnectService
-import com.swastricare.health.di.AppContainer
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 // ------------------------------------
 // MARK: - UI State
@@ -38,15 +41,17 @@ data class RunActivityUiState(
 // MARK: - ViewModel
 // ------------------------------------
 
-class RunActivityViewModel(
+@HiltViewModel
+class RunActivityViewModel @Inject constructor(
     private val repository: RunActivityRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val healthConnectService: HealthConnectService,
+    private val fitnessAnalyticsService: FitnessAnalyticsService,
+    private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RunActivityUiState(isLoading = true))
     val uiState: StateFlow<RunActivityUiState> = _uiState.asStateFlow()
-
-    private val healthConnectService: HealthConnectService = AppContainer.healthConnectService
 
     init {
         loadData()
@@ -76,7 +81,7 @@ class RunActivityViewModel(
 
                 // Load fitness analytics
                 try {
-                    val fitnessData = AppContainer.fitnessAnalyticsService.getFitnessData(activities)
+                    val fitnessData = fitnessAnalyticsService.getFitnessData(activities)
                     _uiState.value = _uiState.value.copy(
                         vo2Max = fitnessData.vo2Max,
                         vo2MaxSource = fitnessData.vo2MaxSource,
@@ -117,7 +122,7 @@ class RunActivityViewModel(
 
     private suspend fun syncInBackground() {
         try {
-            val profileId = AppContainer.authRepository.currentUser?.id ?: return
+            val profileId = supabaseClient.auth.currentUserOrNull()?.id ?: return
             val unsynced = _uiState.value.activities.filter { !it.synced }
             if (unsynced.isNotEmpty()) {
                 repository.syncActivitiesToCloud(unsynced, profileId)

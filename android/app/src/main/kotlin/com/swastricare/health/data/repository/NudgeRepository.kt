@@ -8,6 +8,8 @@ import com.swastricare.health.data.model.NudgeType
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -23,7 +25,8 @@ interface NudgeRepository {
 /**
  * Supabase-backed implementation with SharedPreferences cache (5-minute TTL).
  */
-class SupabaseNudgeRepository(
+@Singleton
+class SupabaseNudgeRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val sharedPreferences: SharedPreferences
 ) : NudgeRepository {
