@@ -4,6 +4,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
     // Firebase — requires google-services.json in app/ directory from Firebase Console
     // To set up: https://console.firebase.google.com → Add Android app → Download google-services.json
     id("com.google.gms.google-services")
@@ -130,6 +132,13 @@ dependencies {
     // Lucide Icons — stroke-only icon pack for nav bar and UI
     implementation("com.composables:icons-lucide:1.1.0")
 
+    // Hilt Dependency Injection
+    implementation("com.google.dagger:hilt-android:2.51")
+    ksp("com.google.dagger:hilt-android-compiler:2.51")
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    ksp("androidx.hilt:hilt-compiler:1.1.0")
+
     // Supabase
     implementation("io.github.jan-tennert.supabase:postgrest-kt:2.6.0")
     implementation("io.github.jan-tennert.supabase:gotrue-kt:2.6.0")
@@ -210,4 +219,14 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// Configure KSP to add generated sources
+android.applicationVariants.all {
+    val variantName = name
+    kotlin.sourceSets {
+        getByName(variantName) {
+            kotlin.srcDir("build/generated/ksp/$variantName/kotlin")
+        }
+    }
 }

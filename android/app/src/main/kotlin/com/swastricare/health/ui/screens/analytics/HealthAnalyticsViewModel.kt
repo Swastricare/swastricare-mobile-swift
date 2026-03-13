@@ -24,14 +24,14 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // ── Time Range ──────────────────────────────────────────────────────────────
-enum class TimeRange(val label: String) {
+enum class LegacyTimeRange(val label: String) {
     Day("Day"),
     Week("Week"),
     Month("Month")
 }
 
 // ── Metric Type ─────────────────────────────────────────────────────────────
-enum class MetricType(
+enum class LegacyMetricType(
     val label: String,
     val unit: String,
     val color: Color,
@@ -48,30 +48,30 @@ enum class MetricType(
 }
 
 // ── Trend Direction ─────────────────────────────────────────────────────────
-enum class TrendDirection { Up, Down, Flat }
+enum class LegacyTrendDirection { Up, Down, Flat }
 
 // ── Data Point for charts ───────────────────────────────────────────────────
-data class ChartDataPoint(
+data class LegacyChartDataPoint(
     val label: String,
     val value: Float
 )
 
 // ── Summary for a single metric ─────────────────────────────────────────────
-data class MetricSummary(
-    val type: MetricType,
+data class LegacyMetricSummary(
+    val type: LegacyMetricType,
     val currentValue: Float,
     val previousValue: Float,
-    val trend: TrendDirection,
+    val trend: LegacyTrendDirection,
     val changePercent: Float
 )
 
 // ── Overall UI State ────────────────────────────────────────────────────────
-data class HealthAnalyticsState(
+data class LegacyHealthAnalyticsState(
     val isLoading: Boolean = true,
-    val selectedTimeRange: TimeRange = TimeRange.Week,
-    val selectedMetric: MetricType = MetricType.Steps,
-    val summaries: List<MetricSummary> = emptyList(),
-    val chartData: List<ChartDataPoint> = emptyList(),
+    val selectedTimeRange: LegacyTimeRange = LegacyTimeRange.Week,
+    val selectedMetric: LegacyMetricType = LegacyMetricType.Steps,
+    val summaries: List<LegacyMetricSummary> = emptyList(),
+    val chartData: List<LegacyChartDataPoint> = emptyList(),
     val aiInsight: String = ""
 )
 
@@ -85,8 +85,8 @@ class HealthAnalyticsViewModel(
     private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HealthAnalyticsState())
-    val uiState: StateFlow<HealthAnalyticsState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(LegacyHealthAnalyticsState())
+    val uiState: StateFlow<LegacyHealthAnalyticsState> = _uiState.asStateFlow()
 
     // Cached data for chart generation
     private var weeklyStepCounts: List<Pair<LocalDate, Long>> = emptyList()
@@ -108,12 +108,12 @@ class HealthAnalyticsViewModel(
 
     // ── Public actions ──────────────────────────────────────────────────────
 
-    fun selectTimeRange(range: TimeRange) {
+    fun selectTimeRange(range: LegacyTimeRange) {
         _uiState.value = _uiState.value.copy(selectedTimeRange = range)
         refreshChart()
     }
 
-    fun selectMetric(metric: MetricType) {
+    fun selectMetric(metric: LegacyMetricType) {
         _uiState.value = _uiState.value.copy(selectedMetric = metric)
         refreshChart()
     }
@@ -248,25 +248,25 @@ class HealthAnalyticsViewModel(
     private fun buildSummaries(
         prevSteps: Float,
         prevHydration: Float
-    ): List<MetricSummary> {
-        return MetricType.entries.map { type ->
+    ): List<LegacyMetricSummary> {
+        return LegacyMetricType.entries.map { type ->
             val (current, previous) = when (type) {
-                MetricType.Steps -> todaySteps.toFloat() to prevSteps
-                MetricType.Calories -> todayCalories.toFloat() to todayCalories.toFloat()
-                MetricType.HeartRate -> todayHeartRate.toFloat() to todayHeartRate.toFloat()
-                MetricType.Sleep -> todaySleepHours to todaySleepHours
-                MetricType.Exercise -> todayExerciseMin.toFloat() to todayExerciseMin.toFloat()
-                MetricType.Distance -> todayDistanceKm to todayDistanceKm
-                MetricType.Hydration -> todayHydrationMl.toFloat() to prevHydration
-                MetricType.MedAdherence -> todayMedAdherence to todayMedAdherence
+                LegacyMetricType.Steps -> todaySteps.toFloat() to prevSteps
+                LegacyMetricType.Calories -> todayCalories.toFloat() to todayCalories.toFloat()
+                LegacyMetricType.HeartRate -> todayHeartRate.toFloat() to todayHeartRate.toFloat()
+                LegacyMetricType.Sleep -> todaySleepHours to todaySleepHours
+                LegacyMetricType.Exercise -> todayExerciseMin.toFloat() to todayExerciseMin.toFloat()
+                LegacyMetricType.Distance -> todayDistanceKm to todayDistanceKm
+                LegacyMetricType.Hydration -> todayHydrationMl.toFloat() to prevHydration
+                LegacyMetricType.MedAdherence -> todayMedAdherence to todayMedAdherence
             }
             val change = if (previous != 0f) ((current - previous) / previous * 100f) else 0f
             val trend = when {
-                change > 2f -> TrendDirection.Up
-                change < -2f -> TrendDirection.Down
-                else -> TrendDirection.Flat
+                change > 2f -> LegacyTrendDirection.Up
+                change < -2f -> LegacyTrendDirection.Down
+                else -> LegacyTrendDirection.Flat
             }
-            MetricSummary(
+            LegacyMetricSummary(
                 type = type,
                 currentValue = current,
                 previousValue = previous,
@@ -285,91 +285,91 @@ class HealthAnalyticsViewModel(
     }
 
     private fun generateChartData(
-        metric: MetricType,
-        range: TimeRange
-    ): List<ChartDataPoint> {
+        metric: LegacyMetricType,
+        range: LegacyTimeRange
+    ): List<LegacyChartDataPoint> {
         val today = LocalDate.now()
         return when (range) {
-            TimeRange.Day -> generateDayChart(metric, today)
-            TimeRange.Week -> generateWeekChart(metric, today)
-            TimeRange.Month -> generateMonthChart(metric, today)
+            LegacyTimeRange.Day -> generateDayChart(metric, today)
+            LegacyTimeRange.Week -> generateWeekChart(metric, today)
+            LegacyTimeRange.Month -> generateMonthChart(metric, today)
         }
     }
 
-    private fun generateDayChart(metric: MetricType, today: LocalDate): List<ChartDataPoint> {
+    private fun generateDayChart(metric: LegacyMetricType, today: LocalDate): List<LegacyChartDataPoint> {
         // For day view, distribute today's total across time-of-day activity pattern
         val totalValue = when (metric) {
-            MetricType.Steps -> todaySteps.toFloat()
-            MetricType.Calories -> todayCalories.toFloat()
-            MetricType.HeartRate -> todayHeartRate.toFloat()
-            MetricType.Sleep -> todaySleepHours
-            MetricType.Exercise -> todayExerciseMin.toFloat()
-            MetricType.Distance -> todayDistanceKm
-            MetricType.Hydration -> todayHydrationMl.toFloat()
-            MetricType.MedAdherence -> todayMedAdherence
+            LegacyMetricType.Steps -> todaySteps.toFloat()
+            LegacyMetricType.Calories -> todayCalories.toFloat()
+            LegacyMetricType.HeartRate -> todayHeartRate.toFloat()
+            LegacyMetricType.Sleep -> todaySleepHours
+            LegacyMetricType.Exercise -> todayExerciseMin.toFloat()
+            LegacyMetricType.Distance -> todayDistanceKm
+            LegacyMetricType.Hydration -> todayHydrationMl.toFloat()
+            LegacyMetricType.MedAdherence -> todayMedAdherence
         }
 
         return (0..23).map { hour ->
             val label = if (hour % 4 == 0) "${hour}h" else ""
             val multiplier = hourlyActivityMultiplier(hour)
             val value = when (metric) {
-                MetricType.HeartRate -> if (todayHeartRate > 0) 60f + 20f * multiplier else 0f
-                MetricType.Sleep -> if (hour in 0..7 || hour >= 23) todaySleepHours / 8f else 0f
-                MetricType.MedAdherence -> if (hour == 8 || hour == 20) todayMedAdherence / 2f else 0f
+                LegacyMetricType.HeartRate -> if (todayHeartRate > 0) 60f + 20f * multiplier else 0f
+                LegacyMetricType.Sleep -> if (hour in 0..7 || hour >= 23) todaySleepHours / 8f else 0f
+                LegacyMetricType.MedAdherence -> if (hour == 8 || hour == 20) todayMedAdherence / 2f else 0f
                 else -> totalValue * multiplier / HOURLY_MULTIPLIER_SUM
             }
-            ChartDataPoint(label, value.coerceAtLeast(0f))
+            LegacyChartDataPoint(label, value.coerceAtLeast(0f))
         }
     }
 
-    private fun generateWeekChart(metric: MetricType, today: LocalDate): List<ChartDataPoint> {
+    private fun generateWeekChart(metric: LegacyMetricType, today: LocalDate): List<LegacyChartDataPoint> {
         val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
         val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
         return days.map { date ->
             val label = dayLabels[date.dayOfWeek.value - 1]
             val value = getDailyValueForMetric(metric, date)
-            ChartDataPoint(label, value)
+            LegacyChartDataPoint(label, value)
         }
     }
 
-    private fun generateMonthChart(metric: MetricType, today: LocalDate): List<ChartDataPoint> {
+    private fun generateMonthChart(metric: LegacyMetricType, today: LocalDate): List<LegacyChartDataPoint> {
         return (29 downTo 0).map { daysAgo ->
             val date = today.minusDays(daysAgo.toLong())
             val dayNum = date.dayOfMonth
             val label = if (dayNum % 5 == 0 || dayNum == 1) "$dayNum" else ""
             val value = getDailyValueForMetric(metric, date)
-            ChartDataPoint(label, value)
+            LegacyChartDataPoint(label, value)
         }
     }
 
-    private fun getDailyValueForMetric(metric: MetricType, date: LocalDate): Float {
+    private fun getDailyValueForMetric(metric: LegacyMetricType, date: LocalDate): Float {
         val today = LocalDate.now()
         return when (metric) {
-            MetricType.Steps -> {
+            LegacyMetricType.Steps -> {
                 if (date == today) todaySteps.toFloat()
                 else weeklyStepCounts.find { it.first == date }?.second?.toFloat() ?: 0f
             }
-            MetricType.Calories -> {
+            LegacyMetricType.Calories -> {
                 if (date == today) todayCalories.toFloat() else 0f
             }
-            MetricType.HeartRate -> {
+            LegacyMetricType.HeartRate -> {
                 if (date == today) todayHeartRate.toFloat() else 0f
             }
-            MetricType.Sleep -> {
+            LegacyMetricType.Sleep -> {
                 if (date == today) todaySleepHours else 0f
             }
-            MetricType.Exercise -> {
+            LegacyMetricType.Exercise -> {
                 if (date == today) todayExerciseMin.toFloat() else 0f
             }
-            MetricType.Distance -> {
+            LegacyMetricType.Distance -> {
                 val runDistance = runActivitiesByDay[date]?.toFloat() ?: 0f
                 if (date == today) maxOf(todayDistanceKm, runDistance) else runDistance
             }
-            MetricType.Hydration -> {
+            LegacyMetricType.Hydration -> {
                 (hydrationByDay[date] ?: 0).toFloat()
             }
-            MetricType.MedAdherence -> {
+            LegacyMetricType.MedAdherence -> {
                 if (date == today) todayMedAdherence else 0f
             }
         }
@@ -377,21 +377,21 @@ class HealthAnalyticsViewModel(
 
     // ── Insights generation ──────────────────────────────────────────────────
 
-    private fun generateInsight(summaries: List<MetricSummary>): String {
+    private fun generateInsight(summaries: List<LegacyMetricSummary>): String {
         val parts = mutableListOf<String>()
 
-        val stepsSummary = summaries.find { it.type == MetricType.Steps }
+        val stepsSummary = summaries.find { it.type == LegacyMetricType.Steps }
         stepsSummary?.let {
             val pct = abs(it.changePercent).roundToInt()
             when {
                 it.currentValue == 0f -> parts.add("No step data available yet. Connect Health Connect to track your daily steps.")
-                it.trend == TrendDirection.Up -> parts.add("Your step count has increased by $pct% compared to your recent average. Keep up the great work!")
-                it.trend == TrendDirection.Down -> parts.add("Your step count decreased by $pct%. Try taking short walks between tasks.")
-                else -> parts.add("You've taken ${it.currentValue.roundToInt()} steps today. Aim for ${MetricType.Steps.goal?.roundToInt() ?: 10000} to hit your goal!")
+                it.trend == LegacyTrendDirection.Up -> parts.add("Your step count has increased by $pct% compared to your recent average. Keep up the great work!")
+                it.trend == LegacyTrendDirection.Down -> parts.add("Your step count decreased by $pct%. Try taking short walks between tasks.")
+                else -> parts.add("You've taken ${it.currentValue.roundToInt()} steps today. Aim for ${LegacyMetricType.Steps.goal?.roundToInt() ?: 10000} to hit your goal!")
             }
         }
 
-        val sleepSummary = summaries.find { it.type == MetricType.Sleep }
+        val sleepSummary = summaries.find { it.type == LegacyMetricType.Sleep }
         sleepSummary?.let {
             when {
                 it.currentValue == 0f -> {} // no data, skip
@@ -400,9 +400,9 @@ class HealthAnalyticsViewModel(
             }
         }
 
-        val hydrationSummary = summaries.find { it.type == MetricType.Hydration }
+        val hydrationSummary = summaries.find { it.type == LegacyMetricType.Hydration }
         hydrationSummary?.let {
-            val goal = MetricType.Hydration.goal ?: 2500f
+            val goal = LegacyMetricType.Hydration.goal ?: 2500f
             when {
                 it.currentValue >= goal -> parts.add("Great hydration today! You've hit your daily water goal.")
                 it.currentValue > 0f -> parts.add("You've had ${it.currentValue.roundToInt()}ml of water. Keep drinking to reach your ${goal.roundToInt()}ml goal.")
@@ -440,17 +440,21 @@ class HealthAnalyticsViewModel(
     companion object {
         private const val TAG = "HealthAnalyticsVM"
         // Sum of all hourly multipliers for normalization
-        private val HOURLY_MULTIPLIER_SUM = (0..23).sumOf { hour ->
-            when (hour) {
-                in 0..5 -> 10
-                in 6..8 -> 80
-                in 9..11 -> 60
-                12 -> 50
-                in 13..16 -> 50
-                in 17..19 -> 90
-                in 20..22 -> 30
-                else -> 10
+        private val HOURLY_MULTIPLIER_SUM: Float = run {
+            var total = 0
+            for (hour in 0..23) {
+                total += when (hour) {
+                    in 0..5 -> 10
+                    in 6..8 -> 80
+                    in 9..11 -> 60
+                    12 -> 50
+                    in 13..16 -> 50
+                    in 17..19 -> 90
+                    in 20..22 -> 30
+                    else -> 10
+                }
             }
-        }.toFloat() / 100f
+            total.toFloat() / 100f
+        }
     }
 }

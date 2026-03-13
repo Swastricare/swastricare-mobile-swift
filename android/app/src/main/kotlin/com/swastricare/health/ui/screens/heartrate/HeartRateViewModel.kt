@@ -37,10 +37,10 @@ data class HeartRateReading(
 )
 
 // ─────────────────────────────────────
-// MARK: - UI State
+// MARK: - UI State (Legacy)
 // ─────────────────────────────────────
 
-data class HeartRateUiState(
+data class LegacyHeartRateUiState(
     val measurementState: MeasurementState = MeasurementState.IDLE,
     val measurementProgress: Float = 0f,
     val currentBpm: Int = 0,
@@ -78,8 +78,8 @@ class HeartRateViewModel(
     private val detector = HeartRateDetector(context)
     private var resultHandled = false
 
-    private val _uiState = MutableStateFlow(HeartRateUiState())
-    val uiState: StateFlow<HeartRateUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(LegacyHeartRateUiState())
+    val uiState: StateFlow<LegacyHeartRateUiState> = _uiState.asStateFlow()
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -104,7 +104,7 @@ class HeartRateViewModel(
 
     /**
      * Collect all StateFlows from the HeartRateDetector and map them
-     * into the single HeartRateUiState.
+     * into the single LegacyHeartRateUiState.
      */
     private fun collectDetectorFlows() {
         viewModelScope.launch {

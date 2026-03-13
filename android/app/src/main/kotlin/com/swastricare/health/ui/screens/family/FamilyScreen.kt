@@ -22,9 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swastricare.health.data.models.FamilyMember
-import com.swastricare.health.data.models.FamilyRole
+import com.swastricare.health.domain.model.FamilyMember
+import com.swastricare.health.domain.model.FamilyRole
 import com.swastricare.health.di.AppContainer
+import com.swastricare.health.presentation.feature.family.FamilyUiState
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
@@ -432,7 +433,7 @@ private fun FamilyMemberRow(member: FamilyMember) {
         }
 
         // Role badge
-        val roleColor = when (member.roleEnum) {
+        val roleColor = when (member.role) {
             FamilyRole.OWNER -> Color(0xFFFF9500)
             FamilyRole.ADMIN -> PrimaryColor
             FamilyRole.MEMBER -> AppColors.onSurface.copy(alpha = 0.5f)
@@ -444,7 +445,7 @@ private fun FamilyMemberRow(member: FamilyMember) {
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
-                member.roleEnum.displayName,
+                member.role.displayName,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = roleColor

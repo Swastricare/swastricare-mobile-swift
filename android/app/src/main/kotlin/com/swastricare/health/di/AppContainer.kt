@@ -6,11 +6,12 @@ import android.util.Log
 import androidx.core.content.edit
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.swastricare.health.BuildConfig
+import com.swastricare.health.core.logger.LoggerImpl
+import com.swastricare.health.core.logger.CrashReporter
 import com.swastricare.health.data.SupabaseConfig
 import com.swastricare.health.data.helpers.GoogleAuthHelper
 import com.swastricare.health.data.repository.*
@@ -31,6 +32,13 @@ import com.swastricare.health.data.services.SessionManager
 import com.swastricare.health.data.services.WeatherService
 import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.data.services.WorkoutStateManager
+import com.swastricare.health.domain.usecase.family.AcceptInvitationUseCase
+import com.swastricare.health.domain.usecase.family.CreateFamilyGroupUseCase
+import com.swastricare.health.domain.usecase.family.GetFamilyMembersUseCase
+import com.swastricare.health.domain.usecase.family.InviteMemberUseCase
+import com.swastricare.health.domain.usecase.family.LeaveFamilyGroupUseCase
+import com.swastricare.health.domain.usecase.family.RemoveMemberUseCase
+import com.swastricare.health.domain.usecase.family.UpdatePermissionsUseCase
 import com.swastricare.health.ui.screens.auth.AuthViewModel
 import com.swastricare.health.ui.screens.diet.DietViewModel
 import com.swastricare.health.ui.screens.family.FamilyViewModel
@@ -51,10 +59,6 @@ import io.github.jan.supabase.functions.Functions
 
 // DataStore extension on Context (single instance per process)
 private val Context.appDataStore: DataStore<Preferences> by preferencesDataStore(name = "swastricare_settings")
-
-// Preference keys used by SplashScreen and AppNavigation
-val ONBOARDING_COMPLETE_KEY = booleanPreferencesKey("onboarding_complete")
-val CONSENT_ACCEPTED_KEY = booleanPreferencesKey("consent_accepted")
 
 /**
  * App Dependency Container
@@ -293,13 +297,45 @@ object AppContainer {
         HydrationViewModel(hydrationRepository, profileRepository, weatherService)
     }
 
-    // Family
+    // Family — domain-layer repository implementation (used by FamilyViewModel and use cases)
+    val domainFamilyRepository: com.swastricare.health.domain.repository.FamilyRepository by lazy {
+        FamilyRepositoryImpl(supabaseClient, appLogger)
+    }
+
+    // Legacy data-layer FamilyRepository (kept for any remaining non-migrated callers)
     val familyRepository: FamilyRepository by lazy {
         SupabaseFamilyRepository(supabaseClient)
     }
 
+    // Domain-layer AuthRepository implementation (used by FamilyViewModel)
+    val domainAuthRepository: com.swastricare.health.domain.repository.AuthRepository by lazy {
+        AuthRepositoryImpl(supabaseClient, sharedPreferences)
+    }
+
+    // Logger backed by a no-op CrashReporter (Crashlytics is wired separately via Hilt)
+    private val appLogger: com.swastricare.health.core.logger.Logger by lazy {
+        LoggerImpl(object : CrashReporter {
+            override fun log(message: String) = Unit
+            override fun recordException(throwable: Throwable) = Unit
+            override fun setUserId(userId: String) = Unit
+            override fun setCustomKey(key: String, value: String) = Unit
+        })
+    }
+
     val familyViewModel: FamilyViewModel by lazy {
-        FamilyViewModel(familyRepository, authRepository)
+        val repo = domainFamilyRepository
+        FamilyViewModel(
+            familyRepository = repo,
+            authRepository = domainAuthRepository,
+            createFamilyGroupUseCase = CreateFamilyGroupUseCase(repo),
+            acceptInvitationUseCase = AcceptInvitationUseCase(repo),
+            getFamilyMembersUseCase = GetFamilyMembersUseCase(repo),
+            inviteMemberUseCase = InviteMemberUseCase(repo),
+            leaveFamilyGroupUseCase = LeaveFamilyGroupUseCase(repo),
+            removeMemberUseCase = RemoveMemberUseCase(repo),
+            updatePermissionsUseCase = UpdatePermissionsUseCase(repo),
+            logger = appLogger
+        )
     }
 
     val aiConversationRepository: AIConversationRepository by lazy {

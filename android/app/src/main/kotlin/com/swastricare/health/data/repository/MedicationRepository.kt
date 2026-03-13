@@ -18,40 +18,10 @@ private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 private const val PREF_KEY_MEDICATIONS = "cached_medications"
 
 // ─────────────────────────────────────
-// MARK: - Repository Interface
-// ─────────────────────────────────────
-
-interface MedicationRepository {
-    suspend fun fetchMedications(profileId: String): List<MedicationDto>
-    suspend fun fetchSchedules(profileId: String): List<MedicationScheduleDto>
-    suspend fun fetchTodayLogs(profileId: String, date: LocalDate = LocalDate.now()): List<MedicationLogDto>
-    suspend fun fetchWeekLogs(profileId: String, weekStart: LocalDate): List<MedicationLogDto>
-    suspend fun upsertMedication(medication: MedicationDto): Result<MedicationDto>
-    suspend fun upsertSchedules(schedules: List<MedicationScheduleDto>): Result<Unit>
-    suspend fun markAsTaken(
-        medicationId: String,
-        scheduleId: String,
-        profileId: String,
-        scheduledTime: LocalDateTime,
-        logId: String?
-    ): Result<String>
-    suspend fun markAsSkipped(
-        medicationId: String,
-        scheduleId: String,
-        profileId: String,
-        scheduledTime: LocalDateTime,
-        logId: String?,
-        reason: String?
-    ): Result<String>
-    suspend fun deleteMedication(id: String): Result<Unit>
-    fun getCachedMedications(): List<MedicationDto>
-    fun cacheMedications(medications: List<MedicationDto>)
-}
-
-// ─────────────────────────────────────
 // MARK: - Supabase Implementation
 // ─────────────────────────────────────
 
+@Suppress("DEPRECATION")
 class SupabaseMedicationRepository(
     private val supabaseClient: SupabaseClient,
     private val prefs: SharedPreferences

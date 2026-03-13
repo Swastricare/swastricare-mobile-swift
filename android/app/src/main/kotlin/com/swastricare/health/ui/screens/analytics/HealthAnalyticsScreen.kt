@@ -77,7 +77,7 @@ fun HealthAnalyticsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // ── Time Range Selector ─────────────────────────────────
-                TimeRangeSelector(
+                TimeRangeSelectorLegacy(
                     selected = uiState.selectedTimeRange,
                     onSelect = { viewModel.selectTimeRange(it) }
                 )
@@ -159,9 +159,9 @@ private fun AnalyticsTopBar(onNavigateBack: () -> Unit) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun TimeRangeSelector(
-    selected: TimeRange,
-    onSelect: (TimeRange) -> Unit
+private fun TimeRangeSelectorLegacy(
+    selected: LegacyTimeRange,
+    onSelect: (LegacyTimeRange) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -169,7 +169,7 @@ private fun TimeRangeSelector(
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        TimeRange.entries.forEach { range ->
+        LegacyTimeRange.entries.forEach { range ->
             val isSelected = range == selected
             FilterChip(
                 selected = isSelected,
@@ -201,7 +201,7 @@ private fun TimeRangeSelector(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun SummaryCardsRow(summaries: List<MetricSummary>) {
+private fun SummaryCardsRow(summaries: List<LegacyMetricSummary>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -217,7 +217,7 @@ private fun SummaryCardsRow(summaries: List<MetricSummary>) {
 
 @Composable
 private fun SummaryCard(
-    summary: MetricSummary,
+    summary: LegacyMetricSummary,
     animationDelay: Int = 0
 ) {
     var isVisible by remember { mutableStateOf(false) }
@@ -261,17 +261,17 @@ private fun SummaryCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = iconForMetric(summary.type),
+                    imageVector = iconForLegacyMetric(summary.type),
                     contentDescription = null,
                     tint = summary.type.color,
                     modifier = Modifier.size(14.dp)
                 )
             }
-            TrendArrow(trend = summary.trend)
+            LegacyTrendArrow(trend = summary.trend)
         }
 
         Text(
-            text = formatValue(summary.currentValue, summary.type),
+            text = formatLegacyValue(summary.currentValue, summary.type),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = AppColors.onSurface
@@ -286,11 +286,11 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun TrendArrow(trend: TrendDirection) {
+private fun LegacyTrendArrow(trend: LegacyTrendDirection) {
     val (icon, color) = when (trend) {
-        TrendDirection.Up -> Icons.Default.TrendingUp to Color(0xFF4CAF50)
-        TrendDirection.Down -> Icons.Default.TrendingDown to Color(0xFFF44336)
-        TrendDirection.Flat -> Icons.Default.TrendingFlat to Color.Gray
+        LegacyTrendDirection.Up -> Icons.Default.TrendingUp to Color(0xFF4CAF50)
+        LegacyTrendDirection.Down -> Icons.Default.TrendingDown to Color(0xFFF44336)
+        LegacyTrendDirection.Flat -> Icons.Default.TrendingFlat to Color.Gray
     }
     Icon(
         imageVector = icon,
@@ -306,10 +306,10 @@ private fun TrendArrow(trend: TrendDirection) {
 
 @Composable
 private fun MainChartSection(
-    selectedMetric: MetricType,
-    selectedRange: TimeRange,
-    chartData: List<ChartDataPoint>,
-    onMetricSelected: (MetricType) -> Unit
+    selectedMetric: LegacyMetricType,
+    selectedRange: LegacyTimeRange,
+    chartData: List<LegacyChartDataPoint>,
+    onMetricSelected: (LegacyMetricType) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -326,24 +326,24 @@ private fun MainChartSection(
         )
 
         // Metric type picker
-        MetricTypePicker(
+        LegacyMetricTypePicker(
             selected = selectedMetric,
             onSelect = onMetricSelected
         )
 
         // Chart
         when (selectedRange) {
-            TimeRange.Day -> BarChart(
+            LegacyTimeRange.Day -> LegacyBarChart(
                 data = chartData,
                 color = selectedMetric.color,
                 goalValue = selectedMetric.goal
             )
-            TimeRange.Week -> BarChart(
+            LegacyTimeRange.Week -> LegacyBarChart(
                 data = chartData,
                 color = selectedMetric.color,
                 goalValue = selectedMetric.goal
             )
-            TimeRange.Month -> LineChart(
+            LegacyTimeRange.Month -> LegacyLineChart(
                 data = chartData,
                 color = selectedMetric.color,
                 goalValue = selectedMetric.goal
@@ -353,15 +353,15 @@ private fun MainChartSection(
 }
 
 @Composable
-private fun MetricTypePicker(
-    selected: MetricType,
-    onSelect: (MetricType) -> Unit
+private fun LegacyMetricTypePicker(
+    selected: LegacyMetricType,
+    onSelect: (LegacyMetricType) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        MetricType.entries.forEach { metric ->
+        LegacyMetricType.entries.forEach { metric ->
             val isSelected = metric == selected
             Box(
                 modifier = Modifier
@@ -374,7 +374,7 @@ private fun MetricTypePicker(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = iconForMetric(metric),
+                    imageVector = iconForLegacyMetric(metric),
                     contentDescription = metric.label,
                     tint = if (isSelected) Color.White else metric.color,
                     modifier = Modifier.size(18.dp)
@@ -389,8 +389,8 @@ private fun MetricTypePicker(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun BarChart(
-    data: List<ChartDataPoint>,
+private fun LegacyBarChart(
+    data: List<LegacyChartDataPoint>,
     color: Color,
     goalValue: Float?,
     modifier: Modifier = Modifier
@@ -497,8 +497,8 @@ private fun BarChart(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun LineChart(
-    data: List<ChartDataPoint>,
+private fun LegacyLineChart(
+    data: List<LegacyChartDataPoint>,
     color: Color,
     goalValue: Float?,
     modifier: Modifier = Modifier
@@ -630,7 +630,7 @@ private fun LineChart(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun MetricsGrid(summaries: List<MetricSummary>) {
+private fun MetricsGrid(summaries: List<LegacyMetricSummary>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -668,7 +668,7 @@ private fun MetricsGrid(summaries: List<MetricSummary>) {
 
 @Composable
 private fun MetricGridCard(
-    summary: MetricSummary,
+    summary: LegacyMetricSummary,
     animationDelay: Int = 0,
     modifier: Modifier = Modifier
 ) {
@@ -711,7 +711,7 @@ private fun MetricGridCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = iconForMetric(summary.type),
+                    imageVector = iconForLegacyMetric(summary.type),
                     contentDescription = null,
                     tint = summary.type.color,
                     modifier = Modifier.size(16.dp)
@@ -729,7 +729,7 @@ private fun MetricGridCard(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = formatValue(summary.currentValue, summary.type),
+                text = formatLegacyValue(summary.currentValue, summary.type),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.onSurface
@@ -745,9 +745,9 @@ private fun MetricGridCard(
         // Change badge
         val pct = abs(summary.changePercent).roundToInt()
         val (badgeColor, badgeText) = when (summary.trend) {
-            TrendDirection.Up -> Color(0xFF4CAF50) to "+$pct%"
-            TrendDirection.Down -> Color(0xFFF44336) to "-$pct%"
-            TrendDirection.Flat -> Color.Gray to "0%"
+            LegacyTrendDirection.Up -> Color(0xFF4CAF50) to "+$pct%"
+            LegacyTrendDirection.Down -> Color(0xFFF44336) to "-$pct%"
+            LegacyTrendDirection.Flat -> Color.Gray to "0%"
         }
 
         Row(
@@ -872,26 +872,26 @@ private fun AIInsightsSection(
 // MARK: - Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-private fun iconForMetric(type: MetricType): ImageVector = when (type) {
-    MetricType.Steps -> Icons.Default.DirectionsWalk
-    MetricType.Calories -> Icons.Default.LocalFireDepartment
-    MetricType.HeartRate -> Icons.Default.Favorite
-    MetricType.Sleep -> Icons.Default.Bedtime
-    MetricType.Exercise -> Icons.Default.FitnessCenter
-    MetricType.Distance -> Icons.Default.NearMe
-    MetricType.Hydration -> Icons.Default.LocalDrink
-    MetricType.MedAdherence -> Icons.Default.Medication
+private fun iconForLegacyMetric(type: LegacyMetricType): ImageVector = when (type) {
+    LegacyMetricType.Steps -> Icons.Default.DirectionsWalk
+    LegacyMetricType.Calories -> Icons.Default.LocalFireDepartment
+    LegacyMetricType.HeartRate -> Icons.Default.Favorite
+    LegacyMetricType.Sleep -> Icons.Default.Bedtime
+    LegacyMetricType.Exercise -> Icons.Default.FitnessCenter
+    LegacyMetricType.Distance -> Icons.Default.NearMe
+    LegacyMetricType.Hydration -> Icons.Default.LocalDrink
+    LegacyMetricType.MedAdherence -> Icons.Default.Medication
 }
 
-private fun formatValue(value: Float, type: MetricType): String = when (type) {
-    MetricType.Steps -> "${value.roundToInt()}"
-    MetricType.Calories -> "${value.roundToInt()}"
-    MetricType.HeartRate -> "${value.roundToInt()}"
-    MetricType.Sleep -> String.format("%.1f", value)
-    MetricType.Exercise -> "${value.roundToInt()}"
-    MetricType.Distance -> String.format("%.1f", value)
-    MetricType.Hydration -> "${value.roundToInt()}"
-    MetricType.MedAdherence -> "${value.roundToInt()}"
+private fun formatLegacyValue(value: Float, type: LegacyMetricType): String = when (type) {
+    LegacyMetricType.Steps -> "${value.roundToInt()}"
+    LegacyMetricType.Calories -> "${value.roundToInt()}"
+    LegacyMetricType.HeartRate -> "${value.roundToInt()}"
+    LegacyMetricType.Sleep -> String.format("%.1f", value)
+    LegacyMetricType.Exercise -> "${value.roundToInt()}"
+    LegacyMetricType.Distance -> String.format("%.1f", value)
+    LegacyMetricType.Hydration -> "${value.roundToInt()}"
+    LegacyMetricType.MedAdherence -> "${value.roundToInt()}"
 }
 
 private fun formatAxisValue(value: Float): String =
