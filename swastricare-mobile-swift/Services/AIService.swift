@@ -16,6 +16,7 @@ protocol AIServiceProtocol {
     func sendSmartMessage(_ message: String, context: [ChatMessage], systemContext: String?, forceModel: String?) async throws -> AIResponse
     func sendMedicalQuery(_ message: String, context: [ChatMessage], healthContext: String?) async throws -> AIResponse
     func analyzeMedicalImage(_ imageData: Data, analysisType: MedicalImageAnalysisType, question: String?) async throws -> AIResponse
+    func analyzeFoodImage(_ imageData: Data) async throws -> SnapFoodResult
     func analyzeHealth(_ metrics: HealthMetrics) async throws -> HealthAnalysisResponse
     func generateHealthSummary(_ metrics: HealthMetrics) async throws -> String
     func loadChatHistory() async throws -> (messages: [ChatMessage], conversationId: UUID?)
@@ -287,7 +288,133 @@ final class AIService: AIServiceProtocol {
             isImageAnalysis: true
         )
     }
-    
+
+    // MARK: - Food Image Analysis (AI-powered nutrition detection)
+
+    func analyzeFoodImage(_ imageData: Data) async throws -> SnapFoodResult {
+        print("🍽️ === FOOD IMAGE ANALYSIS ===")
+        print("🍽️ Image data size: \(imageData.count) bytes")
+
+        // Convert image data to base64
+        let base64String = imageData.base64EncodedString()
+
+        // Detect image type from data
+        let imageType = detectImageType(from: imageData)
+        print("🍽️ Detected image type: \(imageType)")
+        print("🍽️ Base64 string length: \(base64String.count) characters")
+
+        // Build food analysis prompt (following Android implementation)
+        let foodPrompt = """
+        Identify the food in this image. This is likely Indian cuisine.
+        Respond ONLY with this exact format:
+
+        FOOD: <name>
+        CALORIES: <number>
+        PROTEIN: <grams as number>
+        CARBS: <grams as number>
+        FAT: <grams as number>
+        FIBER: <grams as number>
+        SERVING_SIZE: <number>
+        SERVING_UNIT: <unit>
+        CATEGORY: <category>
+
+        For SERVING_UNIT, use one of: g, ml, piece, cup, tbsp, tsp, oz, bowl, plate
+        For CATEGORY, use one of: fruits, vegetables, grains, protein, dairy, beverages, snacks, sweets, other
+        """
+
+        let payload: [String: Any] = [
+            "imageData": base64String,
+            "imageType": imageType,
+            "analysisType": "general",
+            "message": foodPrompt
+        ]
+
+        print("🍽️ Calling Supabase function: medgemma-vision")
+
+        let response = try await supabase.invokeFunction(
+            name: "medgemma-vision",
+            payload: payload
+        )
+
+        print("🍽️ === FOOD VISION RESPONSE ===")
+        print("🍽️ Raw response keys: \(response.keys.joined(separator: ", "))")
+
+        guard let responseText = response["response"] as? String else {
+            print("❌ No 'response' field in response!")
+            throw AIError.invalidResponse
+        }
+
+        print("🍽️ Response length: \(responseText.count) characters")
+        print("🍽️ Response text:\n\(responseText)")
+
+        // Parse the structured response
+        let foodResult = try parseFoodResponse(responseText)
+
+        print("🍽️ Parsed food: \(foodResult.name)")
+        print("🍽️ Calories: \(foodResult.calories)")
+        print("🍽️ Macros: P:\(foodResult.proteinG)g C:\(foodResult.carbsG)g F:\(foodResult.fatG)g")
+
+        return foodResult
+    }
+
+    private func parseFoodResponse(_ text: String) throws -> SnapFoodResult {
+        var name = "Unknown Food"
+        var calories: Double = 0
+        var proteinG: Double = 0
+        var carbsG: Double = 0
+        var fatG: Double = 0
+        var fiberG: Double = 0
+        var servingSize: Double = 1.0
+        var servingUnit: ServingUnit = .piece
+        var category: FoodCategory = .other
+
+        // Parse each line
+        let lines = text.components(separatedBy: .newlines)
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            if trimmed.hasPrefix("FOOD:") {
+                name = trimmed.replacingOccurrences(of: "FOOD:", with: "").trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("CALORIES:") {
+                let value = trimmed.replacingOccurrences(of: "CALORIES:", with: "").trimmingCharacters(in: .whitespaces)
+                calories = Double(value.components(separatedBy: .whitespaces).first ?? "0") ?? 0
+            } else if trimmed.hasPrefix("PROTEIN:") {
+                let value = trimmed.replacingOccurrences(of: "PROTEIN:", with: "").trimmingCharacters(in: .whitespaces)
+                proteinG = Double(value.components(separatedBy: .whitespaces).first ?? "0") ?? 0
+            } else if trimmed.hasPrefix("CARBS:") {
+                let value = trimmed.replacingOccurrences(of: "CARBS:", with: "").trimmingCharacters(in: .whitespaces)
+                carbsG = Double(value.components(separatedBy: .whitespaces).first ?? "0") ?? 0
+            } else if trimmed.hasPrefix("FAT:") {
+                let value = trimmed.replacingOccurrences(of: "FAT:", with: "").trimmingCharacters(in: .whitespaces)
+                fatG = Double(value.components(separatedBy: .whitespaces).first ?? "0") ?? 0
+            } else if trimmed.hasPrefix("FIBER:") {
+                let value = trimmed.replacingOccurrences(of: "FIBER:", with: "").trimmingCharacters(in: .whitespaces)
+                fiberG = Double(value.components(separatedBy: .whitespaces).first ?? "0") ?? 0
+            } else if trimmed.hasPrefix("SERVING_SIZE:") {
+                let value = trimmed.replacingOccurrences(of: "SERVING_SIZE:", with: "").trimmingCharacters(in: .whitespaces)
+                servingSize = Double(value.components(separatedBy: .whitespaces).first ?? "1") ?? 1.0
+            } else if trimmed.hasPrefix("SERVING_UNIT:") {
+                let value = trimmed.replacingOccurrences(of: "SERVING_UNIT:", with: "").trimmingCharacters(in: .whitespaces).lowercased()
+                servingUnit = ServingUnit(rawValue: value) ?? .piece
+            } else if trimmed.hasPrefix("CATEGORY:") {
+                let value = trimmed.replacingOccurrences(of: "CATEGORY:", with: "").trimmingCharacters(in: .whitespaces).lowercased()
+                category = FoodCategory(rawValue: value) ?? .other
+            }
+        }
+
+        return SnapFoodResult(
+            name: name,
+            calories: calories,
+            proteinG: proteinG,
+            carbsG: carbsG,
+            fatG: fatG,
+            fiberG: fiberG,
+            servingSize: servingSize,
+            servingUnit: servingUnit,
+            category: category
+        )
+    }
+
     // MARK: - Image Type Detection
     
     private func detectImageType(from data: Data) -> String {

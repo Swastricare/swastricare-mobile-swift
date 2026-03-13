@@ -18,6 +18,7 @@ struct AddFoodView: View {
     @State private var selectedFoodForQuantity: FoodItem?
     @State private var showCategorySearch = false
     @State private var selectedCategory: FoodCategory?
+    @State private var showFoodSnap = false
 
     init(viewModel: DietViewModel, selectedMealType: MealType) {
         self.viewModel = viewModel
@@ -48,6 +49,9 @@ struct AddFoodView: View {
                         if !viewModel.favoriteFoods.isEmpty {
                             favoriteFoodsSection
                         }
+
+                        // AI Food Snap (prominent feature)
+                        snapFoodButton
 
                         // Browse by Category
                         categoryGridSection
@@ -104,6 +108,9 @@ struct AddFoodView: View {
                     selectedMealType: currentMealType,
                     onSave: { dismiss() }
                 )
+            }
+            .fullScreenCover(isPresented: $showFoodSnap) {
+                FoodSnapView(viewModel: viewModel, suggestedMealType: currentMealType)
             }
         }
     }
@@ -191,6 +198,73 @@ struct AddFoodView: View {
                 .padding(.horizontal)
             }
         }
+    }
+
+    // MARK: - Snap Food Button
+
+    private var snapFoodButton: some View {
+        Button {
+            showFoodSnap = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 24))
+                    .foregroundColor(.white)
+                    .frame(width: 50, height: 50)
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .cornerRadius(12)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("Snap Food")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.primary)
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12))
+                            .foregroundColor(.purple)
+                    }
+
+                    Text("AI-powered nutrition detection")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(14)
+            .background(
+                LinearGradient(
+                    colors: [Color.blue.opacity(0.08), Color.purple.opacity(0.08)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.blue.opacity(0.3), .purple.opacity(0.3)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
+        .padding(.top, 4)
     }
 
     // MARK: - Category Grid Section

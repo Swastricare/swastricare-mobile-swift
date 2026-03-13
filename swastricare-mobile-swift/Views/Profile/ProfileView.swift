@@ -588,7 +588,8 @@ struct QuickStatCard: View {
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
         }
-        .frame(maxWidth: .infinity, height: 90)
+        .frame(maxWidth: .infinity)
+        .frame(height: 90)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(color.opacity(0.08))

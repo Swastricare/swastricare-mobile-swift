@@ -746,3 +746,63 @@ struct CalorieCalculator {
         )
     }
 }
+
+// MARK: - Snap Food Result (AI Photo Analysis)
+
+struct SnapFoodResult: Codable, Equatable {
+    let name: String
+    let calories: Double
+    let proteinG: Double
+    let carbsG: Double
+    let fatG: Double
+    let fiberG: Double
+    let servingSize: Double
+    let servingUnit: ServingUnit
+    let category: FoodCategory
+
+    init(
+        name: String,
+        calories: Double,
+        proteinG: Double = 0,
+        carbsG: Double = 0,
+        fatG: Double = 0,
+        fiberG: Double = 0,
+        servingSize: Double = 1.0,
+        servingUnit: ServingUnit = .piece,
+        category: FoodCategory = .other
+    ) {
+        self.name = name
+        self.calories = calories
+        self.proteinG = proteinG
+        self.carbsG = carbsG
+        self.fatG = fatG
+        self.fiberG = fiberG
+        self.servingSize = servingSize
+        self.servingUnit = servingUnit
+        self.category = category
+    }
+
+    /// Convert to FoodItem for logging
+    func toFoodItem() -> FoodItem {
+        FoodItem(
+            name: name,
+            servingSize: servingSize,
+            servingUnit: servingUnit,
+            calories: calories,
+            proteinG: proteinG,
+            carbsG: carbsG,
+            fatG: fatG,
+            fiberG: fiberG,
+            category: category
+        )
+    }
+}
+
+// MARK: - Snap Analysis State
+
+enum SnapAnalysisState: Equatable {
+    case idle
+    case analyzing
+    case result(SnapFoodResult)
+    case error(String)
+}

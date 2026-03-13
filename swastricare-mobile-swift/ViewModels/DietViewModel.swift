@@ -27,6 +27,8 @@ final class DietViewModel: ObservableObject {
     @Published var showSettings = false
     @Published var searchQuery = ""
     @Published var favoriteFoodIds: Set<String> = []
+    @Published private(set) var snapAnalysisState: SnapAnalysisState = .idle
+    @Published var selectedSnapImage: Data?
 
     // MARK: - Computed Properties
     
@@ -74,18 +76,21 @@ final class DietViewModel: ObservableObject {
     }
     
     // MARK: - Dependencies
-    
+
     private let dietService: DietServiceProtocol
     private let localStorage: DietLocalStorage
+    private let aiService: AIServiceProtocol
     
     // MARK: - Init
     
     init(
         dietService: DietServiceProtocol = DietService.shared,
-        localStorage: DietLocalStorage = DietLocalStorage.shared
+        localStorage: DietLocalStorage = DietLocalStorage.shared,
+        aiService: AIServiceProtocol = AIService.shared
     ) {
         self.dietService = dietService
         self.localStorage = localStorage
+        self.aiService = aiService
         self.favoriteFoodIds = Set(UserDefaults.standard.stringArray(forKey: "favoriteFoodIds") ?? [])
     }
     
@@ -312,6 +317,54 @@ final class DietViewModel: ObservableObject {
         favoriteFoodIds.contains(foodId.uuidString)
     }
 
+    // MARK: - Food Snap Analysis
+
+    /// Analyze food image with AI
+    func analyzeFoodImage(_ imageData: Data) async {
+        selectedSnapImage = imageData
+        snapAnalysisState = .analyzing
+
+        do {
+            let result = try await aiService.analyzeFoodImage(imageData)
+            snapAnalysisState = .result(result)
+
+            // Analytics
+            AppAnalyticsService.shared.logFoodSnapAnalyzed(
+                foodName: result.name,
+                calories: Int(result.calories)
+            )
+        } catch {
+            snapAnalysisState = .error("Failed to analyze food: \(error.localizedDescription)")
+            print("🍽️ DietVM: Failed to analyze food image - \(error.localizedDescription)")
+        }
+    }
+
+    /// Log food from snap result
+    func logFoodFromSnap(
+        result: SnapFoodResult,
+        mealType: MealType,
+        quantity: Double = 1.0
+    ) async {
+        let item = result.toFoodItem()
+        await logFood(
+            item: item,
+            quantity: quantity * result.servingSize,
+            mealType: mealType,
+            notes: "Added via AI food snap",
+            source: "snap"
+        )
+
+        // Reset snap state
+        snapAnalysisState = .idle
+        selectedSnapImage = nil
+    }
+
+    /// Reset snap analysis state
+    func resetSnapState() {
+        snapAnalysisState = .idle
+        selectedSnapImage = nil
+    }
+
     // MARK: - Private Methods
     
     private func calculateNutrition() {
@@ -395,11 +448,18 @@ extension AppAnalyticsService {
             "source": source
         ])
     }
-    
+
     func logDietGoalMet(dailyGoalCal: Int, totalCal: Int) {
         log(eventName: "diet_goal_met", eventType: "action", properties: [
             "daily_goal_cal": dailyGoalCal,
             "total_cal": totalCal
+        ])
+    }
+
+    func logFoodSnapAnalyzed(foodName: String, calories: Int) {
+        log(eventName: "food_snap_analyzed", eventType: "action", properties: [
+            "food_name": foodName,
+            "calories": calories
         ])
     }
 }
