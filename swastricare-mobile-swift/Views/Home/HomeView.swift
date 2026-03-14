@@ -152,19 +152,9 @@ struct HomeView: View {
                         authorizationBanner
                     }
 
-                    // Section: Today's Activity
-                    Text("TODAY'S ACTIVITY")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .tracking(0.8)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 28)
-                        .opacity(hasAppeared ? 1 : 0)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.10), value: hasAppeared)
-
                     // Human Body Image with Daily Activity Details
                     humanBodyImageWithDetails
-                        .padding(.top, 8)
+                        .padding(.top, 4)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
                         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.10), value: hasAppeared)
@@ -358,49 +348,53 @@ struct HomeView: View {
     // MARK: - Subviews
     
     private var humanBodyImageWithDetails: some View {
-        VStack(spacing: 0) {
-            // 3D Model — smaller and cleaner
-            ZStack {
-                ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                    .frame(height: 220)
-                    .opacity(modelOpacity)
-                    .scaleEffect(modelScale)
-                    .allowsHitTesting(false)
-                    .mask(
-                        LinearGradient(
-                            colors: [.black, .black.opacity(0.8), .black.opacity(0.3), .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                // 3D Model — right side
+                HStack {
+                    Spacer()
+                    ModelViewer(modelName: "anatomy", allowsInteraction: false)
+                        .frame(height: 280)
+                        .opacity(modelOpacity)
+                        .scaleEffect(modelScale)
+                        .offset(x: geometry.size.width * 0.12)
+                        .allowsHitTesting(false)
+                        .clipped()
+                        .mask(
+                            LinearGradient(
+                                colors: [.black, .black.opacity(0.8), .black.opacity(0.3), .clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
-            }
-            .frame(height: 200)
-            .clipped()
+                }
 
-            // Activity pills below model
-            HStack(spacing: 10) {
-                ActivityPill(
-                    icon: "flame.fill",
-                    color: .orange,
-                    value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
-                    unit: "kcal"
-                )
-                ActivityPill(
-                    icon: "clock.fill",
-                    color: AppColors.accentBlue,
-                    value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
-                    unit: "min"
-                )
-                ActivityPill(
-                    icon: "figure.stand",
-                    color: .purple,
-                    value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
-                    unit: "hrs"
-                )
+                // Activity pills — left side, stacked vertically
+                VStack(alignment: .leading, spacing: 10) {
+                    ActivityPill(
+                        icon: "flame.fill",
+                        color: .orange,
+                        value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
+                        unit: "Active Cal"
+                    )
+                    ActivityPill(
+                        icon: "clock.fill",
+                        color: AppColors.accentBlue,
+                        value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
+                        unit: "Exercise Min"
+                    )
+                    ActivityPill(
+                        icon: "figure.stand",
+                        color: .purple,
+                        value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
+                        unit: "Stand Hrs"
+                    )
+                }
+                .padding(.leading, 20)
+                .frame(maxWidth: geometry.size.width * 0.52, alignment: .leading)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, -20) // overlap slightly with model fade
         }
+        .frame(height: 260)
     }
     
     private var authorizationBanner: some View {
