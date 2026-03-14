@@ -31,15 +31,13 @@ struct LoginView: View {
                         VStack(spacing: 0) {
                             // Header
                             VStack(spacing: 20) {
-                                // App icon — load from bundle since AppIcon is in the appiconset
-                                if let uiImage = UIImage(named: "AppIcon") {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 80, height: 80)
-                                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                                        .shadow(color: AppColors.accentBlue.opacity(0.3), radius: 16, y: 8)
-                                }
+                                // App logo
+                                Image("AppLogo")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                                    .shadow(color: AppColors.accentBlue.opacity(0.3), radius: 16, y: 8)
 
                                 VStack(spacing: 6) {
                                     Text("Welcome back")
