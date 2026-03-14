@@ -24,7 +24,8 @@ struct HomeView: View {
     @State private var syncMessage: String?
     @State private var hasAppeared = false
     @State private var modelOpacity: Double = 0
-    @State private var modelScale: CGFloat = 0.85
+    @State private var modelScale: CGFloat = 0.8
+    @State private var quickActionsVisible = false
     @State private var showHeartRateMeasurement = false
     @State private var showReminders = false
     @State private var showDiet = false
@@ -55,9 +56,9 @@ struct HomeView: View {
         
         var title: String {
             switch self {
-            case .optimal: return "All vitals normal"
-            case .attention: return "Needs attention"
-            case .normal: return "Status normal"
+            case .optimal: return "System Optimal"
+            case .attention: return "Attention Needed"
+            case .normal: return "Status Normal"
             }
         }
         
@@ -154,28 +155,18 @@ struct HomeView: View {
 
                     // Human Body Image with Daily Activity Details
                     humanBodyImageWithDetails
-                        .padding(.top, 4)
+                        .padding(.top, 0)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.10), value: hasAppeared)
-
-                    // Section: Your Vitals
-                    Text("YOUR VITALS")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .tracking(0.8)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 28)
-                        .opacity(hasAppeared ? 1 : 0)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.20), value: hasAppeared)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
 
                     // Health Vitals Grid
                     healthVitalsSection
                         .padding(.top, 8)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.20), value: hasAppeared)
-
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
+                    
                     // AR Body Scan Entry
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -246,7 +237,7 @@ struct HomeView: View {
                     .padding(.top, 8)
                     .opacity(hasAppeared ? 1 : 0)
                     .offset(y: hasAppeared ? 0 : 24)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.30), value: hasAppeared)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
 
                     // Dynamic Island Health Tracker
                     HealthLiveActivityToggle(
@@ -261,22 +252,13 @@ struct HomeView: View {
                     .offset(y: hasAppeared ? 0 : 24)
                     .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: hasAppeared)
 
-                    // Section: Quick Actions
-                    Text("QUICK ACTIONS")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .tracking(0.8)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 28)
-                        .opacity(hasAppeared ? 1 : 0)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
-
                     // Quick Actions
                     quickActionsSection
                         .padding(.top, 8)
+                        .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 30)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.45), value: hasAppeared)
                     
                 }
                 .padding(.top)
@@ -313,8 +295,8 @@ struct HomeView: View {
             }
             // Animate 3D model
             withAnimation(.easeOut(duration: 1.0).delay(0.2)) {
-                modelOpacity = 0.85
-                modelScale = 1.0
+                modelOpacity = 0.8
+                modelScale = 1.20 // Reduced size
             }
         }
         .task {
@@ -350,51 +332,78 @@ struct HomeView: View {
     private var humanBodyImageWithDetails: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                // 3D Model — right side
+                
+              
+                // Human Body 3D Model on the right
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 280)
+                        .frame(height: 340) // Reduced height
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
-                        .offset(x: geometry.size.width * 0.12)
-                        .allowsHitTesting(false)
+                        .offset(x: geometry.size.width * 0.16)
+                        .offset(y: geometry.size.height * 0.0) // Moved upward
+                        .allowsHitTesting(false) // Disable all touch interactions
                         .clipped()
                         .mask(
+                            // Gradient mask for bottom blend
                             LinearGradient(
-                                colors: [.black, .black.opacity(0.8), .black.opacity(0.3), .clear],
+                                gradient: Gradient(colors: [
+                                    .black,
+                                    .black.opacity(0.8),
+                                    .black.opacity(0.4),
+                                    .clear
+                                ]),
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.8)),
+                            removal: .opacity
+                        ))
                 }
+                
+                // Daily Activity Details on the left (without card)
+                VStack(alignment: .leading, spacing: 12) {
+                    
+                    // Stats List - Vertical
+                    VStack(alignment: .leading, spacing: 10) { // Tighter spacing for cards
+                        DailyActivityStatItem(
+                            icon: "flame.fill",
+                            color: .orange,
+                            value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
+                            unit: "Active Calories",
+                            animationDelay: 0.3,
+                            hasAppeared: hasAppeared
+                        )
 
-                // Activity pills — left side, stacked vertically
-                VStack(alignment: .leading, spacing: 10) {
-                    ActivityPill(
-                        icon: "flame.fill",
-                        color: .orange,
-                        value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
-                        unit: "Active Cal"
-                    )
-                    ActivityPill(
-                        icon: "clock.fill",
-                        color: AppColors.accentBlue,
-                        value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
-                        unit: "Exercise Min"
-                    )
-                    ActivityPill(
-                        icon: "figure.stand",
-                        color: .purple,
-                        value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
-                        unit: "Stand Hrs"
-                    )
+                        DailyActivityStatItem(
+                            icon: "clock.fill",
+                            color: .blue,
+                            value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
+                            unit: "Exercise Min",
+                            animationDelay: 0.5,
+                            hasAppeared: hasAppeared
+                        )
+
+                        DailyActivityStatItem(
+                            icon: "figure.stand",
+                            color: .purple,
+                            value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
+                            unit: "Stand Hours",
+                            animationDelay: 0.6,
+                            hasAppeared: hasAppeared
+                        )
+                    }
                 }
-                .padding(.leading, 20)
-                .frame(maxWidth: geometry.size.width * 0.52, alignment: .leading)
+                .padding(.horizontal, 20)
+                // .padding(.top, -10) // Move metrics upward
+                .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading) // Give slightly more space to stats
+                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: hasAppeared)
             }
         }
-        .frame(height: 260)
+        .frame(height: 320) // Reduced height to match model
     }
     
     private var authorizationBanner: some View {
@@ -499,45 +508,51 @@ struct HomeView: View {
     }
 
     private var healthVitalsSection: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 10),
-            GridItem(.flexible(), spacing: 10),
-            GridItem(.flexible(), spacing: 10)
-        ], spacing: 10) {
-            // Heart Rate — tappable
-            Button(action: { showHeartRateMeasurement = true }) {
-                VitalTintedCard(
-                    icon: "heart.fill",
-                    title: "Heart Rate",
-                    value: viewModel.heartRate > 0 ? "\(viewModel.heartRate)" : "—",
-                    unit: "bpm",
-                    status: viewModel.heartRate > 0 ? "Normal" : "",
-                    color: AppColors.accentRed
+        VStack(alignment: .leading, spacing: 12) {
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 12) {
+                // Heart Rate card - tappable to measure
+                Button(action: {
+                    showHeartRateMeasurement = true
+                }) {
+                    VitalCard(
+                        icon: "heart.fill",
+                        title: "Heart Rate",
+                        value: viewModel.heartRate > 0 ? "\(viewModel.heartRate)" : "—",
+                        unit: viewModel.heartRate > 0 ? "BPM" : "",
+                        color: .red,
+                        animationDelay: 0.8,
+                        hasAppeared: hasAppeared,
+                        showCameraBadge: true
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                VitalCard(
+                    icon: "bed.double.fill",
+                    title: "Sleep",
+                    value: viewModel.sleepHours == "0h 0m" ? "—" : viewModel.sleepHours,
+                    unit: "",
+                    color: .indigo,
+                    animationDelay: 0.9,
+                    hasAppeared: hasAppeared
+                )
+
+                VitalCard(
+                    icon: "figure.walk",
+                    title: "Distance",
+                    value: viewModel.distance > 0 ? String(format: "%.1f", viewModel.distance) : "—",
+                    unit: viewModel.distance > 0 ? "km" : "",
+                    color: .green,
+                    animationDelay: 1.0,
+                    hasAppeared: hasAppeared
                 )
             }
-            .buttonStyle(ScaleButtonStyle())
-
-            // Sleep
-            VitalTintedCard(
-                icon: "bed.double.fill",
-                title: "Sleep",
-                value: viewModel.sleepHours == "0h 0m" ? "—" : viewModel.sleepHours,
-                unit: "",
-                status: viewModel.sleepHours != "0h 0m" ? "Good" : "",
-                color: AppColors.sleep
-            )
-
-            // Distance
-            VitalTintedCard(
-                icon: "figure.walk",
-                title: "Distance",
-                value: viewModel.distance > 0 ? String(format: "%.1f", viewModel.distance) : "—",
-                unit: viewModel.distance > 0 ? "km" : "",
-                status: viewModel.distance > 0 ? "Active" : "",
-                color: AppColors.accentGreen
-            )
+            .padding(.horizontal)
         }
-        .padding(.horizontal, 20)
     }
     
     @State private var showMedications = false
@@ -546,60 +561,60 @@ struct HomeView: View {
 
 
     private var quickActionsSection: some View {
-        VStack(spacing: 12) {
-            LazyVGrid(
-                columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
-                spacing: 10
-            ) {
-                Button(action: { showMedications = true }) {
-                    QuickActionTintedCard(
-                        icon: "💊",
-                        title: "Medication",
-                        value: "\(medicationViewModel.takenCount)",
-                        total: "/\(medicationViewModel.totalCount)",
-                        progress: medicationViewModel.totalCount > 0
-                            ? Double(medicationViewModel.takenCount) / Double(medicationViewModel.totalCount)
-                            : 0,
-                        color: AppColors.medication
-                    )
-                }
-                .buttonStyle(ScaleButtonStyle())
-
-                Button(action: { showHydration = true }) {
-                    QuickActionTintedCard(
-                        icon: "💧",
-                        title: "Hydration",
-                        value: String(format: "%.1f", Double(hydrationViewModel.effectiveIntake) / 1000.0),
-                        total: "L",
-                        progress: hydrationViewModel.dailyGoal > 0
-                            ? Double(hydrationViewModel.effectiveIntake) / Double(hydrationViewModel.dailyGoal)
-                            : 0,
-                        color: AppColors.hydration
-                    )
-                }
-                .buttonStyle(ScaleButtonStyle())
-
-                Button(action: { showDiet = true }) {
-                    QuickActionTintedCard(
-                        icon: "🍽️",
-                        title: "Diet",
-                        value: "\(dietViewModel.totalCalories)",
-                        total: " kcal",
-                        progress: dietViewModel.dietGoals.dailyCalories > 0
-                            ? Double(dietViewModel.totalCalories) / Double(dietViewModel.dietGoals.dailyCalories)
-                            : 0,
-                        color: .orange
-                    )
-                }
-                .buttonStyle(ScaleButtonStyle())
-
-                Button(action: { showMenstrualCycle = true }) {
-                    CycleTintedCard()
-                }
-                .buttonStyle(ScaleButtonStyle())
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Quick Actions")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                Spacer()
             }
+            .padding(.horizontal)
+            
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                alignment: .center,
+                spacing: 12
+            ) {
+                MedicationQuickActionButton(
+                    takenCount: medicationViewModel.takenCount,
+                    totalCount: medicationViewModel.totalCount
+                ) {
+                    showMedications = true
+                }
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.05), value: quickActionsVisible)
+                
+                HydrationQuickActionButton(
+                    currentIntake: hydrationViewModel.effectiveIntake,
+                    dailyGoal: hydrationViewModel.dailyGoal
+                ) {
+                    showHydration = true
+                }
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.12), value: quickActionsVisible)
+                
+                DietQuickActionButton(
+                    currentCalories: dietViewModel.totalCalories,
+                    dailyGoal: dietViewModel.dietGoals.dailyCalories
+                ) {
+                    showDiet = true
+                }
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.19), value: quickActionsVisible)
+                
+                CycleTrackerQuickActionButton {
+                    showMenstrualCycle = true
+                }
+                .gridCellColumns(2)
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.26), value: quickActionsVisible)
+            }
+            .padding(.horizontal)
         }
-        .padding(.horizontal, 20)
         .sheet(isPresented: $showMedications) {
             MedicationsView(viewModel: medicationViewModel)
         }
@@ -652,73 +667,70 @@ struct HomeView: View {
         let status: HealthStatus
         let greeting: String
         @Binding var showReminders: Bool
-
+        
         @State private var isPulsing = false
-
+        
         var body: some View {
             HStack(alignment: .top) {
-                // Left: Greeting + Name + Heart + Status
-                VStack(alignment: .leading, spacing: 6) {
+                // Left: Text Info
+                VStack(alignment: .leading, spacing: 4) {
                     Text(greeting)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                         .foregroundColor(status.color)
-
+                    
                     HStack(alignment: .center, spacing: 8) {
                         Text(userName)
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
                             .foregroundColor(.primary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
-
-                        // Pulsing heart — iOS character
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.red)
-                            .scaleEffect(isPulsing ? 1.15 : 1.0)
-                            .opacity(isPulsing ? 1.0 : 0.8)
-                    }
-
-                    // Status line
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(status.color)
-                            .frame(width: 7, height: 7)
-                        Text(status.title)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(status.color)
+                        
+                        // Pulsing Heart
+                        ZStack {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.red)
+                                .scaleEffect(isPulsing ? 1.2 : 1.0)
+                                .opacity(isPulsing ? 1.0 : 0.8)
+                                .animation(
+                                    .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                                    value: isPulsing
+                                )
+                        }
+                        .onAppear {
+                            isPulsing = true
+                        }
                     }
                 }
-
+                
                 Spacer()
-
-                // Right: Actions with glass style
-                HStack(spacing: 12) {
-                    Button(action: { showReminders = true }) {
+                
+                // Right: Actions
+                HStack(spacing: 16) {
+                    // Notification Bell
+                    Button(action: {
+                        showReminders = true
+                    }) {
                         Image(systemName: "bell.fill")
-                            .font(.system(size: 18))
+                            .font(.system(size: 20))
                             .foregroundColor(.primary)
-                            .frame(width: 38, height: 38)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
                     }
-
+                    
+                    // Track Button
                     NavigationLink(destination: HealthAnalyticsView()) {
                         Image(systemName: "target")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.system(size: 20, weight: .medium))
                             .foregroundColor(.primary)
-                            .frame(width: 38, height: 38)
-                            .background(.ultraThinMaterial)
+                            .frame(width: 40, height: 40)
+                            .background(Color.gray.opacity(0.1))
                             .clipShape(Circle())
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal)
             .padding(.vertical, 10)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
-                    isPulsing = true
-                }
-            }
         }
     }
 }
@@ -765,186 +777,6 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
-    }
-}
-
-// MARK: - Activity Pill
-
-private struct ActivityPill: View {
-    let icon: String
-    let color: Color
-    let value: String
-    let unit: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 28, height: 28)
-                .background(color.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(color)
-                Text(unit)
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .padding(.horizontal, 10)
-        .background(color.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(color.opacity(0.10), lineWidth: 1)
-        )
-    }
-}
-
-// MARK: - Vital Tinted Card
-
-private struct VitalTintedCard: View {
-    let icon: String
-    let title: String
-    let value: String
-    let unit: String
-    let status: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                    .foregroundColor(color)
-                    .frame(width: 22, height: 22)
-                    .background(color.opacity(0.15))
-                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-
-                Text(title)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(color)
-                    .lineLimit(1)
-            }
-
-            Text(value)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(color)
-                .tracking(-1)
-
-            if !unit.isEmpty || !status.isEmpty {
-                Text([unit, status].filter { !$0.isEmpty }.joined(separator: " · "))
-                    .font(.system(size: 9))
-                    .foregroundColor(color.opacity(0.6))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(color.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(color.opacity(0.10), lineWidth: 1)
-        )
-    }
-}
-
-// MARK: - Quick Action Tinted Card
-
-private struct QuickActionTintedCard: View {
-    let icon: String
-    let title: String
-    let value: String
-    let total: String
-    let progress: Double
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Text(icon)
-                    .font(.system(size: 16))
-                    .frame(width: 28, height: 28)
-                    .background(color.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-
-                Text(title)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(color)
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text(value)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(color)
-                Text(total)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(color.opacity(0.6))
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(color.opacity(0.10))
-                        .frame(height: 4)
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(color)
-                        .frame(width: geo.size.width * min(progress, 1.0), height: 4)
-                }
-            }
-            .frame(height: 4)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(color.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(color.opacity(0.10), lineWidth: 1)
-        )
-    }
-}
-
-// MARK: - Cycle Tinted Card
-
-private struct CycleTintedCard: View {
-    private let color = Color(hex: "EC4899")
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Text("🩸")
-                    .font(.system(size: 16))
-                    .frame(width: 28, height: 28)
-                    .background(color.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-
-                Text("Cycle")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(color)
-            }
-
-            Text("Track")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(color)
-
-            Text("Tap to view cycle")
-                .font(.system(size: 9))
-                .foregroundColor(color.opacity(0.6))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(color.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(color.opacity(0.10), lineWidth: 1)
-        )
     }
 }
 
