@@ -10,13 +10,13 @@ import SwiftUI
 struct DietSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var viewModel: DietViewModel
-    
+
     @State private var dailyCalories: Double
     @State private var proteinPercent: Double
     @State private var carbsPercent: Double
     @State private var fatPercent: Double
     @State private var mealRemindersEnabled: Bool
-    
+
     init(viewModel: DietViewModel) {
         self.viewModel = viewModel
         _dailyCalories = State(initialValue: Double(viewModel.dietGoals.dailyCalories))
@@ -25,151 +25,244 @@ struct DietSettingsView: View {
         _fatPercent = State(initialValue: Double(viewModel.dietGoals.fatPercent))
         _mealRemindersEnabled = State(initialValue: viewModel.dietGoals.mealRemindersEnabled)
     }
-    
+
     private var totalPercent: Int {
         Int(proteinPercent + carbsPercent + fatPercent)
     }
-    
+
     private var isValidMacroSplit: Bool {
         totalPercent == 100
     }
-    
+
+    // MARK: - Body
+
     var body: some View {
         NavigationView {
-            Form {
-                // Calorie Goal Section
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Daily Calorie Goal")
-                                .font(.headline)
-                            Spacer()
-                            Text("\(Int(dailyCalories)) cal")
-                                .font(.title3)
+            ZStack {
+                PremiumBackground()
+
+                ScrollView {
+                    VStack(spacing: 20) {
+
+                        // MARK: Calorie Target Card
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Calorie Target")
+                                .font(.caption)
                                 .fontWeight(.bold)
-                                .foregroundColor(.green)
-                        }
-                        
-                        Slider(value: $dailyCalories, in: 1200...4000, step: 50)
-                            .tint(.green)
-                        
-                        HStack {
-                            Text("1200")
+                                .tracking(1.2)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+
+                            // Hero calorie number
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text("\(Int(dailyCalories))")
+                                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                                    .foregroundStyle(AppColors.accentGreen)
+                                Text("cal")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(AppColors.accentGreen.opacity(0.7))
+                                Spacer()
+                            }
+
+                            Slider(value: $dailyCalories, in: 1200...4000, step: 50)
+                                .tint(AppColors.accentGreen)
+
+                            HStack {
+                                Text("1,200 cal")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text("4,000 cal")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text("Based on your activity level and goals")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text("4000")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(20)
+                        .glass(cornerRadius: 16)
+                        .padding(.horizontal)
+
+                        // MARK: Macro Distribution Card
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("Macro Distribution")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                } header: {
-                    Text("Calorie Target")
-                } footer: {
-                    Text("Your daily calorie goal based on your activity level and goals")
-                }
-                
-                // Macro Split Section
-                Section {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Protein
-                        macroSlider(
-                            label: "Protein",
-                            value: $proteinPercent,
-                            color: .orange,
-                            grams: calculateGrams(percent: proteinPercent, caloriesPerGram: 4)
-                        )
-                        
-                        // Carbs
-                        macroSlider(
-                            label: "Carbs",
-                            value: $carbsPercent,
-                            color: .blue,
-                            grams: calculateGrams(percent: carbsPercent, caloriesPerGram: 4)
-                        )
-                        
-                        // Fat
-                        macroSlider(
-                            label: "Fat",
-                            value: $fatPercent,
-                            color: .purple,
-                            grams: calculateGrams(percent: fatPercent, caloriesPerGram: 9)
-                        )
-                        
-                        // Total validation
-                        HStack {
-                            Text("Total")
-                                .font(.headline)
-                            Spacer()
-                            Text("\(totalPercent)%")
-                                .font(.headline)
-                                .foregroundColor(isValidMacroSplit ? .green : .red)
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding(.vertical, 8)
-                } header: {
-                    Text("Macro Distribution")
-                } footer: {
-                    if !isValidMacroSplit {
-                        Text("⚠️ Macro percentages must total 100%")
-                            .foregroundColor(.red)
-                    } else {
-                        Text("Protein: \(calculateGrams(percent: proteinPercent, caloriesPerGram: 4))g • Carbs: \(calculateGrams(percent: carbsPercent, caloriesPerGram: 4))g • Fat: \(calculateGrams(percent: fatPercent, caloriesPerGram: 9))g")
-                    }
-                }
-                
-                // Preset Macro Splits
-                Section("Quick Presets") {
-                    Button(action: { applyPreset(.balanced) }) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("Balanced")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                Text("25% P • 50% C • 25% F")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                .fontWeight(.bold)
+                                .tracking(1.2)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+
+                            // Protein
+                            macroSlider(
+                                label: "Protein",
+                                value: $proteinPercent,
+                                color: .orange,
+                                grams: calculateGrams(percent: proteinPercent, caloriesPerGram: 4)
+                            )
+
+                            Divider().opacity(0.4)
+
+                            // Carbs
+                            macroSlider(
+                                label: "Carbs",
+                                value: $carbsPercent,
+                                color: .blue,
+                                grams: calculateGrams(percent: carbsPercent, caloriesPerGram: 4)
+                            )
+
+                            Divider().opacity(0.4)
+
+                            // Fat
+                            macroSlider(
+                                label: "Fat",
+                                value: $fatPercent,
+                                color: .purple,
+                                grams: calculateGrams(percent: fatPercent, caloriesPerGram: 9)
+                            )
+
+                            Divider().opacity(0.6)
+
+                            // Total validation row
+                            HStack(spacing: 10) {
+                                if isValidMacroSplit {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(AppColors.accentGreen)
+                                    Text("Perfect split")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(AppColors.accentGreen)
+                                } else {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundStyle(AppColors.accentRed)
+                                    Text("Must total 100%")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(AppColors.accentRed)
+                                }
+                                Spacer()
+                                Text("\(totalPercent)%")
+                                    .font(.system(.headline, design: .rounded))
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(isValidMacroSplit ? AppColors.accentGreen : AppColors.accentRed)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        (isValidMacroSplit ? AppColors.accentGreen : AppColors.accentRed)
+                                            .opacity(0.12)
+                                    )
+                                    .clipShape(Capsule())
                             }
-                            Spacer()
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isValidMacroSplit)
                         }
-                    }
-                    
-                    Button(action: { applyPreset(.highProtein) }) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("High Protein")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                Text("35% P • 40% C • 25% F")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                        .padding(20)
+                        .glass(cornerRadius: 16)
+                        .padding(.horizontal)
+
+                        // MARK: Quick Presets
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Quick Presets")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .tracking(1.2)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+
+                            presetButton(
+                                title: "Balanced",
+                                subtitle: "25% P  •  50% C  •  25% F",
+                                preset: .balanced,
+                                color: AppColors.accentGreen
+                            )
+
+                            presetButton(
+                                title: "High Protein",
+                                subtitle: "35% P  •  40% C  •  25% F",
+                                preset: .highProtein,
+                                color: .orange
+                            )
+
+                            presetButton(
+                                title: "Low Carb",
+                                subtitle: "30% P  •  30% C  •  40% F",
+                                preset: .lowCarb,
+                                color: .purple
+                            )
+                        }
+                        .padding(20)
+                        .glass(cornerRadius: 16)
+                        .padding(.horizontal)
+
+                        // MARK: Reminders Card
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Reminders")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .tracking(1.2)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+
+                            HStack {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Meal Reminders")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                    Text("Get notified to log your meals throughout the day")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Toggle("", isOn: $mealRemindersEnabled)
+                                    .tint(AppColors.accentGreen)
+                                    .labelsHidden()
                             }
-                            Spacer()
                         }
-                    }
-                    
-                    Button(action: { applyPreset(.lowCarb) }) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("Low Carb")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                Text("30% P • 30% C • 40% F")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                        .padding(20)
+                        .glass(cornerRadius: 16)
+                        .padding(.horizontal)
+
+                        // MARK: Save Button
+                        Button(action: saveGoals) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.headline)
+                                Text("Save Goals")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
                             }
-                            Spacer()
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                isValidMacroSplit
+                                    ? LinearGradient(
+                                        colors: [AppColors.accentGreen, AppColors.accentGreen.opacity(0.75)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                      )
+                                    : LinearGradient(
+                                        colors: [Color.gray.opacity(0.4), Color.gray.opacity(0.3)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                      )
+                            )
+                            .clipShape(Capsule())
+                            .shadow(
+                                color: isValidMacroSplit ? AppColors.accentGreen.opacity(0.35) : .clear,
+                                radius: 10,
+                                x: 0,
+                                y: 4
+                            )
                         }
+                        .buttonStyle(ScaleButtonStyle())
+                        .disabled(!isValidMacroSplit)
+                        .padding(.horizontal)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isValidMacroSplit)
+
+                        Spacer(minLength: 20)
                     }
-                }
-                
-                // Reminders Section
-                Section {
-                    Toggle("Meal Reminders", isOn: $mealRemindersEnabled)
-                } footer: {
-                    Text("Get notified to log your meals throughout the day")
+                    .padding(.top, 16)
                 }
             }
             .navigationTitle("Diet Goals")
@@ -180,50 +273,110 @@ struct DietSettingsView: View {
                         dismiss()
                     }
                 }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
-                        saveGoals()
-                    }
-                    .disabled(!isValidMacroSplit)
-                }
             }
         }
     }
-    
+
     // MARK: - Macro Slider
-    
+
     private func macroSlider(label: String, value: Binding<Double>, color: Color, grams: Int) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(label)
                     .font(.subheadline)
-                    .fontWeight(.medium)
-                Spacer()
-                Text("\(Int(value.wrappedValue))% (\(grams)g)")
-                    .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundColor(color)
+                Spacer()
+                // Percentage badge
+                Text("\(Int(value.wrappedValue))%")
+                    .font(.system(.caption, design: .rounded))
+                    .fontWeight(.bold)
+                    .foregroundStyle(color)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(color.opacity(0.12))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(color.opacity(0.25), lineWidth: 0.5))
+
+                // Grams badge
+                Text("\(grams)g")
+                    .font(.system(.caption, design: .rounded))
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.secondary.opacity(0.07))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.secondary.opacity(0.2), lineWidth: 0.5))
             }
-            
+
             Slider(value: value, in: 0...100, step: 5)
                 .tint(color)
         }
     }
-    
+
+    // MARK: - Preset Button
+
+    private func presetButton(title: String, subtitle: String, preset: MacroPreset, color: Color) -> some View {
+        let isSelected = isPresetSelected(preset)
+
+        return Button(action: { applyPreset(preset) }) {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(color.opacity(0.15))
+                    .frame(width: 36, height: 36)
+                    .overlay(
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(isSelected ? color : color.opacity(0.5))
+                            .font(.system(size: 18, weight: .semibold))
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(isSelected ? color.opacity(0.07) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? color.opacity(0.4) : Color.secondary.opacity(0.15), lineWidth: isSelected ? 1.5 : 0.5)
+            )
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+
     // MARK: - Helpers
-    
+
     private func calculateGrams(percent: Double, caloriesPerGram: Double) -> Int {
         let calories = dailyCalories * (percent / 100.0)
         return Int(calories / caloriesPerGram)
     }
-    
+
     private enum MacroPreset {
         case balanced
         case highProtein
         case lowCarb
     }
-    
+
+    private func isPresetSelected(_ preset: MacroPreset) -> Bool {
+        switch preset {
+        case .balanced:
+            return Int(proteinPercent) == 25 && Int(carbsPercent) == 50 && Int(fatPercent) == 25
+        case .highProtein:
+            return Int(proteinPercent) == 35 && Int(carbsPercent) == 40 && Int(fatPercent) == 25
+        case .lowCarb:
+            return Int(proteinPercent) == 30 && Int(carbsPercent) == 30 && Int(fatPercent) == 40
+        }
+    }
+
     private func applyPreset(_ preset: MacroPreset) {
         withAnimation {
             switch preset {
@@ -242,7 +395,7 @@ struct DietSettingsView: View {
             }
         }
     }
-    
+
     private func saveGoals() {
         let newGoals = DietGoals(
             dailyCalories: Int(dailyCalories),
@@ -253,7 +406,7 @@ struct DietSettingsView: View {
             mealRemindersEnabled: mealRemindersEnabled,
             updatedAt: Date()
         )
-        
+
         Task {
             await viewModel.updateGoals(newGoals)
             dismiss()
