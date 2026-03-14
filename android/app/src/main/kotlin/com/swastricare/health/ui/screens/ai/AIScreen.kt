@@ -67,6 +67,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -103,6 +104,9 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.focus.onFocusChanged
+import android.app.Activity
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -180,11 +184,28 @@ fun AIScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val isDark = isSystemInDarkTheme()
+    val screenBackground = if (isDark) Color.Black else Color.White
+    val view = LocalView.current
+    DisposableEffect(isDark) {
+        val activity = view.context as? Activity
+        activity?.window?.let { window ->
+            window.statusBarColor = screenBackground.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
+        }
+        onDispose {
+            activity?.window?.let { window ->
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
+            }
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize().background(screenBackground)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
+                // .windowInsetsPadding(WindowInsets.statusBars)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(bottom = if (!isExpanded) 76.dp else 0.dp)
         ) {
@@ -201,7 +222,13 @@ fun AIScreen(
                             focusManager.clearFocus()
                             viewModel.clearChat()
                         }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            Box(
+                                modifier = Modifier
+                                    .glass(cornerRadius = 20.dp)
+                                    .padding(8.dp)
+                            ) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
                 },
@@ -554,7 +581,7 @@ fun IntroView(
 private fun AIOrbVideo(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
-    val videoAsset = if (isDark) "ai orb/ai orb 2.mp4" else "ai orb/Ai orb light.mp4"
+    val videoAsset = if (isDark) "ai orb/ai orb 2.mp4" else "ai orb/Fluid White BG.mp4"
     val exoPlayer = remember(isDark) {
         ExoPlayer.Builder(context).build().apply {
             val uri = Uri.parse("file:///android_asset/$videoAsset")
@@ -996,60 +1023,14 @@ fun ChatInputBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Plus button
-            Box {
-                IconButton(
-                    onClick = { showAttachMenu = !showAttachMenu },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            AppColors.onBackground.copy(alpha = 0.1f),
-                            CircleShape
-                        )
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Attach",
-                        tint = AppColors.onBackground,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showAttachMenu,
-                    onDismissRequest = { showAttachMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Take Photo") },
-                        onClick = {
-                            showAttachMenu = false
-                            onCameraClick()
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null)
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Choose from Gallery") },
-                        onClick = {
-                            showAttachMenu = false
-                            onGalleryClick()
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
-                        }
-                    )
-                }
-            }
-
             // Text field with neon border
             Row(
                 modifier = Modifier
                     .weight(1f)
                 .drawBehind {
+                    // if (!isLoading) return@drawBehind
                     val strokeWidth = 1.5.dp.toPx()
                     val radiusPx = 28.dp.toPx()
 
@@ -1085,6 +1066,45 @@ fun ChatInputBar(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Plus button (inside text field, left side)
+            Box {
+                IconButton(
+                    onClick = { showAttachMenu = !showAttachMenu },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Attach",
+                        tint = AppColors.onBackground.copy(alpha = 0.5f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded = showAttachMenu,
+                    onDismissRequest = { showAttachMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Take Photo") },
+                        onClick = {
+                            showAttachMenu = false
+                            onCameraClick()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Choose from Gallery") },
+                        onClick = {
+                            showAttachMenu = false
+                            onGalleryClick()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                        }
+                    )
+                }
+            }
             BasicTextField(
                 value = inputText,
                 onValueChange = onTextChanged,
