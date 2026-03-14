@@ -101,6 +101,18 @@ struct OnboardingPageView<Card: View>: View {
                 }
             }
         }
+        // TabView pre-creates all pages — pages 1 & 2 may miss the
+        // initial onChange because isActive starts false and the view
+        // body is recreated (not mutated) when currentPage changes.
+        // This catch-up check ensures they animate in.
+        .task(id: isActive) {
+            guard isActive, headlineOpacity == 0 else { return }
+            if reduceMotion {
+                showInstantly()
+            } else {
+                animateIn()
+            }
+        }
     }
 
     // MARK: - Background
