@@ -14,7 +14,8 @@ struct MacroBreakdownBar: View {
     let progress: Double
     let color: Color
     let icon: String
-    
+    var tintBackground: Color = .clear
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -22,34 +23,38 @@ struct MacroBreakdownBar: View {
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(color)
                     .frame(width: 24)
-                
+
                 Text(label)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.primary)
-                
+
                 Spacer()
-                
+
                 Text("\(current)g / \(goal)g")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundColor(.primary)
             }
-            
+
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    // Background
+                    // Background track
                     RoundedRectangle(cornerRadius: 6)
                         .fill(Color.primary.opacity(0.08))
                         .frame(height: 8)
-                    
-                    // Progress
+
+                    // Progress fill
                     RoundedRectangle(cornerRadius: 6)
                         .fill(color)
                         .frame(width: geometry.size.width * min(progress, 1.0), height: 8)
-                        .animation(.spring(response: 0.5), value: progress)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: progress)
                 }
             }
             .frame(height: 8)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(tintBackground)
+        .cornerRadius(10)
     }
 }
 
@@ -57,56 +62,58 @@ struct MacroBreakdownCard: View {
     let proteinCurrent: Int
     let proteinGoal: Int
     let proteinProgress: Double
-    
+
     let carbsCurrent: Int
     let carbsGoal: Int
     let carbsProgress: Double
-    
+
     let fatCurrent: Int
     let fatGoal: Int
     let fatProgress: Double
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundColor(.green)
+                    .foregroundColor(AppColors.accentGreen)
                 Text("Macros")
                     .font(.system(size: 18, weight: .semibold))
             }
-            
-            VStack(spacing: 16) {
+
+            VStack(spacing: 10) {
                 MacroBreakdownBar(
                     label: "Protein",
                     current: proteinCurrent,
                     goal: proteinGoal,
                     progress: proteinProgress,
                     color: .orange,
-                    icon: "flame.fill"
+                    icon: "flame.fill",
+                    tintBackground: Color.orange.opacity(0.07)
                 )
-                
+
                 MacroBreakdownBar(
                     label: "Carbs",
                     current: carbsCurrent,
                     goal: carbsGoal,
                     progress: carbsProgress,
                     color: .blue,
-                    icon: "bolt.fill"
+                    icon: "bolt.fill",
+                    tintBackground: Color.blue.opacity(0.07)
                 )
-                
+
                 MacroBreakdownBar(
                     label: "Fat",
                     current: fatCurrent,
                     goal: fatGoal,
                     progress: fatProgress,
                     color: .purple,
-                    icon: "drop.fill"
+                    icon: "drop.fill",
+                    tintBackground: Color.purple.opacity(0.07)
                 )
             }
         }
         .padding(20)
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(16)
+        .glass(cornerRadius: AppDimensions.largeCardRadius)
     }
 }
 
