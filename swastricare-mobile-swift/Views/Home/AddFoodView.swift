@@ -18,6 +18,7 @@ struct AddFoodView: View {
     @State private var selectedFoodForQuantity: FoodItem?
     @State private var showCategorySearch = false
     @State private var selectedCategory: FoodCategory?
+    @State private var showVegOnly = false
 
     init(viewModel: DietViewModel, selectedMealType: MealType) {
         self.viewModel = viewModel
@@ -28,7 +29,11 @@ struct AddFoodView: View {
     // Filtered search results
     private var searchResults: [FoodItem] {
         guard !searchText.isEmpty else { return [] }
-        return viewModel.searchFoods(query: searchText)
+        let results = viewModel.searchFoods(query: searchText)
+        if showVegOnly {
+            return results.filter { $0.isVegetarian }
+        }
+        return results
     }
 
     var body: some View {
@@ -139,6 +144,7 @@ struct AddFoodView: View {
                             HStack(spacing: 6) {
                                 Text(food.category.icon)
                                     .font(.system(size: 14))
+                                VegIndicator(isVegetarian: food.isVegetarian)
                                 Text(food.name)
                                     .font(.system(size: 14, weight: .medium))
                                     .lineLimit(1)
@@ -273,10 +279,37 @@ struct AddFoodView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 60)
             } else {
-                Text("\(searchResults.count) results")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
+                HStack(spacing: 10) {
+                    Text("\(searchResults.count) results")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    // Veg Only toggle
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            showVegOnly.toggle()
+                        }
+                    }) {
+                        HStack(spacing: 5) {
+                            VegIndicator(isVegetarian: true)
+                            Text("Veg Only")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(showVegOnly ? Color.green : Color.green.opacity(0.08))
+                        .foregroundColor(showVegOnly ? .white : .primary)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(showVegOnly ? Color.clear : Color.green.opacity(0.25), lineWidth: 0.8)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+                .padding(.horizontal)
 
                 VStack(spacing: 6) {
                     ForEach(searchResults) { food in
@@ -295,10 +328,13 @@ struct AddFoodView: View {
                                     )
 
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(food.name)
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(.primary)
-                                        .lineLimit(1)
+                                    HStack(spacing: 6) {
+                                        VegIndicator(isVegetarian: food.isVegetarian)
+                                        Text(food.name)
+                                            .font(.system(size: 15, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                    }
 
                                     HStack(spacing: 6) {
                                         Text(food.displayServingSize)

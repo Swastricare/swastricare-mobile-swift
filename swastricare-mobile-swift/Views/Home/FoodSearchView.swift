@@ -15,6 +15,7 @@ struct FoodSearchView: View {
 
     @State private var searchText = ""
     @State private var selectedCategory: FoodCategory? = nil
+    @State private var showVegOnly = false
 
     private var filteredFoods: [FoodItem] {
         var foods = viewModel.foodItemsCache
@@ -27,6 +28,11 @@ struct FoodSearchView: View {
         // Filter by category
         if let category = selectedCategory {
             foods = foods.filter { $0.category == category }
+        }
+
+        // Filter by veg only
+        if showVegOnly {
+            foods = foods.filter { $0.isVegetarian }
         }
 
         return foods
@@ -110,6 +116,40 @@ struct FoodSearchView: View {
                                     lineWidth: 1
                                 )
                         )
+                }
+                .buttonStyle(ScaleButtonStyle())
+
+                // Veg Only toggle pill
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        showVegOnly.toggle()
+                    }
+                }) {
+                    HStack(spacing: 5) {
+                        VegIndicator(isVegetarian: true)
+                        Text("Veg Only")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        showVegOnly
+                            ? Color.green
+                            : Color.green.opacity(0.07)
+                    )
+                    .foregroundColor(
+                        showVegOnly ? .white : .primary
+                    )
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(
+                                showVegOnly
+                                    ? Color.clear
+                                    : Color.green.opacity(0.20),
+                                lineWidth: 1
+                            )
+                    )
                 }
                 .buttonStyle(ScaleButtonStyle())
 
@@ -215,9 +255,12 @@ struct FoodItemRow: View {
 
                 // Food details
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(food.name)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
+                    HStack(spacing: 6) {
+                        VegIndicator(isVegetarian: food.isVegetarian)
+                        Text(food.name)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                    }
 
                     if let brand = food.brand {
                         Text(brand)
@@ -402,6 +445,23 @@ struct CustomFoodEntryView: View {
                 fatG: fatValue
             )
             onSave()
+        }
+    }
+}
+
+// MARK: - Veg/Non-Veg Indicator (FSSAI standard)
+
+struct VegIndicator: View {
+    let isVegetarian: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 3)
+                .stroke(isVegetarian ? Color.green : Color.red, lineWidth: 1.5)
+                .frame(width: 14, height: 14)
+            Circle()
+                .fill(isVegetarian ? Color.green : Color.red)
+                .frame(width: 7, height: 7)
         }
     }
 }
