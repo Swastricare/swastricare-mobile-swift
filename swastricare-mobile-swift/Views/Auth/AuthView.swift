@@ -93,19 +93,7 @@ struct LoginView: View {
 
                                 // Error
                                 if let error = viewModel.errorMessage {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "exclamationmark.circle.fill")
-                                            .font(.system(size: 12))
-                                        Text(error)
-                                            .font(.system(size: 13, weight: .medium))
-                                    }
-                                    .foregroundColor(AppColors.accentRed)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(12)
-                                    .background(AppColors.accentRed.opacity(0.08))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                                    AuthAlertBanner(message: error, isSuccess: false)
                                 }
 
                                 // Sign In Button
@@ -117,20 +105,9 @@ struct LoginView: View {
                                             .tint(.white)
                                     } else {
                                         Text("Sign In")
-                                            .font(.system(size: 16, weight: .bold))
                                     }
                                 }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .foregroundColor(.white)
-                                .background(
-                                    viewModel.formState.isValidForLogin
-                                        ? AnyShapeStyle(LinearGradient(colors: [AppColors.accentBlue, AppColors.onboardingPurple], startPoint: .leading, endPoint: .trailing))
-                                        : AnyShapeStyle(Color.gray.opacity(0.3))
-                                )
-                                .clipShape(Capsule())
-                                .shadow(color: viewModel.formState.isValidForLogin ? AppColors.accentBlue.opacity(0.3) : .clear, radius: 12, y: 6)
-                                .buttonStyle(ScaleButtonStyle())
+                                .buttonStyle(AuthPrimaryButtonStyle(isEnabled: viewModel.formState.isValidForLogin))
                                 .disabled(viewModel.isLoading || !viewModel.formState.isValidForLogin)
 
                                 // Divider
@@ -279,17 +256,7 @@ struct SignUpView: View {
                         }
 
                         if let error = viewModel.errorMessage {
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.circle.fill")
-                                    .font(.system(size: 12))
-                                Text(error)
-                                    .font(.system(size: 13, weight: .medium))
-                            }
-                            .foregroundColor(AppColors.accentRed)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .background(AppColors.accentRed.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            AuthAlertBanner(message: error, isSuccess: false)
                         }
 
                         Button(action: {
@@ -300,20 +267,9 @@ struct SignUpView: View {
                                     .tint(.white)
                             } else {
                                 Text("Create Account")
-                                    .font(.system(size: 16, weight: .bold))
                             }
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .foregroundColor(.white)
-                        .background(
-                            viewModel.formState.isValidForSignUp
-                                ? AnyShapeStyle(LinearGradient(colors: [AppColors.accentBlue, AppColors.onboardingPurple], startPoint: .leading, endPoint: .trailing))
-                                : AnyShapeStyle(Color.gray.opacity(0.3))
-                        )
-                        .clipShape(Capsule())
-                        .shadow(color: viewModel.formState.isValidForSignUp ? AppColors.accentBlue.opacity(0.3) : .clear, radius: 12, y: 6)
-                        .buttonStyle(ScaleButtonStyle())
+                        .buttonStyle(AuthPrimaryButtonStyle(isEnabled: viewModel.formState.isValidForSignUp))
                         .disabled(viewModel.isLoading || !viewModel.formState.isValidForSignUp)
 
                         Text("By signing up, you agree to our Terms & Privacy Policy")
@@ -408,17 +364,7 @@ struct ResetPasswordView: View {
                     )
 
                     if let message = viewModel.errorMessage {
-                        HStack(spacing: 6) {
-                            Image(systemName: message.contains("sent") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                                .font(.system(size: 12))
-                            Text(message)
-                                .font(.system(size: 13, weight: .medium))
-                        }
-                        .foregroundColor(message.contains("sent") ? AppColors.accentGreen : AppColors.accentRed)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .background((message.contains("sent") ? AppColors.accentGreen : AppColors.accentRed).opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        AuthAlertBanner(message: message, isSuccess: message.contains("sent"))
                     }
 
                     Button(action: {
@@ -429,20 +375,9 @@ struct ResetPasswordView: View {
                                 .tint(.white)
                         } else {
                             Text("Send Reset Link")
-                                .font(.system(size: 16, weight: .bold))
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .foregroundColor(.white)
-                    .background(
-                        viewModel.formState.isValidEmail
-                            ? AnyShapeStyle(LinearGradient(colors: [AppColors.accentBlue, AppColors.onboardingPurple], startPoint: .leading, endPoint: .trailing))
-                            : AnyShapeStyle(Color.gray.opacity(0.3))
-                    )
-                    .clipShape(Capsule())
-                    .shadow(color: viewModel.formState.isValidEmail ? AppColors.accentBlue.opacity(0.3) : .clear, radius: 12, y: 6)
-                    .buttonStyle(ScaleButtonStyle())
+                    .buttonStyle(AuthPrimaryButtonStyle(isEnabled: viewModel.formState.isValidEmail))
                     .disabled(viewModel.isLoading || !viewModel.formState.isValidEmail)
                 }
                 .padding(.horizontal, 24)
@@ -461,21 +396,81 @@ struct AuthBackground: View {
     }
 }
 
+/// Reusable alert banner for error/success messages
+struct AuthAlertBanner: View {
+    let message: String
+    var isSuccess: Bool = false
+
+    private var color: Color {
+        isSuccess ? AppColors.accentGreen : AppColors.accentRed
+    }
+
+    private var icon: String {
+        isSuccess ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+            Text(message)
+                .font(.system(size: 13, weight: .medium))
+        }
+        .foregroundColor(color)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+    }
+}
+
+/// Shared input field chrome (background + border + focus animation)
+private struct AuthInputModifier: ViewModifier {
+    let isFocused: Bool
+    @Environment(\.colorScheme) var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.primary.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(
+                        isFocused ? AppColors.accentBlue.opacity(0.5) : Color.primary.opacity(0.08),
+                        lineWidth: isFocused ? 1.5 : 0.5
+                    )
+            )
+            .animation(.easeOut(duration: 0.2), value: isFocused)
+    }
+}
+
+/// Shared input label
+private struct AuthInputLabel: View {
+    let title: String
+    let isFocused: Bool
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(isFocused ? AppColors.accentBlue : .secondary)
+            .textCase(.uppercase)
+            .tracking(0.5)
+    }
+}
+
 struct AuthTextField: View {
     let title: String
     let icon: String
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
-    @Environment(\.colorScheme) var colorScheme
     @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(isFocused ? AppColors.accentBlue : .secondary)
-                .textCase(.uppercase)
-                .tracking(0.5)
+            AuthInputLabel(title: title, isFocused: isFocused)
 
             HStack(spacing: 12) {
                 Image(systemName: icon)
@@ -491,22 +486,7 @@ struct AuthTextField: View {
                     .textInputAutocapitalization(.never)
                     .focused($isFocused)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(
-                colorScheme == .dark
-                    ? AnyShapeStyle(Color.white.opacity(0.05))
-                    : AnyShapeStyle(Color.primary.opacity(0.04))
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        isFocused ? AppColors.accentBlue.opacity(0.5) : Color.primary.opacity(0.08),
-                        lineWidth: isFocused ? 1.5 : 0.5
-                    )
-            )
-            .animation(.easeOut(duration: 0.2), value: isFocused)
+            .modifier(AuthInputModifier(isFocused: isFocused))
         }
     }
 }
@@ -516,16 +496,11 @@ struct AuthSecureField: View {
     let icon: String
     @Binding var text: String
     @State private var isSecure = true
-    @Environment(\.colorScheme) var colorScheme
     @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(isFocused ? AppColors.accentBlue : .secondary)
-                .textCase(.uppercase)
-                .tracking(0.5)
+            AuthInputLabel(title: title, isFocused: isFocused)
 
             HStack(spacing: 12) {
                 Image(systemName: icon)
@@ -553,22 +528,7 @@ struct AuthSecureField: View {
                         .font(.system(size: 14))
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(
-                colorScheme == .dark
-                    ? AnyShapeStyle(Color.white.opacity(0.05))
-                    : AnyShapeStyle(Color.primary.opacity(0.04))
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        isFocused ? AppColors.accentBlue.opacity(0.5) : Color.primary.opacity(0.08),
-                        lineWidth: isFocused ? 1.5 : 0.5
-                    )
-            )
-            .animation(.easeOut(duration: 0.2), value: isFocused)
+            .modifier(AuthInputModifier(isFocused: isFocused))
         }
     }
 }
@@ -614,11 +574,7 @@ struct AuthSocialButton: View {
             .foregroundColor(.primary)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
-            .background(
-                colorScheme == .dark
-                    ? AnyShapeStyle(Color.white.opacity(0.06))
-                    : AnyShapeStyle(Color.primary.opacity(0.04))
-            )
+            .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.primary.opacity(0.04))
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)

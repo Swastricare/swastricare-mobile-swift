@@ -24,6 +24,7 @@ struct OnboardingPageView<Card: View>: View {
     @State private var subtitleOpacity: Double = 0
     @State private var cardOffset: CGFloat = 30
     @State private var cardOpacity: Double = 0
+    @State private var hasAnimatedIn = false
 
     init(
         title: String,
@@ -87,13 +88,15 @@ struct OnboardingPageView<Card: View>: View {
         .background(pageBackground)
         .onChange(of: isActive) { _, active in
             if active {
+                guard !hasAnimatedIn else { return }
                 animateIn()
             } else {
+                hasAnimatedIn = false
                 animateOut()
             }
         }
         .onAppear {
-            if isActive {
+            if isActive && !hasAnimatedIn {
                 if reduceMotion {
                     showInstantly()
                 } else {
@@ -102,11 +105,9 @@ struct OnboardingPageView<Card: View>: View {
             }
         }
         // TabView pre-creates all pages — pages 1 & 2 may miss the
-        // initial onChange because isActive starts false and the view
-        // body is recreated (not mutated) when currentPage changes.
-        // This catch-up check ensures they animate in.
+        // initial onChange. This catch-up ensures they animate in.
         .task(id: isActive) {
-            guard isActive, headlineOpacity == 0 else { return }
+            guard isActive, !hasAnimatedIn else { return }
             if reduceMotion {
                 showInstantly()
             } else {
@@ -134,6 +135,7 @@ struct OnboardingPageView<Card: View>: View {
     // MARK: - Animations
 
     private func animateIn() {
+        hasAnimatedIn = true
         guard !reduceMotion else {
             showInstantly()
             return
@@ -170,6 +172,7 @@ struct OnboardingPageView<Card: View>: View {
     }
 
     private func showInstantly() {
+        hasAnimatedIn = true
         headlineOffset = 0
         headlineOpacity = 1
         subtitleOffset = 0
