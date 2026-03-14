@@ -137,12 +137,21 @@ fun AIScreen(
         onFullScreenChange(isExpanded)
     }
 
-    // Permission launcher
+    // Permission launcher (microphone)
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
             viewModel.toggleRecording()
+        }
+    }
+
+    // Permission launcher (camera)
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            cameraImageUri?.let { cameraLauncher.launch(it) }
         }
     }
 
@@ -222,12 +231,13 @@ fun AIScreen(
                 if (uiState.messages.isEmpty() && uiState.showEmptyState) {
                     Column(
                         modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         AIOrbVideo(
                             modifier = Modifier
-                                .weight(1f)
                                 .fillMaxWidth()
+                                .height(260.dp)
                         )
                         IntroView(
                             userName = uiState.userName,
@@ -272,13 +282,25 @@ fun AIScreen(
                     }
                 },
                 onCameraClick = {
-                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                        context,
-                        "${context.packageName}.fileprovider",
-                        java.io.File.createTempFile("photo_", ".jpg", context.cacheDir)
-                    )
-                    cameraImageUri = uri
-                    cameraLauncher.launch(uri)
+                    try {
+                        val file = java.io.File.createTempFile("photo_", ".jpg", context.cacheDir)
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file
+                        )
+                        cameraImageUri = uri
+                        val hasCameraPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                            context, android.Manifest.permission.CAMERA
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        if (hasCameraPermission) {
+                            cameraLauncher.launch(uri)
+                        } else {
+                            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    } catch (_: Exception) {
+                        // ignore — file creation or FileProvider failure (e.g. no storage space)
+                    }
                 },
                 onGalleryClick = {
                     galleryLauncher.launch("image/*")
