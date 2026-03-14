@@ -319,6 +319,14 @@ fun AIScreen(
             )
         }
 
+        // Image Type Selection Sheet
+        if (uiState.showImageTypeSheet) {
+            ImageTypeSheet(
+                onTypeSelected = { viewModel.onImageTypeSelected(it) },
+                onDismiss = { viewModel.dismissImageTypeSheet() }
+            )
+        }
+
         // Chat History Sheet
         if (uiState.showHistorySheet) {
             ChatHistorySheet(
@@ -1189,6 +1197,38 @@ fun FollowUpChips(suggestions: List<String>, onChipClick: (String) -> Unit) {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImageTypeSheet(
+    onTypeSelected: (ImageType) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                "What type of image is this?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            ImageType.entries.forEach { type ->
+                OutlinedButton(
+                    onClick = { onTypeSelected(type) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(type.label)
                 }
             }
         }
