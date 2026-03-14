@@ -5,8 +5,21 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import android.content.Intent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
@@ -19,13 +32,22 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
@@ -44,12 +66,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import com.swastricare.health.R
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -66,22 +92,51 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.PremiumColor
 import android.net.Uri
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.focus.onFocusChanged
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+val Poppins = FontFamily(
+    Font(R.font.poppins_light, FontWeight.Light),
+    Font(R.font.poppins_regular, FontWeight.Normal),
+    Font(R.font.poppins_medium, FontWeight.Medium),
+    Font(R.font.poppins_semibold, FontWeight.SemiBold),
+    Font(R.font.poppins_bold, FontWeight.Bold)
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIScreen(
+    onFullScreenChange: (Boolean) -> Unit = {},
     viewModel: AIViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
-    
+    val focusManager = LocalFocusManager.current
+
+    // Track whether chat input is focused
+    var inputFocused by remember { mutableStateOf(false) }
+
+    // Hide nav bar when input is focused or chat has messages
+    val isExpanded = inputFocused || uiState.messages.isNotEmpty() || !uiState.showEmptyState
+
+    // Notify parent to hide/show bottom nav
+    LaunchedEffect(isExpanded) {
+        onFullScreenChange(isExpanded)
+    }
+
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -90,7 +145,25 @@ fun AIScreen(
             viewModel.toggleRecording()
         }
     }
-    
+
+    // Gallery picker
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.onImagePicked(it.toString()) }
+    }
+
+    // Camera capture
+    val context = LocalContext.current
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            cameraImageUri?.let { viewModel.onImagePicked(it.toString()) }
+        }
+    }
+
     // Auto-scroll to bottom
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
@@ -99,20 +172,30 @@ fun AIScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = if (!isExpanded) 76.dp else 0.dp)
         ) {
             // Header
             CenterAlignedTopAppBar(
-                title = { Text("Swastri AI", fontWeight = FontWeight.Bold) },
+                title = { Text("Swastri AI", fontWeight = FontWeight.Bold, fontFamily = Poppins) },
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.Transparent
                 ),
+                navigationIcon = {
+                    if (isExpanded) {
+                        IconButton(onClick = {
+                            focusManager.clearFocus()
+                            viewModel.clearChat()
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = { viewModel.openHistorySheet() }) {
                         Box(
@@ -137,13 +220,23 @@ fun AIScreen(
 
             Box(modifier = Modifier.weight(1f)) {
                 if (uiState.messages.isEmpty() && uiState.showEmptyState) {
-                    IntroView(
-                        onQuickActionClick = { action ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            viewModel.sendQuickAction(action)
-                        },
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AIOrbVideo(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                        )
+                        IntroView(
+                            userName = uiState.userName,
+                            onQuickActionClick = { action ->
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.sendQuickAction(action)
+                            }
+                        )
+                    }
                 } else {
                     ChatMessageList(
                         messages = uiState.messages,
@@ -178,8 +271,21 @@ fun AIScreen(
                         permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                     }
                 },
+                onCameraClick = {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        java.io.File.createTempFile("photo_", ".jpg", context.cacheDir)
+                    )
+                    cameraImageUri = uri
+                    cameraLauncher.launch(uri)
+                },
+                onGalleryClick = {
+                    galleryLauncher.launch("image/*")
+                },
                 isRecording = uiState.isRecording,
-                isLoading = uiState.isLoading
+                isLoading = uiState.isLoading,
+                onFocusChanged = { focused -> inputFocused = focused }
             )
         }
 
@@ -307,6 +413,7 @@ private fun ChatMessageList(
 
 @Composable
 fun IntroView(
+    userName: String? = null,
     onQuickActionClick: (QuickAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -316,27 +423,6 @@ fun IntroView(
         Icons.Default.Mic,
         Icons.Default.ArrowUpward,
         Icons.Default.ContentCopy
-    )
-
-    // Pulse animation for glow ring
-    val infiniteTransition = rememberInfiniteTransition(label = "avatarPulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
     )
 
     // Staggered card visibility states
@@ -353,61 +439,22 @@ fun IntroView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
-        // Animated AI Avatar
-        Box(
-            contentAlignment = Alignment.Center
-        ) {
-            // Outer glow ring (120dp) with pulse
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .scale(pulseScale)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                PrimaryColor.copy(alpha = glowAlpha),
-                                PremiumColor.RoyalBlueEnd.copy(alpha = glowAlpha * 0.4f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = CircleShape
-                    )
-            )
-            // Avatar circle (100dp) with gradient fill
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(PrimaryColor, PremiumColor.RoyalBlueEnd)
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.AutoAwesome,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(44.dp)
-                )
-            }
-        }
-
         // Welcome text
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Swastri AI",
+                text = if (userName != null) "Hey $userName" else "Hey",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
+                fontFamily = Poppins,
                 color = AppColors.onBackground
             )
             Text(
                 text = "How can I help you today?",
                 style = MaterialTheme.typography.bodyLarge,
+                fontFamily = Poppins,
                 color = AppColors.onBackground.copy(alpha = 0.6f)
             )
         }
@@ -445,16 +492,11 @@ fun IntroView(
                                     .padding(14.dp)
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                        tint = PrimaryColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
                                     Text(
                                         text = action.title,
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.SemiBold,
+                                        fontFamily = Poppins,
                                         color = AppColors.onBackground,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -462,6 +504,7 @@ fun IntroView(
                                     Text(
                                         text = action.prompt,
                                         style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = Poppins,
                                         color = AppColors.onBackground.copy(alpha = 0.5f),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -474,6 +517,40 @@ fun IntroView(
             }
         }
     }
+}
+
+@androidx.annotation.OptIn(UnstableApi::class)
+@Composable
+private fun AIOrbVideo(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
+    val videoAsset = if (isDark) "ai orb/ai orb 2.mp4" else "ai orb/Ai orb light.mp4"
+    val exoPlayer = remember(isDark) {
+        ExoPlayer.Builder(context).build().apply {
+            val uri = Uri.parse("file:///android_asset/$videoAsset")
+            setMediaItem(MediaItem.fromUri(uri))
+            repeatMode = Player.REPEAT_MODE_ALL
+            playWhenReady = true
+            volume = 0f
+            prepare()
+        }
+    }
+
+    DisposableEffect(isDark) {
+        onDispose { exoPlayer.release() }
+    }
+
+    AndroidView(
+        factory = { ctx ->
+            PlayerView(ctx).apply {
+                player = exoPlayer
+                useController = false
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            }
+        },
+        modifier = modifier
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -553,7 +630,8 @@ fun ChatBubble(
                         Text(
                             text = parseMarkdown(message.content),
                             color = AppColors.onBackground,
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontFamily = Poppins
                         )
                     }
 
@@ -603,7 +681,7 @@ fun ChatBubble(
                         modifier = Modifier.size(12.dp),
                         tint = PrimaryColor
                     )
-                    Text("Swastri", style = MaterialTheme.typography.labelSmall, color = PrimaryColor)
+                    Text("Swastri", style = MaterialTheme.typography.labelSmall, fontFamily = Poppins, color = PrimaryColor)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -633,7 +711,8 @@ fun ChatBubble(
                         Text(
                             text = parseMarkdown(message.content),
                             color = AppColors.onBackground,
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontFamily = Poppins
                         )
                     }
 
@@ -731,7 +810,8 @@ fun TypewriterText(
     Text(
         text = annotated,
         color = color,
-        style = style
+        style = style,
+        fontFamily = Poppins
     )
 }
 
@@ -836,8 +916,11 @@ fun ChatInputBar(
     onTextChanged: (String) -> Unit,
     onSendClick: () -> Unit,
     onMicClick: () -> Unit,
+    onCameraClick: () -> Unit = {},
+    onGalleryClick: () -> Unit = {},
     isRecording: Boolean,
-    isLoading: Boolean
+    isLoading: Boolean,
+    onFocusChanged: (Boolean) -> Unit = {}
 ) {
     val sendEnabled = inputText.isNotEmpty() && !isLoading
 
@@ -853,6 +936,27 @@ fun ChatInputBar(
         label = "micRing"
     )
 
+    // Animated neon border
+    val neonTransition = rememberInfiniteTransition(label = "neon")
+    val neonAngle by neonTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "neonAngle"
+    )
+    val neonColors = listOf(
+        Color(0xFF1E3A5F),
+        Color(0xFF1D4ED8),
+        Color(0xFF2563EB),
+        Color(0xFF1E3A5F)
+    )
+    val borderShape = RoundedCornerShape(28.dp)
+
+    var showAttachMenu by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -860,82 +964,178 @@ fun ChatInputBar(
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .glass(cornerRadius = 28.dp)
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TextField(
-                value = inputText,
-                onValueChange = onTextChanged,
-                placeholder = { Text("Ask anything...", fontSize = 14.sp, color = AppColors.onBackground.copy(alpha = 0.4f)) },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { onSendClick() })
-            )
-
-            // Gradient Send Button
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        brush = if (sendEnabled) Brush.linearGradient(
-                            colors = listOf(PrimaryColor, Color(0xFF7C3AED))
-                        ) else Brush.linearGradient(
-                            colors = listOf(Color.Gray.copy(alpha = 0.3f), Color.Gray.copy(alpha = 0.3f))
-                        ),
-                        shape = CircleShape
-                    )
-                    .clip(CircleShape)
-                    .clickable(enabled = sendEnabled) { onSendClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.ArrowUpward,
-                    contentDescription = "Send",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Pulsing Mic Button
-            Box(contentAlignment = Alignment.Center) {
-                if (isRecording) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .scale(micRingScale)
-                            .background(AppColors.error.copy(alpha = 0.2f), CircleShape)
-                    )
-                }
+            // Plus button
+            Box {
                 IconButton(
-                    onClick = onMicClick,
+                    onClick = { showAttachMenu = !showAttachMenu },
                     modifier = Modifier
+                        .size(40.dp)
                         .background(
-                            if (isRecording) AppColors.error else AppColors.onBackground.copy(alpha = 0.1f),
+                            AppColors.onBackground.copy(alpha = 0.1f),
                             CircleShape
                         )
-                        .size(40.dp)
                 ) {
                     Icon(
-                        if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                        contentDescription = "Mic",
-                        tint = if (isRecording) Color.White else AppColors.onBackground.copy(alpha = 0.7f),
+                        Icons.Default.Add,
+                        contentDescription = "Attach",
+                        tint = AppColors.onBackground,
                         modifier = Modifier.size(20.dp)
                     )
                 }
+
+                DropdownMenu(
+                    expanded = showAttachMenu,
+                    onDismissRequest = { showAttachMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Take Photo") },
+                        onClick = {
+                            showAttachMenu = false
+                            onCameraClick()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Choose from Gallery") },
+                        onClick = {
+                            showAttachMenu = false
+                            onGalleryClick()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                        }
+                    )
+                }
             }
+
+            // Text field with neon border
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                .drawBehind {
+                    val strokeWidth = 1.5.dp.toPx()
+                    val radiusPx = 28.dp.toPx()
+
+                    val outerPath = Path().apply {
+                        addRoundRect(RoundRect(
+                            rect = Rect(Offset.Zero, size),
+                            cornerRadius = CornerRadius(radiusPx)
+                        ))
+                    }
+                    val innerPath = Path().apply {
+                        addRoundRect(RoundRect(
+                            rect = Rect(
+                                offset = Offset(strokeWidth, strokeWidth),
+                                size = Size(size.width - strokeWidth * 2, size.height - strokeWidth * 2)
+                            ),
+                            cornerRadius = CornerRadius(radiusPx - strokeWidth)
+                        ))
+                    }
+
+                    clipPath(outerPath) {
+                        clipPath(innerPath, clipOp = ClipOp.Difference) {
+                            rotate(neonAngle) {
+                                drawCircle(
+                                    brush = Brush.sweepGradient(neonColors),
+                                    radius = maxOf(size.width, size.height),
+                                    center = center
+                                )
+                            }
+                        }
+                    }
+                }
+                .glass(cornerRadius = 28.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BasicTextField(
+                value = inputText,
+                onValueChange = onTextChanged,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp)
+                    .heightIn(min = 36.dp)
+                    .onFocusChanged { onFocusChanged(it.isFocused) },
+                maxLines = 4,
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 14.sp,
+                    fontFamily = Poppins,
+                    color = AppColors.onBackground
+                ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = { onSendClick() }),
+                cursorBrush = SolidColor(PrimaryColor),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (inputText.isEmpty()) {
+                            Text(
+                                "Ask anything...",
+                                fontSize = 14.sp,
+                                fontFamily = Poppins,
+                                color = AppColors.onBackground.copy(alpha = 0.4f)
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+
+            // Send or Mic button inside text field
+            if (inputText.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(PrimaryColor, CircleShape)
+                        .clip(CircleShape)
+                        .clickable { onSendClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.ArrowUpward,
+                        contentDescription = "Send",
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            } else {
+                Box(contentAlignment = Alignment.Center) {
+                    if (isRecording) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .scale(micRingScale)
+                                .background(AppColors.error.copy(alpha = 0.2f), CircleShape)
+                        )
+                    }
+                    IconButton(
+                        onClick = onMicClick,
+                        modifier = Modifier
+                            .background(
+                                if (isRecording) AppColors.error else Color.Transparent,
+                                CircleShape
+                            )
+                            .size(32.dp)
+                    ) {
+                        Icon(
+                            if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            contentDescription = "Mic",
+                            tint = if (isRecording) Color.White else AppColors.onBackground.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        }
         }
     }
 }
