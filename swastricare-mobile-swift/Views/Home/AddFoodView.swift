@@ -383,6 +383,9 @@ struct FoodQuantitySheet: View {
 
     @State private var quantity: Double = 1.0
     @State private var isLogging = false
+    @State private var showKeyboardInput = false
+    @State private var keyboardQuantityText = "1"
+    @FocusState private var isKeyboardFocused: Bool
 
     private var adjustedCalories: Int { Int(food.calories * quantity) }
     private var adjustedProtein: Int { Int(food.proteinG * quantity) }
@@ -464,69 +467,165 @@ struct FoodQuantitySheet: View {
     // MARK: - Quantity Stepper
 
     private var quantityStepper: some View {
-        VStack(spacing: 8) {
-            Text("Servings")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
+        VStack(spacing: 10) {
+            HStack {
+                Text("Servings")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
 
-            HStack(spacing: 24) {
+                Spacer()
+
+                // Toggle keyboard input
                 Button {
-                    if quantity > 0.5 {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                            quantity -= 0.5
+                    showKeyboardInput.toggle()
+                    if showKeyboardInput {
+                        keyboardQuantityText = quantity.truncatingRemainder(dividingBy: 1) == 0
+                            ? "\(Int(quantity))"
+                            : String(format: "%.2f", quantity)
+                        isKeyboardFocused = true
+                    } else {
+                        if let parsed = Double(keyboardQuantityText), parsed > 0, parsed <= 20 {
+                            quantity = parsed
                         }
+                        isKeyboardFocused = false
                     }
                 } label: {
-                    ZStack {
-                        Circle()
-                            .fill(quantity > 0.5 ? AppColors.accentGreen.opacity(0.15) : Color.secondary.opacity(0.08))
-                            .frame(width: 48, height: 48)
-                            .overlay(
-                                Circle()
-                                    .stroke(quantity > 0.5 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
-                            )
-                        Image(systemName: "minus")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(quantity > 0.5 ? AppColors.accentGreen : .secondary.opacity(0.4))
+                    HStack(spacing: 4) {
+                        Image(systemName: showKeyboardInput ? "minus.circle.fill" : "keyboard")
+                            .font(.system(size: 12, weight: .medium))
+                        Text(showKeyboardInput ? "Use Stepper" : "Type Amount")
+                            .font(.system(size: 12, weight: .medium))
                     }
+                    .foregroundColor(AppColors.accentBlue)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(AppColors.accentBlue.opacity(0.10))
+                    .clipShape(Capsule())
                 }
-                .buttonStyle(ScaleButtonStyle())
-                .disabled(quantity <= 0.5)
+            }
+            .padding(.horizontal, 16)
 
-                Text(quantity.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(quantity))" : String(format: "%.1f", quantity))
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                    .frame(minWidth: 60)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.2), value: quantity)
+            if showKeyboardInput {
+                // Keyboard input mode
+                HStack(spacing: 8) {
+                    TextField("1.0", text: $keyboardQuantityText)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .focused($isKeyboardFocused)
+                        .onChange(of: keyboardQuantityText) { _, newValue in
+                            if let parsed = Double(newValue), parsed > 0, parsed <= 20 {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    quantity = parsed
+                                }
+                            }
+                        }
+                        .frame(maxWidth: 120)
 
-                Button {
-                    if quantity < 10 {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                            quantity += 0.5
+                    Text("servings")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 8)
+
+                // Quick amount chips
+                HStack(spacing: 8) {
+                    ForEach([0.25, 0.5, 1.0, 1.5, 2.0], id: \.self) { amount in
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            quantity = amount
+                            keyboardQuantityText = amount.truncatingRemainder(dividingBy: 1) == 0
+                                ? "\(Int(amount))"
+                                : String(format: "%.2g", amount)
+                        } label: {
+                            Text(amount.truncatingRemainder(dividingBy: 1) == 0
+                                ? "\(Int(amount))"
+                                : String(format: "%.2g", amount))
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(quantity == amount ? .white : AppColors.accentGreen)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(quantity == amount ? AppColors.accentGreen : AppColors.accentGreen.opacity(0.10))
+                                .clipShape(Capsule())
                         }
                     }
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(quantity < 10 ? AppColors.accentGreen.opacity(0.15) : Color.secondary.opacity(0.08))
-                            .frame(width: 48, height: 48)
-                            .overlay(
-                                Circle()
-                                    .stroke(quantity < 10 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
-                            )
-                        Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(quantity < 10 ? AppColors.accentGreen : .secondary.opacity(0.4))
-                    }
                 }
-                .buttonStyle(ScaleButtonStyle())
-                .disabled(quantity >= 10)
+            } else {
+                // Stepper mode (now with 0.25 increments)
+                HStack(spacing: 24) {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        if quantity > 0.25 {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                quantity = max(0.25, quantity - 0.25)
+                                quantity = (quantity * 4).rounded() / 4 // snap to 0.25
+                            }
+                        }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(quantity > 0.25 ? AppColors.accentGreen.opacity(0.15) : Color.secondary.opacity(0.08))
+                                .frame(width: 48, height: 48)
+                                .overlay(
+                                    Circle()
+                                        .stroke(quantity > 0.25 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
+                                )
+                            Image(systemName: "minus")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(quantity > 0.25 ? AppColors.accentGreen : .secondary.opacity(0.4))
+                        }
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .disabled(quantity <= 0.25)
+
+                    Text(formatQuantity(quantity))
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                        .frame(minWidth: 60)
+                        .contentTransition(.numericText())
+                        .animation(.snappy(duration: 0.2), value: quantity)
+
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        if quantity < 10 {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                quantity += 0.25
+                                quantity = (quantity * 4).rounded() / 4 // snap to 0.25
+                            }
+                        }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(quantity < 10 ? AppColors.accentGreen.opacity(0.15) : Color.secondary.opacity(0.08))
+                                .frame(width: 48, height: 48)
+                                .overlay(
+                                    Circle()
+                                        .stroke(quantity < 10 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
+                                )
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(quantity < 10 ? AppColors.accentGreen : .secondary.opacity(0.4))
+                        }
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .disabled(quantity >= 10)
+                }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .glass(cornerRadius: 16)
+    }
+
+    private func formatQuantity(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(value))"
+        } else if (value * 4).truncatingRemainder(dividingBy: 1) == 0 {
+            // Show as fraction-like: 0.25, 0.5, 0.75
+            return String(format: "%.2g", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
     }
 
     // MARK: - Nutrition Preview
@@ -565,6 +664,7 @@ struct FoodQuantitySheet: View {
 
     private var logButton: some View {
         Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             isLogging = true
             Task {
                 await viewModel.logFood(
@@ -572,6 +672,7 @@ struct FoodQuantitySheet: View {
                     quantity: food.servingSize * quantity,
                     mealType: mealType
                 )
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
                 isLogging = false
                 onLog()
             }

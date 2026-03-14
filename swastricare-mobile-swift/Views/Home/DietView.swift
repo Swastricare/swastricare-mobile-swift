@@ -18,6 +18,8 @@ struct DietView: View {
     @State private var mealsAppeared = false
     @State private var insightsAppeared = false
     @State private var aiButtonAppeared = false
+    @State private var trendAppeared = false
+    @State private var showCopiedToast = false
 
     var body: some View {
         NavigationView {
@@ -41,6 +43,20 @@ struct DietView: View {
                         macroBreakdownSection
                             .opacity(macrosAppeared ? 1 : 0)
                             .offset(y: macrosAppeared ? 0 : 20)
+
+                        // Weekly Trend Chart + Goal Adherence
+                        if !viewModel.weeklyTrend.isEmpty {
+                            weeklyTrendSection
+                                .opacity(trendAppeared ? 1 : 0)
+                                .offset(y: trendAppeared ? 0 : 20)
+                        }
+
+                        // Copy Yesterday's Meals
+                        if viewModel.hasYesterdaysMeals && Calendar.current.isDateInToday(viewModel.selectedDate) {
+                            copyYesterdayButton
+                                .opacity(trendAppeared ? 1 : 0)
+                                .offset(y: trendAppeared ? 0 : 20)
+                        }
 
                         // Meal Sections
                         mealSectionsView
@@ -87,6 +103,17 @@ struct DietView: View {
                         .offset(y: aiButtonAppeared ? 0 : 20)
                     }
                     .padding(.bottom, 20)
+                }
+
+                // Undo Delete Toast
+                if viewModel.showUndoToast {
+                    VStack {
+                        Spacer()
+                        undoDeleteToast
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.bottom, 16)
+                    }
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.showUndoToast)
                 }
             }
             .navigationTitle("Diet Chart")
@@ -143,6 +170,9 @@ struct DietView: View {
         }
         withAnimation(.spring(response: 0.45, dampingFraction: 0.75).delay(0.25)) {
             macrosAppeared = true
+        }
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.75).delay(0.30)) {
+            trendAppeared = true
         }
         withAnimation(.spring(response: 0.45, dampingFraction: 0.75).delay(0.35)) {
             mealsAppeared = true
@@ -408,6 +438,210 @@ struct DietView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Weekly Trend Chart
+
+    private var weeklyTrendSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "chart.bar.xaxis")
+                    .foregroundColor(AppColors.accentBlue)
+                Text("Weekly Trend")
+                    .font(.system(size: 18, weight: .semibold))
+                Spacer()
+                // Goal adherence badge
+                HStack(spacing: 4) {
+                    Image(systemName: viewModel.goalAdherence.rating.icon)
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("\(viewModel.goalAdherence.adherencePercent)%")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(adherenceColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(adherenceColor.opacity(0.12))
+                .clipShape(Capsule())
+            }
+
+            // Bar chart
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(viewModel.weeklyTrend) { day in
+                    VStack(spacing: 6) {
+                        // Calorie label on top
+                        Text("\(day.calories)")
+                            .font(.system(size: 9, weight: .semibold, design: .rounded))
+                            .foregroundColor(day.isToday ? AppColors.accentGreen : .secondary)
+                            .opacity(day.calories > 0 ? 1 : 0)
+
+                        // Bar
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(
+                                day.isToday
+                                    ? AppColors.accentGreen
+                                    : (day.progress >= 0.9 ? AppColors.accentGreen.opacity(0.5) : AppColors.accentBlue.opacity(0.4))
+                            )
+                            .frame(height: max(4, CGFloat(day.progress) * 60))
+                            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: day.progress)
+
+                        // Day label
+                        Text(day.dayLabel)
+                            .font(.system(size: 11, weight: day.isToday ? .bold : .medium))
+                            .foregroundColor(day.isToday ? AppColors.accentGreen : .secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 100)
+
+            // Goal line label
+            HStack(spacing: 4) {
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(height: 1)
+                Text("Goal: \(viewModel.dietGoals.dailyCalories) cal")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(height: 1)
+            }
+
+            // Adherence summary
+            HStack(spacing: 16) {
+                adherenceStat(
+                    label: "Days Tracked",
+                    value: "\(viewModel.goalAdherence.daysTracked)/7",
+                    color: AppColors.accentBlue
+                )
+                adherenceStat(
+                    label: "On Target",
+                    value: "\(viewModel.goalAdherence.daysOnTarget)",
+                    color: AppColors.accentGreen
+                )
+                adherenceStat(
+                    label: "Rating",
+                    value: viewModel.goalAdherence.rating.rawValue,
+                    color: adherenceColor
+                )
+            }
+        }
+        .padding(20)
+        .glass(cornerRadius: AppDimensions.largeCardRadius)
+        .padding(.horizontal, 20)
+    }
+
+    private var adherenceColor: Color {
+        switch viewModel.goalAdherence.rating {
+        case .excellent: return AppColors.accentGreen
+        case .good: return AppColors.accentBlue
+        case .fair: return .orange
+        case .needsWork: return AppColors.accentRed
+        }
+    }
+
+    private func adherenceStat(label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Copy Yesterday Button
+
+    private var copyYesterdayButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            Task {
+                await viewModel.copyYesterdaysMeals()
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    showCopiedToast = true
+                }
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                withAnimation {
+                    showCopiedToast = false
+                }
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "doc.on.doc.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(AppColors.accentBlue)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(showCopiedToast ? "Meals Copied!" : "Copy Yesterday's Meals")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(showCopiedToast ? AppColors.accentGreen : .primary)
+                    Text("Quickly repeat your meals from yesterday")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: showCopiedToast ? "checkmark.circle.fill" : "chevron.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(showCopiedToast ? AppColors.accentGreen : AppColors.accentBlue.opacity(0.6))
+            }
+            .padding(16)
+            .glass(cornerRadius: 14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(AppColors.accentBlue.opacity(0.15), lineWidth: 0.8)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .disabled(showCopiedToast)
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Undo Delete Toast
+
+    private var undoDeleteToast: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "trash.fill")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white.opacity(0.8))
+
+            Text("Meal deleted")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.white)
+
+            Spacer()
+
+            Button {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                viewModel.undoDelete()
+            } label: {
+                Text("Undo")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(AppColors.accentGreen)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(AppColors.accentGreen.opacity(0.2))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.systemGray6).opacity(0.95))
+                .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+        )
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+        )
+        .padding(.horizontal, 20)
     }
 }
 

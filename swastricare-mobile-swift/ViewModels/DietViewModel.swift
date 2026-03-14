@@ -27,6 +27,10 @@ final class DietViewModel: ObservableObject {
     @Published var showSettings = false
     @Published var searchQuery = ""
     @Published var favoriteFoodIds: Set<String> = []
+    @Published private(set) var weeklyTrend: [DailyCalorieTrend] = []
+    @Published private(set) var goalAdherence: GoalAdherence = GoalAdherence(daysTracked: 0, daysOnTarget: 0, adherencePercent: 0, rating: .needsWork)
+    @Published var recentlyDeletedEntry: DietLogEntry?
+    @Published var showUndoToast = false
 
     // MARK: - Computed Properties
     
@@ -77,6 +81,7 @@ final class DietViewModel: ObservableObject {
     
     private let dietService: DietServiceProtocol
     private let localStorage: DietLocalStorage
+    private var undoTimer: Task<Void, Never>?
     
     // MARK: - Init
     
@@ -224,22 +229,105 @@ final class DietViewModel: ObservableObject {
         }
     }
     
-    /// Delete a log entry
+    /// Delete a log entry with undo support
     func deleteLog(_ entry: DietLogEntry) async {
+        // Store for undo
+        recentlyDeletedEntry = entry
+        showUndoToast = true
+
+        // Cancel any previous undo timer
+        undoTimer?.cancel()
+
+        // Remove from local storage
         localStorage.deleteLog(id: entry.id)
         dietLogs = localStorage.loadLogs()
-        
+
         calculateNutrition()
         calculateInsights()
-        
-        // Delete from cloud
-        Task {
+
+        // Start undo timer -- permanently delete from cloud after 5 seconds
+        undoTimer = Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+
+            // Timer expired, permanently delete from cloud
+            await MainActor.run {
+                showUndoToast = false
+                recentlyDeletedEntry = nil
+            }
             do {
                 try await SupabaseManager.shared.deleteDietLog(id: entry.id)
             } catch {
                 print("🍎 DietVM: Failed to delete from cloud - \(error.localizedDescription)")
             }
         }
+    }
+
+    /// Undo the most recent delete
+    func undoDelete() {
+        guard let entry = recentlyDeletedEntry else { return }
+
+        // Cancel the permanent delete timer
+        undoTimer?.cancel()
+        undoTimer = nil
+
+        // Restore the entry
+        localStorage.addLog(entry)
+        dietLogs = localStorage.loadLogs()
+
+        // Clear undo state
+        recentlyDeletedEntry = nil
+        showUndoToast = false
+
+        // Recalculate
+        calculateNutrition()
+        calculateInsights()
+    }
+
+    /// Copy yesterday's meals to today
+    func copyYesterdaysMeals() async {
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) else { return }
+
+        let yesterdayLogs = localStorage.getLogsForDate(yesterday)
+        guard !yesterdayLogs.isEmpty else { return }
+
+        for log in yesterdayLogs {
+            let newEntry = DietLogEntry(
+                foodItemId: log.foodItemId,
+                mealType: log.mealType,
+                foodName: log.foodName,
+                quantity: log.quantity,
+                servingUnit: log.servingUnit,
+                calories: log.calories,
+                proteinG: log.proteinG,
+                carbsG: log.carbsG,
+                fatG: log.fatG,
+                fiberG: log.fiberG,
+                loggedAt: Date(),
+                notes: log.notes
+            )
+            localStorage.addLog(newEntry)
+
+            // Sync each to cloud
+            Task {
+                await syncLogToCloud(newEntry)
+            }
+        }
+
+        dietLogs = localStorage.loadLogs()
+        calculateNutrition()
+        calculateInsights()
+
+        // Analytics
+        AppAnalyticsService.shared.logDietCopiedYesterday(mealCount: yesterdayLogs.count)
+    }
+
+    /// Whether yesterday has any meals to copy
+    var hasYesterdaysMeals: Bool {
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) else { return false }
+        return !localStorage.getLogsForDate(yesterday).isEmpty
     }
     
     /// Update goals
@@ -326,6 +414,14 @@ final class DietViewModel: ObservableObject {
             weeklyData: weeklyData,
             dailyGoal: dietGoals.dailyCalories
         )
+        weeklyTrend = dietService.calculateWeeklyTrend(
+            weeklyData: weeklyData,
+            dailyGoal: dietGoals.dailyCalories
+        )
+        goalAdherence = dietService.calculateGoalAdherence(
+            weeklyData: weeklyData,
+            dailyGoal: dietGoals.dailyCalories
+        )
     }
     
     private func syncWithCloud() async {
@@ -400,6 +496,12 @@ extension AppAnalyticsService {
         log(eventName: "diet_goal_met", eventType: "action", properties: [
             "daily_goal_cal": dailyGoalCal,
             "total_cal": totalCal
+        ])
+    }
+
+    func logDietCopiedYesterday(mealCount: Int) {
+        log(eventName: "diet_copied_yesterday", eventType: "action", properties: [
+            "meal_count": mealCount
         ])
     }
 }

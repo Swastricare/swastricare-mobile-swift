@@ -14,6 +14,7 @@ struct MealSectionCard: View {
     let onAddFood: () -> Void
 
     @State private var isExpanded = true
+    @State private var entryToConfirmDelete: DietLogEntry?
 
     private var totalCalories: Int {
         Int(entries.reduce(0.0) { $0 + $1.calories })
@@ -66,34 +67,51 @@ struct MealSectionCard: View {
 
             if isExpanded {
                 if entries.isEmpty {
-                    // Empty state
-                    Button(action: onAddFood) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(mealType.color)
+                    // Enhanced empty state
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onAddFood()
+                    }) {
+                        VStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(mealType.color)
 
-                            Text("Add food")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(mealType.color)
+                                Text("Add \(mealType.displayName.lowercased())")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(mealType.color)
+                            }
+
+                            Text("Tap to log what you ate")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary.opacity(0.7))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(mealType.color.opacity(0.08))
+                        .padding(.vertical, 14)
+                        .background(mealType.color.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(mealType.color.opacity(0.15), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                        )
                         .cornerRadius(10)
                     }
                 } else {
-                    // Food entries
+                    // Food entries with swipe-to-delete
                     VStack(spacing: 8) {
                         ForEach(entries) { entry in
                             FoodEntryRow(entry: entry, mealColor: mealType.color) {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 onDelete(entry)
                             }
                         }
                     }
 
-                    // Add more button
-                    Button(action: onAddFood) {
+                    // Add more button with haptic
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onAddFood()
+                    }) {
                         HStack {
                             Image(systemName: "plus.circle")
                                 .font(.system(size: 14))
