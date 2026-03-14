@@ -44,40 +44,46 @@ struct OnboardingPageView<Card: View>: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // Headline
+        GeometryReader { geo in
+            ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(title)
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundColor(.primary)
-                    Text(highlightedTitle)
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundColor(accentColor)
+                    Spacer(minLength: 16)
+
+                    // Headline
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(title)
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text(highlightedTitle)
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(accentColor)
+                    }
+                    .offset(y: headlineOffset)
+                    .opacity(headlineOpacity)
+                    .padding(.bottom, 8)
+
+                    // Subtitle
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .lineSpacing(4)
+                        .offset(y: subtitleOffset)
+                        .opacity(subtitleOpacity)
+                        .padding(.bottom, 24)
+
+                    // Preview card
+                    card
+                        .offset(y: cardOffset)
+                        .opacity(cardOpacity)
+                        .frame(maxWidth: 400)
+
+                    Spacer(minLength: 16)
                 }
-                .offset(y: headlineOffset)
-                .opacity(headlineOpacity)
-                .padding(.bottom, 8)
-
-                // Subtitle
-                Text(subtitle)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .lineSpacing(4)
-                    .offset(y: subtitleOffset)
-                    .opacity(subtitleOpacity)
-                    .padding(.bottom, 24)
-
-                // Preview card
-                card
-                    .offset(y: cardOffset)
-                    .opacity(cardOpacity)
-                    .frame(maxWidth: 400)
+                .padding(.horizontal, 24)
+                .frame(minHeight: geo.size.height)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .background(pageBackground)
         .onChange(of: isActive) { _, active in
             if active {
