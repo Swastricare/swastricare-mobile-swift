@@ -2,8 +2,6 @@
 //  AuthView.swift
 //  swastricare-mobile-swift
 //
-//  Redesigned to match app theme
-//
 
 import SwiftUI
 
@@ -13,7 +11,14 @@ struct LoginView: View {
     @StateObject private var viewModel = DependencyContainer.shared.authViewModel
     @State private var showSignUp = false
     @State private var showResetPassword = false
-    @State private var appeared = false
+    @State private var logoScale: CGFloat = 0.6
+    @State private var logoOpacity: Double = 0
+    @State private var headerOpacity: Double = 0
+    @State private var headerOffset: CGFloat = 20
+    @State private var formOpacity: Double = 0
+    @State private var formOffset: CGFloat = 25
+    @State private var footerOpacity: Double = 0
+    @State private var glowBreathing: Bool = false
     @Environment(\.colorScheme) var colorScheme
     @FocusState private var focusedField: Field?
 
@@ -24,38 +29,66 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                PremiumBackground()
+                // Rich layered background
+                AuthGradientBackground()
 
                 GeometryReader { geo in
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 0) {
-                            // Header
-                            VStack(spacing: 20) {
-                                // App logo
+
+                            // MARK: — Logo hero
+                            ZStack {
+                                // Breathing glow behind logo
+                                Circle()
+                                    .fill(
+                                        RadialGradient(
+                                            colors: [
+                                                Color(hex: "11998e").opacity(0.35),
+                                                Color(hex: "11998e").opacity(0.0)
+                                            ],
+                                            center: .center,
+                                            startRadius: 20,
+                                            endRadius: 80
+                                        )
+                                    )
+                                    .frame(width: 160, height: 160)
+                                    .scaleEffect(glowBreathing ? 1.15 : 0.85)
+
                                 Image("AppLogo")
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18))
-                                    .shadow(color: AppColors.accentBlue.opacity(0.3), radius: 16, y: 8)
-
-                                VStack(spacing: 6) {
-                                    Text("Welcome back")
-                                        .font(.system(size: 28, weight: .bold))
-                                        .foregroundColor(.primary)
-
-                                    Text("Sign in to continue your health journey")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                }
+                                    .frame(width: 88, height: 88)
+                                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                                    .shadow(color: Color(hex: "11998e").opacity(0.4), radius: 20, y: 8)
                             }
-                            .padding(.top, 50)
-                            .padding(.bottom, 36)
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 15)
+                            .scaleEffect(logoScale)
+                            .opacity(logoOpacity)
+                            .padding(.top, 44)
 
-                            // Form
-                            VStack(spacing: 20) {
+                            // MARK: — Header text
+                            VStack(spacing: 6) {
+                                Text("SwasthiCare")
+                                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+
+                                Text("Your family's health companion")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.secondary)
+                            }
+                            .opacity(headerOpacity)
+                            .offset(y: headerOffset)
+                            .padding(.top, 16)
+                            .padding(.bottom, 40)
+
+                            // MARK: — Form card
+                            VStack(spacing: 18) {
+                                // Input fields
                                 VStack(spacing: 14) {
                                     AuthTextField(
                                         title: "Email",
@@ -81,13 +114,13 @@ struct LoginView: View {
                                     }
                                 }
 
-                                // Forgot Password
+                                // Forgot password
                                 HStack {
                                     Spacer()
                                     Button(action: { showResetPassword = true }) {
                                         Text("Forgot Password?")
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundColor(AppColors.accentBlue)
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(Color(hex: "11998e"))
                                     }
                                 }
 
@@ -96,7 +129,7 @@ struct LoginView: View {
                                     AuthAlertBanner(message: error, isSuccess: false)
                                 }
 
-                                // Sign In Button
+                                // Sign In button
                                 Button(action: {
                                     Task { await viewModel.signIn() }
                                 }) {
@@ -112,59 +145,88 @@ struct LoginView: View {
 
                                 // Divider
                                 HStack(spacing: 16) {
-                                    Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 0.5)
-                                    Text("or continue with")
-                                        .font(.system(size: 12))
+                                    VStack { Divider() }
+                                    Text("or")
+                                        .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(.secondary)
-                                    Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 0.5)
+                                    VStack { Divider() }
                                 }
-                                .padding(.vertical, 4)
+                                .padding(.vertical, 2)
 
-                                // Social Buttons
-                                HStack(spacing: 14) {
+                                // Social row
+                                HStack(spacing: 12) {
                                     AuthSocialButton(icon: "g.circle.fill", title: "Google") {
                                         Task { await viewModel.signInWithGoogle() }
                                     }
-
                                     AuthSocialButton(icon: "apple.logo", title: "Apple") {
                                         Task { await viewModel.signInWithApple() }
                                     }
                                 }
                             }
-                            .padding(.horizontal, 24)
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 20)
+                            .padding(20)
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25), lineWidth: 0.5)
+                            )
+                            .padding(.horizontal, 20)
+                            .opacity(formOpacity)
+                            .offset(y: formOffset)
 
-                            Spacer(minLength: 30)
+                            Spacer(minLength: 40)
 
-                            // Sign Up Link
+                            // MARK: — Footer
                             Button(action: { showSignUp = true }) {
                                 HStack(spacing: 4) {
-                                    Text("Don't have an account?")
+                                    Text("New here?")
                                         .foregroundColor(.secondary)
-                                    Text("Sign Up")
+                                    Text("Create Account")
                                         .fontWeight(.bold)
-                                        .foregroundColor(AppColors.accentBlue)
+                                        .foregroundColor(Color(hex: "11998e"))
                                 }
                                 .font(.system(size: 14))
                             }
-                            .padding(.bottom, 24)
+                            .opacity(footerOpacity)
+                            .padding(.bottom, 28)
                         }
                         .frame(minHeight: geo.size.height)
                     }
                 }
             }
-            .onAppear {
-                withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.1)) {
-                    appeared = true
-                }
-            }
+            .onAppear { runEntranceAnimation() }
             .navigationDestination(isPresented: $showSignUp) {
                 SignUpView()
             }
             .sheet(isPresented: $showResetPassword) {
                 ResetPasswordView()
             }
+        }
+    }
+
+    private func runEntranceAnimation() {
+        // 1. Logo pops in
+        withAnimation(.spring(response: 0.7, dampingFraction: 0.65).delay(0.1)) {
+            logoScale = 1.0
+            logoOpacity = 1
+        }
+        // 2. Glow breathes
+        withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true).delay(0.5)) {
+            glowBreathing = true
+        }
+        // 3. Header slides up
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3)) {
+            headerOpacity = 1
+            headerOffset = 0
+        }
+        // 4. Form card slides up
+        withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.5)) {
+            formOpacity = 1
+            formOffset = 0
+        }
+        // 5. Footer fades
+        withAnimation(.easeOut(duration: 0.4).delay(0.8)) {
+            footerOpacity = 1
         }
     }
 }
@@ -183,25 +245,25 @@ struct SignUpView: View {
 
     var body: some View {
         ZStack {
-            PremiumBackground()
+            AuthGradientBackground()
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 28) {
+                VStack(spacing: 24) {
                     Spacer().frame(height: 16)
 
                     // Header
                     VStack(spacing: 6) {
                         Text("Create Account")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
 
                         Text("Start your health journey today")
-                            .font(.system(size: 14))
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                     }
 
-                    // Form
-                    VStack(spacing: 20) {
+                    // Form card
+                    VStack(spacing: 18) {
                         VStack(spacing: 14) {
                             AuthTextField(
                                 title: "Full Name",
@@ -273,11 +335,18 @@ struct SignUpView: View {
                         .disabled(viewModel.isLoading || !viewModel.formState.isValidForSignUp)
 
                         Text("By signing up, you agree to our Terms & Privacy Policy")
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
-                    .padding(.horizontal, 24)
+                    .padding(20)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25), lineWidth: 0.5)
+                    )
+                    .padding(.horizontal, 20)
 
                     Spacer()
 
@@ -287,7 +356,7 @@ struct SignUpView: View {
                                 .foregroundColor(.secondary)
                             Text("Sign In")
                                 .fontWeight(.bold)
-                                .foregroundColor(AppColors.accentBlue)
+                                .foregroundColor(Color(hex: "11998e"))
                         }
                         .font(.system(size: 14))
                     }
@@ -323,10 +392,9 @@ struct ResetPasswordView: View {
 
     var body: some View {
         ZStack {
-            PremiumBackground()
+            AuthGradientBackground()
 
             VStack(spacing: 28) {
-                // Handle
                 Capsule()
                     .fill(Color.primary.opacity(0.15))
                     .frame(width: 36, height: 4)
@@ -335,19 +403,19 @@ struct ResetPasswordView: View {
                 VStack(spacing: 14) {
                     ZStack {
                         Circle()
-                            .fill(AppColors.accentBlue.opacity(0.1))
+                            .fill(Color(hex: "11998e").opacity(0.12))
                             .frame(width: 64, height: 64)
 
                         Image(systemName: "lock.rotation")
                             .font(.system(size: 28))
-                            .foregroundColor(AppColors.accentBlue)
+                            .foregroundColor(Color(hex: "11998e"))
                     }
 
                     Text("Reset Password")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
 
-                    Text("Enter your email and we'll send you a link to reset your password")
+                    Text("Enter your email and we'll send you a reset link")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -380,7 +448,14 @@ struct ResetPasswordView: View {
                     .buttonStyle(AuthPrimaryButtonStyle(isEnabled: viewModel.formState.isValidEmail))
                     .disabled(viewModel.isLoading || !viewModel.formState.isValidEmail)
                 }
-                .padding(.horizontal, 24)
+                .padding(20)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25), lineWidth: 0.5)
+                )
+                .padding(.horizontal, 20)
 
                 Spacer()
             }
@@ -388,33 +463,101 @@ struct ResetPasswordView: View {
     }
 }
 
-// MARK: - Components
+// MARK: - Rich Gradient Background
 
-struct AuthBackground: View {
+struct AuthGradientBackground: View {
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
-        PremiumBackground()
+        ZStack {
+            // Base
+            Color(UIColor.systemBackground).ignoresSafeArea()
+
+            if colorScheme == .dark {
+                // Deep teal-tinted dark
+                LinearGradient(
+                    colors: [
+                        Color(hex: "0A1A1A"),
+                        Color(hex: "0D1117"),
+                        Color(hex: "0A0E14")
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                // Teal orb — top right
+                Circle()
+                    .fill(Color(hex: "11998e").opacity(0.12))
+                    .blur(radius: 80)
+                    .frame(width: 280, height: 280)
+                    .offset(x: 120, y: -100)
+
+                // Purple orb — bottom left
+                Circle()
+                    .fill(Color(hex: "7C3AED").opacity(0.08))
+                    .blur(radius: 90)
+                    .frame(width: 250, height: 250)
+                    .offset(x: -120, y: 300)
+
+                // Pink accent — center bottom
+                Circle()
+                    .fill(Color(hex: "EC4899").opacity(0.05))
+                    .blur(radius: 70)
+                    .frame(width: 200, height: 200)
+                    .offset(x: 40, y: 200)
+            } else {
+                // Light mode — soft teal wash
+                LinearGradient(
+                    colors: [
+                        Color(hex: "F0FDFA"),
+                        Color.white,
+                        Color(hex: "F5F3FF")
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                // Teal orb
+                Circle()
+                    .fill(Color(hex: "11998e").opacity(0.06))
+                    .blur(radius: 80)
+                    .frame(width: 280, height: 280)
+                    .offset(x: 120, y: -80)
+
+                // Purple orb
+                Circle()
+                    .fill(Color(hex: "7C3AED").opacity(0.04))
+                    .blur(radius: 80)
+                    .frame(width: 250, height: 250)
+                    .offset(x: -120, y: 280)
+            }
+        }
     }
 }
 
-/// Reusable alert banner for error/success messages
+// Legacy wrapper
+struct AuthBackground: View {
+    var body: some View {
+        AuthGradientBackground()
+    }
+}
+
+// MARK: - Components
+
+/// Alert banner for error/success
 struct AuthAlertBanner: View {
     let message: String
     var isSuccess: Bool = false
 
-    private var color: Color {
-        isSuccess ? AppColors.accentGreen : AppColors.accentRed
-    }
-
-    private var icon: String {
-        isSuccess ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
-    }
+    private var color: Color { isSuccess ? AppColors.accentGreen : AppColors.accentRed }
+    private var icon: String { isSuccess ? "checkmark.circle.fill" : "exclamationmark.circle.fill" }
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 12))
-            Text(message)
-                .font(.system(size: 13, weight: .medium))
+        HStack(spacing: 8) {
+            Image(systemName: icon).font(.system(size: 14))
+            Text(message).font(.system(size: 13, weight: .medium))
         }
         .foregroundColor(color)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -425,21 +568,23 @@ struct AuthAlertBanner: View {
     }
 }
 
-/// Shared input field chrome (background + border + focus animation)
+/// Input field chrome
 private struct AuthInputModifier: ViewModifier {
     let isFocused: Bool
     @Environment(\.colorScheme) var colorScheme
+
+    private var accentTeal: Color { Color(hex: "11998e") }
 
     func body(content: Content) -> some View {
         content
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
-            .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.primary.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.primary.opacity(0.035))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(
-                        isFocused ? AppColors.accentBlue.opacity(0.5) : Color.primary.opacity(0.08),
+                        isFocused ? accentTeal.opacity(0.6) : Color.primary.opacity(0.06),
                         lineWidth: isFocused ? 1.5 : 0.5
                     )
             )
@@ -447,7 +592,6 @@ private struct AuthInputModifier: ViewModifier {
     }
 }
 
-/// Shared input label
 private struct AuthInputLabel: View {
     let title: String
     let isFocused: Bool
@@ -455,9 +599,9 @@ private struct AuthInputLabel: View {
     var body: some View {
         Text(title)
             .font(.system(size: 12, weight: .semibold))
-            .foregroundColor(isFocused ? AppColors.accentBlue : .secondary)
+            .foregroundColor(isFocused ? Color(hex: "11998e") : .secondary)
             .textCase(.uppercase)
-            .tracking(0.5)
+            .tracking(0.8)
     }
 }
 
@@ -474,14 +618,14 @@ struct AuthTextField: View {
 
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .foregroundColor(isFocused ? AppColors.accentBlue : .secondary)
+                    .foregroundColor(isFocused ? Color(hex: "11998e") : .secondary)
                     .frame(width: 18)
                     .font(.system(size: 14))
 
                 TextField("", text: $text)
                     .font(.system(size: 16))
                     .foregroundColor(.primary)
-                    .tint(AppColors.accentBlue)
+                    .tint(Color(hex: "11998e"))
                     .keyboardType(keyboardType)
                     .textInputAutocapitalization(.never)
                     .focused($isFocused)
@@ -504,7 +648,7 @@ struct AuthSecureField: View {
 
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .foregroundColor(isFocused ? AppColors.accentBlue : .secondary)
+                    .foregroundColor(isFocused ? Color(hex: "11998e") : .secondary)
                     .frame(width: 18)
                     .font(.system(size: 14))
 
@@ -512,13 +656,13 @@ struct AuthSecureField: View {
                     SecureField("", text: $text)
                         .font(.system(size: 16))
                         .foregroundColor(.primary)
-                        .tint(AppColors.accentBlue)
+                        .tint(Color(hex: "11998e"))
                         .focused($isFocused)
                 } else {
                     TextField("", text: $text)
                         .font(.system(size: 16))
                         .foregroundColor(.primary)
-                        .tint(AppColors.accentBlue)
+                        .tint(Color(hex: "11998e"))
                         .focused($isFocused)
                 }
 
@@ -544,13 +688,19 @@ struct AuthPrimaryButtonStyle: ButtonStyle {
             .frame(height: 52)
             .background(
                 isEnabled
-                    ? AnyShapeStyle(LinearGradient(colors: [AppColors.accentBlue, AppColors.onboardingPurple], startPoint: .leading, endPoint: .trailing))
-                    : AnyShapeStyle(Color.gray.opacity(0.3))
+                    ? AnyShapeStyle(
+                        LinearGradient(
+                            colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    : AnyShapeStyle(Color.gray.opacity(0.25))
             )
             .clipShape(Capsule())
             .shadow(
-                color: isEnabled ? AppColors.accentBlue.opacity(0.3) : .clear,
-                radius: 12, y: 6
+                color: isEnabled ? Color(hex: "11998e").opacity(0.35) : .clear,
+                radius: 14, y: 6
             )
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
@@ -565,7 +715,7 @@ struct AuthSocialButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 18))
                 Text(title)
@@ -573,12 +723,12 @@ struct AuthSocialButton: View {
             }
             .foregroundColor(.primary)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.primary.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .frame(height: 48)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
             )
         }
         .buttonStyle(ScaleButtonStyle())
