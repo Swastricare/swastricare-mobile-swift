@@ -23,8 +23,6 @@ struct HomeView: View {
     @State private var showSyncAlert = false
     @State private var syncMessage: String?
     @State private var hasAppeared = false
-    @State private var modelOpacity: Double = 0
-    @State private var modelScale: CGFloat = 0.8
     @State private var quickActionsVisible = false
     @State private var showHeartRateMeasurement = false
     @State private var showReminders = false
@@ -56,9 +54,9 @@ struct HomeView: View {
         
         var title: String {
             switch self {
-            case .optimal: return "System Optimal"
-            case .attention: return "Attention Needed"
-            case .normal: return "Status Normal"
+            case .optimal: return "All vitals normal"
+            case .attention: return "Needs attention"
+            case .normal: return "Status normal"
             }
         }
         
@@ -153,20 +151,40 @@ struct HomeView: View {
                         authorizationBanner
                     }
 
+                    // Section: Today's Activity
+                    Text("TODAY'S ACTIVITY")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .tracking(0.8)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 28)
+                        .opacity(hasAppeared ? 1 : 0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.10), value: hasAppeared)
+
                     // Human Body Image with Daily Activity Details
                     humanBodyImageWithDetails
-                        .padding(.top, 0)
+                        .padding(.top, 8)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.10), value: hasAppeared)
+
+                    // Section: Your Vitals
+                    Text("YOUR VITALS")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .tracking(0.8)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 28)
+                        .opacity(hasAppeared ? 1 : 0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.20), value: hasAppeared)
 
                     // Health Vitals Grid
                     healthVitalsSection
                         .padding(.top, 8)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
-                    
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.20), value: hasAppeared)
+
                     // AR Body Scan Entry
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -237,7 +255,7 @@ struct HomeView: View {
                     .padding(.top, 8)
                     .opacity(hasAppeared ? 1 : 0)
                     .offset(y: hasAppeared ? 0 : 24)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.30), value: hasAppeared)
 
                     // Dynamic Island Health Tracker
                     HealthLiveActivityToggle(
@@ -252,13 +270,23 @@ struct HomeView: View {
                     .offset(y: hasAppeared ? 0 : 24)
                     .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: hasAppeared)
 
+                    // Section: Quick Actions
+                    Text("QUICK ACTIONS")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .tracking(0.8)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 28)
+                        .opacity(hasAppeared ? 1 : 0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
+
                     // Quick Actions
                     quickActionsSection
                         .padding(.top, 8)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 30)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.45), value: hasAppeared)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
                     
                 }
                 .padding(.top)
@@ -293,11 +321,6 @@ struct HomeView: View {
                     hasAppeared = true
                 }
             }
-            // Animate 3D model
-            withAnimation(.easeOut(duration: 1.0).delay(0.2)) {
-                modelOpacity = 0.8
-                modelScale = 1.20 // Reduced size
-            }
         }
         .task {
             await viewModel.loadTodaysData()
@@ -330,80 +353,27 @@ struct HomeView: View {
     // MARK: - Subviews
     
     private var humanBodyImageWithDetails: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                
-              
-                // Human Body 3D Model on the right
-                HStack {
-                    Spacer()
-                    ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 340) // Reduced height
-                        .opacity(modelOpacity)
-                        .scaleEffect(modelScale)
-                        .offset(x: geometry.size.width * 0.16)
-                        .offset(y: geometry.size.height * 0.0) // Moved upward
-                        .allowsHitTesting(false) // Disable all touch interactions
-                        .clipped()
-                        .mask(
-                            // Gradient mask for bottom blend
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    .black,
-                                    .black.opacity(0.8),
-                                    .black.opacity(0.4),
-                                    .clear
-                                ]),
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.8)),
-                            removal: .opacity
-                        ))
-                }
-                
-                // Daily Activity Details on the left (without card)
-                VStack(alignment: .leading, spacing: 12) {
-                    
-                    // Stats List - Vertical
-                    VStack(alignment: .leading, spacing: 10) { // Tighter spacing for cards
-                        DailyActivityStatItem(
-                            icon: "flame.fill",
-                            color: .orange,
-                            value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
-                            unit: "Active Calories",
-                            animationDelay: 0.3,
-                            hasAppeared: hasAppeared
-                        )
-
-                        DailyActivityStatItem(
-                            icon: "clock.fill",
-                            color: .blue,
-                            value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
-                            unit: "Exercise Min",
-                            animationDelay: 0.5,
-                            hasAppeared: hasAppeared
-                        )
-
-                        DailyActivityStatItem(
-                            icon: "figure.stand",
-                            color: .purple,
-                            value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
-                            unit: "Stand Hours",
-                            animationDelay: 0.6,
-                            hasAppeared: hasAppeared
-                        )
-                    }
-                }
-                .padding(.horizontal, 20)
-                // .padding(.top, -10) // Move metrics upward
-                .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading) // Give slightly more space to stats
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: hasAppeared)
-            }
+        HStack(spacing: 10) {
+            ActivityPill(
+                icon: "flame.fill",
+                color: .orange,
+                value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
+                unit: "kcal"
+            )
+            ActivityPill(
+                icon: "clock.fill",
+                color: AppColors.accentBlue,
+                value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
+                unit: "min"
+            )
+            ActivityPill(
+                icon: "figure.stand",
+                color: .purple,
+                value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
+                unit: "hrs"
+            )
         }
-        .frame(height: 320) // Reduced height to match model
+        .padding(.horizontal, 20)
     }
     
     private var authorizationBanner: some View {
@@ -562,14 +532,6 @@ struct HomeView: View {
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Quick Actions")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                Spacer()
-            }
-            .padding(.horizontal)
-            
             LazyVGrid(
                 columns: [GridItem(.flexible()), GridItem(.flexible())],
                 alignment: .center,
@@ -668,68 +630,61 @@ struct HomeView: View {
         let greeting: String
         @Binding var showReminders: Bool
         
-        @State private var isPulsing = false
-        
         var body: some View {
             HStack(alignment: .top) {
-                // Left: Text Info
                 VStack(alignment: .leading, spacing: 4) {
                     Text(greeting)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(status.color)
-                    
-                    HStack(alignment: .center, spacing: 8) {
-                        Text(userName)
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        
-                        // Pulsing Heart
-                        ZStack {
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.red)
-                                .scaleEffect(isPulsing ? 1.2 : 1.0)
-                                .opacity(isPulsing ? 1.0 : 0.8)
-                                .animation(
-                                    .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
-                                    value: isPulsing
-                                )
-                        }
-                        .onAppear {
-                            isPulsing = true
-                        }
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+
+                    Text(userName)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(status.color)
+                            .frame(width: 8, height: 8)
+                        Text(status.title)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(status.color)
                     }
+                    .padding(.top, 2)
                 }
-                
+
                 Spacer()
-                
-                // Right: Actions
-                HStack(spacing: 16) {
-                    // Notification Bell
-                    Button(action: {
-                        showReminders = true
-                    }) {
+
+                HStack(spacing: 10) {
+                    Button(action: { showReminders = true }) {
                         Image(systemName: "bell.fill")
-                            .font(.system(size: 20))
+                            .font(.system(size: 16))
                             .foregroundColor(.primary)
+                            .frame(width: 34, height: 34)
+                            .background(Color.primary.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
+                            )
                     }
-                    
-                    // Track Button
+
                     NavigationLink(destination: HealthAnalyticsView()) {
-                        Image(systemName: "target")
-                            .font(.system(size: 20, weight: .medium))
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 16))
                             .foregroundColor(.primary)
-                            .frame(width: 40, height: 40)
-                            .background(Color.gray.opacity(0.1))
-                            .clipShape(Circle())
+                            .frame(width: 34, height: 34)
+                            .background(Color.primary.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
+                            )
                     }
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 20)
             .padding(.vertical, 10)
         }
     }
@@ -777,6 +732,44 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+// MARK: - Activity Pill
+
+private struct ActivityPill: View {
+    let icon: String
+    let color: Color
+    let value: String
+    let unit: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 28, height: 28)
+                .background(color.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(color)
+                Text(unit)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 10)
+        .background(color.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(color.opacity(0.10), lineWidth: 1)
+        )
     }
 }
 
