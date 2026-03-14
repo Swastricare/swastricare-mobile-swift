@@ -353,7 +353,7 @@ fun VaultScreen(
                 }
 
                 // Content
-                Box(modifier = Modifier.weight(1f)) {
+                Box(modifier = Modifier.weight(1f).padding(bottom = 88.dp)) {
                     if (uiState.isLoading && uiState.documents.isEmpty()) {
                         ShimmerDocumentList()
                     } else if (viewModel.filteredDocuments.isEmpty()) {
@@ -403,7 +403,8 @@ fun VaultScreen(
                     contentColor = Color.White,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(24.dp)
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(end = 24.dp, bottom = 100.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -486,7 +487,8 @@ fun VaultScreen(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 96.dp) // above FAB
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 184.dp) // above FAB (which is now at navBar + 100dp)
         )
 
         // Batch Upload Preview Sheet

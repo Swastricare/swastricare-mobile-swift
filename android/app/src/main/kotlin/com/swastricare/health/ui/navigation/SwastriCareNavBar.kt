@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,7 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,8 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
@@ -38,35 +39,30 @@ import androidx.navigation.NavController
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 
+private val CapsuleShape = RoundedCornerShape(50)
+
 /**
- * Custom bottom navigation bar using Lucide Icons.
- * Selection is indicated by a smooth color-only tint transition — no scale, no pill, no label animation.
+ * Floating capsule bottom navigation bar using Lucide Icons.
+ * Renders as a pill-shaped overlay — does not push screen content up.
+ * Selection is indicated by a smooth color tint transition only.
  */
 @Composable
 fun SwastriCareNavBar(
     navController: NavController,
     currentRoute: String?
 ) {
-    val surfaceColor = AppColors.navBar
-    val dividerColor = AppColors.outlineVariant
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(surfaceColor)
-            .drawBehind {
-                drawLine(
-                    color = dividerColor,
-                    start = Offset(0f, 0f),
-                    end = Offset(size.width, 0f),
-                    strokeWidth = 0.3.dp.toPx()
-                )
-            }
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(68.dp),
+                .height(64.dp)
+                .shadow(elevation = 12.dp, shape = CapsuleShape)
+                .background(AppColors.navBar, shape = CapsuleShape),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -91,11 +87,6 @@ fun SwastriCareNavBar(
                 )
             }
         }
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsBottomHeight(WindowInsets.navigationBars)
-        )
     }
 }
 

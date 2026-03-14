@@ -77,7 +77,7 @@ fun SettingsScreen(
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    contentPadding = PaddingValues(bottom = 88.dp)
                 ) {
                     // Profile Header
                     item {

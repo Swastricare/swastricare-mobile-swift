@@ -124,6 +124,8 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(bottom = 76.dp)
             ) {
                 // 2. Header
                 LivingStatusHeader(

@@ -61,11 +61,12 @@ fun MainNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     profileViewModel: ProfileViewModel,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onAiFullScreenChange: (Boolean) -> Unit = {}
 ) {
     NavHost(
         navController = navController,
-        startDestination = BottomNavTab.Vitals.route,
+        startDestination = BottomNavTab.AI.route,
         modifier = modifier,
         enterTransition = { fadeIn(animationSpec = tween(250)) },
         exitTransition = { fadeOut(animationSpec = tween(250)) },
@@ -104,9 +105,11 @@ fun MainNavGraph(
             )
         }
 
-        // Tab: AI
+        // Tab: AI (expands to full screen when chat is active)
         composable(BottomNavTab.AI.route) {
-            AIScreen()
+            AIScreen(
+                onFullScreenChange = onAiFullScreenChange
+            )
         }
 
         // Tab: Steps

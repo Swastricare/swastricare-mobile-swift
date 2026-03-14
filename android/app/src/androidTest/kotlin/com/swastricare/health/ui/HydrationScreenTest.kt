@@ -1,7 +1,12 @@
 package com.swastricare.health.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.dp
 import com.swastricare.health.domain.model.hydration.DrinkType
 import com.swastricare.health.domain.model.hydration.HydrationEntry
 import org.junit.Rule

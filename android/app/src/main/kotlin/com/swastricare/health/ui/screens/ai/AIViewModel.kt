@@ -13,6 +13,8 @@ import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.data.services.SpeechService
+import com.swastricare.health.domain.repository.AuthRepository
+import com.swastricare.health.domain.repository.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +52,7 @@ data class AIUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val showEmptyState: Boolean = true,
+    val userName: String? = null,
     val analysisState: AnalysisState = AnalysisState.Idle,
     val isRecording: Boolean = false,
     val currentMode: AIMode = AIMode.General,
@@ -79,6 +82,8 @@ class AIViewModel @Inject constructor(
     private val analyticsService: AnalyticsService,
     private val appAnalyticsService: AppAnalyticsService,
     private val healthConnectService: HealthConnectService,
+    private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -91,6 +96,35 @@ class AIViewModel @Inject constructor(
 
     init {
         loadLastConversation()
+        loadUserName()
+    }
+
+    private fun loadUserName() {
+        viewModelScope.launch {
+            try {
+                val user = authRepository.getCurrentUser()
+                if (user == null) {
+                    Log.d("AIViewModel", "loadUserName: no current user")
+                    return@launch
+                }
+                // Try name from auth user first
+                if (!user.fullName.isNullOrBlank()) {
+                    _uiState.value = _uiState.value.copy(userName = user.fullName)
+                    return@launch
+                }
+                // Fallback to profile repository
+                val result = profileRepository.getUserProfile(user.id)
+                Log.d("AIViewModel", "loadUserName: profile result = $result")
+                if (result is com.swastricare.health.core.result.ResultWrapper.Success) {
+                    val name = result.data?.fullName
+                    if (!name.isNullOrBlank()) {
+                        _uiState.value = _uiState.value.copy(userName = name)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AIViewModel", "loadUserName failed", e)
+            }
+        }
     }
 
     override fun onCleared() {

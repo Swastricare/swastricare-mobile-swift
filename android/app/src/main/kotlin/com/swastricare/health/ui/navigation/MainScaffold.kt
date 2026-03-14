@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
@@ -15,12 +14,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 /**
- * Main scaffold with the custom SwastriCare bottom navigation bar.
+ * Main scaffold with a floating capsule bottom navigation bar.
+ *
+ * The nav bar is rendered as a Box overlay — content fills the full screen
+ * and is never pushed up by the nav bar height.
  */
 @Composable
 fun MainScaffold(
@@ -32,42 +33,31 @@ fun MainScaffold(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    Scaffold(
-        modifier = modifier,
-        bottomBar = {
+    Scaffold(modifier = modifier) { innerPadding ->
+        val density = LocalDensity.current
+        val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding())
+        ) {
+            // Content fills the full Box — no bottom padding reserved for nav bar
+            content(Modifier.fillMaxSize())
+
+            // Floating capsule nav bar overlays content at the bottom
+            // Hidden when keyboard is open to avoid double-obscuring input fields
             AnimatedVisibility(
-                visible = showBottomNav,
+                visible = showBottomNav && !isKeyboardVisible,
                 enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
+                exit = slideOutVertically(targetOffsetY = { it }),
+                modifier = Modifier.align(Alignment.BottomCenter)
             ) {
                 SwastriCareNavBar(
                     navController = navController,
                     currentRoute = currentRoute
                 )
             }
-        }
-    ) { innerPadding ->
-        val density = LocalDensity.current
-        val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
-
-        // When keyboard is open, drop the bottom padding (nav bar area) so
-        // screens using imePadding() don't get double-padded.
-        val adjustedPadding = if (isKeyboardVisible) {
-            PaddingValues(
-                top = innerPadding.calculateTopPadding(),
-                bottom = 0.dp
-            )
-        } else {
-            innerPadding
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(adjustedPadding),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            content(Modifier.fillMaxSize())
         }
     }
 }

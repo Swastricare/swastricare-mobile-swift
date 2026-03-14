@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -47,9 +49,20 @@ fun MainScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // AI full-screen mode (hides nav bar when chat is active)
+    var aiFullScreen by remember { mutableStateOf(false) }
+
+    // Reset AI full-screen when navigating away from AI tab
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != BottomNavTab.AI.route) {
+            aiFullScreen = false
+        }
+    }
+
     // Determine if bottom nav should be visible
-    val showBottomNav = remember(currentRoute) {
-        BottomNavConfig.shouldShowBottomNav(currentRoute)
+    val showBottomNav = remember(currentRoute, aiFullScreen) {
+        if (aiFullScreen) false
+        else BottomNavConfig.shouldShowBottomNav(currentRoute)
     }
 
     // Tab items for deep link handling
@@ -96,7 +109,8 @@ fun MainScreen(
             navController = navController,
             modifier = modifier,
             profileViewModel = profileViewModel,
-            onSignOut = onSignOut
+            onSignOut = onSignOut,
+            onAiFullScreenChange = { aiFullScreen = it }
         )
     }
 }
