@@ -33,30 +33,34 @@ struct AddFoodView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Show search results when searching
-                    if !searchText.isEmpty {
-                        searchResultsSection
-                    } else {
-                        // Recent Foods (if any)
-                        if !viewModel.recentFoods.isEmpty {
-                            recentFoodsSection
+            ZStack {
+                PremiumBackground()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Show search results when searching
+                        if !searchText.isEmpty {
+                            searchResultsSection
+                        } else {
+                            // Recent Foods (if any)
+                            if !viewModel.recentFoods.isEmpty {
+                                recentFoodsSection
+                            }
+
+                            // Favorites (if any)
+                            if !viewModel.favoriteFoods.isEmpty {
+                                favoriteFoodsSection
+                            }
+
+                            // Browse by Category
+                            categoryGridSection
+
+                            // Add Custom Food
+                            customFoodButton
                         }
-
-                        // Favorites (if any)
-                        if !viewModel.favoriteFoods.isEmpty {
-                            favoriteFoodsSection
-                        }
-
-                        // Browse by Category
-                        categoryGridSection
-
-                        // Add Custom Food
-                        customFoodButton
                     }
+                    .padding(.bottom, 20)
                 }
-                .padding(.bottom, 20)
             }
             .navigationTitle("Add Food")
             .navigationBarTitleDisplayMode(.inline)
@@ -66,18 +70,22 @@ struct AddFoodView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    // Meal type pill
+                    // Meal type pill with semantic color tint
                     HStack(spacing: 4) {
                         Image(systemName: currentMealType.icon)
-                            .font(.system(size: 11))
+                            .font(.system(size: 11, weight: .semibold))
                         Text(currentMealType.displayName)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 12, weight: .semibold))
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(currentMealType.color.opacity(0.15))
                     .foregroundColor(currentMealType.color)
-                    .cornerRadius(12)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(currentMealType.color.opacity(0.30), lineWidth: 0.8)
+                    )
                 }
             }
             .sheet(item: $selectedFoodForQuantity) { food in
@@ -115,7 +123,7 @@ struct AddFoodView: View {
             HStack {
                 Image(systemName: "clock.arrow.circlepath")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.accentGreen)
                 Text("Recent")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.secondary)
@@ -137,11 +145,15 @@ struct AddFoodView: View {
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .background(Color(UIColor.secondarySystemBackground))
+                            .background(AppColors.accentGreen.opacity(0.08))
                             .foregroundColor(.primary)
-                            .cornerRadius(20)
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(AppColors.accentGreen.opacity(0.20), lineWidth: 0.8)
+                            )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ScaleButtonStyle())
                     }
                 }
                 .padding(.horizontal)
@@ -183,9 +195,13 @@ struct AddFoodView: View {
                             .padding(.vertical, 10)
                             .background(Color.pink.opacity(0.08))
                             .foregroundColor(.primary)
-                            .cornerRadius(20)
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.pink.opacity(0.20), lineWidth: 0.8)
+                            )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ScaleButtonStyle())
                     }
                 }
                 .padding(.horizontal)
@@ -217,17 +233,21 @@ struct AddFoodView: View {
                     } label: {
                         VStack(spacing: 8) {
                             Text(category.icon)
-                                .font(.system(size: 32))
+                                .font(.system(size: 36))
                             Text(category.displayName)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.primary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(12)
+                        .background(AppColors.accentGreen.opacity(0.07))
+                        .glass(cornerRadius: 14)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(AppColors.accentGreen.opacity(0.10), lineWidth: 0.8)
+                        )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScaleButtonStyle())
                 }
             }
             .padding(.horizontal)
@@ -258,7 +278,7 @@ struct AddFoodView: View {
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
 
-                VStack(spacing: 0) {
+                VStack(spacing: 6) {
                     ForEach(searchResults) { food in
                         Button {
                             selectedFoodForQuantity = food
@@ -267,8 +287,12 @@ struct AddFoodView: View {
                                 Text(food.category.icon)
                                     .font(.system(size: 28))
                                     .frame(width: 44, height: 44)
-                                    .background(Color.green.opacity(0.1))
-                                    .cornerRadius(10)
+                                    .background(AppColors.accentGreen.opacity(0.10))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(AppColors.accentGreen.opacity(0.15), lineWidth: 0.8)
+                                    )
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(food.name)
@@ -283,26 +307,29 @@ struct AddFoodView: View {
                                         Text("·")
                                             .foregroundColor(.secondary)
                                         Text(food.caloriesPerServing)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(.green)
+                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                            .foregroundColor(AppColors.accentGreen)
                                     }
                                 }
 
                                 Spacer()
 
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(.green)
+                                Button {
+                                    selectedFoodForQuantity = food
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundColor(AppColors.accentGreen)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 10)
+                            .background(AppColors.accentGreen.opacity(0.04))
+                            .glass(cornerRadius: 12)
                         }
                         .buttonStyle(.plain)
-
-                        if food.id != searchResults.last?.id {
-                            Divider()
-                                .padding(.leading, 72)
-                        }
+                        .padding(.horizontal)
                     }
                 }
             }
@@ -316,26 +343,31 @@ struct AddFoodView: View {
             showCustomEntry = true
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(.green)
+                ZStack {
+                    Circle()
+                        .fill(AppColors.greenGradient)
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                }
                 Text("Add Custom Food")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.primary)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(AppColors.accentGreen)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.accentGreen.opacity(0.6))
             }
             .padding(16)
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(12)
+            .background(AppColors.accentGreen.opacity(0.07))
+            .glass(cornerRadius: 14)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(AppColors.accentGreen.opacity(0.20), lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
         .padding(.horizontal)
     }
 }
@@ -359,23 +391,27 @@ struct FoodQuantitySheet: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                // Food header
-                foodHeader
+            ZStack {
+                PremiumBackground()
 
-                // Quantity stepper
-                quantityStepper
+                VStack(spacing: 24) {
+                    // Food header
+                    foodHeader
 
-                // Nutrition preview
-                nutritionPreview
+                    // Quantity stepper
+                    quantityStepper
 
-                Spacer()
+                    // Nutrition preview
+                    nutritionPreview
 
-                // Log Food button
-                logButton
+                    Spacer()
+
+                    // Log Food button
+                    logButton
+                }
+                .padding()
+                .padding(.top, 8)
             }
-            .padding()
-            .padding(.top, 8)
             .navigationTitle("Adjust Quantity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -394,8 +430,12 @@ struct FoodQuantitySheet: View {
             Text(food.category.icon)
                 .font(.system(size: 40))
                 .frame(width: 60, height: 60)
-                .background(Color.green.opacity(0.1))
-                .cornerRadius(14)
+                .background(AppColors.accentGreen.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(AppColors.accentGreen.opacity(0.20), lineWidth: 0.8)
+                )
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(food.name)
@@ -417,7 +457,7 @@ struct FoodQuantitySheet: View {
                     .font(.system(size: 22))
                     .foregroundColor(viewModel.isFavorite(foodId: food.id) ? .pink : .secondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScaleButtonStyle())
         }
     }
 
@@ -432,49 +472,71 @@ struct FoodQuantitySheet: View {
             HStack(spacing: 24) {
                 Button {
                     if quantity > 0.5 {
-                        quantity -= 0.5
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            quantity -= 0.5
+                        }
                     }
                 } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 36))
-                        .foregroundColor(quantity > 0.5 ? .green : .secondary.opacity(0.4))
+                    ZStack {
+                        Circle()
+                            .fill(quantity > 0.5 ? AppColors.accentGreen.opacity(0.15) : Color.secondary.opacity(0.08))
+                            .frame(width: 48, height: 48)
+                            .overlay(
+                                Circle()
+                                    .stroke(quantity > 0.5 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
+                            )
+                        Image(systemName: "minus")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(quantity > 0.5 ? AppColors.accentGreen : .secondary.opacity(0.4))
+                    }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ScaleButtonStyle())
                 .disabled(quantity <= 0.5)
 
                 Text(quantity.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(quantity))" : String(format: "%.1f", quantity))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
                     .frame(minWidth: 60)
                     .contentTransition(.numericText())
                     .animation(.snappy(duration: 0.2), value: quantity)
 
                 Button {
                     if quantity < 10 {
-                        quantity += 0.5
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            quantity += 0.5
+                        }
                     }
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 36))
-                        .foregroundColor(quantity < 10 ? .green : .secondary.opacity(0.4))
+                    ZStack {
+                        Circle()
+                            .fill(quantity < 10 ? AppColors.accentGreen.opacity(0.15) : Color.secondary.opacity(0.08))
+                            .frame(width: 48, height: 48)
+                            .overlay(
+                                Circle()
+                                    .stroke(quantity < 10 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
+                            )
+                        Image(systemName: "plus")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(quantity < 10 ? AppColors.accentGreen : .secondary.opacity(0.4))
+                    }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ScaleButtonStyle())
                 .disabled(quantity >= 10)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(16)
+        .padding(.vertical, 16)
+        .glass(cornerRadius: 16)
     }
 
     // MARK: - Nutrition Preview
 
     private var nutritionPreview: some View {
         HStack(spacing: 10) {
-            nutritionPill(label: "Cal", value: "\(adjustedCalories)", color: .orange)
-            nutritionPill(label: "Protein", value: "\(adjustedProtein)g", color: .red)
-            nutritionPill(label: "Carbs", value: "\(adjustedCarbs)g", color: .blue)
-            nutritionPill(label: "Fat", value: "\(adjustedFat)g", color: .yellow)
+            nutritionPill(label: "Cal", value: "\(adjustedCalories)", color: AppColors.accentOrange)
+            nutritionPill(label: "Protein", value: "\(adjustedProtein)g", color: AppColors.accentRed)
+            nutritionPill(label: "Carbs", value: "\(adjustedCarbs)g", color: AppColors.accentBlue)
+            nutritionPill(label: "Fat", value: "\(adjustedFat)g", color: AppColors.accentYellow)
         }
     }
 
@@ -486,13 +548,17 @@ struct FoodQuantitySheet: View {
                 .contentTransition(.numericText())
                 .animation(.snappy(duration: 0.2), value: quantity)
             Text(label)
-                .font(.system(size: 11))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(color.opacity(0.1))
-        .cornerRadius(12)
+        .background(color.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.20), lineWidth: 0.8)
+        )
     }
 
     // MARK: - Log Button
@@ -523,11 +589,15 @@ struct FoodQuantitySheet: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(isLogging ? Color.green.opacity(0.6) : Color.green)
+            .background(
+                isLogging
+                    ? AnyShapeStyle(AppColors.accentGreen.opacity(0.6))
+                    : AnyShapeStyle(AppColors.greenGradient)
+            )
             .foregroundColor(.white)
             .cornerRadius(14)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
         .disabled(isLogging)
     }
 }
