@@ -31,22 +31,14 @@ struct LoginView: View {
                         VStack(spacing: 0) {
                             // Header
                             VStack(spacing: 20) {
-                                // App icon
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [AppColors.accentBlue, AppColors.onboardingPurple],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(width: 72, height: 72)
-                                        .shadow(color: AppColors.accentBlue.opacity(0.35), radius: 16, y: 8)
-
-                                    Image(systemName: "heart.text.square.fill")
-                                        .font(.system(size: 32, weight: .medium))
-                                        .foregroundColor(.white)
+                                // App icon — load from bundle since AppIcon is in the appiconset
+                                if let uiImage = UIImage(named: "AppIcon") {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                                        .shadow(color: AppColors.accentBlue.opacity(0.3), radius: 16, y: 8)
                                 }
 
                                 VStack(spacing: 6) {
