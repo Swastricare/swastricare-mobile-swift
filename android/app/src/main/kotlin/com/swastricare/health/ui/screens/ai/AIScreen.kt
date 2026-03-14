@@ -146,15 +146,6 @@ fun AIScreen(
         }
     }
 
-    // Permission launcher (camera)
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            cameraImageUri?.let { cameraLauncher.launch(it) }
-        }
-    }
-
     // Gallery picker
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -170,6 +161,15 @@ fun AIScreen(
     ) { success ->
         if (success) {
             cameraImageUri?.let { viewModel.onImagePicked(it.toString()) }
+        }
+    }
+
+    // Permission launcher (camera)
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            cameraImageUri?.let { cameraLauncher.launch(it) }
         }
     }
 
