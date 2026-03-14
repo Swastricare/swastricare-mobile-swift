@@ -24,8 +24,14 @@ final class DietLocalStorage {
         static let foodItems = "food_items_cache"
     }
     
+    // MARK: - In-Memory Caches
+
+    private var cachedLogs: [DietLogEntry]?
+    private var cachedGoals: DietGoals?
+    private var cachedFoodItems: [FoodItem]?
+
     // MARK: - File Manager
-    
+
     private let fileManager = FileManager.default
     
     private var documentsDirectory: URL {
@@ -47,30 +53,39 @@ final class DietLocalStorage {
     // MARK: - Diet Logs
     
     func loadLogs() -> [DietLogEntry] {
+        if let cached = cachedLogs {
+            return cached
+        }
+
         guard let data = try? Data(contentsOf: logsFileURL) else {
+            cachedLogs = []
             return []
         }
-        
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        
+
         guard let logs = try? decoder.decode([DietLogEntry].self, from: data) else {
+            cachedLogs = []
             return []
         }
-        
+
+        cachedLogs = logs
         return logs
     }
-    
+
     func saveLogs(_ logs: [DietLogEntry]) {
+        cachedLogs = logs
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .prettyPrinted
-        
+
         guard let data = try? encoder.encode(logs) else {
             print("🍎 DietLocalStorage: Failed to encode logs")
             return
         }
-        
+
         do {
             try data.write(to: logsFileURL, options: .atomic)
             print("🍎 DietLocalStorage: Saved \(logs.count) logs")
@@ -143,30 +158,41 @@ final class DietLocalStorage {
     // MARK: - Diet Goals
     
     func loadGoals() -> DietGoals {
-        guard let data = try? Data(contentsOf: goalsFileURL) else {
-            return DietGoals() // Return default goals
+        if let cached = cachedGoals {
+            return cached
         }
-        
+
+        guard let data = try? Data(contentsOf: goalsFileURL) else {
+            let defaults = DietGoals()
+            cachedGoals = defaults
+            return defaults
+        }
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        
+
         guard let goals = try? decoder.decode(DietGoals.self, from: data) else {
-            return DietGoals()
+            let defaults = DietGoals()
+            cachedGoals = defaults
+            return defaults
         }
-        
+
+        cachedGoals = goals
         return goals
     }
-    
+
     func saveGoals(_ goals: DietGoals) {
+        cachedGoals = goals
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .prettyPrinted
-        
+
         guard let data = try? encoder.encode(goals) else {
             print("🍎 DietLocalStorage: Failed to encode goals")
             return
         }
-        
+
         do {
             try data.write(to: goalsFileURL, options: .atomic)
             print("🍎 DietLocalStorage: Saved goals")
@@ -178,30 +204,39 @@ final class DietLocalStorage {
     // MARK: - Food Items Cache
     
     func loadFoodItemsCache() -> [FoodItem] {
+        if let cached = cachedFoodItems {
+            return cached
+        }
+
         guard let data = try? Data(contentsOf: foodItemsFileURL) else {
+            cachedFoodItems = []
             return []
         }
-        
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        
+
         guard let items = try? decoder.decode([FoodItem].self, from: data) else {
+            cachedFoodItems = []
             return []
         }
-        
+
+        cachedFoodItems = items
         return items
     }
-    
+
     func saveFoodItemsCache(_ items: [FoodItem]) {
+        cachedFoodItems = items
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .prettyPrinted
-        
+
         guard let data = try? encoder.encode(items) else {
             print("🍎 DietLocalStorage: Failed to encode food items")
             return
         }
-        
+
         do {
             try data.write(to: foodItemsFileURL, options: .atomic)
             print("🍎 DietLocalStorage: Cached \(items.count) food items")
@@ -213,6 +248,9 @@ final class DietLocalStorage {
     // MARK: - Clear Data
     
     func clearAllData() {
+        cachedLogs = nil
+        cachedGoals = nil
+        cachedFoodItems = nil
         try? fileManager.removeItem(at: logsFileURL)
         try? fileManager.removeItem(at: goalsFileURL)
         try? fileManager.removeItem(at: foodItemsFileURL)
