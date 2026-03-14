@@ -23,6 +23,8 @@ struct HomeView: View {
     @State private var showSyncAlert = false
     @State private var syncMessage: String?
     @State private var hasAppeared = false
+    @State private var modelOpacity: Double = 0
+    @State private var modelScale: CGFloat = 0.85
     @State private var showHeartRateMeasurement = false
     @State private var showReminders = false
     @State private var showDiet = false
@@ -319,6 +321,11 @@ struct HomeView: View {
                     hasAppeared = true
                 }
             }
+            // Animate 3D model
+            withAnimation(.easeOut(duration: 1.0).delay(0.2)) {
+                modelOpacity = 0.85
+                modelScale = 1.0
+            }
         }
         .task {
             await viewModel.loadTodaysData()
@@ -351,27 +358,49 @@ struct HomeView: View {
     // MARK: - Subviews
     
     private var humanBodyImageWithDetails: some View {
-        HStack(spacing: 10) {
-            ActivityPill(
-                icon: "flame.fill",
-                color: .orange,
-                value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
-                unit: "kcal"
-            )
-            ActivityPill(
-                icon: "clock.fill",
-                color: AppColors.accentBlue,
-                value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
-                unit: "min"
-            )
-            ActivityPill(
-                icon: "figure.stand",
-                color: .purple,
-                value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
-                unit: "hrs"
-            )
+        VStack(spacing: 0) {
+            // 3D Model — smaller and cleaner
+            ZStack {
+                ModelViewer(modelName: "anatomy", allowsInteraction: false)
+                    .frame(height: 220)
+                    .opacity(modelOpacity)
+                    .scaleEffect(modelScale)
+                    .allowsHitTesting(false)
+                    .mask(
+                        LinearGradient(
+                            colors: [.black, .black.opacity(0.8), .black.opacity(0.3), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            }
+            .frame(height: 200)
+            .clipped()
+
+            // Activity pills below model
+            HStack(spacing: 10) {
+                ActivityPill(
+                    icon: "flame.fill",
+                    color: .orange,
+                    value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
+                    unit: "kcal"
+                )
+                ActivityPill(
+                    icon: "clock.fill",
+                    color: AppColors.accentBlue,
+                    value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
+                    unit: "min"
+                )
+                ActivityPill(
+                    icon: "figure.stand",
+                    color: .purple,
+                    value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
+                    unit: "hrs"
+                )
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, -20) // overlap slightly with model fade
         }
-        .padding(.horizontal, 20)
     }
     
     private var authorizationBanner: some View {
@@ -629,63 +658,73 @@ struct HomeView: View {
         let status: HealthStatus
         let greeting: String
         @Binding var showReminders: Bool
-        
+
+        @State private var isPulsing = false
+
         var body: some View {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+                // Left: Greeting + Name + Heart + Status
+                VStack(alignment: .leading, spacing: 6) {
                     Text(greeting)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(status.color)
 
-                    Text(userName)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                    HStack(alignment: .center, spacing: 8) {
+                        Text(userName)
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
 
+                        // Pulsing heart — iOS character
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.red)
+                            .scaleEffect(isPulsing ? 1.15 : 1.0)
+                            .opacity(isPulsing ? 1.0 : 0.8)
+                    }
+
+                    // Status line
                     HStack(spacing: 6) {
                         Circle()
                             .fill(status.color)
-                            .frame(width: 8, height: 8)
+                            .frame(width: 7, height: 7)
                         Text(status.title)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(status.color)
                     }
-                    .padding(.top, 2)
                 }
 
                 Spacer()
 
-                HStack(spacing: 10) {
+                // Right: Actions with glass style
+                HStack(spacing: 12) {
                     Button(action: { showReminders = true }) {
                         Image(systemName: "bell.fill")
-                            .font(.system(size: 16))
+                            .font(.system(size: 18))
                             .foregroundColor(.primary)
-                            .frame(width: 34, height: 34)
-                            .background(Color.primary.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
-                            )
+                            .frame(width: 38, height: 38)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
                     }
 
                     NavigationLink(destination: HealthAnalyticsView()) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.system(size: 16))
+                        Image(systemName: "target")
+                            .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.primary)
-                            .frame(width: 34, height: 34)
-                            .background(Color.primary.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
-                            )
+                            .frame(width: 38, height: 38)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 16)
             .padding(.vertical, 10)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                    isPulsing = true
+                }
+            }
         }
     }
 }
