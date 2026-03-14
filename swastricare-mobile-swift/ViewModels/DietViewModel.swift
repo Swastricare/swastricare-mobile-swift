@@ -22,7 +22,12 @@ final class DietViewModel: ObservableObject {
     @Published private(set) var foodItemsCache: [FoodItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
-    @Published var selectedDate = Date()
+    @Published var selectedDate = Date() {
+        didSet {
+            guard !Calendar.current.isDate(oldValue, inSameDayAs: selectedDate) else { return }
+            dateChanged()
+        }
+    }
     @Published var showAddFood = false
     @Published var showSettings = false
     @Published var searchQuery = ""
@@ -351,6 +356,13 @@ final class DietViewModel: ObservableObject {
     /// Refresh data
     func refresh() async {
         await loadData()
+    }
+
+    /// Called whenever selectedDate changes so the calorie ring, macro bars,
+    /// and insights reflect the newly selected day.
+    func dateChanged() {
+        calculateNutrition()
+        calculateInsights()
     }
     
     /// Get logs for specific meal type
