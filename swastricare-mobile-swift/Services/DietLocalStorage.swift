@@ -8,6 +8,7 @@
 
 import Foundation
 
+@MainActor
 final class DietLocalStorage {
     
     // MARK: - Singleton
@@ -142,16 +143,19 @@ final class DietLocalStorage {
     func getWeeklyLogs() -> [[DietLogEntry]] {
         let calendar = Calendar.current
         let today = Date()
-        var weeklyData: [[DietLogEntry]] = []
-        
-        for dayOffset in 0..<7 {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else {
-                continue
+        let allLogs = loadLogs() // Single cache hit
+        var weeklyData = Array(repeating: [DietLogEntry](), count: 7)
+
+        for log in allLogs {
+            for dayOffset in 0..<7 {
+                guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
+                if calendar.isDate(log.loggedAt, inSameDayAs: date) {
+                    weeklyData[dayOffset].append(log)
+                    break
+                }
             }
-            let dayLogs = getLogsForDate(date)
-            weeklyData.append(dayLogs)
         }
-        
+
         return weeklyData
     }
     

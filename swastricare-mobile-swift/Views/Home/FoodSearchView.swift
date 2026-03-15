@@ -454,13 +454,17 @@ struct CustomFoodEntryView: View {
 struct VegIndicator: View {
     let isVegetarian: Bool
 
+    private var color: Color {
+        isVegetarian ? AppColors.accentGreen : AppColors.accentRed
+    }
+
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 3)
-                .stroke(isVegetarian ? Color.green : Color.red, lineWidth: 1.5)
+                .stroke(color, lineWidth: 1.5)
                 .frame(width: 14, height: 14)
             Circle()
-                .fill(isVegetarian ? Color.green : Color.red)
+                .fill(color)
                 .frame(width: 7, height: 7)
         }
     }

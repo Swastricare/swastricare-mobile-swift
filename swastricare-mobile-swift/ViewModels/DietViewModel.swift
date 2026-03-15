@@ -360,7 +360,7 @@ final class DietViewModel: ObservableObject {
 
     /// Called whenever selectedDate changes so the calorie ring, macro bars,
     /// and insights reflect the newly selected day.
-    func dateChanged() {
+    private func dateChanged() {
         calculateNutrition()
         calculateInsights()
     }
