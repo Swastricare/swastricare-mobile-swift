@@ -111,13 +111,6 @@ struct HomeView: View {
             PremiumBackground()
             
             GeometryReader { screenGeo in
-                // Calculate dynamic model height: screen minus fixed elements
-                let headerHeight: CGFloat = 80
-                let dietCardHeight: CGFloat = 130
-                let quickActionsHeight: CGFloat = 88 * 2 + 8 + 8 // 2 rows × 88pt + spacing + top padding
-                let fixedContent = headerHeight + dietCardHeight + quickActionsHeight + 12 // padding
-                let modelHeight = max(160, screenGeo.size.height - fixedContent)
-
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         if viewModel.isLoading && !hasAppeared {
@@ -165,7 +158,7 @@ struct HomeView: View {
 
                         // Human Body Image with Daily Activity Details (tap for AR scan)
                         humanBodyImageWithDetails
-                            .frame(height: modelHeight)
+                            .frame(height: 200)
                             .opacity(hasAppeared ? 1 : 0)
                             .offset(y: hasAppeared ? 0 : 24)
                             .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
@@ -176,20 +169,24 @@ struct HomeView: View {
 
                         // Diet Summary
                         healthVitalsSection
-                            .padding(.top, 4)
+                            .padding(.top, 6)
                             .opacity(hasAppeared ? 1 : 0)
                             .offset(y: hasAppeared ? 0 : 24)
                             .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
 
-                        // Quick Actions
+                        // Flexible space — pushes quick actions toward tab bar
+                        Spacer(minLength: 8)
+
+                        // Quick Actions — pinned near bottom
                         quickActionsSection
-                            .padding(.top, 8)
                             .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                             .opacity(hasAppeared ? 1 : 0)
                             .offset(y: hasAppeared ? 0 : 30)
                             .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
                     }
                     .padding(.top, 4)
+                    .padding(.bottom, 4)
+                    .frame(minHeight: screenGeo.size.height)
                 }
             }
             .coordinateSpace(name: "scroll")
@@ -264,7 +261,7 @@ struct HomeView: View {
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(maxHeight: .infinity)
+                        .frame(height: 220)
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
                         .offset(x: geometry.size.width * 0.10)
