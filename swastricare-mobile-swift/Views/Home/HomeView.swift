@@ -540,6 +540,7 @@ struct HomeView: View {
     @State private var showMedications = false
     @State private var showHydration = false
     @State private var showMenstrualCycle = false
+    @State private var showFamily = false
 
 
     private var quickActionsSection: some View {
@@ -574,6 +575,15 @@ struct HomeView: View {
                 }
                 .opacity(quickActionsVisible ? 1 : 0)
                 .scaleEffect(quickActionsVisible ? 1 : 0.92)
+                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.19), value: quickActionsVisible)
+
+                // Family card
+                Button(action: { showFamily = true }) {
+                    FamilyQuickActionCard()
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .opacity(quickActionsVisible ? 1 : 0)
+                .scaleEffect(quickActionsVisible ? 1 : 0.92)
                 .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.26), value: quickActionsVisible)
             }
             .padding(.horizontal)
@@ -589,6 +599,11 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showMenstrualCycle) {
             MenstrualCycleView()
+        }
+        .sheet(isPresented: $showFamily) {
+            NavigationStack {
+                FamilyView()
+            }
         }
     }
     
@@ -765,6 +780,68 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
     // DailyActivityStatItem removed — replaced by CompactStatCell
 
 // MARK: - Compact Stat Cell (2-col grid in model area)
+
+// MARK: - Family Quick Action Card
+
+private struct FamilyQuickActionCard: View {
+    private let accent = Color(hex: "10B981")
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [accent, accent.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.2), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                )
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.18))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "person.3.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+
+                Spacer()
+
+                Text("Family")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.9))
+                Text("Health Hub")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .padding(12)
+        }
+        .frame(height: 100)
+        .frame(maxWidth: .infinity)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
+        )
+    }
+}
 
 private struct CompactStatCell: View {
     let icon: String
