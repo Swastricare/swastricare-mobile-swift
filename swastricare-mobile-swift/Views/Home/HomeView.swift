@@ -111,81 +111,86 @@ struct HomeView: View {
             PremiumBackground()
             
             GeometryReader { screenGeo in
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    if viewModel.isLoading && !hasAppeared {
-                        homeSkeletonView
-                    }
+                // Calculate dynamic model height: screen minus fixed elements
+                let headerHeight: CGFloat = 80
+                let dietCardHeight: CGFloat = 130
+                let quickActionsHeight: CGFloat = 88 * 2 + 8 + 8 // 2 rows × 88pt + spacing + top padding
+                let fixedContent = headerHeight + dietCardHeight + quickActionsHeight + 12 // padding
+                let modelHeight = max(160, screenGeo.size.height - fixedContent)
 
-                    // Living Status Header
-                    LivingStatusHeader(
-                        userName: userName,
-                        userPhotoURL: authViewModel.userPhotoURL,
-                        status: healthStatus,
-                        greeting: timeBasedGreeting,
-                        stepCount: viewModel.stepCount,
-                        lastSyncTime: viewModel.lastSyncTime,
-                        showReminders: $showReminders
-                    )
-                    .opacity(hasAppeared ? 1 : 0)
-                    .offset(y: hasAppeared ? 0 : 18)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.05), value: hasAppeared)
-
-                    // Proactive AI Nudges
-                    if !viewModel.serverNudges.isEmpty {
-                        NudgeCardsView(
-                            nudges: viewModel.serverNudges,
-                            onDismiss: { nudge in
-                                Task { await viewModel.dismissNudge(nudge) }
-                            },
-                            onAction: { nudge in
-                                Task { await viewModel.actOnNudge(nudge) }
-                                if let deeplink = nudge.actionDeeplink, let url = URL(string: deeplink) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }
-                        )
-                        .padding(.top, 4)
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 18)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
-                    }
-
-                    // Health Authorization Banner
-                    if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
-                        authorizationBanner
-                    }
-
-                    // Human Body Image with Daily Activity Details (tap for AR scan)
-                    humanBodyImageWithDetails
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 24)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
-                        .onTapGesture {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            showARBodyScan = true
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        if viewModel.isLoading && !hasAppeared {
+                            homeSkeletonView
                         }
 
-                    // Diet Summary
-                    healthVitalsSection
-                        .padding(.top, 4)
+                        // Living Status Header
+                        LivingStatusHeader(
+                            userName: userName,
+                            userPhotoURL: authViewModel.userPhotoURL,
+                            status: healthStatus,
+                            greeting: timeBasedGreeting,
+                            stepCount: viewModel.stepCount,
+                            lastSyncTime: viewModel.lastSyncTime,
+                            showReminders: $showReminders
+                        )
                         .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 24)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
+                        .offset(y: hasAppeared ? 0 : 18)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.05), value: hasAppeared)
 
-                    // Quick Actions
-                    quickActionsSection
-                        .padding(.top, 8)
-                        .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 30)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
+                        // Proactive AI Nudges
+                        if !viewModel.serverNudges.isEmpty {
+                            NudgeCardsView(
+                                nudges: viewModel.serverNudges,
+                                onDismiss: { nudge in
+                                    Task { await viewModel.dismissNudge(nudge) }
+                                },
+                                onAction: { nudge in
+                                    Task { await viewModel.actOnNudge(nudge) }
+                                    if let deeplink = nudge.actionDeeplink, let url = URL(string: deeplink) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                            )
+                            .padding(.top, 4)
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 18)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
+                        }
 
+                        // Health Authorization Banner
+                        if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
+                            authorizationBanner
+                        }
+
+                        // Human Body Image with Daily Activity Details (tap for AR scan)
+                        humanBodyImageWithDetails
+                            .frame(height: modelHeight)
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 24)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
+                            .onTapGesture {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                showARBodyScan = true
+                            }
+
+                        // Diet Summary
+                        healthVitalsSection
+                            .padding(.top, 4)
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 24)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
+
+                        // Quick Actions
+                        quickActionsSection
+                            .padding(.top, 8)
+                            .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 30)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
+                    }
+                    .padding(.top, 4)
                 }
-                .padding(.top, 4)
-                .padding(.bottom, 8)
-                .frame(minHeight: screenGeo.size.height)
-            }
             }
             .coordinateSpace(name: "scroll")
         .alert("Sync Status", isPresented: $showSyncAlert) {
@@ -259,7 +264,7 @@ struct HomeView: View {
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 200)
+                        .frame(maxHeight: .infinity)
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
                         .offset(x: geometry.size.width * 0.10)
@@ -298,7 +303,7 @@ struct HomeView: View {
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
             }
         }
-        .frame(height: 180)
+        // Height is set by parent via .frame(height: modelHeight)
     }
     
     private var authorizationBanner: some View {
