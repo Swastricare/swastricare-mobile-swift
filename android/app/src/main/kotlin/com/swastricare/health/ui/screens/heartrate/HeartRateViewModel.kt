@@ -10,6 +10,9 @@ import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.data.services.HeartRateDetector
 import com.swastricare.health.data.services.HealthConnectService
+import com.swastricare.health.domain.model.heartrate.HeartRateMeasurement
+import com.swastricare.health.domain.model.heartrate.MeasurementSource
+import com.swastricare.health.domain.repository.HeartRateRepository
 import com.swastricare.health.data.services.MeasurementPhase
 import com.swastricare.health.data.services.MeasurementState
 import com.swastricare.health.data.services.SignalQuality
@@ -72,7 +75,8 @@ class HeartRateViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val prefs: SharedPreferences,
     private val appAnalyticsService: AppAnalyticsService,
-    private val healthConnectService: HealthConnectService
+    private val healthConnectService: HealthConnectService,
+    private val heartRateRepository: HeartRateRepository
 ) : ViewModel() {
 
     companion object {
@@ -212,6 +216,18 @@ class HeartRateViewModel @Inject constructor(
             // Write to Health Connect
             viewModelScope.launch {
                 healthConnectService.writeHeartRate(result.bpm.toLong())
+            }
+
+            // Persist via repository (local + cloud sync)
+            viewModelScope.launch {
+                val measurement = HeartRateMeasurement(
+                    bpm = result.bpm,
+                    timestamp = LocalDateTime.now(),
+                    source = MeasurementSource.CAMERA,
+                    confidence = result.confidence
+                )
+                heartRateRepository.addMeasurement(measurement)
+                Log.d(TAG, "Heart rate persisted to repository: ${result.bpm} BPM")
             }
         } else {
             Log.w(TAG, "Measurement completed but no result available")

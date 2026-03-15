@@ -9,8 +9,11 @@ import com.swastricare.health.domain.model.heartrate.HeartRateMeasurement
 import com.swastricare.health.domain.model.heartrate.MeasurementSource
 import com.swastricare.health.domain.model.heartrate.SignalQuality
 import com.swastricare.health.domain.repository.HeartRateRepository
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -31,12 +34,26 @@ private data class HeartRateMeasurementDto(
 )
 
 /**
+ * DTO for Supabase `vital_signs` table.
+ */
+@Serializable
+private data class VitalSignRecord(
+    val id: String,
+    @SerialName("health_profile_id") val healthProfileId: String,
+    @SerialName("measured_at") val measuredAt: String,
+    @SerialName("heart_rate") val heartRate: Int,
+    @SerialName("device_used") val deviceUsed: String? = null,
+    @SerialName("measurement_context") val measurementContext: String? = null
+)
+
+/**
  * Implementation of HeartRateRepository.
  * Handles local storage via SharedPreferences and Health Connect integration.
  */
 class HeartRateRepositoryImpl @Inject constructor(
     private val sharedPreferences: SharedPreferences,
     private val healthConnectService: HealthConnectService,
+    private val supabaseClient: SupabaseClient,
     private val json: Json,
     private val logger: Logger
 ) : HeartRateRepository {
@@ -118,17 +135,60 @@ class HeartRateRepositoryImpl @Inject constructor(
 
     // ── Cloud sync ──
 
-    override suspend fun fetchFromCloud(profileId: String): ResultWrapper<List<HeartRateMeasurement>> {
-        // TODO: Implement when heart_rate table is added to Supabase
-        return ResultWrapper.Success(emptyList())
-    }
+    override suspend fun fetchFromCloud(profileId: String): ResultWrapper<List<HeartRateMeasurement>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val records = supabaseClient.from("vital_signs").select {
+                    filter { eq("health_profile_id", profileId) }
+                }.decodeList<VitalSignRecord>().filter { it.heartRate > 0 }
+                val measurements = records.mapNotNull { record ->
+                    try {
+                        HeartRateMeasurement(
+                            bpm = record.heartRate,
+                            timestamp = LocalDateTime.parse(
+                                record.measuredAt.substringBefore("+").substringBefore("Z"),
+                                DateTimeFormatter.ISO_LOCAL_DATE_TIME
+                            ),
+                            source = if (record.deviceUsed == "camera_ppg") MeasurementSource.CAMERA
+                                     else MeasurementSource.HEALTH_CONNECT,
+                            confidence = 0.9f,
+                            quality = SignalQuality.GOOD
+                        )
+                    } catch (_: Exception) { null }
+                }
+                ResultWrapper.Success(measurements)
+            } catch (e: Exception) {
+                logger.e(TAG, "Failed to fetch heart rate from cloud", e)
+                ResultWrapper.Error(AppException.UnknownException("Cloud fetch failed", e))
+            }
+        }
 
     override suspend fun syncToCloud(
         measurements: List<HeartRateMeasurement>,
         profileId: String
-    ): ResultWrapper<Unit> {
-        // TODO: Implement when heart_rate table is added to Supabase
-        return ResultWrapper.Success(Unit)
+    ): ResultWrapper<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val records = measurements.map { m ->
+                VitalSignRecord(
+                    id = java.util.UUID.randomUUID().toString(),
+                    healthProfileId = profileId,
+                    measuredAt = m.timestamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                    heartRate = m.bpm,
+                    deviceUsed = when (m.source) {
+                        MeasurementSource.CAMERA -> "camera_ppg"
+                        MeasurementSource.HEALTH_CONNECT -> "health_connect"
+                        MeasurementSource.MANUAL -> "manual"
+                    },
+                    measurementContext = "at_rest"
+                )
+            }
+            supabaseClient.from("vital_signs").upsert(records)
+            logger.d(TAG, "Synced ${records.size} heart rate measurements to cloud")
+            ResultWrapper.Success(Unit)
+        } catch (e: Exception) {
+            logger.e(TAG, "Failed to sync heart rate to cloud", e)
+            ResultWrapper.Error(AppException.UnknownException("Cloud sync failed", e))
+        }
     }
 
     // ── Health Connect integration ──

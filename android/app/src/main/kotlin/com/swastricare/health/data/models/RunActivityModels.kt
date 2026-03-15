@@ -170,12 +170,36 @@ private data class RouteCoordinateDto(
     val ts: Long = 0
 )
 
+@Serializable
+private data class ActivitySplitDto(
+    val km: Int,
+    val time: Long,
+    val pace: Long,
+    val elev: Double = 0.0,
+    val hr: Int? = null
+)
+
 fun RunActivity.toDto(profileId: String): RunActivityDto {
     val routeCoordsJson = if (routeCoordinates.isNotEmpty()) {
         routeJson.encodeToString(
             kotlinx.serialization.builtins.ListSerializer(RouteCoordinateDto.serializer()),
             routeCoordinates.map { rc ->
                 RouteCoordinateDto(lat = rc.latitude, lng = rc.longitude, alt = rc.altitude, ts = rc.timestamp)
+            }
+        )
+    } else null
+
+    val splitsJson = if (splits.isNotEmpty()) {
+        routeJson.encodeToString(
+            kotlinx.serialization.builtins.ListSerializer(ActivitySplitDto.serializer()),
+            splits.map { s ->
+                ActivitySplitDto(
+                    km = s.kilometer,
+                    time = s.timeSeconds,
+                    pace = s.paceSecondsPerKm,
+                    elev = s.elevationGain,
+                    hr = s.avgHeartRate
+                )
             }
         )
     } else null
@@ -192,7 +216,7 @@ fun RunActivity.toDto(profileId: String): RunActivityDto {
         caloriesBurned = caloriesBurned,
         avgHeartRate = avgHeartRate,
         routeCoordinates = routeCoordsJson,
-        splits = null
+        splits = splitsJson
     )
 }
 
@@ -204,6 +228,23 @@ fun RunActivityDto.toDomain(): RunActivity {
                 json
             ).map { dto ->
                 RouteCoordinate(latitude = dto.lat, longitude = dto.lng, altitude = dto.alt, timestamp = dto.ts)
+            }
+        } catch (_: Exception) { emptyList() }
+    } ?: emptyList()
+
+    val decodedSplits = splits?.let { json ->
+        try {
+            routeJson.decodeFromString(
+                kotlinx.serialization.builtins.ListSerializer(ActivitySplitDto.serializer()),
+                json
+            ).map { dto ->
+                ActivitySplit(
+                    kilometer = dto.km,
+                    timeSeconds = dto.time,
+                    paceSecondsPerKm = dto.pace,
+                    elevationGain = dto.elev,
+                    avgHeartRate = dto.hr
+                )
             }
         } catch (_: Exception) { emptyList() }
     } ?: emptyList()
@@ -220,6 +261,7 @@ fun RunActivityDto.toDomain(): RunActivity {
         caloriesBurned = caloriesBurned,
         avgHeartRate = avgHeartRate,
         routeCoordinates = coords,
+        splits = decodedSplits,
         synced = true
     )
 }

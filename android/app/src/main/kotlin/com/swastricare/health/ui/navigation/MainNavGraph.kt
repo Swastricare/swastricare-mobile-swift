@@ -36,7 +36,6 @@ import com.swastricare.health.ui.screens.runactivity.ActivityDetailScreen
 import com.swastricare.health.ui.screens.runactivity.LiveWorkoutScreen
 import com.swastricare.health.ui.screens.runactivity.RunActivityScreen
 import com.swastricare.health.ui.screens.runactivity.RunCalendarScreen
-import com.swastricare.health.ui.screens.runactivity.WorkoutSummaryScreen
 import com.swastricare.health.ui.screens.runactivity.WorkoutType
 import com.swastricare.health.ui.screens.settings.GarminConnectSettingsScreen
 import com.swastricare.health.ui.screens.settings.GoogleHealthSettingsScreen
@@ -308,17 +307,7 @@ fun MainNavGraph(
                 }
             }
             LiveWorkoutScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToSummary = { navController.navigate("workout_summary") }
-            )
-        }
-
-        composable("workout_summary") {
-            WorkoutSummaryScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onDone = {
-                    navController.popBackStack(BottomNavTab.Steps.route, inclusive = false)
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
