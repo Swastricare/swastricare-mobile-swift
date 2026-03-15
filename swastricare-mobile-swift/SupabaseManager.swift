@@ -51,11 +51,28 @@ class SupabaseManager {
             .execute()
             .value
             
-        guard let profileId = profiles.first?.id else {
-            throw SupabaseError.databaseError("No health profile found for user")
+        if let profileId = profiles.first?.id {
+            return profileId
         }
-        
-        return profileId
+
+        // Auto-create health profile if none exists
+        struct ProfileInsert: Encodable {
+            let user_id: String
+        }
+        struct ProfileResult: Decodable {
+            let id: UUID
+        }
+
+        let newProfile: ProfileResult = try await client
+            .from("health_profiles")
+            .insert(ProfileInsert(user_id: userId.uuidString))
+            .select("id")
+            .single()
+            .execute()
+            .value
+
+        print("👤 SupabaseManager: Auto-created health profile for user")
+        return newProfile.id
     }
     
     // MARK: - Edge Functions
