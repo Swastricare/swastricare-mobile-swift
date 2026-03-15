@@ -166,16 +166,16 @@ struct HomeView: View {
                             showARBodyScan = true
                         }
 
-                    // Health Vitals Grid
+                    // Diet Summary
                     healthVitalsSection
-                        .padding(.top, 20)
+                        .padding(.top, 10)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
                         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
 
                     // Quick Actions
                     quickActionsSection
-                        .padding(.top, 20)
+                        .padding(.top, 14)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 30)
@@ -252,15 +252,15 @@ struct HomeView: View {
     
     private var humanBodyImageWithDetails: some View {
         GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // Human Body 3D Model on the right
+            ZStack(alignment: .topLeading) {
+                // Human Body 3D Model on the right — aligned to top
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 300)
+                        .frame(height: 240)
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
-                        .offset(x: geometry.size.width * 0.16)
+                        .offset(x: geometry.size.width * 0.10)
                         .allowsHitTesting(false)
                         .clipped()
                         .mask(
@@ -272,7 +272,7 @@ struct HomeView: View {
                         )
                 }
 
-                // All 6 health stats — 2 columns × 3 rows
+                // All 6 health stats — 2 columns × 3 rows, top-aligned
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 6),
                     GridItem(.flexible(), spacing: 6)
@@ -290,13 +290,13 @@ struct HomeView: View {
                     CompactStatCell(icon: "figure.walk", color: .green, value: viewModel.distance > 0 ? String(format: "%.1f", viewModel.distance) : "—", unit: "km")
                 }
                 .padding(.horizontal, 12)
-                .padding(.top, 16)
+                .padding(.top, 4)
                 .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading)
                 .opacity(hasAppeared ? 1 : 0)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
             }
         }
-        .frame(height: 260)
+        .frame(height: 210)
     }
     
     private var authorizationBanner: some View {
