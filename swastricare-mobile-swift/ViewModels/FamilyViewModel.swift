@@ -7,6 +7,8 @@
 
 import Foundation
 import Combine
+import Supabase
+import Auth
 
 @MainActor
 final class FamilyViewModel: ObservableObject {
@@ -62,8 +64,18 @@ final class FamilyViewModel: ObservableObject {
             if let group = group {
                 self.inviteCode = group.inviteCode ?? ""
 
-                // Fetch members
-                let fetchedMembers = try await supabase.fetchFamilyMembers(groupId: group.id)
+                // Fetch members and fix missing names
+                var fetchedMembers = try await supabase.fetchFamilyMembers(groupId: group.id)
+                // Fill in "Unknown" members with auth user name
+                if let session = try? await supabase.client.auth.session {
+                    let authName = session.user.userMetadata["full_name"] as? String
+                        ?? session.user.email?.components(separatedBy: "@").first
+                    for i in 0..<fetchedMembers.count {
+                        if fetchedMembers[i].fullName == nil || fetchedMembers[i].fullName?.isEmpty == true {
+                            fetchedMembers[i].fullName = authName ?? "You"
+                        }
+                    }
+                }
                 self.members = fetchedMembers
 
                 // Determine current user's role

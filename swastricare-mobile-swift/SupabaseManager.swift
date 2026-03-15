@@ -58,14 +58,24 @@ class SupabaseManager {
         // Auto-create health profile if none exists
         struct ProfileInsert: Encodable {
             let user_id: String
+            let full_name: String?
         }
         struct ProfileResult: Decodable {
             let id: UUID
         }
 
+        // Try to get user's name from auth metadata
+        var userName: String? = nil
+        if let session = try? await client.auth.session {
+            userName = session.user.userMetadata["full_name"] as? String
+            if userName == nil {
+                userName = session.user.email?.components(separatedBy: "@").first
+            }
+        }
+
         let newProfile: ProfileResult = try await client
             .from("health_profiles")
-            .insert(ProfileInsert(user_id: userId.uuidString))
+            .insert(ProfileInsert(user_id: userId.uuidString, full_name: userName))
             .select("id")
             .single()
             .execute()
