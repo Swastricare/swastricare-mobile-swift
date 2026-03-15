@@ -1888,6 +1888,257 @@ extension SupabaseManager {
         
         return records.first?.toMenstrualSettings()
     }
+
+    // MARK: - Family Groups
+
+    /// Create a new family group owned by the current user
+    func createFamilyGroup(name: String) async throws -> FamilyGroup {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let inviteCode = generateInviteCode()
+
+        let record = FamilyGroupInsert(
+            ownerUserId: userId.uuidString,
+            name: name,
+            inviteCode: inviteCode
+        )
+
+        let response: FamilyGroup = try await client
+            .from("family_groups")
+            .insert(record)
+            .select()
+            .single()
+            .execute()
+            .value
+
+        // Also add the owner as a family member
+        let healthProfileId = try await getHealthProfileId()
+        let memberRecord = FamilyMemberInsert(
+            familyGroupId: response.id.uuidString,
+            healthProfileId: healthProfileId.uuidString,
+            addedByUserId: userId.uuidString,
+            role: "owner",
+            status: "active",
+            canView: true,
+            canEdit: true,
+            canAddMedications: true,
+            canAddAppointments: true,
+            canViewMedicalDocuments: true,
+            canManageMembers: true
+        )
+
+        try await client
+            .from("family_members")
+            .insert(memberRecord)
+            .execute()
+
+        print("👨‍👩‍👧‍👦 SupabaseManager: Created family group '\(name)' with code \(inviteCode)")
+        return response
+    }
+
+    /// Fetch the family group that the current user owns or belongs to
+    func fetchMyFamilyGroup() async throws -> FamilyGroup? {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        // First check if user owns a group
+        let ownedGroups: [FamilyGroup] = try await client
+            .from("family_groups")
+            .select()
+            .eq("owner_user_id", value: userId.uuidString)
+            .limit(1)
+            .execute()
+            .value
+
+        if let group = ownedGroups.first {
+            return group
+        }
+
+        // Check if user is a member of any group via health_profile
+        let healthProfileId = try await getHealthProfileId()
+
+        struct MemberGroupId: Decodable {
+            let familyGroupId: UUID
+            enum CodingKeys: String, CodingKey {
+                case familyGroupId = "family_group_id"
+            }
+        }
+
+        let memberRecords: [MemberGroupId] = try await client
+            .from("family_members")
+            .select("family_group_id")
+            .eq("health_profile_id", value: healthProfileId.uuidString)
+            .eq("status", value: "active")
+            .limit(1)
+            .execute()
+            .value
+
+        guard let groupId = memberRecords.first?.familyGroupId else {
+            return nil
+        }
+
+        let groups: [FamilyGroup] = try await client
+            .from("family_groups")
+            .select()
+            .eq("id", value: groupId.uuidString)
+            .limit(1)
+            .execute()
+            .value
+
+        return groups.first
+    }
+
+    /// Join a family group by invite code
+    func joinFamilyByCode(_ code: String) async throws -> FamilyMember {
+        guard let userId = try? await client.auth.session.user.id else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        // 1. Find group by invite code
+        let groups: [FamilyGroup] = try await client
+            .from("family_groups")
+            .select()
+            .eq("invite_code", value: code.uppercased())
+            .limit(1)
+            .execute()
+            .value
+
+        guard let group = groups.first else {
+            throw SupabaseError.databaseError("Invalid invite code. Please check and try again.")
+        }
+
+        // 2. Get current user's health profile
+        let healthProfileId = try await getHealthProfileId()
+
+        // 3. Check if already a member
+        struct ExistingCheck: Decodable { let id: UUID }
+        let existing: [ExistingCheck] = try await client
+            .from("family_members")
+            .select("id")
+            .eq("family_group_id", value: group.id.uuidString)
+            .eq("health_profile_id", value: healthProfileId.uuidString)
+            .limit(1)
+            .execute()
+            .value
+
+        if !existing.isEmpty {
+            throw SupabaseError.databaseError("You are already a member of this family group.")
+        }
+
+        // 4. Create member record
+        let memberRecord = FamilyMemberInsert(
+            familyGroupId: group.id.uuidString,
+            healthProfileId: healthProfileId.uuidString,
+            addedByUserId: userId.uuidString,
+            role: "viewer",
+            status: "active",
+            canView: true,
+            canEdit: false,
+            canAddMedications: false,
+            canAddAppointments: false,
+            canViewMedicalDocuments: true,
+            canManageMembers: false
+        )
+
+        let result: FamilyMember = try await client
+            .from("family_members")
+            .insert(memberRecord)
+            .select()
+            .single()
+            .execute()
+            .value
+
+        print("👨‍👩‍👧‍👦 SupabaseManager: Joined family group '\(group.name)' with code \(code)")
+        return result
+    }
+
+    /// Fetch all active members of a family group
+    func fetchFamilyMembers(groupId: UUID) async throws -> [FamilyMember] {
+        let members: [FamilyMember] = try await client
+            .from("family_members")
+            .select("*, health_profiles(full_name, avatar_url)")
+            .eq("family_group_id", value: groupId.uuidString)
+            .eq("status", value: "active")
+            .order("created_at", ascending: true)
+            .execute()
+            .value
+
+        return members
+    }
+
+    /// Remove a family member (set status to removed)
+    func removeFamilyMember(memberId: UUID) async throws {
+        struct StatusUpdate: Encodable {
+            let status: String
+        }
+
+        try await client
+            .from("family_members")
+            .update(StatusUpdate(status: "removed"))
+            .eq("id", value: memberId.uuidString)
+            .execute()
+
+        print("👨‍👩‍👧‍👦 SupabaseManager: Removed family member")
+    }
+
+    /// Leave a family group (delete own member record)
+    func leaveFamilyGroup(memberId: UUID) async throws {
+        try await client
+            .from("family_members")
+            .delete()
+            .eq("id", value: memberId.uuidString)
+            .execute()
+
+        print("👨‍👩‍👧‍👦 SupabaseManager: Left family group")
+    }
+
+    /// Regenerate invite code for a family group
+    func regenerateInviteCode(groupId: UUID) async throws -> String {
+        let newCode = generateInviteCode()
+
+        struct CodeUpdate: Encodable {
+            let inviteCode: String
+            enum CodingKeys: String, CodingKey {
+                case inviteCode = "invite_code"
+            }
+        }
+
+        try await client
+            .from("family_groups")
+            .update(CodeUpdate(inviteCode: newCode))
+            .eq("id", value: groupId.uuidString)
+            .execute()
+
+        print("👨‍👩‍👧‍👦 SupabaseManager: Regenerated invite code")
+        return newCode
+    }
+
+    /// Get the current user's member record for a family group
+    func fetchMyFamilyMember(groupId: UUID) async throws -> FamilyMember? {
+        let healthProfileId = try await getHealthProfileId()
+
+        let members: [FamilyMember] = try await client
+            .from("family_members")
+            .select()
+            .eq("family_group_id", value: groupId.uuidString)
+            .eq("health_profile_id", value: healthProfileId.uuidString)
+            .eq("status", value: "active")
+            .limit(1)
+            .execute()
+            .value
+
+        return members.first
+    }
+
+    // MARK: - Private Helpers (Family)
+
+    private func generateInviteCode() -> String {
+        let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0..<8).map { _ in chars.randomElement()! })
+    }
 }
 
 // MARK: - Menstrual Cycle Record (Database Model)
