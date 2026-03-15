@@ -450,7 +450,35 @@ struct SettingsView: View {
             Toggle(isOn: $viewModel.healthSyncEnabled) {
                 Label("Auto Sync Health", systemImage: "arrow.triangle.2.circlepath")
             }
-            
+
+            // Dynamic Island toggle
+            HStack {
+                Label("Dynamic Island", systemImage: "antenna.radiowaves.left.and.right")
+                Spacer()
+                if HealthLiveActivityManager.shared.isActive {
+                    Text("ON")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.green.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+                Toggle("", isOn: Binding(
+                    get: { HealthLiveActivityManager.shared.isActive },
+                    set: { newValue in
+                        Task {
+                            if newValue {
+                                await HealthLiveActivityManager.shared.startHealthTracking(userName: viewModel.userName ?? "User")
+                            } else {
+                                await HealthLiveActivityManager.shared.endHealthTracking()
+                            }
+                        }
+                    }
+                ))
+                .labelsHidden()
+            }
+
             // App Version Row - always visible
             appVersionRow
         } header: {

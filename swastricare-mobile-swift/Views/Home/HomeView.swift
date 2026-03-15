@@ -153,108 +153,27 @@ struct HomeView: View {
                         authorizationBanner
                     }
 
-                    // Human Body Image with Daily Activity Details
+                    // Human Body Image with Daily Activity Details (tap for AR scan)
                     humanBodyImageWithDetails
                         .padding(.top, 0)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
                         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
+                        .onTapGesture {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            showARBodyScan = true
+                        }
 
                     // Health Vitals Grid
                     healthVitalsSection
-                        .padding(.top, 8)
+                        .padding(.top, 20)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
                         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
-                    
-                    // AR Body Scan Entry
-                    Button(action: {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        showARBodyScan = true
-                    }) {
-                        HStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "1BFFFF").opacity(0.1)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 40, height: 40)
-                                Image(systemName: "figure.stand")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(Color(hex: "2E3192"))
-                            }
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
-                                    Text("AR Body Scan")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(.primary)
-                                    Text("NEW")
-                                        .font(.system(size: 9, weight: .heavy))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(
-                                            LinearGradient(
-                                                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                        .clipShape(Capsule())
-                                }
-                                Text("Point camera at yourself to explore your body")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(14)
-                        .glass(cornerRadius: 16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "1BFFFF").opacity(0.1)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 0.5
-                                )
-                        )
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .opacity(hasAppeared ? 1 : 0)
-                    .offset(y: hasAppeared ? 0 : 24)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
-
-                    // Dynamic Island Health Tracker
-                    HealthLiveActivityToggle(
-                        userName: userName,
-                        steps: viewModel.stepCount,
-                        heartRate: viewModel.heartRate,
-                        calories: viewModel.activeCalories
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .opacity(hasAppeared ? 1 : 0)
-                    .offset(y: hasAppeared ? 0 : 24)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: hasAppeared)
 
                     // Quick Actions
                     quickActionsSection
-                        .padding(.top, 8)
+                        .padding(.top, 20)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 30)
@@ -562,14 +481,6 @@ struct HomeView: View {
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Quick Actions")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                Spacer()
-            }
-            .padding(.horizontal)
-            
             LazyVGrid(
                 columns: [GridItem(.flexible()), GridItem(.flexible())],
                 alignment: .center,
@@ -865,11 +776,11 @@ private struct VitalCard: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.gray.opacity(0.05) : Color.gray.opacity(0.05)
+        colorScheme == .dark ? color.opacity(0.08) : color.opacity(0.06)
     }
-    
+
     private var cardBorderColor: Color {
-        colorScheme == .dark ? Color.gray.opacity(0.1) : Color.gray.opacity(0.1)
+        colorScheme == .dark ? color.opacity(0.15) : color.opacity(0.10)
     }
     
     var body: some View {
@@ -927,11 +838,11 @@ private struct VitalCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white.opacity(0.05))
+                .fill(cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                .stroke(cardBorderColor, lineWidth: 0.5)
         )
         .opacity(cardAppeared ? 1 : 0)
         .scaleEffect(cardAppeared ? 1 : 0.9)
