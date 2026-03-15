@@ -6,8 +6,8 @@
 -- ============================================================================
 -- CHRONIC CONDITIONS TABLE
 -- ============================================================================
-CREATE TABLE public.chronic_conditions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.chronic_conditions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Condition details
@@ -62,8 +62,8 @@ CREATE TABLE public.chronic_conditions (
 -- ============================================================================
 -- ALLERGIES TABLE
 -- ============================================================================
-CREATE TABLE public.allergies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.allergies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Allergen details
@@ -122,8 +122,8 @@ CREATE TABLE public.allergies (
 -- ============================================================================
 -- EMERGENCY CONTACTS TABLE
 -- ============================================================================
-CREATE TABLE public.emergency_contacts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.emergency_contacts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Contact details
@@ -162,14 +162,14 @@ CREATE TABLE public.emergency_contacts (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_chronic_conditions_profile ON public.chronic_conditions(health_profile_id);
-CREATE INDEX idx_chronic_conditions_status ON public.chronic_conditions(health_profile_id, status);
-CREATE INDEX idx_chronic_conditions_category ON public.chronic_conditions(health_profile_id, category);
-CREATE INDEX idx_allergies_profile ON public.allergies(health_profile_id);
-CREATE INDEX idx_allergies_type ON public.allergies(health_profile_id, allergy_type);
-CREATE INDEX idx_allergies_severity ON public.allergies(health_profile_id, severity);
-CREATE INDEX idx_emergency_contacts_profile ON public.emergency_contacts(health_profile_id);
-CREATE INDEX idx_emergency_contacts_priority ON public.emergency_contacts(health_profile_id, priority);
+CREATE INDEX IF NOT EXISTS idx_chronic_conditions_profile ON public.chronic_conditions(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_chronic_conditions_status ON public.chronic_conditions(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_chronic_conditions_category ON public.chronic_conditions(health_profile_id, category);
+CREATE INDEX IF NOT EXISTS idx_allergies_profile ON public.allergies(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_allergies_type ON public.allergies(health_profile_id, allergy_type);
+CREATE INDEX IF NOT EXISTS idx_allergies_severity ON public.allergies(health_profile_id, severity);
+CREATE INDEX IF NOT EXISTS idx_emergency_contacts_profile ON public.emergency_contacts(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_emergency_contacts_priority ON public.emergency_contacts(health_profile_id, priority);
 
 -- ============================================================================
 -- TRIGGERS

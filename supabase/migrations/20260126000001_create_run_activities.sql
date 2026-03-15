@@ -8,8 +8,8 @@
 -- RUN ACTIVITIES TABLE
 -- ============================================================================
 -- Stores individual walking/running activities with full route data
-CREATE TABLE public.run_activities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.run_activities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Activity identification
@@ -104,8 +104,8 @@ CREATE TABLE public.run_activities (
 -- DAILY ACTIVITY SUMMARIES TABLE
 -- ============================================================================
 -- Aggregated daily stats for quick retrieval
-CREATE TABLE public.daily_activity_summaries (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.daily_activity_summaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Date
@@ -151,8 +151,8 @@ CREATE TABLE public.daily_activity_summaries (
 -- ACTIVITY GOALS TABLE
 -- ============================================================================
 -- User-defined goals for gamification
-CREATE TABLE public.activity_goals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.activity_goals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Goal targets
@@ -205,7 +205,6 @@ SELECT
     AVG(total_distance_meters) AS avg_daily_distance,
     COUNT(*) AS active_days
 FROM public.daily_activity_summaries
-WHERE summary_date >= CURRENT_DATE - INTERVAL '4 weeks'
 GROUP BY health_profile_id, DATE_TRUNC('week', summary_date)
 ORDER BY week_start DESC;
 
@@ -213,19 +212,18 @@ ORDER BY week_start DESC;
 -- INDEXES
 -- ============================================================================
 -- Run activities indexes
-CREATE INDEX idx_run_activities_profile_date ON public.run_activities(health_profile_id, started_at DESC);
-CREATE INDEX idx_run_activities_type ON public.run_activities(health_profile_id, activity_type, started_at DESC);
-CREATE INDEX idx_run_activities_source ON public.run_activities(health_profile_id, source);
-CREATE INDEX idx_run_activities_external ON public.run_activities(external_id, source) WHERE external_id IS NOT NULL;
-CREATE INDEX idx_run_activities_not_deleted ON public.run_activities(health_profile_id, started_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_run_activities_profile_date ON public.run_activities(health_profile_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_run_activities_type ON public.run_activities(health_profile_id, activity_type, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_run_activities_source ON public.run_activities(health_profile_id, source);
+CREATE INDEX IF NOT EXISTS idx_run_activities_external ON public.run_activities(external_id, source) WHERE external_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_run_activities_not_deleted ON public.run_activities(health_profile_id, started_at DESC) WHERE deleted_at IS NULL;
 
 -- Daily summaries indexes
-CREATE INDEX idx_daily_summaries_profile_date ON public.daily_activity_summaries(health_profile_id, summary_date DESC);
-CREATE INDEX idx_daily_summaries_recent ON public.daily_activity_summaries(health_profile_id, summary_date DESC) 
-    WHERE summary_date >= CURRENT_DATE - INTERVAL '30 days';
+CREATE INDEX IF NOT EXISTS idx_daily_summaries_profile_date ON public.daily_activity_summaries(health_profile_id, summary_date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_summaries_recent ON public.daily_activity_summaries(health_profile_id, summary_date DESC);
 
 -- Activity goals index
-CREATE INDEX idx_activity_goals_profile ON public.activity_goals(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_activity_goals_profile ON public.activity_goals(health_profile_id);
 
 -- ============================================================================
 -- ROW LEVEL SECURITY

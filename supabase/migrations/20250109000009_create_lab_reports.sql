@@ -6,8 +6,8 @@
 -- ============================================================================
 -- LAB TEST CATALOG TABLE (Master list)
 -- ============================================================================
-CREATE TABLE public.lab_test_catalog (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.lab_test_catalog (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Test identification
     test_code VARCHAR(50) UNIQUE,
@@ -63,8 +63,8 @@ CREATE TABLE public.lab_test_catalog (
 -- ============================================================================
 -- LAB REPORTS TABLE
 -- ============================================================================
-CREATE TABLE public.lab_reports (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.lab_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     document_id UUID REFERENCES public.medical_documents(id),
     
@@ -114,8 +114,8 @@ CREATE TABLE public.lab_reports (
 -- ============================================================================
 -- LAB TEST RESULTS TABLE
 -- ============================================================================
-CREATE TABLE public.lab_test_results (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.lab_test_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     lab_report_id UUID NOT NULL REFERENCES public.lab_reports(id) ON DELETE CASCADE,
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
@@ -161,8 +161,8 @@ CREATE TABLE public.lab_test_results (
 -- ============================================================================
 -- LAB REPORT SHARES TABLE
 -- ============================================================================
-CREATE TABLE public.lab_report_shares (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.lab_report_shares (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     lab_report_id UUID NOT NULL REFERENCES public.lab_reports(id) ON DELETE CASCADE,
     shared_by UUID NOT NULL REFERENCES public.users(id),
     
@@ -201,17 +201,17 @@ CREATE TABLE public.lab_report_shares (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_lab_test_catalog_code ON public.lab_test_catalog(test_code);
-CREATE INDEX idx_lab_test_catalog_category ON public.lab_test_catalog(category);
-CREATE INDEX idx_lab_reports_profile ON public.lab_reports(health_profile_id);
-CREATE INDEX idx_lab_reports_date ON public.lab_reports(health_profile_id, report_date DESC);
-CREATE INDEX idx_lab_reports_status ON public.lab_reports(health_profile_id, overall_status);
-CREATE INDEX idx_lab_test_results_report ON public.lab_test_results(lab_report_id);
-CREATE INDEX idx_lab_test_results_profile ON public.lab_test_results(health_profile_id);
-CREATE INDEX idx_lab_test_results_test ON public.lab_test_results(health_profile_id, test_code, created_at DESC);
-CREATE INDEX idx_lab_test_results_status ON public.lab_test_results(health_profile_id, status) WHERE status != 'normal';
-CREATE INDEX idx_lab_report_shares_report ON public.lab_report_shares(lab_report_id);
-CREATE INDEX idx_lab_report_shares_code ON public.lab_report_shares(access_code) WHERE is_revoked = false;
+CREATE INDEX IF NOT EXISTS idx_lab_test_catalog_code ON public.lab_test_catalog(test_code);
+CREATE INDEX IF NOT EXISTS idx_lab_test_catalog_category ON public.lab_test_catalog(category);
+CREATE INDEX IF NOT EXISTS idx_lab_reports_profile ON public.lab_reports(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_lab_reports_date ON public.lab_reports(health_profile_id, report_date DESC);
+CREATE INDEX IF NOT EXISTS idx_lab_reports_status ON public.lab_reports(health_profile_id, overall_status);
+CREATE INDEX IF NOT EXISTS idx_lab_test_results_report ON public.lab_test_results(lab_report_id);
+CREATE INDEX IF NOT EXISTS idx_lab_test_results_profile ON public.lab_test_results(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_lab_test_results_test ON public.lab_test_results(health_profile_id, test_code, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_lab_test_results_status ON public.lab_test_results(health_profile_id, status) WHERE status != 'normal';
+CREATE INDEX IF NOT EXISTS idx_lab_report_shares_report ON public.lab_report_shares(lab_report_id);
+CREATE INDEX IF NOT EXISTS idx_lab_report_shares_code ON public.lab_report_shares(access_code) WHERE is_revoked = false;
 
 -- ============================================================================
 -- TRIGGERS

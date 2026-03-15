@@ -759,6 +759,7 @@ final class DietViewModel: ObservableObject {
 
         let items = entries.map { entry in
             TemplateItem(
+                id: entry.foodItemId ?? UUID(),
                 foodItemId: entry.foodItemId,
                 foodName: entry.foodName,
                 quantity: entry.quantity,

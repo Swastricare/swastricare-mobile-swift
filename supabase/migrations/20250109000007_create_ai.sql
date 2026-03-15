@@ -6,8 +6,8 @@
 -- ============================================================================
 -- AI CONVERSATIONS TABLE
 -- ============================================================================
-CREATE TABLE public.ai_conversations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.ai_conversations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     
@@ -56,8 +56,8 @@ CREATE TABLE public.ai_conversations (
 -- ============================================================================
 -- AI INSIGHTS TABLE
 -- ============================================================================
-CREATE TABLE public.ai_insights (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.ai_insights (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Insight type
@@ -106,8 +106,8 @@ CREATE TABLE public.ai_insights (
 -- ============================================================================
 -- AI IMAGE ANALYSIS TABLE
 -- ============================================================================
-CREATE TABLE public.ai_image_analysis (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.ai_image_analysis (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.users(id),
     
@@ -151,8 +151,8 @@ CREATE TABLE public.ai_image_analysis (
 -- ============================================================================
 -- AI USAGE LOGS TABLE
 -- ============================================================================
-CREATE TABLE public.ai_usage_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.ai_usage_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     health_profile_id UUID REFERENCES public.health_profiles(id) ON DELETE SET NULL,
     
@@ -197,18 +197,18 @@ CREATE TABLE public.ai_usage_logs (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_ai_conversations_profile ON public.ai_conversations(health_profile_id);
-CREATE INDEX idx_ai_conversations_user ON public.ai_conversations(user_id);
-CREATE INDEX idx_ai_conversations_type ON public.ai_conversations(health_profile_id, conversation_type);
-CREATE INDEX idx_ai_conversations_created ON public.ai_conversations(health_profile_id, created_at DESC);
-CREATE INDEX idx_ai_insights_profile ON public.ai_insights(health_profile_id);
-CREATE INDEX idx_ai_insights_type ON public.ai_insights(health_profile_id, insight_type);
-CREATE INDEX idx_ai_insights_priority ON public.ai_insights(health_profile_id, priority) WHERE is_dismissed = false;
-CREATE INDEX idx_ai_insights_dashboard ON public.ai_insights(health_profile_id) WHERE show_in_dashboard = true AND is_dismissed = false;
-CREATE INDEX idx_ai_image_analysis_profile ON public.ai_image_analysis(health_profile_id);
-CREATE INDEX idx_ai_image_analysis_type ON public.ai_image_analysis(health_profile_id, image_type);
-CREATE INDEX idx_ai_usage_logs_user ON public.ai_usage_logs(user_id);
-CREATE INDEX idx_ai_usage_logs_created ON public.ai_usage_logs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_conversations_profile ON public.ai_conversations(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_ai_conversations_user ON public.ai_conversations(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_conversations_type ON public.ai_conversations(health_profile_id, conversation_type);
+CREATE INDEX IF NOT EXISTS idx_ai_conversations_created ON public.ai_conversations(health_profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_profile ON public.ai_insights(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_type ON public.ai_insights(health_profile_id, insight_type);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_priority ON public.ai_insights(health_profile_id, priority) WHERE is_dismissed = false;
+CREATE INDEX IF NOT EXISTS idx_ai_insights_dashboard ON public.ai_insights(health_profile_id) WHERE show_in_dashboard = true AND is_dismissed = false;
+CREATE INDEX IF NOT EXISTS idx_ai_image_analysis_profile ON public.ai_image_analysis(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_ai_image_analysis_type ON public.ai_image_analysis(health_profile_id, image_type);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_user ON public.ai_usage_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_created ON public.ai_usage_logs(user_id, created_at DESC);
 
 -- ============================================================================
 -- TRIGGERS

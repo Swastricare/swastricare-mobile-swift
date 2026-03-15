@@ -20,6 +20,12 @@ struct DietView: View {
     @State private var aiButtonAppeared = false
     @State private var trendAppeared = false
     @State private var showCopiedToast = false
+    // Fast Logging: template & quick-log state
+    @State private var showSaveTemplateSheet = false
+    @State private var templateMealType: MealType = .breakfast
+    @State private var templateName = ""
+    @State private var showQuickLogPopover = false
+    @State private var mealCopiedType: MealType?
 
     var body: some View {
         NavigationView {
@@ -105,6 +111,9 @@ struct DietView: View {
                     .padding(.bottom, 20)
                 }
 
+                // Quick Log FAB (from Fast Logging branch)
+                quickLogFAB
+
                 // Undo Delete Toast
                 if viewModel.showUndoToast {
                     VStack {
@@ -157,6 +166,140 @@ struct DietView: View {
             }
             .sheet(isPresented: $viewModel.showSettings) {
                 DietSettingsView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showSaveTemplateSheet) {
+                saveTemplateSheet
+            }
+            .sheet(isPresented: $viewModel.showWeeklyReport) {
+                if let report = viewModel.weeklyReport {
+                    WeeklyReportSheet(report: report)
+                }
+            }
+        }
+    }
+
+    // MARK: - Save Template Sheet (from Fast Logging branch)
+
+    private var saveTemplateSheet: some View {
+        NavigationView {
+            ZStack {
+                PremiumBackground()
+
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Template Name")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
+
+                        TextField("My usual \(templateMealType.displayName.lowercased())", text: $templateName)
+                            .font(.system(size: 17))
+                            .padding(14)
+                            .glass(cornerRadius: 12)
+                    }
+
+                    // Preview items
+                    let entries = viewModel.getMealLogs(for: templateMealType)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Items (\(entries.count))")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
+
+                        ForEach(entries) { entry in
+                            HStack {
+                                Text(entry.foodName)
+                                    .font(.system(size: 15))
+                                    .lineLimit(1)
+                                Spacer()
+                                Text("\(Int(entry.calories)) cal")
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                                    .foregroundColor(AppColors.accentGreen)
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    }
+                    .padding(16)
+                    .glass(cornerRadius: 14)
+
+                    Spacer()
+
+                    Button {
+                        let name = templateName.isEmpty ? "\(templateMealType.displayName) template" : templateName
+                        viewModel.saveMealAsTemplate(mealType: templateMealType, name: name)
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        showSaveTemplateSheet = false
+                        templateName = ""
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 18))
+                            Text("Save Template")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(AppColors.greenGradient)
+                        .foregroundColor(.white)
+                        .cornerRadius(14)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+                .padding()
+            }
+            .navigationTitle("Save as Template")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        showSaveTemplateSheet = false
+                        templateName = ""
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Quick Log FAB (from Fast Logging branch)
+
+    private var quickLogFAB: some View {
+        let currentMeal = MealSuggestionEngine.currentMealType()
+        let topSuggestions = Array(viewModel.suggestedFoods.prefix(3))
+
+        return Group {
+            if !topSuggestions.isEmpty {
+                VStack(spacing: 0) {
+                    Spacer()
+                    HStack {
+                        Spacer()
+
+                        Menu {
+                            ForEach(topSuggestions) { food in
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    Task {
+                                        await viewModel.quickLogFood(food, mealType: currentMeal)
+                                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                    }
+                                } label: {
+                                    Label("\(food.name) (\(Int(food.calories)) cal)", systemImage: "plus.circle")
+                                }
+                            }
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(AppColors.greenGradient)
+                                    .frame(width: 56, height: 56)
+                                    .shadow(color: AppColors.accentGreen.opacity(0.4), radius: 8, x: 0, y: 4)
+
+                                Image(systemName: "bolt.fill")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
+                    }
+                }
             }
         }
     }
@@ -320,7 +463,7 @@ struct DietView: View {
         .padding(.horizontal, 20)
     }
 
-    // MARK: - Meal Sections
+    // MARK: - Meal Sections (with per-meal context menu from Fast Logging branch)
 
     private var mealSectionsView: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -331,26 +474,73 @@ struct DietView: View {
 
             VStack(spacing: 12) {
                 ForEach(MealType.allCases) { mealType in
-                    MealSectionCard(
-                        mealType: mealType,
-                        entries: viewModel.getMealLogs(for: mealType),
-                        onDelete: { entry in
-                            Task {
-                                await viewModel.deleteLog(entry)
+                    VStack(spacing: 0) {
+                        MealSectionCard(
+                            mealType: mealType,
+                            entries: viewModel.getMealLogs(for: mealType),
+                            onDelete: { entry in
+                                Task {
+                                    await viewModel.deleteLog(entry)
+                                }
+                            },
+                            onAddFood: {
+                                selectedMealType = mealType
+                                viewModel.showAddFood = true
                             }
-                        },
-                        onAddFood: {
-                            selectedMealType = mealType
-                            viewModel.showAddFood = true
+                        )
+                        .contextMenu {
+                            // Save as Template (only if meal has entries)
+                            if !viewModel.getMealLogs(for: mealType).isEmpty {
+                                Button {
+                                    templateMealType = mealType
+                                    templateName = "\(mealType.displayName) template"
+                                    showSaveTemplateSheet = true
+                                } label: {
+                                    Label("Save as Template", systemImage: "doc.badge.plus")
+                                }
+                            }
+
+                            // Copy this meal from yesterday
+                            if viewModel.hasYesterdaysMeal(for: mealType) {
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    Task {
+                                        await viewModel.copySingleMeal(mealType)
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            mealCopiedType = mealType
+                                        }
+                                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                                        withAnimation {
+                                            mealCopiedType = nil
+                                        }
+                                    }
+                                } label: {
+                                    Label("Copy from Yesterday", systemImage: "doc.on.doc")
+                                }
+                            }
                         }
-                    )
+
+                        // Per-meal copied toast
+                        if mealCopiedType == mealType {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(AppColors.accentGreen)
+                                Text("\(mealType.displayName) copied!")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(AppColors.accentGreen)
+                            }
+                            .padding(.top, 6)
+                            .transition(.opacity)
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
         }
     }
 
-    // MARK: - Insights Card
+    // MARK: - Insights Card (merged: Intelligence streak/coaching/gaps/timing + original)
 
     private func insightsCard(_ insights: DietInsights) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -361,14 +551,27 @@ struct DietView: View {
                     .font(.headline)
             }
 
+            // Enhanced streak display (from Intelligence branch)
             HStack(spacing: 20) {
-                insightItem(
-                    value: "\(insights.currentStreak)",
-                    label: "Day Streak",
-                    icon: "flame.fill",
-                    color: .orange,
-                    highlightValue: true
-                )
+                VStack(spacing: 8) {
+                    Text(insights.streakEmoji)
+                        .font(.system(size: 24))
+
+                    Text("\(insights.currentStreak)")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(AppColors.accentGreen)
+
+                    Text("Day Streak")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+
+                    if let next = insights.nextMilestone {
+                        Text("\(next - insights.currentStreak) to next")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(AppColors.accentBlue)
+                    }
+                }
+                .frame(maxWidth: .infinity)
 
                 insightItem(
                     value: "\(insights.weeklyAverageCalories)",
@@ -378,7 +581,15 @@ struct DietView: View {
                     highlightValue: false
                 )
 
-                if let best = insights.bestDay {
+                if insights.bestStreak > 0 {
+                    insightItem(
+                        value: "\(insights.bestStreak)",
+                        label: "Best Streak",
+                        icon: "trophy.fill",
+                        color: .yellow,
+                        highlightValue: false
+                    )
+                } else if let best = insights.bestDay {
                     insightItem(
                         value: "\(best.calories)",
                         label: "Best Day",
@@ -386,6 +597,116 @@ struct DietView: View {
                         color: .yellow,
                         highlightValue: false
                     )
+                }
+            }
+
+            // Coaching Tips (from Intelligence branch)
+            if !insights.coachingTips.isEmpty {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(.yellow)
+                        Text("Coaching Tips")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                    }
+
+                    ForEach(insights.coachingTips, id: \.self) { tip in
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(AppColors.accentGreen)
+                                .padding(.top, 3)
+                            Text(tip)
+                                .font(.system(size: 13))
+                                .foregroundColor(.primary.opacity(0.85))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+
+            // Nutrient Gaps (from Intelligence branch)
+            if !insights.nutrientGaps.isEmpty {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(AppColors.accentRed)
+                        Text("Nutrient Gaps")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                    }
+
+                    ForEach(insights.nutrientGaps) { gap in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(gap.nutrient)
+                                    .font(.system(size: 13, weight: .semibold))
+                                Spacer()
+                                Text("\(Int(gap.averageIntake))/\(Int(gap.recommendedIntake))\(gap.nutrient == "Calories" ? " cal" : "g")")
+                                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                                    .foregroundColor(.secondary)
+                            }
+
+                            // Progress bar
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(Color.secondary.opacity(0.15))
+                                        .frame(height: 6)
+
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(nutrientGapColor(deficit: gap.deficitPercent))
+                                        .frame(width: max(0, geo.size.width * min(1, gap.averageIntake / max(1, gap.recommendedIntake))), height: 6)
+                                }
+                            }
+                            .frame(height: 6)
+
+                            Text(gap.suggestion)
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+
+            // Meal Timing Insights (from Intelligence branch)
+            if !insights.mealTimingInsights.isEmpty {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(AppColors.accentBlue)
+                        Text("Meal Timing")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                    }
+
+                    ForEach(insights.mealTimingInsights) { insight in
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: mealTimingIcon(for: insight.severity))
+                                .font(.system(size: 10))
+                                .foregroundColor(mealTimingColor(for: insight.severity))
+                                .padding(.top, 3)
+                            Text(insight.message)
+                                .font(.system(size: 13))
+                                .foregroundColor(.primary.opacity(0.85))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
             }
 
@@ -417,6 +738,28 @@ struct DietView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
+
+            // View Weekly Report button (from Intelligence branch)
+            Divider()
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                viewModel.generateWeeklyReport()
+                viewModel.showWeeklyReport = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("View Weekly Report")
+                        .font(.system(size: 14, weight: .semibold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(AppColors.accentBlue)
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(ScaleButtonStyle())
         }
         .padding(20)
         .glass(cornerRadius: AppDimensions.cardRadius)
@@ -438,6 +781,34 @@ struct DietView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Insight Helpers (from Intelligence branch)
+
+    private func nutrientGapColor(deficit: Double) -> Color {
+        if deficit > 40 {
+            return AppColors.accentRed
+        } else if deficit > 20 {
+            return .orange
+        } else {
+            return AppColors.accentGreen
+        }
+    }
+
+    private func mealTimingIcon(for severity: InsightSeverity) -> String {
+        switch severity {
+        case .info: return "checkmark.circle.fill"
+        case .suggestion: return "lightbulb.fill"
+        case .warning: return "exclamationmark.circle.fill"
+        }
+    }
+
+    private func mealTimingColor(for severity: InsightSeverity) -> Color {
+        switch severity {
+        case .info: return AppColors.accentGreen
+        case .suggestion: return .orange
+        case .warning: return AppColors.accentRed
+        }
     }
 
     // MARK: - Weekly Trend Chart
@@ -642,6 +1013,324 @@ struct DietView: View {
                 .fill(.ultraThinMaterial)
         )
         .padding(.horizontal, 20)
+    }
+}
+
+// MARK: - Weekly Report Sheet (from Intelligence branch)
+
+struct WeeklyReportSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let report: WeeklyDietReport
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                PremiumBackground()
+
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Header
+                        reportHeader
+
+                        // Calorie Summary
+                        calorieSummaryCard
+
+                        // Macro Averages
+                        macroAveragesCard
+
+                        // Streak Info
+                        streakCard
+
+                        // Nutrient Gaps
+                        if !report.nutrientGaps.isEmpty {
+                            nutrientGapsCard
+                        }
+
+                        // Meal Timing Insights
+                        if !report.mealTimingInsights.isEmpty {
+                            mealTimingCard
+                        }
+
+                        // Top Foods
+                        if !report.topFoods.isEmpty {
+                            topFoodsCard
+                        }
+
+                        // Improvement Tips
+                        if !report.improvementTips.isEmpty {
+                            improvementTipsCard
+                        }
+                    }
+                    .padding(.bottom, 30)
+                }
+            }
+            .navigationTitle("Weekly Report")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(AppColors.accentGreen)
+                }
+            }
+        }
+    }
+
+    // MARK: - Report Sections
+
+    private var reportHeader: some View {
+        VStack(spacing: 6) {
+            let formatter = DateFormatter()
+            let _ = formatter.dateFormat = "MMM d"
+            Text("\(formatter.string(from: report.startDate)) - \(formatter.string(from: report.endDate))")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.secondary)
+
+            Text("\(report.totalMealsLogged) meals logged")
+                .font(.system(size: 14))
+                .foregroundColor(.secondary.opacity(0.8))
+        }
+        .padding(.top, 8)
+    }
+
+    private var calorieSummaryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "flame.fill")
+                    .foregroundColor(.orange)
+                Text("Calorie Summary")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+
+            HStack(spacing: 16) {
+                reportStat(
+                    value: "\(report.averageDailyCalories)",
+                    label: "Avg/Day",
+                    color: AppColors.accentGreen
+                )
+                reportStat(
+                    value: "\(report.calorieGoal)",
+                    label: "Goal",
+                    color: AppColors.accentBlue
+                )
+                reportStat(
+                    value: "\(Int(report.adherencePercent))%",
+                    label: "Adherence",
+                    color: report.adherencePercent >= 70 ? AppColors.accentGreen : .orange
+                )
+            }
+
+            if let best = report.bestDay {
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.yellow)
+                    Text("Best day: \(best.calories) cal")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(20)
+        .glass(cornerRadius: AppDimensions.cardRadius)
+        .padding(.horizontal, 20)
+    }
+
+    private var macroAveragesCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.pie.fill")
+                    .foregroundColor(AppColors.accentBlue)
+                Text("Average Macros")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+
+            HStack(spacing: 16) {
+                reportStat(
+                    value: "\(Int(report.macroAverages.proteinG))g",
+                    label: "Protein",
+                    color: AppColors.accentBlue
+                )
+                reportStat(
+                    value: "\(Int(report.macroAverages.carbsG))g",
+                    label: "Carbs",
+                    color: AppColors.accentGreen
+                )
+                reportStat(
+                    value: "\(Int(report.macroAverages.fatG))g",
+                    label: "Fat",
+                    color: .orange
+                )
+            }
+        }
+        .padding(20)
+        .glass(cornerRadius: AppDimensions.cardRadius)
+        .padding(.horizontal, 20)
+    }
+
+    private var streakCard: some View {
+        HStack(spacing: 20) {
+            VStack(spacing: 4) {
+                Text(report.streakInfo.current > 0 ? "\u{1F525}" : "\u{2744}\u{FE0F}")
+                    .font(.system(size: 28))
+                Text("\(report.streakInfo.current)")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(AppColors.accentGreen)
+                Text("Current")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+
+            VStack(spacing: 4) {
+                Text("\u{1F3C6}")
+                    .font(.system(size: 28))
+                Text("\(report.streakInfo.best)")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(.yellow)
+                Text("Best")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(20)
+        .glass(cornerRadius: AppDimensions.cardRadius)
+        .padding(.horizontal, 20)
+    }
+
+    private var nutrientGapsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(AppColors.accentRed)
+                Text("Nutrient Gaps")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+
+            ForEach(report.nutrientGaps) { gap in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(gap.nutrient)
+                            .font(.system(size: 14, weight: .semibold))
+                        Spacer()
+                        Text("\(Int(gap.averageIntake))/\(Int(gap.recommendedIntake))")
+                            .font(.system(size: 12, design: .rounded))
+                            .foregroundColor(.secondary)
+                    }
+                    Text(gap.suggestion)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .padding(20)
+        .glass(cornerRadius: AppDimensions.cardRadius)
+        .padding(.horizontal, 20)
+    }
+
+    private var mealTimingCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "clock.fill")
+                    .foregroundColor(AppColors.accentBlue)
+                Text("Meal Timing")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+
+            ForEach(report.mealTimingInsights) { insight in
+                HStack(alignment: .top, spacing: 8) {
+                    Circle()
+                        .fill(insightSeverityColor(insight.severity))
+                        .frame(width: 8, height: 8)
+                        .padding(.top, 5)
+                    Text(insight.message)
+                        .font(.system(size: 13))
+                        .foregroundColor(.primary.opacity(0.85))
+                }
+            }
+        }
+        .padding(20)
+        .glass(cornerRadius: AppDimensions.cardRadius)
+        .padding(.horizontal, 20)
+    }
+
+    private var topFoodsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "fork.knife")
+                    .foregroundColor(AppColors.accentGreen)
+                Text("Top Foods This Week")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+
+            ForEach(Array(report.topFoods.enumerated()), id: \.offset) { index, food in
+                HStack {
+                    Text("\(index + 1).")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(AppColors.accentGreen)
+                        .frame(width: 24)
+                    Text(food.name)
+                        .font(.system(size: 14))
+                    Spacer()
+                    Text("\(food.count)x")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(20)
+        .glass(cornerRadius: AppDimensions.cardRadius)
+        .padding(.horizontal, 20)
+    }
+
+    private var improvementTipsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.yellow)
+                Text("Improvement Tips")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+
+            ForEach(report.improvementTips, id: \.self) { tip in
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(AppColors.accentGreen)
+                        .padding(.top, 2)
+                    Text(tip)
+                        .font(.system(size: 13))
+                        .foregroundColor(.primary.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(20)
+        .glass(cornerRadius: AppDimensions.cardRadius)
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Helpers
+
+    private func reportStat(value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func insightSeverityColor(_ severity: InsightSeverity) -> Color {
+        switch severity {
+        case .info: return AppColors.accentGreen
+        case .suggestion: return .orange
+        case .warning: return AppColors.accentRed
+        }
     }
 }
 

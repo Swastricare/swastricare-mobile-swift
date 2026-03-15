@@ -72,7 +72,7 @@ COMMENT ON COLUMN public.run_activities.best_pace_seconds_per_km IS 'Fastest pac
 -- ============================================================================
 -- Index for querying activities by date for calendar views
 CREATE INDEX IF NOT EXISTS idx_run_activities_date 
-ON public.run_activities(health_profile_id, DATE(started_at))
+ON public.run_activities(health_profile_id, started_at)
 WHERE deleted_at IS NULL;
 
 -- ============================================================================

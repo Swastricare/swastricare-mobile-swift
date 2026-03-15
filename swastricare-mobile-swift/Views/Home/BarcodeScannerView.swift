@@ -512,7 +512,7 @@ class BarcodeCameraUIView: UIView {
 
     private func setupCamera() {
         let session = AVCaptureSession()
-        session.sessionPreset = .high
+        session.sessionPreset = .medium // Barcode metadata detection needs no high-res video
 
         guard let device = AVCaptureDevice.default(for: .video),
               let input = try? AVCaptureDeviceInput(device: device) else {

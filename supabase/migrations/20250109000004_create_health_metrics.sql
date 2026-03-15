@@ -6,8 +6,8 @@
 -- ============================================================================
 -- DAILY HEALTH METRICS TABLE
 -- ============================================================================
-CREATE TABLE public.daily_health_metrics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.daily_health_metrics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Date (one record per day)
@@ -48,8 +48,8 @@ CREATE TABLE public.daily_health_metrics (
 -- ============================================================================
 -- VITAL SIGNS TABLE
 -- ============================================================================
-CREATE TABLE public.vital_signs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.vital_signs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Measurement time
@@ -97,8 +97,8 @@ CREATE TABLE public.vital_signs (
 -- ============================================================================
 -- ACTIVITY LOGS TABLE
 -- ============================================================================
-CREATE TABLE public.activity_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.activity_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Activity details
@@ -143,8 +143,8 @@ CREATE TABLE public.activity_logs (
 -- ============================================================================
 -- HYDRATION LOGS TABLE
 -- ============================================================================
-CREATE TABLE public.hydration_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.hydration_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- What was consumed
@@ -175,8 +175,8 @@ CREATE TABLE public.hydration_logs (
 -- ============================================================================
 -- NUTRITION LOGS TABLE
 -- ============================================================================
-CREATE TABLE public.nutrition_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.nutrition_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Meal info
@@ -229,14 +229,14 @@ CREATE TABLE public.nutrition_logs (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_daily_metrics_profile_date ON public.daily_health_metrics(health_profile_id, metric_date DESC);
-CREATE INDEX idx_vital_signs_profile_date ON public.vital_signs(health_profile_id, measured_at DESC);
-CREATE INDEX idx_vital_signs_glucose ON public.vital_signs(health_profile_id, measured_at DESC) WHERE blood_glucose IS NOT NULL;
-CREATE INDEX idx_activity_logs_profile_date ON public.activity_logs(health_profile_id, started_at DESC);
-CREATE INDEX idx_activity_logs_type ON public.activity_logs(health_profile_id, activity_type);
-CREATE INDEX idx_hydration_logs_profile_date ON public.hydration_logs(health_profile_id, consumed_at DESC);
-CREATE INDEX idx_nutrition_logs_profile_date ON public.nutrition_logs(health_profile_id, meal_time DESC);
-CREATE INDEX idx_nutrition_logs_meal_type ON public.nutrition_logs(health_profile_id, meal_type, meal_time DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_metrics_profile_date ON public.daily_health_metrics(health_profile_id, metric_date DESC);
+CREATE INDEX IF NOT EXISTS idx_vital_signs_profile_date ON public.vital_signs(health_profile_id, measured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_vital_signs_glucose ON public.vital_signs(health_profile_id, measured_at DESC) WHERE blood_glucose IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_activity_logs_profile_date ON public.activity_logs(health_profile_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_type ON public.activity_logs(health_profile_id, activity_type);
+CREATE INDEX IF NOT EXISTS idx_hydration_logs_profile_date ON public.hydration_logs(health_profile_id, consumed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_nutrition_logs_profile_date ON public.nutrition_logs(health_profile_id, meal_time DESC);
+CREATE INDEX IF NOT EXISTS idx_nutrition_logs_meal_type ON public.nutrition_logs(health_profile_id, meal_type, meal_time DESC);
 
 -- ============================================================================
 -- TRIGGERS

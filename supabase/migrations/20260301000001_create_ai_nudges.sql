@@ -35,6 +35,6 @@ CREATE POLICY "Service role can insert nudges"
   WITH CHECK (true);
 
 -- Indexes
-CREATE INDEX idx_ai_nudges_user_id ON ai_nudges(user_id);
-CREATE INDEX idx_ai_nudges_active ON ai_nudges(user_id, is_dismissed, expires_at)
+CREATE INDEX IF NOT EXISTS idx_ai_nudges_user_id ON ai_nudges(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_nudges_active ON ai_nudges(user_id, is_dismissed, expires_at)
   WHERE is_dismissed = false;

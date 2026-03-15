@@ -6,8 +6,8 @@
 -- ============================================================================
 -- MENSTRUAL CYCLES TABLE
 -- ============================================================================
-CREATE TABLE public.menstrual_cycles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.menstrual_cycles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Period dates
@@ -81,8 +81,8 @@ CREATE TABLE public.menstrual_cycles (
 -- ============================================================================
 -- PREGNANCY TRACKING TABLE
 -- ============================================================================
-CREATE TABLE public.pregnancy_tracking (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.pregnancy_tracking (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Key dates
@@ -144,8 +144,8 @@ CREATE TABLE public.pregnancy_tracking (
 -- ============================================================================
 -- PREGNANCY LOGS TABLE
 -- ============================================================================
-CREATE TABLE public.pregnancy_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.pregnancy_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pregnancy_id UUID NOT NULL REFERENCES public.pregnancy_tracking(id) ON DELETE CASCADE,
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
@@ -236,15 +236,15 @@ CREATE TABLE public.pregnancy_logs (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_menstrual_cycles_profile ON public.menstrual_cycles(health_profile_id);
-CREATE INDEX idx_menstrual_cycles_date ON public.menstrual_cycles(health_profile_id, period_start DESC);
-CREATE INDEX idx_menstrual_cycles_ovulation ON public.menstrual_cycles(health_profile_id, ovulation_date) 
+CREATE INDEX IF NOT EXISTS idx_menstrual_cycles_profile ON public.menstrual_cycles(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_menstrual_cycles_date ON public.menstrual_cycles(health_profile_id, period_start DESC);
+CREATE INDEX IF NOT EXISTS idx_menstrual_cycles_ovulation ON public.menstrual_cycles(health_profile_id, ovulation_date) 
     WHERE ovulation_date IS NOT NULL;
-CREATE INDEX idx_pregnancy_tracking_profile ON public.pregnancy_tracking(health_profile_id);
-CREATE INDEX idx_pregnancy_tracking_active ON public.pregnancy_tracking(health_profile_id) WHERE status = 'active';
-CREATE INDEX idx_pregnancy_logs_pregnancy ON public.pregnancy_logs(pregnancy_id);
-CREATE INDEX idx_pregnancy_logs_date ON public.pregnancy_logs(pregnancy_id, log_date DESC);
-CREATE INDEX idx_pregnancy_logs_week ON public.pregnancy_logs(pregnancy_id, week_number);
+CREATE INDEX IF NOT EXISTS idx_pregnancy_tracking_profile ON public.pregnancy_tracking(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_pregnancy_tracking_active ON public.pregnancy_tracking(health_profile_id) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_pregnancy_logs_pregnancy ON public.pregnancy_logs(pregnancy_id);
+CREATE INDEX IF NOT EXISTS idx_pregnancy_logs_date ON public.pregnancy_logs(pregnancy_id, log_date DESC);
+CREATE INDEX IF NOT EXISTS idx_pregnancy_logs_week ON public.pregnancy_logs(pregnancy_id, week_number);
 
 -- ============================================================================
 -- TRIGGERS

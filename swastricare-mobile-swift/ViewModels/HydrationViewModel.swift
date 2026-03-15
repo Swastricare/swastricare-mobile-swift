@@ -130,7 +130,14 @@ final class HydrationViewModel: ObservableObject {
     
     func loadData() async {
         isLoading = true
-        
+
+        // Reset selectedDate to today so todaysEntries (and thus progress/remainingMl)
+        // reflect the current day, not a stale date from a previous session or overnight.
+        let calendar = Calendar.current
+        if !calendar.isDateInToday(selectedDate) {
+            selectedDate = Date()
+        }
+
         // Load preferences from local storage first
         preferences = localStorage.loadPreferences()
         

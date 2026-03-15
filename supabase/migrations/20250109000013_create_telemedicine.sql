@@ -6,8 +6,8 @@
 -- ============================================================================
 -- VIDEO CONSULTATIONS TABLE
 -- ============================================================================
-CREATE TABLE public.video_consultations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.video_consultations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     appointment_id UUID REFERENCES public.appointments(id),
     doctor_id UUID REFERENCES public.doctors(id),
@@ -82,8 +82,8 @@ CREATE TABLE public.video_consultations (
 -- ============================================================================
 -- CHAT CONSULTATIONS TABLE
 -- ============================================================================
-CREATE TABLE public.chat_consultations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.chat_consultations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     doctor_id UUID REFERENCES public.doctors(id),
     provider_id UUID REFERENCES public.healthcare_providers(id),
@@ -143,8 +143,8 @@ CREATE TABLE public.chat_consultations (
 -- ============================================================================
 -- CHAT MESSAGES TABLE
 -- ============================================================================
-CREATE TABLE public.chat_messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     consultation_id UUID NOT NULL REFERENCES public.chat_consultations(id) ON DELETE CASCADE,
     
     -- Sender
@@ -196,16 +196,16 @@ CREATE TABLE public.chat_messages (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_video_consultations_profile ON public.video_consultations(health_profile_id);
-CREATE INDEX idx_video_consultations_scheduled ON public.video_consultations(health_profile_id, scheduled_at DESC);
-CREATE INDEX idx_video_consultations_status ON public.video_consultations(health_profile_id, status);
-CREATE INDEX idx_video_consultations_doctor ON public.video_consultations(doctor_id);
-CREATE INDEX idx_chat_consultations_profile ON public.chat_consultations(health_profile_id);
-CREATE INDEX idx_chat_consultations_status ON public.chat_consultations(health_profile_id, status);
-CREATE INDEX idx_chat_consultations_doctor ON public.chat_consultations(doctor_id);
-CREATE INDEX idx_chat_messages_consultation ON public.chat_messages(consultation_id);
-CREATE INDEX idx_chat_messages_created ON public.chat_messages(consultation_id, created_at DESC);
-CREATE INDEX idx_chat_messages_unread ON public.chat_messages(consultation_id) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_video_consultations_profile ON public.video_consultations(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_video_consultations_scheduled ON public.video_consultations(health_profile_id, scheduled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_video_consultations_status ON public.video_consultations(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_video_consultations_doctor ON public.video_consultations(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_chat_consultations_profile ON public.chat_consultations(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_chat_consultations_status ON public.chat_consultations(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_chat_consultations_doctor ON public.chat_consultations(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_consultation ON public.chat_messages(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON public.chat_messages(consultation_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_unread ON public.chat_messages(consultation_id) WHERE is_read = false;
 
 -- ============================================================================
 -- TRIGGERS

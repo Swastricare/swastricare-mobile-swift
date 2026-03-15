@@ -338,13 +338,15 @@ struct swastricare_mobile_swiftApp: App {
                     }
                 }
                 
-                // Refresh widget data and process pending actions
-                Task {
-                    // Process pending widget quick actions
+                // Refresh widget data, process pending actions, then ensure notifications exist.
+                // Sequenced: loadData() schedules notifications first, then ensureNotificationsScheduled()
+                // acts as a safety net if loadData's scheduling produced zero results.
+                Task { @MainActor in
                     await DependencyContainer.shared.hydrationViewModel.loadData()
                     await DependencyContainer.shared.medicationViewModel.refresh()
+                    await NotificationService.shared.ensureNotificationsScheduled()
                 }
-                
+
                 // Refresh diet + menstrual notifications (local scheduling)
                 Task { @MainActor in
                     await NotificationService.shared.refreshWellnessNotifications()
@@ -353,7 +355,7 @@ struct swastricare_mobile_swiftApp: App {
 
             // Pick up any workout started from widgets while app was backgrounded/terminated
             deepLinkHandler.checkForPendingWidgetWorkout()
-            
+
             // Clear notification badge
             Task { @MainActor in
                 UIApplication.shared.applicationIconBadgeNumber = 0
@@ -406,7 +408,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Initialize notification service (sets up delegate)
         _ = NotificationService.shared
         print("🔔 NotificationService initialized")
-        
+
+        // Generate custom water drop notification sound if not yet created
+        NotificationSoundManager.ensureSoundFile()
+
         // Register for remote notifications
         NotificationService.shared.registerForRemoteNotifications()
         return true

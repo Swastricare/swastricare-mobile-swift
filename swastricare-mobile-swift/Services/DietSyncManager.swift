@@ -89,8 +89,9 @@ final class DietSyncManager: ObservableObject, DietSyncManagerProtocol {
     private var retryCountByEntryId: [UUID: Int] = [:]
     private var failedEntryIds: Set<UUID> = []
     private var syncConflicts: [DietSyncConflict] = []
+    private let maxConflictHistory = 50
     private var isSyncing = false
-    private var retryTask: Task<Void, Never>?
+    private var retryTasks: [UUID: Task<Void, Never>] = [:]
 
     // MARK: - Dependencies
 
@@ -98,8 +99,11 @@ final class DietSyncManager: ObservableObject, DietSyncManagerProtocol {
 
     // MARK: - Computed
 
-    var pendingCount: Int {
-        localStorage.getUnsyncedLogs().count
+    /// Cached pending count — updated after sync operations instead of re-scanning all logs.
+    private(set) var pendingCount: Int = 0
+
+    func refreshPendingCount() {
+        pendingCount = localStorage.getUnsyncedLogs().count
     }
 
     // MARK: - Init
@@ -178,8 +182,8 @@ final class DietSyncManager: ObservableObject, DietSyncManagerProtocol {
     // MARK: - Retry Failed
 
     func retryFailedSync() async {
-        retryTask?.cancel()
-        retryTask = nil
+        retryTasks.values.forEach { $0.cancel() }
+        retryTasks.removeAll()
 
         // Reset retry counts so we get fresh attempts
         retryCountByEntryId.removeAll()
@@ -190,8 +194,8 @@ final class DietSyncManager: ObservableObject, DietSyncManagerProtocol {
     // MARK: - Reset
 
     func resetSyncState() {
-        retryTask?.cancel()
-        retryTask = nil
+        retryTasks.values.forEach { $0.cancel() }
+        retryTasks.removeAll()
         retryCountByEntryId.removeAll()
         failedEntryIds.removeAll()
         syncConflicts.removeAll()
@@ -221,6 +225,9 @@ final class DietSyncManager: ObservableObject, DietSyncManagerProtocol {
             resolvedAt: Date()
         )
         syncConflicts.append(conflict)
+        if syncConflicts.count > maxConflictHistory {
+            syncConflicts.removeFirst(syncConflicts.count - maxConflictHistory)
+        }
 
         print("🍎 DietSyncManager: Conflict resolved for entry \(localEntry.id) — \(resolution)")
 
@@ -274,7 +281,8 @@ final class DietSyncManager: ObservableObject, DietSyncManagerProtocol {
 
         print("🍎 DietSyncManager: Scheduling retry \(attemptNumber)/\(maxRetries) for entry \(entry.id) in \(delay / 1_000_000_000)s")
 
-        retryTask = Task { [weak self] in
+        retryTasks[entry.id]?.cancel()
+        retryTasks[entry.id] = Task { [weak self] in
             try? await Task.sleep(nanoseconds: delay)
             guard !Task.isCancelled else { return }
 

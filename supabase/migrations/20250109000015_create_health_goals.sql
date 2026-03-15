@@ -6,8 +6,8 @@
 -- ============================================================================
 -- HEALTH GOALS TABLE
 -- ============================================================================
-CREATE TABLE public.health_goals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.health_goals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Goal type
@@ -90,8 +90,8 @@ CREATE TABLE public.health_goals (
 -- ============================================================================
 -- GOAL MILESTONES TABLE
 -- ============================================================================
-CREATE TABLE public.goal_milestones (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.goal_milestones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     goal_id UUID NOT NULL REFERENCES public.health_goals(id) ON DELETE CASCADE,
     
     -- Milestone details
@@ -122,8 +122,8 @@ CREATE TABLE public.goal_milestones (
 -- ============================================================================
 -- HEALTH PROGRAMS TABLE (Catalog)
 -- ============================================================================
-CREATE TABLE public.health_programs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.health_programs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Program info
     name VARCHAR(200) NOT NULL,
@@ -193,8 +193,8 @@ CREATE TABLE public.health_programs (
 -- ============================================================================
 -- USER PROGRAMS TABLE
 -- ============================================================================
-CREATE TABLE public.user_programs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.user_programs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     program_id UUID NOT NULL REFERENCES public.health_programs(id),
     
@@ -254,18 +254,18 @@ CREATE TABLE public.user_programs (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_health_goals_profile ON public.health_goals(health_profile_id);
-CREATE INDEX idx_health_goals_type ON public.health_goals(health_profile_id, goal_type);
-CREATE INDEX idx_health_goals_status ON public.health_goals(health_profile_id, status);
-CREATE INDEX idx_health_goals_active ON public.health_goals(health_profile_id) WHERE status = 'active';
-CREATE INDEX idx_goal_milestones_goal ON public.goal_milestones(goal_id);
-CREATE INDEX idx_goal_milestones_pending ON public.goal_milestones(goal_id) WHERE achieved = false;
-CREATE INDEX idx_health_programs_type ON public.health_programs(program_type);
-CREATE INDEX idx_health_programs_published ON public.health_programs(is_published) WHERE is_published = true;
-CREATE INDEX idx_health_programs_featured ON public.health_programs(is_featured) WHERE is_featured = true;
-CREATE INDEX idx_user_programs_profile ON public.user_programs(health_profile_id);
-CREATE INDEX idx_user_programs_status ON public.user_programs(health_profile_id, status);
-CREATE INDEX idx_user_programs_active ON public.user_programs(health_profile_id) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_health_goals_profile ON public.health_goals(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_health_goals_type ON public.health_goals(health_profile_id, goal_type);
+CREATE INDEX IF NOT EXISTS idx_health_goals_status ON public.health_goals(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_health_goals_active ON public.health_goals(health_profile_id) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_goal_milestones_goal ON public.goal_milestones(goal_id);
+CREATE INDEX IF NOT EXISTS idx_goal_milestones_pending ON public.goal_milestones(goal_id) WHERE achieved = false;
+CREATE INDEX IF NOT EXISTS idx_health_programs_type ON public.health_programs(program_type);
+CREATE INDEX IF NOT EXISTS idx_health_programs_published ON public.health_programs(is_published) WHERE is_published = true;
+CREATE INDEX IF NOT EXISTS idx_health_programs_featured ON public.health_programs(is_featured) WHERE is_featured = true;
+CREATE INDEX IF NOT EXISTS idx_user_programs_profile ON public.user_programs(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_user_programs_status ON public.user_programs(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_user_programs_active ON public.user_programs(health_profile_id) WHERE status = 'active';
 
 -- ============================================================================
 -- TRIGGERS

@@ -6,8 +6,8 @@
 -- ============================================================================
 -- CONNECTED DEVICES TABLE
 -- ============================================================================
-CREATE TABLE public.connected_devices (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.connected_devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     
@@ -71,8 +71,8 @@ CREATE TABLE public.connected_devices (
 -- ============================================================================
 -- DEVICE READINGS TABLE
 -- ============================================================================
-CREATE TABLE public.device_readings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.device_readings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     device_id UUID NOT NULL REFERENCES public.connected_devices(id) ON DELETE CASCADE,
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
@@ -136,25 +136,25 @@ CREATE TABLE public.device_readings (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_connected_devices_profile ON public.connected_devices(health_profile_id);
-CREATE INDEX idx_connected_devices_user ON public.connected_devices(user_id);
-CREATE INDEX idx_connected_devices_type ON public.connected_devices(health_profile_id, device_type);
-CREATE INDEX idx_connected_devices_connected ON public.connected_devices(health_profile_id) WHERE is_connected = true;
-CREATE INDEX idx_device_readings_device ON public.device_readings(device_id);
-CREATE INDEX idx_device_readings_profile ON public.device_readings(health_profile_id);
-CREATE INDEX idx_device_readings_type_time ON public.device_readings(health_profile_id, reading_type, recorded_at DESC);
-CREATE INDEX idx_device_readings_recorded ON public.device_readings(health_profile_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_connected_devices_profile ON public.connected_devices(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_connected_devices_user ON public.connected_devices(user_id);
+CREATE INDEX IF NOT EXISTS idx_connected_devices_type ON public.connected_devices(health_profile_id, device_type);
+CREATE INDEX IF NOT EXISTS idx_connected_devices_connected ON public.connected_devices(health_profile_id) WHERE is_connected = true;
+CREATE INDEX IF NOT EXISTS idx_device_readings_device ON public.device_readings(device_id);
+CREATE INDEX IF NOT EXISTS idx_device_readings_profile ON public.device_readings(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_device_readings_type_time ON public.device_readings(health_profile_id, reading_type, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_device_readings_recorded ON public.device_readings(health_profile_id, recorded_at DESC);
 
 -- Partial indexes for specific reading types
-CREATE INDEX idx_device_readings_heart_rate ON public.device_readings(health_profile_id, recorded_at DESC) 
+CREATE INDEX IF NOT EXISTS idx_device_readings_heart_rate ON public.device_readings(health_profile_id, recorded_at DESC) 
     WHERE reading_type = 'heart_rate';
-CREATE INDEX idx_device_readings_blood_glucose ON public.device_readings(health_profile_id, recorded_at DESC) 
+CREATE INDEX IF NOT EXISTS idx_device_readings_blood_glucose ON public.device_readings(health_profile_id, recorded_at DESC) 
     WHERE reading_type = 'blood_glucose';
-CREATE INDEX idx_device_readings_blood_pressure ON public.device_readings(health_profile_id, recorded_at DESC) 
+CREATE INDEX IF NOT EXISTS idx_device_readings_blood_pressure ON public.device_readings(health_profile_id, recorded_at DESC) 
     WHERE reading_type = 'blood_pressure';
-CREATE INDEX idx_device_readings_steps ON public.device_readings(health_profile_id, recorded_at DESC) 
+CREATE INDEX IF NOT EXISTS idx_device_readings_steps ON public.device_readings(health_profile_id, recorded_at DESC) 
     WHERE reading_type = 'steps';
-CREATE INDEX idx_device_readings_sleep ON public.device_readings(health_profile_id, recorded_at DESC) 
+CREATE INDEX IF NOT EXISTS idx_device_readings_sleep ON public.device_readings(health_profile_id, recorded_at DESC) 
     WHERE reading_type = 'sleep';
 
 -- ============================================================================

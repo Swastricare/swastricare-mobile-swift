@@ -253,29 +253,30 @@ struct NotificationMessageGenerator {
         streak: Int,
         context: HydrationReminderContext?
     ) -> (title: String, body: String) {
-        
+
         // Check for context-specific messages first
         if let ctx = context {
             if let contextMessage = generateContextMessage(context: ctx, remainingMl: remainingMl, progress: progress) {
-                return contextMessage
+                // Localize title at the exit point so ALL code paths get translated
+                return (localizeTitle(contextMessage.0), contextMessage.1)
             }
         }
-        
+
         let progressStatus = getProgressStatus(progress: progress, timeOfDay: timeOfDay)
-        
+
+        let raw: (String, String)
         switch progressStatus {
         case .goalMet:
-            return generateGoalMetMessage(effectiveIntake: effectiveIntake, streak: streak)
-            
+            raw = generateGoalMetMessage(effectiveIntake: effectiveIntake, streak: streak)
         case .ahead:
-            return generateAheadMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay)
-            
+            raw = generateAheadMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay)
         case .onTrack:
-            return generateOnTrackMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay, context: context)
-            
+            raw = generateOnTrackMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay, context: context)
         case .behindSchedule:
-            return generateBehindMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay, context: context)
+            raw = generateBehindMessage(progress: progress, remainingMl: remainingMl, timeOfDay: timeOfDay, context: context)
         }
+        // Localize title at the exit point so ALL code paths get translated
+        return (localizeTitle(raw.0), raw.1)
     }
     
     // MARK: - Context-Aware Messages
@@ -473,23 +474,107 @@ struct NotificationMessageGenerator {
         context: HydrationReminderContext? = nil
     ) -> (String, String) {
         let percent = Int(progress * 100)
-        
+
         // Add extra urgency for hot days
         let hotDaySuffix = context?.isHotDay == true ? " Stay cool!" : ""
-        
+
         switch timeOfDay {
         case .morning:
-            return ("⚠️ Let's Get Started", "Don't forget to hydrate! Start your day with water.\(hotDaySuffix)")
-            
+            return (
+                "⚠️ Let's Get Started",
+                NotificationLocalizer.l("body_behind_morning", fallback: "Don't forget to hydrate! Start your day with water.") + hotDaySuffix
+            )
         case .afternoon:
-            return ("🚨 Hydration Alert", "You're at \(percent)%. Time to catch up! Drink some water now.\(hotDaySuffix)")
-            
+            return (
+                "🚨 Hydration Alert",
+                NotificationLocalizer.l("body_behind_afternoon", fallback: "You're at %d%%. Time to catch up! Drink some water now.", percent) + hotDaySuffix
+            )
         case .evening:
-            return ("⏰ Urgent Reminder", "You still need \(remainingMl)ml. Let's reach that goal!\(hotDaySuffix)")
-            
+            return (
+                "⏰ Urgent Reminder",
+                NotificationLocalizer.l("body_behind_evening", fallback: "You still need %dml. Let's reach that goal!", remainingMl) + hotDaySuffix
+            )
         case .night:
-            return ("💧 Final Reminder", "You're behind today. Try to drink \(remainingMl)ml before bed.")
+            return (
+                "💧 Final Reminder",
+                NotificationLocalizer.l("body_behind_night", fallback: "You're behind today. Try to drink %dml before bed.", remainingMl)
+            )
         }
+    }
+
+    // MARK: - Title Localization
+
+    /// Map of English titles to localization keys for post-processing translation
+    private static let titleKeys: [String: String] = [
+        "🎉 Goal Achieved!": "title_goal_achieved",
+        "⭐ Amazing Work!": "title_amazing_work",
+        "🏆 Well Done!": "title_well_done",
+        "💪 You Did It!": "title_you_did_it",
+        "☀️ Great Start!": "title_great_start",
+        "🌟 Excellent Progress!": "title_excellent_progress",
+        "🎯 Almost There!": "title_almost_there",
+        "💧 Final Push": "title_final_push",
+        "☕ Morning Hydration": "title_morning_hydration",
+        "🌅 Rise & Hydrate": "title_rise_hydrate",
+        "💪 Morning Boost": "title_morning_boost",
+        "📊 Hydration Check": "title_hydration_check",
+        "☕ Afternoon Reminder": "title_afternoon_reminder",
+        "💧 Stay Hydrated": "title_stay_hydrated",
+        "🌆 Evening Hydration": "title_evening_hydration",
+        "⭐ Keep It Up": "title_keep_it_up",
+        "💧 Almost Done": "title_almost_done",
+        "🌙 Last Call": "title_last_call",
+        "⚠️ Let's Get Started": "title_lets_get_started",
+        "🚨 Hydration Alert": "title_hydration_alert",
+        "⏰ Urgent Reminder": "title_urgent_reminder",
+        "💧 Final Reminder": "title_final_reminder",
+        "🌡️ Hot Day Alert": "title_hot_day_alert",
+        "☀️ Beat the Heat": "title_beat_the_heat",
+        "🥵 Hydration Boost": "title_hydration_boost",
+        "🏃‍♂️ Post-Workout": "title_post_workout",
+        "💪 Recovery Time": "title_recovery_time",
+        "🎯 Fuel Your Body": "title_fuel_your_body",
+        "📊 Pattern Alert": "title_pattern_alert",
+        "🎯 Right on Schedule": "title_right_on_schedule",
+        "💧 Your Hydration Time": "title_your_hydration_time",
+        "💡 Fill the Gap": "title_fill_the_gap",
+        "🏃‍♂️🌡️ Stay Hydrated!": "title_hot_day_alert",
+    ]
+
+    /// Translate a title into the device language (Hindi/Tamil), or return as-is for English
+    private static func localizeTitle(_ title: String) -> String {
+        guard let key = titleKeys[title] else { return title }
+        return NotificationLocalizer.l(key, fallback: title)
+    }
+
+    // MARK: - Next-Day & Streak-at-Risk Messages
+
+    /// Generic message for next-day notifications (progress data would be stale)
+    static func generateNextDayMessage(dailyGoal: Int, streak: Int, timeOfDay: TimeOfDay) -> (title: String, body: String) {
+        switch timeOfDay {
+        case .morning:
+            let title = NotificationLocalizer.l("title_good_morning", fallback: "🌅 Good Morning!")
+            let body: String
+            if streak > 1 {
+                body = NotificationLocalizer.l("body_fresh_morning", fallback: "New day, new goal! Start with a glass of water. 💧")
+            } else {
+                body = NotificationLocalizer.l("body_fresh_reminder", fallback: "Time to hydrate! Stay healthy by staying hydrated. 💧")
+            }
+            return (title, body)
+        default:
+            return (
+                NotificationLocalizer.l("title_stay_hydrated", fallback: "💧 Stay Hydrated"),
+                NotificationLocalizer.l("body_fresh_reminder", fallback: "Time to hydrate! Stay healthy by staying hydrated. 💧")
+            )
+        }
+    }
+
+    /// Urgent evening message when a streak is at risk of breaking
+    static func generateStreakAtRiskMessage(streak: Int, remainingMl: Int) -> (title: String, body: String) {
+        return (
+            NotificationLocalizer.l("title_streak_at_risk", fallback: "🔥 Streak at Risk!"),
+            NotificationLocalizer.l("body_streak_risk", fallback: "Your %d-day streak is at risk! Just %dml more to keep it alive.", streak, remainingMl)
+        )
     }
 }
 

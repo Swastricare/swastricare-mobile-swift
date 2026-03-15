@@ -6,8 +6,8 @@
 -- ============================================================================
 -- REMINDERS TABLE
 -- ============================================================================
-CREATE TABLE public.reminders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.reminders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     
@@ -61,8 +61,8 @@ CREATE TABLE public.reminders (
 -- ============================================================================
 -- REMINDER LOGS TABLE
 -- ============================================================================
-CREATE TABLE public.reminder_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.reminder_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reminder_id UUID NOT NULL REFERENCES public.reminders(id) ON DELETE CASCADE,
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
@@ -95,8 +95,8 @@ CREATE TABLE public.reminder_logs (
 -- ============================================================================
 -- NOTIFICATIONS TABLE
 -- ============================================================================
-CREATE TABLE public.notifications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     health_profile_id UUID REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
@@ -145,8 +145,8 @@ CREATE TABLE public.notifications (
 -- ============================================================================
 -- USER STREAKS TABLE
 -- ============================================================================
-CREATE TABLE public.user_streaks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.user_streaks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Streak type
@@ -185,8 +185,8 @@ CREATE TABLE public.user_streaks (
 -- ============================================================================
 -- ACHIEVEMENTS TABLE
 -- ============================================================================
-CREATE TABLE public.achievements (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.achievements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Achievement type
@@ -236,20 +236,20 @@ CREATE TABLE public.achievements (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_reminders_profile ON public.reminders(health_profile_id);
-CREATE INDEX idx_reminders_user ON public.reminders(user_id);
-CREATE INDEX idx_reminders_active ON public.reminders(health_profile_id) WHERE is_active = true;
-CREATE INDEX idx_reminders_type ON public.reminders(health_profile_id, reminder_type);
-CREATE INDEX idx_reminder_logs_reminder ON public.reminder_logs(reminder_id);
-CREATE INDEX idx_reminder_logs_profile_date ON public.reminder_logs(health_profile_id, scheduled_at DESC);
-CREATE INDEX idx_notifications_user ON public.notifications(user_id);
-CREATE INDEX idx_notifications_unread ON public.notifications(user_id) WHERE is_read = false;
-CREATE INDEX idx_notifications_created ON public.notifications(user_id, created_at DESC);
-CREATE INDEX idx_user_streaks_profile ON public.user_streaks(health_profile_id);
-CREATE INDEX idx_user_streaks_type ON public.user_streaks(health_profile_id, streak_type);
-CREATE INDEX idx_achievements_profile ON public.achievements(health_profile_id);
-CREATE INDEX idx_achievements_unlocked ON public.achievements(health_profile_id) WHERE is_unlocked = true;
-CREATE INDEX idx_achievements_category ON public.achievements(health_profile_id, category);
+CREATE INDEX IF NOT EXISTS idx_reminders_profile ON public.reminders(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_reminders_user ON public.reminders(user_id);
+CREATE INDEX IF NOT EXISTS idx_reminders_active ON public.reminders(health_profile_id) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_reminders_type ON public.reminders(health_profile_id, reminder_type);
+CREATE INDEX IF NOT EXISTS idx_reminder_logs_reminder ON public.reminder_logs(reminder_id);
+CREATE INDEX IF NOT EXISTS idx_reminder_logs_profile_date ON public.reminder_logs(health_profile_id, scheduled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON public.notifications(user_id) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON public.notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_streaks_profile ON public.user_streaks(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_user_streaks_type ON public.user_streaks(health_profile_id, streak_type);
+CREATE INDEX IF NOT EXISTS idx_achievements_profile ON public.achievements(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_achievements_unlocked ON public.achievements(health_profile_id) WHERE is_unlocked = true;
+CREATE INDEX IF NOT EXISTS idx_achievements_category ON public.achievements(health_profile_id, category);
 
 -- ============================================================================
 -- TRIGGERS

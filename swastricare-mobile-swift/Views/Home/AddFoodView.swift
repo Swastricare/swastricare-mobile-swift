@@ -15,10 +15,14 @@ struct AddFoodView: View {
     @State private var searchText = ""
     @State private var currentMealType: MealType
     @State private var showCustomEntry = false
+    @State private var showBarcodeScanner = false
     @State private var selectedFoodForQuantity: FoodItem?
     @State private var showCategorySearch = false
     @State private var selectedCategory: FoodCategory?
     @State private var showVegOnly = false
+    // Fast Logging state
+    @State private var showQuickLogToast = false
+    @State private var quickLoggedName = ""
 
     init(viewModel: DietViewModel, selectedMealType: MealType) {
         self.viewModel = viewModel
@@ -47,6 +51,9 @@ struct AddFoodView: View {
                         if !searchText.isEmpty {
                             searchResultsSection
                         } else {
+                            // Your Usual -- suggested foods + templates (from Fast Logging branch)
+                            yourUsualSection
+
                             // Recent Foods (if any)
                             if !viewModel.recentFoods.isEmpty {
                                 recentFoodsSection
@@ -56,6 +63,9 @@ struct AddFoodView: View {
                             if !viewModel.favoriteFoods.isEmpty {
                                 favoriteFoodsSection
                             }
+
+                            // Scan Barcode (from Discovery branch)
+                            scanBarcodeButton
 
                             // Browse by Category
                             categoryGridSection
@@ -75,22 +85,33 @@ struct AddFoodView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    // Meal type pill with semantic color tint
-                    HStack(spacing: 4) {
-                        Image(systemName: currentMealType.icon)
-                            .font(.system(size: 11, weight: .semibold))
-                        Text(currentMealType.displayName)
-                            .font(.system(size: 12, weight: .semibold))
+                    HStack(spacing: 10) {
+                        // Barcode scanner button (from Discovery branch)
+                        Button {
+                            showBarcodeScanner = true
+                        } label: {
+                            Image(systemName: "barcode.viewfinder")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(AppColors.accentGreen)
+                        }
+
+                        // Meal type pill with semantic color tint
+                        HStack(spacing: 4) {
+                            Image(systemName: currentMealType.icon)
+                                .font(.system(size: 11, weight: .semibold))
+                            Text(currentMealType.displayName)
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(currentMealType.color.opacity(0.15))
+                        .foregroundColor(currentMealType.color)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(currentMealType.color.opacity(0.30), lineWidth: 0.8)
+                        )
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(currentMealType.color.opacity(0.15))
-                    .foregroundColor(currentMealType.color)
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(currentMealType.color.opacity(0.30), lineWidth: 0.8)
-                    )
                 }
             }
             .sheet(item: $selectedFoodForQuantity) { food in
@@ -111,12 +132,28 @@ struct AddFoodView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showBarcodeScanner) {
+                BarcodeScannerView(
+                    viewModel: viewModel,
+                    mealType: currentMealType
+                )
+            }
             .sheet(isPresented: $showCustomEntry) {
                 CustomFoodEntryView(
                     viewModel: viewModel,
                     selectedMealType: currentMealType,
                     onSave: { dismiss() }
                 )
+            }
+            .onAppear {
+                viewModel.refreshSuggestions(for: currentMealType)
+            }
+            .overlay(alignment: .bottom) {
+                if showQuickLogToast {
+                    quickLogToast
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 16)
+                }
             }
         }
     }
@@ -340,7 +377,7 @@ struct AddFoodView: View {
                                         Text(food.displayServingSize)
                                             .font(.system(size: 12))
                                             .foregroundColor(.secondary)
-                                        Text("·")
+                                        Text("\u{00B7}")
                                             .foregroundColor(.secondary)
                                         Text(food.caloriesPerServing)
                                             .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -370,6 +407,190 @@ struct AddFoodView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Your Usual Section (from Fast Logging branch)
+
+    @ViewBuilder
+    private var yourUsualSection: some View {
+        let suggestions = viewModel.suggestedFoods
+        let templates = viewModel.templates(for: currentMealType)
+
+        if !suggestions.isEmpty || !templates.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColors.accentBlue)
+                    Text("Your Usual \(currentMealType.displayName)")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal)
+
+                // Suggested foods -- one-tap quick log
+                if !suggestions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(suggestions) { food in
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    quickLoggedName = food.name
+                                    Task {
+                                        await viewModel.quickLogFood(food, mealType: currentMealType)
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            showQuickLogToast = true
+                                        }
+                                        try? await Task.sleep(nanoseconds: 1_500_000_000)
+                                        withAnimation {
+                                            showQuickLogToast = false
+                                        }
+                                    }
+                                } label: {
+                                    VStack(spacing: 6) {
+                                        Text(food.category.icon)
+                                            .font(.system(size: 24))
+
+                                        Text(food.name)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .lineLimit(2)
+                                            .multilineTextAlignment(.center)
+
+                                        Text("\(Int(food.calories)) cal")
+                                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                            .foregroundColor(AppColors.accentGreen)
+                                    }
+                                    .frame(width: 80, height: 90)
+                                    .background(AppColors.accentBlue.opacity(0.06))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(AppColors.accentBlue.opacity(0.15), lineWidth: 0.8)
+                                    )
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+
+                // Saved templates with "Log all" button
+                if !templates.isEmpty {
+                    VStack(spacing: 8) {
+                        ForEach(templates) { template in
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(template.mealType.color.opacity(0.15))
+                                        .frame(width: 40, height: 40)
+                                    Image(systemName: "doc.text.fill")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(template.mealType.color)
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(template.name)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                    Text(template.summary)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    Task {
+                                        await viewModel.logTemplate(template)
+                                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                        dismiss()
+                                    }
+                                } label: {
+                                    Text("Log all")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 7)
+                                        .background(AppColors.accentGreen)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                            .padding(12)
+                            .glass(cornerRadius: 12)
+                            .padding(.horizontal)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Quick Log Toast (from Fast Logging branch)
+
+    private var quickLogToast: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(AppColors.accentGreen)
+
+            Text("Logged \(quickLoggedName)")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.primary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.10), radius: 8, x: 0, y: 4)
+        )
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Scan Barcode Button (from Discovery branch)
+
+    private var scanBarcodeButton: some View {
+        Button {
+            showBarcodeScanner = true
+        } label: {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accentBlue.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "barcode.viewfinder")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(AppColors.accentBlue)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Scan Barcode")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppColors.accentBlue)
+                    Text("Scan packaged food products")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppColors.accentBlue.opacity(0.6))
+            }
+            .padding(16)
+            .background(AppColors.accentBlue.opacity(0.07))
+            .glass(cornerRadius: 14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(AppColors.accentBlue.opacity(0.20), lineWidth: 1)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .padding(.horizontal)
     }
 
     // MARK: - Custom Food Button

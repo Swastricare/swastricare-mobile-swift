@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================================================
 -- USERS TABLE
 -- ============================================================================
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255),
     phone VARCHAR(20),
@@ -36,8 +36,8 @@ CREATE TABLE public.users (
 -- ============================================================================
 -- HEALTH PROFILES TABLE
 -- ============================================================================
-CREATE TABLE public.health_profiles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.health_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     
     -- Basic Info
@@ -68,8 +68,8 @@ CREATE TABLE public.health_profiles (
 -- ============================================================================
 -- USER SETTINGS TABLE
 -- ============================================================================
-CREATE TABLE public.user_settings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.user_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     
     -- Notification preferences
@@ -108,8 +108,8 @@ CREATE TABLE public.user_settings (
 -- ============================================================================
 -- FAMILY GROUPS TABLE
 -- ============================================================================
-CREATE TABLE public.family_groups (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.family_groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     
     name VARCHAR(100) NOT NULL DEFAULT 'My Family',
@@ -126,8 +126,8 @@ CREATE TABLE public.family_groups (
 -- ============================================================================
 -- FAMILY MEMBERS TABLE
 -- ============================================================================
-CREATE TABLE public.family_members (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.family_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     family_group_id UUID NOT NULL REFERENCES public.family_groups(id) ON DELETE CASCADE,
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
@@ -159,15 +159,26 @@ CREATE TABLE public.family_members (
 );
 
 -- ============================================================================
+-- ENSURE ALL COLUMNS EXIST (handles pre-existing simplified tables)
+-- ============================================================================
+ALTER TABLE public.health_profiles ADD COLUMN IF NOT EXISTS profile_type VARCHAR(20) DEFAULT 'self';
+ALTER TABLE public.health_profiles ADD COLUMN IF NOT EXISTS relationship VARCHAR(50);
+ALTER TABLE public.health_profiles ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT false;
+ALTER TABLE public.health_profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.health_profiles ADD COLUMN IF NOT EXISTS full_name VARCHAR(100);
+ALTER TABLE public.health_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.family_groups ADD COLUMN IF NOT EXISTS invite_code VARCHAR(8) UNIQUE;
+
+-- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_users_email ON public.users(email);
-CREATE INDEX idx_health_profiles_user ON public.health_profiles(user_id);
-CREATE INDEX idx_health_profiles_primary ON public.health_profiles(user_id) WHERE is_primary = true;
-CREATE INDEX idx_user_settings_user ON public.user_settings(user_id);
-CREATE INDEX idx_family_groups_owner ON public.family_groups(owner_user_id);
-CREATE INDEX idx_family_members_group ON public.family_members(family_group_id);
-CREATE INDEX idx_family_members_profile ON public.family_members(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+CREATE INDEX IF NOT EXISTS idx_health_profiles_user ON public.health_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_health_profiles_primary ON public.health_profiles(user_id) WHERE is_primary = true;
+CREATE INDEX IF NOT EXISTS idx_user_settings_user ON public.user_settings(user_id);
+CREATE INDEX IF NOT EXISTS idx_family_groups_owner ON public.family_groups(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_family_members_group ON public.family_members(family_group_id);
+CREATE INDEX IF NOT EXISTS idx_family_members_profile ON public.family_members(health_profile_id);
 
 -- ============================================================================
 -- HELPER FUNCTIONS

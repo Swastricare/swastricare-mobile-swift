@@ -8,7 +8,7 @@
 -- AI MEDICAL INTERACTIONS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.ai_medical_interactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     health_profile_id UUID REFERENCES public.health_profiles(id) ON DELETE SET NULL,
     
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS public.ai_medical_interactions (
 -- ============================================================================
 -- Tracks user acknowledgment of medical AI disclaimers
 CREATE TABLE IF NOT EXISTS public.ai_medical_consent (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     
     -- Consent type
@@ -121,19 +121,23 @@ ALTER TABLE public.ai_medical_interactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_medical_consent ENABLE ROW LEVEL SECURITY;
 
 -- Users can only see their own medical interactions
+DROP POLICY IF EXISTS "Users can view own medical interactions" ON public.Users can view own medical interactions_TABLE;
 CREATE POLICY "Users can view own medical interactions" 
     ON public.ai_medical_interactions FOR SELECT 
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own medical interactions" ON public.Users can insert own medical interactions_TABLE;
 CREATE POLICY "Users can insert own medical interactions" 
     ON public.ai_medical_interactions FOR INSERT 
     WITH CHECK (auth.uid() = user_id);
 
 -- Users can manage their own consent records
+DROP POLICY IF EXISTS "Users can view own consent records" ON public.Users can view own consent records_TABLE;
 CREATE POLICY "Users can view own consent records" 
     ON public.ai_medical_consent FOR SELECT 
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own consent records" ON public.Users can insert own consent records_TABLE;
 CREATE POLICY "Users can insert own consent records" 
     ON public.ai_medical_consent FOR INSERT 
     WITH CHECK (auth.uid() = user_id);

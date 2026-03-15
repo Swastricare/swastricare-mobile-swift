@@ -6,8 +6,8 @@
 -- ============================================================================
 -- PRESCRIPTIONS TABLE
 -- ============================================================================
-CREATE TABLE public.prescriptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.prescriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Source
@@ -55,8 +55,8 @@ CREATE TABLE public.prescriptions (
 -- ============================================================================
 -- PRESCRIPTION ITEMS TABLE
 -- ============================================================================
-CREATE TABLE public.prescription_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.prescription_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     prescription_id UUID NOT NULL REFERENCES public.prescriptions(id) ON DELETE CASCADE,
     
     -- Link to user's medication
@@ -105,8 +105,8 @@ CREATE TABLE public.prescription_items (
 -- ============================================================================
 -- PHARMACIES TABLE
 -- ============================================================================
-CREATE TABLE public.pharmacies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.pharmacies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Basic info
     name VARCHAR(200) NOT NULL,
@@ -163,8 +163,8 @@ CREATE TABLE public.pharmacies (
 -- ============================================================================
 -- MEDICINE ORDERS TABLE
 -- ============================================================================
-CREATE TABLE public.medicine_orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.medicine_orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     prescription_id UUID REFERENCES public.prescriptions(id),
     pharmacy_id UUID REFERENCES public.pharmacies(id),
@@ -224,8 +224,8 @@ CREATE TABLE public.medicine_orders (
 -- ============================================================================
 -- MY PHARMACIES TABLE
 -- ============================================================================
-CREATE TABLE public.my_pharmacies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.my_pharmacies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Link to verified pharmacy (optional)
@@ -252,17 +252,17 @@ CREATE TABLE public.my_pharmacies (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_prescriptions_profile ON public.prescriptions(health_profile_id);
-CREATE INDEX idx_prescriptions_date ON public.prescriptions(health_profile_id, prescription_date DESC);
-CREATE INDEX idx_prescriptions_status ON public.prescriptions(health_profile_id, status);
-CREATE INDEX idx_prescriptions_doctor ON public.prescriptions(doctor_id);
-CREATE INDEX idx_prescription_items_prescription ON public.prescription_items(prescription_id);
-CREATE INDEX idx_pharmacies_city ON public.pharmacies(city);
-CREATE INDEX idx_pharmacies_location ON public.pharmacies(latitude, longitude);
-CREATE INDEX idx_medicine_orders_profile ON public.medicine_orders(health_profile_id);
-CREATE INDEX idx_medicine_orders_status ON public.medicine_orders(health_profile_id, status);
-CREATE INDEX idx_medicine_orders_date ON public.medicine_orders(health_profile_id, order_date DESC);
-CREATE INDEX idx_my_pharmacies_profile ON public.my_pharmacies(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_profile ON public.prescriptions(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_date ON public.prescriptions(health_profile_id, prescription_date DESC);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_status ON public.prescriptions(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_doctor ON public.prescriptions(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_prescription_items_prescription ON public.prescription_items(prescription_id);
+CREATE INDEX IF NOT EXISTS idx_pharmacies_city ON public.pharmacies(city);
+CREATE INDEX IF NOT EXISTS idx_pharmacies_location ON public.pharmacies(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_medicine_orders_profile ON public.medicine_orders(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_medicine_orders_status ON public.medicine_orders(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_medicine_orders_date ON public.medicine_orders(health_profile_id, order_date DESC);
+CREATE INDEX IF NOT EXISTS idx_my_pharmacies_profile ON public.my_pharmacies(health_profile_id);
 
 -- ============================================================================
 -- TRIGGERS

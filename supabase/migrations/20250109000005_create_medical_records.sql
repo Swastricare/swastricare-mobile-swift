@@ -6,8 +6,8 @@
 -- ============================================================================
 -- DOCUMENT FOLDERS TABLE
 -- ============================================================================
-CREATE TABLE public.document_folders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.document_folders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Folder info
@@ -33,8 +33,8 @@ CREATE TABLE public.document_folders (
 -- ============================================================================
 -- MEDICAL DOCUMENTS TABLE
 -- ============================================================================
-CREATE TABLE public.medical_documents (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.medical_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     folder_id UUID REFERENCES public.document_folders(id) ON DELETE SET NULL,
     
@@ -91,8 +91,8 @@ CREATE TABLE public.medical_documents (
 -- ============================================================================
 -- HEALTHCARE PROVIDERS TABLE
 -- ============================================================================
-CREATE TABLE public.healthcare_providers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.healthcare_providers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Provider details
@@ -142,8 +142,8 @@ CREATE TABLE public.healthcare_providers (
 -- ============================================================================
 -- APPOINTMENTS TABLE
 -- ============================================================================
-CREATE TABLE public.appointments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.appointments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     provider_id UUID REFERENCES public.healthcare_providers(id) ON DELETE SET NULL,
     
@@ -210,8 +210,8 @@ CREATE TABLE public.appointments (
 -- ============================================================================
 -- APPOINTMENT NOTES TABLE
 -- ============================================================================
-CREATE TABLE public.appointment_notes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.appointment_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     appointment_id UUID NOT NULL REFERENCES public.appointments(id) ON DELETE CASCADE,
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
@@ -252,19 +252,19 @@ ALTER TABLE public.medical_documents
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_document_folders_profile ON public.document_folders(health_profile_id);
-CREATE INDEX idx_document_folders_parent ON public.document_folders(parent_folder_id);
-CREATE INDEX idx_medical_documents_profile ON public.medical_documents(health_profile_id);
-CREATE INDEX idx_medical_documents_folder ON public.medical_documents(folder_id);
-CREATE INDEX idx_medical_documents_type ON public.medical_documents(health_profile_id, document_type);
-CREATE INDEX idx_medical_documents_date ON public.medical_documents(health_profile_id, document_date DESC);
-CREATE INDEX idx_healthcare_providers_profile ON public.healthcare_providers(health_profile_id);
-CREATE INDEX idx_healthcare_providers_type ON public.healthcare_providers(health_profile_id, provider_type);
-CREATE INDEX idx_appointments_profile ON public.appointments(health_profile_id);
-CREATE INDEX idx_appointments_scheduled ON public.appointments(health_profile_id, scheduled_at DESC);
-CREATE INDEX idx_appointments_status ON public.appointments(health_profile_id, status);
-CREATE INDEX idx_appointments_provider ON public.appointments(provider_id);
-CREATE INDEX idx_appointment_notes_appointment ON public.appointment_notes(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_document_folders_profile ON public.document_folders(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_document_folders_parent ON public.document_folders(parent_folder_id);
+CREATE INDEX IF NOT EXISTS idx_medical_documents_profile ON public.medical_documents(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_medical_documents_folder ON public.medical_documents(folder_id);
+CREATE INDEX IF NOT EXISTS idx_medical_documents_type ON public.medical_documents(health_profile_id, document_type);
+CREATE INDEX IF NOT EXISTS idx_medical_documents_date ON public.medical_documents(health_profile_id, document_date DESC);
+CREATE INDEX IF NOT EXISTS idx_healthcare_providers_profile ON public.healthcare_providers(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_healthcare_providers_type ON public.healthcare_providers(health_profile_id, provider_type);
+CREATE INDEX IF NOT EXISTS idx_appointments_profile ON public.appointments(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_scheduled ON public.appointments(health_profile_id, scheduled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON public.appointments(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_appointments_provider ON public.appointments(provider_id);
+CREATE INDEX IF NOT EXISTS idx_appointment_notes_appointment ON public.appointment_notes(appointment_id);
 
 -- ============================================================================
 -- TRIGGERS

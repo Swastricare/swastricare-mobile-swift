@@ -6,8 +6,8 @@
 -- ============================================================================
 -- INSURANCE PROVIDERS TABLE (Catalog)
 -- ============================================================================
-CREATE TABLE public.insurance_providers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.insurance_providers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Basic info
     name VARCHAR(200) NOT NULL,
@@ -48,8 +48,8 @@ CREATE TABLE public.insurance_providers (
 -- ============================================================================
 -- INSURANCE POLICIES TABLE
 -- ============================================================================
-CREATE TABLE public.insurance_policies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.insurance_policies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     provider_id UUID REFERENCES public.insurance_providers(id),
     
@@ -121,8 +121,8 @@ CREATE TABLE public.insurance_policies (
 -- ============================================================================
 -- INSURANCE CLAIMS TABLE
 -- ============================================================================
-CREATE TABLE public.insurance_claims (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.insurance_claims (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     policy_id UUID NOT NULL REFERENCES public.insurance_policies(id),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id),
     
@@ -190,8 +190,8 @@ CREATE TABLE public.insurance_claims (
 -- ============================================================================
 -- MEDICAL EXPENSES TABLE
 -- ============================================================================
-CREATE TABLE public.medical_expenses (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.medical_expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Categorization
@@ -245,17 +245,17 @@ CREATE TABLE public.medical_expenses (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_insurance_providers_type ON public.insurance_providers(provider_type);
-CREATE INDEX idx_insurance_policies_profile ON public.insurance_policies(health_profile_id);
-CREATE INDEX idx_insurance_policies_status ON public.insurance_policies(health_profile_id, status);
-CREATE INDEX idx_insurance_policies_expiry ON public.insurance_policies(end_date) WHERE status = 'active';
-CREATE INDEX idx_insurance_claims_policy ON public.insurance_claims(policy_id);
-CREATE INDEX idx_insurance_claims_profile ON public.insurance_claims(health_profile_id);
-CREATE INDEX idx_insurance_claims_status ON public.insurance_claims(health_profile_id, status);
-CREATE INDEX idx_medical_expenses_profile ON public.medical_expenses(health_profile_id);
-CREATE INDEX idx_medical_expenses_date ON public.medical_expenses(health_profile_id, expense_date DESC);
-CREATE INDEX idx_medical_expenses_type ON public.medical_expenses(health_profile_id, expense_type);
-CREATE INDEX idx_medical_expenses_year ON public.medical_expenses(health_profile_id, expense_date) WHERE is_tax_deductible = true;
+CREATE INDEX IF NOT EXISTS idx_insurance_providers_type ON public.insurance_providers(provider_type);
+CREATE INDEX IF NOT EXISTS idx_insurance_policies_profile ON public.insurance_policies(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_insurance_policies_status ON public.insurance_policies(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_insurance_policies_expiry ON public.insurance_policies(end_date) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_insurance_claims_policy ON public.insurance_claims(policy_id);
+CREATE INDEX IF NOT EXISTS idx_insurance_claims_profile ON public.insurance_claims(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_insurance_claims_status ON public.insurance_claims(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_medical_expenses_profile ON public.medical_expenses(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_medical_expenses_date ON public.medical_expenses(health_profile_id, expense_date DESC);
+CREATE INDEX IF NOT EXISTS idx_medical_expenses_type ON public.medical_expenses(health_profile_id, expense_type);
+CREATE INDEX IF NOT EXISTS idx_medical_expenses_year ON public.medical_expenses(health_profile_id, expense_date) WHERE is_tax_deductible = true;
 
 -- ============================================================================
 -- TRIGGERS

@@ -8,7 +8,7 @@
 -- APP VERSIONS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.app_versions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Platform and Channel
     platform TEXT NOT NULL CHECK (platform IN ('ios', 'android', 'web')),

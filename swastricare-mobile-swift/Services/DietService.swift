@@ -254,16 +254,6 @@ final class DietService: DietServiceProtocol {
             .sorted { $0.loggedAt > $1.loggedAt }
     }
 
-    // MARK: - Frequency Ranking
-
-    /// Rank foods by usage frequency across all diet log entries.
-    func frequencyRankedFoods(from logs: [DietLogEntry], limit: Int = 20) -> [String] {
-        let counts = Dictionary(grouping: logs, by: { $0.foodName })
-            .mapValues { $0.count }
-            .sorted { $0.value > $1.value }
-        return Array(counts.prefix(limit).map(\.key))
-    }
-
     // MARK: - Search (Fuzzy + Ranked + Frequency Boost)
 
     func searchFoods(query: String, in foodItems: [FoodItem]) -> [FoodItem] {

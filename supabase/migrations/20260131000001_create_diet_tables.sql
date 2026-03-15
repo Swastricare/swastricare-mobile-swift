@@ -10,8 +10,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Description: User's diet plans with nutritional targets
 -- ============================================================================
 
-CREATE TABLE public.diet_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.diet_plans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     goal_type VARCHAR(30) NOT NULL CHECK (goal_type IN ('weight_loss', 'weight_gain', 'maintenance', 'muscle_building')),
@@ -27,16 +27,16 @@ CREATE TABLE public.diet_plans (
 );
 
 -- Indexes for diet_plans
-CREATE INDEX idx_diet_plans_profile ON public.diet_plans(health_profile_id, is_active);
-CREATE INDEX idx_diet_plans_dates ON public.diet_plans(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_diet_plans_profile ON public.diet_plans(health_profile_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_diet_plans_dates ON public.diet_plans(start_date, end_date);
 
 -- ============================================================================
 -- TABLE: diet_meals
 -- Description: Meal templates within a diet plan
 -- ============================================================================
 
-CREATE TABLE public.diet_meals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.diet_meals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     diet_plan_id UUID NOT NULL REFERENCES public.diet_plans(id) ON DELETE CASCADE,
     meal_type VARCHAR(20) NOT NULL CHECK (meal_type IN ('breakfast', 'morning_snack', 'lunch', 'evening_snack', 'dinner', 'late_night')),
     scheduled_time TIME,
@@ -46,15 +46,15 @@ CREATE TABLE public.diet_meals (
 );
 
 -- Indexes for diet_meals
-CREATE INDEX idx_diet_meals_plan ON public.diet_meals(diet_plan_id, order_index);
+CREATE INDEX IF NOT EXISTS idx_diet_meals_plan ON public.diet_meals(diet_plan_id, order_index);
 
 -- ============================================================================
 -- TABLE: food_items
 -- Description: Food database with nutritional information
 -- ============================================================================
 
-CREATE TABLE public.food_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.food_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(150) NOT NULL,
     brand VARCHAR(100),
     serving_size DECIMAL(10,2) NOT NULL,
@@ -73,17 +73,17 @@ CREATE TABLE public.food_items (
 );
 
 -- Indexes for food_items
-CREATE INDEX idx_food_items_name ON public.food_items(name);
-CREATE INDEX idx_food_items_category ON public.food_items(category);
-CREATE INDEX idx_food_items_search ON public.food_items USING gin(to_tsvector('english', name || ' ' || COALESCE(brand, '')));
+CREATE INDEX IF NOT EXISTS idx_food_items_name ON public.food_items(name);
+CREATE INDEX IF NOT EXISTS idx_food_items_category ON public.food_items(category);
+CREATE INDEX IF NOT EXISTS idx_food_items_search ON public.food_items USING gin(to_tsvector('english', name || ' ' || COALESCE(brand, '')));
 
 -- ============================================================================
 -- TABLE: diet_logs
 -- Description: Daily food intake logs
 -- ============================================================================
 
-CREATE TABLE public.diet_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.diet_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     food_item_id UUID REFERENCES public.food_items(id) ON DELETE SET NULL,
     meal_type VARCHAR(20) NOT NULL CHECK (meal_type IN ('breakfast', 'morning_snack', 'lunch', 'evening_snack', 'dinner', 'late_night')),
@@ -101,16 +101,16 @@ CREATE TABLE public.diet_logs (
 );
 
 -- Indexes for diet_logs
-CREATE INDEX idx_diet_logs_profile_date ON public.diet_logs(health_profile_id, logged_at DESC);
-CREATE INDEX idx_diet_logs_meal_type ON public.diet_logs(health_profile_id, meal_type, logged_at DESC);
+CREATE INDEX IF NOT EXISTS idx_diet_logs_profile_date ON public.diet_logs(health_profile_id, logged_at DESC);
+CREATE INDEX IF NOT EXISTS idx_diet_logs_meal_type ON public.diet_logs(health_profile_id, meal_type, logged_at DESC);
 
 -- ============================================================================
 -- TABLE: diet_goals
 -- Description: User's nutritional goals and preferences
 -- ============================================================================
 
-CREATE TABLE public.diet_goals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.diet_goals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL UNIQUE REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     daily_calories INT DEFAULT 2000,
     protein_percent INT DEFAULT 25 CHECK (protein_percent >= 0 AND protein_percent <= 100),
@@ -122,7 +122,7 @@ CREATE TABLE public.diet_goals (
 );
 
 -- Index for diet_goals
-CREATE INDEX idx_diet_goals_profile ON public.diet_goals(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_diet_goals_profile ON public.diet_goals(health_profile_id);
 
 -- ============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES

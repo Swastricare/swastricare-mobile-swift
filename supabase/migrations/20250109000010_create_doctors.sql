@@ -6,8 +6,8 @@
 -- ============================================================================
 -- MEDICAL SPECIALIZATIONS TABLE (Catalog)
 -- ============================================================================
-CREATE TABLE public.medical_specializations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.medical_specializations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Specialization info
     name VARCHAR(100) NOT NULL,
@@ -39,8 +39,8 @@ CREATE TABLE public.medical_specializations (
 -- ============================================================================
 -- HEALTHCARE FACILITIES TABLE
 -- ============================================================================
-CREATE TABLE public.healthcare_facilities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.healthcare_facilities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Basic info
     name VARCHAR(200) NOT NULL,
@@ -106,8 +106,8 @@ CREATE TABLE public.healthcare_facilities (
 -- ============================================================================
 -- DOCTORS TABLE (Verified Database)
 -- ============================================================================
-CREATE TABLE public.doctors (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.doctors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Basic info
     name VARCHAR(100) NOT NULL,
@@ -178,8 +178,8 @@ CREATE TABLE public.doctors (
 -- ============================================================================
 -- DOCTOR FACILITIES TABLE (Junction)
 -- ============================================================================
-CREATE TABLE public.doctor_facilities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.doctor_facilities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     doctor_id UUID NOT NULL REFERENCES public.doctors(id) ON DELETE CASCADE,
     facility_id UUID NOT NULL REFERENCES public.healthcare_facilities(id) ON DELETE CASCADE,
     
@@ -219,8 +219,8 @@ CREATE TABLE public.doctor_facilities (
 -- ============================================================================
 -- MY DOCTORS TABLE (User's personal list)
 -- ============================================================================
-CREATE TABLE public.my_doctors (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.my_doctors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Link to verified doctor (optional)
@@ -261,8 +261,8 @@ CREATE TABLE public.my_doctors (
 -- ============================================================================
 -- DOCTOR REVIEWS TABLE
 -- ============================================================================
-CREATE TABLE public.doctor_reviews (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.doctor_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     doctor_id UUID NOT NULL REFERENCES public.doctors(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.users(id),
     health_profile_id UUID REFERENCES public.health_profiles(id),
@@ -310,20 +310,20 @@ CREATE TABLE public.doctor_reviews (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_medical_specializations_category ON public.medical_specializations(category);
-CREATE INDEX idx_healthcare_facilities_type ON public.healthcare_facilities(facility_type);
-CREATE INDEX idx_healthcare_facilities_city ON public.healthcare_facilities(city);
-CREATE INDEX idx_healthcare_facilities_location ON public.healthcare_facilities(latitude, longitude);
-CREATE INDEX idx_doctors_specialization ON public.doctors(specialization_id);
-CREATE INDEX idx_doctors_name ON public.doctors(name);
-CREATE INDEX idx_doctors_verified ON public.doctors(is_verified) WHERE is_verified = true;
-CREATE INDEX idx_doctor_facilities_doctor ON public.doctor_facilities(doctor_id);
-CREATE INDEX idx_doctor_facilities_facility ON public.doctor_facilities(facility_id);
-CREATE INDEX idx_my_doctors_profile ON public.my_doctors(health_profile_id);
-CREATE INDEX idx_my_doctors_doctor ON public.my_doctors(doctor_id);
-CREATE INDEX idx_my_doctors_favorite ON public.my_doctors(health_profile_id) WHERE is_favorite = true;
-CREATE INDEX idx_doctor_reviews_doctor ON public.doctor_reviews(doctor_id);
-CREATE INDEX idx_doctor_reviews_rating ON public.doctor_reviews(doctor_id, rating);
+CREATE INDEX IF NOT EXISTS idx_medical_specializations_category ON public.medical_specializations(category);
+CREATE INDEX IF NOT EXISTS idx_healthcare_facilities_type ON public.healthcare_facilities(facility_type);
+CREATE INDEX IF NOT EXISTS idx_healthcare_facilities_city ON public.healthcare_facilities(city);
+CREATE INDEX IF NOT EXISTS idx_healthcare_facilities_location ON public.healthcare_facilities(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_doctors_specialization ON public.doctors(specialization_id);
+CREATE INDEX IF NOT EXISTS idx_doctors_name ON public.doctors(name);
+CREATE INDEX IF NOT EXISTS idx_doctors_verified ON public.doctors(is_verified) WHERE is_verified = true;
+CREATE INDEX IF NOT EXISTS idx_doctor_facilities_doctor ON public.doctor_facilities(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_doctor_facilities_facility ON public.doctor_facilities(facility_id);
+CREATE INDEX IF NOT EXISTS idx_my_doctors_profile ON public.my_doctors(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_my_doctors_doctor ON public.my_doctors(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_my_doctors_favorite ON public.my_doctors(health_profile_id) WHERE is_favorite = true;
+CREATE INDEX IF NOT EXISTS idx_doctor_reviews_doctor ON public.doctor_reviews(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_doctor_reviews_rating ON public.doctor_reviews(doctor_id, rating);
 
 -- ============================================================================
 -- TRIGGERS

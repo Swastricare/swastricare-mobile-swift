@@ -4,8 +4,8 @@
 -- Stores all in-app events for analysis: login/logout, hydration, medication,
 -- button taps, screen views, errors. Respect user_settings.analytics_enabled on client.
 
-CREATE TABLE public.app_events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.app_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
 
     -- User (null when anonymous / pre-login)
@@ -50,6 +50,6 @@ CREATE POLICY app_events_select_policy ON public.app_events
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_app_events_user_created ON public.app_events(user_id, created_at DESC);
-CREATE INDEX idx_app_events_name_created ON public.app_events(event_name, created_at DESC);
-CREATE INDEX idx_app_events_session ON public.app_events(session_id) WHERE session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_app_events_user_created ON public.app_events(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_app_events_name_created ON public.app_events(event_name, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_app_events_session ON public.app_events(session_id) WHERE session_id IS NOT NULL;

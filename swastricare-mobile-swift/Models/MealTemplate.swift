@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Template Item
 
 struct TemplateItem: Codable, Equatable, Identifiable {
-    var id: UUID { foodItemId ?? UUID() }
+    let id: UUID
     let foodItemId: UUID?
     let foodName: String
     let quantity: Double

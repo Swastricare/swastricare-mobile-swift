@@ -108,11 +108,7 @@ final class DietPatternLearner: DietPatternLearnerProtocol {
     private let userDefaults = UserDefaults.standard
     private let patternKey = "diet_pattern_data"
 
-    private var pattern: DietPattern {
-        didSet {
-            savePattern()
-        }
-    }
+    private var pattern: DietPattern
 
     // MARK: - Init
 
@@ -128,41 +124,58 @@ final class DietPatternLearner: DietPatternLearnerProtocol {
         let hour = calendar.component(.hour, from: time)
         let mealKey = mealType.rawValue
 
+        // Mutate a local copy to avoid N separate UserDefaults writes via didSet
+        var p = pattern
+
         // Update meal time probability for this hour
-        var hourMap = pattern.mealTimeProbability[mealKey] ?? [:]
+        var hourMap = p.mealTimeProbability[mealKey] ?? [:]
         let hourKey = String(hour)
         let currentCount = hourMap[hourKey] ?? 0
         hourMap[hourKey] = currentCount + 1
-        pattern.mealTimeProbability[mealKey] = hourMap
+        p.mealTimeProbability[mealKey] = hourMap
 
         // Update average calories per meal (exponential moving average)
-        let currentAvg = pattern.averageCaloriesPerMeal[mealKey] ?? 0
+        let currentAvg = p.averageCaloriesPerMeal[mealKey] ?? 0
         if currentAvg == 0 {
-            pattern.averageCaloriesPerMeal[mealKey] = calories
+            p.averageCaloriesPerMeal[mealKey] = calories
         } else {
             let alpha = 0.3
-            pattern.averageCaloriesPerMeal[mealKey] = Int(Double(currentAvg) * (1 - alpha) + Double(calories) * alpha)
+            p.averageCaloriesPerMeal[mealKey] = Int(Double(currentAvg) * (1 - alpha) + Double(calories) * alpha)
         }
 
         // Update preferred meal time (most frequent hour)
-        if let hourMap = pattern.mealTimeProbability[mealKey] {
-            let bestHour = hourMap.max(by: { $0.value < $1.value })?.key
+        if let hMap = p.mealTimeProbability[mealKey] {
+            let bestHour = hMap.max(by: { $0.value < $1.value })?.key
             if let bestHourStr = bestHour, let bestHourInt = Int(bestHourStr) {
-                pattern.preferredMealHours[mealKey] = bestHourInt
+                p.preferredMealHours[mealKey] = bestHourInt
             }
         }
 
         // Track meal log counts for skip frequency
-        let logCount = pattern.mealLogCounts[mealKey] ?? 0
-        pattern.mealLogCounts[mealKey] = logCount + 1
+        let logCount = p.mealLogCounts[mealKey] ?? 0
+        p.mealLogCounts[mealKey] = logCount + 1
 
         // Update days tracked
-        updateDaysTracked(timestamp: time)
+        let today = calendar.startOfDay(for: time)
+        let lastTrackedDay = calendar.startOfDay(for: p.lastUpdated)
+        if today > lastTrackedDay {
+            p.daysOfData += 1
+            p.totalDaysTracked += 1
+        }
 
-        // Recalculate skip frequencies
-        recalculateSkipFrequencies()
+        // Recalculate skip frequencies on the copy
+        let expectedMealsPerDay = max(p.daysOfData, 1)
+        for meal in MealType.allCases {
+            let count = p.mealLogCounts[meal.rawValue] ?? 0
+            let skipRate = 1.0 - (Double(count) / Double(expectedMealsPerDay))
+            p.skippedMealFrequency[meal.rawValue] = max(0, min(1, skipRate))
+        }
 
-        pattern.lastUpdated = Date()
+        p.lastUpdated = Date()
+
+        // Single assignment → single save
+        pattern = p
+        savePattern()
 
         print("🍎 DietPatternLearner: Recorded \(mealKey) at hour \(hour), \(calories) cal")
     }

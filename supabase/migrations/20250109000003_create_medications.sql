@@ -6,8 +6,8 @@
 -- ============================================================================
 -- MEDICATIONS TABLE
 -- ============================================================================
-CREATE TABLE public.medications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.medications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
     -- Medicine details
@@ -73,8 +73,8 @@ CREATE TABLE public.medications (
 -- ============================================================================
 -- MEDICATION SCHEDULES TABLE
 -- ============================================================================
-CREATE TABLE public.medication_schedules (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.medication_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     medication_id UUID NOT NULL REFERENCES public.medications(id) ON DELETE CASCADE,
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
     
@@ -118,8 +118,8 @@ CREATE TABLE public.medication_schedules (
 -- ============================================================================
 -- MEDICATION LOGS TABLE
 -- ============================================================================
-CREATE TABLE public.medication_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS public.medication_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     medication_id UUID NOT NULL REFERENCES public.medications(id) ON DELETE CASCADE,
     schedule_id UUID REFERENCES public.medication_schedules(id) ON DELETE SET NULL,
     health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
@@ -153,14 +153,14 @@ CREATE TABLE public.medication_logs (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_medications_profile ON public.medications(health_profile_id);
-CREATE INDEX idx_medications_status ON public.medications(health_profile_id, status);
-CREATE INDEX idx_medication_schedules_medication ON public.medication_schedules(medication_id);
-CREATE INDEX idx_medication_schedules_profile ON public.medication_schedules(health_profile_id);
-CREATE INDEX idx_medication_schedules_active ON public.medication_schedules(health_profile_id) WHERE is_active = true;
-CREATE INDEX idx_medication_logs_medication ON public.medication_logs(medication_id);
-CREATE INDEX idx_medication_logs_profile_date ON public.medication_logs(health_profile_id, created_at DESC);
-CREATE INDEX idx_medication_logs_scheduled ON public.medication_logs(scheduled_time);
+CREATE INDEX IF NOT EXISTS idx_medications_profile ON public.medications(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_medications_status ON public.medications(health_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_medication_schedules_medication ON public.medication_schedules(medication_id);
+CREATE INDEX IF NOT EXISTS idx_medication_schedules_profile ON public.medication_schedules(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_medication_schedules_active ON public.medication_schedules(health_profile_id) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_medication_logs_medication ON public.medication_logs(medication_id);
+CREATE INDEX IF NOT EXISTS idx_medication_logs_profile_date ON public.medication_logs(health_profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_medication_logs_scheduled ON public.medication_logs(scheduled_time);
 
 -- ============================================================================
 -- TRIGGERS
