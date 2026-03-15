@@ -906,7 +906,7 @@ private struct HydrationQuickActionButton: View {
                 }
                 .padding(20)
             }
-            .frame(height: 90)
+            .frame(height: 100)
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
@@ -1009,7 +1009,7 @@ private struct CycleTrackerQuickActionButton: View {
                 }
                 .padding(20)
             }
-            .frame(height: 90)
+            .frame(height: 100)
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
@@ -1132,7 +1132,7 @@ private struct MedicationQuickActionButton: View {
                 }
                 .padding(20)
             }
-            .frame(height: 90)
+            .frame(height: 100)
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
