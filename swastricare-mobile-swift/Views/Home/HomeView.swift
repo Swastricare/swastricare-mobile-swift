@@ -122,6 +122,8 @@ struct HomeView: View {
                         userPhotoURL: authViewModel.userPhotoURL,
                         status: healthStatus,
                         greeting: timeBasedGreeting,
+                        stepCount: viewModel.stepCount,
+                        lastSyncTime: viewModel.lastSyncTime,
                         showReminders: $showReminders
                     )
                     .opacity(hasAppeared ? 1 : 0)
@@ -283,11 +285,9 @@ struct HomeView: View {
                         ))
                 }
                 
-                // Daily Activity Details on the left (without card)
+                // Daily Activity Details on the left — tappable to go to Steps tab
                 VStack(alignment: .leading, spacing: 12) {
-                    
-                    // Stats List - Vertical
-                    VStack(alignment: .leading, spacing: 10) { // Tighter spacing for cards
+                    VStack(alignment: .leading, spacing: 10) {
                         DailyActivityStatItem(
                             icon: "flame.fill",
                             color: .orange,
@@ -314,6 +314,10 @@ struct HomeView: View {
                             animationDelay: 0.6,
                             hasAppeared: hasAppeared
                         )
+                    }
+                    .onTapGesture {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        NotificationCenter.default.post(name: NSNotification.Name("SwitchToStepsTab"), object: nil)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -428,6 +432,20 @@ struct HomeView: View {
 
     private var healthVitalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Empty state hint when no data
+            if !viewModel.isAuthorized && viewModel.heartRate == 0 && viewModel.distance == 0 {
+                HStack(spacing: 8) {
+                    Image(systemName: "heart.text.square")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                    Text("Enable Health Access to see your vitals")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 4)
+            }
+
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible()),
@@ -519,7 +537,6 @@ struct HomeView: View {
                 CycleTrackerQuickActionButton {
                     showMenstrualCycle = true
                 }
-                .gridCellColumns(2)
                 .opacity(quickActionsVisible ? 1 : 0)
                 .scaleEffect(quickActionsVisible ? 1 : 0.92)
                 .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.26), value: quickActionsVisible)
@@ -577,29 +594,31 @@ struct HomeView: View {
         let userPhotoURL: URL?
         let status: HealthStatus
         let greeting: String
+        let stepCount: Int
+        let lastSyncTime: Date?
         @Binding var showReminders: Bool
-        
+
         @State private var isPulsing = false
-        
+
         var body: some View {
-            HStack(alignment: .top) {
-                // Left: Text Info
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(greeting)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(status.color)
-                    
-                    HStack(alignment: .center, spacing: 8) {
-                        Text(userName)
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        
-                        // Pulsing Heart
-                        ZStack {
+            VStack(spacing: 0) {
+                HStack(alignment: .top) {
+                    // Left: Greeting + Name + Heart
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(greeting)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(status.color)
+
+                        HStack(alignment: .center, spacing: 8) {
+                            Text(userName)
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+
+                            // Pulsing Heart
                             Image(systemName: "heart.fill")
                                 .font(.system(size: 24))
                                 .foregroundColor(.red)
@@ -610,38 +629,53 @@ struct HomeView: View {
                                     value: isPulsing
                                 )
                         }
-                        .onAppear {
-                            isPulsing = true
+
+                        // Step progress + last updated
+                        HStack(spacing: 12) {
+                            // Steps
+                            HStack(spacing: 4) {
+                                Image(systemName: "figure.walk")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(AppColors.accentGreen)
+                                Text(stepCount > 0 ? "\(stepCount.formatted()) steps" : "No steps yet")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(stepCount > 0 ? AppColors.accentGreen : .secondary)
+                            }
+
+                            // Last updated
+                            if let syncTime = lastSyncTime {
+                                Text("· \(syncTime.formatted(.relative(presentation: .named)))")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
+
+                    Spacer()
+
+                    // Right: Actions
+                    HStack(spacing: 16) {
+                        Button(action: { showReminders = true }) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.primary)
+                        }
+
+                        NavigationLink(destination: HealthAnalyticsView()) {
+                            Image(systemName: "target")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.primary)
+                                .frame(width: 40, height: 40)
+                                .background(Color.gray.opacity(0.1))
+                                .clipShape(Circle())
                         }
                     }
                 }
-                
-                Spacer()
-                
-                // Right: Actions
-                HStack(spacing: 16) {
-                    // Notification Bell
-                    Button(action: {
-                        showReminders = true
-                    }) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.primary)
-                    }
-                    
-                    // Track Button
-                    NavigationLink(destination: HealthAnalyticsView()) {
-                        Image(systemName: "target")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(.primary)
-                            .frame(width: 40, height: 40)
-                            .background(Color.gray.opacity(0.1))
-                            .clipShape(Circle())
-                    }
-                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 10)
+            .onAppear { isPulsing = true }
         }
     }
 }
