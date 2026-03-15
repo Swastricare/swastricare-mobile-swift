@@ -257,7 +257,7 @@ struct HomeView: View {
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 380)
+                        .frame(height: 300)
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
                         .offset(x: geometry.size.width * 0.16)
@@ -272,73 +272,31 @@ struct HomeView: View {
                         )
                 }
 
-                // All 6 health stats on the left
-                VStack(alignment: .leading, spacing: 7) {
-                    // Activity stats
-                    DailyActivityStatItem(
-                        icon: "flame.fill",
-                        color: .orange,
-                        value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
-                        unit: "Active Cal",
-                        animationDelay: 0.3,
-                        hasAppeared: hasAppeared
-                    )
+                // All 6 health stats — 2 columns × 3 rows
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 6),
+                    GridItem(.flexible(), spacing: 6)
+                ], spacing: 6) {
+                    CompactStatCell(icon: "flame.fill", color: .orange, value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—", unit: "Cal")
+                    CompactStatCell(icon: "clock.fill", color: .blue, value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—", unit: "Min")
+                    CompactStatCell(icon: "figure.stand", color: .purple, value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—", unit: "Stand")
 
-                    DailyActivityStatItem(
-                        icon: "clock.fill",
-                        color: .blue,
-                        value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
-                        unit: "Exercise Min",
-                        animationDelay: 0.4,
-                        hasAppeared: hasAppeared
-                    )
-
-                    DailyActivityStatItem(
-                        icon: "figure.stand",
-                        color: .purple,
-                        value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
-                        unit: "Stand Hrs",
-                        animationDelay: 0.5,
-                        hasAppeared: hasAppeared
-                    )
-
-                    // Vitals
                     Button(action: { showHeartRateMeasurement = true }) {
-                        DailyActivityStatItem(
-                            icon: "heart.fill",
-                            color: .red,
-                            value: viewModel.heartRate > 0 ? "\(viewModel.heartRate)" : "—",
-                            unit: "Heart Rate",
-                            animationDelay: 0.6,
-                            hasAppeared: hasAppeared
-                        )
+                        CompactStatCell(icon: "heart.fill", color: .red, value: viewModel.heartRate > 0 ? "\(viewModel.heartRate)" : "—", unit: "BPM")
                     }
                     .buttonStyle(PlainButtonStyle())
 
-                    DailyActivityStatItem(
-                        icon: "bed.double.fill",
-                        color: .indigo,
-                        value: viewModel.sleepHours == "0h 0m" ? "—" : viewModel.sleepHours,
-                        unit: "Sleep",
-                        animationDelay: 0.7,
-                        hasAppeared: hasAppeared
-                    )
-
-                    DailyActivityStatItem(
-                        icon: "figure.walk",
-                        color: .green,
-                        value: viewModel.distance > 0 ? String(format: "%.1f km", viewModel.distance) : "—",
-                        unit: "Distance",
-                        animationDelay: 0.8,
-                        hasAppeared: hasAppeared
-                    )
+                    CompactStatCell(icon: "bed.double.fill", color: .indigo, value: viewModel.sleepHours == "0h 0m" ? "—" : viewModel.sleepHours, unit: "Sleep")
+                    CompactStatCell(icon: "figure.walk", color: .green, value: viewModel.distance > 0 ? String(format: "%.1f", viewModel.distance) : "—", unit: "km")
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
                 .frame(maxWidth: geometry.size.width * 0.52, alignment: .leading)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: hasAppeared)
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
             }
         }
-        .frame(height: 360)
+        .frame(height: 260)
     }
     
     private var authorizationBanner: some View {
@@ -805,6 +763,46 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
             .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(animationDelay), value: hasAppeared)
         }
     }
+
+// MARK: - Compact Stat Cell (2-col grid in model area)
+
+private struct CompactStatCell: View {
+    let icon: String
+    let color: Color
+    let value: String
+    let unit: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 24, height: 24)
+                .background(color.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(value)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(unit)
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(color.opacity(0.10), lineWidth: 0.5)
+        )
+    }
+}
 
 // MARK: - Macro Pill (for diet summary)
 
