@@ -1,87 +1,103 @@
--- ============================================================================
--- FAMILY INVITE CODES + RLS POLICY FIXES
--- Adds invite_code column to family_groups and updates RLS policies
--- to support the join-by-code flow from both iOS and Android apps.
--- ============================================================================
+-- Create family_groups table with invite_code
+CREATE TABLE IF NOT EXISTS public.family_groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL DEFAULT 'My Family',
+    description TEXT,
+    invite_code VARCHAR(8) UNIQUE,
+    allow_member_invites BOOLEAN DEFAULT false,
+    require_approval BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 1. Add invite_code column to family_groups
-ALTER TABLE public.family_groups
-    ADD COLUMN IF NOT EXISTS invite_code VARCHAR(8) UNIQUE;
+-- Create health_profiles if not exists (needed as FK target)
+CREATE TABLE IF NOT EXISTS public.health_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name VARCHAR(100),
+    avatar_url TEXT,
+    date_of_birth DATE,
+    gender VARCHAR(20),
+    height_cm INTEGER,
+    weight_kg DECIMAL(5,2),
+    blood_type VARCHAR(5),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 2. Add index on invite_code for fast lookups
-CREATE INDEX IF NOT EXISTS idx_family_groups_invite_code
-    ON public.family_groups(invite_code)
-    WHERE invite_code IS NOT NULL;
+-- Create family_members table
+CREATE TABLE IF NOT EXISTS public.family_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    family_group_id UUID NOT NULL REFERENCES public.family_groups(id) ON DELETE CASCADE,
+    health_profile_id UUID NOT NULL REFERENCES public.health_profiles(id) ON DELETE CASCADE,
+    added_by_user_id UUID REFERENCES auth.users(id),
+    role VARCHAR(20) DEFAULT 'viewer' CHECK (role IN ('owner', 'caregiver', 'viewer', 'limited')),
+    can_view BOOLEAN DEFAULT true,
+    can_edit BOOLEAN DEFAULT false,
+    can_add_medications BOOLEAN DEFAULT false,
+    can_add_appointments BOOLEAN DEFAULT false,
+    can_view_medical_documents BOOLEAN DEFAULT true,
+    can_manage_members BOOLEAN DEFAULT false,
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('pending', 'active', 'suspended', 'removed')),
+    relationship VARCHAR(50),
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(family_group_id, health_profile_id)
+);
 
--- 3. Allow ANY authenticated user to SELECT family_groups by invite_code
---    (needed for join-by-code flow — user doesn't own the group yet)
-DROP POLICY IF EXISTS "Anyone can find groups by invite code" ON public.family_groups;
-CREATE POLICY "Anyone can find groups by invite code" ON public.family_groups
-    FOR SELECT
-    USING (
-        -- Owner can always see their groups
-        owner_user_id = auth.uid()
-        -- OR anyone can look up a group by invite code (for joining)
-        OR invite_code IS NOT NULL
-    );
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_family_groups_invite_code ON public.family_groups(invite_code) WHERE invite_code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_family_groups_owner ON public.family_groups(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_family_members_group ON public.family_members(family_group_id);
+CREATE INDEX IF NOT EXISTS idx_family_members_profile ON public.family_members(health_profile_id);
+CREATE INDEX IF NOT EXISTS idx_health_profiles_user ON public.health_profiles(user_id);
 
--- 4. Allow authenticated users to INSERT themselves into family_members
---    (needed for join-by-code flow — user adds themselves as a viewer)
-DROP POLICY IF EXISTS "Users can join family groups" ON public.family_members;
-CREATE POLICY "Users can join family groups" ON public.family_members
-    FOR INSERT
-    WITH CHECK (
-        -- User can only add their own health profile
-        health_profile_id IN (
-            SELECT id FROM public.health_profiles WHERE user_id = auth.uid()
-        )
-        -- And the added_by must be themselves
-        AND added_by_user_id = auth.uid()
-    );
+-- Enable RLS
+ALTER TABLE public.family_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.family_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.health_profiles ENABLE ROW LEVEL SECURITY;
 
--- 5. Allow members to SELECT their own family group's members
-DROP POLICY IF EXISTS "Members can view their family" ON public.family_members;
-CREATE POLICY "Members can view their family" ON public.family_members
-    FOR SELECT
-    USING (
-        -- Owner of the family group
-        family_group_id IN (
-            SELECT id FROM public.family_groups WHERE owner_user_id = auth.uid()
-        )
-        -- OR active member of the group
-        OR family_group_id IN (
-            SELECT fm.family_group_id FROM public.family_members fm
-            JOIN public.health_profiles hp ON fm.health_profile_id = hp.id
-            WHERE hp.user_id = auth.uid() AND fm.status = 'active'
-        )
-    );
+-- health_profiles RLS
+DROP POLICY IF EXISTS "Users can view own health profiles" ON public.health_profiles;
+CREATE POLICY "Users can view own health profiles" ON public.health_profiles FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users can insert own health profiles" ON public.health_profiles;
+CREATE POLICY "Users can insert own health profiles" ON public.health_profiles FOR INSERT WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users can update own health profiles" ON public.health_profiles;
+CREATE POLICY "Users can update own health profiles" ON public.health_profiles FOR UPDATE USING (user_id = auth.uid());
 
--- 6. Allow members to DELETE their own membership (leave group)
-DROP POLICY IF EXISTS "Members can leave family" ON public.family_members;
-CREATE POLICY "Members can leave family" ON public.family_members
-    FOR DELETE
-    USING (
-        -- Can delete own membership
-        health_profile_id IN (
-            SELECT id FROM public.health_profiles WHERE user_id = auth.uid()
-        )
-        -- OR owner can remove any member
-        OR family_group_id IN (
-            SELECT id FROM public.family_groups WHERE owner_user_id = auth.uid()
-        )
-    );
+-- family_groups RLS
+DROP POLICY IF EXISTS "family_groups_select" ON public.family_groups;
+CREATE POLICY "family_groups_select" ON public.family_groups FOR SELECT USING (owner_user_id = auth.uid() OR invite_code IS NOT NULL);
+DROP POLICY IF EXISTS "family_groups_insert" ON public.family_groups;
+CREATE POLICY "family_groups_insert" ON public.family_groups FOR INSERT WITH CHECK (owner_user_id = auth.uid());
+DROP POLICY IF EXISTS "family_groups_update" ON public.family_groups;
+CREATE POLICY "family_groups_update" ON public.family_groups FOR UPDATE USING (owner_user_id = auth.uid());
+DROP POLICY IF EXISTS "family_groups_delete" ON public.family_groups;
+CREATE POLICY "family_groups_delete" ON public.family_groups FOR DELETE USING (owner_user_id = auth.uid());
 
--- 7. Allow owner to UPDATE member status/permissions
-DROP POLICY IF EXISTS "Owner can update members" ON public.family_members;
-CREATE POLICY "Owner can update members" ON public.family_members
-    FOR UPDATE
-    USING (
-        family_group_id IN (
-            SELECT id FROM public.family_groups WHERE owner_user_id = auth.uid()
-        )
+-- family_members RLS
+DROP POLICY IF EXISTS "family_members_insert" ON public.family_members;
+CREATE POLICY "family_members_insert" ON public.family_members FOR INSERT WITH CHECK (
+    health_profile_id IN (SELECT id FROM public.health_profiles WHERE user_id = auth.uid())
+    AND added_by_user_id = auth.uid()
+);
+DROP POLICY IF EXISTS "family_members_select" ON public.family_members;
+CREATE POLICY "family_members_select" ON public.family_members FOR SELECT USING (
+    family_group_id IN (SELECT id FROM public.family_groups WHERE owner_user_id = auth.uid())
+    OR family_group_id IN (
+        SELECT fm.family_group_id FROM public.family_members fm
+        JOIN public.health_profiles hp ON fm.health_profile_id = hp.id
+        WHERE hp.user_id = auth.uid() AND fm.status = 'active'
     )
-    WITH CHECK (
-        family_group_id IN (
-            SELECT id FROM public.family_groups WHERE owner_user_id = auth.uid()
-        )
-    );
+);
+DROP POLICY IF EXISTS "family_members_delete" ON public.family_members;
+CREATE POLICY "family_members_delete" ON public.family_members FOR DELETE USING (
+    health_profile_id IN (SELECT id FROM public.health_profiles WHERE user_id = auth.uid())
+    OR family_group_id IN (SELECT id FROM public.family_groups WHERE owner_user_id = auth.uid())
+);
+DROP POLICY IF EXISTS "family_members_update" ON public.family_members;
+CREATE POLICY "family_members_update" ON public.family_members FOR UPDATE
+    USING (family_group_id IN (SELECT id FROM public.family_groups WHERE owner_user_id = auth.uid()))
+    WITH CHECK (family_group_id IN (SELECT id FROM public.family_groups WHERE owner_user_id = auth.uid()));
