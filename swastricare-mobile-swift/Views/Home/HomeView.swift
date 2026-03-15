@@ -871,40 +871,36 @@ private struct HydrationQuickActionButton: View {
                         ZStack {
                             Circle()
                                 .fill(iconCircleFill)
-                                .frame(width: 44, height: 44)
+                                .frame(width: 32, height: 32)
                             Image(systemName: "drop.fill")
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(textColor)
                         }
-                        
+
                         Spacer()
-                        
+
                         Text("\(Int(visualProgress * 100))%")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundColor(textColor)
                             .contentTransition(.numericText(value: visualProgress))
                     }
-                    
+
                     Spacer()
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Hydration")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(textColor.opacity(secondaryTextOpacity))
-                        
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text("\(currentIntake)")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .foregroundColor(textColor)
-                            Text("/ \(dailyGoal) ml")
-                                .font(.footnote)
-                                .fontWeight(.medium)
-                                .foregroundColor(textColor.opacity(tertiaryTextOpacity))
-                        }
+
+                    Text("Hydration")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(textColor.opacity(secondaryTextOpacity))
+
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text("\(currentIntake)")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(textColor)
+                        Text("/ \(dailyGoal) ml")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(textColor.opacity(tertiaryTextOpacity))
                     }
                 }
-                .padding(20)
+                .padding(12)
             }
             .frame(height: 100)
             .frame(maxWidth: .infinity)
@@ -982,32 +978,29 @@ private struct CycleTrackerQuickActionButton: View {
                         ZStack {
                             Circle()
                                 .fill(iconCircleFill)
-                                .frame(width: 44, height: 44)
+                                .frame(width: 32, height: 32)
                             Image(systemName: "drop.fill")
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.white)
                         }
-                        
+
                         Spacer()
-                        
+
                         Image(systemName: "calendar.badge.clock")
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(textColor.opacity(0.75))
                     }
-                    
+
                     Spacer()
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Cycle")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(textColor)
-                        
-                        Text("Tracker")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
-                            .foregroundColor(textColor.opacity(secondaryTextOpacity))
-                    }
+
+                    Text("Cycle")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(textColor)
+                    Text("Tracker")
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(textColor.opacity(secondaryTextOpacity))
                 }
-                .padding(20)
+                .padding(12)
             }
             .frame(height: 100)
             .frame(maxWidth: .infinity)
@@ -1097,40 +1090,36 @@ private struct MedicationQuickActionButton: View {
                         ZStack {
                             Circle()
                                 .fill(iconCircleFill)
-                                .frame(width: 44, height: 44)
+                                .frame(width: 32, height: 32)
                             Image(systemName: "pills.fill")
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(textColor)
                         }
-                        
+
                         Spacer()
-                        
+
                         Text("\(Int(visualProgress * 100))%")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundColor(textColor)
                             .contentTransition(.numericText(value: visualProgress))
                     }
-                    
+
                     Spacer()
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Medications")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(textColor.opacity(secondaryTextOpacity))
-                        
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text("\(takenCount)")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .foregroundColor(textColor)
-                            Text("/ \(totalCount) taken")
-                                .font(.footnote)
-                                .fontWeight(.medium)
-                                .foregroundColor(textColor.opacity(tertiaryTextOpacity))
-                        }
+
+                    Text("Medications")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(textColor.opacity(secondaryTextOpacity))
+
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text("\(takenCount)")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(textColor)
+                        Text("/ \(totalCount) taken")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(textColor.opacity(tertiaryTextOpacity))
                     }
                 }
-                .padding(20)
+                .padding(12)
             }
             .frame(height: 100)
             .frame(maxWidth: .infinity)

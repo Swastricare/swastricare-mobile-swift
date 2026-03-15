@@ -52,43 +52,38 @@ struct DietQuickActionButton: View {
                         ZStack {
                             Circle()
                                 .fill(Color.white.opacity(0.18))
-                                .frame(width: 44, height: 44)
-                            
+                                .frame(width: 32, height: 32)
+
                             Image(systemName: "fork.knife")
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.white)
                         }
-                        
+
                         Spacer()
-                        
+
                         Text("\(Int(progress * 100))%")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                     }
-                    
+
+                    Spacer()
+
                     // Title
                     Text("Diet")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.white.opacity(0.9))
-                    
+
                     // Progress Info
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text("\(currentCalories)")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
-                            
-                            Text("/ \(dailyGoal)")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white.opacity(0.8))
-                            
-                            Text("cal")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.75))
-                        }
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text("\(currentCalories)")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Text("/ \(dailyGoal) cal")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.75))
                     }
                 }
-                .padding(AppDimensions.largeCardPadding)
+                .padding(12)
             }
             .frame(height: AppDimensions.quickActionHeight)
             .frame(maxWidth: .infinity)
