@@ -110,6 +110,7 @@ struct HomeView: View {
             // Premium Background
             PremiumBackground()
             
+            GeometryReader { screenGeo in
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     if viewModel.isLoading && !hasAppeared {
@@ -183,6 +184,8 @@ struct HomeView: View {
                 }
                 .padding(.top, 4)
                 .padding(.bottom, 8)
+                .frame(minHeight: screenGeo.size.height)
+            }
             }
             .coordinateSpace(name: "scroll")
         .alert("Sync Status", isPresented: $showSyncAlert) {
