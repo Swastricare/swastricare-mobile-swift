@@ -12,87 +12,106 @@ struct MealSectionCard: View {
     let entries: [DietLogEntry]
     let onDelete: (DietLogEntry) -> Void
     let onAddFood: () -> Void
-    
+
     @State private var isExpanded = true
-    
+    @State private var entryToConfirmDelete: DietLogEntry?
+
     private var totalCalories: Int {
         Int(entries.reduce(0.0) { $0 + $1.calories })
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             Button(action: {
-                withAnimation {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                     isExpanded.toggle()
                 }
             }) {
                 HStack {
+                    // Larger meal icon (44pt circle)
                     ZStack {
                         Circle()
                             .fill(mealType.color.opacity(0.15))
-                            .frame(width: 40, height: 40)
-                        
+                            .frame(width: 44, height: 44)
+
                         Image(systemName: mealType.icon)
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundColor(mealType.color)
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text(mealType.displayName)
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.primary)
-                        
+
                         Text(mealType.typicalTime)
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
-                    
+
                     if !entries.isEmpty {
                         Text("\(totalCalories) cal")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
                             .foregroundColor(mealType.color)
                     }
-                    
+
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.secondary)
                 }
             }
             .buttonStyle(.plain)
-            
+
             if isExpanded {
                 if entries.isEmpty {
-                    // Empty state
-                    Button(action: onAddFood) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(mealType.color)
-                            
-                            Text("Add food")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(mealType.color)
+                    // Enhanced empty state
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onAddFood()
+                    }) {
+                        VStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(mealType.color)
+
+                                Text("Add \(mealType.displayName.lowercased())")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(mealType.color)
+                            }
+
+                            Text("Tap to log what you ate")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary.opacity(0.7))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(mealType.color.opacity(0.08))
+                        .padding(.vertical, 14)
+                        .background(mealType.color.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(mealType.color.opacity(0.15), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                        )
                         .cornerRadius(10)
                     }
                 } else {
-                    // Food entries
+                    // Food entries with swipe-to-delete
                     VStack(spacing: 8) {
                         ForEach(entries) { entry in
                             FoodEntryRow(entry: entry, mealColor: mealType.color) {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 onDelete(entry)
                             }
                         }
                     }
-                    
-                    // Add more button
-                    Button(action: onAddFood) {
+
+                    // Add more button with haptic
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onAddFood()
+                    }) {
                         HStack {
                             Image(systemName: "plus.circle")
                                 .font(.system(size: 14))
@@ -106,8 +125,8 @@ struct MealSectionCard: View {
             }
         }
         .padding(16)
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(16)
+        .background(mealType.color.opacity(0.04))
+        .glass(cornerRadius: AppDimensions.cardRadius)
     }
 }
 
@@ -115,7 +134,7 @@ struct FoodEntryRow: View {
     let entry: DietLogEntry
     let mealColor: Color
     let onDelete: () -> Void
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Food icon
@@ -123,48 +142,48 @@ struct FoodEntryRow: View {
                 Circle()
                     .fill(mealColor.opacity(0.12))
                     .frame(width: 36, height: 36)
-                
+
                 Text("🍽️")
                     .font(.system(size: 18))
             }
-            
+
             // Food details
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.foodName)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.primary)
-                
+
                 HStack(spacing: 8) {
                     Text(entry.displayQuantity)
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
-                    
+
                     Text("•")
                         .foregroundColor(.secondary)
-                    
+
                     Text("\(Int(entry.calories)) cal")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(mealColor)
                 }
             }
-            
+
             Spacer()
-            
+
             // Macros summary
             VStack(alignment: .trailing, spacing: 2) {
                 Text("P: \(Int(entry.proteinG))g")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
-                
+
                 Text("C: \(Int(entry.carbsG))g")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
-                
+
                 Text("F: \(Int(entry.fatG))g")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
-            
+
             // Delete button
             Button(action: onDelete) {
                 Image(systemName: "trash")
@@ -209,7 +228,7 @@ struct FoodEntryRow: View {
                 onDelete: { _ in },
                 onAddFood: {}
             )
-            
+
             MealSectionCard(
                 mealType: .lunch,
                 entries: [],

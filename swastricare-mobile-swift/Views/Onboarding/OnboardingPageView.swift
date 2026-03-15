@@ -2,91 +2,182 @@
 //  OnboardingPageView.swift
 //  swastricare-mobile-swift
 //
-//  Created by Assistant on 06/01/26.
-//
 
 import SwiftUI
 
-struct OnboardingPageView: View {
-    let modelName: String
+struct OnboardingPageView<Card: View>: View {
     let title: String
+    let highlightedTitle: String
     let subtitle: String
-    
-    @State private var contentOffset: CGFloat = 20
-    @State private var contentOpacity: Double = 0
-    @State private var modelScale: CGFloat = 0.95
-    @State private var modelRotation: Double = 0
-    @State private var titleOffset: CGFloat = 20
+    let accentColor: Color
+    let backgroundTint: Color
+    let isActive: Bool
+    let card: Card
+
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+
+    // Animation state — driven by `isActive` changes from parent
+    @State private var headlineOffset: CGFloat = 20
+    @State private var headlineOpacity: Double = 0
     @State private var subtitleOffset: CGFloat = 15
-    
+    @State private var subtitleOpacity: Double = 0
+    @State private var cardOffset: CGFloat = 30
+    @State private var cardOpacity: Double = 0
+    @State private var hasAnimatedIn = false
+
+    init(
+        title: String,
+        highlightedTitle: String,
+        subtitle: String,
+        accentColor: Color,
+        backgroundTint: Color,
+        isActive: Bool,
+        @ViewBuilder card: () -> Card
+    ) {
+        self.title = title
+        self.highlightedTitle = highlightedTitle
+        self.subtitle = subtitle
+        self.accentColor = accentColor
+        self.backgroundTint = backgroundTint
+        self.isActive = isActive
+        self.card = card()
+    }
+
     var body: some View {
-        VStack(spacing: 50) {
-            Spacer()
-            
-            // 3D Model Display with smooth animations
-            ModelViewer(modelName: modelName)
-                .frame(height: 300)
-                .scaleEffect(modelScale)
-                .rotation3DEffect(
-                    .degrees(modelRotation),
-                    axis: (x: 0, y: 1, z: 0),
-                    perspective: 0.5
-                )
-                .offset(y: contentOffset)
-                .opacity(contentOpacity)
-            
-            // Text Content with smooth fade-in and slide animations
-            VStack(spacing: 20) {
-                Text(title)
-                    .font(.system(size: 34, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.primary)
-                    .offset(y: titleOffset)
-                    .opacity(contentOpacity)
-                
-                Text(subtitle)
-                    .font(.system(size: 17, weight: .regular))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.secondary)
-                    .lineSpacing(4)
-                    .padding(.horizontal, 40)
-                    .offset(y: subtitleOffset)
-                    .opacity(contentOpacity * 0.95)
+        GeometryReader { geo in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Spacer(minLength: 16)
+
+                    // Headline
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(title)
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text(highlightedTitle)
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(accentColor)
+                    }
+                    .offset(y: headlineOffset)
+                    .opacity(headlineOpacity)
+                    .padding(.bottom, 8)
+
+                    // Subtitle
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .lineSpacing(4)
+                        .offset(y: subtitleOffset)
+                        .opacity(subtitleOpacity)
+                        .padding(.bottom, 24)
+
+                    // Preview card
+                    card
+                        .offset(y: cardOffset)
+                        .opacity(cardOpacity)
+                        .frame(maxWidth: 400)
+
+                    Spacer(minLength: 16)
+                }
+                .padding(.horizontal, 24)
+                .frame(minHeight: geo.size.height)
             }
-            
-            Spacer()
-            Spacer()
+            .scrollIndicators(.hidden)
+        }
+        .background(pageBackground)
+        .onChange(of: isActive) { _, active in
+            if active {
+                guard !hasAnimatedIn else { return }
+                animateIn()
+            } else {
+                hasAnimatedIn = false
+                animateOut()
+            }
         }
         .onAppear {
-            // Smooth content appearance animation
-            withAnimation(.linear(duration: 0.4).delay(0.1)) {
-                contentOffset = 0
-                contentOpacity = 1.0
-                modelScale = 1.0
-                titleOffset = 0
-                subtitleOffset = 0
-            }
-            
-            // Subtle continuous rotation animation
-            withAnimation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true)) {
-                modelRotation = 8
+            if isActive && !hasAnimatedIn {
+                if reduceMotion {
+                    showInstantly()
+                } else {
+                    animateIn()
+                }
             }
         }
-        .onDisappear {
-            // Reset animations when page disappears for smooth transition
-            contentOffset = 20
-            contentOpacity = 0
-            modelScale = 0.95
-            titleOffset = 20
-            subtitleOffset = 15
+        // TabView pre-creates all pages — pages 1 & 2 may miss the
+        // initial onChange. This catch-up ensures they animate in.
+        .task(id: isActive) {
+            guard isActive, !hasAnimatedIn else { return }
+            if reduceMotion {
+                showInstantly()
+            } else {
+                animateIn()
+            }
         }
     }
-}
 
-#Preview {
-    OnboardingPageView(
-        modelName: "doc",
-        title: "Track Your Health",
-        subtitle: "Monitor vitals, medications, and wellness in one place"
-    )
+    // MARK: - Background
+
+    @ViewBuilder
+    private var pageBackground: some View {
+        if colorScheme == .dark {
+            Color.clear // parent provides PremiumBackground
+        } else {
+            LinearGradient(
+                colors: [Color(UIColor.systemBackground), backgroundTint],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        }
+    }
+
+    // MARK: - Animations
+
+    private func animateIn() {
+        hasAnimatedIn = true
+        guard !reduceMotion else {
+            showInstantly()
+            return
+        }
+        // Staggered spring entrance
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.05)) {
+            headlineOffset = 0
+            headlineOpacity = 1
+        }
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15)) {
+            subtitleOffset = 0
+            subtitleOpacity = 1
+        }
+        withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.25)) {
+            cardOffset = 0
+            cardOpacity = 1
+        }
+    }
+
+    private func animateOut() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            headlineOpacity = 0
+            subtitleOpacity = 0
+            cardOpacity = 0
+        }
+        // Reset offsets synchronously without animation so next animateIn slides fresh
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) {
+            headlineOffset = 20
+            subtitleOffset = 15
+            cardOffset = 30
+        }
+    }
+
+    private func showInstantly() {
+        hasAnimatedIn = true
+        headlineOffset = 0
+        headlineOpacity = 1
+        subtitleOffset = 0
+        subtitleOpacity = 1
+        cardOffset = 0
+        cardOpacity = 1
+    }
 }

@@ -670,6 +670,60 @@ struct FoodItemRecord: Codable {
     }
 }
 
+// MARK: - Daily Calorie Trend (for weekly chart)
+
+struct DailyCalorieTrend: Identifiable, Equatable {
+    let id = UUID()
+    let date: Date
+    let calories: Int
+    let goal: Int
+    let progress: Double
+
+    var dayLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
+    }
+
+    var isToday: Bool {
+        Calendar.current.isDateInToday(date)
+    }
+}
+
+// MARK: - Goal Adherence
+
+struct GoalAdherence: Equatable {
+    let daysTracked: Int
+    let daysOnTarget: Int
+    let adherencePercent: Int
+    let rating: Rating
+
+    enum Rating: String, Equatable {
+        case excellent = "Excellent"
+        case good = "Good"
+        case fair = "Fair"
+        case needsWork = "Needs Work"
+
+        var icon: String {
+            switch self {
+            case .excellent: return "star.fill"
+            case .good: return "hand.thumbsup.fill"
+            case .fair: return "arrow.up.right"
+            case .needsWork: return "exclamationmark.triangle.fill"
+            }
+        }
+
+        var color: String {
+            switch self {
+            case .excellent: return "accentGreen"
+            case .good: return "accentBlue"
+            case .fair: return "accentOrange"
+            case .needsWork: return "accentRed"
+            }
+        }
+    }
+}
+
 // MARK: - Calorie Calculator
 
 struct CalorieCalculator {

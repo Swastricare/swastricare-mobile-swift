@@ -17,6 +17,8 @@ protocol DietServiceProtocol {
     func calculateInsights(entries: [DietLogEntry], weeklyData: [[DietLogEntry]], dailyGoal: Int) -> DietInsights
     func getMealLogs(from entries: [DietLogEntry], for mealType: MealType) -> [DietLogEntry]
     func searchFoods(query: String, in foodItems: [FoodItem]) -> [FoodItem]
+    func calculateWeeklyTrend(weeklyData: [[DietLogEntry]], dailyGoal: Int) -> [DailyCalorieTrend]
+    func calculateGoalAdherence(weeklyData: [[DietLogEntry]], dailyGoal: Int) -> GoalAdherence
 }
 
 // MARK: - Implementation
@@ -205,15 +207,135 @@ final class DietService: DietServiceProtocol {
             .sorted { $0.loggedAt > $1.loggedAt }
     }
     
-    // MARK: - Search
-    
+    // MARK: - Search (Fuzzy + Ranked)
+
     func searchFoods(query: String, in foodItems: [FoodItem]) -> [FoodItem] {
         guard !query.isEmpty else { return foodItems }
-        
+
         let lowercasedQuery = query.lowercased()
-        return foodItems.filter { food in
-            food.name.lowercased().contains(lowercasedQuery) ||
-            (food.brand?.lowercased().contains(lowercasedQuery) ?? false)
+        let queryTokens = lowercasedQuery.split(separator: " ").map(String.init)
+
+        // Score each food item for relevance
+        var scored: [(food: FoodItem, score: Int)] = []
+
+        for food in foodItems {
+            let name = food.name.lowercased()
+            let brand = food.brand?.lowercased() ?? ""
+            let category = food.category.displayName.lowercased()
+            var score = 0
+
+            // Exact name match (highest priority)
+            if name == lowercasedQuery {
+                score += 100
+            }
+            // Name starts with query
+            else if name.hasPrefix(lowercasedQuery) {
+                score += 80
+            }
+            // Name contains query as substring
+            else if name.contains(lowercasedQuery) {
+                score += 60
+            }
+
+            // Token-based matching (fuzzy): each token that matches adds score
+            for token in queryTokens {
+                if name.contains(token) {
+                    score += 30
+                }
+                if brand.contains(token) {
+                    score += 15
+                }
+                if category.contains(token) {
+                    score += 10
+                }
+                // Prefix match on word boundaries in food name
+                let nameWords = name.split(separator: " ").map(String.init)
+                for word in nameWords {
+                    if word.hasPrefix(token) && token.count >= 2 {
+                        score += 20
+                    }
+                }
+            }
+
+            // Levenshtein-like: short edit distance boost for single-token queries
+            if queryTokens.count == 1 {
+                let nameWords = name.split(separator: " ").map(String.init)
+                for word in nameWords {
+                    if word.count > 2 && lowercasedQuery.count > 2 {
+                        let common = Set(word).intersection(Set(lowercasedQuery))
+                        let similarity = Double(common.count) / Double(max(word.count, lowercasedQuery.count))
+                        if similarity >= 0.6 {
+                            score += Int(similarity * 25)
+                        }
+                    }
+                }
+            }
+
+            if score > 0 {
+                scored.append((food: food, score: score))
+            }
         }
+
+        // Sort by score descending, then alphabetically
+        return scored
+            .sorted { $0.score != $1.score ? $0.score > $1.score : $0.food.name < $1.food.name }
+            .map(\.food)
+    }
+
+    // MARK: - Weekly Trend
+
+    func calculateWeeklyTrend(weeklyData: [[DietLogEntry]], dailyGoal: Int) -> [DailyCalorieTrend] {
+        let calendar = Calendar.current
+        let today = Date()
+        var trends: [DailyCalorieTrend] = []
+
+        for (index, dayEntries) in weeklyData.enumerated() {
+            guard let date = calendar.date(byAdding: .day, value: -index, to: today) else { continue }
+            let totalCalories = Int(dayEntries.reduce(0.0) { $0 + $1.calories })
+            let progress = dailyGoal > 0 ? min(Double(totalCalories) / Double(dailyGoal), 1.5) : 0
+
+            trends.append(DailyCalorieTrend(
+                date: date,
+                calories: totalCalories,
+                goal: dailyGoal,
+                progress: progress
+            ))
+        }
+
+        return trends.reversed() // Oldest first
+    }
+
+    // MARK: - Goal Adherence
+
+    func calculateGoalAdherence(weeklyData: [[DietLogEntry]], dailyGoal: Int) -> GoalAdherence {
+        guard !weeklyData.isEmpty else {
+            return GoalAdherence(daysTracked: 0, daysOnTarget: 0, adherencePercent: 0, rating: .needsWork)
+        }
+
+        let daysTracked = weeklyData.filter { !$0.isEmpty }.count
+        let daysOnTarget = weeklyData.filter { dayEntries in
+            let dayCalories = dayEntries.reduce(0.0) { $0 + $1.calories }
+            // Within 10% of goal (above or below)
+            let lowerBound = Double(dailyGoal) * 0.9
+            let upperBound = Double(dailyGoal) * 1.1
+            return dayCalories >= lowerBound && dayCalories <= upperBound
+        }.count
+
+        let adherencePercent = daysTracked > 0 ? Int((Double(daysOnTarget) / Double(daysTracked)) * 100) : 0
+
+        let rating: GoalAdherence.Rating
+        switch adherencePercent {
+        case 80...100: rating = .excellent
+        case 60..<80: rating = .good
+        case 40..<60: rating = .fair
+        default: rating = .needsWork
+        }
+
+        return GoalAdherence(
+            daysTracked: daysTracked,
+            daysOnTarget: daysOnTarget,
+            adherencePercent: adherencePercent,
+            rating: rating
+        )
     }
 }
