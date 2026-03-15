@@ -66,15 +66,28 @@ struct AppColors {
     static let cardBackground = Color(UIColor.secondarySystemBackground)
     static let darkModeCard = Color.gray.opacity(0.05)
     
+    // MARK: - Diet / Macro Colors
+    static let dietOrange = Color(hex: "F97316")
+    static let dietOrangeLight = Color(hex: "FB923C")
+    static let macroBlue = Color(hex: "3B82F6")
+    static let macroViolet = Color(hex: "8B5CF6")
+    static let family = Color(hex: "10B981")
+
     // MARK: - Gradients
     static let blueGradient = LinearGradient(
         colors: [accentBlue, accentBlue.opacity(0.7)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
-    
+
     static let greenGradient = LinearGradient(
         colors: [accentGreen, accentGreen.opacity(0.7)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    static let dietOrangeGradient = LinearGradient(
+        colors: [dietOrange, dietOrangeLight],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )

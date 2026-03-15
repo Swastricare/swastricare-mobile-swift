@@ -422,21 +422,14 @@ struct HomeView: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(hex: "F97316").opacity(0.12),
-                            Color(hex: "FB923C").opacity(0.06),
-                            Color(hex: "FDBA74").opacity(0.03)
+                            AppColors.dietOrange.opacity(0.12),
+                            AppColors.dietOrangeLight.opacity(0.06),
+                            AppColors.dietOrangeLight.opacity(0.02)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-
-            // Subtle glow orb
-            Circle()
-                .fill(Color.orange.opacity(0.08))
-                .frame(width: 120, height: 120)
-                .blur(radius: 40)
-                .offset(x: -60, y: -20)
 
             VStack(spacing: 16) {
                 // Top row: ring + info + chevron
@@ -465,35 +458,19 @@ struct HomeView: View {
 
                     Spacer()
 
-                    // Arrow in circle
                     Image(systemName: "arrow.right")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppColors.dietOrange)
                         .frame(width: 30, height: 30)
-                        .background(Color.orange.opacity(0.12))
+                        .background(AppColors.dietOrange.opacity(0.12))
                         .clipShape(Circle())
                 }
 
                 // Macro progress bars
                 HStack(spacing: 10) {
-                    MacroBar(
-                        label: "Protein",
-                        value: dietViewModel.nutritionSummary.totalProteinG,
-                        goal: Double(dietViewModel.dietGoals.dailyCalories) * 0.25 / 4,
-                        color: Color(hex: "F97316")
-                    )
-                    MacroBar(
-                        label: "Carbs",
-                        value: dietViewModel.nutritionSummary.totalCarbsG,
-                        goal: Double(dietViewModel.dietGoals.dailyCalories) * 0.50 / 4,
-                        color: Color(hex: "3B82F6")
-                    )
-                    MacroBar(
-                        label: "Fat",
-                        value: dietViewModel.nutritionSummary.totalFatG,
-                        goal: Double(dietViewModel.dietGoals.dailyCalories) * 0.25 / 9,
-                        color: Color(hex: "8B5CF6")
-                    )
+                    MacroBar(label: "Protein", value: dietViewModel.nutritionSummary.totalProteinG, goal: dietViewModel.proteinGoalGrams, color: AppColors.dietOrange)
+                    MacroBar(label: "Carbs", value: dietViewModel.nutritionSummary.totalCarbsG, goal: dietViewModel.carbsGoalGrams, color: AppColors.macroBlue)
+                    MacroBar(label: "Fat", value: dietViewModel.nutritionSummary.totalFatG, goal: dietViewModel.fatGoalGrams, color: AppColors.macroViolet)
                 }
             }
             .padding(18)
@@ -501,39 +478,23 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.orange.opacity(0.12), lineWidth: 0.5)
+                .stroke(AppColors.dietOrange.opacity(0.12), lineWidth: 0.5)
         )
     }
 
     private var dietCalorieRing: some View {
         ZStack {
-            // Track
             Circle()
-                .stroke(Color.orange.opacity(0.12), lineWidth: 8)
+                .stroke(AppColors.dietOrange.opacity(0.12), lineWidth: 8)
                 .frame(width: 68, height: 68)
-            // Progress
             Circle()
                 .trim(from: 0, to: dietCalorieProgress)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color(hex: "F97316"), Color(hex: "FB923C")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                )
+                .stroke(AppColors.dietOrangeGradient, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                 .frame(width: 68, height: 68)
                 .rotationEffect(.degrees(-90))
-            // Icon
             Image(systemName: "fork.knife")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color(hex: "F97316"), Color(hex: "FB923C")],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+                .foregroundStyle(AppColors.dietOrangeGradient)
         }
     }
     
@@ -784,7 +745,7 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 // MARK: - Family Quick Action Card
 
 private struct FamilyQuickActionCard: View {
-    private let accent = Color(hex: "10B981")
+    private let accent = AppColors.family
 
     var body: some View {
         ZStack {
@@ -881,7 +842,7 @@ private struct CompactStatCell: View {
     }
 }
 
-// MARK: - Macro Pill (for diet summary)
+// MARK: - Macro Bar (for diet summary card)
 
 private struct MacroBar: View {
     let label: String
@@ -906,24 +867,17 @@ private struct MacroBar: View {
                     .foregroundColor(color)
             }
 
-            // Progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(color.opacity(0.12))
-                        .frame(height: 5)
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(
-                            LinearGradient(
-                                colors: [color, color.opacity(0.7)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(geo.size.width * progress, 4), height: 5)
-                }
+            // Progress bar — no GeometryReader needed
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(color.opacity(0.12))
+                    .frame(height: 5)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(color)
+                    .frame(height: 5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .scaleEffect(x: max(progress, 0.02), y: 1, anchor: .leading)
             }
-            .frame(height: 5)
         }
         .frame(maxWidth: .infinity)
     }

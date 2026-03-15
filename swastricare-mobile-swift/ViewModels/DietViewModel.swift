@@ -81,6 +81,17 @@ final class DietViewModel: ObservableObject {
     var goalDescription: String {
         "Daily goal: \(dietGoals.dailyCalories) cal"
     }
+
+    /// Macro goals in grams (protein 4kcal/g, carbs 4kcal/g, fat 9kcal/g)
+    var proteinGoalGrams: Double {
+        Double(dietGoals.dailyCalories) * Double(dietGoals.proteinPercent) / 100.0 / 4.0
+    }
+    var carbsGoalGrams: Double {
+        Double(dietGoals.dailyCalories) * Double(dietGoals.carbsPercent) / 100.0 / 4.0
+    }
+    var fatGoalGrams: Double {
+        Double(dietGoals.dailyCalories) * Double(dietGoals.fatPercent) / 100.0 / 9.0
+    }
     
     // MARK: - Dependencies
     
