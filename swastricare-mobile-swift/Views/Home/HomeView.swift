@@ -416,30 +416,45 @@ struct HomeView: View {
     }
 
     private var dietSummaryContent: some View {
-        HStack(spacing: 14) {
-            // Calorie ring
-            dietCalorieRing
+        VStack(spacing: 14) {
+            // Top row: ring + info + chevron
+            HStack(spacing: 16) {
+                dietCalorieRing
 
-            // Info
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Today's Diet")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Today's Diet")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.primary)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("\(dietViewModel.totalCalories)")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(.orange)
+                        Text("/ \(dietViewModel.dietGoals.dailyCalories) cal")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.primary)
-
-                dietCalorieInfo
+                    .foregroundColor(.secondary)
             }
 
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.secondary)
+            // Macro pills row
+            HStack(spacing: 8) {
+                MacroPill(label: "Protein", value: dietViewModel.nutritionSummary.totalProteinG, color: .orange)
+                MacroPill(label: "Carbs", value: dietViewModel.nutritionSummary.totalCarbsG, color: .blue)
+                MacroPill(label: "Fat", value: dietViewModel.nutritionSummary.totalFatG, color: .purple)
+            }
         }
-        .padding(14)
+        .padding(16)
         .background(Color.orange.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.orange.opacity(0.10), lineWidth: 0.5)
         )
     }
@@ -447,35 +462,16 @@ struct HomeView: View {
     private var dietCalorieRing: some View {
         ZStack {
             Circle()
-                .stroke(Color.orange.opacity(0.15), lineWidth: 6)
-                .frame(width: 52, height: 52)
+                .stroke(Color.orange.opacity(0.15), lineWidth: 7)
+                .frame(width: 64, height: 64)
             Circle()
                 .trim(from: 0, to: dietCalorieProgress)
-                .stroke(Color.orange, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                .frame(width: 52, height: 52)
+                .stroke(Color.orange, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .frame(width: 64, height: 64)
                 .rotationEffect(.degrees(-90))
             Image(systemName: "fork.knife")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.orange)
-        }
-    }
-
-    private var dietCalorieInfo: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text("\(dietViewModel.totalCalories)")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.orange)
-                Text("of \(dietViewModel.dietGoals.dailyCalories) cal")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-            }
-
-            HStack(spacing: 6) {
-                MacroPill(label: "P", value: dietViewModel.nutritionSummary.totalProteinG, color: .orange)
-                MacroPill(label: "C", value: dietViewModel.nutritionSummary.totalCarbsG, color: .blue)
-                MacroPill(label: "F", value: dietViewModel.nutritionSummary.totalFatG, color: .purple)
-            }
         }
     }
     
@@ -510,16 +506,6 @@ struct HomeView: View {
                 .opacity(quickActionsVisible ? 1 : 0)
                 .scaleEffect(quickActionsVisible ? 1 : 0.92)
                 .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.12), value: quickActionsVisible)
-                
-                DietQuickActionButton(
-                    currentCalories: dietViewModel.totalCalories,
-                    dailyGoal: dietViewModel.dietGoals.dailyCalories
-                ) {
-                    showDiet = true
-                }
-                .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.92)
-                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.19), value: quickActionsVisible)
                 
                 CycleTrackerQuickActionButton {
                     showMenstrualCycle = true
@@ -764,18 +750,18 @@ private struct MacroPill: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 1) {
+        HStack(spacing: 4) {
             Text(label)
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(color)
             Text("\(Int(value))g")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 11, weight: .bold))
                 .foregroundColor(.primary)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
         .background(color.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 

@@ -1,0 +1,178 @@
+<h2>Round 1: Foundation — Color System, Spacing & Header</h2>
+<p class="subtitle">Establishes the visual language that Round 2 components will build on</p>
+
+<!-- Color System -->
+<div class="section">
+  <h3>A. Semantic Color Tint System</h3>
+  <p class="subtitle">Instead of gray glass on everything, each card gets a soft tint matching its purpose</p>
+
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-top:16px;">
+    <div style="padding:16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.12); border-radius:14px; text-align:center;">
+      <div style="font-size:24px; margin-bottom:6px;">❤️</div>
+      <div style="font-size:11px; font-weight:700; color:#EF4444;">Heart Rate</div>
+      <div style="font-size:20px; font-weight:800; color:#EF4444; margin-top:4px;">72</div>
+      <div style="font-size:9px; color:rgba(239,68,68,0.7);">bpm</div>
+    </div>
+    <div style="padding:16px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.12); border-radius:14px; text-align:center;">
+      <div style="font-size:24px; margin-bottom:6px;">😴</div>
+      <div style="font-size:11px; font-weight:700; color:#6366F1;">Sleep</div>
+      <div style="font-size:20px; font-weight:800; color:#6366F1; margin-top:4px;">7.2</div>
+      <div style="font-size:9px; color:rgba(99,102,241,0.7);">hrs</div>
+    </div>
+    <div style="padding:16px; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.12); border-radius:14px; text-align:center;">
+      <div style="font-size:24px; margin-bottom:6px;">🏃</div>
+      <div style="font-size:11px; font-weight:700; color:#22C55E;">Distance</div>
+      <div style="font-size:20px; font-weight:800; color:#22C55E; margin-top:4px;">3.4</div>
+      <div style="font-size:9px; color:rgba(34,197,94,0.7);">km</div>
+    </div>
+    <div style="padding:16px; background:rgba(14,165,233,0.08); border:1px solid rgba(14,165,233,0.12); border-radius:14px; text-align:center;">
+      <div style="font-size:24px; margin-bottom:6px;">💧</div>
+      <div style="font-size:11px; font-weight:700; color:#0EA5E9;">Hydration</div>
+      <div style="font-size:20px; font-weight:800; color:#0EA5E9; margin-top:4px;">1.5L</div>
+      <div style="font-size:9px; color:rgba(14,165,233,0.7);">of 2.5L</div>
+    </div>
+    <div style="padding:16px; background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.12); border-radius:14px; text-align:center;">
+      <div style="font-size:24px; margin-bottom:6px;">💊</div>
+      <div style="font-size:11px; font-weight:700; color:#A855F7;">Medication</div>
+      <div style="font-size:20px; font-weight:800; color:#A855F7; margin-top:4px;">2/3</div>
+      <div style="font-size:9px; color:rgba(168,85,247,0.7);">taken today</div>
+    </div>
+    <div style="padding:16px; background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.12); border-radius:14px; text-align:center;">
+      <div style="font-size:24px; margin-bottom:6px;">🍽️</div>
+      <div style="font-size:11px; font-weight:700; color:#F97316;">Diet</div>
+      <div style="font-size:20px; font-weight:800; color:#F97316; margin-top:4px;">1,420</div>
+      <div style="font-size:9px; color:rgba(249,115,22,0.7);">kcal</div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px; padding:12px 16px; background:rgba(79,70,229,0.06); border-radius:10px; font-size:12px; color:rgba(150,150,150,0.9);">
+    <strong>Rule:</strong> Each feature gets a <code>color.opacity(0.08)</code> background tint + <code>color.opacity(0.12)</code> border. Values and labels use the feature's semantic color. In dark mode, the tints go subtler (0.06 bg, 0.08 border).
+  </div>
+</div>
+
+<!-- Spacing System -->
+<div class="section">
+  <h3>B. Section Rhythm & Spacing</h3>
+
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Before — Uniform 16pt gaps</div>
+      <div class="mockup-body" style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:28px; background:rgba(127,127,127,0.1); border-radius:8px;"></div>
+        <div style="height:28px; background:rgba(127,127,127,0.1); border-radius:8px;"></div>
+        <div style="height:28px; background:rgba(127,127,127,0.1); border-radius:8px;"></div>
+        <div style="height:28px; background:rgba(127,127,127,0.1); border-radius:8px;"></div>
+        <div style="height:28px; background:rgba(127,127,127,0.1); border-radius:8px;"></div>
+        <div style="font-size:10px; text-align:center; color:rgba(150,150,150,0.7); margin-top:4px;">Everything same gap — no breathing room</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">After — Grouped zones with varied spacing</div>
+      <div class="mockup-body" style="display:flex; flex-direction:column;">
+        <div style="padding:4px 8px; font-size:9px; color:rgba(150,150,150,0.6); text-transform:uppercase; letter-spacing:1px;">Zone: Identity</div>
+        <div style="height:28px; background:rgba(79,70,229,0.12); border-radius:8px;"></div>
+        <div style="height:20px;"></div>
+        <div style="padding:4px 8px; font-size:9px; color:rgba(150,150,150,0.6); text-transform:uppercase; letter-spacing:1px;">Zone: Vitals</div>
+        <div style="height:28px; background:rgba(239,68,68,0.08); border-radius:8px; margin-bottom:6px;"></div>
+        <div style="height:28px; background:rgba(99,102,241,0.08); border-radius:8px;"></div>
+        <div style="height:24px;"></div>
+        <div style="padding:4px 8px; font-size:9px; color:rgba(150,150,150,0.6); text-transform:uppercase; letter-spacing:1px;">Zone: Actions</div>
+        <div style="height:28px; background:rgba(14,165,233,0.08); border-radius:8px; margin-bottom:6px;"></div>
+        <div style="height:28px; background:rgba(168,85,247,0.08); border-radius:8px;"></div>
+        <div style="font-size:10px; text-align:center; color:rgba(150,150,150,0.7); margin-top:8px;">32pt between zones, 12pt within zones</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px; padding:12px 16px; background:rgba(79,70,229,0.06); border-radius:10px; font-size:12px; color:rgba(150,150,150,0.9);">
+    <strong>Spacing rules:</strong><br/>
+    • <strong>Between major zones:</strong> 32pt (Header → Vitals → Actions → Body Model)<br/>
+    • <strong>Within a zone:</strong> 12pt between cards<br/>
+    • <strong>Section labels:</strong> Optional uppercase tiny labels ("YOUR VITALS", "QUICK ACTIONS") to anchor zones
+  </div>
+</div>
+
+<!-- Header Redesign -->
+<div class="section">
+  <h3>C. Greeting Header Redesign</h3>
+
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Current Header</div>
+      <div class="mockup-body" style="padding:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:11px; color:rgba(150,150,150,0.6);">Good Morning</div>
+            <div style="font-size:18px; font-weight:700;">Nikhil ❤️</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <div style="width:28px; height:28px; background:rgba(127,127,127,0.1); border-radius:50%;"></div>
+            <div style="width:28px; height:28px; background:rgba(127,127,127,0.1); border-radius:50%;"></div>
+          </div>
+        </div>
+        <div style="margin-top:8px; padding:4px 8px; background:rgba(34,197,94,0.1); border-radius:6px; font-size:10px; color:#22C55E; display:inline-block;">Optimal Health</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Proposed Header</div>
+      <div class="mockup-body" style="padding:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-size:13px; color:rgba(150,150,150,0.7); font-weight:500;">Good Morning</div>
+            <div style="font-size:24px; font-weight:800; letter-spacing:-0.5px;">Nikhil</div>
+            <div style="margin-top:6px; display:flex; align-items:center; gap:6px;">
+              <div style="width:8px; height:8px; border-radius:50%; background:#22C55E;"></div>
+              <span style="font-size:12px; color:#22C55E; font-weight:600;">All vitals normal</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <div style="width:34px; height:34px; background:rgba(127,127,127,0.08); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; border:0.5px solid rgba(127,127,127,0.1);">🔔</div>
+            <div style="width:34px; height:34px; border-radius:12px; overflow:hidden; border:2px solid rgba(17,153,142,0.3);">
+              <div style="width:100%; height:100%; background:linear-gradient(135deg, #11998e, #38ef7d); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:white;">N</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px; padding:12px 16px; background:rgba(79,70,229,0.06); border-radius:10px; font-size:12px; color:rgba(150,150,150,0.9);">
+    <strong>Changes:</strong> Bigger name (24pt bold), cleaner status line with dot indicator, rounded square icon buttons instead of circles, user avatar/initial with brand gradient border. Removes the heart emoji (too casual for premium feel).
+  </div>
+</div>
+
+<!-- Entrance Animations -->
+<div class="section">
+  <h3>D. Staggered Entrance Animations</h3>
+  <div style="padding:16px; background:rgba(79,70,229,0.06); border-radius:12px; font-size:13px; line-height:1.8;">
+    <strong>Current:</strong> All sections fade in simultaneously with a basic opacity animation.<br/>
+    <strong>Proposed:</strong> Cascading reveal like the onboarding — each zone slides up with a spring curve and increasing delay:<br/>
+    <div style="margin-top:8px; font-family:monospace; font-size:11px; line-height:2;">
+      0.00s → Header slides in<br/>
+      0.10s → Vitals zone slides up<br/>
+      0.20s → Body model fades in<br/>
+      0.30s → Quick actions grid slides up<br/>
+    </div>
+    Same <code>.spring(response: 0.6, dampingFraction: 0.8)</code> curves as onboarding for consistency.
+  </div>
+</div>
+
+<h2 style="margin-top:32px;">Does this direction feel right?</h2>
+<p class="subtitle">This is Round 1 only — vitals cards, quick actions, and body model get their specific redesigns in Round 2.</p>
+
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Looks great — let's go with this</h3>
+      <p>Approve Round 1 direction and move to spec writing</p>
+    </div>
+  </div>
+  <div class="option" data-choice="tweak" onclick="toggleSelect(this)">
+    <div class="letter">✏️</div>
+    <div class="content">
+      <h3>I want to change something</h3>
+      <p>Tell me what to adjust — colors, spacing values, header layout, etc.</p>
+    </div>
+  </div>
+</div>

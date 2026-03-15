@@ -1,0 +1,130 @@
+<h2>Home Screen Visual Refresh — Analysis</h2>
+<p class="subtitle">Current problems and what needs to change to match the new premium design language</p>
+
+<!-- Problem breakdown -->
+<div class="section">
+  <h3>1. No Visual Hierarchy — Everything Looks Equal</h3>
+  <div class="mockup">
+    <div class="mockup-header">Current Home Screen Sections</div>
+    <div class="mockup-body" style="display:flex; flex-direction:column; gap:8px;">
+      <div style="padding:14px; background:rgba(127,127,127,0.08); border-radius:12px; font-size:13px;">
+        <strong>Header</strong> — greeting + icons (flat, no depth)
+      </div>
+      <div style="padding:14px; background:rgba(127,127,127,0.08); border-radius:12px; font-size:13px;">
+        <strong>3D Model + Stats</strong> — same background as everything else
+      </div>
+      <div style="padding:14px; background:rgba(127,127,127,0.08); border-radius:12px; font-size:13px;">
+        <strong>Vitals Grid</strong> — same card style, same corners, same shadow
+      </div>
+      <div style="padding:14px; background:rgba(127,127,127,0.08); border-radius:12px; font-size:13px;">
+        <strong>AR Body Scan</strong> — same card style again
+      </div>
+      <div style="padding:14px; background:rgba(127,127,127,0.08); border-radius:12px; font-size:13px;">
+        <strong>Quick Actions</strong> — same card style again
+      </div>
+    </div>
+  </div>
+  <div class="pros-cons">
+    <div class="cons">
+      <h4>Problems</h4>
+      <ul>
+        <li>Every section uses <code>.glass(cornerRadius: 16)</code> — no variation, no rhythm</li>
+        <li>No section "pops" as more important than others</li>
+        <li>The eye doesn't know where to look first</li>
+        <li>Feels like a list of cards, not a designed dashboard</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. Not Premium — Doesn't Match New Onboarding/Login</h3>
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+    <div style="padding:16px; background:rgba(79,70,229,0.06); border-radius:12px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:#4F46E5;">New Onboarding/Login</div>
+      <ul style="font-size:12px; line-height:1.8; margin:0; padding-left:16px;">
+        <li>Bold type with accent-colored keywords</li>
+        <li>Glass cards with depth and layering</li>
+        <li>Gradient buttons (teal→green)</li>
+        <li>Staggered spring entrance animations</li>
+        <li>Rich background with colored orbs</li>
+        <li>Color storytelling (each screen has a purpose)</li>
+      </ul>
+    </div>
+    <div style="padding:16px; background:rgba(239,68,68,0.06); border-radius:12px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:#EF4444;">Current Home Screen</div>
+      <ul style="font-size:12px; line-height:1.8; margin:0; padding-left:16px;">
+        <li>System font with no accent colors in headings</li>
+        <li>Flat <code>.glass()</code> on everything</li>
+        <li>No gradients — solid colors only</li>
+        <li>Basic opacity fade entrance</li>
+        <li>PremiumBackground but barely visible</li>
+        <li>No color meaning — all gray cards</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>3. Colors & Spacing Are Off</h3>
+  <div class="pros-cons">
+    <div class="cons">
+      <h4>Specific Issues</h4>
+      <ul>
+        <li><strong>Greeting header</strong> has too much vertical space, status badge is hard to read</li>
+        <li><strong>Vitals cards</strong> use semantic colors (red/indigo/green) but they're tiny dots — no visual impact</li>
+        <li><strong>Quick action buttons</strong> are all the same size/shape — Medication and Hydration should be more prominent (used daily)</li>
+        <li><strong>3D model section</strong> takes 320pt of height — too much for a decorative element</li>
+        <li><strong>Spacing between sections</strong> is uniform — should breathe more between major zones</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h2 style="margin-top:40px;">What should we enhance?</h2>
+<p class="subtitle">Select the areas you want refreshed. I'll scope the work accordingly.</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="header" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Greeting Header</h3>
+      <p>Redesign with bolder typography, better status indicator, and app logo/avatar. Match the premium feel.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="vitals" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Vitals Cards</h3>
+      <p>Give each vital (Heart Rate, Sleep, Distance) a distinct visual identity with colored backgrounds, larger values, and better spacing.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="quick-actions" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Quick Actions Grid</h3>
+      <p>Prioritize Medication & Hydration (daily use). Add progress indicators, gradient accents, and asymmetric sizing.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="body-model" onclick="toggleSelect(this)">
+    <div class="letter">4</div>
+    <div class="content">
+      <h3>3D Model / Daily Activity Section</h3>
+      <p>Reduce height, better integrate the activity stats, or replace with a more useful health summary.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="spacing" onclick="toggleSelect(this)">
+    <div class="letter">5</div>
+    <div class="content">
+      <h3>Overall Spacing, Rhythm & Animations</h3>
+      <p>Fix uniform spacing, add section breathing room, staggered entrance animations, and visual section separators.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="color-system" onclick="toggleSelect(this)">
+    <div class="letter">6</div>
+    <div class="content">
+      <h3>Color System & Card Backgrounds</h3>
+      <p>Stop using the same gray glass on everything. Use semantic color tints (soft red for heart rate, soft blue for hydration, etc.) to create visual meaning.</p>
+    </div>
+  </div>
+</div>

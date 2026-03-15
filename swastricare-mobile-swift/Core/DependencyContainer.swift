@@ -96,7 +96,7 @@ final class DependencyContainer: ObservableObject {
     }()
     
     lazy var dietViewModel: DietViewModel = {
-        DietViewModel(dietService: dietService, aiService: aiService)
+        DietViewModel(dietService: dietService)
     }()
     
     // MARK: - Init
@@ -164,7 +164,7 @@ final class DependencyContainer: ObservableObject {
     }
     
     func makeDietViewModel() -> DietViewModel {
-        DietViewModel(dietService: dietService, aiService: aiService)
+        DietViewModel(dietService: dietService)
     }
 }
 

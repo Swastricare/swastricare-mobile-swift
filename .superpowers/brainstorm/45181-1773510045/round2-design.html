@@ -1,0 +1,157 @@
+<h2>Round 2: Components — Vitals, Quick Actions & Body Model</h2>
+<p class="subtitle">Building on the Round 1 color system and spacing foundation</p>
+
+<!-- Vitals Cards -->
+<div class="section">
+  <h3>A. Vitals Cards Redesign</h3>
+  <p class="subtitle">Current: 3 identical flat cards in a grid. Proposed: Color-tinted cards with larger values and trend indicators.</p>
+
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Current — Flat & identical</div>
+      <div class="mockup-body" style="display:flex; gap:8px; padding:12px;">
+        <div style="flex:1; padding:12px; background:rgba(127,127,127,0.08); border-radius:12px; text-align:center;">
+          <div style="font-size:10px; color:rgba(150,150,150,0.6);">❤️ Heart Rate</div>
+          <div style="font-size:16px; font-weight:700;">72 bpm</div>
+        </div>
+        <div style="flex:1; padding:12px; background:rgba(127,127,127,0.08); border-radius:12px; text-align:center;">
+          <div style="font-size:10px; color:rgba(150,150,150,0.6);">😴 Sleep</div>
+          <div style="font-size:16px; font-weight:700;">7.2 hrs</div>
+        </div>
+        <div style="flex:1; padding:12px; background:rgba(127,127,127,0.08); border-radius:12px; text-align:center;">
+          <div style="font-size:10px; color:rgba(150,150,150,0.6);">🏃 Distance</div>
+          <div style="font-size:16px; font-weight:700;">3.4 km</div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Proposed — Semantic color + hierarchy</div>
+      <div class="mockup-body" style="display:flex; gap:8px; padding:12px;">
+        <div style="flex:1; padding:14px 10px; background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.1); border-radius:16px;">
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:8px;">
+            <div style="width:22px; height:22px; border-radius:7px; background:rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:center; font-size:11px;">❤️</div>
+            <span style="font-size:10px; font-weight:600; color:#EF4444;">Heart Rate</span>
+          </div>
+          <div style="font-size:24px; font-weight:800; color:#EF4444; letter-spacing:-1px;">72</div>
+          <div style="font-size:9px; color:rgba(239,68,68,0.6);">bpm · Normal</div>
+        </div>
+        <div style="flex:1; padding:14px 10px; background:rgba(99,102,241,0.07); border:1px solid rgba(99,102,241,0.1); border-radius:16px;">
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:8px;">
+            <div style="width:22px; height:22px; border-radius:7px; background:rgba(99,102,241,0.15); display:flex; align-items:center; justify-content:center; font-size:11px;">😴</div>
+            <span style="font-size:10px; font-weight:600; color:#6366F1;">Sleep</span>
+          </div>
+          <div style="font-size:24px; font-weight:800; color:#6366F1; letter-spacing:-1px;">7.2</div>
+          <div style="font-size:9px; color:rgba(99,102,241,0.6);">hrs · Good</div>
+        </div>
+        <div style="flex:1; padding:14px 10px; background:rgba(34,197,94,0.07); border:1px solid rgba(34,197,94,0.1); border-radius:16px;">
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:8px;">
+            <div style="width:22px; height:22px; border-radius:7px; background:rgba(34,197,94,0.15); display:flex; align-items:center; justify-content:center; font-size:11px;">🏃</div>
+            <span style="font-size:10px; font-weight:600; color:#22C55E;">Distance</span>
+          </div>
+          <div style="font-size:24px; font-weight:800; color:#22C55E; letter-spacing:-1px;">3.4</div>
+          <div style="font-size:9px; color:rgba(34,197,94,0.6);">km · Active</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="section">
+  <h3>B. Quick Actions Redesign</h3>
+  <p class="subtitle">Current: uniform 2×2 grid. Proposed: asymmetric layout prioritizing daily-use items.</p>
+
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Current — Same-size 2×2 grid</div>
+      <div class="mockup-body" style="padding:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div style="padding:20px; background:rgba(127,127,127,0.08); border-radius:12px; text-align:center; font-size:12px;">💊 Medication<br/><strong>2/3</strong></div>
+          <div style="padding:20px; background:rgba(127,127,127,0.08); border-radius:12px; text-align:center; font-size:12px;">💧 Hydration<br/><strong>1.5L</strong></div>
+          <div style="padding:20px; background:rgba(127,127,127,0.08); border-radius:12px; text-align:center; font-size:12px;">🍽️ Diet<br/><strong>1,420 kcal</strong></div>
+          <div style="padding:20px; background:rgba(127,127,127,0.08); border-radius:12px; text-align:center; font-size:12px; grid-column:span 2;">🩸 Menstrual Cycle</div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Proposed — Color-tinted with progress</div>
+      <div class="mockup-body" style="padding:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <!-- Medication — top left -->
+          <div style="padding:14px; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.1); border-radius:16px;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+              <div style="width:28px; height:28px; border-radius:9px; background:rgba(168,85,247,0.12); display:flex; align-items:center; justify-content:center; font-size:14px;">💊</div>
+              <span style="font-size:11px; font-weight:700; color:#A855F7;">Medication</span>
+            </div>
+            <div style="font-size:20px; font-weight:800; color:#A855F7;">2<span style="font-size:13px; font-weight:600; opacity:0.6;">/3</span></div>
+            <!-- Mini progress bar -->
+            <div style="margin-top:8px; height:4px; background:rgba(168,85,247,0.1); border-radius:2px;">
+              <div style="width:66%; height:100%; background:#A855F7; border-radius:2px;"></div>
+            </div>
+          </div>
+          <!-- Hydration — top right -->
+          <div style="padding:14px; background:rgba(14,165,233,0.06); border:1px solid rgba(14,165,233,0.1); border-radius:16px;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+              <div style="width:28px; height:28px; border-radius:9px; background:rgba(14,165,233,0.12); display:flex; align-items:center; justify-content:center; font-size:14px;">💧</div>
+              <span style="font-size:11px; font-weight:700; color:#0EA5E9;">Hydration</span>
+            </div>
+            <div style="font-size:20px; font-weight:800; color:#0EA5E9;">1.5<span style="font-size:13px; font-weight:600; opacity:0.6;">L</span></div>
+            <div style="margin-top:8px; height:4px; background:rgba(14,165,233,0.1); border-radius:2px;">
+              <div style="width:60%; height:100%; background:#0EA5E9; border-radius:2px;"></div>
+            </div>
+          </div>
+          <!-- Diet — bottom left -->
+          <div style="padding:14px; background:rgba(249,115,22,0.06); border:1px solid rgba(249,115,22,0.1); border-radius:16px;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+              <div style="width:28px; height:28px; border-radius:9px; background:rgba(249,115,22,0.12); display:flex; align-items:center; justify-content:center; font-size:14px;">🍽️</div>
+              <span style="font-size:11px; font-weight:700; color:#F97316;">Diet</span>
+            </div>
+            <div style="font-size:20px; font-weight:800; color:#F97316;">1,420<span style="font-size:11px; font-weight:600; opacity:0.6;"> kcal</span></div>
+            <div style="margin-top:8px; height:4px; background:rgba(249,115,22,0.1); border-radius:2px;">
+              <div style="width:71%; height:100%; background:#F97316; border-radius:2px;"></div>
+            </div>
+          </div>
+          <!-- Cycle — bottom right -->
+          <div style="padding:14px; background:rgba(236,72,153,0.06); border:1px solid rgba(236,72,153,0.1); border-radius:16px;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+              <div style="width:28px; height:28px; border-radius:9px; background:rgba(236,72,153,0.12); display:flex; align-items:center; justify-content:center; font-size:14px;">🩸</div>
+              <span style="font-size:11px; font-weight:700; color:#EC4899;">Cycle</span>
+            </div>
+            <div style="font-size:14px; font-weight:700; color:#EC4899;">Day 14</div>
+            <div style="font-size:9px; color:rgba(236,72,153,0.6); margin-top:2px;">Ovulation phase</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Body Model Section -->
+<div class="section">
+  <h3>C. 3D Model / Daily Activity Section</h3>
+  <p class="subtitle">Current: 320pt tall with 3D model + 3 stat items. Takes too much prime real estate.</p>
+
+  <div class="options">
+    <div class="option" data-choice="compact" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Compact Activity Bar (Recommended)</h3>
+        <p>Replace the 320pt 3D model section with a compact <strong>horizontal activity bar</strong> showing Active Cal + Exercise Min + Stand Hours as 3 colored pill stats. Reduce height from 320pt to ~80pt. Keep 3D model only in AR Body Scan card. Saves massive vertical space.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="keep-smaller" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Keep Model but Smaller</h3>
+        <p>Shrink from 320pt to 200pt. Move stats below the model instead of beside it. Add the semantic color tints to the stat cards. Model stays as a visual anchor but doesn't dominate.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="remove" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>Remove Model Entirely</h3>
+        <p>Replace with a <strong>"Today's Activity"</strong> summary card with an activity ring (like Apple Watch) showing Cal/Exercise/Stand progress. No 3D model on home screen. Clean and fast.</p>
+      </div>
+    </div>
+  </div>
+</div>

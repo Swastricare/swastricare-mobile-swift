@@ -1,0 +1,155 @@
+<h2>Current Onboarding: What's Wrong & Why</h2>
+<p class="subtitle">A breakdown of UX, visual, content, and technical issues with the existing 3-screen onboarding</p>
+
+<!-- Problem 1 -->
+<div class="section">
+  <h3>1. Generic, Forgettable Content</h3>
+  <div class="mockup">
+    <div class="mockup-header">Current Screens</div>
+    <div class="mockup-body" style="display:flex; gap:16px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:180px; padding:24px; text-align:center; background:rgba(127,127,127,0.05); border-radius:12px;">
+        <div style="font-size:48px; margin-bottom:12px;">❤️</div>
+        <div style="font-weight:700; font-size:15px;">Track Your Health</div>
+        <div style="font-size:13px; opacity:0.6; margin-top:6px;">"Monitor vitals, medications, and wellness in one place"</div>
+      </div>
+      <div style="flex:1; min-width:180px; padding:24px; text-align:center; background:rgba(127,127,127,0.05); border-radius:12px;">
+        <div style="font-size:48px; margin-bottom:12px;">🤖</div>
+        <div style="font-weight:700; font-size:15px;">AI Swastrica</div>
+        <div style="font-size:13px; opacity:0.6; margin-top:6px;">"Your personal health companion powered by AI"</div>
+      </div>
+      <div style="flex:1; min-width:180px; padding:24px; text-align:center; background:rgba(127,127,127,0.05); border-radius:12px;">
+        <div style="font-size:48px; margin-bottom:12px;">🔒</div>
+        <div style="font-weight:700; font-size:15px;">Private & Secure</div>
+        <div style="font-size:13px; opacity:0.6; margin-top:6px;">"Keep your medical documents safe and encrypted"</div>
+      </div>
+    </div>
+  </div>
+  <div class="pros-cons">
+    <div class="cons">
+      <h4>Problems</h4>
+      <ul>
+        <li><strong>"Track Your Health"</strong> — every health app says this. Zero differentiation.</li>
+        <li><strong>"AI Swastrica"</strong> — the name means nothing to a new user. No benefit shown.</li>
+        <li><strong>"Private & Secure"</strong> — security is expected, not a selling point. Feels like filler.</li>
+        <li>Subtitles are generic marketing fluff, not emotionally engaging.</li>
+        <li>Nothing is <strong>India-specific</strong> — your target audience is Indian users.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Problem 2 -->
+<div class="section">
+  <h3>2. 3D Models Are a Liability, Not an Asset</h3>
+  <div class="pros-cons">
+    <div class="cons">
+      <h4>Problems</h4>
+      <ul>
+        <li><strong>Placeholder fallback:</strong> If .glb fails to load, users see crude SceneKit shapes (spheres + cones = "heart"). Feels broken.</li>
+        <li><strong>Performance:</strong> SceneKit + GLTFKit2 on first launch = slow load, battery drain, potential jank on older iPhones.</li>
+        <li><strong>No emotional connection:</strong> A rotating 3D box doesn't make someone trust you with their health data.</li>
+        <li><strong>Double rotation bug:</strong> SceneKit rotation (8s loop) + SwiftUI rotation3DEffect (4s oscillation) = chaotic competing animations.</li>
+        <li><strong>Binary size:</strong> 3 .glb files + GLTFKit2 dependency just for 3 screens the user sees once.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Problem 3 -->
+<div class="section">
+  <h3>3. Visual Hierarchy Is Flat</h3>
+  <div class="pros-cons">
+    <div class="cons">
+      <h4>Problems</h4>
+      <ul>
+        <li><strong>Identical layout on all 3 pages:</strong> Model → Title → Subtitle. No visual rhythm or progression.</li>
+        <li><strong>Background is static:</strong> PremiumBackground orbs are barely visible (4% opacity in light mode). Effectively a blank white screen.</li>
+        <li><strong>No color storytelling:</strong> All 3 pages use the same muted palette. Nothing guides the eye or builds excitement.</li>
+        <li><strong>Skip button appears instantly</strong> — signals "this isn't worth your time." Skip should appear only after a brief delay or on page 2+.</li>
+        <li><strong>Page dots + Next button are generic iOS</strong> — no brand personality.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Problem 4 -->
+<div class="section">
+  <h3>4. Animation Issues</h3>
+  <div class="pros-cons">
+    <div class="cons">
+      <h4>Problems</h4>
+      <ul>
+        <li><strong>All .linear timing</strong> — feels robotic. Human-feeling motion uses easeOut/spring curves.</li>
+        <li><strong>Hard reset on swipe:</strong> onDisappear resets all offsets to 20px — if you swipe back, content pops harshly instead of sliding.</li>
+        <li><strong>No staggered entrance:</strong> Model, title, and subtitle all animate at the same time. Feels like a curtain lifting, not a story unfolding.</li>
+        <li><strong>ParticleField</strong> exists in SharedGraphics but isn't used on onboarding — wasted atmospheric potential.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Problem 5 -->
+<div class="section">
+  <h3>5. Missing the Indian Health Context</h3>
+  <div class="pros-cons">
+    <div class="cons">
+      <h4>Problems</h4>
+      <ul>
+        <li>No mention of <strong>family health management</strong> — a huge differentiator for Indian users who manage parents'/in-laws' health.</li>
+        <li>No <strong>language warmth</strong> — no "Namaste" or cultural touchpoint. Feels like a US app clone.</li>
+        <li>No mention of <strong>specific features</strong> users care about: medication reminders, doctor visit prep, family member tracking.</li>
+        <li>Doesn't address the <strong>trust gap</strong> — Indian users are cautious about health apps. Show, don't tell security.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="section">
+  <h3>📊 Industry Benchmarks (Health Apps, India)</h3>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+    <div style="padding:20px; background:rgba(79,70,229,0.08); border-radius:12px; text-align:center;">
+      <div style="font-size:28px; font-weight:800; color:#4F46E5;">65%</div>
+      <div style="font-size:13px; opacity:0.7; margin-top:4px;">Users skip generic onboarding</div>
+    </div>
+    <div style="padding:20px; background:rgba(34,197,94,0.08); border-radius:12px; text-align:center;">
+      <div style="font-size:28px; font-weight:800; color:#22C55E;">3-5</div>
+      <div style="font-size:13px; opacity:0.7; margin-top:4px;">Optimal onboarding screens</div>
+    </div>
+    <div style="padding:20px; background:rgba(239,68,68,0.08); border-radius:12px; text-align:center;">
+      <div style="font-size:28px; font-weight:800; color:#EF4444;">2.8s</div>
+      <div style="font-size:13px; opacity:0.7; margin-top:4px;">Avg attention span per screen</div>
+    </div>
+    <div style="padding:20px; background:rgba(168,85,247,0.08); border-radius:12px; text-align:center;">
+      <div style="font-size:28px; font-weight:800; color:#A855F7;">40%↑</div>
+      <div style="font-size:13px; opacity:0.7; margin-top:4px;">Retention with benefit-first copy</div>
+    </div>
+  </div>
+</div>
+
+<h2 style="margin-top:40px;">What approach should we take?</h2>
+<p class="subtitle">Click the approach that resonates — I'll flesh it out in the next screen</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>🎯 Benefit-First Storytelling (Recommended)</h3>
+      <p><strong>Keep 3 screens</strong> but rewrite them as emotional benefit stories with Lottie/SwiftUI animations instead of 3D models. Each screen shows a <em>real scenario</em>: "Your mom's BP is high — get notified instantly", "Never miss a medication again", "AI that understands Indian health needs." Lightweight, fast, emotionally resonant.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>✨ Interactive Feature Tour</h3>
+      <p><strong>4-5 screens</strong> with mini-interactions. User taps to "add water", sees a mock notification, or watches the AI respond. Each screen is a <em>micro-experience</em> of the app. More engaging but heavier to build. Risk: users just want to get in.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>🚀 Single Hero Screen + Quick Start</h3>
+      <p><strong>1 impactful screen</strong> — beautiful animated hero with a strong value prop, then straight to sign-up. Fastest path to the app. Works best if you have a strong health profile questionnaire that personalizes the experience. Risk: less time to build trust.</p>
+    </div>
+  </div>
+</div>

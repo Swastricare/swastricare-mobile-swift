@@ -1,0 +1,1507 @@
+kotlin version: 2.2.10
+error message: java.lang.RuntimeException: Exception while generating code for:
+FUN name:loadData visibility:private modality:FINAL returnType:kotlin.Unit
+  VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel
+  BLOCK_BODY
+    COMPOSITE type=kotlin.Unit origin=null
+      CALL 'public final fun launch$default (<this>: kotlinx.coroutines.CoroutineScope, context: kotlin.coroutines.CoroutineContext?, start: kotlinx.coroutines.CoroutineStart?, block: @[ExtensionFunctionType] kotlin.coroutines.SuspendFunction1<kotlinx.coroutines.CoroutineScope, kotlin.Unit>, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlinx.coroutines.Job declared in kotlinx.coroutines.BuildersKt' type=kotlinx.coroutines.Job origin=DEFAULT_DISPATCH_CALL
+        ARG <this>: CALL 'public final fun <get-viewModelScope> (<this>: androidx.lifecycle.ViewModel): kotlinx.coroutines.CoroutineScope declared in androidx.lifecycle.ViewModelKt' type=kotlinx.coroutines.CoroutineScope origin=GET_PROPERTY
+          ARG <this>: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=IMPLICIT_ARGUMENT
+        ARG context: COMPOSITE type=kotlin.coroutines.CoroutineContext? origin=DEFAULT_VALUE
+          CONST Null type=kotlin.coroutines.CoroutineContext? value=null
+        ARG start: COMPOSITE type=kotlinx.coroutines.CoroutineStart? origin=DEFAULT_VALUE
+          CONST Null type=kotlinx.coroutines.CoroutineStart? value=null
+        ARG block: BLOCK type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+          CLASS SUSPEND_LAMBDA CLASS name:<no name provided> modality:FINAL visibility:public/*package*/ superTypes:[kotlin.coroutines.jvm.internal.SuspendLambda; kotlin.jvm.functions.Function2<kotlinx.coroutines.CoroutineScope, kotlin.coroutines.Continuation<kotlin.Unit>?, kotlin.Any?>]
+            thisReceiver: VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>
+            FIELD name:label type:kotlin.Int visibility:public/*package*/
+            CONSTRUCTOR SUSPEND_LAMBDA visibility:public/*package*/ returnType:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> [primary]
+              VALUE_PARAMETER BOUND_RECEIVER_PARAMETER kind:Regular name:this$0 index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel
+              VALUE_PARAMETER kind:Regular name:$completion index:1 type:kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>>?
+              BLOCK_BODY
+                SET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.Unit origin=INITIALIZER_OF_FIELD_FOR_CAPTURED_VALUE
+                  receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                  value: GET_VAR 'this$0: com.swasthicare.mobile.ui.screens.home.HomeViewModel declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.<init>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> (arity: kotlin.Int, $completion: kotlin.coroutines.Continuation<kotlin.Any?>?) declared in kotlin.coroutines.jvm.internal.SuspendLambda'
+                  ARG arity: CONST Int type=kotlin.Int value=2
+                  ARG $completion: GET_VAR '$completion: kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>>? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.<init>' type=kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>>? origin=null
+                BLOCK type=kotlin.Unit origin=null
+            FUN name:invokeSuspend visibility:public modality:FINAL returnType:kotlin.Any?
+              VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>
+              VALUE_PARAMETER kind:Regular name:$result index:1 type:kotlin.Result<kotlin.Any?>
+              overridden:
+                protected abstract fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in kotlin.coroutines.jvm.internal.SuspendLambda
+              BLOCK_BODY
+                TRY type=kotlin.Unit
+                  try: BLOCK type=kotlin.Unit origin=null
+                    VAR name:hour type:kotlin.Int [val]
+                      CALL 'public open fun getHour (): kotlin.Int declared in java.time.LocalDateTime' type=kotlin.Int origin=GET_PROPERTY
+                        ARG <this>: CALL 'public open fun now (): @[FlexibleNullability] java.time.LocalDateTime? declared in java.time.LocalDateTime' type=@[FlexibleNullability] java.time.LocalDateTime? origin=null
+                    VAR name:greeting type:kotlin.String [val]
+                      BLOCK type=kotlin.String origin=WHEN
+                        VAR IR_TEMPORARY_VARIABLE name:tmp0_subject type:kotlin.Int [val]
+                          GET_VAR 'val hour: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                        WHEN type=kotlin.String origin=WHEN
+                          BRANCH
+                            if: WHEN type=kotlin.Boolean origin=IN
+                              BRANCH
+                                if: CALL 'public final fun lessOrEqual (arg0: kotlin.Int, arg1: kotlin.Int): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                  ARG arg0: CONST Int type=kotlin.Int value=5
+                                  ARG arg1: GET_VAR 'val tmp0_subject: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                                then: CALL 'public final fun less (arg0: kotlin.Int, arg1: kotlin.Int): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                  ARG arg0: GET_VAR 'val tmp0_subject: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                                  ARG arg1: CONST Int type=kotlin.Int value=12
+                              BRANCH
+                                if: CONST Boolean type=kotlin.Boolean value=true
+                                then: CONST Boolean type=kotlin.Boolean value=false
+                            then: CONST String type=kotlin.String value="Good Morning,"
+                          BRANCH
+                            if: WHEN type=kotlin.Boolean origin=IN
+                              BRANCH
+                                if: CALL 'public final fun lessOrEqual (arg0: kotlin.Int, arg1: kotlin.Int): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                  ARG arg0: CONST Int type=kotlin.Int value=12
+                                  ARG arg1: GET_VAR 'val tmp0_subject: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                                then: CALL 'public final fun less (arg0: kotlin.Int, arg1: kotlin.Int): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                  ARG arg0: GET_VAR 'val tmp0_subject: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                                  ARG arg1: CONST Int type=kotlin.Int value=17
+                              BRANCH
+                                if: CONST Boolean type=kotlin.Boolean value=true
+                                then: CONST Boolean type=kotlin.Boolean value=false
+                            then: CONST String type=kotlin.String value="Good Afternoon,"
+                          BRANCH
+                            if: WHEN type=kotlin.Boolean origin=IN
+                              BRANCH
+                                if: CALL 'public final fun lessOrEqual (arg0: kotlin.Int, arg1: kotlin.Int): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                  ARG arg0: CONST Int type=kotlin.Int value=17
+                                  ARG arg1: GET_VAR 'val tmp0_subject: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                                then: CALL 'public final fun less (arg0: kotlin.Int, arg1: kotlin.Int): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                  ARG arg0: GET_VAR 'val tmp0_subject: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                                  ARG arg1: CONST Int type=kotlin.Int value=21
+                              BRANCH
+                                if: CONST Boolean type=kotlin.Boolean value=true
+                                then: CONST Boolean type=kotlin.Boolean value=false
+                            then: CONST String type=kotlin.String value="Good Evening,"
+                          BRANCH
+                            if: CONST Boolean type=kotlin.Boolean value=true
+                            then: CONST String type=kotlin.String value="Good Night,"
+                    VAR name:userName type:kotlin.String [val]
+                      BLOCK type=kotlin.String origin=FOLDED_ELVIS
+                        WHEN type=kotlin.String origin=FOLDED_ELVIS
+                          BRANCH
+                            if: CALL 'public final fun ANDAND (arg0: kotlin.Boolean, arg1: kotlin.Boolean): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                              ARG arg0: COMPOSITE type=kotlin.Boolean origin=null
+                                VAR IR_TEMPORARY_VARIABLE name:tmp1_safe_receiver type:com.swasthicare.mobile.data.model.AppUser? [val]
+                                  CALL 'public open fun <get-currentUser> (): com.swasthicare.mobile.data.model.AppUser? declared in com.swasthicare.mobile.data.repository.SupabaseAuthRepository' type=com.swasthicare.mobile.data.model.AppUser? origin=GET_PROPERTY
+                                    ARG <this>: CALL 'public final fun <get-authRepository> (): com.swasthicare.mobile.data.repository.SupabaseAuthRepository declared in com.swasthicare.mobile.di.AppContainer' type=com.swasthicare.mobile.data.repository.SupabaseAuthRepository origin=GET_PROPERTY
+                                      ARG <this>: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:com.swasthicare.mobile.di.AppContainer visibility:public [final,static] declared in com.swasthicare.mobile.di.AppContainer' type=com.swasthicare.mobile.di.AppContainer origin=null
+                                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                    ARG arg0: GET_VAR 'val tmp1_safe_receiver: com.swasthicare.mobile.data.model.AppUser? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.model.AppUser? origin=null
+                                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                              ARG arg1: COMPOSITE type=kotlin.Boolean origin=null
+                                VAR IR_TEMPORARY_VARIABLE name:tmp2_elvis_lhs type:kotlin.String? [val]
+                                  CALL 'public final fun <get-fullName> (): kotlin.String? declared in com.swasthicare.mobile.data.model.AppUser' type=kotlin.String? origin=GET_PROPERTY
+                                    ARG <this>: GET_VAR 'val tmp1_safe_receiver: com.swasthicare.mobile.data.model.AppUser? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.model.AppUser? origin=null
+                                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                    ARG arg0: GET_VAR 'val tmp2_elvis_lhs: kotlin.String? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.String? origin=null
+                                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                            then: GET_VAR 'val tmp2_elvis_lhs: kotlin.String? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.String? origin=null
+                          BRANCH
+                            if: CALL 'public final fun ANDAND (arg0: kotlin.Boolean, arg1: kotlin.Boolean): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                              ARG arg0: COMPOSITE type=kotlin.Boolean origin=null
+                                VAR IR_TEMPORARY_VARIABLE name:tmp3_safe_receiver type:com.swasthicare.mobile.data.model.AppUser? [val]
+                                  CALL 'public open fun <get-currentUser> (): com.swasthicare.mobile.data.model.AppUser? declared in com.swasthicare.mobile.data.repository.SupabaseAuthRepository' type=com.swasthicare.mobile.data.model.AppUser? origin=GET_PROPERTY
+                                    ARG <this>: CALL 'public final fun <get-authRepository> (): com.swasthicare.mobile.data.repository.SupabaseAuthRepository declared in com.swasthicare.mobile.di.AppContainer' type=com.swasthicare.mobile.data.repository.SupabaseAuthRepository origin=GET_PROPERTY
+                                      ARG <this>: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:com.swasthicare.mobile.di.AppContainer visibility:public [final,static] declared in com.swasthicare.mobile.di.AppContainer' type=com.swasthicare.mobile.di.AppContainer origin=null
+                                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                    ARG arg0: GET_VAR 'val tmp3_safe_receiver: com.swasthicare.mobile.data.model.AppUser? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.model.AppUser? origin=null
+                                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                              ARG arg1: COMPOSITE type=kotlin.Boolean origin=null
+                                VAR IR_TEMPORARY_VARIABLE name:tmp4_safe_receiver type:kotlin.String? [val]
+                                  CALL 'public final fun <get-email> (): kotlin.String? declared in com.swasthicare.mobile.data.model.AppUser' type=kotlin.String? origin=GET_PROPERTY
+                                    ARG <this>: GET_VAR 'val tmp3_safe_receiver: com.swasthicare.mobile.data.model.AppUser? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.model.AppUser? origin=null
+                                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                    ARG arg0: GET_VAR 'val tmp4_safe_receiver: kotlin.String? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.String? origin=null
+                                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                            then: CALL 'public final fun substringBefore$default (<this>: kotlin.String, delimiter: kotlin.String, missingDelimiterValue: kotlin.String?, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlin.String declared in kotlin.text.StringsKt' type=kotlin.String origin=DEFAULT_DISPATCH_CALL
+                              ARG <this>: GET_VAR 'val tmp4_safe_receiver: kotlin.String? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.String? origin=null
+                              ARG delimiter: CONST String type=kotlin.String value="@"
+                              ARG missingDelimiterValue: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                                CONST Null type=kotlin.String? value=null
+                              ARG $mask0: CONST Int type=kotlin.Int value=2
+                              ARG $handler: CONST Null type=kotlin.Any? value=null
+                          BRANCH
+                            if: COMPOSITE type=kotlin.Boolean origin=null
+                              CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                ARG <this>: CONST Boolean type=kotlin.Boolean value=true
+                            then: CONST Null type=kotlin.Nothing? value=null
+                          BRANCH
+                            if: CONST Boolean type=kotlin.Boolean value=true
+                            then: CONST String type=kotlin.String value=""
+                    VAR name:summary type:com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary [val]
+                      CALL 'public final fun getTodaySummary ($completion: kotlin.coroutines.Continuation<com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary>): kotlin.Any? [suspend] declared in com.swasthicare.mobile.data.services.HealthConnectService' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary origin=null
+                        ARG <this>: CALL 'public final fun access$getHealthConnectService$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): com.swasthicare.mobile.data.services.HealthConnectService declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=com.swasthicare.mobile.data.services.HealthConnectService origin=null
+                          ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                            receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                        ARG $completion: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                    VAR name:weeklyStepEntries type:kotlin.collections.List<com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry> [val]
+                      CALL 'public final fun getWeeklySteps ($completion: kotlin.coroutines.Continuation<kotlin.collections.List<com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry>>): kotlin.Any? [suspend] declared in com.swasthicare.mobile.data.services.HealthConnectService' type=kotlin.collections.List<com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry> origin=null
+                        ARG <this>: CALL 'public final fun access$getHealthConnectService$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): com.swasthicare.mobile.data.services.HealthConnectService declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=com.swasthicare.mobile.data.services.HealthConnectService origin=null
+                          ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                            receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                        ARG $completion: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                    VAR name:todayStr type:kotlin.String [val]
+                      BLOCK type=kotlin.String origin=null
+                        VAR IR_TEMPORARY_VARIABLE name:tmp0 type:kotlin.Any? [val]
+                          CALL 'public open fun toString (): @[EnhancedNullability] kotlin.String declared in java.time.LocalDate' type=@[EnhancedNullability] kotlin.String origin=null
+                            ARG <this>: CALL 'public open fun now (): @[FlexibleNullability] java.time.LocalDate? declared in java.time.LocalDate' type=@[FlexibleNullability] java.time.LocalDate? origin=null
+                        CALL 'public final fun checkNotNullExpressionValue (value: kotlin.Any?, expression: kotlin.String): kotlin.Unit declared in kotlin.jvm.internal.Intrinsics' type=kotlin.Unit origin=null
+                          ARG value: GET_VAR 'val tmp0: kotlin.Any? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Any? origin=null
+                          ARG expression: CONST String type=kotlin.String value="toString(...)"
+                        GET_VAR 'val tmp0: kotlin.Any? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Any? origin=null
+                    VAR name:hydrationEntries type:kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> [val]
+                      TRY type=kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry>
+                        try: BLOCK type=kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> origin=null
+                          CALL 'public abstract fun loadLocalEntries (): kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> declared in com.swasthicare.mobile.data.repository.HydrationRepository' type=kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> origin=null
+                            ARG <this>: CALL 'public final fun access$getHydrationRepository$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): com.swasthicare.mobile.data.repository.HydrationRepository declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=com.swasthicare.mobile.data.repository.HydrationRepository origin=null
+                              ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                                receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                        CATCH parameter=val <unused var>: java.lang.Exception [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend
+                          VAR CATCH_PARAMETER name:<unused var> type:java.lang.Exception [val]
+                          BLOCK type=kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> origin=null
+                            CALL 'public final fun emptyList <T> (): kotlin.collections.List<T of kotlin.collections.CollectionsKt.emptyList> declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> origin=null
+                              TYPE_ARG T: com.swasthicare.mobile.data.models.HydrationEntry
+                    VAR name:todayHydration type:kotlin.Int [val]
+                      CALL 'public final fun sumOf <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.sumOf>, selector: kotlin.Function1<T of kotlin.collections.CollectionsKt.sumOf, kotlin.Int>): kotlin.Int [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.Int origin=null
+                        TYPE_ARG T: com.swasthicare.mobile.data.models.HydrationEntry
+                        ARG <this>: CALL 'public final fun filter <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.filter>, predicate: kotlin.Function1<T of kotlin.collections.CollectionsKt.filter, kotlin.Boolean>): kotlin.collections.List<T of kotlin.collections.CollectionsKt.filter> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> origin=null
+                          TYPE_ARG T: com.swasthicare.mobile.data.models.HydrationEntry
+                          ARG <this>: GET_VAR 'val hydrationEntries: kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.collections.List<com.swasthicare.mobile.data.models.HydrationEntry> origin=null
+                          ARG predicate: BLOCK type=kotlin.Function1<com.swasthicare.mobile.data.models.HydrationEntry, kotlin.Boolean> origin=LAMBDA
+                            COMPOSITE type=kotlin.Unit origin=null
+                            FUNCTION_REFERENCE 'private final fun invokeSuspend$lambda$0 ($todayStr: kotlin.String, it: com.swasthicare.mobile.data.models.HydrationEntry): kotlin.Boolean declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.Function1<com.swasthicare.mobile.data.models.HydrationEntry, kotlin.Boolean> origin=INLINE_LAMBDA reflectionTarget=null
+                              ARG $todayStr: GET_VAR 'val todayStr: kotlin.String [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.String origin=null
+                        ARG selector: BLOCK type=kotlin.Function1<com.swasthicare.mobile.data.models.HydrationEntry, kotlin.Int> origin=LAMBDA
+                          COMPOSITE type=kotlin.Unit origin=null
+                          FUNCTION_REFERENCE 'private final fun invokeSuspend$lambda$1 (it: com.swasthicare.mobile.data.models.HydrationEntry): kotlin.Int declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.Function1<com.swasthicare.mobile.data.models.HydrationEntry, kotlin.Int> origin=INLINE_LAMBDA reflectionTarget=null
+                    VAR name:dietEntries type:kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> [val]
+                      TRY type=kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry>
+                        try: BLOCK type=kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> origin=null
+                          CALL 'public abstract fun loadLocalLogs (): kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> declared in com.swasthicare.mobile.data.repository.DietRepository' type=kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> origin=null
+                            ARG <this>: CALL 'public final fun access$getDietRepository$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): com.swasthicare.mobile.data.repository.DietRepository declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=com.swasthicare.mobile.data.repository.DietRepository origin=null
+                              ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                                receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                        CATCH parameter=val <unused var>: java.lang.Exception [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend
+                          VAR CATCH_PARAMETER name:<unused var> type:java.lang.Exception [val]
+                          BLOCK type=kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> origin=null
+                            CALL 'public final fun emptyList <T> (): kotlin.collections.List<T of kotlin.collections.CollectionsKt.emptyList> declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> origin=null
+                              TYPE_ARG T: com.swasthicare.mobile.data.models.DietLogEntry
+                    VAR name:todayCalories type:kotlin.Double [val]
+                      CALL 'public final fun sumOf <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.sumOf>, selector: kotlin.Function1<T of kotlin.collections.CollectionsKt.sumOf, kotlin.Double>): kotlin.Double [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.Double origin=null
+                        TYPE_ARG T: com.swasthicare.mobile.data.models.DietLogEntry
+                        ARG <this>: CALL 'public final fun filter <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.filter>, predicate: kotlin.Function1<T of kotlin.collections.CollectionsKt.filter, kotlin.Boolean>): kotlin.collections.List<T of kotlin.collections.CollectionsKt.filter> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> origin=null
+                          TYPE_ARG T: com.swasthicare.mobile.data.models.DietLogEntry
+                          ARG <this>: GET_VAR 'val dietEntries: kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.collections.List<com.swasthicare.mobile.data.models.DietLogEntry> origin=null
+                          ARG predicate: BLOCK type=kotlin.Function1<com.swasthicare.mobile.data.models.DietLogEntry, kotlin.Boolean> origin=LAMBDA
+                            COMPOSITE type=kotlin.Unit origin=null
+                            FUNCTION_REFERENCE 'private final fun invokeSuspend$lambda$2 ($todayStr: kotlin.String, it: com.swasthicare.mobile.data.models.DietLogEntry): kotlin.Boolean declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.Function1<com.swasthicare.mobile.data.models.DietLogEntry, kotlin.Boolean> origin=INLINE_LAMBDA reflectionTarget=null
+                              ARG $todayStr: GET_VAR 'val todayStr: kotlin.String [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.String origin=null
+                        ARG selector: BLOCK type=kotlin.Function1<com.swasthicare.mobile.data.models.DietLogEntry, kotlin.Double> origin=LAMBDA
+                          COMPOSITE type=kotlin.Unit origin=null
+                          FUNCTION_REFERENCE 'private final fun invokeSuspend$lambda$3 (it: com.swasthicare.mobile.data.models.DietLogEntry): kotlin.Double declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.Function1<com.swasthicare.mobile.data.models.DietLogEntry, kotlin.Double> origin=INLINE_LAMBDA reflectionTarget=null
+                    VAR name:dietGoals type:com.swasthicare.mobile.data.models.DietGoals? [val]
+                      TRY type=com.swasthicare.mobile.data.models.DietGoals?
+                        try: BLOCK type=com.swasthicare.mobile.data.models.DietGoals origin=null
+                          CALL 'public abstract fun loadGoals (): com.swasthicare.mobile.data.models.DietGoals declared in com.swasthicare.mobile.data.repository.DietRepository' type=com.swasthicare.mobile.data.models.DietGoals origin=null
+                            ARG <this>: CALL 'public final fun access$getDietRepository$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): com.swasthicare.mobile.data.repository.DietRepository declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=com.swasthicare.mobile.data.repository.DietRepository origin=null
+                              ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                                receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                        CATCH parameter=val <unused var>: java.lang.Exception [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend
+                          VAR CATCH_PARAMETER name:<unused var> type:java.lang.Exception [val]
+                          BLOCK type=kotlin.Nothing? origin=null
+                            CONST Null type=kotlin.Nothing? value=null
+                    VAR name:weekDates type:kotlin.collections.List<java.util.Date> [val]
+                      CALL 'public final fun access$generateWeekDates ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): kotlin.collections.List<java.util.Date> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=kotlin.collections.List<java.util.Date> origin=null
+                        ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                          receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                    VAR name:weeklySteps type:kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric> [val]
+                      CALL 'public final fun map <T, R> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.map>, transform: kotlin.Function1<T of kotlin.collections.CollectionsKt.map, R of kotlin.collections.CollectionsKt.map>): kotlin.collections.List<R of kotlin.collections.CollectionsKt.map> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric> origin=null
+                        TYPE_ARG T: com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry
+                        TYPE_ARG R: com.swasthicare.mobile.ui.components.DailyMetric
+                        ARG <this>: GET_VAR 'val weeklyStepEntries: kotlin.collections.List<com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry> [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.collections.List<com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry> origin=null
+                        ARG transform: BLOCK type=kotlin.Function1<com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry, com.swasthicare.mobile.ui.components.DailyMetric> origin=LAMBDA
+                          COMPOSITE type=kotlin.Unit origin=null
+                          FUNCTION_REFERENCE 'private final fun invokeSuspend$lambda$4 (entry: com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry): com.swasthicare.mobile.ui.components.DailyMetric declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.Function1<com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry, com.swasthicare.mobile.ui.components.DailyMetric> origin=INLINE_LAMBDA reflectionTarget=null
+                    CALL 'public abstract fun <set-value> (<set-?>: T of kotlinx.coroutines.flow.MutableStateFlow): kotlin.Unit declared in kotlinx.coroutines.flow.MutableStateFlow' type=kotlin.Unit origin=EQ
+                      ARG <this>: CALL 'public final fun access$get_uiState$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> origin=null
+                        ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                          receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                      ARG <set-?>: CONSTRUCTOR_CALL 'public constructor <init> (userName: kotlin.String?, greeting: kotlin.String?, stepCount: kotlin.Int, calories: kotlin.Int, activeMinutes: kotlin.Int, standHours: kotlin.Int, heartRate: kotlin.Int, sleepHours: kotlin.String?, distance: kotlin.Double, hydrationCurrent: kotlin.Int, hydrationGoal: kotlin.Int, medicationsTaken: kotlin.Int, medicationsTotal: kotlin.Int, isLoading: kotlin.Boolean, isDemoMode: kotlin.Boolean, isAuthorized: kotlin.Boolean, weekDates: kotlin.collections.List<java.util.Date>?, selectedDate: java.util.Date?, weeklySteps: kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric>?, serverNudges: kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge>?, calorieCurrent: kotlin.Int, calorieGoal: kotlin.Int, cyclePhase: kotlin.String?, $mask0: kotlin.Int, $marker: kotlin.jvm.internal.DefaultConstructorMarker?) declared in com.swasthicare.mobile.ui.screens.home.HomeState' type=com.swasthicare.mobile.ui.screens.home.HomeState origin=DEFAULT_DISPATCH_CALL
+                        ARG userName: GET_VAR 'val userName: kotlin.String [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.String origin=null
+                        ARG greeting: GET_VAR 'val greeting: kotlin.String [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.String origin=null
+                        ARG stepCount: CALL 'public final fun <get-steps> (): kotlin.Int declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary' type=kotlin.Int origin=GET_PROPERTY
+                          ARG <this>: GET_VAR 'val summary: com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary origin=null
+                        ARG calories: CALL 'public final fun <get-activeCalories> (): kotlin.Int declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary' type=kotlin.Int origin=GET_PROPERTY
+                          ARG <this>: GET_VAR 'val summary: com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary origin=null
+                        ARG activeMinutes: CALL 'public final fun <get-exerciseMinutes> (): kotlin.Int declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary' type=kotlin.Int origin=GET_PROPERTY
+                          ARG <this>: GET_VAR 'val summary: com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary origin=null
+                        ARG standHours: CALL 'public final fun <get-standHours> (): kotlin.Int declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary' type=kotlin.Int origin=GET_PROPERTY
+                          ARG <this>: GET_VAR 'val summary: com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary origin=null
+                        ARG heartRate: CALL 'public final fun <get-heartRate> (): kotlin.Int declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary' type=kotlin.Int origin=GET_PROPERTY
+                          ARG <this>: GET_VAR 'val summary: com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary origin=null
+                        ARG sleepHours: CALL 'public final fun <get-sleepFormatted> (): kotlin.String declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary' type=kotlin.String origin=GET_PROPERTY
+                          ARG <this>: GET_VAR 'val summary: com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary origin=null
+                        ARG distance: CALL 'public final fun <get-distanceKm> (): kotlin.Double declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary' type=kotlin.Double origin=GET_PROPERTY
+                          ARG <this>: GET_VAR 'val summary: com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyHealthSummary origin=null
+                        ARG hydrationCurrent: GET_VAR 'val todayHydration: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                        ARG hydrationGoal: CONST Int type=kotlin.Int value=2500
+                        ARG medicationsTaken: CONST Int type=kotlin.Int value=0
+                        ARG medicationsTotal: CONST Int type=kotlin.Int value=0
+                        ARG isLoading: CONST Boolean type=kotlin.Boolean value=false
+                        ARG isDemoMode: CONST Boolean type=kotlin.Boolean value=false
+                        ARG isAuthorized: CALL 'public final fun <get-isAvailable> (): kotlin.Boolean declared in com.swasthicare.mobile.data.services.HealthConnectService' type=kotlin.Boolean origin=GET_PROPERTY
+                          ARG <this>: CALL 'public final fun access$getHealthConnectService$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): com.swasthicare.mobile.data.services.HealthConnectService declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=com.swasthicare.mobile.data.services.HealthConnectService origin=null
+                            ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                              receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                        ARG weekDates: GET_VAR 'val weekDates: kotlin.collections.List<java.util.Date> [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.collections.List<java.util.Date> origin=null
+                        ARG selectedDate: CONSTRUCTOR_CALL 'public constructor <init> () declared in java.util.Date' type=java.util.Date origin=null
+                        ARG weeklySteps: GET_VAR 'val weeklySteps: kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric> [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric> origin=null
+                        ARG serverNudges: COMPOSITE type=kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge>? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge>? value=null
+                        ARG calorieCurrent: CALL 'public open fun toInt (): kotlin.Int declared in kotlin.Double' type=kotlin.Int origin=null
+                          ARG <this>: GET_VAR 'val todayCalories: kotlin.Double [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Double origin=null
+                        ARG calorieGoal: BLOCK type=kotlin.Int origin=FOLDED_ELVIS
+                          WHEN type=kotlin.Int origin=FOLDED_ELVIS
+                            BRANCH
+                              if: CALL 'public final fun ANDAND (arg0: kotlin.Boolean, arg1: kotlin.Boolean): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                ARG arg0: COMPOSITE type=kotlin.Boolean origin=null
+                                  CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                    ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                      ARG arg0: GET_VAR 'val dietGoals: com.swasthicare.mobile.data.models.DietGoals? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.models.DietGoals? origin=null
+                                      ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                                ARG arg1: COMPOSITE type=kotlin.Boolean origin=null
+                                  VAR IR_TEMPORARY_VARIABLE name:tmp7_elvis_lhs type:kotlin.Int [val]
+                                    CALL 'public final fun <get-dailyCalories> (): kotlin.Int declared in com.swasthicare.mobile.data.models.DietGoals' type=kotlin.Int origin=GET_PROPERTY
+                                      ARG <this>: GET_VAR 'val dietGoals: com.swasthicare.mobile.data.models.DietGoals? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.models.DietGoals? origin=null
+                                  CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                    ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                      ARG arg0: GET_VAR 'val tmp7_elvis_lhs: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                                      ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                              then: GET_VAR 'val tmp7_elvis_lhs: kotlin.Int [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=kotlin.Int origin=null
+                            BRANCH
+                              if: CONST Boolean type=kotlin.Boolean value=true
+                              then: CONST Int type=kotlin.Int value=2000
+                        ARG cyclePhase: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.String? value=null
+                        ARG $mask0: CONST Int type=kotlin.Int value=4718592
+                        ARG $marker: CONST Null type=kotlin.jvm.internal.DefaultConstructorMarker? value=null
+                    CALL 'public final fun loadNudges (): kotlin.Unit declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=kotlin.Unit origin=null
+                      ARG <this>: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                        receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                  CATCH parameter=val e: java.lang.Exception [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend
+                    VAR CATCH_PARAMETER name:e type:java.lang.Exception [val]
+                    BLOCK type=kotlin.Unit origin=null
+                      COMPOSITE type=kotlin.Unit origin=null
+                        CALL 'public open fun w (p0: @[EnhancedNullability] kotlin.String?, p1: @[EnhancedNullability] kotlin.String): kotlin.Int declared in android.util.Log' type=kotlin.Int origin=null
+                          ARG p0: CONST String type=kotlin.String value="HomeViewModel"
+                          ARG p1: STRING_CONCATENATION type=kotlin.String
+                            CONST String type=kotlin.String value="Error loading home data: "
+                            CALL 'public open fun <get-message> (): kotlin.String? [fake_override] declared in java.lang.Exception' type=kotlin.String? origin=GET_PROPERTY
+                              ARG <this>: GET_VAR 'val e: java.lang.Exception [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=java.lang.Exception origin=null
+                        COMPOSITE type=kotlin.Unit origin=null
+                      CALL 'public abstract fun <set-value> (<set-?>: T of kotlinx.coroutines.flow.MutableStateFlow): kotlin.Unit declared in kotlinx.coroutines.flow.MutableStateFlow' type=kotlin.Unit origin=EQ
+                        ARG <this>: CALL 'public final fun access$get_uiState$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> origin=null
+                          ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                            receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                        ARG <set-?>: CALL 'public final fun copy$default ($this: com.swasthicare.mobile.ui.screens.home.HomeState, userName: kotlin.String?, greeting: kotlin.String?, stepCount: kotlin.Int, calories: kotlin.Int, activeMinutes: kotlin.Int, standHours: kotlin.Int, heartRate: kotlin.Int, sleepHours: kotlin.String?, distance: kotlin.Double, hydrationCurrent: kotlin.Int, hydrationGoal: kotlin.Int, medicationsTaken: kotlin.Int, medicationsTotal: kotlin.Int, isLoading: kotlin.Boolean, isDemoMode: kotlin.Boolean, isAuthorized: kotlin.Boolean, weekDates: kotlin.collections.List<java.util.Date>?, selectedDate: java.util.Date?, weeklySteps: kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric>?, serverNudges: kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge>?, calorieCurrent: kotlin.Int, calorieGoal: kotlin.Int, cyclePhase: kotlin.String?, $mask0: kotlin.Int, $handler: kotlin.Any?): com.swasthicare.mobile.ui.screens.home.HomeState declared in com.swasthicare.mobile.ui.screens.home.HomeState' type=com.swasthicare.mobile.ui.screens.home.HomeState origin=DEFAULT_DISPATCH_CALL
+                          ARG $this: CALL 'public abstract fun <get-value> (): T of kotlinx.coroutines.flow.MutableStateFlow declared in kotlinx.coroutines.flow.MutableStateFlow' type=com.swasthicare.mobile.ui.screens.home.HomeState origin=GET_PROPERTY
+                            ARG <this>: CALL 'public final fun access$get_uiState$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> origin=null
+                              ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                                receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                          ARG userName: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                            CONST Null type=kotlin.String? value=null
+                          ARG greeting: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                            CONST Null type=kotlin.String? value=null
+                          ARG stepCount: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG calories: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG activeMinutes: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG standHours: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG heartRate: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG sleepHours: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                            CONST Null type=kotlin.String? value=null
+                          ARG distance: COMPOSITE type=kotlin.Double origin=DEFAULT_VALUE
+                            CONST Double type=kotlin.Double value=0.0
+                          ARG hydrationCurrent: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG hydrationGoal: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG medicationsTaken: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG medicationsTotal: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG isLoading: CONST Boolean type=kotlin.Boolean value=false
+                          ARG isDemoMode: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                            CONST Boolean type=kotlin.Boolean value=false
+                          ARG isAuthorized: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                            CONST Boolean type=kotlin.Boolean value=false
+                          ARG weekDates: COMPOSITE type=kotlin.collections.List<java.util.Date>? origin=DEFAULT_VALUE
+                            CONST Null type=kotlin.collections.List<java.util.Date>? value=null
+                          ARG selectedDate: COMPOSITE type=java.util.Date? origin=DEFAULT_VALUE
+                            CONST Null type=java.util.Date? value=null
+                          ARG weeklySteps: COMPOSITE type=kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric>? origin=DEFAULT_VALUE
+                            CONST Null type=kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric>? value=null
+                          ARG serverNudges: COMPOSITE type=kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge>? origin=DEFAULT_VALUE
+                            CONST Null type=kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge>? value=null
+                          ARG calorieCurrent: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG calorieGoal: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                            CONST Int type=kotlin.Int value=0
+                          ARG cyclePhase: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                            CONST Null type=kotlin.String? value=null
+                          ARG $mask0: CONST Int type=kotlin.Int value=8380415
+                          ARG $handler: CONST Null type=kotlin.Any? value=null
+            FUN name:create visibility:public modality:FINAL returnType:kotlin.coroutines.Continuation<kotlin.Unit>
+              VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>
+              VALUE_PARAMETER kind:Regular name:value index:1 type:kotlin.Any?
+              VALUE_PARAMETER kind:Regular name:$completion index:2 type:kotlin.coroutines.Continuation<kotlin.Nothing>
+              overridden:
+                public open fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in kotlin.coroutines.jvm.internal.SuspendLambda
+              BLOCK_BODY
+                RETURN type=kotlin.Nothing from='public final fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>'
+                  CONSTRUCTOR_CALL 'public/*package*/ constructor <init> (this$0: com.swasthicare.mobile.ui.screens.home.HomeViewModel, $completion: kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>>?) [primary] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                    ARG this$0: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                      receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.create' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                    ARG $completion: GET_VAR '$completion: kotlin.coroutines.Continuation<kotlin.Nothing> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.create' type=kotlin.coroutines.Continuation<kotlin.Nothing> origin=null
+            FUN name:invoke visibility:public modality:FINAL returnType:kotlin.Any?
+              VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>
+              VALUE_PARAMETER kind:Regular name:p1 index:1 type:kotlinx.coroutines.CoroutineScope
+              VALUE_PARAMETER kind:Regular name:p2 index:2 type:kotlin.coroutines.Continuation<kotlin.Unit>?
+              overridden:
+                public abstract fun invoke (p1: P1 of kotlin.jvm.functions.Function2, p2: P2 of kotlin.jvm.functions.Function2): R of kotlin.jvm.functions.Function2 declared in kotlin.jvm.functions.Function2
+              BLOCK_BODY
+                RETURN type=kotlin.Nothing from='public final fun invoke (p1: kotlinx.coroutines.CoroutineScope, p2: kotlin.coroutines.Continuation<kotlin.Unit>?): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>'
+                  CALL 'public final fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.Any? origin=null
+                    ARG <this>: TYPE_OP type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=IMPLICIT_CAST typeOperand=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>
+                      CALL 'public final fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.coroutines.Continuation<kotlin.Unit> origin=null
+                        ARG <this>: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invoke' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                        ARG value: GET_VAR 'p1: kotlinx.coroutines.CoroutineScope declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invoke' type=kotlinx.coroutines.CoroutineScope origin=null
+                        ARG $completion: GET_VAR 'p2: kotlin.coroutines.Continuation<kotlin.Unit>? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invoke' type=kotlin.coroutines.Continuation<kotlin.Unit>? origin=null
+                    ARG $result: CALL 'public final fun <unsafe-coerce> <T, R> (v: T of kotlin.jvm.internal.<unsafe-coerce>): R of kotlin.jvm.internal.<unsafe-coerce> declared in kotlin.jvm.internal' type=kotlin.Result<kotlin.Any?> origin=null
+                      TYPE_ARG T: kotlin.Any?
+                      TYPE_ARG R: kotlin.Result<kotlin.Any?>
+                      ARG v: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:kotlin.Unit visibility:public [final,static] declared in kotlin.Unit' type=kotlin.Unit origin=null
+            FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final]
+            FUN INLINE_LAMBDA name:invokeSuspend$lambda$0 visibility:private modality:FINAL returnType:kotlin.Boolean
+              VALUE_PARAMETER BOUND_VALUE_PARAMETER kind:Regular name:$todayStr index:0 type:kotlin.String
+              VALUE_PARAMETER kind:Regular name:it index:1 type:com.swasthicare.mobile.data.models.HydrationEntry
+              BLOCK_BODY
+                VAR name:$i$a$-filter-HomeViewModel$loadData$1$todayHydration$1 type:kotlin.Int [val]
+                  CONST Int type=kotlin.Int value=0
+                RETURN type=kotlin.Nothing from='private final fun invokeSuspend$lambda$0 ($todayStr: kotlin.String, it: com.swasthicare.mobile.data.models.HydrationEntry): kotlin.Boolean declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>'
+                  CALL 'public final fun startsWith$default (<this>: kotlin.String, prefix: kotlin.String, ignoreCase: kotlin.Boolean, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlin.Boolean declared in kotlin.text.StringsKt' type=kotlin.Boolean origin=DEFAULT_DISPATCH_CALL
+                    ARG <this>: CALL 'public final fun <get-consumedAt> (): kotlin.String declared in com.swasthicare.mobile.data.models.HydrationEntry' type=kotlin.String origin=GET_PROPERTY
+                      ARG <this>: GET_VAR 'it: com.swasthicare.mobile.data.models.HydrationEntry declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$0' type=com.swasthicare.mobile.data.models.HydrationEntry origin=null
+                    ARG prefix: GET_VAR '$todayStr: kotlin.String declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$0' type=kotlin.String origin=null
+                    ARG ignoreCase: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                      CONST Boolean type=kotlin.Boolean value=false
+                    ARG $mask0: CONST Int type=kotlin.Int value=2
+                    ARG $handler: CONST Null type=kotlin.Any? value=null
+            FUN INLINE_LAMBDA name:invokeSuspend$lambda$1 visibility:private modality:FINAL returnType:kotlin.Int
+              VALUE_PARAMETER kind:Regular name:it index:0 type:com.swasthicare.mobile.data.models.HydrationEntry
+              BLOCK_BODY
+                VAR name:$i$a$-sumOfInt-HomeViewModel$loadData$1$todayHydration$2 type:kotlin.Int [val]
+                  CONST Int type=kotlin.Int value=0
+                RETURN type=kotlin.Nothing from='private final fun invokeSuspend$lambda$1 (it: com.swasthicare.mobile.data.models.HydrationEntry): kotlin.Int declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>'
+                  CALL 'public final fun <get-effectiveMl> (): kotlin.Int declared in com.swasthicare.mobile.data.models.HydrationEntry' type=kotlin.Int origin=GET_PROPERTY
+                    ARG <this>: GET_VAR 'it: com.swasthicare.mobile.data.models.HydrationEntry declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$1' type=com.swasthicare.mobile.data.models.HydrationEntry origin=null
+            FUN INLINE_LAMBDA name:invokeSuspend$lambda$2 visibility:private modality:FINAL returnType:kotlin.Boolean
+              VALUE_PARAMETER BOUND_VALUE_PARAMETER kind:Regular name:$todayStr index:0 type:kotlin.String
+              VALUE_PARAMETER kind:Regular name:it index:1 type:com.swasthicare.mobile.data.models.DietLogEntry
+              BLOCK_BODY
+                VAR name:$i$a$-filter-HomeViewModel$loadData$1$todayCalories$1 type:kotlin.Int [val]
+                  CONST Int type=kotlin.Int value=0
+                RETURN type=kotlin.Nothing from='private final fun invokeSuspend$lambda$2 ($todayStr: kotlin.String, it: com.swasthicare.mobile.data.models.DietLogEntry): kotlin.Boolean declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>'
+                  CALL 'public final fun startsWith$default (<this>: kotlin.String, prefix: kotlin.String, ignoreCase: kotlin.Boolean, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlin.Boolean declared in kotlin.text.StringsKt' type=kotlin.Boolean origin=DEFAULT_DISPATCH_CALL
+                    ARG <this>: CALL 'public final fun <get-loggedAt> (): kotlin.String declared in com.swasthicare.mobile.data.models.DietLogEntry' type=kotlin.String origin=GET_PROPERTY
+                      ARG <this>: GET_VAR 'it: com.swasthicare.mobile.data.models.DietLogEntry declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$2' type=com.swasthicare.mobile.data.models.DietLogEntry origin=null
+                    ARG prefix: GET_VAR '$todayStr: kotlin.String declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$2' type=kotlin.String origin=null
+                    ARG ignoreCase: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                      CONST Boolean type=kotlin.Boolean value=false
+                    ARG $mask0: CONST Int type=kotlin.Int value=2
+                    ARG $handler: CONST Null type=kotlin.Any? value=null
+            FUN INLINE_LAMBDA name:invokeSuspend$lambda$3 visibility:private modality:FINAL returnType:kotlin.Double
+              VALUE_PARAMETER kind:Regular name:it index:0 type:com.swasthicare.mobile.data.models.DietLogEntry
+              BLOCK_BODY
+                VAR name:$i$a$-sumOfDouble-HomeViewModel$loadData$1$todayCalories$2 type:kotlin.Int [val]
+                  CONST Int type=kotlin.Int value=0
+                RETURN type=kotlin.Nothing from='private final fun invokeSuspend$lambda$3 (it: com.swasthicare.mobile.data.models.DietLogEntry): kotlin.Double declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>'
+                  CALL 'public final fun <get-calories> (): kotlin.Double declared in com.swasthicare.mobile.data.models.DietLogEntry' type=kotlin.Double origin=GET_PROPERTY
+                    ARG <this>: GET_VAR 'it: com.swasthicare.mobile.data.models.DietLogEntry declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$3' type=com.swasthicare.mobile.data.models.DietLogEntry origin=null
+            FUN INLINE_LAMBDA name:invokeSuspend$lambda$4 visibility:private modality:FINAL returnType:com.swasthicare.mobile.ui.components.DailyMetric
+              VALUE_PARAMETER kind:Regular name:entry index:0 type:com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry
+              BLOCK_BODY
+                VAR name:$i$a$-map-HomeViewModel$loadData$1$weeklySteps$1 type:kotlin.Int [val]
+                  CONST Int type=kotlin.Int value=0
+                RETURN type=kotlin.Nothing from='private final fun invokeSuspend$lambda$4 (entry: com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry): com.swasthicare.mobile.ui.components.DailyMetric declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>'
+                  CONSTRUCTOR_CALL 'public constructor <init> (date: java.util.Date, steps: kotlin.Int, dayName: kotlin.String) [primary] declared in com.swasthicare.mobile.ui.components.DailyMetric' type=com.swasthicare.mobile.ui.components.DailyMetric origin=null
+                    ARG date: BLOCK type=java.util.Date origin=null
+                      VAR IR_TEMPORARY_VARIABLE name:tmp0 type:kotlin.Any? [val]
+                        CALL 'public open fun from (p0: @[FlexibleNullability] java.time.Instant?): @[FlexibleNullability] java.util.Date? declared in java.util.Date' type=@[FlexibleNullability] java.util.Date? origin=null
+                          ARG p0: CALL 'public open fun toInstant (): @[FlexibleNullability] java.time.Instant? [fake_override] declared in java.time.ZonedDateTime' type=@[FlexibleNullability] java.time.Instant? origin=null
+                            ARG <this>: CALL 'public open fun atStartOfDay (p0: @[FlexibleNullability] java.time.ZoneId?): @[FlexibleNullability] java.time.ZonedDateTime? declared in java.time.LocalDate' type=@[FlexibleNullability] java.time.ZonedDateTime? origin=null
+                              ARG <this>: CALL 'public final fun <get-date> (): java.time.LocalDate declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry' type=java.time.LocalDate origin=GET_PROPERTY
+                                ARG <this>: GET_VAR 'entry: com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$4' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry origin=null
+                              ARG p0: CALL 'public open fun systemDefault (): @[FlexibleNullability] java.time.ZoneId? declared in java.time.ZoneId' type=@[FlexibleNullability] java.time.ZoneId? origin=null
+                      CALL 'public final fun checkNotNullExpressionValue (value: kotlin.Any?, expression: kotlin.String): kotlin.Unit declared in kotlin.jvm.internal.Intrinsics' type=kotlin.Unit origin=null
+                        ARG value: GET_VAR 'val tmp0: kotlin.Any? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$4' type=kotlin.Any? origin=null
+                        ARG expression: CONST String type=kotlin.String value="from(...)"
+                      GET_VAR 'val tmp0: kotlin.Any? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$4' type=kotlin.Any? origin=null
+                    ARG steps: CALL 'public final fun <get-steps> (): kotlin.Int declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry' type=kotlin.Int origin=GET_PROPERTY
+                      ARG <this>: GET_VAR 'entry: com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$4' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry origin=null
+                    ARG dayName: CALL 'public final fun <get-dayName> (): kotlin.String declared in com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry' type=kotlin.String origin=GET_PROPERTY
+                      ARG <this>: GET_VAR 'entry: com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invokeSuspend$lambda$4' type=com.swasthicare.mobile.data.services.HealthConnectService.DailyStepEntry origin=null
+            FUN BRIDGE name:invoke visibility:public modality:OPEN returnType:kotlin.Any?
+              VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>
+              VALUE_PARAMETER BRIDGE kind:Regular name:p1 index:1 type:kotlin.Any?
+              VALUE_PARAMETER BRIDGE kind:Regular name:p2 index:2 type:kotlin.Any?
+              EXPRESSION_BODY
+                RETURN type=kotlin.Nothing from='public open fun invoke (p1: kotlin.Any?, p2: kotlin.Any?): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>'
+                  CALL 'public final fun invoke (p1: kotlinx.coroutines.CoroutineScope, p2: kotlin.coroutines.Continuation<kotlin.Unit>?): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=kotlin.Any? origin=BRIDGE_DELEGATION
+                    ARG <this>: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invoke' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+                    ARG p1: TYPE_OP type=kotlinx.coroutines.CoroutineScope origin=IMPLICIT_CAST typeOperand=kotlinx.coroutines.CoroutineScope
+                      GET_VAR 'p1: kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invoke' type=kotlin.Any? origin=null
+                    ARG p2: TYPE_OP type=kotlin.coroutines.Continuation<*> origin=IMPLICIT_CAST typeOperand=kotlin.coroutines.Continuation<*>
+                      GET_VAR 'p2: kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>.invoke' type=kotlin.Any? origin=null
+          CONSTRUCTOR_CALL 'public/*package*/ constructor <init> (this$0: com.swasthicare.mobile.ui.screens.home.HomeViewModel, $completion: kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>>?) [primary] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData.<no name provided> origin=null
+            ARG this$0: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadData' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+            ARG $completion: CONST Null type=kotlin.Nothing? value=null
+        ARG $mask0: CONST Int type=kotlin.Int value=3
+        ARG $handler: CONST Null type=kotlin.Any? value=null
+      COMPOSITE type=kotlin.Unit origin=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:50)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:43)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:422)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:439)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:388)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$cli(KotlinToJVMBytecodeCompiler.kt:431)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:95)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:36)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:29)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:68)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:58)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:109)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:68)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:78)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:44)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:90)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:352)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:175)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:38)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:504)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:421)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:306)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:133)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:679)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:93)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1806)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't transform method node:
+invokeSuspend (Ljava/lang/Object;)Ljava/lang/Object;:
+    // annotable parameter count: 1 (visible)
+    // annotable parameter count: 1 (invisible)
+    TRYCATCHBLOCK L0 L1 L2 java/lang/Exception
+    TRYCATCHBLOCK L3 L4 L5 java/lang/Exception
+    TRYCATCHBLOCK L6 L7 L8 java/lang/Exception
+    TRYCATCHBLOCK L9 L10 L11 java/lang/Exception
+   L12
+   L13
+    LINENUMBER 69 L13
+   L14
+   L9
+    NOP
+   L15
+    LINENUMBER 70 L15
+    INVOKESTATIC java/time/LocalDateTime.now ()Ljava/time/LocalDateTime;
+    INVOKEVIRTUAL java/time/LocalDateTime.getHour ()I
+    ISTORE 2
+   L16
+   L17
+    LINENUMBER 71 L17
+    ILOAD 2
+    ISTORE 4
+   L18
+    NOP
+   L19
+    LINENUMBER 72 L19
+    ICONST_5
+    ILOAD 4
+    IF_ICMPGT L20
+    ILOAD 4
+    BIPUSH 12
+    IF_ICMPGE L21
+    ICONST_1
+    GOTO L22
+   L21
+    ICONST_0
+   L22
+    GOTO L23
+   L20
+    NOP
+    ICONST_0
+   L23
+    IFEQ L24
+    LDC "Good Morning,"
+    GOTO L25
+   L24
+   L26
+    LINENUMBER 73 L26
+    BIPUSH 12
+    ILOAD 4
+    IF_ICMPGT L27
+    ILOAD 4
+    BIPUSH 17
+    IF_ICMPGE L28
+    ICONST_1
+    GOTO L29
+   L28
+    ICONST_0
+   L29
+    GOTO L30
+   L27
+    NOP
+    ICONST_0
+   L30
+    IFEQ L31
+    LDC "Good Afternoon,"
+    GOTO L25
+   L31
+   L32
+    LINENUMBER 74 L32
+    BIPUSH 17
+    ILOAD 4
+    IF_ICMPGT L33
+    ILOAD 4
+    BIPUSH 21
+    IF_ICMPGE L34
+    ICONST_1
+    GOTO L35
+   L34
+    ICONST_0
+   L35
+    GOTO L36
+   L33
+    NOP
+    ICONST_0
+   L36
+    IFEQ L37
+    LDC "Good Evening,"
+    GOTO L25
+   L37
+   L38
+    LINENUMBER 75 L38
+    LDC "Good Night,"
+   L25
+   L39
+   L40
+    LINENUMBER 71 L40
+    ASTORE 3
+   L41
+   L42
+    LINENUMBER 79 L42
+    GETSTATIC com/swasthicare/mobile/di/AppContainer.INSTANCE : Lcom/swasthicare/mobile/di/AppContainer;
+    INVOKEVIRTUAL com/swasthicare/mobile/di/AppContainer.getAuthRepository ()Lcom/swasthicare/mobile/data/repository/SupabaseAuthRepository;
+    INVOKEVIRTUAL com/swasthicare/mobile/data/repository/SupabaseAuthRepository.getCurrentUser ()Lcom/swasthicare/mobile/data/model/AppUser;
+    ASTORE 5
+   L43
+    ALOAD 5
+    IFNULL L44
+    ALOAD 5
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/AppUser.getFullName ()Ljava/lang/String;
+    ASTORE 6
+   L45
+    ALOAD 6
+    IFNULL L44
+    ALOAD 6
+    GOTO L46
+   L44
+   L47
+    LINENUMBER 80 L47
+    GETSTATIC com/swasthicare/mobile/di/AppContainer.INSTANCE : Lcom/swasthicare/mobile/di/AppContainer;
+    INVOKEVIRTUAL com/swasthicare/mobile/di/AppContainer.getAuthRepository ()Lcom/swasthicare/mobile/data/repository/SupabaseAuthRepository;
+    INVOKEVIRTUAL com/swasthicare/mobile/data/repository/SupabaseAuthRepository.getCurrentUser ()Lcom/swasthicare/mobile/data/model/AppUser;
+    ASTORE 7
+   L48
+    ALOAD 7
+    IFNULL L49
+    ALOAD 7
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/AppUser.getEmail ()Ljava/lang/String;
+    ASTORE 8
+   L50
+    ALOAD 8
+    IFNULL L49
+    ALOAD 8
+    LDC "@"
+    ACONST_NULL
+    ICONST_2
+    ACONST_NULL
+    INVOKESTATIC kotlin/text/StringsKt.substringBefore$default (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ljava/lang/String;
+    GOTO L46
+   L49
+   L51
+    LINENUMBER 79 L51
+    NOP
+    GOTO L52
+    ACONST_NULL
+    GOTO L46
+   L52
+    NOP
+   L53
+    LINENUMBER 81 L53
+    LDC ""
+   L46
+   L54
+   L55
+    LINENUMBER 79 L55
+    ASTORE 4
+   L56
+   L57
+    LINENUMBER 84 L57
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$getHealthConnectService$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lcom/swasthicare/mobile/data/services/HealthConnectService;
+    ALOAD 0
+    CHECKCAST kotlin/coroutines/Continuation
+    ICONST_0
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService.getTodaySummary (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+    ICONST_1
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+    CHECKCAST com/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary
+    ASTORE 5
+   L58
+   L59
+    LINENUMBER 85 L59
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$getHealthConnectService$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lcom/swasthicare/mobile/data/services/HealthConnectService;
+    ALOAD 0
+    CHECKCAST kotlin/coroutines/Continuation
+    ICONST_0
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService.getWeeklySteps (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+    ICONST_1
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+    CHECKCAST java/util/List
+    ASTORE 6
+   L60
+   L61
+    LINENUMBER 88 L61
+    INVOKESTATIC java/time/LocalDate.now ()Ljava/time/LocalDate;
+    INVOKEVIRTUAL java/time/LocalDate.toString ()Ljava/lang/String;
+    ASTORE 8
+   L62
+    ALOAD 8
+    LDC "toString(...)"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue (Ljava/lang/Object;Ljava/lang/String;)V
+    ALOAD 8
+   L63
+    CHECKCAST java/lang/String
+    ASTORE 7
+   L64
+   L65
+    LINENUMBER 89 L65
+   L66
+   L0
+    NOP
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$getHydrationRepository$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lcom/swasthicare/mobile/data/repository/HydrationRepository;
+    INVOKEINTERFACE com/swasthicare/mobile/data/repository/HydrationRepository.loadLocalEntries ()Ljava/util/List; (itf)
+    ASTORE 9
+   L1
+    GOTO L67
+   L2
+    ASTORE 10
+   L68
+    INVOKESTATIC kotlin/collections/CollectionsKt.emptyList ()Ljava/util/List;
+    ASTORE 9
+   L69
+   L67
+    ALOAD 9
+    ASTORE 8
+   L70
+   L71
+    LINENUMBER 90 L71
+    ALOAD 8
+    CHECKCAST java/lang/Iterable
+    ASTORE 10
+   L72
+    LINENUMBER 91 L72
+    NOP
+   L73
+    ICONST_0
+    ISTORE 11
+   L74
+    LINENUMBER 215 L74
+    ALOAD 10
+    ASTORE 12
+    NEW java/util/ArrayList
+    DUP
+    INVOKESPECIAL java/util/ArrayList.<init> ()V
+    CHECKCAST java/util/Collection
+    ASTORE 13
+   L75
+    ICONST_0
+    ISTORE 14
+   L76
+    LINENUMBER 216 L76
+    ALOAD 12
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 15
+   L77
+    ALOAD 15
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L78
+    ALOAD 15
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 16
+   L79
+    ALOAD 16
+    CHECKCAST com/swasthicare/mobile/data/models/HydrationEntry
+    ASTORE 17
+   L80
+    ICONST_0
+    ISTORE 18
+   L81
+    LINENUMBER 91 L81
+    ALOAD 17
+    INVOKEVIRTUAL com/swasthicare/mobile/data/models/HydrationEntry.getConsumedAt ()Ljava/lang/String;
+    ALOAD 7
+    ICONST_0
+    ICONST_2
+    ACONST_NULL
+    INVOKESTATIC kotlin/text/StringsKt.startsWith$default (Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Z
+    NOP
+    GOTO L82
+   L83
+   L84
+   L82
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L85
+    LINENUMBER 216 L85
+    CHECKCAST java/lang/Boolean
+    INVOKEVIRTUAL java/lang/Boolean.booleanValue ()Z
+    IFEQ L77
+    ALOAD 13
+    ALOAD 16
+    INVOKEINTERFACE java/util/Collection.add (Ljava/lang/Object;)Z (itf)
+    POP
+   L86
+    GOTO L77
+   L78
+    LINENUMBER 217 L78
+    ALOAD 13
+   L87
+    CHECKCAST java/util/List
+   L88
+    LINENUMBER 215 L88
+    NOP
+    GOTO L89
+   L90
+   L91
+   L89
+    CHECKCAST java/lang/Iterable
+    ASTORE 10
+   L92
+    LINENUMBER 92 L92
+    NOP
+   L93
+    ICONST_0
+    ISTORE 11
+    ALOAD 10
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 12
+   L94
+    ALOAD 12
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L95
+    ALOAD 12
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 13
+    ILOAD 11
+    ALOAD 13
+    CHECKCAST com/swasthicare/mobile/data/models/HydrationEntry
+    ASTORE 14
+   L96
+    LINENUMBER 218 L96
+    ISTORE 25
+   L97
+    ICONST_0
+    ISTORE 15
+   L98
+    LINENUMBER 92 L98
+    ALOAD 14
+    INVOKEVIRTUAL com/swasthicare/mobile/data/models/HydrationEntry.getEffectiveMl ()I
+    NOP
+    GOTO L99
+   L100
+   L101
+   L99
+    INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;
+    ASTORE 26
+    ILOAD 25
+    ALOAD 26
+   L102
+    LINENUMBER 92 L102
+    CHECKCAST java/lang/Number
+    INVOKEVIRTUAL java/lang/Number.intValue ()I
+    IADD
+    ISTORE 11
+    GOTO L94
+   L95
+    ILOAD 11
+    NOP
+    GOTO L103
+   L104
+   L105
+   L103
+   L106
+    LINENUMBER 92 L106
+   L107
+    LINENUMBER 90 L107
+    ISTORE 9
+   L108
+   L109
+    LINENUMBER 95 L109
+   L110
+   L3
+    NOP
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$getDietRepository$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lcom/swasthicare/mobile/data/repository/DietRepository;
+    INVOKEINTERFACE com/swasthicare/mobile/data/repository/DietRepository.loadLocalLogs ()Ljava/util/List; (itf)
+    ASTORE 11
+   L4
+    GOTO L111
+   L5
+    ASTORE 12
+   L112
+    INVOKESTATIC kotlin/collections/CollectionsKt.emptyList ()Ljava/util/List;
+    ASTORE 11
+   L113
+   L111
+    ALOAD 11
+    ASTORE 10
+   L114
+   L115
+    LINENUMBER 96 L115
+    ALOAD 10
+    CHECKCAST java/lang/Iterable
+    ASTORE 13
+   L116
+    LINENUMBER 97 L116
+    NOP
+   L117
+    ICONST_0
+    ISTORE 14
+   L118
+    LINENUMBER 219 L118
+    ALOAD 13
+    ASTORE 15
+    NEW java/util/ArrayList
+    DUP
+    INVOKESPECIAL java/util/ArrayList.<init> ()V
+    CHECKCAST java/util/Collection
+    ASTORE 16
+   L119
+    ICONST_0
+    ISTORE 17
+   L120
+    LINENUMBER 220 L120
+    ALOAD 15
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 18
+   L121
+    ALOAD 18
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L122
+    ALOAD 18
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 19
+   L123
+    ALOAD 19
+    CHECKCAST com/swasthicare/mobile/data/models/DietLogEntry
+    ASTORE 20
+   L124
+    ICONST_0
+    ISTORE 21
+   L125
+    LINENUMBER 97 L125
+    ALOAD 20
+    INVOKEVIRTUAL com/swasthicare/mobile/data/models/DietLogEntry.getLoggedAt ()Ljava/lang/String;
+    ALOAD 7
+    ICONST_0
+    ICONST_2
+    ACONST_NULL
+    INVOKESTATIC kotlin/text/StringsKt.startsWith$default (Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Z
+    NOP
+    GOTO L126
+   L127
+   L128
+   L126
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L129
+    LINENUMBER 220 L129
+    CHECKCAST java/lang/Boolean
+    INVOKEVIRTUAL java/lang/Boolean.booleanValue ()Z
+    IFEQ L121
+    ALOAD 16
+    ALOAD 19
+    INVOKEINTERFACE java/util/Collection.add (Ljava/lang/Object;)Z (itf)
+    POP
+   L130
+    GOTO L121
+   L122
+    LINENUMBER 221 L122
+    ALOAD 16
+   L131
+    CHECKCAST java/util/List
+   L132
+    LINENUMBER 219 L132
+    NOP
+    GOTO L133
+   L134
+   L135
+   L133
+    CHECKCAST java/lang/Iterable
+    ASTORE 13
+   L136
+    LINENUMBER 98 L136
+    NOP
+   L137
+    DCONST_0
+    DSTORE 14
+    ALOAD 13
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 16
+   L138
+    ALOAD 16
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L139
+    ALOAD 16
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 17
+    DLOAD 14
+    ALOAD 17
+    CHECKCAST com/swasthicare/mobile/data/models/DietLogEntry
+    ASTORE 18
+   L140
+    LINENUMBER 218 L140
+    DSTORE 25
+   L141
+    ICONST_0
+    ISTORE 19
+   L142
+    LINENUMBER 98 L142
+    ALOAD 18
+    INVOKEVIRTUAL com/swasthicare/mobile/data/models/DietLogEntry.getCalories ()D
+    NOP
+    GOTO L143
+   L144
+   L145
+   L143
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    ASTORE 27
+    DLOAD 25
+    ALOAD 27
+   L146
+    LINENUMBER 98 L146
+    CHECKCAST java/lang/Number
+    INVOKEVIRTUAL java/lang/Number.doubleValue ()D
+    DADD
+    DSTORE 14
+    GOTO L138
+   L139
+    DLOAD 14
+    NOP
+    GOTO L147
+   L148
+   L149
+   L147
+   L150
+    LINENUMBER 98 L150
+   L151
+    LINENUMBER 96 L151
+    DSTORE 11
+   L152
+   L153
+    LINENUMBER 99 L153
+   L154
+   L6
+    NOP
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$getDietRepository$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lcom/swasthicare/mobile/data/repository/DietRepository;
+    INVOKEINTERFACE com/swasthicare/mobile/data/repository/DietRepository.loadGoals ()Lcom/swasthicare/mobile/data/models/DietGoals; (itf)
+    ASTORE 14
+   L7
+    GOTO L155
+   L8
+    ASTORE 15
+   L156
+    ACONST_NULL
+    CHECKCAST com/swasthicare/mobile/data/models/DietGoals
+    ASTORE 14
+   L157
+   L155
+    ALOAD 14
+    ASTORE 13
+   L158
+   L159
+    LINENUMBER 102 L159
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$generateWeekDates (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Ljava/util/List;
+    ASTORE 14
+   L160
+   L161
+    LINENUMBER 103 L161
+    ALOAD 6
+    CHECKCAST java/lang/Iterable
+    ASTORE 16
+    NOP
+   L162
+    ICONST_0
+    ISTORE 17
+   L163
+    LINENUMBER 222 L163
+    ALOAD 16
+    ASTORE 18
+    NEW java/util/ArrayList
+    DUP
+    ALOAD 16
+    BIPUSH 10
+    INVOKESTATIC kotlin/collections/CollectionsKt.collectionSizeOrDefault (Ljava/lang/Iterable;I)I
+    INVOKESPECIAL java/util/ArrayList.<init> (I)V
+    CHECKCAST java/util/Collection
+    ASTORE 19
+   L164
+    ICONST_0
+    ISTORE 20
+   L165
+    LINENUMBER 223 L165
+    ALOAD 18
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 21
+   L166
+    ALOAD 21
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L167
+    ALOAD 21
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 22
+   L168
+    LINENUMBER 224 L168
+    ALOAD 19
+    ALOAD 22
+    CHECKCAST com/swasthicare/mobile/data/services/HealthConnectService$DailyStepEntry
+    ASTORE 23
+    ASTORE 25
+   L169
+    ICONST_0
+    ISTORE 24
+   L170
+    LINENUMBER 104 L170
+    NEW com/swasthicare/mobile/ui/components/DailyMetric
+    DUP
+   L171
+    LINENUMBER 106 L171
+    ALOAD 23
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyStepEntry.getDate ()Ljava/time/LocalDate;
+    INVOKESTATIC java/time/ZoneId.systemDefault ()Ljava/time/ZoneId;
+    INVOKEVIRTUAL java/time/LocalDate.atStartOfDay (Ljava/time/ZoneId;)Ljava/time/ZonedDateTime;
+    INVOKEVIRTUAL java/time/ZonedDateTime.toInstant ()Ljava/time/Instant;
+   L172
+    LINENUMBER 105 L172
+    INVOKESTATIC java/util/Date.from (Ljava/time/Instant;)Ljava/util/Date;
+    DUP
+    LDC "from(...)"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue (Ljava/lang/Object;Ljava/lang/String;)V
+    CHECKCAST java/util/Date
+   L173
+    LINENUMBER 108 L173
+    ALOAD 23
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyStepEntry.getSteps ()I
+   L174
+    LINENUMBER 109 L174
+    ALOAD 23
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyStepEntry.getDayName ()Ljava/lang/String;
+   L175
+    LINENUMBER 104 L175
+    INVOKESPECIAL com/swasthicare/mobile/ui/components/DailyMetric.<init> (Ljava/util/Date;ILjava/lang/String;)V
+   L176
+    LINENUMBER 110 L176
+    NOP
+    GOTO L177
+   L178
+   L179
+   L177
+    ASTORE 26
+    ALOAD 25
+    ALOAD 26
+   L180
+    LINENUMBER 224 L180
+    INVOKEINTERFACE java/util/Collection.add (Ljava/lang/Object;)Z (itf)
+    POP
+   L181
+    GOTO L166
+   L167
+    LINENUMBER 225 L167
+    ALOAD 19
+   L182
+    CHECKCAST java/util/List
+   L183
+    LINENUMBER 222 L183
+    NOP
+    GOTO L184
+   L185
+   L186
+   L184
+   L187
+    LINENUMBER 103 L187
+    ASTORE 15
+   L188
+   L189
+    LINENUMBER 113 L189
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$get_uiState$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lkotlinx/coroutines/flow/MutableStateFlow;
+    NEW com/swasthicare/mobile/ui/screens/home/HomeState
+    DUP
+   L190
+    LINENUMBER 114 L190
+    ALOAD 4
+   L191
+    LINENUMBER 115 L191
+    ALOAD 3
+   L192
+    LINENUMBER 116 L192
+    ALOAD 5
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary.getSteps ()I
+   L193
+    LINENUMBER 117 L193
+    ALOAD 5
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary.getActiveCalories ()I
+   L194
+    LINENUMBER 118 L194
+    ALOAD 5
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary.getExerciseMinutes ()I
+   L195
+    LINENUMBER 119 L195
+    ALOAD 5
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary.getStandHours ()I
+   L196
+    LINENUMBER 120 L196
+    ALOAD 5
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary.getHeartRate ()I
+   L197
+    LINENUMBER 121 L197
+    ALOAD 5
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary.getSleepFormatted ()Ljava/lang/String;
+   L198
+    LINENUMBER 122 L198
+    ALOAD 5
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary.getDistanceKm ()D
+   L199
+    LINENUMBER 123 L199
+    ILOAD 9
+   L200
+    LINENUMBER 124 L200
+    SIPUSH 2500
+   L201
+    LINENUMBER 125 L201
+    ICONST_0
+   L202
+    LINENUMBER 126 L202
+    ICONST_0
+   L203
+    LINENUMBER 127 L203
+    NOP
+    ICONST_0
+   L204
+    LINENUMBER 128 L204
+    NOP
+    ICONST_0
+   L205
+    LINENUMBER 129 L205
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$getHealthConnectService$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lcom/swasthicare/mobile/data/services/HealthConnectService;
+    INVOKEVIRTUAL com/swasthicare/mobile/data/services/HealthConnectService.isAvailable ()Z
+   L206
+    LINENUMBER 130 L206
+    ALOAD 14
+   L207
+    LINENUMBER 131 L207
+    NEW java/util/Date
+    DUP
+    INVOKESPECIAL java/util/Date.<init> ()V
+   L208
+    LINENUMBER 132 L208
+    ALOAD 15
+   L209
+    LINENUMBER 113 L209
+    ACONST_NULL
+   L210
+    LINENUMBER 133 L210
+    DLOAD 11
+    D2I
+   L211
+    LINENUMBER 134 L211
+    ALOAD 13
+    IFNULL L212
+    ALOAD 13
+    INVOKEVIRTUAL com/swasthicare/mobile/data/models/DietGoals.getDailyCalories ()I
+    ISTORE 16
+   L213
+    ILOAD 16
+    POP
+    ILOAD 16
+    GOTO L214
+   L212
+    NOP
+    SIPUSH 2000
+   L214
+   L215
+   L216
+    LINENUMBER 113 L216
+    ACONST_NULL
+    LDC 4718592
+    ACONST_NULL
+    INVOKESPECIAL com/swasthicare/mobile/ui/screens/home/HomeState.<init> (Ljava/lang/String;Ljava/lang/String;IIIIILjava/lang/String;DIIIIZZZLjava/util/List;Ljava/util/Date;Ljava/util/List;Ljava/util/List;IILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    INVOKEINTERFACE kotlinx/coroutines/flow/MutableStateFlow.setValue (Ljava/lang/Object;)V (itf)
+   L217
+    LINENUMBER 136 L217
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKEVIRTUAL com/swasthicare/mobile/ui/screens/home/HomeViewModel.loadNudges ()V
+   L218
+   L10
+    GOTO L219
+   L11
+   L220
+    LINENUMBER 137 L220
+    ASTORE 2
+   L221
+   L222
+    LINENUMBER 138 L222
+    LDC "HomeViewModel"
+    ALOAD 2
+    INVOKEVIRTUAL java/lang/Exception.getMessage ()Ljava/lang/String;
+    INVOKEDYNAMIC makeConcatWithConstants(Ljava/lang/String;)Ljava/lang/String; [
+      // handle kind 0x6 : INVOKESTATIC
+      java/lang/invoke/StringConcatFactory.makeConcatWithConstants(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+      // arguments:
+      "Error loading home data: \u0001"
+    ]
+    INVOKESTATIC android/util/Log.w (Ljava/lang/String;Ljava/lang/String;)I
+    POP
+   L223
+    LINENUMBER 139 L223
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$get_uiState$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lkotlinx/coroutines/flow/MutableStateFlow;
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$get_uiState$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lkotlinx/coroutines/flow/MutableStateFlow;
+    INVOKEINTERFACE kotlinx/coroutines/flow/MutableStateFlow.getValue ()Ljava/lang/Object; (itf)
+    CHECKCAST com/swasthicare/mobile/ui/screens/home/HomeState
+    ACONST_NULL
+    ACONST_NULL
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ACONST_NULL
+    DCONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    NOP
+    ICONST_0
+    NOP
+    ICONST_0
+    NOP
+    ICONST_0
+    ACONST_NULL
+    ACONST_NULL
+    ACONST_NULL
+    ACONST_NULL
+    ICONST_0
+    ICONST_0
+    ACONST_NULL
+    LDC 8380415
+    ACONST_NULL
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeState.copy$default (Lcom/swasthicare/mobile/ui/screens/home/HomeState;Ljava/lang/String;Ljava/lang/String;IIIIILjava/lang/String;DIIIIZZZLjava/util/List;Ljava/util/Date;Ljava/util/List;Ljava/util/List;IILjava/lang/String;ILjava/lang/Object;)Lcom/swasthicare/mobile/ui/screens/home/HomeState;
+    INVOKEINTERFACE kotlinx/coroutines/flow/MutableStateFlow.setValue (Ljava/lang/Object;)V (itf)
+   L224
+   L219
+   L225
+    LINENUMBER 141 L225
+    NOP
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    ARETURN
+   L226
+    LOCALVARIABLE <unused var> Ljava/lang/Exception; L68 L69 10
+    LOCALVARIABLE $i$a$-filter-HomeViewModel$loadData$1$todayHydration$1 I L81 L84 18
+    LOCALVARIABLE it Lcom/swasthicare/mobile/data/models/HydrationEntry; L80 L84 17
+    LOCALVARIABLE element$iv$iv Ljava/lang/Object; L79 L86 16
+    LOCALVARIABLE $i$f$filterTo I L76 L87 14
+    LOCALVARIABLE $this$filterTo$iv$iv Ljava/lang/Iterable; L75 L87 12
+    LOCALVARIABLE destination$iv$iv Ljava/util/Collection; L75 L87 13
+    LOCALVARIABLE $i$f$filter I L74 L91 11
+    LOCALVARIABLE $this$filter$iv Ljava/lang/Iterable; L73 L91 10
+    LOCALVARIABLE $i$a$-sumOfInt-HomeViewModel$loadData$1$todayHydration$2 I L98 L101 15
+    LOCALVARIABLE it Lcom/swasthicare/mobile/data/models/HydrationEntry; L97 L101 14
+    LOCALVARIABLE <unused var> Ljava/lang/Exception; L112 L113 12
+    LOCALVARIABLE $i$a$-filter-HomeViewModel$loadData$1$todayCalories$1 I L125 L128 21
+    LOCALVARIABLE it Lcom/swasthicare/mobile/data/models/DietLogEntry; L124 L128 20
+    LOCALVARIABLE element$iv$iv Ljava/lang/Object; L123 L130 19
+    LOCALVARIABLE $i$f$filterTo I L120 L131 17
+    LOCALVARIABLE $this$filterTo$iv$iv Ljava/lang/Iterable; L119 L131 15
+    LOCALVARIABLE destination$iv$iv Ljava/util/Collection; L119 L131 16
+    LOCALVARIABLE $i$f$filter I L118 L135 14
+    LOCALVARIABLE $this$filter$iv Ljava/lang/Iterable; L117 L135 13
+    LOCALVARIABLE $i$a$-sumOfDouble-HomeViewModel$loadData$1$todayCalories$2 I L142 L145 19
+    LOCALVARIABLE it Lcom/swasthicare/mobile/data/models/DietLogEntry; L141 L145 18
+    LOCALVARIABLE <unused var> Ljava/lang/Exception; L156 L157 15
+    LOCALVARIABLE $i$a$-map-HomeViewModel$loadData$1$weeklySteps$1 I L170 L179 24
+    LOCALVARIABLE entry Lcom/swasthicare/mobile/data/services/HealthConnectService$DailyStepEntry; L169 L179 23
+    LOCALVARIABLE item$iv$iv Ljava/lang/Object; L168 L181 22
+    LOCALVARIABLE $i$f$mapTo I L165 L182 20
+    LOCALVARIABLE $this$mapTo$iv$iv Ljava/lang/Iterable; L164 L182 18
+    LOCALVARIABLE destination$iv$iv Ljava/util/Collection; L164 L182 19
+    LOCALVARIABLE $i$f$map I L163 L186 17
+    LOCALVARIABLE $this$map$iv Ljava/lang/Iterable; L162 L186 16
+    LOCALVARIABLE hour I L16 L218 2
+    LOCALVARIABLE greeting Ljava/lang/String; L41 L218 3
+    LOCALVARIABLE userName Ljava/lang/String; L56 L218 4
+    LOCALVARIABLE summary Lcom/swasthicare/mobile/data/services/HealthConnectService$DailyHealthSummary; L58 L218 5
+    LOCALVARIABLE weeklyStepEntries Ljava/util/List; L60 L218 6
+    LOCALVARIABLE todayStr Ljava/lang/String; L64 L218 7
+    LOCALVARIABLE hydrationEntries Ljava/util/List; L70 L218 8
+    LOCALVARIABLE todayHydration I L108 L218 9
+    LOCALVARIABLE dietEntries Ljava/util/List; L114 L218 10
+    LOCALVARIABLE todayCalories D L152 L218 11
+    LOCALVARIABLE dietGoals Lcom/swasthicare/mobile/data/models/DietGoals; L158 L218 13
+    LOCALVARIABLE weekDates Ljava/util/List; L160 L218 14
+    LOCALVARIABLE weeklySteps Ljava/util/List; L188 L218 15
+    LOCALVARIABLE e Ljava/lang/Exception; L221 L224 2
+    LOCALVARIABLE this Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel$loadData$1; L12 L226 0
+    LOCALVARIABLE $result Ljava/lang/Object; L12 L226 1
+    MAXSTACK = 29
+    MAXLOCALS = 28
+
+File is unknown
+The root cause java.lang.OutOfMemoryError was thrown at: org.jetbrains.kotlin.it.unimi.dsi.fastutil.ints.IntOpenHashSet.<init>(SourceFile:86)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:89)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:770)
+	at org.jetbrains.kotlin.backend.jvm.codegen.CoroutineCodegenKt.acceptWithStateMachine(CoroutineCodegen.kt:73)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:456)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:951)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.declarations.IrClass.accept(IrClass.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitBlock(IrVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.gen(ExpressionCodegen.kt:214)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrCallGenerator.genValueAndPut(IrCallGenerator.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:564)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:577)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitComposite(IrVisitor.kt:125)
+	at org.jetbrains.kotlin.ir.expressions.IrComposite.accept(IrComposite.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:532)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:233)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:126)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	... 47 more
+Caused by: java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at org.jetbrains.kotlin.it.unimi.dsi.fastutil.ints.IntOpenHashSet.<init>(SourceFile:86)
+	at org.jetbrains.kotlin.it.unimi.dsi.fastutil.ints.IntOpenHashSet.<init>(SourceFile:103)
+	at org.jetbrains.kotlin.codegen.optimization.common.ControlFlowGraph$Builder.<init>(ControlFlowGraph.kt:34)
+	at org.jetbrains.kotlin.codegen.optimization.common.ControlFlowGraph$Companion.build(ControlFlowGraph.kt:160)
+	at org.jetbrains.kotlin.codegen.coroutines.CoroutineTransformerMethodVisitor.collectSuspensionPoints(CoroutineTransformerMethodVisitor.kt:564)
+	at org.jetbrains.kotlin.codegen.coroutines.CoroutineTransformerMethodVisitor.performTransformations(CoroutineTransformerMethodVisitor.kt:90)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:67)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:770)
+	at org.jetbrains.kotlin.backend.jvm.codegen.CoroutineCodegenKt.acceptWithStateMachine(CoroutineCodegen.kt:73)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:456)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:951)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.declarations.IrClass.accept(IrClass.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitBlock(IrVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.gen(ExpressionCodegen.kt:214)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrCallGenerator.genValueAndPut(IrCallGenerator.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:564)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:577)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitComposite(IrVisitor.kt:125)
+	at org.jetbrains.kotlin.ir.expressions.IrComposite.accept(IrComposite.kt:18)
+
+

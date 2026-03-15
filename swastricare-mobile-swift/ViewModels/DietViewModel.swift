@@ -358,6 +358,41 @@ final class DietViewModel: ObservableObject {
         await loadData()
     }
 
+    // MARK: - Food Snap (AI Photo Analysis)
+
+    enum SnapAnalysisState {
+        case idle
+        case analyzing
+        case result(SnapFoodResult)
+        case error(String)
+    }
+
+    @Published var snapAnalysisState: SnapAnalysisState = .idle
+
+    func analyzeFoodImage(_ imageData: Data) async {
+        snapAnalysisState = .analyzing
+        // TODO: Integrate with AI service for food image analysis
+        snapAnalysisState = .error("Food photo analysis coming soon")
+    }
+
+    func resetSnapState() {
+        snapAnalysisState = .idle
+    }
+
+    func logFoodFromSnap(result: SnapFoodResult, mealType: MealType, quantity: Double) async {
+        await logCustomFood(
+            name: result.name,
+            mealType: mealType,
+            quantity: quantity,
+            servingUnit: result.servingUnit,
+            calories: result.calories,
+            proteinG: result.proteinG,
+            carbsG: result.carbsG,
+            fatG: result.fatG
+        )
+        resetSnapState()
+    }
+
     /// Called whenever selectedDate changes so the calorie ring, macro bars,
     /// and insights reflect the newly selected day.
     private func dateChanged() {

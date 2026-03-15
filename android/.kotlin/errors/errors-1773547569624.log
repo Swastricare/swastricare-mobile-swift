@@ -1,0 +1,569 @@
+kotlin version: 2.2.10
+error message: java.lang.RuntimeException: Exception while generating code for:
+FUN name:loadNudges visibility:public modality:FINAL returnType:kotlin.Unit
+  VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel
+  BLOCK_BODY
+    COMPOSITE type=kotlin.Unit origin=null
+      CALL 'public final fun launch$default (<this>: kotlinx.coroutines.CoroutineScope, context: kotlin.coroutines.CoroutineContext?, start: kotlinx.coroutines.CoroutineStart?, block: @[ExtensionFunctionType] kotlin.coroutines.SuspendFunction1<kotlinx.coroutines.CoroutineScope, kotlin.Unit>, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlinx.coroutines.Job declared in kotlinx.coroutines.BuildersKt' type=kotlinx.coroutines.Job origin=DEFAULT_DISPATCH_CALL
+        ARG <this>: CALL 'public final fun <get-viewModelScope> (<this>: androidx.lifecycle.ViewModel): kotlinx.coroutines.CoroutineScope declared in androidx.lifecycle.ViewModelKt' type=kotlinx.coroutines.CoroutineScope origin=GET_PROPERTY
+          ARG <this>: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=IMPLICIT_ARGUMENT
+        ARG context: COMPOSITE type=kotlin.coroutines.CoroutineContext? origin=DEFAULT_VALUE
+          CONST Null type=kotlin.coroutines.CoroutineContext? value=null
+        ARG start: COMPOSITE type=kotlinx.coroutines.CoroutineStart? origin=DEFAULT_VALUE
+          CONST Null type=kotlinx.coroutines.CoroutineStart? value=null
+        ARG block: BLOCK type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+          CLASS SUSPEND_LAMBDA CLASS name:<no name provided> modality:FINAL visibility:public/*package*/ superTypes:[kotlin.coroutines.jvm.internal.SuspendLambda; kotlin.jvm.functions.Function2<kotlinx.coroutines.CoroutineScope, kotlin.coroutines.Continuation<kotlin.Unit>?, kotlin.Any?>]
+            thisReceiver: VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>
+            FIELD name:label type:kotlin.Int visibility:public/*package*/
+            CONSTRUCTOR SUSPEND_LAMBDA visibility:public/*package*/ returnType:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> [primary]
+              VALUE_PARAMETER BOUND_RECEIVER_PARAMETER kind:Regular name:this$0 index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel
+              VALUE_PARAMETER kind:Regular name:$completion index:1 type:kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>>?
+              BLOCK_BODY
+                SET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=kotlin.Unit origin=INITIALIZER_OF_FIELD_FOR_CAPTURED_VALUE
+                  receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+                  value: GET_VAR 'this$0: com.swasthicare.mobile.ui.screens.home.HomeViewModel declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.<init>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> (arity: kotlin.Int, $completion: kotlin.coroutines.Continuation<kotlin.Any?>?) declared in kotlin.coroutines.jvm.internal.SuspendLambda'
+                  ARG arity: CONST Int type=kotlin.Int value=2
+                  ARG $completion: GET_VAR '$completion: kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>>? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.<init>' type=kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>>? origin=null
+                BLOCK type=kotlin.Unit origin=null
+            FUN name:invokeSuspend visibility:public modality:FINAL returnType:kotlin.Any?
+              VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>
+              VALUE_PARAMETER kind:Regular name:$result index:1 type:kotlin.Result<kotlin.Any?>
+              overridden:
+                protected abstract fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in kotlin.coroutines.jvm.internal.SuspendLambda
+              BLOCK_BODY
+                TRY type=kotlin.Unit
+                  try: BLOCK type=kotlin.Unit origin=null
+                    VAR name:profileId type:kotlin.String [val]
+                      BLOCK type=kotlin.String origin=FOLDED_ELVIS
+                        WHEN type=kotlin.String origin=FOLDED_ELVIS
+                          BRANCH
+                            if: CALL 'public final fun ANDAND (arg0: kotlin.Boolean, arg1: kotlin.Boolean): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                              ARG arg0: COMPOSITE type=kotlin.Boolean origin=null
+                                VAR IR_TEMPORARY_VARIABLE name:tmp0_safe_receiver type:com.swasthicare.mobile.data.model.AppUser? [val]
+                                  CALL 'public open fun <get-currentUser> (): com.swasthicare.mobile.data.model.AppUser? declared in com.swasthicare.mobile.data.repository.SupabaseAuthRepository' type=com.swasthicare.mobile.data.model.AppUser? origin=GET_PROPERTY
+                                    ARG <this>: CALL 'public final fun <get-authRepository> (): com.swasthicare.mobile.data.repository.SupabaseAuthRepository declared in com.swasthicare.mobile.di.AppContainer' type=com.swasthicare.mobile.data.repository.SupabaseAuthRepository origin=GET_PROPERTY
+                                      ARG <this>: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:com.swasthicare.mobile.di.AppContainer visibility:public [final,static] declared in com.swasthicare.mobile.di.AppContainer' type=com.swasthicare.mobile.di.AppContainer origin=null
+                                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                    ARG arg0: GET_VAR 'val tmp0_safe_receiver: com.swasthicare.mobile.data.model.AppUser? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.model.AppUser? origin=null
+                                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                              ARG arg1: COMPOSITE type=kotlin.Boolean origin=null
+                                VAR IR_TEMPORARY_VARIABLE name:tmp1_elvis_lhs type:kotlin.String [val]
+                                  CALL 'public final fun <get-id> (): kotlin.String declared in com.swasthicare.mobile.data.model.AppUser' type=kotlin.String origin=GET_PROPERTY
+                                    ARG <this>: GET_VAR 'val tmp0_safe_receiver: com.swasthicare.mobile.data.model.AppUser? [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.data.model.AppUser? origin=null
+                                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                                    ARG arg0: GET_VAR 'val tmp1_elvis_lhs: kotlin.String [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=kotlin.String origin=null
+                                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                            then: GET_VAR 'val tmp1_elvis_lhs: kotlin.String [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=kotlin.String origin=null
+                          BRANCH
+                            if: CONST Boolean type=kotlin.Boolean value=true
+                            then: RETURN type=kotlin.Nothing from='public final fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>'
+                              GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:kotlin.Unit visibility:public [final,static] declared in kotlin.Unit' type=kotlin.Unit origin=null
+                    VAR name:nudges type:kotlin.collections.List<com.swasthicare.mobile.data.model.HealthNudge> [val]
+                      CALL 'public abstract fun fetchActiveNudges (healthProfileId: kotlin.String, $completion: kotlin.coroutines.Continuation<kotlin.collections.List<com.swasthicare.mobile.data.model.HealthNudge>>): kotlin.Any? [suspend] declared in com.swasthicare.mobile.data.repository.NudgeRepository' type=kotlin.collections.List<com.swasthicare.mobile.data.model.HealthNudge> origin=null
+                        ARG <this>: CALL 'public final fun <get-nudgeRepository> (): com.swasthicare.mobile.data.repository.NudgeRepository declared in com.swasthicare.mobile.di.AppContainer' type=com.swasthicare.mobile.data.repository.NudgeRepository origin=GET_PROPERTY
+                          ARG <this>: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:com.swasthicare.mobile.di.AppContainer visibility:public [final,static] declared in com.swasthicare.mobile.di.AppContainer' type=com.swasthicare.mobile.di.AppContainer origin=null
+                        ARG healthProfileId: GET_VAR 'val profileId: kotlin.String [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=kotlin.String origin=null
+                        ARG $completion: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+                    VAR name:serverNudges type:kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge> [val]
+                      CALL 'public final fun map <T, R> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.map>, transform: kotlin.Function1<T of kotlin.collections.CollectionsKt.map, R of kotlin.collections.CollectionsKt.map>): kotlin.collections.List<R of kotlin.collections.CollectionsKt.map> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge> origin=null
+                        TYPE_ARG T: com.swasthicare.mobile.data.model.HealthNudge
+                        TYPE_ARG R: com.swasthicare.mobile.ui.screens.home.ServerNudge
+                        ARG <this>: GET_VAR 'val nudges: kotlin.collections.List<com.swasthicare.mobile.data.model.HealthNudge> [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=kotlin.collections.List<com.swasthicare.mobile.data.model.HealthNudge> origin=null
+                        ARG transform: BLOCK type=kotlin.Function1<com.swasthicare.mobile.data.model.HealthNudge, com.swasthicare.mobile.ui.screens.home.ServerNudge> origin=LAMBDA
+                          COMPOSITE type=kotlin.Unit origin=null
+                          FUNCTION_REFERENCE 'private final fun invokeSuspend$lambda$0 (nudge: com.swasthicare.mobile.data.model.HealthNudge): com.swasthicare.mobile.ui.screens.home.ServerNudge declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=kotlin.Function1<com.swasthicare.mobile.data.model.HealthNudge, com.swasthicare.mobile.ui.screens.home.ServerNudge> origin=INLINE_LAMBDA reflectionTarget=null
+                    CALL 'public abstract fun <set-value> (<set-?>: T of kotlinx.coroutines.flow.MutableStateFlow): kotlin.Unit declared in kotlinx.coroutines.flow.MutableStateFlow' type=kotlin.Unit origin=EQ
+                      ARG <this>: CALL 'public final fun access$get_uiState$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> origin=null
+                        ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                          receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+                      ARG <set-?>: CALL 'public final fun copy$default ($this: com.swasthicare.mobile.ui.screens.home.HomeState, userName: kotlin.String?, greeting: kotlin.String?, stepCount: kotlin.Int, calories: kotlin.Int, activeMinutes: kotlin.Int, standHours: kotlin.Int, heartRate: kotlin.Int, sleepHours: kotlin.String?, distance: kotlin.Double, hydrationCurrent: kotlin.Int, hydrationGoal: kotlin.Int, medicationsTaken: kotlin.Int, medicationsTotal: kotlin.Int, isLoading: kotlin.Boolean, isDemoMode: kotlin.Boolean, isAuthorized: kotlin.Boolean, weekDates: kotlin.collections.List<java.util.Date>?, selectedDate: java.util.Date?, weeklySteps: kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric>?, serverNudges: kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge>?, calorieCurrent: kotlin.Int, calorieGoal: kotlin.Int, cyclePhase: kotlin.String?, $mask0: kotlin.Int, $handler: kotlin.Any?): com.swasthicare.mobile.ui.screens.home.HomeState declared in com.swasthicare.mobile.ui.screens.home.HomeState' type=com.swasthicare.mobile.ui.screens.home.HomeState origin=DEFAULT_DISPATCH_CALL
+                        ARG $this: CALL 'public abstract fun <get-value> (): T of kotlinx.coroutines.flow.MutableStateFlow declared in kotlinx.coroutines.flow.MutableStateFlow' type=com.swasthicare.mobile.ui.screens.home.HomeState origin=GET_PROPERTY
+                          ARG <this>: CALL 'public final fun access$get_uiState$p ($this: com.swasthicare.mobile.ui.screens.home.HomeViewModel): kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel' type=kotlinx.coroutines.flow.MutableStateFlow<com.swasthicare.mobile.ui.screens.home.HomeState> origin=null
+                            ARG $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                              receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+                        ARG userName: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.String? value=null
+                        ARG greeting: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.String? value=null
+                        ARG stepCount: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG calories: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG activeMinutes: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG standHours: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG heartRate: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG sleepHours: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.String? value=null
+                        ARG distance: COMPOSITE type=kotlin.Double origin=DEFAULT_VALUE
+                          CONST Double type=kotlin.Double value=0.0
+                        ARG hydrationCurrent: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG hydrationGoal: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG medicationsTaken: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG medicationsTotal: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG isLoading: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                          CONST Boolean type=kotlin.Boolean value=false
+                        ARG isDemoMode: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                          CONST Boolean type=kotlin.Boolean value=false
+                        ARG isAuthorized: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                          CONST Boolean type=kotlin.Boolean value=false
+                        ARG weekDates: COMPOSITE type=kotlin.collections.List<java.util.Date>? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.collections.List<java.util.Date>? value=null
+                        ARG selectedDate: COMPOSITE type=java.util.Date? origin=DEFAULT_VALUE
+                          CONST Null type=java.util.Date? value=null
+                        ARG weeklySteps: COMPOSITE type=kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric>? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.collections.List<com.swasthicare.mobile.ui.components.DailyMetric>? value=null
+                        ARG serverNudges: GET_VAR 'val serverNudges: kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge> [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend' type=kotlin.collections.List<com.swasthicare.mobile.ui.screens.home.ServerNudge> origin=null
+                        ARG calorieCurrent: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG calorieGoal: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        ARG cyclePhase: COMPOSITE type=kotlin.String? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.String? value=null
+                        ARG $mask0: CONST Int type=kotlin.Int value=7864319
+                        ARG $handler: CONST Null type=kotlin.Any? value=null
+                  CATCH parameter=val <unused var>: java.lang.Exception [val] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend
+                    VAR CATCH_PARAMETER name:<unused var> type:java.lang.Exception [val]
+                    BLOCK type=kotlin.Unit origin=null
+            FUN name:create visibility:public modality:FINAL returnType:kotlin.coroutines.Continuation<kotlin.Unit>
+              VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>
+              VALUE_PARAMETER kind:Regular name:value index:1 type:kotlin.Any?
+              VALUE_PARAMETER kind:Regular name:$completion index:2 type:kotlin.coroutines.Continuation<kotlin.Nothing>
+              overridden:
+                public open fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in kotlin.coroutines.jvm.internal.SuspendLambda
+              BLOCK_BODY
+                RETURN type=kotlin.Nothing from='public final fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>'
+                  CONSTRUCTOR_CALL 'public/*package*/ constructor <init> (this$0: com.swasthicare.mobile.ui.screens.home.HomeViewModel, $completion: kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>>?) [primary] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+                    ARG this$0: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+                      receiver: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.create' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+                    ARG $completion: GET_VAR '$completion: kotlin.coroutines.Continuation<kotlin.Nothing> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.create' type=kotlin.coroutines.Continuation<kotlin.Nothing> origin=null
+            FUN name:invoke visibility:public modality:FINAL returnType:kotlin.Any?
+              VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>
+              VALUE_PARAMETER kind:Regular name:p1 index:1 type:kotlinx.coroutines.CoroutineScope
+              VALUE_PARAMETER kind:Regular name:p2 index:2 type:kotlin.coroutines.Continuation<kotlin.Unit>?
+              overridden:
+                public abstract fun invoke (p1: P1 of kotlin.jvm.functions.Function2, p2: P2 of kotlin.jvm.functions.Function2): R of kotlin.jvm.functions.Function2 declared in kotlin.jvm.functions.Function2
+              BLOCK_BODY
+                RETURN type=kotlin.Nothing from='public final fun invoke (p1: kotlinx.coroutines.CoroutineScope, p2: kotlin.coroutines.Continuation<kotlin.Unit>?): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>'
+                  CALL 'public final fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=kotlin.Any? origin=null
+                    ARG <this>: TYPE_OP type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=IMPLICIT_CAST typeOperand=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>
+                      CALL 'public final fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=kotlin.coroutines.Continuation<kotlin.Unit> origin=null
+                        ARG <this>: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invoke' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+                        ARG value: GET_VAR 'p1: kotlinx.coroutines.CoroutineScope declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invoke' type=kotlinx.coroutines.CoroutineScope origin=null
+                        ARG $completion: GET_VAR 'p2: kotlin.coroutines.Continuation<kotlin.Unit>? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invoke' type=kotlin.coroutines.Continuation<kotlin.Unit>? origin=null
+                    ARG $result: CALL 'public final fun <unsafe-coerce> <T, R> (v: T of kotlin.jvm.internal.<unsafe-coerce>): R of kotlin.jvm.internal.<unsafe-coerce> declared in kotlin.jvm.internal' type=kotlin.Result<kotlin.Any?> origin=null
+                      TYPE_ARG T: kotlin.Any?
+                      TYPE_ARG R: kotlin.Result<kotlin.Any?>
+                      ARG v: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:kotlin.Unit visibility:public [final,static] declared in kotlin.Unit' type=kotlin.Unit origin=null
+            FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel visibility:public/*package*/ [final]
+            FUN INLINE_LAMBDA name:invokeSuspend$lambda$0 visibility:private modality:FINAL returnType:com.swasthicare.mobile.ui.screens.home.ServerNudge
+              VALUE_PARAMETER kind:Regular name:nudge index:0 type:com.swasthicare.mobile.data.model.HealthNudge
+              BLOCK_BODY
+                VAR name:$i$a$-map-HomeViewModel$loadNudges$1$serverNudges$1 type:kotlin.Int [val]
+                  CONST Int type=kotlin.Int value=0
+                RETURN type=kotlin.Nothing from='private final fun invokeSuspend$lambda$0 (nudge: com.swasthicare.mobile.data.model.HealthNudge): com.swasthicare.mobile.ui.screens.home.ServerNudge declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>'
+                  CONSTRUCTOR_CALL 'public constructor <init> (id: kotlin.String, title: kotlin.String, message: kotlin.String, icon: kotlin.String, color: kotlin.String, deepLink: kotlin.String?) [primary] declared in com.swasthicare.mobile.ui.screens.home.ServerNudge' type=com.swasthicare.mobile.ui.screens.home.ServerNudge origin=null
+                    ARG id: CALL 'public final fun <get-id> (): kotlin.String declared in com.swasthicare.mobile.data.model.HealthNudge' type=kotlin.String origin=GET_PROPERTY
+                      ARG <this>: GET_VAR 'nudge: com.swasthicare.mobile.data.model.HealthNudge declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend$lambda$0' type=com.swasthicare.mobile.data.model.HealthNudge origin=null
+                    ARG title: CALL 'public final fun <get-title> (): kotlin.String declared in com.swasthicare.mobile.data.model.HealthNudge' type=kotlin.String origin=GET_PROPERTY
+                      ARG <this>: GET_VAR 'nudge: com.swasthicare.mobile.data.model.HealthNudge declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend$lambda$0' type=com.swasthicare.mobile.data.model.HealthNudge origin=null
+                    ARG message: CALL 'public final fun <get-message> (): kotlin.String declared in com.swasthicare.mobile.data.model.HealthNudge' type=kotlin.String origin=GET_PROPERTY
+                      ARG <this>: GET_VAR 'nudge: com.swasthicare.mobile.data.model.HealthNudge declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend$lambda$0' type=com.swasthicare.mobile.data.model.HealthNudge origin=null
+                    ARG icon: CALL 'public final fun lowercase (<this>: kotlin.String): kotlin.String [inline] declared in kotlin.text.StringsKt' type=kotlin.String origin=null
+                      ARG <this>: CALL 'public final fun <get-name> (): kotlin.String [fake_override] declared in com.swasthicare.mobile.data.model.NudgeType' type=kotlin.String origin=GET_PROPERTY
+                        ARG <this>: CALL 'public final fun <get-type> (): com.swasthicare.mobile.data.model.NudgeType declared in com.swasthicare.mobile.data.model.HealthNudge' type=com.swasthicare.mobile.data.model.NudgeType origin=GET_PROPERTY
+                          ARG <this>: GET_VAR 'nudge: com.swasthicare.mobile.data.model.HealthNudge declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend$lambda$0' type=com.swasthicare.mobile.data.model.HealthNudge origin=null
+                    ARG color: CONST String type=kotlin.String value="#007AFF"
+                    ARG deepLink: CALL 'public final fun <get-actionUrl> (): kotlin.String? declared in com.swasthicare.mobile.data.model.HealthNudge' type=kotlin.String? origin=GET_PROPERTY
+                      ARG <this>: GET_VAR 'nudge: com.swasthicare.mobile.data.model.HealthNudge declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invokeSuspend$lambda$0' type=com.swasthicare.mobile.data.model.HealthNudge origin=null
+            FUN BRIDGE name:invoke visibility:public modality:OPEN returnType:kotlin.Any?
+              VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> index:0 type:com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>
+              VALUE_PARAMETER BRIDGE kind:Regular name:p1 index:1 type:kotlin.Any?
+              VALUE_PARAMETER BRIDGE kind:Regular name:p2 index:2 type:kotlin.Any?
+              EXPRESSION_BODY
+                RETURN type=kotlin.Nothing from='public open fun invoke (p1: kotlin.Any?, p2: kotlin.Any?): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>'
+                  CALL 'public final fun invoke (p1: kotlinx.coroutines.CoroutineScope, p2: kotlin.coroutines.Continuation<kotlin.Unit>?): kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=kotlin.Any? origin=BRIDGE_DELEGATION
+                    ARG <this>: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invoke' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+                    ARG p1: TYPE_OP type=kotlinx.coroutines.CoroutineScope origin=IMPLICIT_CAST typeOperand=kotlinx.coroutines.CoroutineScope
+                      GET_VAR 'p1: kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invoke' type=kotlin.Any? origin=null
+                    ARG p2: TYPE_OP type=kotlin.coroutines.Continuation<*> origin=IMPLICIT_CAST typeOperand=kotlin.coroutines.Continuation<*>
+                      GET_VAR 'p2: kotlin.Any? declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>.invoke' type=kotlin.Any? origin=null
+          CONSTRUCTOR_CALL 'public/*package*/ constructor <init> (this$0: com.swasthicare.mobile.ui.screens.home.HomeViewModel, $completion: kotlin.coroutines.Continuation<com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>>?) [primary] declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided>' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges.<no name provided> origin=null
+            ARG this$0: GET_VAR '<this>: com.swasthicare.mobile.ui.screens.home.HomeViewModel declared in com.swasthicare.mobile.ui.screens.home.HomeViewModel.loadNudges' type=com.swasthicare.mobile.ui.screens.home.HomeViewModel origin=null
+            ARG $completion: CONST Null type=kotlin.Nothing? value=null
+        ARG $mask0: CONST Int type=kotlin.Int value=3
+        ARG $handler: CONST Null type=kotlin.Any? value=null
+      COMPOSITE type=kotlin.Unit origin=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:50)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:43)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:422)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:439)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:388)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$cli(KotlinToJVMBytecodeCompiler.kt:431)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:95)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:36)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:29)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:68)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:58)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:109)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:68)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:78)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:44)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:90)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:352)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:175)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:38)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:504)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:421)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:306)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:133)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:679)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:93)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1806)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't transform method node:
+invokeSuspend (Ljava/lang/Object;)Ljava/lang/Object;:
+    // annotable parameter count: 1 (visible)
+    // annotable parameter count: 1 (invisible)
+    TRYCATCHBLOCK L0 L1 L2 java/lang/Exception
+    TRYCATCHBLOCK L3 L4 L2 java/lang/Exception
+   L5
+   L6
+    LINENUMBER 146 L6
+   L7
+   L0
+    NOP
+   L8
+    LINENUMBER 147 L8
+    GETSTATIC com/swasthicare/mobile/di/AppContainer.INSTANCE : Lcom/swasthicare/mobile/di/AppContainer;
+    INVOKEVIRTUAL com/swasthicare/mobile/di/AppContainer.getAuthRepository ()Lcom/swasthicare/mobile/data/repository/SupabaseAuthRepository;
+    INVOKEVIRTUAL com/swasthicare/mobile/data/repository/SupabaseAuthRepository.getCurrentUser ()Lcom/swasthicare/mobile/data/model/AppUser;
+    ASTORE 3
+   L9
+    ALOAD 3
+    IFNULL L10
+    ALOAD 3
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/AppUser.getId ()Ljava/lang/String;
+    ASTORE 4
+   L11
+    ALOAD 4
+    IFNULL L10
+    ALOAD 4
+    GOTO L12
+   L10
+    NOP
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    ARETURN
+   L13
+   L12
+   L14
+    ASTORE 2
+   L15
+   L16
+    LINENUMBER 148 L16
+    GETSTATIC com/swasthicare/mobile/di/AppContainer.INSTANCE : Lcom/swasthicare/mobile/di/AppContainer;
+    INVOKEVIRTUAL com/swasthicare/mobile/di/AppContainer.getNudgeRepository ()Lcom/swasthicare/mobile/data/repository/NudgeRepository;
+    ALOAD 2
+    ALOAD 0
+    CHECKCAST kotlin/coroutines/Continuation
+    ICONST_0
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+    INVOKEINTERFACE com/swasthicare/mobile/data/repository/NudgeRepository.fetchActiveNudges (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object; (itf)
+    ICONST_1
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+   L1
+    NOP
+   L3
+    CHECKCAST java/util/List
+    ASTORE 3
+   L17
+   L18
+    LINENUMBER 149 L18
+    ALOAD 3
+    CHECKCAST java/lang/Iterable
+    ASTORE 5
+    NOP
+   L19
+    ICONST_0
+    ISTORE 6
+   L20
+    LINENUMBER 215 L20
+    ALOAD 5
+    ASTORE 7
+    NEW java/util/ArrayList
+    DUP
+    ALOAD 5
+    BIPUSH 10
+    INVOKESTATIC kotlin/collections/CollectionsKt.collectionSizeOrDefault (Ljava/lang/Iterable;I)I
+    INVOKESPECIAL java/util/ArrayList.<init> (I)V
+    CHECKCAST java/util/Collection
+    ASTORE 8
+   L21
+    ICONST_0
+    ISTORE 9
+   L22
+    LINENUMBER 216 L22
+    ALOAD 7
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 10
+   L23
+    ALOAD 10
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L24
+    ALOAD 10
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 11
+   L25
+    LINENUMBER 217 L25
+    ALOAD 8
+    ALOAD 11
+    CHECKCAST com/swasthicare/mobile/data/model/HealthNudge
+    ASTORE 12
+    ASTORE 14
+   L26
+    ICONST_0
+    ISTORE 13
+   L27
+    LINENUMBER 150 L27
+    NEW com/swasthicare/mobile/ui/screens/home/ServerNudge
+    DUP
+   L28
+    LINENUMBER 151 L28
+    ALOAD 12
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/HealthNudge.getId ()Ljava/lang/String;
+   L29
+    LINENUMBER 152 L29
+    ALOAD 12
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/HealthNudge.getTitle ()Ljava/lang/String;
+   L30
+    LINENUMBER 153 L30
+    ALOAD 12
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/HealthNudge.getMessage ()Ljava/lang/String;
+   L31
+    LINENUMBER 154 L31
+    ALOAD 12
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/HealthNudge.getType ()Lcom/swasthicare/mobile/data/model/NudgeType;
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/NudgeType.name ()Ljava/lang/String;
+    GETSTATIC java/util/Locale.ROOT : Ljava/util/Locale;
+    INVOKEVIRTUAL java/lang/String.toLowerCase (Ljava/util/Locale;)Ljava/lang/String;
+    DUP
+    LDC "toLowerCase(...)"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue (Ljava/lang/Object;Ljava/lang/String;)V
+    GOTO L32
+   L32
+    LINENUMBER 155 L32
+    LDC "#007AFF"
+   L33
+    LINENUMBER 156 L33
+    ALOAD 12
+    INVOKEVIRTUAL com/swasthicare/mobile/data/model/HealthNudge.getActionUrl ()Ljava/lang/String;
+   L34
+    LINENUMBER 150 L34
+    INVOKESPECIAL com/swasthicare/mobile/ui/screens/home/ServerNudge.<init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+   L35
+    LINENUMBER 157 L35
+    NOP
+    GOTO L36
+   L37
+   L38
+   L36
+    ASTORE 15
+    ALOAD 14
+    ALOAD 15
+   L39
+    LINENUMBER 217 L39
+    INVOKEINTERFACE java/util/Collection.add (Ljava/lang/Object;)Z (itf)
+    POP
+   L40
+    GOTO L23
+   L24
+    LINENUMBER 218 L24
+    ALOAD 8
+   L41
+    CHECKCAST java/util/List
+   L42
+    LINENUMBER 215 L42
+    NOP
+    GOTO L43
+   L44
+   L45
+   L43
+   L46
+    LINENUMBER 149 L46
+    ASTORE 4
+   L47
+   L48
+    LINENUMBER 159 L48
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadNudges$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$get_uiState$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lkotlinx/coroutines/flow/MutableStateFlow;
+    ALOAD 0
+    GETFIELD com/swasthicare/mobile/ui/screens/home/HomeViewModel$loadNudges$1.this$0 : Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeViewModel.access$get_uiState$p (Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel;)Lkotlinx/coroutines/flow/MutableStateFlow;
+    INVOKEINTERFACE kotlinx/coroutines/flow/MutableStateFlow.getValue ()Ljava/lang/Object; (itf)
+    CHECKCAST com/swasthicare/mobile/ui/screens/home/HomeState
+    ACONST_NULL
+    ACONST_NULL
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ACONST_NULL
+    DCONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    NOP
+    ICONST_0
+    NOP
+    ICONST_0
+    NOP
+    ICONST_0
+    ACONST_NULL
+    ACONST_NULL
+    ACONST_NULL
+    ALOAD 4
+    ICONST_0
+    ICONST_0
+    ACONST_NULL
+    LDC 7864319
+    ACONST_NULL
+    INVOKESTATIC com/swasthicare/mobile/ui/screens/home/HomeState.copy$default (Lcom/swasthicare/mobile/ui/screens/home/HomeState;Ljava/lang/String;Ljava/lang/String;IIIIILjava/lang/String;DIIIIZZZLjava/util/List;Ljava/util/Date;Ljava/util/List;Ljava/util/List;IILjava/lang/String;ILjava/lang/Object;)Lcom/swasthicare/mobile/ui/screens/home/HomeState;
+    INVOKEINTERFACE kotlinx/coroutines/flow/MutableStateFlow.setValue (Ljava/lang/Object;)V (itf)
+   L49
+   L4
+    GOTO L50
+   L2
+   L51
+    LINENUMBER 160 L51
+    ASTORE 2
+   L52
+   L53
+   L50
+   L54
+    LINENUMBER 163 L54
+    NOP
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    ARETURN
+   L55
+    LOCALVARIABLE $i$a$-map-HomeViewModel$loadNudges$1$serverNudges$1 I L27 L38 13
+    LOCALVARIABLE nudge Lcom/swasthicare/mobile/data/model/HealthNudge; L26 L38 12
+    LOCALVARIABLE item$iv$iv Ljava/lang/Object; L25 L40 11
+    LOCALVARIABLE $i$f$mapTo I L22 L41 9
+    LOCALVARIABLE $this$mapTo$iv$iv Ljava/lang/Iterable; L21 L41 7
+    LOCALVARIABLE destination$iv$iv Ljava/util/Collection; L21 L41 8
+    LOCALVARIABLE $i$f$map I L20 L45 6
+    LOCALVARIABLE $this$map$iv Ljava/lang/Iterable; L19 L45 5
+    LOCALVARIABLE profileId Ljava/lang/String; L15 L49 2
+    LOCALVARIABLE nudges Ljava/util/List; L17 L49 3
+    LOCALVARIABLE serverNudges Ljava/util/List; L47 L49 4
+    LOCALVARIABLE <unused var> Ljava/lang/Exception; L52 L53 2
+    LOCALVARIABLE this Lcom/swasthicare/mobile/ui/screens/home/HomeViewModel$loadNudges$1; L5 L55 0
+    LOCALVARIABLE $result Ljava/lang/Object; L5 L55 1
+    MAXSTACK = 28
+    MAXLOCALS = 16
+
+File is unknown
+The root cause java.lang.OutOfMemoryError was thrown at: org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer._init_$lambda$0(FastMethodAnalyzer.kt:47)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:89)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:770)
+	at org.jetbrains.kotlin.backend.jvm.codegen.CoroutineCodegenKt.acceptWithStateMachine(CoroutineCodegen.kt:73)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:456)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:951)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.declarations.IrClass.accept(IrClass.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitBlock(IrVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.gen(ExpressionCodegen.kt:214)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrCallGenerator.genValueAndPut(IrCallGenerator.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:564)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:577)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitComposite(IrVisitor.kt:125)
+	at org.jetbrains.kotlin.ir.expressions.IrComposite.accept(IrComposite.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:532)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:233)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:126)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	... 47 more
+Caused by: java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer._init_$lambda$0(FastMethodAnalyzer.kt:47)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer$$Lambda$2714/0x000000c001aaa1d8.invoke(Unknown Source)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyzeMainLoop(FastAnalyzer.kt:59)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyze(FastAnalyzer.kt:53)
+	at org.jetbrains.kotlin.codegen.coroutines.SpilledVariableFieldTypesAnalysisKt.performSpilledVariableFieldTypesAnalysis(SpilledVariableFieldTypesAnalysis.kt:137)
+	at org.jetbrains.kotlin.codegen.coroutines.CoroutineTransformerMethodVisitor.spillVariables(CoroutineTransformerMethodVisitor.kt:635)
+	at org.jetbrains.kotlin.codegen.coroutines.CoroutineTransformerMethodVisitor.performTransformations(CoroutineTransformerMethodVisitor.kt:132)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:67)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:770)
+	at org.jetbrains.kotlin.backend.jvm.codegen.CoroutineCodegenKt.acceptWithStateMachine(CoroutineCodegen.kt:73)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:456)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:951)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.declarations.IrClass.accept(IrClass.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitBlock(IrVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.gen(ExpressionCodegen.kt:214)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrCallGenerator.genValueAndPut(IrCallGenerator.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:564)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:577)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitComposite(IrVisitor.kt:125)
+
+
