@@ -157,7 +157,6 @@ struct HomeView: View {
 
                     // Human Body Image with Daily Activity Details (tap for AR scan)
                     humanBodyImageWithDetails
-                        .padding(.top, 0)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
                         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
@@ -168,22 +167,22 @@ struct HomeView: View {
 
                     // Diet Summary
                     healthVitalsSection
-                        .padding(.top, 10)
+                        .padding(.top, 4)
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 24)
                         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
 
                     // Quick Actions
                     quickActionsSection
-                        .padding(.top, 14)
+                        .padding(.top, 8)
                         .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
                         .opacity(hasAppeared ? 1 : 0)
                         .offset(y: hasAppeared ? 0 : 30)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.45), value: hasAppeared)
-                    
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
+
                 }
-                .padding(.top)
-                .padding(.bottom, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
             }
             .coordinateSpace(name: "scroll")
         .alert("Sync Status", isPresented: $showSyncAlert) {
@@ -257,7 +256,7 @@ struct HomeView: View {
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 240)
+                        .frame(height: 200)
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
                         .offset(x: geometry.size.width * 0.10)
@@ -296,7 +295,7 @@ struct HomeView: View {
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
             }
         }
-        .frame(height: 210)
+        .frame(height: 180)
     }
     
     private var authorizationBanner: some View {
@@ -505,11 +504,11 @@ struct HomeView: View {
 
 
     private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             LazyVGrid(
-                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
                 alignment: .center,
-                spacing: 12
+                spacing: 8
             ) {
                 MedicationQuickActionButton(
                     takenCount: medicationViewModel.takenCount,
@@ -746,6 +745,8 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 
 private struct FamilyQuickActionCard: View {
     private let accent = AppColors.family
+    @State private var orbFloat: Bool = false
+    @State private var personBounce: Bool = false
 
     var body: some View {
         ZStack {
@@ -766,6 +767,16 @@ private struct FamilyQuickActionCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 )
 
+            // Floating orbs
+            Circle()
+                .fill(Color.white.opacity(0.08))
+                .frame(width: 60, height: 60)
+                .offset(x: orbFloat ? 25 : 35, y: orbFloat ? -15 : -5)
+            Circle()
+                .fill(Color.white.opacity(0.06))
+                .frame(width: 40, height: 40)
+                .offset(x: orbFloat ? -20 : -10, y: orbFloat ? 20 : 30)
+
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
                     ZStack {
@@ -775,13 +786,16 @@ private struct FamilyQuickActionCard: View {
                         Image(systemName: "person.3.fill")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
+                            .scaleEffect(personBounce ? 1.1 : 1.0)
                     }
 
                     Spacer()
 
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white.opacity(0.7))
+                    // Animated heart
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.5))
+                        .scaleEffect(personBounce ? 1.2 : 0.9)
                 }
 
                 Spacer()
@@ -797,10 +811,19 @@ private struct FamilyQuickActionCard: View {
         }
         .frame(height: 100)
         .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
         )
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+                orbFloat = true
+            }
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true).delay(0.5)) {
+                personBounce = true
+            }
+        }
     }
 }
 
@@ -1011,7 +1034,7 @@ private struct HydrationQuickActionButton: View {
                 }
                 .padding(12)
             }
-            .frame(height: 100)
+            .frame(height: 88)
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
@@ -1054,48 +1077,55 @@ private struct HydrationQuickActionButton: View {
 private struct CycleTrackerQuickActionButton: View {
     let action: () -> Void
     @State private var pulseAnimation = false
-    
+    @State private var moonRotation: Double = 0
+    @State private var glowBreath: Bool = false
+
     private let accent: Color = AppColors.accentPurple
-    private let textColor: Color = .white
-    private let secondaryTextOpacity: Double = 0.9
-    private let iconCircleFill: Color = Color.white.opacity(0.18)
-    
+
     var body: some View {
         Button(action: action) {
             ZStack {
                 // Background
-                GeometryReader { _ in
-                    ZStack(alignment: .bottom) {
-                        // Solid premium background
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(accent)
-                            .overlay(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.22), .clear],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 24))
-                            )
-                        
-                        // Subtle pulsing circle effect
-                        Circle()
-                            .fill(Color.white.opacity(0.16))
-                            .frame(width: 100, height: 100)
-                            .scaleEffect(pulseAnimation ? 1.2 : 0.8)
-                            .opacity(pulseAnimation ? 0.3 : 0.6)
-                            .offset(x: 30, y: 20)
-                            .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: pulseAnimation)
-                    }
-                }
-                
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            colors: [accent, Color(hex: "7C3AED")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.22), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                    )
+
+                // Animated rings
+                Circle()
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    .frame(width: 80, height: 80)
+                    .scaleEffect(pulseAnimation ? 1.3 : 0.9)
+                    .opacity(pulseAnimation ? 0.0 : 0.5)
+                    .offset(x: 20, y: 10)
+
+                Circle()
+                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                    .frame(width: 50, height: 50)
+                    .scaleEffect(pulseAnimation ? 1.5 : 1.0)
+                    .opacity(pulseAnimation ? 0.0 : 0.4)
+                    .offset(x: 20, y: 10)
+
                 // Content Overlay
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .top) {
                         ZStack {
                             Circle()
-                                .fill(iconCircleFill)
+                                .fill(Color.white.opacity(0.18))
                                 .frame(width: 32, height: 32)
+                                .shadow(color: Color.white.opacity(glowBreath ? 0.3 : 0.0), radius: glowBreath ? 8 : 0)
                             Image(systemName: "drop.fill")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.white)
@@ -1103,24 +1133,27 @@ private struct CycleTrackerQuickActionButton: View {
 
                         Spacer()
 
-                        Image(systemName: "calendar.badge.clock")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(textColor.opacity(0.75))
+                        // Moon phases rotating
+                        Image(systemName: "moon.stars.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.6))
+                            .rotationEffect(.degrees(moonRotation))
                     }
 
                     Spacer()
 
                     Text("Cycle")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundColor(textColor)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
                     Text("Tracker")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundColor(textColor.opacity(secondaryTextOpacity))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
                 }
                 .padding(12)
             }
-            .frame(height: 100)
+            .frame(height: 88)
             .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
                     .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
@@ -1128,7 +1161,15 @@ private struct CycleTrackerQuickActionButton: View {
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {
-            pulseAnimation = true
+            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                pulseAnimation = true
+            }
+            withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
+                moonRotation = 360
+            }
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.5)) {
+                glowBreath = true
+            }
         }
     }
 }
@@ -1137,7 +1178,7 @@ private struct MedicationQuickActionButton: View {
     let takenCount: Int
     let totalCount: Int
     let action: () -> Void
-    
+
     // Start at 0%
     @State private var visualProgress: Double = 0.0
     @State private var pillWobble: Bool = false
@@ -1210,9 +1251,11 @@ private struct MedicationQuickActionButton: View {
                             Circle()
                                 .fill(iconCircleFill)
                                 .frame(width: 32, height: 32)
+                                .shadow(color: Color.white.opacity(iconGlow ? 0.25 : 0), radius: iconGlow ? 8 : 0)
                             Image(systemName: "pills.fill")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(textColor)
+                                .rotationEffect(.degrees(pillWobble ? 10 : -10))
                         }
 
                         Spacer()
@@ -1233,6 +1276,7 @@ private struct MedicationQuickActionButton: View {
                         Text("\(takenCount)")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundColor(textColor)
+                            .contentTransition(.numericText())
                         Text("/ \(totalCount) taken")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(textColor.opacity(tertiaryTextOpacity))
@@ -1240,7 +1284,7 @@ private struct MedicationQuickActionButton: View {
                 }
                 .padding(12)
             }
-            .frame(height: 100)
+            .frame(height: 88)
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
