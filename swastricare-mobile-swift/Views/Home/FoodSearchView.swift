@@ -16,6 +16,7 @@ struct FoodSearchView: View {
     @State private var searchText = ""
     @State private var selectedCategory: FoodCategory? = nil
     @State private var showVegOnly = false
+    @State private var lastSearchTrigger = ""
 
     private var filteredFoods: [FoodItem] {
         var foods = viewModel.foodItemsCache
@@ -38,6 +39,20 @@ struct FoodSearchView: View {
         return foods
     }
 
+    /// Online results filtered by category and veg-only setting
+    private var filteredOnlineResults: [FoodItem] {
+        var foods = viewModel.onlineSearchResults
+
+        if let category = selectedCategory {
+            foods = foods.filter { $0.category == category }
+        }
+        if showVegOnly {
+            foods = foods.filter { $0.isVegetarian }
+        }
+
+        return foods
+    }
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -49,11 +64,12 @@ struct FoodSearchView: View {
                     categoryFilter
 
                     // Search Results
-                    if filteredFoods.isEmpty {
+                    if filteredFoods.isEmpty && filteredOnlineResults.isEmpty && !viewModel.isSearchingOnline {
                         emptyStateView
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 12) {
+                                // Local results
                                 ForEach(filteredFoods) { food in
                                     FoodItemRow(
                                         food: food,
@@ -61,6 +77,43 @@ struct FoodSearchView: View {
                                         isFavorite: viewModel.isFavorite(foodId: food.id),
                                         onToggleFavorite: { viewModel.toggleFavorite(foodId: food.id) }
                                     )
+                                }
+
+                                // Online search indicator
+                                if viewModel.isSearchingOnline {
+                                    HStack(spacing: 8) {
+                                        ProgressView()
+                                            .tint(AppColors.accentBlue)
+                                        Text("Searching online...")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                }
+
+                                // Online results section
+                                if !filteredOnlineResults.isEmpty {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "globe")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundColor(AppColors.accentBlue)
+                                            Text("From Database")
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .padding(.top, 8)
+                                    }
+
+                                    ForEach(filteredOnlineResults) { food in
+                                        FoodItemRow(
+                                            food: food,
+                                            onSelect: { onFoodSelected(food) },
+                                            isFavorite: viewModel.isFavorite(foodId: food.id),
+                                            onToggleFavorite: { viewModel.toggleFavorite(foodId: food.id) }
+                                        )
+                                    }
                                 }
                             }
                             .padding(.horizontal, 16)
@@ -80,6 +133,10 @@ struct FoodSearchView: View {
                 }
             }
             .searchable(text: $searchText, prompt: "Search foods...")
+            .onChange(of: searchText) { _, newValue in
+                // Trigger online search when local results are sparse
+                viewModel.searchFoodsOnline(query: newValue)
+            }
         }
     }
 
@@ -273,7 +330,7 @@ struct FoodItemRow: View {
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
 
-                        Text("•")
+                        Text("\u{2022}")
                             .foregroundColor(.secondary)
 
                         Text(food.caloriesPerServing)

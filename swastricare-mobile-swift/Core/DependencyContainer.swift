@@ -13,13 +13,13 @@ import Combine
 
 @MainActor
 final class DependencyContainer: ObservableObject {
-    
+
     // MARK: - Shared Instance
-    
+
     static let shared = DependencyContainer()
-    
+
     // MARK: - Services (Singletons)
-    
+
     let authService: AuthServiceProtocol
     let healthService: HealthKitServiceProtocol
     let vaultService: VaultServiceProtocol
@@ -32,30 +32,31 @@ final class DependencyContainer: ObservableObject {
     let locationTrackingService: LocationTrackingServiceProtocol
     let workoutSessionManager: WorkoutSessionManagerProtocol
     let dietService: DietServiceProtocol
+    let barcodeScannerService: BarcodeScannerServiceProtocol
     let nudgeService: NudgeServiceProtocol
-    
+
     // MARK: - ViewModels (Lazy initialized)
-    
+
     lazy var authViewModel: AuthViewModel = {
         AuthViewModel(authService: authService)
     }()
-    
+
     lazy var homeViewModel: HomeViewModel = {
         HomeViewModel(healthService: healthService)
     }()
-    
+
     lazy var trackerViewModel: TrackerViewModel = {
         TrackerViewModel(healthService: healthService)
     }()
-    
+
     lazy var vaultViewModel: VaultViewModel = {
         VaultViewModel(vaultService: vaultService)
     }()
-    
+
     lazy var aiViewModel: AIViewModel = {
         AIViewModel(aiService: aiService)
     }()
-    
+
     lazy var profileViewModel: ProfileViewModel = {
         ProfileViewModel(
             authService: authService,
@@ -63,11 +64,11 @@ final class DependencyContainer: ObservableObject {
             healthProfileService: HealthProfileService.shared
         )
     }()
-    
+
     lazy var lockScreenViewModel: LockScreenViewModel = {
         LockScreenViewModel(biometricService: biometricService)
     }()
-    
+
     lazy var hydrationViewModel: HydrationViewModel = {
         HydrationViewModel(
             hydrationService: hydrationService,
@@ -75,32 +76,32 @@ final class DependencyContainer: ObservableObject {
             weatherService: weatherService
         )
     }()
-    
+
     lazy var medicationViewModel: MedicationViewModel = {
         MedicationViewModel()
     }()
-    
+
     lazy var heartRateViewModel: HeartRateViewModel = {
         HeartRateViewModel(vitalSignsService: vitalSignsService)
     }()
-    
+
     lazy var runActivityViewModel: RunActivityViewModel = {
         RunActivityViewModel(healthService: healthService, activityService: runActivityService)
     }()
-    
+
     lazy var liveActivityViewModel: LiveActivityViewModel = {
         LiveActivityViewModel(
             workoutManager: workoutSessionManager,
             locationService: locationTrackingService
         )
     }()
-    
+
     lazy var dietViewModel: DietViewModel = {
         DietViewModel(dietService: dietService)
     }()
-    
+
     // MARK: - Init
-    
+
     private init() {
         // Initialize services
         self.authService = AuthService.shared
@@ -115,27 +116,28 @@ final class DependencyContainer: ObservableObject {
         self.locationTrackingService = LocationTrackingService.shared
         self.workoutSessionManager = WorkoutSessionManager.shared
         self.dietService = DietService.shared
+        self.barcodeScannerService = BarcodeScannerService.shared
         self.nudgeService = NudgeService.shared
     }
-    
+
     // MARK: - Factory Methods (for creating new instances if needed)
-    
+
     func makeHomeViewModel() -> HomeViewModel {
         HomeViewModel(healthService: healthService)
     }
-    
+
     func makeTrackerViewModel() -> TrackerViewModel {
         TrackerViewModel(healthService: healthService)
     }
-    
+
     func makeVaultViewModel() -> VaultViewModel {
         VaultViewModel(vaultService: vaultService)
     }
-    
+
     func makeAIViewModel() -> AIViewModel {
         AIViewModel(aiService: aiService)
     }
-    
+
     func makeHydrationViewModel() -> HydrationViewModel {
         HydrationViewModel(
             hydrationService: hydrationService,
@@ -143,26 +145,26 @@ final class DependencyContainer: ObservableObject {
             weatherService: weatherService
         )
     }
-    
+
     func makeMedicationViewModel() -> MedicationViewModel {
         MedicationViewModel()
     }
-    
+
     func makeHeartRateViewModel() -> HeartRateViewModel {
         HeartRateViewModel(vitalSignsService: vitalSignsService)
     }
-    
+
     func makeRunActivityViewModel() -> RunActivityViewModel {
         RunActivityViewModel(healthService: healthService, activityService: runActivityService)
     }
-    
+
     func makeLiveActivityViewModel() -> LiveActivityViewModel {
         LiveActivityViewModel(
             workoutManager: workoutSessionManager,
             locationService: locationTrackingService
         )
     }
-    
+
     func makeDietViewModel() -> DietViewModel {
         DietViewModel(dietService: dietService)
     }
@@ -188,4 +190,3 @@ extension View {
         self.environment(\.dependencies, container)
     }
 }
-

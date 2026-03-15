@@ -908,10 +908,12 @@ private struct HydrationQuickActionButton: View {
     let currentIntake: Int
     let dailyGoal: Int
     let action: () -> Void
-    
+
     // Start at 1.0 (100%)
     @State private var visualProgress: Double = 1.0
     @State private var wavePhase: Double = 0.0
+    @State private var dropBounce: Bool = false
+    @State private var dropGlow: Bool = false
     
     private var targetProgress: Double {
         guard dailyGoal > 0 else { return 0 }
@@ -976,9 +978,11 @@ private struct HydrationQuickActionButton: View {
                             Circle()
                                 .fill(iconCircleFill)
                                 .frame(width: 32, height: 32)
+                                .shadow(color: Color.white.opacity(dropGlow ? 0.3 : 0), radius: dropGlow ? 8 : 0)
                             Image(systemName: "drop.fill")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(textColor)
+                                .offset(y: dropBounce ? -3 : 3)
                         }
 
                         Spacer()
@@ -999,6 +1003,7 @@ private struct HydrationQuickActionButton: View {
                         Text("\(currentIntake)")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundColor(textColor)
+                            .contentTransition(.numericText())
                         Text("/ \(dailyGoal) ml")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(textColor.opacity(tertiaryTextOpacity))
@@ -1019,13 +1024,21 @@ private struct HydrationQuickActionButton: View {
             withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
                 wavePhase = .pi * 2
             }
-            
+
             // 2. Animate from 100% down to actual value on load
-            // Using frame animation is robust and won't fade
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.easeInOut(duration: 2.0)) {
                     visualProgress = targetProgress
                 }
+            }
+
+            // 3. Drop bounce
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                dropBounce = true
+            }
+            // 4. Icon glow
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.3)) {
+                dropGlow = true
             }
         }
         .onChange(of: targetProgress) { _, newValue in
@@ -1127,12 +1140,14 @@ private struct MedicationQuickActionButton: View {
     
     // Start at 0%
     @State private var visualProgress: Double = 0.0
-    
+    @State private var pillWobble: Bool = false
+    @State private var iconGlow: Bool = false
+
     private var targetProgress: Double {
         guard totalCount > 0 else { return 0 }
         return min(1.0, Double(takenCount) / Double(totalCount))
     }
-    
+
     private let accent: Color = AppColors.medication
     private let textColor: Color = .white
     private let secondaryTextOpacity: Double = 0.9
@@ -1239,6 +1254,14 @@ private struct MedicationQuickActionButton: View {
                 withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
                     visualProgress = targetProgress
                 }
+            }
+            // Pill wobble
+            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                pillWobble = true
+            }
+            // Icon glow
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.3)) {
+                iconGlow = true
             }
         }
         .onChange(of: targetProgress) { _, newValue in

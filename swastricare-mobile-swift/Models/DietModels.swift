@@ -18,9 +18,9 @@ enum MealType: String, Codable, CaseIterable, Identifiable {
     case eveningSnack = "evening_snack"
     case dinner = "dinner"
     case lateNight = "late_night"
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .breakfast: return "Breakfast"
@@ -31,7 +31,7 @@ enum MealType: String, Codable, CaseIterable, Identifiable {
         case .lateNight: return "Late Night"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .breakfast: return "sunrise.fill"
@@ -42,7 +42,7 @@ enum MealType: String, Codable, CaseIterable, Identifiable {
         case .lateNight: return "moon.fill"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .breakfast: return .orange
@@ -53,7 +53,7 @@ enum MealType: String, Codable, CaseIterable, Identifiable {
         case .lateNight: return .purple
         }
     }
-    
+
     var typicalTime: String {
         switch self {
         case .breakfast: return "7:00 AM - 9:00 AM"
@@ -73,9 +73,9 @@ enum GoalType: String, Codable, CaseIterable, Identifiable {
     case weightGain = "weight_gain"
     case maintenance = "maintenance"
     case muscleBuilding = "muscle_building"
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .weightLoss: return "Weight Loss"
@@ -84,7 +84,7 @@ enum GoalType: String, Codable, CaseIterable, Identifiable {
         case .muscleBuilding: return "Muscle Building"
         }
     }
-    
+
     var description: String {
         switch self {
         case .weightLoss: return "Reduce body weight through calorie deficit"
@@ -93,7 +93,7 @@ enum GoalType: String, Codable, CaseIterable, Identifiable {
         case .muscleBuilding: return "Build muscle mass with high protein"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .weightLoss: return "arrow.down.circle.fill"
@@ -102,7 +102,7 @@ enum GoalType: String, Codable, CaseIterable, Identifiable {
         case .muscleBuilding: return "figure.strengthtraining.traditional"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .weightLoss: return .red
@@ -125,9 +125,9 @@ enum FoodCategory: String, Codable, CaseIterable, Identifiable {
     case snacks = "snacks"
     case sweets = "sweets"
     case other = "other"
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .fruits: return "Fruits"
@@ -141,18 +141,18 @@ enum FoodCategory: String, Codable, CaseIterable, Identifiable {
         case .other: return "Other"
         }
     }
-    
+
     var icon: String {
         switch self {
-        case .fruits: return "🍎"
-        case .vegetables: return "🥗"
-        case .grains: return "🌾"
-        case .protein: return "🍗"
-        case .dairy: return "🥛"
-        case .beverages: return "☕"
-        case .snacks: return "🍿"
-        case .sweets: return "🍰"
-        case .other: return "🍽️"
+        case .fruits: return "\u{1F34E}"
+        case .vegetables: return "\u{1F957}"
+        case .grains: return "\u{1F33E}"
+        case .protein: return "\u{1F357}"
+        case .dairy: return "\u{1F95B}"
+        case .beverages: return "\u{2615}"
+        case .snacks: return "\u{1F37F}"
+        case .sweets: return "\u{1F370}"
+        case .other: return "\u{1F37D}\u{FE0F}"
         }
     }
 }
@@ -169,9 +169,9 @@ enum ServingUnit: String, Codable, CaseIterable, Identifiable {
     case oz = "oz"
     case bowl = "bowl"
     case plate = "plate"
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .g: return "grams"
@@ -206,7 +206,7 @@ struct FoodItem: Identifiable, Codable, Equatable {
     let isVegan: Bool
     let category: FoodCategory
     let createdAt: Date
-    
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -242,17 +242,17 @@ struct FoodItem: Identifiable, Codable, Equatable {
         self.category = category
         self.createdAt = createdAt
     }
-    
+
     var displayServingSize: String {
         "\(Int(servingSize)) \(servingUnit.displayName)"
     }
-    
+
     var caloriesPerServing: String {
         "\(Int(calories)) cal"
     }
-    
+
     var macroSummary: String {
-        "P: \(Int(proteinG))g • C: \(Int(carbsG))g • F: \(Int(fatG))g"
+        "P: \(Int(proteinG))g \u{2022} C: \(Int(carbsG))g \u{2022} F: \(Int(fatG))g"
     }
 }
 
@@ -273,7 +273,7 @@ struct DietLogEntry: Identifiable, Codable, Equatable {
     let loggedAt: Date
     let notes: String?
     var synced: Bool
-    
+
     init(
         id: UUID = UUID(),
         foodItemId: UUID? = nil,
@@ -305,13 +305,13 @@ struct DietLogEntry: Identifiable, Codable, Equatable {
         self.notes = notes
         self.synced = synced
     }
-    
+
     var formattedTime: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "hh:mm a"
         return formatter.string(from: loggedAt)
     }
-    
+
     var displayQuantity: String {
         "\(quantity.formatted(.number.precision(.fractionLength(0...1)))) \(servingUnit.displayName)"
     }
@@ -328,7 +328,7 @@ struct DietGoals: Codable, Equatable {
     var waterGoalMl: Int
     var mealRemindersEnabled: Bool
     var updatedAt: Date?
-    
+
     init(
         userId: UUID? = nil,
         dailyCalories: Int = 2000,
@@ -348,19 +348,19 @@ struct DietGoals: Codable, Equatable {
         self.mealRemindersEnabled = mealRemindersEnabled
         self.updatedAt = updatedAt
     }
-    
+
     var proteinGrams: Int {
         Int(Double(dailyCalories) * Double(proteinPercent) / 100.0 / 4.0)
     }
-    
+
     var carbsGrams: Int {
         Int(Double(dailyCalories) * Double(carbsPercent) / 100.0 / 4.0)
     }
-    
+
     var fatGrams: Int {
         Int(Double(dailyCalories) * Double(fatPercent) / 100.0 / 9.0)
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case dailyCalories = "daily_calories"
@@ -382,27 +382,27 @@ struct NutritionSummary: Equatable {
     let totalFatG: Double
     let totalFiberG: Double
     let mealCount: Int
-    
+
     var caloriesFormatted: String {
         "\(Int(totalCalories))"
     }
-    
+
     var proteinFormatted: String {
         "\(Int(totalProteinG))g"
     }
-    
+
     var carbsFormatted: String {
         "\(Int(totalCarbsG))g"
     }
-    
+
     var fatFormatted: String {
         "\(Int(totalFatG))g"
     }
-    
+
     var fiberFormatted: String {
         "\(Int(totalFiberG))g"
     }
-    
+
     static var empty: NutritionSummary {
         NutritionSummary(
             totalCalories: 0,
@@ -424,26 +424,26 @@ struct MacroBreakdown: Equatable {
     let proteinCalories: Double
     let carbsCalories: Double
     let fatCalories: Double
-    
+
     var totalCalories: Double {
         proteinCalories + carbsCalories + fatCalories
     }
-    
+
     var proteinPercent: Double {
         guard totalCalories > 0 else { return 0 }
         return (proteinCalories / totalCalories) * 100
     }
-    
+
     var carbsPercent: Double {
         guard totalCalories > 0 else { return 0 }
         return (carbsCalories / totalCalories) * 100
     }
-    
+
     var fatPercent: Double {
         guard totalCalories > 0 else { return 0 }
         return (fatCalories / totalCalories) * 100
     }
-    
+
     init(proteinG: Double, carbsG: Double, fatG: Double) {
         self.proteinG = proteinG
         self.carbsG = carbsG
@@ -452,7 +452,7 @@ struct MacroBreakdown: Equatable {
         self.carbsCalories = carbsG * 4.0
         self.fatCalories = fatG * 9.0
     }
-    
+
     static var empty: MacroBreakdown {
         MacroBreakdown(proteinG: 0, carbsG: 0, fatG: 0)
     }
@@ -474,7 +474,7 @@ struct DietPlan: Identifiable, Codable, Equatable {
     let endDate: Date?
     let createdAt: Date
     let updatedAt: Date
-    
+
     init(
         id: UUID = UUID(),
         healthProfileId: UUID,
@@ -504,7 +504,7 @@ struct DietPlan: Identifiable, Codable, Equatable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case healthProfileId = "health_profile_id"
@@ -530,12 +530,67 @@ struct DietInsights: Equatable {
     let bestDay: (date: Date, calories: Int)?
     let topFoods: [String]
     let macroBalance: String
-    
+
+    // Intelligence & Insights additions
+    let mealTimingInsights: [MealTimingInsight]
+    let nutrientGaps: [NutrientGap]
+    let coachingTips: [String]
+    let weeklyReport: WeeklyDietReport?
+
+    // Streak gamification
+    let bestStreak: Int
+    let nextMilestone: Int?
+    let streakEmoji: String
+
+    /// Streak milestones for gamification
+    static let streakMilestones: [Int] = [3, 7, 14, 30, 60, 100]
+
+    init(
+        weeklyAverageCalories: Int,
+        currentStreak: Int,
+        bestDay: (date: Date, calories: Int)?,
+        topFoods: [String],
+        macroBalance: String,
+        mealTimingInsights: [MealTimingInsight] = [],
+        nutrientGaps: [NutrientGap] = [],
+        coachingTips: [String] = [],
+        weeklyReport: WeeklyDietReport? = nil,
+        bestStreak: Int = 0
+    ) {
+        self.weeklyAverageCalories = weeklyAverageCalories
+        self.currentStreak = currentStreak
+        self.bestDay = bestDay
+        self.topFoods = topFoods
+        self.macroBalance = macroBalance
+        self.mealTimingInsights = mealTimingInsights
+        self.nutrientGaps = nutrientGaps
+        self.coachingTips = coachingTips
+        self.weeklyReport = weeklyReport
+        self.bestStreak = max(bestStreak, currentStreak)
+
+        // Calculate next milestone
+        let nextMilestones = DietInsights.streakMilestones.filter { $0 > currentStreak }
+        self.nextMilestone = nextMilestones.first
+
+        // Determine streak emoji
+        if DietInsights.streakMilestones.contains(currentStreak) && currentStreak > 0 {
+            self.streakEmoji = "\u{1F3C6}" // trophy
+        } else if currentStreak > 0 {
+            self.streakEmoji = "\u{1F525}" // fire
+        } else {
+            self.streakEmoji = "\u{2744}\u{FE0F}" // snowflake
+        }
+    }
+
     static func == (lhs: DietInsights, rhs: DietInsights) -> Bool {
         lhs.weeklyAverageCalories == rhs.weeklyAverageCalories &&
         lhs.currentStreak == rhs.currentStreak &&
         lhs.topFoods == rhs.topFoods &&
-        lhs.macroBalance == rhs.macroBalance
+        lhs.macroBalance == rhs.macroBalance &&
+        lhs.mealTimingInsights == rhs.mealTimingInsights &&
+        lhs.nutrientGaps == rhs.nutrientGaps &&
+        lhs.coachingTips == rhs.coachingTips &&
+        lhs.bestStreak == rhs.bestStreak
     }
 }
 
@@ -556,7 +611,7 @@ struct DietLogRecord: Codable {
     let fiberG: Double?
     let loggedAt: Date
     let notes: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case healthProfileId = "health_profile_id"
@@ -573,7 +628,7 @@ struct DietLogRecord: Codable {
         case loggedAt = "logged_at"
         case notes
     }
-    
+
     init(from entry: DietLogEntry, healthProfileId: UUID) {
         self.id = entry.id
         self.healthProfileId = healthProfileId
@@ -590,7 +645,7 @@ struct DietLogRecord: Codable {
         self.loggedAt = entry.loggedAt
         self.notes = entry.notes
     }
-    
+
     func toDietLogEntry() -> DietLogEntry {
         DietLogEntry(
             id: id ?? UUID(),
@@ -628,7 +683,7 @@ struct FoodItemRecord: Codable {
     let isVegan: Bool
     let category: String
     let createdAt: Date
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case name
@@ -647,7 +702,7 @@ struct FoodItemRecord: Codable {
         case category
         case createdAt = "created_at"
     }
-    
+
     func toFoodItem() -> FoodItem {
         FoodItem(
             id: id,
@@ -727,29 +782,29 @@ struct GoalAdherence: Equatable {
 // MARK: - Calorie Calculator
 
 struct CalorieCalculator {
-    
+
     /// Calculate BMR using Mifflin-St Jeor Equation
     static func calculateBMR(weightKg: Double, heightCm: Int, age: Int, gender: String) -> Int {
         let weight = 10 * weightKg
         let height = 6.25 * Double(heightCm)
         let ageCalc = 5 * Double(age)
-        
+
         let bmr: Double
         if gender.lowercased() == "male" {
             bmr = weight + height - ageCalc + 5
         } else {
             bmr = weight + height - ageCalc - 161
         }
-        
+
         return Int(bmr)
     }
-    
+
     /// Calculate TDEE (Total Daily Energy Expenditure)
     static func calculateTDEE(bmr: Int, activityLevel: ActivityLevel) -> Int {
         let multiplier = activityLevel.multiplier
         return Int(Double(bmr) * multiplier)
     }
-    
+
     /// Calculate calorie goal based on goal type
     static func calculateCalorieGoal(tdee: Int, goalType: GoalType) -> Int {
         switch goalType {
@@ -763,13 +818,13 @@ struct CalorieCalculator {
             return tdee + 300 // Slight surplus for muscle building
         }
     }
-    
+
     /// Calculate macro targets based on goal type
     static func calculateMacros(calories: Int, goalType: GoalType) -> (protein: Int, carbs: Int, fat: Int) {
         let proteinPercent: Double
         let carbsPercent: Double
         let fatPercent: Double
-        
+
         switch goalType {
         case .weightLoss:
             proteinPercent = 0.30
@@ -788,16 +843,104 @@ struct CalorieCalculator {
             carbsPercent = 0.45
             fatPercent = 0.20
         }
-        
+
         let proteinCal = Double(calories) * proteinPercent
         let carbsCal = Double(calories) * carbsPercent
         let fatCal = Double(calories) * fatPercent
-        
+
         return (
             protein: Int(proteinCal / 4.0),
             carbs: Int(carbsCal / 4.0),
             fat: Int(fatCal / 9.0)
         )
+    }
+}
+
+// MARK: - Diet Log Validation
+
+enum DietValidationError: Error, Equatable, CustomStringConvertible {
+    case emptyFoodName
+    case negativeCalories
+    case negativeProtein
+    case negativeCarbs
+    case negativeFat
+    case zeroQuantity
+    case negativeQuantity
+    case futureDateTooFar(Date)
+    case negativeFiber
+
+    var description: String {
+        switch self {
+        case .emptyFoodName:
+            return "Food name cannot be empty"
+        case .negativeCalories:
+            return "Calories cannot be negative"
+        case .negativeProtein:
+            return "Protein cannot be negative"
+        case .negativeCarbs:
+            return "Carbs cannot be negative"
+        case .negativeFat:
+            return "Fat cannot be negative"
+        case .zeroQuantity:
+            return "Quantity must be greater than zero"
+        case .negativeQuantity:
+            return "Quantity cannot be negative"
+        case .futureDateTooFar(let date):
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            return "Date \(formatter.string(from: date)) is too far in the future"
+        case .negativeFiber:
+            return "Fiber cannot be negative"
+        }
+    }
+}
+
+extension DietLogEntry {
+    /// Validates the entry and returns a list of validation errors (empty if valid).
+    func validate() -> [DietValidationError] {
+        var errors: [DietValidationError] = []
+
+        let trimmedName = foodName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedName.isEmpty {
+            errors.append(.emptyFoodName)
+        }
+
+        if calories < 0 {
+            errors.append(.negativeCalories)
+        }
+
+        if proteinG < 0 {
+            errors.append(.negativeProtein)
+        }
+
+        if carbsG < 0 {
+            errors.append(.negativeCarbs)
+        }
+
+        if fatG < 0 {
+            errors.append(.negativeFat)
+        }
+
+        if quantity <= 0 {
+            errors.append(quantity < 0 ? .negativeQuantity : .zeroQuantity)
+        }
+
+        if let fiber = fiberG, fiber < 0 {
+            errors.append(.negativeFiber)
+        }
+
+        // Reject dates more than 24 hours in the future
+        let maxFutureDate = Date().addingTimeInterval(24 * 60 * 60)
+        if loggedAt > maxFutureDate {
+            errors.append(.futureDateTooFar(loggedAt))
+        }
+
+        return errors
+    }
+
+    /// Returns true if the entry passes all validation checks.
+    var isValid: Bool {
+        validate().isEmpty
     }
 }
 
