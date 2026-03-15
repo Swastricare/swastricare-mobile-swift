@@ -46,7 +46,7 @@ struct DietQuickActionButton: View {
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 0) {
                     // Header
                     HStack {
                         ZStack {
