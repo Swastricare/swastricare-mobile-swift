@@ -290,8 +290,8 @@ struct HomeView: View {
                     CompactStatCell(icon: "figure.walk", color: .green, value: viewModel.distance > 0 ? String(format: "%.1f", viewModel.distance) : "—", unit: "km")
                 }
                 .padding(.horizontal, 12)
-                .padding(.top, 8)
-                .frame(maxWidth: geometry.size.width * 0.52, alignment: .leading)
+                .padding(.top, 16)
+                .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading)
                 .opacity(hasAppeared ? 1 : 0)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
             }
@@ -773,32 +773,32 @@ private struct CompactStatCell: View {
     let unit: String
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(color)
-                .frame(width: 24, height: 24)
+                .frame(width: 26, height: 26)
                 .background(color.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: 7))
 
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(value)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Text(unit)
-                    .font(.system(size: 9))
+                    .font(.system(size: 10))
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(color.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(color.opacity(0.10), lineWidth: 0.5)
         )
     }
@@ -1058,7 +1058,7 @@ private struct HydrationQuickActionButton: View {
                 }
                 .padding(20)
             }
-            .frame(height: 150)
+            .frame(height: 120)
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
@@ -1161,7 +1161,7 @@ private struct CycleTrackerQuickActionButton: View {
                 }
                 .padding(20)
             }
-            .frame(height: 150)
+            .frame(height: 120)
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
@@ -1284,7 +1284,7 @@ private struct MedicationQuickActionButton: View {
                 }
                 .padding(20)
             }
-            .frame(height: 150)
+            .frame(height: 120)
             .frame(maxWidth: .infinity)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
