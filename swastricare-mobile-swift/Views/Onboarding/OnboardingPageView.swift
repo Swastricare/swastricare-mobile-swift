@@ -88,30 +88,27 @@ struct OnboardingPageView<Card: View>: View {
         .background(pageBackground)
         .onChange(of: isActive) { _, active in
             if active {
-                guard !hasAnimatedIn else { return }
-                animateIn()
+                // Small delay ensures view is laid out before animating
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    guard !hasAnimatedIn else { return }
+                    animateIn()
+                }
             } else {
                 hasAnimatedIn = false
                 animateOut()
             }
         }
         .onAppear {
+            // First page animates immediately
             if isActive && !hasAnimatedIn {
-                if reduceMotion {
-                    showInstantly()
-                } else {
-                    animateIn()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    guard !hasAnimatedIn else { return }
+                    if reduceMotion {
+                        showInstantly()
+                    } else {
+                        animateIn()
+                    }
                 }
-            }
-        }
-        // TabView pre-creates all pages — pages 1 & 2 may miss the
-        // initial onChange. This catch-up ensures they animate in.
-        .task(id: isActive) {
-            guard isActive, !hasAnimatedIn else { return }
-            if reduceMotion {
-                showInstantly()
-            } else {
-                animateIn()
             }
         }
     }
