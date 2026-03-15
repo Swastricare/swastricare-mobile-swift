@@ -416,62 +416,124 @@ struct HomeView: View {
     }
 
     private var dietSummaryContent: some View {
-        VStack(spacing: 14) {
-            // Top row: ring + info + chevron
-            HStack(spacing: 16) {
-                dietCalorieRing
+        ZStack {
+            // Gradient background
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "F97316").opacity(0.12),
+                            Color(hex: "FB923C").opacity(0.06),
+                            Color(hex: "FDBA74").opacity(0.03)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Today's Diet")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.primary)
+            // Subtle glow orb
+            Circle()
+                .fill(Color.orange.opacity(0.08))
+                .frame(width: 120, height: 120)
+                .blur(radius: 40)
+                .offset(x: -60, y: -20)
 
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("\(dietViewModel.totalCalories)")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                            .foregroundColor(.orange)
-                        Text("/ \(dietViewModel.dietGoals.dailyCalories) cal")
-                            .font(.system(size: 12))
+            VStack(spacing: 16) {
+                // Top row: ring + info + chevron
+                HStack(spacing: 16) {
+                    dietCalorieRing
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Today's Diet")
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                            .tracking(0.6)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(dietViewModel.totalCalories)")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundColor(.primary)
+                            Text("/ \(dietViewModel.dietGoals.dailyCalories)")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+                            Text("cal")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.secondary.opacity(0.7))
+                        }
                     }
+
+                    Spacer()
+
+                    // Arrow in circle
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.orange)
+                        .frame(width: 30, height: 30)
+                        .background(Color.orange.opacity(0.12))
+                        .clipShape(Circle())
                 }
 
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
+                // Macro progress bars
+                HStack(spacing: 10) {
+                    MacroBar(
+                        label: "Protein",
+                        value: dietViewModel.nutritionSummary.totalProteinG,
+                        goal: Double(dietViewModel.dietGoals.dailyCalories) * 0.25 / 4,
+                        color: Color(hex: "F97316")
+                    )
+                    MacroBar(
+                        label: "Carbs",
+                        value: dietViewModel.nutritionSummary.totalCarbsG,
+                        goal: Double(dietViewModel.dietGoals.dailyCalories) * 0.50 / 4,
+                        color: Color(hex: "3B82F6")
+                    )
+                    MacroBar(
+                        label: "Fat",
+                        value: dietViewModel.nutritionSummary.totalFatG,
+                        goal: Double(dietViewModel.dietGoals.dailyCalories) * 0.25 / 9,
+                        color: Color(hex: "8B5CF6")
+                    )
+                }
             }
-
-            // Macro pills row
-            HStack(spacing: 8) {
-                MacroPill(label: "Protein", value: dietViewModel.nutritionSummary.totalProteinG, color: .orange)
-                MacroPill(label: "Carbs", value: dietViewModel.nutritionSummary.totalCarbsG, color: .blue)
-                MacroPill(label: "Fat", value: dietViewModel.nutritionSummary.totalFatG, color: .purple)
-            }
+            .padding(18)
         }
-        .padding(16)
-        .background(Color.orange.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.orange.opacity(0.10), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.orange.opacity(0.12), lineWidth: 0.5)
         )
     }
 
     private var dietCalorieRing: some View {
         ZStack {
+            // Track
             Circle()
-                .stroke(Color.orange.opacity(0.15), lineWidth: 7)
-                .frame(width: 64, height: 64)
+                .stroke(Color.orange.opacity(0.12), lineWidth: 8)
+                .frame(width: 68, height: 68)
+            // Progress
             Circle()
                 .trim(from: 0, to: dietCalorieProgress)
-                .stroke(Color.orange, style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                .frame(width: 64, height: 64)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: "F97316"), Color(hex: "FB923C")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .frame(width: 68, height: 68)
                 .rotationEffect(.degrees(-90))
+            // Icon
             Image(systemName: "fork.knife")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.orange)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color(hex: "F97316"), Color(hex: "FB923C")],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
         }
     }
     
@@ -744,24 +806,49 @@ private struct CompactStatCell: View {
 
 // MARK: - Macro Pill (for diet summary)
 
-private struct MacroPill: View {
+private struct MacroBar: View {
     let label: String
     let value: Double
+    let goal: Double
     let color: Color
 
+    private var progress: Double {
+        guard goal > 0 else { return 0 }
+        return min(value / goal, 1.0)
+    }
+
     var body: some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(color)
-            Text("\(Int(value))g")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(.primary)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(label)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("\(Int(value))g")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(color)
+            }
+
+            // Progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(color.opacity(0.12))
+                        .frame(height: 5)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(
+                            LinearGradient(
+                                colors: [color, color.opacity(0.7)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: max(geo.size.width * progress, 4), height: 5)
+                }
+            }
+            .frame(height: 5)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .background(color.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
