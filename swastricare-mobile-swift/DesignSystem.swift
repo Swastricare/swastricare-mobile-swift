@@ -108,7 +108,7 @@ struct AppDimensions {
     
     // MARK: - Heights
     /// Quick action button height
-    static let quickActionHeight: CGFloat = 120
+    static let quickActionHeight: CGFloat = 90
     
     /// Stat card minimum height
     static let statCardHeight: CGFloat = 100
