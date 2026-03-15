@@ -11,6 +11,7 @@ struct OnboardingView: View {
     @State private var skipOpacity: Double = 0
     @State private var buttonOpacity: Double = 0
     @State private var isAnimating: Bool = false
+    @State private var getStartedGlow: Bool = false
 
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
@@ -124,7 +125,7 @@ struct OnboardingView: View {
 
                 // Bottom controls
                 VStack(spacing: 20) {
-                    // Page indicator dots
+                    // Page indicator dots with glow
                     HStack(spacing: 8) {
                         ForEach(0..<totalPages, id: \.self) { index in
                             Capsule()
@@ -132,6 +133,11 @@ struct OnboardingView: View {
                                 .frame(
                                     width: currentPage == index ? 20 : 6,
                                     height: 6
+                                )
+                                .shadow(
+                                    color: currentPage == index ? currentAccent.opacity(0.4) : .clear,
+                                    radius: currentPage == index ? 6 : 0,
+                                    y: 0
                                 )
                                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPage)
                         }
@@ -180,11 +186,17 @@ struct OnboardingView: View {
                                         )
                                     )
                                     .clipShape(Capsule())
-                                    .shadow(color: AppColors.accentBlue.opacity(0.3), radius: 14, y: 7)
+                                    .shadow(color: AppColors.accentBlue.opacity(getStartedGlow ? 0.5 : 0.2), radius: getStartedGlow ? 20 : 10, y: 7)
+                                    .scaleEffect(getStartedGlow ? 1.02 : 1.0)
                             }
                             .buttonStyle(ScaleButtonStyle())
                             .disabled(isAnimating)
                             .opacity(buttonOpacity)
+                            .onAppear {
+                                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                                    getStartedGlow = true
+                                }
+                            }
 
                             // Privacy note — only on last page
                             Text("Your data stays on your device. We never sell your information.")

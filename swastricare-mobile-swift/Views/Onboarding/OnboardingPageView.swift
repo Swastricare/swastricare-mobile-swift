@@ -26,6 +26,8 @@ struct OnboardingPageView<Card: View>: View {
     @State private var subtitleOpacity: Double = 0
     @State private var cardOffset: CGFloat = 30
     @State private var cardOpacity: Double = 0
+    @State private var cardScale: CGFloat = 0.95
+    @State private var accentLineWidth: CGFloat = 0
     @State private var hasAnimatedIn = false
 
     init(
@@ -57,13 +59,19 @@ struct OnboardingPageView<Card: View>: View {
                     Spacer(minLength: 16)
 
                     // Headline
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(title)
                             .font(.system(size: 26, weight: .bold))
                             .foregroundColor(.primary)
                         Text(highlightedTitle)
                             .font(.system(size: 26, weight: .bold))
                             .foregroundColor(accentColor)
+
+                        // Animated accent underline
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(accentColor.opacity(0.5))
+                            .frame(width: accentLineWidth, height: 3)
+                            .padding(.top, 4)
                     }
                     .offset(y: headlineOffset)
                     .opacity(headlineOpacity)
@@ -82,6 +90,7 @@ struct OnboardingPageView<Card: View>: View {
                     card
                         .offset(y: cardOffset)
                         .opacity(cardOpacity)
+                        .scaleEffect(cardScale)
                         .frame(maxWidth: 400)
 
                     Spacer(minLength: 16)
@@ -155,6 +164,11 @@ struct OnboardingPageView<Card: View>: View {
         withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.25)) {
             cardOffset = 0
             cardOpacity = 1
+            cardScale = 1.0
+        }
+        // Accent underline draws in
+        withAnimation(.easeOut(duration: 0.5).delay(0.35)) {
+            accentLineWidth = 60
         }
     }
 
@@ -171,6 +185,8 @@ struct OnboardingPageView<Card: View>: View {
             headlineOffset = 20
             subtitleOffset = 15
             cardOffset = 30
+            cardScale = 0.95
+            accentLineWidth = 0
         }
     }
 
@@ -182,5 +198,7 @@ struct OnboardingPageView<Card: View>: View {
         subtitleOpacity = 1
         cardOffset = 0
         cardOpacity = 1
+        cardScale = 1.0
+        accentLineWidth = 60
     }
 }
