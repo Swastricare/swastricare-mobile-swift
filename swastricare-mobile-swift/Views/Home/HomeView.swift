@@ -253,80 +253,92 @@ struct HomeView: View {
     private var humanBodyImageWithDetails: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                
-              
                 // Human Body 3D Model on the right
                 HStack {
                     Spacer()
                     ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 340) // Reduced height
+                        .frame(height: 380)
                         .opacity(modelOpacity)
                         .scaleEffect(modelScale)
                         .offset(x: geometry.size.width * 0.16)
-                        .offset(y: geometry.size.height * 0.0) // Moved upward
-                        .allowsHitTesting(false) // Disable all touch interactions
+                        .allowsHitTesting(false)
                         .clipped()
                         .mask(
-                            // Gradient mask for bottom blend
                             LinearGradient(
-                                gradient: Gradient(colors: [
-                                    .black,
-                                    .black.opacity(0.8),
-                                    .black.opacity(0.4),
-                                    .clear
-                                ]),
+                                colors: [.black, .black.opacity(0.8), .black.opacity(0.3), .clear],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.8)),
-                            removal: .opacity
-                        ))
                 }
-                
-                // Daily Activity Details on the left — tappable to go to Steps tab
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        DailyActivityStatItem(
-                            icon: "flame.fill",
-                            color: .orange,
-                            value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
-                            unit: "Active Calories",
-                            animationDelay: 0.3,
-                            hasAppeared: hasAppeared
-                        )
 
-                        DailyActivityStatItem(
-                            icon: "clock.fill",
-                            color: .blue,
-                            value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
-                            unit: "Exercise Min",
-                            animationDelay: 0.5,
-                            hasAppeared: hasAppeared
-                        )
+                // All 6 health stats on the left
+                VStack(alignment: .leading, spacing: 7) {
+                    // Activity stats
+                    DailyActivityStatItem(
+                        icon: "flame.fill",
+                        color: .orange,
+                        value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—",
+                        unit: "Active Cal",
+                        animationDelay: 0.3,
+                        hasAppeared: hasAppeared
+                    )
 
+                    DailyActivityStatItem(
+                        icon: "clock.fill",
+                        color: .blue,
+                        value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—",
+                        unit: "Exercise Min",
+                        animationDelay: 0.4,
+                        hasAppeared: hasAppeared
+                    )
+
+                    DailyActivityStatItem(
+                        icon: "figure.stand",
+                        color: .purple,
+                        value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
+                        unit: "Stand Hrs",
+                        animationDelay: 0.5,
+                        hasAppeared: hasAppeared
+                    )
+
+                    // Vitals
+                    Button(action: { showHeartRateMeasurement = true }) {
                         DailyActivityStatItem(
-                            icon: "figure.stand",
-                            color: .purple,
-                            value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—",
-                            unit: "Stand Hours",
+                            icon: "heart.fill",
+                            color: .red,
+                            value: viewModel.heartRate > 0 ? "\(viewModel.heartRate)" : "—",
+                            unit: "Heart Rate",
                             animationDelay: 0.6,
                             hasAppeared: hasAppeared
                         )
                     }
-                    .onTapGesture {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        NotificationCenter.default.post(name: NSNotification.Name("SwitchToStepsTab"), object: nil)
-                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    DailyActivityStatItem(
+                        icon: "bed.double.fill",
+                        color: .indigo,
+                        value: viewModel.sleepHours == "0h 0m" ? "—" : viewModel.sleepHours,
+                        unit: "Sleep",
+                        animationDelay: 0.7,
+                        hasAppeared: hasAppeared
+                    )
+
+                    DailyActivityStatItem(
+                        icon: "figure.walk",
+                        color: .green,
+                        value: viewModel.distance > 0 ? String(format: "%.1f km", viewModel.distance) : "—",
+                        unit: "Distance",
+                        animationDelay: 0.8,
+                        hasAppeared: hasAppeared
+                    )
                 }
-                .padding(.horizontal, 20)
-                // .padding(.top, -10) // Move metrics upward
-                .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading) // Give slightly more space to stats
+                .padding(.horizontal, 16)
+                .frame(maxWidth: geometry.size.width * 0.52, alignment: .leading)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: hasAppeared)
             }
         }
-        .frame(height: 320) // Reduced height to match model
+        .frame(height: 360)
     }
     
     private var authorizationBanner: some View {
@@ -430,65 +442,82 @@ struct HomeView: View {
         .padding(.top, 8)
     }
 
+    private var dietCalorieProgress: Double {
+        let goal = dietViewModel.dietGoals.dailyCalories
+        guard goal > 0 else { return 0 }
+        return min(Double(dietViewModel.totalCalories) / Double(goal), 1.0)
+    }
+
     private var healthVitalsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Empty state hint when no data
-            if !viewModel.isAuthorized && viewModel.heartRate == 0 && viewModel.distance == 0 {
-                HStack(spacing: 8) {
-                    Image(systemName: "heart.text.square")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                    Text("Enable Health Access to see your vitals")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 4)
+        // Diet Summary Card — replaces old vitals grid
+        Button(action: { showDiet = true }) {
+            dietSummaryContent
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .padding(.horizontal, 16)
+    }
+
+    private var dietSummaryContent: some View {
+        HStack(spacing: 14) {
+            // Calorie ring
+            dietCalorieRing
+
+            // Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Today's Diet")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                dietCalorieInfo
             }
 
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                // Heart Rate card - tappable to measure
-                Button(action: {
-                    showHeartRateMeasurement = true
-                }) {
-                    VitalCard(
-                        icon: "heart.fill",
-                        title: "Heart Rate",
-                        value: viewModel.heartRate > 0 ? "\(viewModel.heartRate)" : "—",
-                        unit: viewModel.heartRate > 0 ? "BPM" : "",
-                        color: .red,
-                        animationDelay: 0.8,
-                        hasAppeared: hasAppeared,
-                        showCameraBadge: true
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
+            Spacer()
 
-                VitalCard(
-                    icon: "bed.double.fill",
-                    title: "Sleep",
-                    value: viewModel.sleepHours == "0h 0m" ? "—" : viewModel.sleepHours,
-                    unit: "",
-                    color: .indigo,
-                    animationDelay: 0.9,
-                    hasAppeared: hasAppeared
-                )
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.secondary)
+        }
+        .padding(14)
+        .background(Color.orange.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.orange.opacity(0.10), lineWidth: 0.5)
+        )
+    }
 
-                VitalCard(
-                    icon: "figure.walk",
-                    title: "Distance",
-                    value: viewModel.distance > 0 ? String(format: "%.1f", viewModel.distance) : "—",
-                    unit: viewModel.distance > 0 ? "km" : "",
-                    color: .green,
-                    animationDelay: 1.0,
-                    hasAppeared: hasAppeared
-                )
+    private var dietCalorieRing: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.orange.opacity(0.15), lineWidth: 6)
+                .frame(width: 52, height: 52)
+            Circle()
+                .trim(from: 0, to: dietCalorieProgress)
+                .stroke(Color.orange, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .frame(width: 52, height: 52)
+                .rotationEffect(.degrees(-90))
+            Image(systemName: "fork.knife")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.orange)
+        }
+    }
+
+    private var dietCalorieInfo: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(dietViewModel.totalCalories)")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.orange)
+                Text("of \(dietViewModel.dietGoals.dailyCalories) cal")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
             }
-            .padding(.horizontal)
+
+            HStack(spacing: 6) {
+                MacroPill(label: "P", value: dietViewModel.nutritionSummary.totalProteinG, color: .orange)
+                MacroPill(label: "C", value: dietViewModel.nutritionSummary.totalCarbsG, color: .blue)
+                MacroPill(label: "F", value: dietViewModel.nutritionSummary.totalFatG, color: .purple)
+            }
         }
     }
     
@@ -776,6 +805,29 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
             .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(animationDelay), value: hasAppeared)
         }
     }
+
+// MARK: - Macro Pill (for diet summary)
+
+private struct MacroPill: View {
+    let label: String
+    let value: Double
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 1) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(color)
+            Text("\(Int(value))g")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}
 
 private struct StatRow: View {
     let icon: String
