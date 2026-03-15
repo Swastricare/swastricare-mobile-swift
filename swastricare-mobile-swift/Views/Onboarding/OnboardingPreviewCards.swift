@@ -41,6 +41,7 @@ struct FamilyPreviewCard: View {
     let isActive: Bool
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State private var alertPulse: Bool = false
+    @State private var badgePulse: Bool = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -70,6 +71,8 @@ struct FamilyPreviewCard: View {
                     .padding(.vertical, 4)
                     .background(Color(hex: "DCFCE7"))
                     .clipShape(Capsule())
+                    .scaleEffect(badgePulse ? 1.06 : 1.0)
+                    .accessibilityLabel("Status: All Good")
             }
 
             // Stats row
@@ -78,6 +81,17 @@ struct FamilyPreviewCard: View {
                 StatCell(label: "Medications", value: "2/2 ✓", detail: "On track", detailColor: AppColors.accentGreen)
                 StatCell(label: "Hydration", value: "1.5L", detail: "60%", detailColor: .orange)
             }
+
+            // Step count row
+            HStack(spacing: 6) {
+                Text("👣")
+                    .font(.system(size: 13))
+                Text("4,532 steps today")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(AppColors.accentGreen)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
 
             // Alert row — Appa missed medication
             HStack(spacing: 10) {
@@ -107,16 +121,20 @@ struct FamilyPreviewCard: View {
         }
         .onboardingCard()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Family health dashboard showing Amma's blood pressure at 120 over 80, medications on track, and an alert for Appa's missed medication")
+        .accessibilityLabel("Family health dashboard showing Amma's blood pressure at 120 over 80, medications on track, 4532 steps today, and an alert for Appa's missed medication")
         .onChange(of: isActive) { _, active in
             guard !reduceMotion else { return }
             if active {
                 withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                     alertPulse = true
                 }
+                withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true).delay(0.3)) {
+                    badgePulse = true
+                }
             } else {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     alertPulse = false
+                    badgePulse = false
                 }
             }
         }
@@ -158,7 +176,7 @@ struct AIPreviewCard: View {
             // User message
             HStack {
                 Spacer()
-                Text("Is 140/90 BP normal for a 55 year old?")
+                Text("My sugar level is 180 after food. Is that normal?")
                     .font(.system(size: 12))
                     .foregroundColor(.white)
                     .padding(12)
@@ -175,13 +193,19 @@ struct AIPreviewCard: View {
 
             // AI response
             HStack(alignment: .top, spacing: 8) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(LinearGradient(colors: [AppColors.onboardingPurple, AppColors.accentBlue], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 24, height: 24)
-                    .overlay(Text("✦").font(.system(size: 12)).foregroundColor(.white))
+                VStack(spacing: 2) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(LinearGradient(colors: [AppColors.onboardingPurple, AppColors.accentBlue], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 24, height: 24)
+                        .overlay(Text("✦").font(.system(size: 12)).foregroundColor(.white))
+
+                    Text("Swastri AI")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(AppColors.onboardingPurple)
+                }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("**140/90 is Stage 1 hypertension** for any adult. For a 55-year-old, the target is usually below 130/80.")
+                    Text("**180 mg/dL post-meal is slightly high.** Normal post-meal is below 140. Consult your doctor if this persists.")
                         .font(.system(size: 12))
                         .foregroundColor(.primary)
                         .lineSpacing(3)
@@ -204,12 +228,13 @@ struct AIPreviewCard: View {
             HStack(spacing: 6) {
                 SuggestionPill(text: "What foods reduce BP?", color: AppColors.onboardingPurple)
                 SuggestionPill(text: "When to see a doctor?", color: AppColors.onboardingPurple)
+                SuggestionPill(text: "Sugar control tips", color: AppColors.onboardingPurple)
                 Spacer()
             }
         }
         .onboardingCard()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("AI health chat showing a question about blood pressure and a helpful medical response with follow-up suggestions")
+        .accessibilityLabel("AI health chat showing a question about post-meal blood sugar at 180 mg/dL and a helpful medical response with follow-up suggestions")
     }
 }
 
@@ -246,7 +271,7 @@ struct VaultPreviewCard: View {
                 icon: "PDF",
                 iconGradient: [AppColors.accentRed, Color(hex: "DC2626")],
                 iconIsText: true,
-                title: "Blood Test — Thyrocare",
+                title: "Blood Report — SRL Diagnostics",
                 subtitle: "Mar 2026 · CBC, Lipid, Thyroid"
             )
             DocumentRow(
@@ -262,6 +287,15 @@ struct VaultPreviewCard: View {
                 iconIsText: false,
                 title: "Prescription — Dr. Sharma",
                 subtitle: "Jan 2026 · Diabetes Management"
+            )
+            DocumentRow(
+                icon: "scan",
+                iconGradient: [AppColors.onboardingPurple, Color(hex: "6D28D9")],
+                iconIsText: false,
+                isSFSymbol: true,
+                sfSymbolName: "waveform.path.ecg.rectangle",
+                title: "MRI — Manipal Hospital",
+                subtitle: "Dec 2025 · Brain MRI"
             )
 
             // Security badge
@@ -292,7 +326,7 @@ struct VaultPreviewCard: View {
         }
         .onboardingCard()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Medical vault showing blood test from Thyrocare, X-ray from Apollo Hospital, and prescription from Dr. Sharma, all end-to-end encrypted")
+        .accessibilityLabel("Medical vault showing blood report from SRL Diagnostics, X-ray from Apollo Hospital, prescription from Dr. Sharma, and MRI from Manipal Hospital, all end-to-end encrypted")
     }
 }
 
@@ -300,6 +334,8 @@ private struct DocumentRow: View {
     let icon: String
     let iconGradient: [Color]
     let iconIsText: Bool
+    var isSFSymbol: Bool = false
+    var sfSymbolName: String = ""
     let title: String
     let subtitle: String
 
@@ -310,7 +346,11 @@ private struct DocumentRow: View {
                 .frame(width: 36, height: 36)
                 .overlay(
                     Group {
-                        if iconIsText {
+                        if isSFSymbol {
+                            Image(systemName: sfSymbolName)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                        } else if iconIsText {
                             Text(icon)
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.white)
@@ -331,7 +371,9 @@ private struct DocumentRow: View {
 
             Spacer()
 
-            Text("🔒").font(.system(size: 14))
+            Image(systemName: "lock.fill")
+                .font(.system(size: 12))
+                .foregroundColor(AppColors.onboardingSkyBlue)
         }
         .padding(10)
         .background(Color.primary.opacity(0.03))

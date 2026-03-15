@@ -6,6 +6,8 @@
 import SwiftUI
 
 struct OnboardingPageView<Card: View>: View {
+    let pageIndex: Int
+    let totalPages: Int
     let title: String
     let highlightedTitle: String
     let subtitle: String
@@ -27,6 +29,8 @@ struct OnboardingPageView<Card: View>: View {
     @State private var hasAnimatedIn = false
 
     init(
+        pageIndex: Int,
+        totalPages: Int,
         title: String,
         highlightedTitle: String,
         subtitle: String,
@@ -35,6 +39,8 @@ struct OnboardingPageView<Card: View>: View {
         isActive: Bool,
         @ViewBuilder card: () -> Card
     ) {
+        self.pageIndex = pageIndex
+        self.totalPages = totalPages
         self.title = title
         self.highlightedTitle = highlightedTitle
         self.subtitle = subtitle

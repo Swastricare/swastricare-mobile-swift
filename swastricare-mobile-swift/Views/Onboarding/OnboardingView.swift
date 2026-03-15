@@ -35,29 +35,48 @@ struct OnboardingView: View {
             PremiumBackground()
 
             VStack(spacing: 0) {
-                // Skip button — top right, delayed appearance
+                // Top bar: page counter (left) + skip button (right)
                 HStack {
+                    Text("\(currentPage + 1) of \(totalPages)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 24)
+                        .padding(.top, 12)
+                        .opacity(skipOpacity)
+
                     Spacer()
-                    Button {
-                        guard !isAnimating else { return }
-                        completeOnboarding()
-                    } label: {
-                        Text("Skip")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.secondary)
+
+                    // Skip button — hidden on last page
+                    if currentPage < totalPages - 1 {
+                        Button {
+                            guard !isAnimating else { return }
+                            completeOnboarding()
+                        } label: {
+                            Text("Skip")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        .disabled(isAnimating)
+                        .opacity(skipOpacity)
+                        .padding(.trailing, 24)
+                        .padding(.top, 12)
+                    } else {
+                        // Invisible spacer to keep layout stable
+                        Color.clear
+                            .frame(width: 40, height: 20)
+                            .padding(.trailing, 24)
+                            .padding(.top, 12)
                     }
-                    .disabled(isAnimating)
-                    .opacity(skipOpacity)
-                    .padding(.trailing, 24)
-                    .padding(.top, 12)
                 }
 
                 // Pages
                 TabView(selection: $currentPage) {
                     OnboardingPageView(
-                        title: "Your family's health,",
-                        highlightedTitle: "in your hands",
-                        subtitle: "Track your parents' vitals from anywhere. Get alerts when Amma misses her medication.",
+                        pageIndex: 0,
+                        totalPages: totalPages,
+                        title: "Care for your family,",
+                        highlightedTitle: "from anywhere",
+                        subtitle: "Monitor Amma's BP, track Appa's medications, and get instant alerts — all from your phone.",
                         accentColor: Self.accentColors[0],
                         backgroundTint: Color(hex: "EEF2FF"),
                         isActive: currentPage == 0
@@ -67,9 +86,11 @@ struct OnboardingView: View {
                     .tag(0)
 
                     OnboardingPageView(
-                        title: "Ask anything.",
-                        highlightedTitle: "Get real answers.",
-                        subtitle: "AI that understands Indian health — from BP readings to Ayurvedic questions.",
+                        pageIndex: 1,
+                        totalPages: totalPages,
+                        title: "Your health AI,",
+                        highlightedTitle: "always ready",
+                        subtitle: "Ask about symptoms, medications, or diet in English or Hindi. Powered by medical AI.",
                         accentColor: Self.accentColors[1],
                         backgroundTint: Color(hex: "F3E8FF"),
                         isActive: currentPage == 1
@@ -79,9 +100,11 @@ struct OnboardingView: View {
                     .tag(1)
 
                     OnboardingPageView(
-                        title: "Every report.",
-                        highlightedTitle: "Always with you.",
-                        subtitle: "No more paper files. Upload, organize, and share with your doctor in one tap.",
+                        pageIndex: 2,
+                        totalPages: totalPages,
+                        title: "Your reports,",
+                        highlightedTitle: "safe forever",
+                        subtitle: "Store prescriptions, lab results, and X-rays. Share with any doctor in seconds.",
                         accentColor: Self.accentColors[2],
                         backgroundTint: Color(hex: "E0F2FE"),
                         isActive: currentPage == 2
@@ -94,6 +117,10 @@ struct OnboardingView: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: currentPage)
                 .disabled(isAnimating)
                 .allowsHitTesting(!isAnimating)
+                .onChange(of: currentPage) { _, _ in
+                    guard !reduceMotion else { return }
+                    UISelectionFeedbackGenerator().selectionChanged()
+                }
 
                 // Bottom controls
                 VStack(spacing: 20) {
@@ -135,28 +162,38 @@ struct OnboardingView: View {
                         .disabled(isAnimating)
                         .opacity(buttonOpacity)
                     } else {
-                        Button {
-                            guard !isAnimating else { return }
-                            isAnimating = true
-                            completeOnboarding()
-                        } label: {
-                            Text("Get Started")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: buttonWidth, height: buttonHeight)
-                                .background(
-                                    LinearGradient(
-                                        colors: [AppColors.accentBlue, AppColors.onboardingSkyBlue],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
+                        VStack(spacing: 10) {
+                            Button {
+                                guard !isAnimating else { return }
+                                isAnimating = true
+                                completeOnboarding()
+                            } label: {
+                                Text("Get Started")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: buttonWidth, height: buttonHeight)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [AppColors.accentBlue, AppColors.onboardingSkyBlue],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
                                     )
-                                )
-                                .clipShape(Capsule())
-                                .shadow(color: AppColors.accentBlue.opacity(0.3), radius: 14, y: 7)
+                                    .clipShape(Capsule())
+                                    .shadow(color: AppColors.accentBlue.opacity(0.3), radius: 14, y: 7)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            .disabled(isAnimating)
+                            .opacity(buttonOpacity)
+
+                            // Privacy note — only on last page
+                            Text("Your data stays on your device. We never sell your information.")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                                .opacity(buttonOpacity)
                         }
-                        .buttonStyle(ScaleButtonStyle())
-                        .disabled(isAnimating)
-                        .opacity(buttonOpacity)
                     }
                 }
                 .padding(.bottom, 50)
