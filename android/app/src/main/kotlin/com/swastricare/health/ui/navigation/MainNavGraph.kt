@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.swastricare.health.ui.screens.ai.AIScreen
 import com.swastricare.health.ui.screens.analytics.HealthAnalyticsScreen
+import com.swastricare.health.ui.screens.analytics.HealthMetricDetailScreen
 import com.swastricare.health.ui.screens.ar.ARBodyScanScreen
 import com.swastricare.health.ui.screens.diet.AddFoodScreen
 import com.swastricare.health.ui.screens.diet.DietScreen
@@ -326,6 +327,20 @@ fun MainNavGraph(
             HealthAnalyticsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) }
+            )
+        }
+
+        // ─── Metric Detail ───
+        composable(
+            route = "metric_detail/{${NavArgs.METRIC_TYPE}}",
+            arguments = listOf(
+                navArgument(NavArgs.METRIC_TYPE) { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val metricName = backStackEntry.arguments?.getString(NavArgs.METRIC_TYPE) ?: "Steps"
+            HealthMetricDetailScreen(
+                metricTypeName = metricName,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
