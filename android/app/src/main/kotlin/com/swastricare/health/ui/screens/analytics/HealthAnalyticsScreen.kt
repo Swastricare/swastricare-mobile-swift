@@ -105,8 +105,7 @@ fun HealthAnalyticsScreen(
                     Spacer(Modifier.height(12.dp))
                 }
                 val rows = uiState.summaries.chunked(2)
-                items(rows.size) { rowIdx ->
-                    val row = rows[rowIdx]
+                items(rows) { row ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -116,7 +115,7 @@ fun HealthAnalyticsScreen(
                         row.forEachIndexed { colIdx, summary ->
                             MetricCard(
                                 summary = summary,
-                                animationDelay = (rowIdx * 2 + colIdx) * 80,
+                                animationDelay = (rows.indexOf(row) * 2 + colIdx) * 80,
                                 modifier = Modifier.weight(1f),
                                 onClick = { onNavigateToMetricDetail(summary.type) }
                             )
