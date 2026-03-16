@@ -458,9 +458,12 @@ class HealthAnalyticsViewModel @Inject constructor(
         val hydrationScore = if (LegacyMetricType.Hydration.goal != null)
             (todayHydrationMl.toFloat() / LegacyMetricType.Hydration.goal!! * 100f).coerceIn(0f, 100f)
         else 0f
-        val heartScore = if (todayHeartRate in 60..100) 100f
-        else if (todayHeartRate == 0) 50f
-        else (1f - kotlin.math.abs(todayHeartRate - 80f) / 80f).coerceIn(0f, 1f) * 100f
+        val heartScore = when {
+            todayHeartRate == 0 -> 0f
+            todayHeartRate in 60..100 -> 100f
+            todayHeartRate in 50..59 || todayHeartRate in 101..110 -> 70f
+            else -> 30f
+        }
 
         return (stepsScore * 0.30f + sleepScore * 0.25f + hydrationScore * 0.25f + heartScore * 0.20f)
             .toInt().coerceIn(0, 100)
