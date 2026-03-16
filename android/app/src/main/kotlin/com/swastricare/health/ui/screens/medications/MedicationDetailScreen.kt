@@ -25,6 +25,7 @@ import com.swastricare.health.data.models.MedicationWithDoses
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
 // ─────────────────────────────────────
@@ -277,6 +278,7 @@ fun MedicationDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
+                            .lightBorder(14.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color(0xFFFF3B30).copy(alpha = 0.10f))
                             .clickable { showDeleteDialog = true }
@@ -481,6 +483,7 @@ private fun EditFormSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .lightBorder(14.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(cardBg)
                 .padding(horizontal = 16.dp, vertical = 14.dp),

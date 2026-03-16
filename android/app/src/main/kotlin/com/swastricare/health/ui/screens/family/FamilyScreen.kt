@@ -27,6 +27,7 @@ import com.swastricare.health.domain.model.FamilyRole
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.presentation.feature.family.FamilyUiState
 import com.swastricare.health.ui.screens.home.PremiumBackground
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 
@@ -329,6 +330,7 @@ private fun FamilyGroupContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
+                    .lightBorder(16.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(cardBg)
                     .padding(16.dp),
@@ -406,6 +408,7 @@ private fun FamilyMemberRow(member: FamilyMember) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
+            .lightBorder(12.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(cardBg)
             .padding(12.dp),

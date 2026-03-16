@@ -33,6 +33,7 @@ import coil.request.ImageRequest
 import com.swastricare.health.data.model.Gender
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.PremiumColor
 import com.swastricare.health.ui.theme.AppColors
 import java.util.Locale
@@ -419,6 +420,7 @@ private fun EditTextField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .lightBorder(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
@@ -478,6 +480,7 @@ private fun BioField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .lightBorder(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
@@ -608,6 +611,7 @@ private fun DateOfBirthField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .lightBorder(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
@@ -688,6 +692,7 @@ private fun SliderField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .lightBorder(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(

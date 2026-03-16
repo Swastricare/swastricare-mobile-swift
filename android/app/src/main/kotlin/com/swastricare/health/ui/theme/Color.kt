@@ -12,7 +12,7 @@ val SecondaryColor = Color(0xFF22C55E) // Green 500 (iOS accentGreen)
 val AccentColor = Color(0xFFEF4444) // Red 500 (iOS accentRed)
 
 // Background Colors
-val BackgroundLight = Color(0xFFF2F2F7) // Slight grey for depth
+val BackgroundLight = Color(0xFFFFFFFF) // Pure white for light theme
 val BackgroundDark = Color(0xFF000000) // True OLED Black
 
 // Surface Colors
@@ -117,6 +117,10 @@ object AppColors {
     val outlineVariant: Color
         @Composable @ReadOnlyComposable
         get() = if (isSystemInDarkTheme()) Color(0xFF48484A) else Color(0xFFD1D1D6)
+
+    val cardBorder: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color.Transparent else Color.Black.copy(alpha = 0.3f)
 
     val navBar: Color
         @Composable @ReadOnlyComposable

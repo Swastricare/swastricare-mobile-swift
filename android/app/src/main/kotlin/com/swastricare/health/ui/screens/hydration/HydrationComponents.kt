@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.*
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -282,6 +283,7 @@ fun HydrationStatPill(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
+            .lightBorder(12.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(AppColors.surfaceVariant)
             .padding(vertical = 10.dp, horizontal = 8.dp)
@@ -377,6 +379,7 @@ fun QuickAddButton(
 ) {
     Box(
         modifier = modifier
+            .lightBorder(16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(AppColors.surfaceVariant)
             .clickable(
@@ -424,6 +427,7 @@ fun HydrationEntryCard(
         Box(
             modifier = Modifier
                 .size(44.dp)
+                .lightBorder(10.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(AppColors.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -472,6 +476,7 @@ fun HydrationInsightsCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .lightBorder(16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(AppColors.surface)
             .padding(16.dp),
@@ -525,6 +530,7 @@ fun HydrationInsightsCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .lightBorder(10.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(AppColors.surfaceVariant)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -552,6 +558,7 @@ fun HydrationInsightsCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .lightBorder(10.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(AppColors.surfaceVariant)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -592,6 +599,7 @@ private fun InsightStatCard(
 ) {
     Column(
         modifier = modifier
+            .lightBorder(12.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(AppColors.surfaceVariant)
             .padding(14.dp),
@@ -675,6 +683,7 @@ fun UrineColorGuideSheet(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .lightBorder(14.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(AppColors.surfaceVariant)
                         .then(

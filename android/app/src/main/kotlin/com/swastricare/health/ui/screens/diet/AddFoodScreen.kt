@@ -33,6 +33,7 @@ import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.ServingUnit
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
 // ─────────────────────────────────────
@@ -349,6 +350,7 @@ private fun CategoryGridSection(onCategorySelect: (FoodCategory) -> Unit) {
             items(FoodCategory.values()) { category ->
                 Column(
                     modifier = Modifier
+                        .lightBorder(12.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(cardBg)
                         .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onCategorySelect(category) }
@@ -387,6 +389,7 @@ private fun CustomFoodButton(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 16.dp)
+            .lightBorder(12.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(cardBg)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { showDialog = true }

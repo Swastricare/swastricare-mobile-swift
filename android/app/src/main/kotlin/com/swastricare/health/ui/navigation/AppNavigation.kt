@@ -234,7 +234,7 @@ fun AppNavigation(
         // Health Profile Questionnaire
         composable("health_profile") {
             val healthProfileVm: HealthProfileViewModel = hiltViewModel()
-            val userId = authViewModel.uiState.value.let {
+            val userId = authState.let {
                 (it as? AuthUiState.Success)?.user?.id ?: ""
             }
             HealthProfileScreen(

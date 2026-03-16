@@ -32,6 +32,7 @@ import com.swastricare.health.ui.screens.home.PremiumBackground
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -326,6 +327,7 @@ private fun NotificationCard(record: NotificationRecord) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .lightBorder(14.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(sectionBg)
             .padding(14.dp),

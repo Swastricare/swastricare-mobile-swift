@@ -62,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -582,7 +583,9 @@ private fun AIOrbVideo(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val videoAsset = if (isDark) "ai orb/ai orb 2.mp4" else "ai orb/Fluid White BG.mp4"
+    var isFirstFrameRendered by remember { mutableStateOf(false) }
     val exoPlayer = remember(isDark) {
+        isFirstFrameRendered = false
         ExoPlayer.Builder(context).build().apply {
             val uri = Uri.parse("file:///android_asset/$videoAsset")
             setMediaItem(MediaItem.fromUri(uri))
@@ -592,10 +595,24 @@ private fun AIOrbVideo(modifier: Modifier = Modifier) {
             prepare()
         }
     }
-
     DisposableEffect(isDark) {
-        onDispose { exoPlayer.release() }
+        val listener = object : Player.Listener {
+            override fun onRenderedFirstFrame() {
+                isFirstFrameRendered = true
+            }
+        }
+        exoPlayer.addListener(listener)
+        onDispose {
+            exoPlayer.removeListener(listener)
+            exoPlayer.release()
+        }
     }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isFirstFrameRendered) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "orbVideoAlpha"
+    )
 
     AndroidView(
         factory = { ctx ->
@@ -603,10 +620,11 @@ private fun AIOrbVideo(modifier: Modifier = Modifier) {
                 player = exoPlayer
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
             }
         },
-        modifier = modifier
+        modifier = modifier.graphicsLayer { this.alpha = alpha }
     )
 }
 

@@ -36,6 +36,7 @@ import com.swastricare.health.data.models.FoodCategory
 import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.NutritionSummary
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.NutritionProtein
 import com.swastricare.health.ui.theme.NutritionCarbs
 import com.swastricare.health.ui.theme.NutritionFat
@@ -307,6 +308,7 @@ fun MacroBreakdownCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .lightBorder(16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(cardBg)
             .padding(20.dp),
@@ -404,6 +406,7 @@ fun MealSectionCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .lightBorder(16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(cardBg)
     ) {

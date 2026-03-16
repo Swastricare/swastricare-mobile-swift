@@ -31,6 +31,7 @@ import com.swastricare.health.data.models.HydrationPreferences
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -242,6 +243,7 @@ fun HydrationSettingsScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .lightBorder(8.dp)
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(HydrationCyan.copy(alpha = 0.08f))
                                         .padding(12.dp),
@@ -471,6 +473,7 @@ private fun ActivityLevelOption(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .lightBorder(12.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
             .clickable { onSelect() }

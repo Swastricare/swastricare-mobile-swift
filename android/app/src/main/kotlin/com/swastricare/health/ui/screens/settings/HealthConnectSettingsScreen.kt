@@ -160,19 +160,10 @@ private val permissionGroups = listOf(
     ),
     PermissionGroup(
         label = "Body Measurements",
-        description = "Weight and height data",
+        description = "Weight data",
         icon = Icons.Default.MonitorWeight,
         permissions = setOf(
-            HealthPermission.getReadPermission(WeightRecord::class),
-            HealthPermission.getReadPermission(HeightRecord::class)
-        )
-    ),
-    PermissionGroup(
-        label = "Blood Pressure",
-        description = "Systolic and diastolic readings",
-        icon = Icons.Default.Bloodtype,
-        permissions = setOf(
-            HealthPermission.getReadPermission(BloodPressureRecord::class)
+            HealthPermission.getReadPermission(WeightRecord::class)
         )
     ),
     PermissionGroup(
@@ -183,14 +174,6 @@ private val permissionGroups = listOf(
             HealthPermission.getWritePermission(HydrationRecord::class)
         )
     ),
-    PermissionGroup(
-        label = "Cardio Fitness",
-        description = "VO2 max measurements",
-        icon = Icons.Default.FavoriteBorder,
-        permissions = setOf(
-            HealthPermission.getReadPermission(Vo2MaxRecord::class)
-        )
-    )
 )
 
 // ── Screen ────────────────────────────────────────────────────────────────────

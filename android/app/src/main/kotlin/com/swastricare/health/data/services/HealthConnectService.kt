@@ -31,7 +31,7 @@ data class DailyStepCount(
  * READ permissions:
  *   StepsRecord, HeartRateRecord, ActiveCaloriesBurnedRecord, TotalCaloriesBurnedRecord,
  *   SleepSessionRecord, DistanceRecord, ExerciseSessionRecord,
- *   BloodPressureRecord, WeightRecord, HeightRecord
+ *   WeightRecord, HeightRecord
  *
  * WRITE permissions:
  *   HeartRateRecord, HydrationRecord, ExerciseSessionRecord
@@ -57,10 +57,7 @@ class HealthConnectService(
 
         // All required permissions (includes optional ones)
         val READ_PERMISSIONS = CORE_READ_PERMISSIONS + setOf(
-            HealthPermission.getReadPermission(BloodPressureRecord::class),
-            HealthPermission.getReadPermission(WeightRecord::class),
-            HealthPermission.getReadPermission(HeightRecord::class),
-            HealthPermission.getReadPermission(Vo2MaxRecord::class)
+            HealthPermission.getReadPermission(WeightRecord::class)
         )
 
         val WRITE_PERMISSIONS = setOf(
@@ -85,8 +82,7 @@ class HealthConnectService(
         val standHours: Int = 0,
         val systolic: Int = 0,
         val diastolic: Int = 0,
-        val weightKg: Double = 0.0,
-        val heightCm: Double = 0.0
+        val weightKg: Double = 0.0
     ) {
         val sleepFormatted: String
             get() {
@@ -280,25 +276,9 @@ class HealthConnectService(
                 }
             }
 
-            val bpDeferred = async {
-                try { getLatestBloodPressure() } catch (e: Exception) {
-                    Log.w(TAG, "Error reading blood pressure: ${e.message}")
-                    crashlyticsService.recordException(e)
-                    Pair(0, 0)
-                }
-            }
-
             val weightDeferred = async {
                 try { getLatestWeight() } catch (e: Exception) {
                     Log.w(TAG, "Error reading weight: ${e.message}")
-                    crashlyticsService.recordException(e)
-                    0.0
-                }
-            }
-
-            val heightDeferred = async {
-                try { getLatestHeight() } catch (e: Exception) {
-                    Log.w(TAG, "Error reading height: ${e.message}")
                     crashlyticsService.recordException(e)
                     0.0
                 }
@@ -312,9 +292,7 @@ class HealthConnectService(
             val distanceKm = distDeferred.await()
             val exerciseMin = exerciseDeferred.await()
             val standHours = standDeferred.await()
-            val bp = bpDeferred.await()
             val weightKg = weightDeferred.await()
-            val heightCm = heightDeferred.await()
 
             // Google Fit only writes TotalCaloriesBurnedRecord (not ActiveCaloriesBurnedRecord).
             // Fall back to totalCal when activeCal is unavailable so the home screen shows a value.
@@ -329,10 +307,7 @@ class HealthConnectService(
                 distanceKm = distanceKm,
                 exerciseMinutes = exerciseMin,
                 standHours = standHours,
-                systolic = bp.first,
-                diastolic = bp.second,
-                weightKg = weightKg,
-                heightCm = heightCm
+                weightKg = weightKg
             )
         }
     }

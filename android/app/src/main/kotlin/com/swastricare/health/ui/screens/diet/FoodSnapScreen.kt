@@ -43,6 +43,7 @@ import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.ServingUnit
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import java.io.File
 
@@ -798,6 +799,7 @@ private fun AnalyzingContent(imageUri: String?) {
             Box(
                 modifier = Modifier
                     .size(180.dp)
+                    .lightBorder(16.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(cardBg)
             ) {

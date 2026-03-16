@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -317,14 +318,7 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF7C4DFF).copy(alpha = 0.15f),
-                                        Color(0xFF448AFF).copy(alpha = 0.15f)
-                                    )
-                                )
-                            )
+                            .background(Color(0xFF7C4DFF).copy(alpha = 0.15f))
                             .semantics { contentDescription = "Health Analytics" }
                             .clickable { onNavigateToAnalytics() }
                             .padding(horizontal = 20.dp, vertical = 16.dp)
@@ -342,9 +336,7 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .size(42.dp)
                                         .background(
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(Color(0xFF7C4DFF), Color(0xFF448AFF))
-                                            ),
+                                            color = Color(0xFF7C4DFF),
                                             shape = CircleShape
                                         ),
                                     contentAlignment = Alignment.Center
@@ -699,7 +691,8 @@ fun ActivityStatRow(
             .height(IntrinsicSize.Min)
             .alpha(animatedAlpha)
             .offset(x = animatedOffset.dp)
-            .glass(cornerRadius = 16.dp, opacity = 0.3f)
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surface.copy(alpha = 0.3f))
     ) {
         // Colored accent strip on left edge
         // Box(

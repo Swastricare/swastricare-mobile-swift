@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 
@@ -245,6 +246,7 @@ private fun ConsentCard(
             .fillMaxWidth()
             .alpha(animAlpha)
             .offset(y = animOffset.dp)
+            .lightBorder(16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
             .clickable(

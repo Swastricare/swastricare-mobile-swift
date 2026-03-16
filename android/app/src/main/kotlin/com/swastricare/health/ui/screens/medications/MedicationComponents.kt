@@ -36,6 +36,7 @@ import com.swastricare.health.data.models.AdherenceStatus
 import com.swastricare.health.data.models.MedicationDose
 import com.swastricare.health.data.models.MedicationType
 import com.swastricare.health.ui.screens.home.WaterWave
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -391,6 +392,7 @@ fun TimelineMedicationCard(
 
     Box(
         modifier = modifier
+            .lightBorder(14.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(cardBg)
             .clickable(
@@ -514,6 +516,7 @@ fun DoseCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .lightBorder(14.dp)
             .clip(RoundedCornerShape(14.dp))
             .let {
                 val isDark = isSystemInDarkTheme()
@@ -601,6 +604,7 @@ fun DetailRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .lightBorder(14.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(cardBg)
             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -744,6 +748,7 @@ fun ScheduleTemplateCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .lightBorder(14.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(cardBg)
             .border(

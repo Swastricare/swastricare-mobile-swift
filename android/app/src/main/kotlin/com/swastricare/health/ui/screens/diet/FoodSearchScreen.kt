@@ -26,6 +26,7 @@ import com.swastricare.health.data.models.FoodCategory
 import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
 // ─────────────────────────────────────
@@ -188,6 +189,7 @@ private fun FilterChipItem(
 
     Row(
         modifier = Modifier
+            .lightBorder(16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(bg)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onClick() }

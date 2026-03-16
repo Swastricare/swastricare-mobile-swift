@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.graphics.graphicsLayer
@@ -58,7 +59,7 @@ fun Modifier.glass(
     accentColor: Color? = null
 ): Modifier {
     val isDark = isSystemInDarkTheme()
-    val borderColor = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.35f)
+    val borderColor = if (isDark) Color.White.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.3f)
     val backgroundColor = if (isDark) AppColors.surface else Color.White
 
     // If accentColor provided, use a gradient border from accent to transparent
@@ -86,7 +87,16 @@ fun Modifier.glass(
         )
     }
 
+    val shadowElevation = if (isDark) 2.dp else 4.dp
+    val shadowColor = if (isDark) Color.Black else Color(0xFF000000)
+
     return this
+        .shadow(
+            elevation = shadowElevation,
+            shape = RoundedCornerShape(cornerRadius),
+            spotColor = shadowColor.copy(alpha = if (isDark) 0.4f else 0.08f),
+            ambientColor = shadowColor.copy(alpha = if (isDark) 0.2f else 0.04f)
+        )
         .clip(RoundedCornerShape(cornerRadius))
         .background(backgroundColor.copy(alpha = opacity))
         .border(
@@ -94,6 +104,22 @@ fun Modifier.glass(
             brush = borderBrush,
             shape = RoundedCornerShape(cornerRadius)
         )
+}
+
+// MARK: - Light Theme Border Modifier
+// Adds a visible border (black at 0.3 alpha) only in light theme.
+// Use BEFORE .clip() and .background() for correct rendering.
+@Composable
+fun Modifier.lightBorder(
+    cornerRadius: Dp = 16.dp,
+    width: Dp = 1.dp
+): Modifier {
+    val isDark = isSystemInDarkTheme()
+    return if (!isDark) {
+        this.border(width, Color.Black.copy(alpha = 0.3f), RoundedCornerShape(cornerRadius))
+    } else {
+        this
+    }
 }
 
 // MARK: - Shimmer Loading Modifier
@@ -134,6 +160,14 @@ fun Modifier.shimmer(
 @Composable
 fun PremiumBackground() {
     val isDark = isSystemInDarkTheme()
+
+    if (!isDark) {
+        // Light theme: pure white, no tinting
+        Box(modifier = Modifier.fillMaxSize().background(Color.White))
+        return
+    }
+
+    // Dark theme: animated orb blobs
     val infiniteTransition = rememberInfiniteTransition(label = "background")
     
     // Animate positions - slower and smoother
@@ -192,7 +226,7 @@ fun PremiumBackground() {
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                             PremiumColor.RoyalBlueStart.copy(alpha = if (isDark) 0.15f else 0.08f),
+                             PremiumColor.RoyalBlueStart.copy(alpha = 0.15f),
                              Color.Transparent
                         )
                     ), 
@@ -210,7 +244,7 @@ fun PremiumBackground() {
                 .background(
                      brush = Brush.radialGradient(
                         colors = listOf(
-                             PremiumColor.SunsetEnd.copy(alpha = if (isDark) 0.15f else 0.08f),
+                             PremiumColor.SunsetEnd.copy(alpha = 0.15f),
                              Color.Transparent
                         )
                     ),
@@ -228,7 +262,7 @@ fun PremiumBackground() {
                 .background(
                      brush = Brush.radialGradient(
                         colors = listOf(
-                             PremiumColor.NeonGreenEnd.copy(alpha = if (isDark) 0.12f else 0.06f),
+                             PremiumColor.NeonGreenEnd.copy(alpha = 0.12f),
                              Color.Transparent
                         )
                     ),
@@ -278,7 +312,7 @@ fun LivingStatusHeader(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .glass(cornerRadius = 22.dp, opacity = 0.15f)
+                    .glass(cornerRadius = 22.dp, opacity = 0.15f, strokeWidth = 0.dp)
                     .clickable { onNotificationClick() },
                 contentAlignment = Alignment.Center
             ) {
@@ -458,6 +492,7 @@ fun VitalCard(
         label = "iconRotation"
     )
     
+    val isDarkVital = isSystemInDarkTheme()
     Box(
         modifier = modifier
             .graphicsLayer {
@@ -467,14 +502,7 @@ fun VitalCard(
                 translationY = animatedOffset
             }
             .clip(RoundedCornerShape(20.dp))
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        color.copy(alpha = 0.25f),
-                        color.copy(alpha = 0.10f)
-                    )
-                )
-            )
+            .background(color.copy(alpha = 0.18f))
 //            .border(
 //                width = 0.dp,
 //                brush = Brush.linearGradient(
@@ -764,6 +792,7 @@ fun DietQuickActionCard(
         label = "dietProgress"
     )
 
+    val isDarkDiet = isSystemInDarkTheme()
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
@@ -781,14 +810,7 @@ fun DietQuickActionCard(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .fillMaxHeight(animatedProgress)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                DietOrange.copy(alpha = 0.35f),
-                                DietOrange.copy(alpha = 0.55f)
-                            )
-                        )
-                    )
+                    .background(DietOrange.copy(alpha = 0.45f))
             )
         }
 
@@ -887,23 +909,17 @@ fun CycleTrackerCard(
         label = "cycleAlpha"
     )
 
+    val isDarkCycle = isSystemInDarkTheme()
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
             .clickable { onClick() }
     ) {
-        // Gradient background
+        // Solid background
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            CyclePurple.copy(alpha = 0.6f),
-                            CyclePurple.copy(alpha = 0.35f)
-                        )
-                    )
-                )
+                .background(CyclePurple.copy(alpha = 0.5f))
         )
 
         // Pulsing circle decoration in top-right corner

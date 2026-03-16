@@ -24,6 +24,7 @@ import com.swastricare.health.data.models.MealType
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.EmptyStateView
 import com.swastricare.health.ui.screens.home.PremiumBackground
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
 // ─────────────────────────────────────
@@ -126,6 +127,7 @@ fun DietScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
+                                    .lightBorder(16.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(secondaryBg)
                                     .padding(20.dp),
@@ -240,6 +242,7 @@ fun DietScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
+                                    .lightBorder(12.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(DietGreen.copy(alpha = 0.08f))
                                     .clickable(
@@ -330,6 +333,7 @@ private fun InsightsCard(insights: DietInsights, modifier: Modifier = Modifier) 
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .lightBorder(16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(cardBg)
             .padding(20.dp),

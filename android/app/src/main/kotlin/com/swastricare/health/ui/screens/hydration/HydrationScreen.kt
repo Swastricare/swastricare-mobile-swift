@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.DrinkType
 import com.swastricare.health.data.models.QuickAddPreset
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
 // ─────────────────────────────────────
@@ -122,6 +123,7 @@ fun HydrationScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
+                                    .lightBorder(16.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(AppColors.surface)
                                     .padding(20.dp),

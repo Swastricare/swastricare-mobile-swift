@@ -35,6 +35,7 @@ import com.swastricare.health.data.models.ScheduleType
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import java.time.Instant
 import java.time.LocalDate
@@ -251,6 +252,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .lightBorder(12.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(AppColors.onSurface.copy(alpha = 0.05f))
                             .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -723,6 +725,7 @@ private fun TimeRow(label: String, time: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .lightBorder(10.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(AppColors.onSurface.copy(alpha = 0.05f))
             .padding(horizontal = 14.dp, vertical = 10.dp),

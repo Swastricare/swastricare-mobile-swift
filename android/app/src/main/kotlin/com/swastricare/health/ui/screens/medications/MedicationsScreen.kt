@@ -29,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.EmptyStateView
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import java.time.format.DateTimeFormatter
 
@@ -226,6 +227,7 @@ fun MedicationsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
+                                    .lightBorder(12.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(MedBrandBlue.copy(alpha = 0.08f))
                                     .clickable(
