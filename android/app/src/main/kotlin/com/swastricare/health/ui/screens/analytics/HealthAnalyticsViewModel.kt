@@ -67,6 +67,14 @@ data class LegacyMetricSummary(
     val changePercent: Float
 )
 
+// ── Metric stats (current / average / best / goal) ──────────────────────────
+data class MetricStats(
+    val current: Float,
+    val average: Float,
+    val best: Float,
+    val goal: Float?
+)
+
 // ── Overall UI State ────────────────────────────────────────────────────────
 data class LegacyHealthAnalyticsState(
     val isLoading: Boolean = true,
@@ -74,7 +82,8 @@ data class LegacyHealthAnalyticsState(
     val selectedMetric: LegacyMetricType = LegacyMetricType.Steps,
     val summaries: List<LegacyMetricSummary> = emptyList(),
     val chartData: List<LegacyChartDataPoint> = emptyList(),
-    val aiInsight: String = ""
+    val aiInsight: String = "",
+    val healthScore: Int = 0
 )
 
 @HiltViewModel
@@ -165,7 +174,8 @@ class HealthAnalyticsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     summaries = summaries,
-                    aiInsight = generateInsight(summaries)
+                    aiInsight = generateInsight(summaries),
+                    healthScore = computeHealthScore()
                 )
                 refreshChart()
             } catch (e: Exception) {
@@ -438,6 +448,42 @@ class HealthAnalyticsViewModel @Inject constructor(
         in 17..19 -> 0.9f
         in 20..22 -> 0.3f
         else -> 0.1f
+    }
+
+    private fun computeHealthScore(): Int {
+        val stepsScore = if (LegacyMetricType.Steps.goal != null)
+            (todaySteps.toFloat() / LegacyMetricType.Steps.goal!! * 100f).coerceIn(0f, 100f)
+        else 0f
+        val sleepScore = (todaySleepHours / 8f * 100f).coerceIn(0f, 100f)
+        val hydrationScore = if (LegacyMetricType.Hydration.goal != null)
+            (todayHydrationMl.toFloat() / LegacyMetricType.Hydration.goal!! * 100f).coerceIn(0f, 100f)
+        else 0f
+        val heartScore = if (todayHeartRate in 60..100) 100f
+        else if (todayHeartRate == 0) 50f
+        else (1f - kotlin.math.abs(todayHeartRate - 80f) / 80f).coerceIn(0f, 1f) * 100f
+
+        return (stepsScore * 0.30f + sleepScore * 0.25f + hydrationScore * 0.25f + heartScore * 0.20f)
+            .toInt().coerceIn(0, 100)
+    }
+
+    fun getMetricStats(metric: LegacyMetricType): MetricStats {
+        val allValues: List<Float> = when (metric) {
+            LegacyMetricType.Steps -> weeklyStepCounts.map { it.second.toFloat() }
+                .ifEmpty { listOf(todaySteps.toFloat()) }
+            LegacyMetricType.Hydration -> hydrationByDay.values.map { it.toFloat() }
+                .ifEmpty { listOf(todayHydrationMl.toFloat()) }
+            LegacyMetricType.Distance -> runActivitiesByDay.values.map { it.toFloat() }
+                .ifEmpty { listOf(todayDistanceKm) }
+            else -> listOf(getDailyValueForMetric(metric, java.time.LocalDate.now()))
+        }
+        val current = getDailyValueForMetric(metric, java.time.LocalDate.now())
+        val avg = if (allValues.isNotEmpty()) allValues.average().toFloat() else current
+        val best = allValues.maxOrNull() ?: current
+        return MetricStats(current = current, average = avg, best = best, goal = metric.goal)
+    }
+
+    fun generatePublicChartData(metric: LegacyMetricType, range: LegacyTimeRange): List<LegacyChartDataPoint> {
+        return generateChartData(metric, range)
     }
 
     companion object {
