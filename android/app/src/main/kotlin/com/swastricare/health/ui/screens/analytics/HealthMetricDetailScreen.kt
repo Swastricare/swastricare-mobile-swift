@@ -275,7 +275,7 @@ private fun DetailGoalCard(stats: MetricStats, metric: LegacyMetricType) {
     val goal = stats.goal ?: return
     val progress = (stats.current / goal).coerceIn(0f, 1f)
     var animProgress by remember { mutableStateOf(0f) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(progress) {
         animate(0f, progress, animationSpec = tween(1200, easing = FastOutSlowInEasing)) { v, _ ->
             animProgress = v
         }
