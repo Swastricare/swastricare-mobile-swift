@@ -326,7 +326,10 @@ fun MainNavGraph(
         composable("health_analytics") {
             HealthAnalyticsScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) }
+                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) },
+                onNavigateToMetricDetail = { metric ->
+                    navController.navigate("metric_detail/${metric.name}")
+                }
             )
         }
 
