@@ -73,19 +73,14 @@ sealed class BottomNavTab(
 }
 
 /**
- * Routes where bottom navigation should be hidden.
+ * Bottom navigation is shown ONLY on the 5 main tab routes.
+ * Every nested / sub-screen hides the bar automatically.
  */
 object BottomNavConfig {
-    val hiddenRoutes = setOf(
-        "live_workout",
-        "workout_summary",
-        "ar_body_scan"
-    )
-
     fun shouldShowBottomNav(currentRoute: String?): Boolean {
-        if (currentRoute == null) return true
-        if (BottomNavTab.isTabRoute(currentRoute)) return true
-        return currentRoute !in hiddenRoutes
+        if (currentRoute == null) return false
+        // Show only when the current route is one of the 5 tabs
+        return BottomNavTab.isTabRoute(currentRoute)
     }
 }
 
@@ -98,4 +93,5 @@ object NavArgs {
     const val MEAL_TYPE = "mealTypeDb"
     const val WORKOUT_TYPE = "type"
     const val FAMILY_CODE = "code"
+    const val METRIC_TYPE = "metricType"
 }
