@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.clip
@@ -42,8 +43,13 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
+import com.swastricare.health.ui.theme.PrimaryColor
+import java.util.Calendar
+import java.util.Date
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
@@ -572,16 +578,17 @@ fun VitalCard(
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = value,
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = AppColors.onSurface
+                        color = AppColors.onSurface,
+                        maxLines = 1
                     )
                     if (unit.isNotEmpty()) {
                         Text(
                             text = unit,
                             style = MaterialTheme.typography.labelSmall,
                             color = AppColors.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 6.dp)
+                            modifier = Modifier.padding(bottom = 4.dp)
                         )
                     }
                 }
@@ -1015,4 +1022,78 @@ fun HealthAuthBanner(
             Text("Allow Access")
         }
     }
+}
+
+// MARK: - Date Chip Strip
+@Composable
+fun DateChipStrip(
+    weekDates: List<Date>,
+    selectedDate: Date,
+    onDateSelected: (Date) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val dayFormat = remember { java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault()) }
+    val dayNumFormat = remember { java.text.SimpleDateFormat("d", java.util.Locale.getDefault()) }
+    val today = Calendar.getInstance().time
+
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(weekDates) { date ->
+            val isSelected = isSameDay(date, selectedDate)
+            val isToday = isSameDay(date, today)
+            val isFuture = date.after(today) && !isToday
+            val alpha = if (isFuture) 0.3f else if (isSelected) 1f else 0.6f
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .alpha(alpha)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        if (isSelected) PrimaryColor else Color.Transparent
+                    )
+                    .then(
+                        if (!isSelected) Modifier.border(
+                            1.dp,
+                            Color.White.copy(alpha = 0.15f),
+                            RoundedCornerShape(20.dp)
+                        ) else Modifier
+                    )
+                    .clickable(enabled = !isFuture) { onDateSelected(date) }
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = dayFormat.format(date).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isSelected) Color.White else AppColors.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = dayNumFormat.format(date),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color.White else AppColors.onSurface
+                )
+                if (isToday && !isSelected) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .background(PrimaryColor, CircleShape)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun isSameDay(d1: Date, d2: Date): Boolean {
+    val c1 = Calendar.getInstance().apply { time = d1 }
+    val c2 = Calendar.getInstance().apply { time = d2 }
+    return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR) &&
+           c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR)
 }
