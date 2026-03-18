@@ -28,6 +28,16 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.geometry.Size
+import com.swastricare.health.ui.components.DailyMetric
+import com.swastricare.health.ui.theme.StepsColor
+import com.swastricare.health.ui.theme.ActivityColor
+import com.swastricare.health.ui.theme.HeartRateColor
+import com.swastricare.health.ui.theme.SleepColor
+import com.swastricare.health.ui.theme.DistanceColor
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
@@ -1096,4 +1106,222 @@ private fun isSameDay(d1: Date, d2: Date): Boolean {
     val c2 = Calendar.getInstance().apply { time = d2 }
     return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR) &&
            c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR)
+}
+
+// MARK: - Metric Color Helper
+fun metricColor(metric: MetricType): Color = when (metric) {
+    MetricType.STEPS -> StepsColor
+    MetricType.CALORIES -> ActivityColor
+    MetricType.HEART_RATE -> HeartRateColor
+    MetricType.SLEEP -> SleepColor
+    MetricType.EXERCISE -> DistanceColor
+    MetricType.DISTANCE -> DistanceColor
+}
+
+// MARK: - Hero Metric Card
+@Composable
+fun HeroMetricCard(
+    selectedMetric: MetricType,
+    currentValue: String,
+    weeklySteps: List<DailyMetric>,
+    selectedDate: Date,
+    modifier: Modifier = Modifier
+) {
+    val accentColor = metricColor(selectedMetric)
+
+    val chartValues: List<Float> = remember(weeklySteps, selectedMetric) {
+        if (weeklySteps.isEmpty()) List(7) { 0f }
+        else weeklySteps.map { metric ->
+            when (selectedMetric) {
+                MetricType.STEPS -> metric.steps.toFloat()
+                MetricType.CALORIES -> metric.steps / 20f
+                MetricType.EXERCISE -> metric.steps / 100f
+                MetricType.DISTANCE -> metric.steps / 1500f
+                MetricType.HEART_RATE -> 72f
+                MetricType.SLEEP -> 7f
+            }
+        }
+    }
+
+    val maxValue = remember(chartValues) { chartValues.maxOrNull()?.takeIf { it > 0f } ?: 1f }
+
+    var chartKey by remember { mutableStateOf(0) }
+    LaunchedEffect(selectedMetric) { chartKey++ }
+    val drawProgress by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(durationMillis = 800),
+        label = "chartDraw"
+    )
+
+    val trend: Int = remember(chartValues) {
+        if (chartValues.size < 6) 0
+        else {
+            val recent = chartValues.takeLast(3).average()
+            val prior = chartValues.take(3).average()
+            if (prior == 0.0) 0
+            else (((recent - prior) / prior) * 100).toInt()
+        }
+    }
+
+    val weeklyAvg = remember(chartValues) {
+        val avg = chartValues.filter { it > 0f }.average()
+        if (avg.isNaN()) "—" else "%.0f".format(avg)
+    }
+    val bestDay = remember(chartValues) {
+        val best = chartValues.maxOrNull() ?: 0f
+        "%.0f".format(best)
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .glass(cornerRadius = 24.dp, opacity = 0.2f, accentColor = accentColor)
+            .padding(20.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = selectedMetric.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = AppColors.onSurface.copy(alpha = 0.6f)
+                    )
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = currentValue,
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.onSurface
+                        )
+                        Text(
+                            text = selectedMetric.unit,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    }
+                }
+
+                if (trend != 0) {
+                    val trendColor = if (trend >= 0) StepsColor else HeartRateColor
+                    val arrow = if (trend >= 0) "↑" else "↓"
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(trendColor.copy(alpha = 0.15f))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "$arrow ${kotlin.math.abs(trend)}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = trendColor
+                        )
+                    }
+                }
+            }
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+            ) {
+                if (chartValues.size < 2) return@Canvas
+
+                val width = size.width
+                val height = size.height
+                val step = width / (chartValues.size - 1)
+
+                val linePath = Path()
+                val fillPath = Path()
+
+                chartValues.forEachIndexed { i, value ->
+                    val x = i * step
+                    val y = height - (value / maxValue) * height * 0.85f
+                    if (i == 0) {
+                        linePath.moveTo(x, y)
+                        fillPath.moveTo(x, height)
+                        fillPath.lineTo(x, y)
+                    } else {
+                        val prevX = (i - 1) * step
+                        val prevY = height - (chartValues[i - 1] / maxValue) * height * 0.85f
+                        val cpX = (prevX + x) / 2f
+                        linePath.cubicTo(cpX, prevY, cpX, y, x, y)
+                        fillPath.cubicTo(cpX, prevY, cpX, y, x, y)
+                    }
+                }
+                fillPath.lineTo(chartValues.size * step - step, height)
+                fillPath.close()
+
+                clipRect(right = size.width * drawProgress) {
+                    drawPath(
+                        path = fillPath,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                accentColor.copy(alpha = 0.3f),
+                                accentColor.copy(alpha = 0f)
+                            ),
+                            startY = 0f,
+                            endY = height
+                        )
+                    )
+                    drawPath(
+                        path = linePath,
+                        color = accentColor,
+                        style = Stroke(
+                            width = 2.5.dp.toPx(),
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round
+                        )
+                    )
+                }
+
+                val dotIndex = chartValues.size / 2
+                val dotX = dotIndex * step
+                val dotY = height - (chartValues[dotIndex] / maxValue) * height * 0.85f
+                drawCircle(color = accentColor, radius = 5.dp.toPx(), center = Offset(dotX, dotY))
+                drawCircle(color = Color.White, radius = 3.dp.toPx(), center = Offset(dotX, dotY))
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                HeroStatBadge(label = "Weekly Avg", value = weeklyAvg, color = accentColor)
+                HeroStatBadge(label = "Best Day", value = bestDay, color = accentColor)
+                HeroStatBadge(label = "Unit", value = selectedMetric.unit, color = accentColor)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroStatBadge(label: String, value: String, color: Color) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.1f))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurface.copy(alpha = 0.5f)
+        )
+    }
 }
