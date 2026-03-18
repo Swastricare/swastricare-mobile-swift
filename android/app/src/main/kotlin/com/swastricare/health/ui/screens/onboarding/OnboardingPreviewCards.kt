@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -183,6 +186,122 @@ fun AIPreviewCard(isActive: Boolean) {
                             .border(1.dp, purple.copy(alpha = 0.15f), CircleShape)
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     )
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Page 2 — Vault Preview Card
+// ---------------------------------------------------------------------------
+
+@Composable
+fun VaultPreviewCard(isActive: Boolean) {
+    val skyBlue = Color(0xFF0EA5E9)
+    val accentRed = Color(0xFFEF4444)
+    val accentGreen = Color(0xFF22C55E)
+    val purple = Color(0xFF7C3AED)
+
+    data class DocRow(
+        val iconText: String,
+        val gradientColors: List<Color>,
+        val title: String,
+        val subtitle: String
+    )
+
+    val docs = listOf(
+        DocRow("PDF", listOf(accentRed, Color(0xFFDC2626)), "Blood Report — SRL Diagnostics", "Mar 2026 · CBC, Lipid, Thyroid"),
+        DocRow("🩻", listOf(skyBlue, Color(0xFF0284C7)), "X-Ray — Apollo Hospital", "Feb 2026 · Chest X-Ray"),
+        DocRow("💊", listOf(accentGreen, Color(0xFF16A34A)), "Prescription — Dr. Sharma", "Jan 2026 · Diabetes Management"),
+        DocRow("🧠", listOf(purple, Color(0xFF6D28D9)), "MRI — Manipal Hospital", "Dec 2025 · Brain Scan")
+    )
+
+    val docsVisible = remember { mutableStateListOf(false, false, false, false) }
+    val lockRotations = remember { Array(4) { mutableFloatStateOf(0f) } }
+    var shieldVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isActive) {
+        docsVisible.fill(false)
+        shieldVisible = false
+        lockRotations.forEach { it.floatValue = 0f }
+        if (!isActive) return@LaunchedEffect
+        for (i in 0..3) {
+            delay(200L + i * 150L)
+            docsVisible[i] = true
+            lockRotations[i].floatValue = -15f
+            delay(300)
+            lockRotations[i].floatValue = 0f
+        }
+        delay(200)
+        shieldVisible = true
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth().onboardingCard(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        docs.forEachIndexed { i, doc ->
+            AnimatedVisibility(
+                visible = docsVisible.getOrElse(i) { false },
+                enter = fadeIn() + slideInHorizontally { it / 2 }
+            ) {
+                val lockAngle by animateFloatAsState(lockRotations[i].floatValue, label = "lock$i")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.Black.copy(alpha = 0.03f))
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Brush.linearGradient(doc.gradientColors)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            doc.iconText,
+                            fontSize = if (doc.iconText.length > 2) 11.sp else 16.sp,
+                            fontWeight = if (doc.iconText.length > 2) FontWeight.Bold else FontWeight.Normal,
+                            color = Color.White
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(doc.title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Text(doc.subtitle, fontSize = 10.sp, color = Color.Gray)
+                    }
+                    Text("🔒", fontSize = 12.sp, modifier = Modifier.rotate(lockAngle))
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = shieldVisible,
+            enter = fadeIn() + scaleIn(initialScale = 0.8f)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        Brush.linearGradient(listOf(skyBlue.copy(alpha = 0.08f), PrimaryColor.copy(alpha = 0.08f)))
+                    )
+                    .border(1.dp, skyBlue.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("🛡️", fontSize = 16.sp)
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text("End-to-End Encrypted", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Only you and who you share with can access", fontSize = 9.sp, color = Color.Gray)
                 }
             }
         }
