@@ -44,6 +44,25 @@ data class ServerNudge(
     val deepLink: String? = null
 )
 
+enum class MetricType(
+    val label: String,
+    val unit: String
+) {
+    STEPS("Steps", "steps"),
+    CALORIES("Calories", "kcal"),
+    HEART_RATE("Heart Rate", "BPM"),
+    SLEEP("Sleep", "hrs"),
+    EXERCISE("Exercise", "min"),
+    DISTANCE("Distance", "km")
+}
+
+sealed class HomeAIState {
+    object Idle : HomeAIState()
+    object Analyzing : HomeAIState()
+    data class Result(val assessment: String, val recommendation: String) : HomeAIState()
+    data class Error(val message: String) : HomeAIState()
+}
+
 data class HomeState(
     val userName: String = "",
     val greeting: String = "Good Morning,",
@@ -74,7 +93,9 @@ data class HomeState(
     // Cycle tracker stub
     val cyclePhase: String = "Cycle Tracker",
     // True when HC is authorized but no data exists (e.g. no fitness app writing to HC)
-    val hasNoHealthData: Boolean = false
+    val hasNoHealthData: Boolean = false,
+    val selectedMetric: MetricType = MetricType.STEPS,
+    val aiAnalysisState: HomeAIState = HomeAIState.Idle,
 )
 
 @HiltViewModel
@@ -289,6 +310,34 @@ class HomeViewModel @Inject constructor(
         metric?.let {
             _uiState.value = _uiState.value.copy(stepCount = it.steps)
         }
+    }
+
+    fun selectMetric(metric: MetricType) {
+        _uiState.value = _uiState.value.copy(selectedMetric = metric)
+    }
+
+    fun requestAIAnalysis() {
+        val state = _uiState.value
+        _uiState.value = state.copy(aiAnalysisState = HomeAIState.Analyzing)
+        viewModelScope.launch {
+            try {
+                kotlinx.coroutines.delay(1500)
+                _uiState.value = _uiState.value.copy(
+                    aiAnalysisState = HomeAIState.Result(
+                        assessment = "Your activity looks good today with ${state.stepCount} steps and ${state.calories} kcal burned.",
+                        recommendation = "Try to add 10 more minutes of exercise to reach your daily goal."
+                    )
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    aiAnalysisState = HomeAIState.Error(e.message ?: "Analysis failed")
+                )
+            }
+        }
+    }
+
+    fun dismissAnalysis() {
+        _uiState.value = _uiState.value.copy(aiAnalysisState = HomeAIState.Idle)
     }
 
     fun requestHealthPermissions() {
