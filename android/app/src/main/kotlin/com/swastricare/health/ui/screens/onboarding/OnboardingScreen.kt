@@ -14,8 +14,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.SecondaryColor
@@ -23,15 +25,35 @@ import com.swastricare.health.ui.theme.SecondaryColor
 data class OnboardingPage(
     val title: String,
     val subtitle: String,
-    val emoji: String,
+    val illustrationAsset: String,
     val accentColor: Color
 )
 
 private val pages = listOf(
-    OnboardingPage("Track Your Health", "Monitor vitals, hydration, and medications all in one place.", "\uD83C\uDFE5", PrimaryColor),
-    OnboardingPage("AI-Powered Insights", "Get personalized health advice from Swastri AI, powered by MedGemma.", "\uD83E\uDD16", SecondaryColor),
-    OnboardingPage("Secure Health Vault", "Store prescriptions, lab reports, and medical documents safely.", "\uD83D\uDD12", Color(0xFF5856D6)),
-    OnboardingPage("Your Family, Together", "Manage health for your entire family from one account.", "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67", Color(0xFFFF9500))
+    OnboardingPage(
+        title = "Stay Hydrated",
+        subtitle = "Track your daily water intake and hit your hydration goals.",
+        illustrationAsset = "illustrations/drinking water 2.png",
+        accentColor = PrimaryColor
+    ),
+    OnboardingPage(
+        title = "Manage Medications",
+        subtitle = "Never miss a dose with smart reminders and adherence tracking.",
+        illustrationAsset = "illustrations/medication - holding pill bottle .png",
+        accentColor = SecondaryColor
+    ),
+    OnboardingPage(
+        title = "Track Your Diet",
+        subtitle = "Log meals, scan food, and hit your daily nutrition targets.",
+        illustrationAsset = "illustrations/eating food.png",
+        accentColor = Color(0xFF5856D6)
+    ),
+    OnboardingPage(
+        title = "Rest & Recover",
+        subtitle = "Monitor sleep and recovery to feel your best every day.",
+        illustrationAsset = "illustrations/sleeping 2.png",
+        accentColor = Color(0xFFFF9500)
+    )
 )
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -57,7 +79,12 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = p.emoji, fontSize = 80.sp)
+                AsyncImage(
+                    model = "file:///android_asset/${p.illustrationAsset}",
+                    contentDescription = null,
+                    modifier = Modifier.size(280.dp),
+                    contentScale = ContentScale.Fit
+                )
                 Spacer(Modifier.height(32.dp))
                 Text(
                     text = p.title,
