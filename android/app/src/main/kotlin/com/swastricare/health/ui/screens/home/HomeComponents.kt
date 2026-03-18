@@ -50,6 +50,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Bed
+import androidx.compose.material.icons.filled.Accessibility
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1323,5 +1332,314 @@ private fun HeroStatBadge(label: String, value: String, color: Color) {
             style = MaterialTheme.typography.labelSmall,
             color = AppColors.onSurface.copy(alpha = 0.5f)
         )
+    }
+}
+
+// MARK: - Metric Selector Grid
+@Composable
+fun MetricSelectorGrid(
+    selectedMetric: MetricType,
+    currentSteps: Int,
+    currentCalories: Int,
+    currentHeartRate: Int,
+    currentSleepHours: String,
+    currentExerciseMin: Int,
+    currentDistanceKm: Double,
+    onMetricSelected: (MetricType) -> Unit,
+    onMeasureHeartRate: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    fun valueFor(metric: MetricType): String = when (metric) {
+        MetricType.STEPS -> if (currentSteps > 0) currentSteps.toString() else "—"
+        MetricType.CALORIES -> if (currentCalories > 0) currentCalories.toString() else "—"
+        MetricType.HEART_RATE -> if (currentHeartRate > 0) currentHeartRate.toString() else "—"
+        MetricType.SLEEP -> currentSleepHours.ifBlank { "—" }
+        MetricType.EXERCISE -> if (currentExerciseMin > 0) currentExerciseMin.toString() else "—"
+        MetricType.DISTANCE -> if (currentDistanceKm > 0) "%.1f".format(currentDistanceKm) else "—"
+    }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(320.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        userScrollEnabled = false
+    ) {
+        items(MetricType.values()) { metric ->
+            val isSelected = metric == selectedMetric
+            val color = metricColor(metric)
+            val value = valueFor(metric)
+            val animatedBorderAlpha by animateFloatAsState(
+                targetValue = if (isSelected) 1f else 0f,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "borderAlpha"
+            )
+
+            Box(
+                modifier = Modifier
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(color.copy(alpha = 0.12f))
+                    .border(
+                        width = 2.dp,
+                        color = color.copy(alpha = animatedBorderAlpha),
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .clickable { onMetricSelected(metric) }
+                    .padding(14.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(color.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = metricIcon(metric),
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        if (metric == MetricType.HEART_RATE) {
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .background(color.copy(alpha = 0.2f), CircleShape)
+                                    .clickable { onMeasureHeartRate() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = "Measure",
+                                    tint = color,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                            }
+                        }
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = value,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = AppColors.onSurface,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = metric.unit,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AppColors.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+                        Text(
+                            text = metric.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AppColors.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun metricIcon(metric: MetricType): androidx.compose.ui.graphics.vector.ImageVector = when (metric) {
+    MetricType.STEPS -> Icons.AutoMirrored.Filled.DirectionsWalk
+    MetricType.CALORIES -> Icons.Default.LocalFireDepartment
+    MetricType.HEART_RATE -> Icons.Default.Favorite
+    MetricType.SLEEP -> Icons.Default.Bed
+    MetricType.EXERCISE -> Icons.Default.Accessibility
+    MetricType.DISTANCE -> Icons.AutoMirrored.Filled.TrendingUp
+}
+
+// MARK: - AI Insights Card
+@Composable
+fun AIInsightsCard(
+    aiState: HomeAIState,
+    onGenerate: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val gradientBrush = Brush.horizontalGradient(
+        colors = listOf(PremiumColor.RoyalBlueStart, PremiumColor.DeepPurpleStart)
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .glass(cornerRadius = 24.dp, opacity = 0.2f, accentColor = PrimaryColor)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = null,
+                    tint = PrimaryColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "AI Insights",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.onSurface
+                )
+            }
+            if (aiState is HomeAIState.Analyzing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = PrimaryColor,
+                    strokeWidth = 2.dp
+                )
+            }
+        }
+
+        when (aiState) {
+            is HomeAIState.Idle -> {
+                Text(
+                    text = "Tap below to generate personalized health insights based on your data.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            is HomeAIState.Analyzing -> {
+                Text(
+                    text = "Analyzing your health data...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            is HomeAIState.Result -> {
+                Text(
+                    text = aiState.assessment,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.onSurface,
+                    maxLines = 4,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                if (aiState.recommendation.isNotBlank()) {
+                    Text(
+                        text = "Recommendation:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppColors.onSurface.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = aiState.recommendation,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppColors.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+            is HomeAIState.Error -> {
+                Text(
+                    text = "Could not generate analysis. ${aiState.message}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = HeartRateColor
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(gradientBrush)
+                .clickable(enabled = aiState !is HomeAIState.Analyzing) { onGenerate() }
+                .padding(vertical = 13.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (aiState is HomeAIState.Result) "Refresh Analysis" else "Generate Analysis",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
+    }
+}
+
+// MARK: - Circular Progress Ring
+@Composable
+fun CircularProgressRing(
+    progress: Float,
+    color: Color,
+    trackColor: Color = color.copy(alpha = 0.15f),
+    strokeWidth: Float = 8f,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit = {}
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 1000),
+        label = "ringProgress"
+    )
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val diameter = minOf(size.width, size.height)
+            val topLeft = androidx.compose.ui.geometry.Offset(
+                (size.width - diameter) / 2f + strokeWidth / 2f,
+                (size.height - diameter) / 2f + strokeWidth / 2f
+            )
+            val ringSize = androidx.compose.ui.geometry.Size(
+                diameter - strokeWidth,
+                diameter - strokeWidth
+            )
+            drawArc(
+                color = trackColor,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = ringSize,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+            drawArc(
+                color = color,
+                startAngle = -90f,
+                sweepAngle = 360f * animatedProgress,
+                useCenter = false,
+                topLeft = topLeft,
+                size = ringSize,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+        }
+        content()
     }
 }
