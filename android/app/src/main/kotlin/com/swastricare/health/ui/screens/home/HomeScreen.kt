@@ -9,6 +9,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -21,13 +22,13 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bed
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.*
@@ -239,6 +240,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth(0.48f)
                             .align(Alignment.CenterStart)
+                            .padding(start = 16.dp)
                     ) {
 
                         ActivityStatRow(
@@ -283,7 +285,7 @@ fun HomeScreen(
                             value = "${uiState.heartRate}",
                             unit = "BPM",
                             color = Color(0xFFF44336),
-                            modifier = Modifier.weight(1f).height(100.dp),
+                            modifier = Modifier.weight(1f).height(130.dp),
                             delay = 100
                         )
 
@@ -293,17 +295,17 @@ fun HomeScreen(
                             value = uiState.sleepHours,
                             unit = "",
                             color = Color(0xFF3F51B5),
-                            modifier = Modifier.weight(1f).height(100.dp),
+                            modifier = Modifier.weight(1f).height(130.dp),
                             delay = 200
                         )
 
                         VitalCard(
-                            icon = Icons.Default.DirectionsWalk,
+                            icon = Icons.AutoMirrored.Filled.DirectionsWalk,
                             title = "Distance",
                             value = "${uiState.distance}",
                             unit = "km",
                             color = StepsColor,
-                            modifier = Modifier.weight(1f).height(100.dp),
+                            modifier = Modifier.weight(1f).height(130.dp),
                             delay = 300
                         )
                     }
@@ -318,7 +320,24 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(Color(0xFF7C4DFF).copy(alpha = 0.15f))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF7C4DFF).copy(alpha = 0.25f),
+                                        Color(0xFF4F46E5).copy(alpha = 0.15f)
+                                    )
+                                )
+                            )
+                            .border(
+                                width = 0.5.dp,
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF7C4DFF).copy(alpha = 0.5f),
+                                        Color(0xFF4F46E5).copy(alpha = 0.2f)
+                                    )
+                                ),
+                                shape = RoundedCornerShape(24.dp)
+                            )
                             .semantics { contentDescription = "Health Analytics" }
                             .clickable { onNavigateToAnalytics() }
                             .padding(horizontal = 20.dp, vertical = 16.dp)
@@ -390,237 +409,38 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Medication Card
-                        Box(
+                        val allDoses = medicationsState.allDosesToday
+                        val medicationsTaken = allDoses.count {
+                            it.status == com.swastricare.health.data.models.AdherenceStatus.TAKEN ||
+                            it.status == com.swastricare.health.data.models.AdherenceStatus.LATE ||
+                            it.status == com.swastricare.health.data.models.AdherenceStatus.EARLY
+                        }
+                        val medicationsTotal = allDoses.size
+                        val pendingDoses = allDoses.filter {
+                            it.status == com.swastricare.health.data.models.AdherenceStatus.PENDING
+                        }.take(3)
+
+                        PremiumMedicationCard(
+                            medicationsTaken = medicationsTaken,
+                            medicationsTotal = medicationsTotal,
+                            pendingDoses = pendingDoses,
+                            onNavigate = onNavigateToMedications,
+                            onMarkTaken = { medicationsViewModel.markAsTaken(it) },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(160.dp)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(MedicationColor.copy(alpha = 0.12f))
-                                .clickable { onNavigateToMedications() }
-                        ) {
-                            // Use MedicationsViewModel data for consistent counts
-                            val allDoses = medicationsState.allDosesToday
-                            val medicationsTaken = allDoses.count { it.status == com.swastricare.health.data.models.AdherenceStatus.TAKEN || it.status == com.swastricare.health.data.models.AdherenceStatus.LATE || it.status == com.swastricare.health.data.models.AdherenceStatus.EARLY }
-                            val medicationsTotal = allDoses.size
-                            val progress = if (medicationsTotal > 0) medicationsTaken.toFloat() / medicationsTotal.toFloat() else 0f
-                            val pendingDoses = allDoses.filter { it.status == com.swastricare.health.data.models.AdherenceStatus.PENDING }.take(3)
-
-                            // Content — spread top to bottom
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                // Icon + quick-log button row
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .background(MedicationColor.copy(alpha = 0.2f), CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Medication,
-                                            contentDescription = null,
-                                            tint = MedicationColor,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                    if (pendingDoses.isNotEmpty()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                                .background(MedicationColor.copy(alpha = 0.2f), CircleShape)
-                                                .clickable(
-                                                    indication = null,
-                                                    interactionSource = remember { MutableInteractionSource() }
-                                                ) { medicationsViewModel.markAsTaken(pendingDoses.first()) },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.CheckCircle,
-                                                contentDescription = "Take next dose",
-                                                tint = MedicationColor,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
-                                        "Medication",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = AppColors.onSurface.copy(alpha = 0.8f)
-                                    )
-                                    Row(verticalAlignment = Alignment.Bottom) {
-                                        Text(
-                                            "$medicationsTaken",
-                                            style = MaterialTheme.typography.headlineLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = AppColors.onSurface
-                                        )
-                                        Text(
-                                            "/$medicationsTotal",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = AppColors.onSurface.copy(alpha = 0.6f),
-                                            modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
-                                        )
-                                    }
-                                }
-
-                                // Show pending doses with quick-log
-                                if (pendingDoses.isNotEmpty()) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        pendingDoses.take(2).forEach { dose ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(MedicationColor.copy(alpha = 0.1f))
-                                                    .clickable { medicationsViewModel.markAsTaken(dose) }
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = dose.medicationName,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = AppColors.onSurface,
-                                                    maxLines = 1,
-                                                    modifier = Modifier.weight(1f)
-                                                )
-                                                Icon(
-                                                    imageVector = Icons.Default.Check,
-                                                    contentDescription = "Take",
-                                                    tint = MedicationColor,
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                            }
-                                        }
-                                        if (pendingDoses.size > 2) {
-                                            Text(
-                                                text = "+${pendingDoses.size - 2} more",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = AppColors.onSurface.copy(alpha = 0.5f)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        )
 
                         // Hydration Card
-                        Box(
+                        PremiumHydrationCard(
+                            currentMl = uiState.hydrationCurrent,
+                            goalMl = uiState.hydrationGoal,
+                            onNavigate = onNavigateToHydration,
+                            onQuickAdd = { viewModel.incrementHydration() },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(160.dp)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(HydrationColor.copy(alpha = 0.12f))
-                                .clickable { onNavigateToHydration() }
-                        ) {
-                            val progress = if (uiState.hydrationGoal > 0) uiState.hydrationCurrent.toFloat() / uiState.hydrationGoal.toFloat() else 0f
-
-                            // Water wave animation
-                            WaterWave(
-                                progress = progress,
-                                color = HydrationColor.copy(alpha = 0.25f),
-                                modifier = Modifier.fillMaxSize()
-                            )
-                            WaterWave(
-                                progress = progress,
-                                color = HydrationColor.copy(alpha = 0.35f),
-                                modifier = Modifier.fillMaxSize().padding(top = 5.dp)
-                            )
-
-                            // Content — spread top to bottom
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                // Icon + quick-add button row
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .background(HydrationColor.copy(alpha = 0.2f), CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.LocalDrink,
-                                            contentDescription = null,
-                                            tint = HydrationColor,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .background(HydrationColor.copy(alpha = 0.2f), CircleShape)
-                                            .clickable(
-                                                indication = null,
-                                                interactionSource = remember { MutableInteractionSource() }
-                                            ) { viewModel.incrementHydration() },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = "Add 250ml",
-                                            tint = HydrationColor,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
-                                        "Hydration",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = AppColors.onSurface.copy(alpha = 0.8f)
-                                    )
-                                    Text(
-                                        "${uiState.hydrationCurrent} ml",
-                                        style = MaterialTheme.typography.headlineLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = AppColors.onSurface
-                                    )
-                                    // Mini progress bar
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(4.dp)
-                                            .clip(RoundedCornerShape(2.dp))
-                                            .background(HydrationColor.copy(alpha = 0.15f))
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth(progress.coerceIn(0f, 1f))
-                                                .fillMaxHeight()
-                                                .clip(RoundedCornerShape(2.dp))
-                                                .background(HydrationColor)
-                                        )
-                                    }
-                                    Text(
-                                        "Goal: ${uiState.hydrationGoal}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = AppColors.onSurface.copy(alpha = 0.5f)
-                                    )
-                                }
-                            }
-                        }
+                        )
                     }
                 }
 
@@ -685,53 +505,35 @@ fun ActivityStatRow(
         label = "statOffset"
     )
     
-    Box(
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
             .alpha(animatedAlpha)
             .offset(x = animatedOffset.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(AppColors.surface.copy(alpha = 0.3f))
+            .padding(horizontal = 4.dp, vertical = 4.dp)
     ) {
-        // Colored accent strip on left edge
-        // Box(
-        //     modifier = Modifier
-        //         .align(Alignment.CenterStart)
-        //         .width(3.dp)
-        //         .fillMaxHeight()
-        //         .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
-        //         .background(color)
-        // )
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .background(color.copy(alpha = 0.15f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            // Icon with background circle
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .background(color.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-            }
-
-            // Value and label
-            Column {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AppColors.onSurfaceVariant
-                )
-            }
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+        }
+        Column {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.onSurface
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.onSurfaceVariant
+            )
         }
     }
 }

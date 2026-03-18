@@ -21,11 +21,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.runtime.getValue
+import androidx.compose.animation.core.animateIntAsState
 import com.swastricare.health.ui.theme.PrimaryColor
+import com.swastricare.health.ui.theme.SecondaryColor
 import kotlinx.coroutines.delay
 
 // ---------------------------------------------------------------------------
@@ -219,11 +226,9 @@ fun VaultPreviewCard(isActive: Boolean) {
 
     val docsVisible = remember { mutableStateListOf(false, false, false, false) }
     val lockRotations = remember { Array(4) { mutableFloatStateOf(0f) } }
-    var shieldVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(isActive) {
         docsVisible.fill(false)
-        shieldVisible = false
         lockRotations.forEach { it.floatValue = 0f }
         if (!isActive) return@LaunchedEffect
         for (i in 0..3) {
@@ -233,8 +238,6 @@ fun VaultPreviewCard(isActive: Boolean) {
             delay(300)
             lockRotations[i].floatValue = 0f
         }
-        delay(200)
-        shieldVisible = true
     }
 
     Column(
@@ -282,27 +285,152 @@ fun VaultPreviewCard(isActive: Boolean) {
             }
         }
 
-        AnimatedVisibility(
-            visible = shieldVisible,
-            enter = fadeIn() + scaleIn(initialScale = 0.8f)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Page 3 — Activity Preview Card
+// ---------------------------------------------------------------------------
+
+@Composable
+fun ActivityPreviewCard(isActive: Boolean) {
+    val green = SecondaryColor // #22C55E
+    val stepGoal = 10000
+    val stepTarget = 6840
+    val weekBars = listOf(0.45f, 0.72f, 0.58f, 0.91f, 0.64f, 0.48f, 0.684f)
+
+    val stepProgress by animateFloatAsState(
+        targetValue = if (isActive) stepTarget / stepGoal.toFloat() else 0f,
+        animationSpec = tween(1200, easing = FastOutSlowInEasing),
+        label = "stepProgress"
+    )
+    val stepCount by animateIntAsState(
+        targetValue = if (isActive) stepTarget else 0,
+        animationSpec = tween(1200, easing = FastOutSlowInEasing),
+        label = "stepCount"
+    )
+    val distanceAnim by animateFloatAsState(
+        targetValue = if (isActive) 4.2f else 0f,
+        animationSpec = tween(1200, delayMillis = 200, easing = FastOutSlowInEasing),
+        label = "distance"
+    )
+    val caloriesAnim by animateFloatAsState(
+        targetValue = if (isActive) 312f else 0f,
+        animationSpec = tween(1200, delayMillis = 200, easing = FastOutSlowInEasing),
+        label = "calories"
+    )
+    val barHeights = weekBars.mapIndexed { i, target ->
+        animateFloatAsState(
+            targetValue = if (isActive) target else 0f,
+            animationSpec = tween(800, delayMillis = 300 + i * 80, easing = FastOutSlowInEasing),
+            label = "bar$i"
+        ).value
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .onboardingCard(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Circular progress ring
+        Box(
+            modifier = Modifier.size(120.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        Brush.linearGradient(listOf(skyBlue.copy(alpha = 0.08f), PrimaryColor.copy(alpha = 0.08f)))
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val stroke = 10.dp.toPx()
+                val inset = stroke / 2
+                // Background track
+                drawArc(
+                    color = green.copy(alpha = 0.15f),
+                    startAngle = -90f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - stroke, size.height - stroke),
+                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                )
+                // Progress arc
+                drawArc(
+                    brush = Brush.sweepGradient(listOf(green, green.copy(alpha = 0.6f))),
+                    startAngle = -90f,
+                    sweepAngle = 360f * stepProgress,
+                    useCenter = false,
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - stroke, size.height - stroke),
+                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    stepCount.toString(),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = green
+                )
+                Text("/ 10,000", fontSize = 10.sp, color = Color.Gray)
+                Text("steps", fontSize = 10.sp, color = Color.Gray)
+            }
+        }
+
+        // Weekly bar chart
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            val days = listOf("M", "T", "W", "T", "F", "S", "S")
+            days.forEachIndexed { i, day ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height((barHeights[i] * 36).dp)
+                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                            .background(if (i == 6) green else green.copy(alpha = 0.4f))
                     )
-                    .border(1.dp, skyBlue.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("🛡️", fontSize = 16.sp)
-                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text("End-to-End Encrypted", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Only you and who you share with can access", fontSize = 9.sp, color = Color.Gray)
+                    Spacer(Modifier.height(2.dp))
+                    Text(day, fontSize = 8.sp, color = Color.Gray)
                 }
+            }
+        }
+
+        // Stats row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    String.format("%.1f km", distanceAnim),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = green
+                )
+                Text("Distance", fontSize = 10.sp, color = Color.Gray)
+            }
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(32.dp)
+                    .background(Color.Gray.copy(alpha = 0.2f))
+            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "${caloriesAnim.toInt()} kcal",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = green
+                )
+                Text("Calories", fontSize = 10.sp, color = Color.Gray)
             }
         }
     }

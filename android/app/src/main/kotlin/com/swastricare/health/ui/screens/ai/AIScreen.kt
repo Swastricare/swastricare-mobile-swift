@@ -268,11 +268,7 @@ fun AIScreen(
                                 .height(260.dp)
                         )
                         IntroView(
-                            userName = uiState.userName,
-                            onQuickActionClick = { action ->
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                viewModel.sendQuickAction(action)
-                            }
+                            userName = uiState.userName
                         )
                     }
                 } else {
@@ -292,6 +288,16 @@ fun AIScreen(
                         }
                     )
                 }
+            }
+
+            // Horizontally scrollable quick action chips above input
+            if (uiState.messages.isEmpty() && uiState.showEmptyState) {
+                QuickActionChips(
+                    onQuickActionClick = { action ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.sendQuickAction(action)
+                    }
+                )
             }
 
             ChatInputBar(
@@ -472,26 +478,8 @@ private fun ChatMessageList(
 @Composable
 fun IntroView(
     userName: String? = null,
-    onQuickActionClick: (QuickAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val hapticFeedback = LocalHapticFeedback.current
-    val quickActionIcons = listOf(
-        Icons.Rounded.AutoAwesome,
-        Icons.Default.Mic,
-        Icons.Default.ArrowUpward,
-        Icons.Default.ContentCopy
-    )
-
-    // Staggered card visibility states
-    val cardVisible = remember { List(4) { mutableStateOf(false) } }
-    cardVisible.forEachIndexed { index, state ->
-        LaunchedEffect(Unit) {
-            delay(80L * index)
-            state.value = true
-        }
-    }
-
     Column(
         modifier = modifier.padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -517,61 +505,36 @@ fun IntroView(
             )
         }
 
-        // 2x2 Glass Quick Action Grid
-        val actions = QuickAction.suggestions
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            for (row in 0..1) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    for (col in 0..1) {
-                        val index = row * 2 + col
-                        val action = actions[index]
-                        val icon = quickActionIcons[index]
-                        val visible = cardVisible[index].value
+        Spacer(modifier = Modifier.weight(1f))
+    }
+}
 
-                        AnimatedVisibility(
-                            visible = visible,
-                            enter = slideInVertically(
-                                initialOffsetY = { it / 2 },
-                                animationSpec = tween(400, easing = FastOutSlowInEasing)
-                            ) + fadeIn(animationSpec = tween(400)),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .glass(cornerRadius = 16.dp)
-                                    .clickable {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onQuickActionClick(action)
-                                    }
-                                    .padding(14.dp)
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(
-                                        text = action.title,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontFamily = Poppins,
-                                        color = AppColors.onBackground,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = action.prompt,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontFamily = Poppins,
-                                        color = AppColors.onBackground.copy(alpha = 0.5f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+@Composable
+private fun QuickActionChips(
+    onQuickActionClick: (QuickAction) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val actions = QuickAction.suggestions
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.padding(bottom = 8.dp)
+    ) {
+        items(actions) { action ->
+            Box(
+                modifier = Modifier
+                    .glass(cornerRadius = 20.dp)
+                    .clickable { onQuickActionClick(action) }
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = action.title,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Poppins,
+                    color = AppColors.onBackground,
+                    maxLines = 1
+                )
             }
         }
     }

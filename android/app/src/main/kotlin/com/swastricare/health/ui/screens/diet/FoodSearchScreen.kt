@@ -20,8 +20,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.swastricare.health.data.models.FoodCategory
 import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
@@ -220,10 +222,11 @@ private fun FoodSearchEmptyState(hasSearch: Boolean) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            Icons.Default.Search, null,
-            tint = AppColors.onSurface.copy(alpha = 0.25f),
-            modifier = Modifier.size(60.dp)
+        AsyncImage(
+            model = "file:///android_asset/illustrations/food - ice cream.png",
+            contentDescription = null,
+            modifier = Modifier.size(160.dp),
+            contentScale = ContentScale.Fit
         )
         Spacer(Modifier.height(16.dp))
         Text(

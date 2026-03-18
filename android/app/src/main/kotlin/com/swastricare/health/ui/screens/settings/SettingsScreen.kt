@@ -171,11 +171,6 @@ fun SettingsScreen(
                         )
                     }
 
-                    // Family Section
-                    item {
-                        SettingsFamilySection(onNavigateToFamily = onNavigateToFamily)
-                    }
-
                     // Notifications Section
                     item {
                         SettingsNotificationsSection(

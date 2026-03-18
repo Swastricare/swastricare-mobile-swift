@@ -26,6 +26,7 @@ struct DietView: View {
     @State private var templateName = ""
     @State private var showQuickLogPopover = false
     @State private var mealCopiedType: MealType?
+    @State private var showFoodSnap = false
 
     var body: some View {
         NavigationView {
@@ -114,6 +115,9 @@ struct DietView: View {
                 // Quick Log FAB (from Fast Logging branch)
                 quickLogFAB
 
+                // Food Snap FAB
+                foodSnapFAB
+
                 // Undo Delete Toast
                 if viewModel.showUndoToast {
                     VStack {
@@ -136,6 +140,13 @@ struct DietView: View {
 
                         Button(action: { viewModel.showAddFood = true }) {
                             Label("Add Food", systemImage: "plus.circle.fill")
+                        }
+
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            showFoodSnap = true
+                        }) {
+                            Label("Snap Food Photo", systemImage: "camera.fill")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle.fill")
@@ -174,6 +185,12 @@ struct DietView: View {
                 if let report = viewModel.weeklyReport {
                     WeeklyReportSheet(report: report)
                 }
+            }
+            .fullScreenCover(isPresented: $showFoodSnap) {
+                FoodSnapView(
+                    viewModel: viewModel,
+                    suggestedMealType: MealType.autoDetect()
+                )
             }
         }
     }
@@ -300,6 +317,51 @@ struct DietView: View {
                         .padding(.bottom, 20)
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: - Food Snap FAB
+
+    private var foodSnapFAB: some View {
+        let hasQuickLog = !viewModel.suggestedFoods.isEmpty
+        let bottomPad: CGFloat = hasQuickLog ? 86 : 20
+
+        return VStack(spacing: 0) {
+            Spacer()
+            HStack {
+                Spacer()
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    showFoodSnap = true
+                }) {
+                    ZStack {
+                        // Glow halo
+                        Circle()
+                            .fill(Color(hex: "34C759").opacity(0.25))
+                            .frame(width: 70, height: 70)
+                            .blur(radius: 8)
+
+                        // Main circle
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "34C759"), Color(hex: "28A745")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 56, height: 56)
+                            .shadow(color: Color(hex: "34C759").opacity(0.5), radius: 10, x: 0, y: 5)
+
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .padding(.trailing, 20)
+                .padding(.bottom, bottomPad)
             }
         }
     }

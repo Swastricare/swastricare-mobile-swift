@@ -148,6 +148,12 @@
 -keep class com.swastricare.health.notifications.** { *; }
 
 # ===========================================================================
+# Hilt / Dagger ViewModels (prevent R8 from merging ViewModel keys)
+# ===========================================================================
+-keep @dagger.hilt.android.lifecycle.HiltViewModel class * { *; }
+-keep class * extends androidx.lifecycle.ViewModel { *; }
+
+# ===========================================================================
 # SLF4J (used by Ktor/Supabase internals — no runtime impl needed on Android)
 # ===========================================================================
 -dontwarn org.slf4j.impl.StaticLoggerBinder
