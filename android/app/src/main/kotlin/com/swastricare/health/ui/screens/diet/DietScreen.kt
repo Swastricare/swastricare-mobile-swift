@@ -202,9 +202,9 @@ fun DietScreen(
                         if (uiState.nutritionSummary.mealCount == 0) {
                             item {
                                 EmptyStateView(
-                                    emoji = "\uD83E\uDD57",
                                     title = "No meals logged today",
                                     subtitle = "Tap + to add breakfast, lunch, or dinner.",
+                                    illustrationAsset = "illustrations/eating ffood 2.png",
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
