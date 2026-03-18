@@ -2,6 +2,7 @@ package com.swastricare.health.ui.screens.onboarding
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -22,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.ui.theme.PrimaryColor
-import com.swastricare.health.ui.theme.SecondaryColor
 import kotlinx.coroutines.delay
 
 // ---------------------------------------------------------------------------
@@ -65,11 +65,14 @@ fun AIPreviewCard(isActive: Boolean) {
         label = "cursorBlink"
     )
 
-    val aiIconRotation by animateFloatAsState(
-        targetValue = if (showResponse) 360f else 0f,
-        animationSpec = tween(600, easing = FastOutSlowInEasing),
-        label = "aiSpin"
-    )
+    val aiIconRotation = remember { Animatable(0f) }
+    LaunchedEffect(showResponse) {
+        if (showResponse) {
+            aiIconRotation.animateTo(360f, animationSpec = tween(600, easing = FastOutSlowInEasing))
+        } else {
+            aiIconRotation.snapTo(0f)
+        }
+    }
 
     LaunchedEffect(isActive) {
         typedText = ""
@@ -140,7 +143,7 @@ fun AIPreviewCard(isActive: Boolean) {
                         "✦",
                         fontSize = 12.sp,
                         color = Color.White,
-                        modifier = Modifier.rotate(aiIconRotation)
+                        modifier = Modifier.rotate(aiIconRotation.value)
                     )
                 }
 
