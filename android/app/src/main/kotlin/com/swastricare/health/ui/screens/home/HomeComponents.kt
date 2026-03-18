@@ -16,6 +16,10 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +42,8 @@ import com.swastricare.health.ui.theme.ActivityColor
 import com.swastricare.health.ui.theme.HeartRateColor
 import com.swastricare.health.ui.theme.SleepColor
 import com.swastricare.health.ui.theme.DistanceColor
+import com.swastricare.health.ui.theme.MedicationColor
+import com.swastricare.health.ui.theme.HydrationColor
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
@@ -822,7 +828,12 @@ fun DietQuickActionCard(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
-            .background(DietOrange.copy(alpha = 0.12f))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(DietOrange.copy(alpha = 0.22f), DietOrange.copy(alpha = 0.08f))
+                )
+            )
+            .border(0.5.dp, DietOrange.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
             .clickable { onClick() }
     ) {
         // Orange liquid fill from bottom
@@ -847,18 +858,37 @@ fun DietQuickActionCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(DietOrange.copy(alpha = 0.2f), CircleShape),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocalFireDepartment,
-                    contentDescription = null,
-                    tint = DietOrange,
-                    modifier = Modifier.size(18.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(DietOrange.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocalFireDepartment,
+                        contentDescription = null,
+                        tint = DietOrange,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                CircularProgressRing(
+                    progress = animatedProgress,
+                    color = DietOrange,
+                    strokeWidth = 6f,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Text(
+                        text = "${(animatedProgress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.onSurface
+                    )
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -941,11 +971,20 @@ fun CycleTrackerCard(
             .clip(RoundedCornerShape(24.dp))
             .clickable { onClick() }
     ) {
-        // Solid background
+        // Gradient background
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(CyclePurple.copy(alpha = 0.5f))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(CyclePurple.copy(alpha = 0.65f), CyclePurple.copy(alpha = 0.35f))
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
         )
 
         // Pulsing circle decoration in top-right corner
@@ -1641,5 +1680,227 @@ fun CircularProgressRing(
             )
         }
         content()
+    }
+}
+
+// MARK: - Premium Medication Card
+@Composable
+fun PremiumMedicationCard(
+    medicationsTaken: Int,
+    medicationsTotal: Int,
+    pendingDoses: List<com.swastricare.health.data.models.MedicationDose>,
+    onNavigate: () -> Unit,
+    onMarkTaken: (com.swastricare.health.data.models.MedicationDose) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val progress = if (medicationsTotal > 0) medicationsTaken.toFloat() / medicationsTotal else 0f
+    val gradientBrush = Brush.linearGradient(
+        colors = listOf(MedicationColor.copy(alpha = 0.25f), MedicationColor.copy(alpha = 0.08f))
+    )
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(gradientBrush)
+            .border(0.5.dp, MedicationColor.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
+            .clickable { onNavigate() }
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(MedicationColor.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Medication,
+                        contentDescription = null,
+                        tint = MedicationColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                CircularProgressRing(
+                    progress = progress,
+                    color = MedicationColor,
+                    strokeWidth = 6f,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$medicationsTaken",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.onSurface
+                        )
+                        Text(
+                            text = "/$medicationsTotal",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AppColors.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Medication",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppColors.onSurface.copy(alpha = 0.7f)
+                )
+                if (pendingDoses.isNotEmpty()) {
+                    pendingDoses.take(2).forEach { dose ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MedicationColor.copy(alpha = 0.1f))
+                                .clickable { onMarkTaken(dose) }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = dose.medicationName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AppColors.onSurface,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Take",
+                                tint = MedicationColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Premium Hydration Card
+@Composable
+fun PremiumHydrationCard(
+    currentMl: Int,
+    goalMl: Int,
+    onNavigate: () -> Unit,
+    onQuickAdd: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val progress = if (goalMl > 0) (currentMl.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
+    val gradientBrush = Brush.linearGradient(
+        colors = listOf(HydrationColor.copy(alpha = 0.25f), HydrationColor.copy(alpha = 0.08f))
+    )
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(gradientBrush)
+            .border(0.5.dp, HydrationColor.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
+            .clickable { onNavigate() }
+    ) {
+        WaterWave(progress = progress, color = HydrationColor.copy(alpha = 0.25f), modifier = Modifier.fillMaxSize())
+        WaterWave(progress = progress, color = HydrationColor.copy(alpha = 0.18f), modifier = Modifier.fillMaxSize().padding(top = 4.dp))
+
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(HydrationColor.copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalDrink,
+                            contentDescription = null,
+                            tint = HydrationColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    CircularProgressRing(
+                        progress = progress,
+                        color = HydrationColor,
+                        strokeWidth = 6f,
+                        modifier = Modifier.size(52.dp)
+                    ) {
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.onSurface
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Hydration",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AppColors.onSurface.copy(alpha = 0.7f)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "$currentMl",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AppColors.onSurface
+                            )
+                            Text(
+                                text = " ml",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AppColors.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(HydrationColor.copy(alpha = 0.25f), CircleShape)
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                                ) { onQuickAdd() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "+250ml",
+                                tint = HydrationColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Goal: $goalMl ml",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AppColors.onSurface.copy(alpha = 0.4f)
+                    )
+                }
+            }
+        }
     }
 }
