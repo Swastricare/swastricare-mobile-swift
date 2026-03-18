@@ -489,9 +489,9 @@ private fun MedicationsEmptyContent(onAdd: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         EmptyStateView(
-            emoji = "\uD83D\uDC8A",
             title = "No medications added",
-            subtitle = "Tap + to add your first medication and set reminders."
+            subtitle = "Tap + to add your first medication and set reminders.",
+            illustrationAsset = "illustrations/medication - holding pill bottle .png"
         )
         Spacer(Modifier.height(16.dp))
         Button(
