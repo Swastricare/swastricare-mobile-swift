@@ -532,7 +532,7 @@ final class DietViewModel: ObservableObject {
 
     // MARK: - Food Snap (AI Photo Analysis)
 
-    enum SnapAnalysisState {
+    enum SnapAnalysisState: Equatable {
         case idle
         case analyzing
         case result(SnapFoodResult)
@@ -588,13 +588,17 @@ final class DietViewModel: ObservableObject {
 
             // Parse the AI response
             guard let responseText = response["response"] as? String else {
-                print("🍎 DietVM: No response text from AI router")
+                print("🍎 DietVM: No response text from AI router. Full response: \(response)")
                 snapAnalysisState = .error("Could not analyze the food image. Please try again.")
                 return
             }
 
+            print("🍎 DietVM: Raw AI response: \(responseText)")
+
             // Extract JSON from the response (handle possible markdown wrapping)
             let jsonString = extractJSON(from: responseText)
+            
+            print("🍎 DietVM: Extracted JSON: \(jsonString)")
 
             guard let jsonData = jsonString.data(using: .utf8) else {
                 print("🍎 DietVM: Failed to convert response to data")
@@ -602,11 +606,20 @@ final class DietViewModel: ObservableObject {
                 return
             }
 
-            let parsed = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
-            guard let parsed = parsed,
-                  let name = parsed["name"] as? String else {
-                print("🍎 DietVM: Failed to parse JSON response")
-                snapAnalysisState = .error("Could not understand the analysis result.")
+            // Try to parse JSON with better error handling
+            let parsed: [String: Any]
+            do {
+                parsed = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] ?? [:]
+            } catch {
+                print("🍎 DietVM: JSON parsing error: \(error.localizedDescription)")
+                print("🍎 DietVM: Attempted to parse: \(jsonString)")
+                snapAnalysisState = .error("Invalid response format from AI. Please try again.")
+                return
+            }
+            
+            guard let name = parsed["name"] as? String, !name.isEmpty else {
+                print("🍎 DietVM: Failed to extract food name. Parsed data: \(parsed)")
+                snapAnalysisState = .error("Could not identify the food. Please try again with a clearer image.")
                 return
             }
 
@@ -636,11 +649,24 @@ final class DietViewModel: ObservableObject {
 
         } catch {
             print("🍎 DietVM: Food analysis failed - \(error.localizedDescription)")
-            snapAnalysisState = .error("Analysis failed: \(error.localizedDescription)")
+            
+            // Provide user-friendly error messages
+            let userMessage: String
+            if error.localizedDescription.contains("couldn't be read") || 
+               error.localizedDescription.contains("correct format") {
+                userMessage = "Unable to process the response. Please try again with a clearer photo."
+            } else if error.localizedDescription.contains("network") || 
+                      error.localizedDescription.contains("connection") {
+                userMessage = "Network error. Please check your internet connection and try again."
+            } else {
+                userMessage = "Analysis failed. Please try again with a clearer photo of your food."
+            }
+            
+            snapAnalysisState = .error(userMessage)
         }
     }
 
-    /// Extract JSON object from a string that may contain markdown code fences
+    /// Extract JSON object from a string that may contain markdown code fences or extra text
     private func extractJSON(from text: String) -> String {
         var cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -653,8 +679,17 @@ final class DietViewModel: ObservableObject {
         if cleaned.hasSuffix("```") {
             cleaned = String(cleaned.dropLast(3))
         }
+        
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Try to find JSON object boundaries if there's extra text
+        if let firstBrace = cleaned.firstIndex(of: "{"),
+           let lastBrace = cleaned.lastIndex(of: "}") {
+            let jsonSubstring = cleaned[firstBrace...lastBrace]
+            return String(jsonSubstring)
+        }
 
-        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned
     }
 
     func resetSnapState() {

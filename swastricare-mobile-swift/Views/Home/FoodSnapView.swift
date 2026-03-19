@@ -29,7 +29,6 @@ struct FoodSnapView: View {
     @State private var capturedImage: UIImage?
     @State private var selectedMealType: MealType = .lunch
     @State private var servingQuantity: Double = 1.0
-    @State private var pickerShown = false
 
     // Editable snap fields (after result)
     @State private var editedFoodName: String = ""
@@ -72,59 +71,65 @@ struct FoodSnapView: View {
 
     var body: some View {
         NavigationView {
-            ZStack {
-                Color(UIColor.systemBackground).ignoresSafeArea()
-                VStack(spacing: 0) {
-                    stateContent
-                }
-            }
-            .navigationBarHidden(isAnalyzing)
-            .navigationTitle(navigationTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { snapToolbar }
-            .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
-            .fullScreenCover(isPresented: $showCamera) {
-                CameraView { image in
-                    capturedImage = image
-                    showCamera = false
-                }
-            }
-            .onChange(of: selectedPhotoItem) { _, newItem in
-                Task {
-                    guard let item = newItem else { return }
-                    if let data = try? await item.loadTransferable(type: Data.self) {
-                        await viewModel.analyzeFoodImage(data)
-                    }
-                }
-            }
-            .onChange(of: capturedImage) { _, newImage in
-                if let image = newImage, let data = image.jpegData(compressionQuality: 0.85) {
-                    Task { await viewModel.analyzeFoodImage(data) }
-                }
-            }
-            .onChange(of: viewModel.snapAnalysisState) { state in
-                if case .result(let r) = state {
-                    editedFoodName  = r.name
-                    editedCalories  = "\(Int(r.calories))"
-                    editedProtein   = "\(Int(r.proteinG))"
-                    editedCarbs     = "\(Int(r.carbsG))"
-                    editedFat       = "\(Int(r.fatG))"
-                }
+            mainContent
+                .navigationBarHidden(isAnalyzing)
+                .navigationTitle(navigationTitle)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { snapToolbar }
+        }
+    }
+    
+    private var mainContent: some View {
+        ZStack {
+            Color(UIColor.systemBackground).ignoresSafeArea()
+            VStack(spacing: 0) {
+                stateContent
             }
         }
-        .onAppear {
-            if case .idle = viewModel.snapAnalysisState {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    pickerShown = true
-                }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+        .fullScreenCover(isPresented: $showCamera) {
+            cameraView
+        }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            handlePhotoItemChange(newItem)
+        }
+        .onChange(of: capturedImage) { _, newImage in
+            handleCapturedImageChange(newImage)
+        }
+        .onChange(of: viewModel.snapAnalysisState) { _, newState in
+            handleStateChange(newState)
+        }
+    }
+    
+    private var cameraView: some View {
+        CameraView { image in
+            capturedImage = image
+            showCamera = false
+        }
+    }
+    
+    private func handlePhotoItemChange(_ newItem: PhotosPickerItem?) {
+        Task {
+            guard let item = newItem else { return }
+            if let data = try? await item.loadTransferable(type: Data.self) {
+                await viewModel.analyzeFoodImage(data)
             }
         }
-        .sheet(isPresented: $pickerShown, onDismiss: {
-            if case .idle = viewModel.snapAnalysisState {
-                dismiss()
-            }
-        }) {
-            pickerSheet
+    }
+    
+    private func handleCapturedImageChange(_ newImage: UIImage?) {
+        if let image = newImage, let data = image.jpegData(compressionQuality: 0.85) {
+            Task { await viewModel.analyzeFoodImage(data) }
+        }
+    }
+    
+    private func handleStateChange(_ state: DietViewModel.SnapAnalysisState) {
+        if case .result(let r) = state {
+            editedFoodName  = r.name
+            editedCalories  = "\(Int(r.calories))"
+            editedProtein   = "\(Int(r.proteinG))"
+            editedCarbs     = "\(Int(r.carbsG))"
+            editedFat       = "\(Int(r.fatG))"
         }
     }
 
@@ -164,106 +169,6 @@ struct FoodSnapView: View {
         case .result: return "Review & Log"
         case .error: return "Oops!"
         }
-    }
-
-    // MARK: - Picker Sheet
-
-    private var pickerSheet: some View {
-        VStack(spacing: 20) {
-            // Handle bar
-            Capsule()
-                .fill(Color.secondary.opacity(0.3))
-                .frame(width: 36, height: 4)
-                .padding(.top, 12)
-
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 52, weight: .light))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [snapGreen, snapGreenDark],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-
-                Text("Add Food Photo")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.primary)
-
-                Text("Take or choose a photo of your meal.\nOur AI will identify the food and estimate nutrition.")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            .padding(.top, 4)
-
-            // Buttons
-            VStack(spacing: 14) {
-                Button(action: {
-                    pickerShown = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        showCamera = true
-                    }
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                        Text("Take Photo")
-                            .font(.system(size: 17, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [snapGreen, snapGreenDark],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .shadow(color: snapGreen.opacity(0.4), radius: 8, x: 0, y: 4)
-                }
-
-                Button(action: {
-                    pickerShown = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        showPhotoPicker = true
-                    }
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                            .font(.system(size: 18, weight: .semibold))
-                        Text("Choose from Gallery")
-                            .font(.system(size: 17, weight: .semibold))
-                    }
-                    .foregroundColor(snapGreen)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(snapGreen, lineWidth: 1.5)
-                            .background(snapGreen.opacity(0.06).clipShape(RoundedRectangle(cornerRadius: 14)))
-                    )
-                }
-
-                Button(action: {
-                    pickerShown = false
-                    dismiss()
-                }) {
-                    Text("Cancel")
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 32)
-        }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.hidden)
     }
 
     // MARK: - Idle View
@@ -451,44 +356,65 @@ struct FoodSnapView: View {
 
     private func calorieSummary(_ result: SnapFoodResult) -> some View {
         let cal = Double(editedCalories) ?? result.calories
-        let progress = min(1.0, (cal * servingQuantity) / Double(max(1, viewModel.dietGoals.dailyCalories)))
+        let totalCalories = cal * servingQuantity
+        let dailyCals = Double(max(1, viewModel.dietGoals.dailyCalories))
+        let progress = min(1.0, totalCalories / dailyCals)
+        let progressPercent = Int(progress * 100)
+        let displayCalories = Int(totalCalories)
 
         return VStack(spacing: 12) {
-            HStack(alignment: .bottom, spacing: 4) {
-                Text("\(Int(cal * servingQuantity))")
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                Text("kcal")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                    .padding(.bottom, 8)
-            }
-
-            VStack(spacing: 4) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.primary.opacity(0.08))
-                            .frame(height: 6)
-                        Capsule()
-                            .fill(LinearGradient(colors: [snapGreen, snapGreenDark],
-                                                 startPoint: .leading, endPoint: .trailing))
-                            .frame(width: geo.size.width * progress, height: 6)
-                            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: progress)
-                    }
-                }
-                .frame(height: 6)
-
-                HStack {
-                    Spacer()
-                    Text("\(Int(progress * 100))% of daily goal (\(viewModel.dietGoals.dailyCalories) kcal)")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-            }
+            calorieHeader(displayCalories: displayCalories)
+            progressSection(progress: progress, progressPercent: progressPercent, dailyCals: Int(dailyCals))
         }
         .padding(20)
         .glass(cornerRadius: 18)
+    }
+    
+    private func calorieHeader(displayCalories: Int) -> some View {
+        HStack(alignment: .bottom, spacing: 4) {
+            Text("\(displayCalories)")
+                .font(.system(size: 52, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+            Text("kcal")
+                .font(.system(size: 16))
+                .foregroundColor(.secondary)
+                .padding(.bottom, 8)
+        }
+    }
+    
+    private func progressSection(progress: Double, progressPercent: Int, dailyCals: Int) -> some View {
+        VStack(spacing: 4) {
+            progressBar(progress: progress)
+                .frame(height: 6)
+
+            HStack {
+                Spacer()
+                Text("\(progressPercent)% of daily goal (\(dailyCals) kcal)")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private func progressBar(progress: Double) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.primary.opacity(0.08))
+                    .frame(height: 6)
+                
+                let progressGradient = LinearGradient(
+                    colors: [snapGreen, snapGreenDark],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                
+                Capsule()
+                    .fill(progressGradient)
+                    .frame(width: geo.size.width * progress, height: 6)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: progress)
+            }
+        }
     }
 
     private func macroPills(_ result: SnapFoodResult) -> some View {
@@ -704,7 +630,7 @@ struct FoodSnapView: View {
             VStack(spacing: 14) {
                 Button(action: {
                     viewModel.resetSnapState()
-                    pickerShown = true
+                    // No sheet - will show idle view with buttons
                 }) {
                     Label("Try Again", systemImage: "camera.fill")
                         .font(.system(size: 17, weight: .semibold))
