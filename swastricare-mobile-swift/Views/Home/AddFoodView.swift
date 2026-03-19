@@ -43,7 +43,8 @@ struct AddFoodView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                PremiumBackground()
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
@@ -283,12 +284,8 @@ struct AddFoodView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(AppColors.accentGreen.opacity(0.07))
-                        .glass(cornerRadius: 14)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(AppColors.accentGreen.opacity(0.10), lineWidth: 0.8)
-                        )
+                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
@@ -398,8 +395,8 @@ struct AddFoodView: View {
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 10)
-                            .background(AppColors.accentGreen.opacity(0.04))
-                            .glass(cornerRadius: 12)
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                         .buttonStyle(.plain)
                         .padding(.horizontal)
@@ -521,7 +518,8 @@ struct AddFoodView: View {
                                 .buttonStyle(ScaleButtonStyle())
                             }
                             .padding(12)
-                            .glass(cornerRadius: 12)
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                             .padding(.horizontal)
                         }
                     }
@@ -582,12 +580,8 @@ struct AddFoodView: View {
                     .foregroundColor(AppColors.accentBlue.opacity(0.6))
             }
             .padding(16)
-            .background(AppColors.accentBlue.opacity(0.07))
-            .glass(cornerRadius: 14)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(AppColors.accentBlue.opacity(0.20), lineWidth: 1)
-            )
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(ScaleButtonStyle())
         .padding(.horizontal)
@@ -602,7 +596,7 @@ struct AddFoodView: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(AppColors.greenGradient)
+                        .fill(AppColors.accentGreen)
                         .frame(width: 36, height: 36)
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .bold))
@@ -617,12 +611,8 @@ struct AddFoodView: View {
                     .foregroundColor(AppColors.accentGreen.opacity(0.6))
             }
             .padding(16)
-            .background(AppColors.accentGreen.opacity(0.07))
-            .glass(cornerRadius: 14)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(AppColors.accentGreen.opacity(0.20), lineWidth: 1)
-            )
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(ScaleButtonStyle())
         .padding(.horizontal)
@@ -652,7 +642,8 @@ struct FoodQuantitySheet: View {
     var body: some View {
         NavigationView {
             ZStack {
-                PremiumBackground()
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
 
                 VStack(spacing: 24) {
                     // Food header
@@ -871,7 +862,8 @@ struct FoodQuantitySheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .glass(cornerRadius: 16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     private func formatQuantity(_ value: Double) -> String {
@@ -947,11 +939,7 @@ struct FoodQuantitySheet: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(
-                isLogging
-                    ? AnyShapeStyle(AppColors.accentGreen.opacity(0.6))
-                    : AnyShapeStyle(AppColors.greenGradient)
-            )
+            .background(isLogging ? AppColors.accentGreen.opacity(0.6) : AppColors.accentGreen)
             .foregroundColor(.white)
             .cornerRadius(14)
         }

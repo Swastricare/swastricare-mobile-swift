@@ -28,7 +28,6 @@ struct HomeView: View {
     @State private var quickActionsVisible = false
     @State private var showHeartRateMeasurement = false
     @State private var showReminders = false
-    @State private var showDiet = false
     @State private var showARBodyScan = false
     
     // MARK: - Computed Properties
@@ -412,93 +411,128 @@ struct HomeView: View {
 
     private var healthVitalsSection: some View {
         // Diet Summary Card — replaces old vitals grid
-        Button(action: { showDiet = true }) {
+        NavigationLink(destination: DietView(viewModel: dietViewModel)) {
             dietSummaryContent
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(PlainButtonStyle())
         .padding(.horizontal, 16)
     }
 
     private var dietSummaryContent: some View {
-        ZStack {
-            // Gradient background
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            AppColors.dietOrange.opacity(0.12),
-                            AppColors.dietOrangeLight.opacity(0.06),
-                            AppColors.dietOrangeLight.opacity(0.02)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+        VStack(spacing: 0) {
+            // Card body
+            HStack(spacing: 16) {
+                // Left: calorie ring
+                dietCalorieRing
 
-            VStack(spacing: 16) {
-                // Top row: ring + info + chevron
-                HStack(spacing: 16) {
-                    dietCalorieRing
-
-                    VStack(alignment: .leading, spacing: 5) {
+                // Right: calorie numbers + macro chips
+                VStack(alignment: .leading, spacing: 10) {
+                    // Header label
+                    HStack(spacing: 6) {
                         Text("Today's Diet")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
-                            .tracking(0.6)
-
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text("\(dietViewModel.totalCalories)")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text("/ \(dietViewModel.dietGoals.dailyCalories)")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
-                            Text("cal")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.secondary.opacity(0.7))
+                            .tracking(0.5)
+                        Spacer()
+                        // Meal count badge
+                        let mealCount = dietViewModel.nutritionSummary.mealCount
+                        if mealCount > 0 {
+                            Text("\(mealCount) meal\(mealCount == 1 ? "" : "s")")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(AppColors.dietOrange)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(AppColors.dietOrange.opacity(0.12))
+                                .clipShape(Capsule())
                         }
                     }
 
-                    Spacer()
+                    // Calorie numbers
+                    HStack(alignment: .lastTextBaseline, spacing: 3) {
+                        Text("\(dietViewModel.totalCalories)")
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .contentTransition(.numericText())
+                        Text("/ \(dietViewModel.dietGoals.dailyCalories) cal")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
 
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(AppColors.dietOrange)
-                        .frame(width: 30, height: 30)
-                        .background(AppColors.dietOrange.opacity(0.12))
-                        .clipShape(Circle())
+                    // Macro chips row
+                    HStack(spacing: 8) {
+                        DietMacroChip(label: "P", value: Int(dietViewModel.nutritionSummary.totalProteinG), unit: "g", color: AppColors.dietOrange)
+                        DietMacroChip(label: "C", value: Int(dietViewModel.nutritionSummary.totalCarbsG), unit: "g", color: AppColors.macroBlue)
+                        DietMacroChip(label: "F", value: Int(dietViewModel.nutritionSummary.totalFatG), unit: "g", color: AppColors.macroViolet)
+                    }
                 }
 
-                // Macro progress bars
-                HStack(spacing: 10) {
-                    MacroBar(label: "Protein", value: dietViewModel.nutritionSummary.totalProteinG, goal: dietViewModel.proteinGoalGrams, color: AppColors.dietOrange)
-                    MacroBar(label: "Carbs", value: dietViewModel.nutritionSummary.totalCarbsG, goal: dietViewModel.carbsGoalGrams, color: AppColors.macroBlue)
-                    MacroBar(label: "Fat", value: dietViewModel.nutritionSummary.totalFatG, goal: dietViewModel.fatGoalGrams, color: AppColors.macroViolet)
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            // Full-width calorie progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(AppColors.dietOrange.opacity(0.12))
+                        .frame(height: 4)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(AppColors.dietOrangeGradient)
+                        .frame(width: geo.size.width * dietCalorieProgress, height: 4)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: dietCalorieProgress)
                 }
             }
-            .padding(18)
+            .frame(height: 4)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 14)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [AppColors.dietOrange.opacity(0.07), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(AppColors.dietOrange.opacity(0.12), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.dietOrange.opacity(0.15), lineWidth: 0.8)
         )
     }
 
     private var dietCalorieRing: some View {
         ZStack {
             Circle()
-                .stroke(AppColors.dietOrange.opacity(0.12), lineWidth: 8)
-                .frame(width: 68, height: 68)
+                .stroke(AppColors.dietOrange.opacity(0.12), lineWidth: 7)
+                .frame(width: 72, height: 72)
             Circle()
                 .trim(from: 0, to: dietCalorieProgress)
-                .stroke(AppColors.dietOrangeGradient, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                .frame(width: 68, height: 68)
+                .stroke(AppColors.dietOrangeGradient, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .frame(width: 72, height: 72)
                 .rotationEffect(.degrees(-90))
-            Image(systemName: "fork.knife")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(AppColors.dietOrangeGradient)
+                .animation(.spring(response: 0.7, dampingFraction: 0.8), value: dietCalorieProgress)
+            VStack(spacing: 1) {
+                Text("\(Int(dietCalorieProgress * 100))%")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .contentTransition(.numericText())
+                Text("done")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
         }
     }
     
@@ -558,9 +592,6 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showHydration) {
             HydrationView(viewModel: hydrationViewModel)
-        }
-        .sheet(isPresented: $showDiet) {
-            DietView(viewModel: dietViewModel)
         }
         .sheet(isPresented: $showMenstrualCycle) {
             MenstrualCycleView()
@@ -867,6 +898,36 @@ private struct CompactStatCell: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(color.opacity(0.10), lineWidth: 0.5)
         )
+    }
+}
+
+// MARK: - Macro Bar (for diet summary card)
+
+// MARK: - Diet Macro Chip (for home diet card)
+
+private struct DietMacroChip: View {
+    let label: String
+    let value: Int
+    let unit: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text("\(value)\(unit)")
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundColor(.primary)
+                .contentTransition(.numericText())
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(color.opacity(0.10))
+        .clipShape(Capsule())
     }
 }
 

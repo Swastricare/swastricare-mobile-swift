@@ -26,7 +26,6 @@ struct FoodSnapView: View {
     @State private var showCamera = false
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var capturedImage: UIImage?
     @State private var selectedMealType: MealType = .lunch
     @State private var servingQuantity: Double = 1.0
 
@@ -93,9 +92,6 @@ struct FoodSnapView: View {
         .onChange(of: selectedPhotoItem) { _, newItem in
             handlePhotoItemChange(newItem)
         }
-        .onChange(of: capturedImage) { _, newImage in
-            handleCapturedImageChange(newImage)
-        }
         .onChange(of: viewModel.snapAnalysisState) { _, newState in
             handleStateChange(newState)
         }
@@ -103,8 +99,9 @@ struct FoodSnapView: View {
     
     private var cameraView: some View {
         CameraView { image in
-            capturedImage = image
             showCamera = false
+            guard let data = image.jpegData(compressionQuality: 0.85) else { return }
+            Task { await viewModel.analyzeFoodImage(data) }
         }
     }
     
@@ -114,12 +111,6 @@ struct FoodSnapView: View {
             if let data = try? await item.loadTransferable(type: Data.self) {
                 await viewModel.analyzeFoodImage(data)
             }
-        }
-    }
-    
-    private func handleCapturedImageChange(_ newImage: UIImage?) {
-        if let image = newImage, let data = image.jpegData(compressionQuality: 0.85) {
-            Task { await viewModel.analyzeFoodImage(data) }
         }
     }
     

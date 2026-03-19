@@ -936,104 +936,55 @@ struct WeeklyReportSheet: View {
     @Environment(\.dismiss) var dismiss
     let report: WeeklyDietReport
 
+    @State private var barsAppeared = false
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    private var adherenceColor: Color {
+        if report.adherencePercent >= 80 { return AppColors.accentGreen }
+        if report.adherencePercent >= 55 { return .orange }
+        return AppColors.accentRed
+    }
+
     var body: some View {
         NavigationView {
-            List {
-                // Date range header
-                Section {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            let fmt = DateFormatter()
-                            let _ = { fmt.dateFormat = "MMM d" }()
-                            Text("\(fmt.string(from: report.startDate)) – \(fmt.string(from: report.endDate))")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(.primary)
-                            Text("\(report.totalMealsLogged) meals logged")
-                                .font(.system(size: 13))
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+
+                    // ── Hero header ──────────────────────────────────────────
+                    heroHeader
+
+                    // ── Calorie + streak quick stats ─────────────────────────
+                    calorieStatsCard
+
+                    // ── Macro averages ───────────────────────────────────────
+                    macrosCard
+
+                    // ── Nutrient gaps ────────────────────────────────────────
+                    if !report.nutrientGaps.isEmpty {
+                        nutrientGapsCard
                     }
-                }
 
-                // Calorie summary
-                Section("Calories") {
-                    reportRow(label: "Average / day", value: "\(report.averageDailyCalories) cal")
-                    reportRow(label: "Daily goal", value: "\(report.calorieGoal) cal")
-                    reportRow(label: "Adherence", value: "\(Int(report.adherencePercent))%")
-                    if let best = report.bestDay {
-                        reportRow(label: "Best day", value: "\(best.calories) cal")
+                    // ── Top foods ────────────────────────────────────────────
+                    if !report.topFoods.isEmpty {
+                        topFoodsCard
                     }
-                }
 
-                // Macro averages
-                Section("Average Macros") {
-                    reportRow(label: "Protein", value: "\(Int(report.macroAverages.proteinG))g")
-                    reportRow(label: "Carbs", value: "\(Int(report.macroAverages.carbsG))g")
-                    reportRow(label: "Fat", value: "\(Int(report.macroAverages.fatG))g")
-                }
-
-                // Streak
-                Section("Streaks") {
-                    reportRow(label: "Current streak", value: "\(report.streakInfo.current) days")
-                    reportRow(label: "Best streak", value: "\(report.streakInfo.best) days")
-                }
-
-                // Nutrient gaps
-                if !report.nutrientGaps.isEmpty {
-                    Section("Nutrient Gaps") {
-                        ForEach(report.nutrientGaps) { gap in
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack {
-                                    Text(gap.nutrient)
-                                        .font(.system(size: 15, weight: .medium))
-                                    Spacer()
-                                    Text("\(Int(gap.averageIntake)) / \(Int(gap.recommendedIntake))")
-                                        .font(.system(size: 13, design: .rounded))
-                                        .foregroundStyle(.secondary)
-                                }
-                                Text(gap.suggestion)
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 2)
-                        }
+                    // ── Tips ─────────────────────────────────────────────────
+                    if !report.improvementTips.isEmpty {
+                        tipsCard
                     }
-                }
 
-                // Top foods
-                if !report.topFoods.isEmpty {
-                    Section("Top Foods") {
-                        ForEach(Array(report.topFoods.enumerated()), id: \.offset) { i, food in
-                            HStack {
-                                Text("\(i + 1)")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundStyle(AppColors.accentGreen)
-                                    .frame(width: 24)
-                                Text(food.name)
-                                    .font(.system(size: 15))
-                                Spacer()
-                                Text("\(food.count)×")
-                                    .font(.system(size: 13, design: .rounded))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
+                    Spacer().frame(height: 20)
                 }
-
-                // Tips
-                if !report.improvementTips.isEmpty {
-                    Section("Tips") {
-                        ForEach(report.improvementTips, id: \.self) { tip in
-                            Label(tip, systemImage: "lightbulb.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.primary)
-                                .labelStyle(.titleAndIcon)
-                        }
-                    }
-                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
             }
-            .listStyle(.insetGrouped)
+            .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Weekly Report")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1042,18 +993,359 @@ struct WeeklyReportSheet: View {
                         .fontWeight(.semibold)
                 }
             }
+            .onAppear {
+                withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.15)) {
+                    barsAppeared = true
+                }
+            }
         }
     }
 
-    private func reportRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
+    // MARK: - Hero header
+
+    private var heroHeader: some View {
+        VStack(spacing: 4) {
+            Text("\(Self.dateFormatter.string(from: report.startDate)) – \(Self.dateFormatter.string(from: report.endDate))")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text("\(report.totalMealsLogged) meals logged this week")
+                .font(.system(size: 12))
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: - Calorie + streak card
+
+    private var calorieStatsCard: some View {
+        VStack(spacing: 0) {
+            // Big adherence number at top
+            VStack(spacing: 4) {
+                Text("\(Int(report.adherencePercent))%")
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                    .foregroundStyle(adherenceColor)
+                Text("goal adherence")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+
+            Divider()
+
+            // Three stats in a row
+            HStack(spacing: 0) {
+                reportStatCell(
+                    value: "\(report.averageDailyCalories)",
+                    unit: "cal",
+                    label: "avg / day"
+                )
+                reportDivider
+                reportStatCell(
+                    value: "\(report.calorieGoal)",
+                    unit: "cal",
+                    label: "daily goal"
+                )
+                reportDivider
+                if let best = report.bestDay {
+                    reportStatCell(
+                        value: "\(best.calories)",
+                        unit: "cal",
+                        label: "best day"
+                    )
+                } else {
+                    reportStatCell(
+                        value: "\(report.streakInfo.current)",
+                        unit: "days",
+                        label: "streak"
+                    )
+                }
+            }
+            .padding(.vertical, 16)
+
+            Divider()
+
+            // Streak row
+            HStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    Text(report.streakInfo.current > 0 ? "🔥" : "❄️")
+                        .font(.system(size: 20))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("\(report.streakInfo.current) day streak")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        Text("current")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                Rectangle()
+                    .fill(Color(UIColor.separator).opacity(0.5))
+                    .frame(width: 0.5)
+                    .padding(.vertical, 8)
+
+                HStack(spacing: 8) {
+                    Text("🏆")
+                        .font(.system(size: 20))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("\(report.streakInfo.best) day streak")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        Text("personal best")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: - Macros card
+
+    private var macrosCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Average Macros")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+
+            HStack(spacing: 0) {
+                macroRingCell(
+                    label: "Protein",
+                    current: Int(report.macroAverages.proteinG),
+                    color: AppColors.accentBlue
+                )
+                reportDivider
+                macroRingCell(
+                    label: "Carbs",
+                    current: Int(report.macroAverages.carbsG),
+                    color: AppColors.accentGreen
+                )
+                reportDivider
+                macroRingCell(
+                    label: "Fat",
+                    current: Int(report.macroAverages.fatG),
+                    color: .orange
+                )
+            }
+            .padding(.bottom, 16)
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func macroRingCell(label: String, current: Int, color: Color) -> some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .stroke(color.opacity(0.15), lineWidth: 7)
+                    .frame(width: 56, height: 56)
+                Circle()
+                    .trim(from: 0, to: barsAppeared ? 0.72 : 0)
+                    .stroke(color, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .frame(width: 56, height: 56)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.spring(response: 0.7, dampingFraction: 0.8), value: barsAppeared)
+                Text("\(current)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+            }
+            Text("\(current)g")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundStyle(.primary)
-            Spacer()
-            Text(value)
-                .font(.system(size: 15, design: .rounded))
+            Text(label)
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Nutrient gaps card
+
+    private var nutrientGapsCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            reportSectionHeader("Nutrient Gaps", icon: "exclamationmark.triangle.fill", iconColor: .orange)
+
+            ForEach(Array(report.nutrientGaps.enumerated()), id: \.element.id) { i, gap in
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(gap.nutrient)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Text("\(Int(gap.averageIntake)) / \(Int(gap.recommendedIntake))\(gap.nutrient == "Calories" ? " cal" : "g")")
+                            .font(.system(size: 13, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color(UIColor.systemFill))
+                                .frame(height: 6)
+                            Capsule()
+                                .fill(gapColor(for: gap.deficitPercent))
+                                .frame(width: barsAppeared ? geo.size.width * min(1, gap.averageIntake / max(1, gap.recommendedIntake)) : 0, height: 6)
+                                .animation(.spring(response: 0.7, dampingFraction: 0.8).delay(Double(i) * 0.05), value: barsAppeared)
+                        }
+                    }
+                    .frame(height: 6)
+
+                    Text(gap.suggestion)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                if i < report.nutrientGaps.count - 1 {
+                    Divider().padding(.leading, 16)
+                }
+            }
+
+            Spacer().frame(height: 4)
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func gapColor(for deficit: Double) -> Color {
+        if deficit > 40 { return AppColors.accentRed }
+        if deficit > 20 { return .orange }
+        return AppColors.accentGreen
+    }
+
+    // MARK: - Top foods card
+
+    private var topFoodsCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            reportSectionHeader("Top Foods", icon: "fork.knife", iconColor: AppColors.accentGreen)
+
+            ForEach(Array(report.topFoods.enumerated()), id: \.offset) { i, food in
+                HStack(spacing: 12) {
+                    // Rank badge
+                    ZStack {
+                        Circle()
+                            .fill(i == 0 ? Color.yellow.opacity(0.15) : Color(UIColor.systemFill))
+                            .frame(width: 32, height: 32)
+                        Text("\(i + 1)")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(i == 0 ? Color.yellow : .secondary)
+                    }
+
+                    Text(food.name)
+                        .font(.system(size: 15))
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    // Frequency pill
+                    Text("\(food.count)×")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(AppColors.accentGreen)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(AppColors.accentGreen.opacity(0.10))
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 11)
+
+                if i < report.topFoods.count - 1 {
+                    Divider().padding(.leading, 60)
+                }
+            }
+
+            Spacer().frame(height: 4)
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: - Tips card
+
+    private var tipsCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            reportSectionHeader("Tips for Next Week", icon: "lightbulb.fill", iconColor: .yellow)
+
+            ForEach(Array(report.improvementTips.enumerated()), id: \.offset) { i, tip in
+                HStack(alignment: .top, spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.yellow.opacity(0.12))
+                            .frame(width: 28, height: 28)
+                        Text("\(i + 1)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.orange)
+                    }
+
+                    Text(tip)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                if i < report.improvementTips.count - 1 {
+                    Divider().padding(.leading, 56)
+                }
+            }
+
+            Spacer().frame(height: 4)
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: - Shared helpers
+
+    private func reportSectionHeader(_ title: String, icon: String, iconColor: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(iconColor)
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 4)
+    }
+
+    private func reportStatCell(value: String, unit: String, label: String) -> some View {
+        VStack(spacing: 3) {
+            HStack(alignment: .lastTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                Text(unit)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var reportDivider: some View {
+        Rectangle()
+            .fill(Color(UIColor.separator).opacity(0.5))
+            .frame(width: 0.5)
+            .padding(.vertical, 8)
     }
 }
 
