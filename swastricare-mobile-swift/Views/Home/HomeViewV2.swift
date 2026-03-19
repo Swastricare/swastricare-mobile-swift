@@ -19,6 +19,7 @@ struct HomeViewV2: View {
     @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
     @StateObject private var aiViewModel = DependencyContainer.shared.aiViewModel
+    @StateObject private var dietViewModel = DependencyContainer.shared.dietViewModel
     
     // MARK: - Local State
     
@@ -30,6 +31,7 @@ struct HomeViewV2: View {
     @State private var showMedications = false
     @State private var showHydration = false
     @State private var showReminders = false
+    @State private var showHeartRateMeasurement = false
     @State private var cardOffset: CGFloat = 0
     @State private var animationProgress: CGFloat = 0
     @State private var animationTimer: Timer?
@@ -141,11 +143,13 @@ struct HomeViewV2: View {
                 VStack(spacing: 0) {
                     // Greeting Section
                     greetingSection
-                        .padding(.top, 8)
+                        .padding(.top, 0)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
-                    
-                    // Daily Activity Section - REMOVED (replaced with workout progress card in greeting section)
+
+                    // Daily Activity Section
+                    dailyActivitySection
+                        .padding(.bottom, 24)
                     
                     // Mood Question Section - Heart Animation and AI Messages (COMMENTED OUT)
                     // moodQuestionSection
@@ -160,7 +164,6 @@ struct HomeViewV2: View {
                     
                     // Quick Action Section
                     quickActionSection
-                        .padding(.horizontal, 20)
                         .padding(.bottom, 24)
                     
                     // Health Vitals Section
@@ -204,6 +207,7 @@ struct HomeViewV2: View {
             await trackerViewModel.loadData()
             await hydrationViewModel.loadData()
             await medicationViewModel.loadMedications()
+            await dietViewModel.loadData()
             
             // Start background task to generate AI suggestions (COMMENTED OUT)
             // Task.detached(priority: .background) {
@@ -244,6 +248,21 @@ struct HomeViewV2: View {
         }
         .sheet(isPresented: $showReminders) {
             NotificationSettingsView(viewModel: hydrationViewModel)
+        }
+        .sheet(isPresented: $showHeartRateMeasurement) {
+            NavigationStack {
+                HeartRateView()
+            }
+        }
+        .sheet(isPresented: $showDiet) {
+            NavigationStack {
+                DietView(viewModel: DependencyContainer.shared.dietViewModel)
+            }
+        }
+        .sheet(isPresented: $showCycle) {
+            NavigationStack {
+                MenstrualCycleView()
+            }
         }
     }
     
@@ -754,131 +773,32 @@ struct HomeViewV2: View {
                 .buttonStyle(PlainButtonStyle())
             }
             
-            // Date Pill
-            HStack {
+            // Motivational text
+            Text("Let's start living healthy from now on")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
+
+            // Date Chip
+            HStack(spacing: 8) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(hex: "60A5FA"))
+
                 Text(getFormattedDate())
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary.opacity(0.85))
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(
                 Capsule()
-                    .fill(Color.gray.opacity(0.8))
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        Capsule()
+                            .stroke(Color(hex: "2563EB").opacity(0.2), lineWidth: 1)
+                    )
             )
-            
-            // Main Heading
-            Text("Daily Activity")
-                .font(.system(size: 36, weight: .bold))
-                .foregroundColor(.primary)
-            
-            // Social/Community Section
-            HStack(spacing: 8) {
-                // Profile Icons
-                HStack(spacing: -8) {
-                    Circle()
-                        .fill(Color.blue.opacity(0.2))
-                        .frame(width: 32, height: 32)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.blue)
-                        )
-                    
-                    Circle()
-                        .fill(Color.green.opacity(0.2))
-                        .frame(width: 32, height: 32)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.green)
-                        )
-                }
-                
-                // Add More Button
-                // Button(action: {
-                //     // Add more people or view community
-                // }) {
-                //     Circle()
-                //         .strokeBorder(Color.gray.opacity(0.3), lineWidth: 2, antialiased: true)
-                //         .frame(width: 32, height: 32)
-                //         .overlay(
-                //             Image(systemName: "plus")
-                //                 .font(.system(size: 12, weight: .medium))
-                //                 .foregroundColor(.gray)
-                //         )
-                // }
-                // .buttonStyle(PlainButtonStyle())
-                
-                // Text("215 People Joined")
-                //     .font(.system(size: 14, weight: .medium))
-                //     .foregroundColor(.primary)
-                
-                // Spacer()
-            }
-            
-            // Workout Progress Card - Steps, Distance, Kcal
-            VStack(alignment: .leading, spacing: 12) {
-                // Text("Workout Progress")
-                //     .font(.system(size: 16, weight: .semibold))
-                //     .foregroundColor(.white)
-                
-                // Steps, Distance, Kcal Grid
-                HStack(spacing: 12) {
-                    // Steps
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "figure.walk")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.9))
-                            Text(formatSteps(viewModel.stepCount))
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-                        Text("Steps")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    // Distance
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.left.and.right")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.9))
-                            Text(formatDistance(viewModel.distance))
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-                        Text("Distance")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    // Kcal
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.9))
-                            Text("\(viewModel.activeCalories)")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-                        Text("Kcal")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.gray.opacity(0.8))
-            )
+
         }
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : -20)
@@ -1099,42 +1019,63 @@ struct HomeViewV2: View {
     */
     
     // MARK: - Daily Activity Section
-    
+
     private var dailyActivitySection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Section Header
             HStack(alignment: .center) {
                 Text("Daily Activity")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.primary)
-                
                 Spacer()
             }
-            
-            // Daily Activity Cards Grid
+
             HStack(spacing: 16) {
-                // Steps Card
-                StepsCard(
-                    steps: viewModel.stepCount,
+                // Left - Activity list
+                VStack(alignment: .leading, spacing: 14) {
+                    ActivityRowLabel(
+                        value: formatSteps(viewModel.stepCount),
+                        label: "Steps",
+                        icon: "figure.walk",
+                        color: Color(hex: "EF4444"),
+                        progress: viewModel.stepProgress
+                    )
+                    ActivityRowLabel(
+                        value: "\(viewModel.activeCalories) kcal",
+                        label: "Calories",
+                        icon: "flame.fill",
+                        color: Color(hex: "F97316"),
+                        progress: viewModel.calorieProgress
+                    )
+                    ActivityRowLabel(
+                        value: "\(dietViewModel.totalCalories) cal",
+                        label: "Diet",
+                        icon: "fork.knife",
+                        color: Color(hex: "22C55E"),
+                        progress: dietViewModel.calorieProgress
+                    )
+                    ActivityRowLabel(
+                        value: formatDistance(viewModel.distance),
+                        label: "Distance",
+                        icon: "arrow.triangle.swap",
+                        color: Color(hex: "8B5CF6"),
+                        progress: min(viewModel.distance / 5.0, 1.0)
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Right - Concentric Activity Rings
+                ActivityRingsView(
+                    stepsProgress: viewModel.stepProgress,
+                    calorieProgress: viewModel.calorieProgress,
+                    dietProgress: dietViewModel.calorieProgress,
+                    distanceProgress: min(viewModel.distance / 5.0, 1.0),
                     hasAppeared: hasAppeared
                 )
-                .frame(maxWidth: .infinity)
-                
-                // Distance Card
-                DistanceCard(
-                    distance: viewModel.distance,
-                    hasAppeared: hasAppeared
-                )
-                .frame(maxWidth: .infinity)
-                
-                // Kcal Card
-                KcalCard(
-                    calories: viewModel.activeCalories,
-                    hasAppeared: hasAppeared
-                )
-                .frame(maxWidth: .infinity)
+                .frame(width: 150, height: 150)
             }
+            .padding(.vertical, 8)
         }
+        .padding(.horizontal, 20)
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : 20)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: hasAppeared)
@@ -1147,7 +1088,7 @@ struct HomeViewV2: View {
             // Section Header
             HStack(alignment: .center) {
                 Text("Health Vitals")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -1172,11 +1113,14 @@ struct HomeViewV2: View {
                         hasAppeared: hasAppeared
                     )
                     
-                    // BPM Card
-                    BPMPriorityCard(
-                        heartRate: viewModel.heartRate,
-                        hasAppeared: hasAppeared
-                    )
+                    // BPM Card - tap to measure
+                    Button(action: { showHeartRateMeasurement = true }) {
+                        BPMPriorityCard(
+                            heartRate: viewModel.heartRate,
+                            hasAppeared: hasAppeared
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 172)
@@ -1189,98 +1133,70 @@ struct HomeViewV2: View {
     
     // MARK: - Quick Action Section
     
+    @State private var showDiet = false
+    @State private var showCycle = false
+
     private var quickActionSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Section Header
             HStack(alignment: .center) {
                 Text("Quick Action")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.primary)
-                
+
                 Spacer()
             }
-            
-            // Quick Action Cards Grid
-            HStack(spacing: 16) {
-                // Hydration Card
-                Button(action: {
-                    showHydration = true
-                }) {
-                    HydrationQuickActionCard(
-                        currentIntake: hydrationViewModel.effectiveIntake,
-                        dailyGoal: hydrationViewModel.dailyGoal,
-                        hasAppeared: hasAppeared
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
-                .frame(maxWidth: .infinity)
-                
-                // Medication Card
-                Button(action: {
-                    showMedications = true
-                }) {
-                    MedicationQuickActionCard(
-                        takenCount: medicationViewModel.takenCount,
-                        totalCount: medicationViewModel.totalCount,
-                        hasAppeared: hasAppeared
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
-                .frame(maxWidth: .infinity)
-            }
+            .padding(.horizontal, 20)
 
-            // Ask Swastri AI Card
-            Button(action: {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                NotificationCenter.default.post(name: NSNotification.Name("SwitchToAITab"), object: nil)
-            }) {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "2E3192").opacity(0.15), Color(hex: "4A90E2").opacity(0.1)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 40, height: 40)
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(Color(hex: "2E3192"))
-                    }
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Ask Swastri AI")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.primary)
-                        Text("Get personalised health insights")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "arrow.right.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(Color(hex: "2E3192").opacity(0.6))
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .glass(cornerRadius: 16)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(
-                            LinearGradient(
-                                colors: [Color(hex: "2E3192").opacity(0.2), Color(hex: "4A90E2").opacity(0.1)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            lineWidth: 0.5
+            // Horizontal Scroll Quick Action Cards
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    // Hydration Card
+                    Button(action: {
+                        showHydration = true
+                    }) {
+                        HydrationQuickActionCard(
+                            currentIntake: hydrationViewModel.effectiveIntake,
+                            dailyGoal: hydrationViewModel.dailyGoal,
+                            hasAppeared: hasAppeared
                         )
-                )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(width: 160)
+
+                    // Medication Card
+                    Button(action: {
+                        showMedications = true
+                    }) {
+                        MedicationQuickActionCard(
+                            takenCount: medicationViewModel.takenCount,
+                            totalCount: medicationViewModel.totalCount,
+                            hasAppeared: hasAppeared
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(width: 160)
+
+                    // Diet Card
+                    Button(action: {
+                        showDiet = true
+                    }) {
+                        DietQuickActionCard(hasAppeared: hasAppeared)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(width: 160)
+
+                    // Cycle Card
+                    Button(action: {
+                        showCycle = true
+                    }) {
+                        CycleQuickActionCard(hasAppeared: hasAppeared)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(width: 160)
+                }
+                .padding(.horizontal, 20)
             }
-            .buttonStyle(ScaleButtonStyle())
         }
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : 20)
@@ -1696,206 +1612,426 @@ private struct SleepWaveform: View {
     }
 }
 
-// MARK: - Steps Card
+// MARK: - Activity Ring Tip Shape
 
-private struct StepsCard: View {
-    let steps: Int
-    let hasAppeared: Bool
-    
-    @State private var cardAppeared = false
-    
-    private var formattedSteps: String {
-        if steps >= 1000 {
-            return String(format: "%.1fk", Double(steps) / 1000.0)
-        }
-        return "\(steps)"
+private struct ActivityRingTip: Shape {
+    var progress: Double
+    var ringRadius: Double
+
+    private var position: CGPoint {
+        let progressAngle = Angle(degrees: (360.0 * progress) - 90.0)
+        return CGPoint(
+            x: ringRadius * cos(progressAngle.radians),
+            y: ringRadius * sin(progressAngle.radians)
+        )
     }
-    
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        if progress > 0.0 {
+            let frame = CGRect(
+                x: position.x,
+                y: position.y,
+                width: rect.size.width,
+                height: rect.size.height
+            )
+            path.addEllipse(in: frame)
+        }
+        return path
+    }
+}
+
+// MARK: - Single Activity Ring
+
+private struct ActivityRingShape: View {
+    let progress: Double
+    let ringRadius: CGFloat
+    let thickness: CGFloat
+    let gradient: [Color]
+
     var body: some View {
         ZStack {
-            // Background gradient
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.green.opacity(0.8),
-                            Color.mint.opacity(0.8)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+            // Background track
+            Circle()
+                .stroke(gradient.first?.opacity(0.15) ?? Color.gray.opacity(0.15), lineWidth: thickness)
+                .frame(width: ringRadius * 2, height: ringRadius * 2)
+
+            // Progress arc
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: gradient),
+                        center: .center,
+                        startAngle: .degrees(0),
+                        endAngle: .degrees(360)
+                    ),
+                    style: StrokeStyle(lineWidth: thickness, lineCap: .round)
                 )
-                .frame(height: 120)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: "figure.walk")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.9))
-                    
-                    Spacer()
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(formattedSteps)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    
-                    Text("Steps")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
-                }
-            }
-            .padding(16)
-        }
-        .frame(height: 120)
-        .shadow(color: Color.green.opacity(0.3), radius: 8, x: 0, y: 4)
-        .opacity(cardAppeared ? 1 : 0)
-        .scaleEffect(cardAppeared ? 1 : 0.95)
-        .onChange(of: hasAppeared) { _, newValue in
-            if newValue && !cardAppeared {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                        cardAppeared = true
-                    }
-                }
-            }
+                .rotationEffect(.degrees(-90))
+                .frame(width: ringRadius * 2, height: ringRadius * 2)
+
+            // Leading tip circle for smooth end
+            ActivityRingTip(progress: progress, ringRadius: ringRadius)
+                .fill(gradient.last ?? .white)
+                .frame(width: thickness, height: thickness)
+                .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 0)
         }
     }
 }
 
-// MARK: - Distance Card
+// MARK: - Concentric Activity Rings View
 
-private struct DistanceCard: View {
-    let distance: Double
+private struct ActivityRingsView: View {
+    let stepsProgress: Double
+    let calorieProgress: Double
+    let dietProgress: Double
+    let distanceProgress: Double
     let hasAppeared: Bool
-    
-    @State private var cardAppeared = false
-    
-    private var formattedDistance: String {
-        if distance >= 1.0 {
-            return String(format: "%.1f km", distance)
-        } else {
-            let meters = Int(distance * 1000)
-            return "\(meters) m"
-        }
-    }
-    
+
+    @State private var animatedSteps: Double = 0
+    @State private var animatedCalorie: Double = 0
+    @State private var animatedDiet: Double = 0
+    @State private var animatedDistance: Double = 0
+    @State private var ringScale: CGFloat = 0.6
+    @State private var ringRotation: Double = -30
+    @State private var glowOpacity: Double = 0
+    @State private var refreshTimer: Timer?
+
     var body: some View {
         ZStack {
-            // Background gradient
-            RoundedRectangle(cornerRadius: 24)
+            // Subtle glow behind rings
+            Circle()
                 .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.blue.opacity(0.8),
-                            Color.cyan.opacity(0.8)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                    RadialGradient(
+                        colors: [Color(hex: "EF4444").opacity(0.2), .clear],
+                        center: .center,
+                        startRadius: 20,
+                        endRadius: 90
                     )
                 )
-                .frame(height: 120)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: "arrow.left.and.right")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.9))
-                    
-                    Spacer()
+                .frame(width: 180, height: 180)
+                .opacity(glowOpacity)
+
+            // Outer ring - Steps (Red)
+            ActivityRingShape(
+                progress: animatedSteps,
+                ringRadius: 68,
+                thickness: 14,
+                gradient: [Color(hex: "EF4444"), Color(hex: "FF3B30")]
+            )
+
+            // 2nd ring - Calories (Orange)
+            ActivityRingShape(
+                progress: animatedCalorie,
+                ringRadius: 52,
+                thickness: 14,
+                gradient: [Color(hex: "F97316"), Color(hex: "FF9500")]
+            )
+
+            // 3rd ring - Diet (Green)
+            ActivityRingShape(
+                progress: animatedDiet,
+                ringRadius: 36,
+                thickness: 14,
+                gradient: [Color(hex: "22C55E"), Color(hex: "34C759")]
+            )
+
+            // Inner ring - Distance (Purple)
+            ActivityRingShape(
+                progress: animatedDistance,
+                ringRadius: 20,
+                thickness: 14,
+                gradient: [Color(hex: "8B5CF6"), Color(hex: "A855F7")]
+            )
+        }
+        .scaleEffect(ringScale)
+        .rotationEffect(.degrees(ringRotation))
+        .onAppear {
+            if hasAppeared {
+                animateRings()
+            }
+            startRefreshTimer()
+        }
+        .onDisappear {
+            refreshTimer?.invalidate()
+            refreshTimer = nil
+        }
+        .onChange(of: hasAppeared) { _, newValue in
+            if newValue {
+                animateRings()
+            }
+        }
+    }
+
+    private func animateRings() {
+        // Scale + rotation entrance
+        withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
+            ringScale = 1.0
+            ringRotation = 0
+        }
+
+        // Glow fade in
+        withAnimation(.easeIn(duration: 0.6).delay(0.2)) {
+            glowOpacity = 1.0
+        }
+
+        // Staggered ring fill
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.spring(response: 1.2, dampingFraction: 0.65)) {
+                animatedSteps = stepsProgress
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            withAnimation(.spring(response: 1.0, dampingFraction: 0.65)) {
+                animatedCalorie = calorieProgress
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.65)) {
+                animatedDiet = dietProgress
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.65)) {
+                animatedDistance = distanceProgress
+            }
+        }
+    }
+
+    private func startRefreshTimer() {
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            DispatchQueue.main.async {
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                    animatedSteps = stepsProgress
+                    animatedCalorie = calorieProgress
+                    animatedDiet = dietProgress
+                    animatedDistance = distanceProgress
                 }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(formattedDistance)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+            }
+        }
+        RunLoop.current.add(refreshTimer!, forMode: .common)
+    }
+}
+
+// MARK: - Daily Activity Progress Bar
+
+private struct DailyActivityCard: View {
+    let title: String
+    let value: String
+    let goal: String
+    var unit: String = ""
+    let icon: String
+    let progress: Double
+    let gradientColors: [Color]
+    let hasAppeared: Bool
+
+    @State private var animatedProgress: Double = 0
+    @State private var barAppeared = false
+    @State private var refreshTimer: Timer?
+    @State private var pulseScale: CGFloat = 1.0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Icon + Title row
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(gradientColors.last ?? .blue)
+
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                Spacer()
+
+                Text("\(Int(animatedProgress * 100))%")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(gradientColors.last ?? .blue)
+                    .contentTransition(.numericText())
+            }
+
+            // Progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(gradientColors.first?.opacity(0.15) ?? Color.blue.opacity(0.15))
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: max(geo.size.width * animatedProgress, 6))
+                        .shadow(color: (gradientColors.last ?? .blue).opacity(0.4), radius: 4, x: 0, y: 0)
+                }
+            }
+            .frame(height: 10)
+            .clipShape(Capsule())
+            .scaleEffect(x: 1, y: pulseScale)
+
+            // Value + Goal row
+            HStack {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    
-                    Text("Distance")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
-                }
-            }
-            .padding(16)
-        }
-        .frame(height: 120)
-        .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
-        .opacity(cardAppeared ? 1 : 0)
-        .scaleEffect(cardAppeared ? 1 : 0.95)
-        .onChange(of: hasAppeared) { _, newValue in
-            if newValue && !cardAppeared {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                        cardAppeared = true
+
+                    if !unit.isEmpty {
+                        Text(unit)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
                     }
                 }
+
+                Spacer()
+
+                Text("/ \(goal)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
             }
         }
-    }
-}
-
-// MARK: - Kcal Card
-
-private struct KcalCard: View {
-    let calories: Int
-    let hasAppeared: Bool
-    
-    @State private var cardAppeared = false
-    
-    var body: some View {
-        ZStack {
-            // Background gradient
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.orange.opacity(0.8),
-                            Color.red.opacity(0.8)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+        .padding(14)
+        .frame(width: 180)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(gradientColors.first?.opacity(0.15) ?? Color.blue.opacity(0.15), lineWidth: 1)
                 )
-                .frame(height: 120)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.9))
-                    
-                    Spacer()
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(calories)")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    
-                    Text("Kcal")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
-                }
+        )
+        .opacity(barAppeared ? 1 : 0)
+        .offset(x: barAppeared ? 0 : 20)
+        .onAppear {
+            if hasAppeared && !barAppeared {
+                startAnimations()
             }
-            .padding(16)
+            startRefreshTimer()
         }
-        .frame(height: 120)
-        .shadow(color: Color.orange.opacity(0.3), radius: 8, x: 0, y: 4)
-        .opacity(cardAppeared ? 1 : 0)
-        .scaleEffect(cardAppeared ? 1 : 0.95)
+        .onDisappear {
+            refreshTimer?.invalidate()
+            refreshTimer = nil
+        }
         .onChange(of: hasAppeared) { _, newValue in
-            if newValue && !cardAppeared {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                        cardAppeared = true
+            if newValue && !barAppeared {
+                startAnimations()
+            }
+        }
+        .onChange(of: progress) { _, newValue in
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                animatedProgress = min(newValue, 1.0)
+            }
+        }
+    }
+
+    private func startAnimations() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                barAppeared = true
+            }
+            withAnimation(.easeOut(duration: 1.0)) {
+                animatedProgress = min(progress, 1.0)
+            }
+        }
+    }
+
+    private func startRefreshTimer() {
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            DispatchQueue.main.async {
+                // Pulse animation on the bar
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    pulseScale = 1.15
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        pulseScale = 1.0
                     }
                 }
+                // Smoothly update progress
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                    animatedProgress = min(progress, 1.0)
+                }
+            }
+        }
+        RunLoop.current.add(refreshTimer!, forMode: .common)
+    }
+}
+
+// MARK: - Activity Row Label
+
+private struct ActivityRowLabel: View {
+    let value: String
+    let label: String
+    let icon: String
+    let color: Color
+    let progress: Double
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Color dot
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+
+            // Icon
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 18)
+
+            // Label + Value
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                Text(value)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
         }
     }
 }
+
+// MARK: - Activity Label
+
+private struct ActivityLabel: View {
+    let value: String
+    let label: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(color)
+
+            Text(value)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
 
 // MARK: - Hydration Quick Action Card
 
@@ -1903,83 +2039,109 @@ private struct HydrationQuickActionCard: View {
     let currentIntake: Int
     let dailyGoal: Int
     let hasAppeared: Bool
-    
-    @Environment(\.colorScheme) private var colorScheme
+
     @State private var cardAppeared = false
-    @State private var visualProgress: Double = 0.0
+    @State private var visualProgress: Double = 1.0
     @State private var wavePhase: Double = 0.0
-    
+    @State private var dropBounce: Bool = false
+    @State private var dropGlow: Bool = false
+
     private var targetProgress: Double {
         guard dailyGoal > 0 else { return 0 }
         return min(1.0, Double(currentIntake) / Double(dailyGoal))
     }
-    
-    private var isLight: Bool { colorScheme == .light }
-    private var textColor: Color { isLight ? .primary : .white }
-    private var textOpacity: Double { isLight ? 0.85 : 0.9 }
-    private var waveBackOpacity: Double { isLight ? 0.2 : 0.3 }
-    private var waveFrontOpacities: (Double, Double) { isLight ? (0.35, 0.35) : (0.6, 0.6) }
-    
+
+    private let accent: Color = AppColors.hydration
+    private let textColor: Color = .white
+    private let waveBackOpacity: Double = 0.14
+    private let waveFrontOpacities: (Double, Double) = (0.12, 0.10)
+
     var body: some View {
         ZStack {
+            // Background & Water Animation
             GeometryReader { geo in
                 ZStack(alignment: .bottom) {
+                                     // Base background
                     RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.cyan.opacity(isLight ? 0.12 : 0.1))
-                    
+                        .fill(accent)
+                        .overlay(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.22), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                        )
+                    // Water Waves
                     if visualProgress > 0.01 {
-                        ZStack(alignment: .bottom) {
-                            WaterWaveShape(amplitude: geo.size.height * 0.04, offset: wavePhase)
-                                .fill(Color.cyan.opacity(waveBackOpacity))
-                                .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
-                            
-                            WaterWaveShape(amplitude: geo.size.height * 0.03, offset: wavePhase + 1.5)
+                        let waveHeight = max(geo.size.height * visualProgress, geo.size.height * 0.05)
+                        let amp = min(geo.size.height * 0.04, waveHeight * 0.45)
+                        let ampFront = min(geo.size.height * 0.03, waveHeight * 0.35)
+                        ZStack {
+                            WaterWaveShape(amplitude: amp, offset: wavePhase)
+                                .fill(Color.white.opacity(waveBackOpacity))
+                                .frame(height: waveHeight)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+
+                            WaterWaveShape(amplitude: ampFront, offset: wavePhase + 1.5)
                                 .fill(LinearGradient(
-                                    colors: [.cyan.opacity(waveFrontOpacities.0), .blue.opacity(waveFrontOpacities.1)],
+                                    colors: [.white.opacity(waveFrontOpacities.0), .white.opacity(waveFrontOpacities.1)],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 ))
-                                .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
+                                .frame(height: waveHeight)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                         }
-                        .mask(RoundedRectangle(cornerRadius: 24))
                         .clipShape(RoundedRectangle(cornerRadius: 24))
                     }
                 }
             }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: "drop.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(textColor.opacity(textOpacity))
-                    
-                    Spacer()
-                    
-                    Text("\(Int(visualProgress * 100))%")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(textColor.opacity(textOpacity))
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("\(currentIntake)")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+
+            // Content Overlay
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.18))
+                            .frame(width: 32, height: 32)
+                            .shadow(color: Color.white.opacity(dropGlow ? 0.3 : 0), radius: dropGlow ? 8 : 0)
+                        Image(systemName: "drop.fill")
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundColor(textColor)
-                        
-                        Text("/ \(dailyGoal) ml")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(textColor.opacity(isLight ? 0.75 : 0.8))
+                            .offset(y: dropBounce ? -3 : 3)
                     }
-                    
-                    Text("Hydration")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(textColor.opacity(textOpacity))
+
+                    Spacer()
+
+                    Text("\(Int(visualProgress * 100))%")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(textColor)
+                        .contentTransition(.numericText(value: visualProgress))
+                }
+
+                Spacer()
+
+                Text("Hydration")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(textColor.opacity(0.9))
+
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text("\(currentIntake)")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(textColor)
+                        .contentTransition(.numericText())
+                    Text("/ \(dailyGoal) ml")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(textColor.opacity(0.75))
                 }
             }
-            .padding(16)
+            .padding(12)
         }
         .frame(height: 120)
-        .shadow(color: Color.blue.opacity(isLight ? 0.2 : 0.3), radius: 8, x: 0, y: 4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
+        )
         .opacity(cardAppeared ? 1 : 0)
         .scaleEffect(cardAppeared ? 1 : 0.95)
         .onChange(of: hasAppeared) { _, newValue in
@@ -1992,16 +2154,28 @@ private struct HydrationQuickActionCard: View {
             }
         }
         .onAppear {
-            // Start continuous wave animation
+            if hasAppeared && !cardAppeared {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                    cardAppeared = true
+                }
+            }
+            // Continuous wave animation
             withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
                 wavePhase = .pi * 2
             }
-            
-            // Animate progress
+            // Animate from 100% down to actual value
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.easeInOut(duration: 0.8)) {
+                withAnimation(.easeInOut(duration: 2.0)) {
                     visualProgress = targetProgress
                 }
+            }
+            // Drop bounce
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                dropBounce = true
+            }
+            // Icon glow
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.3)) {
+                dropGlow = true
             }
         }
         .onChange(of: targetProgress) { _, newValue in
@@ -2122,6 +2296,136 @@ private struct MedicationQuickActionCard: View {
         .onChange(of: hasAppeared) { _, newValue in
             if newValue && !cardAppeared {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        cardAppeared = true
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Diet Quick Action Card
+
+private struct DietQuickActionCard: View {
+    let hasAppeared: Bool
+
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var cardAppeared = false
+
+    private var isLight: Bool { colorScheme == .light }
+    private var textColor: Color { isLight ? .primary : .white }
+    private var textOpacity: Double { isLight ? 0.85 : 0.9 }
+    private var gradientOpacity: Double { isLight ? 0.35 : 0.8 }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "0EA5E9").opacity(gradientOpacity),
+                            Color(hex: "2563EB").opacity(gradientOpacity)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(height: 120)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 18))
+                        .foregroundColor(textColor.opacity(textOpacity))
+
+                    Spacer()
+                }
+
+                Spacer()
+
+                Text("Diet")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(textColor)
+
+                Text("Track meals")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(textColor.opacity(textOpacity))
+            }
+            .padding(16)
+        }
+        .frame(height: 120)
+        .shadow(color: Color.blue.opacity(isLight ? 0.2 : 0.3), radius: 8, x: 0, y: 4)
+        .opacity(cardAppeared ? 1 : 0)
+        .scaleEffect(cardAppeared ? 1 : 0.95)
+        .onChange(of: hasAppeared) { _, newValue in
+            if newValue && !cardAppeared {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        cardAppeared = true
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Cycle Quick Action Card
+
+private struct CycleQuickActionCard: View {
+    let hasAppeared: Bool
+
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var cardAppeared = false
+
+    private var isLight: Bool { colorScheme == .light }
+    private var textColor: Color { isLight ? .primary : .white }
+    private var textOpacity: Double { isLight ? 0.85 : 0.9 }
+    private var gradientOpacity: Double { isLight ? 0.35 : 0.8 }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "EC4899").opacity(gradientOpacity),
+                            Color(hex: "BE185D").opacity(gradientOpacity)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(height: 120)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "calendar.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(textColor.opacity(textOpacity))
+
+                    Spacer()
+                }
+
+                Spacer()
+
+                Text("Cycle")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(textColor)
+
+                Text("Track period")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(textColor.opacity(textOpacity))
+            }
+            .padding(16)
+        }
+        .frame(height: 120)
+        .shadow(color: Color.pink.opacity(isLight ? 0.2 : 0.3), radius: 8, x: 0, y: 4)
+        .opacity(cardAppeared ? 1 : 0)
+        .scaleEffect(cardAppeared ? 1 : 0.95)
+        .onChange(of: hasAppeared) { _, newValue in
+            if newValue && !cardAppeared {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                         cardAppeared = true
                     }

@@ -93,6 +93,65 @@ struct AppColors {
     )
 }
 
+// MARK: - Home Screen Pastel Theme Colors
+
+struct HomeThemeColors {
+    // Per-card pastel backgrounds (light mode / dark mode)
+    static func cardCalories(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "3D2C2C") : Color(hex: "FFF0E6")
+    }
+    static func cardExercise(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "2C2C3D") : Color(hex: "E8E6FF")
+    }
+    static func cardStand(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "2C3D2C") : Color(hex: "E6FFE6")
+    }
+    static func cardHeartRate(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "3D2C2F") : Color(hex: "FFE6EA")
+    }
+    static func cardSleep(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "2E2C3D") : Color(hex: "EDE6FF")
+    }
+    static func cardDistance(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "2C3D38") : Color(hex: "E6FFF5")
+    }
+
+    // Hero card gradient
+    static func heroGradientStart(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "1A2F4A") : Color(hex: "E0F2FE")
+    }
+    static func heroGradientEnd(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "1A3A2F") : Color(hex: "DCFCE7")
+    }
+
+    // Week strip
+    static func weekDaySelected(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "4F46E5") : Color(hex: "4F46E5")
+    }
+    static func weekDayDefault(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "2A2A2E") : Color(hex: "F3F4F6")
+    }
+
+    // Card surface
+    static func cardSurface(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "1C1C1E") : Color.white
+    }
+
+    // Quick action pastels
+    static func medicationBg(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "2D2554") : Color(hex: "EDE9FE")
+    }
+    static func hydrationBg(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "1A3A4A") : Color(hex: "E0F7FA")
+    }
+    static func cycleBg(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "3D1F3D") : Color(hex: "FCE4EC")
+    }
+    static func familyBg(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "1A3D2E") : Color(hex: "E8F5E9")
+    }
+}
+
 // MARK: - App Design System Dimensions
 
 struct AppDimensions {
