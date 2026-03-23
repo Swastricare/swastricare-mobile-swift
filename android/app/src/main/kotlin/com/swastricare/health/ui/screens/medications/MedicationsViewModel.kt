@@ -5,6 +5,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
+import com.swastricare.health.data.repository.DrugSearchRepository
+import com.swastricare.health.data.repository.DrugSearchResult
+import com.swastricare.health.data.repository.DrugDetails
 import com.swastricare.health.data.repository.SupabaseMedicationRepository
 import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.data.services.AnalyticsService
@@ -13,6 +16,8 @@ import com.swastricare.health.domain.repository.AuthRepository
 import com.swastricare.health.notifications.MedicationReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +58,7 @@ class MedicationsViewModel @Inject constructor(
     private val analyticsService: AnalyticsService,
     private val medicationAlarmScheduler: MedicationAlarmScheduler,
     private val authRepository: AuthRepository,
+    private val drugSearchRepository: DrugSearchRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -62,6 +68,18 @@ class MedicationsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(MedicationsUiState(isLoading = true))
     val uiState: StateFlow<MedicationsUiState> = _uiState.asStateFlow()
+
+    // ── Drug Search State ──
+    private val _drugSuggestions = MutableStateFlow<List<DrugSearchResult>>(emptyList())
+    val drugSuggestions: StateFlow<List<DrugSearchResult>> = _drugSuggestions.asStateFlow()
+
+    private val _drugDetails = MutableStateFlow<DrugDetails?>(null)
+    val drugDetails: StateFlow<DrugDetails?> = _drugDetails.asStateFlow()
+
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
+    private var searchJob: Job? = null
 
     // Resolved from authenticated user
 
@@ -112,6 +130,9 @@ class MedicationsViewModel @Inject constructor(
     }
 
     fun markAsTaken(dose: MedicationDose) {
+        // Block marking future doses as taken
+        if (dose.scheduledTime.isAfter(java.time.LocalDateTime.now())) return
+
         viewModelScope.launch {
             // Log analytics event
             val medName = _uiState.value.medicationsWithDoses
@@ -277,6 +298,47 @@ class MedicationsViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    // ─────────────────────────────────────
+    // MARK: - Drug Search (OpenFDA)
+    // ─────────────────────────────────────
+
+    fun searchDrug(query: String) {
+        if (query.length < 2) {
+            _drugSuggestions.value = emptyList()
+            _isSearching.value = false
+            return
+        }
+
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(400) // debounce
+            _isSearching.value = true
+            drugSearchRepository.searchDrugs(query)
+                .onSuccess { _drugSuggestions.value = it }
+                .onFailure {
+                    Log.d(TAG, "Drug search failed: ${it.message}")
+                    _drugSuggestions.value = emptyList()
+                }
+            _isSearching.value = false
+        }
+    }
+
+    fun selectDrug(drug: DrugSearchResult) {
+        _drugSuggestions.value = emptyList()
+        viewModelScope.launch {
+            drugSearchRepository.getDrugDetails(drug.brandName)
+                .onSuccess { _drugDetails.value = it }
+                .onFailure { _drugDetails.value = null }
+        }
+    }
+
+    fun clearDrugSearch() {
+        searchJob?.cancel()
+        _drugSuggestions.value = emptyList()
+        _drugDetails.value = null
+        _isSearching.value = false
     }
 
     // ─────────────────────────────────────

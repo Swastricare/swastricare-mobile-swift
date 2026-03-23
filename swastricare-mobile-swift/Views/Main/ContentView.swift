@@ -59,7 +59,7 @@ struct ContentView: View {
         TabView(selection: $currentTab) {
             // Vitals Tab
             NavigationStack {
-                HomeView()
+                HomeViewV2()
                     .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {

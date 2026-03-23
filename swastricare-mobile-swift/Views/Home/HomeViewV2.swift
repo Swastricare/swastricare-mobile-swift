@@ -1029,49 +1029,50 @@ struct HomeViewV2: View {
                 Spacer()
             }
 
-            HStack(spacing: 16) {
-                // Left - Activity list
-                VStack(alignment: .leading, spacing: 14) {
-                    ActivityRowLabel(
-                        value: formatSteps(viewModel.stepCount),
-                        label: "Steps",
-                        icon: "figure.walk",
-                        color: Color(hex: "EF4444"),
-                        progress: viewModel.stepProgress
-                    )
-                    ActivityRowLabel(
-                        value: "\(viewModel.activeCalories) kcal",
-                        label: "Calories",
-                        icon: "flame.fill",
-                        color: Color(hex: "F97316"),
-                        progress: viewModel.calorieProgress
-                    )
-                    ActivityRowLabel(
-                        value: "\(dietViewModel.totalCalories) cal",
-                        label: "Diet",
-                        icon: "fork.knife",
-                        color: Color(hex: "22C55E"),
-                        progress: dietViewModel.calorieProgress
-                    )
-                    ActivityRowLabel(
-                        value: formatDistance(viewModel.distance),
-                        label: "Distance",
-                        icon: "arrow.triangle.swap",
-                        color: Color(hex: "8B5CF6"),
-                        progress: min(viewModel.distance / 5.0, 1.0)
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                // Right - Concentric Activity Rings
+            HStack(spacing: 20) {
+                // Left - Concentric Activity Rings
                 ActivityRingsView(
                     stepsProgress: viewModel.stepProgress,
                     calorieProgress: viewModel.calorieProgress,
-                    dietProgress: dietViewModel.calorieProgress,
+                    exerciseProgress: viewModel.exerciseProgress,
                     distanceProgress: min(viewModel.distance / 5.0, 1.0),
                     hasAppeared: hasAppeared
                 )
-                .frame(width: 150, height: 150)
+                .frame(width: 160, height: 160)
+
+                // Right - Stats
+                VStack(alignment: .leading, spacing: 14) {
+                    ActivityCountRow(
+                        color: ActivityRingStyle.stepsColor,
+                        label: "Steps",
+                        value: viewModel.stepCount,
+                        goal: 4000,
+                        unit: "steps"
+                    )
+                    ActivityCountRow(
+                        color: ActivityRingStyle.caloriesColor,
+                        label: "Calories",
+                        value: viewModel.activeCalories,
+                        goal: 300,
+                        unit: "kcal"
+                    )
+                    ActivityCountRow(
+                        color: ActivityRingStyle.workoutColor,
+                        label: "Workout Duration",
+                        value: viewModel.exerciseMinutes,
+                        goal: 30,
+                        unit: "min"
+                    )
+                    ActivityCountRow(
+                        color: ActivityRingStyle.distanceColor,
+                        label: "Distance",
+                        value: Int(viewModel.distance * 10) ,
+                        goal: 50,
+                        unit: "km",
+                        isDecimal: true
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.vertical, 8)
         }
@@ -1612,150 +1613,69 @@ private struct SleepWaveform: View {
     }
 }
 
-// MARK: - Activity Ring Tip Shape
+// MARK: - Activity Ring Colors
 
-private struct ActivityRingTip: Shape {
-    var progress: Double
-    var ringRadius: Double
-
-    private var position: CGPoint {
-        let progressAngle = Angle(degrees: (360.0 * progress) - 90.0)
-        return CGPoint(
-            x: ringRadius * cos(progressAngle.radians),
-            y: ringRadius * sin(progressAngle.radians)
-        )
-    }
-
-    var animatableData: Double {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        if progress > 0.0 {
-            let frame = CGRect(
-                x: position.x,
-                y: position.y,
-                width: rect.size.width,
-                height: rect.size.height
-            )
-            path.addEllipse(in: frame)
-        }
-        return path
-    }
+private enum ActivityRingStyle {
+    static let stepsColor    = Color(hex: "EF4444") // red
+    static let caloriesColor = Color(hex: "F97316") // orange
+    static let workoutColor  = Color(hex: "22C55E") // green
+    static let distanceColor = Color(hex: "8B5CF6") // purple
 }
 
-// MARK: - Single Activity Ring
-
-private struct ActivityRingShape: View {
-    let progress: Double
-    let ringRadius: CGFloat
-    let thickness: CGFloat
-    let gradient: [Color]
-
-    var body: some View {
-        ZStack {
-            // Background track
-            Circle()
-                .stroke(gradient.first?.opacity(0.15) ?? Color.gray.opacity(0.15), lineWidth: thickness)
-                .frame(width: ringRadius * 2, height: ringRadius * 2)
-
-            // Progress arc
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(
-                    AngularGradient(
-                        gradient: Gradient(colors: gradient),
-                        center: .center,
-                        startAngle: .degrees(0),
-                        endAngle: .degrees(360)
-                    ),
-                    style: StrokeStyle(lineWidth: thickness, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .frame(width: ringRadius * 2, height: ringRadius * 2)
-
-            // Leading tip circle for smooth end
-            ActivityRingTip(progress: progress, ringRadius: ringRadius)
-                .fill(gradient.last ?? .white)
-                .frame(width: thickness, height: thickness)
-                .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 0)
-        }
-    }
-}
-
-// MARK: - Concentric Activity Rings View
+// MARK: - Concentric Activity Rings View (3 rings + icon badges)
 
 private struct ActivityRingsView: View {
     let stepsProgress: Double
     let calorieProgress: Double
-    let dietProgress: Double
+    let exerciseProgress: Double
     let distanceProgress: Double
     let hasAppeared: Bool
 
     @State private var animatedSteps: Double = 0
     @State private var animatedCalorie: Double = 0
-    @State private var animatedDiet: Double = 0
+    @State private var animatedExercise: Double = 0
     @State private var animatedDistance: Double = 0
     @State private var ringScale: CGFloat = 0.6
     @State private var ringRotation: Double = -30
-    @State private var glowOpacity: Double = 0
     @State private var refreshTimer: Timer?
 
+    private let ringWidth: CGFloat = 14
+    private let ringGap: CGFloat = 4
+
     var body: some View {
-        ZStack {
-            // Subtle glow behind rings
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Color(hex: "EF4444").opacity(0.2), .clear],
-                        center: .center,
-                        startRadius: 20,
-                        endRadius: 90
-                    )
-                )
-                .frame(width: 180, height: 180)
-                .opacity(glowOpacity)
+        GeometryReader { geo in
+            let size = min(geo.size.width, geo.size.height)
 
-            // Outer ring - Steps (Red)
-            ActivityRingShape(
-                progress: animatedSteps,
-                ringRadius: 68,
-                thickness: 14,
-                gradient: [Color(hex: "EF4444"), Color(hex: "FF3B30")]
-            )
+            // Ring radii (center of stroke) — 4 concentric rings
+            let ring1R = (size - ringWidth) / 2
+            let ring2R = ring1R - ringWidth - ringGap
+            let ring3R = ring2R - ringWidth - ringGap
+            let ring4R = ring3R - ringWidth - ringGap
 
-            // 2nd ring - Calories (Orange)
-            ActivityRingShape(
-                progress: animatedCalorie,
-                ringRadius: 52,
-                thickness: 14,
-                gradient: [Color(hex: "F97316"), Color(hex: "FF9500")]
-            )
+            ZStack {
+                // --- Ring 1: Steps (outer, orange-brown) ---
+                singleRing(radius: ring1R, progress: animatedSteps, color: ActivityRingStyle.stepsColor)
+                ringIconBadge(systemName: "figure.run", radius: ring1R, progress: animatedSteps, color: ActivityRingStyle.stepsColor)
 
-            // 3rd ring - Diet (Green)
-            ActivityRingShape(
-                progress: animatedDiet,
-                ringRadius: 36,
-                thickness: 14,
-                gradient: [Color(hex: "22C55E"), Color(hex: "34C759")]
-            )
+                // --- Ring 2: Calories (yellow-green) ---
+                singleRing(radius: ring2R, progress: animatedCalorie, color: ActivityRingStyle.caloriesColor)
+                ringIconBadge(systemName: "flame.fill", radius: ring2R, progress: animatedCalorie, color: ActivityRingStyle.caloriesColor)
 
-            // Inner ring - Distance (Purple)
-            ActivityRingShape(
-                progress: animatedDistance,
-                ringRadius: 20,
-                thickness: 14,
-                gradient: [Color(hex: "8B5CF6"), Color(hex: "A855F7")]
-            )
+                // --- Ring 3: Workout (cyan) ---
+                singleRing(radius: ring3R, progress: animatedExercise, color: ActivityRingStyle.workoutColor)
+                ringIconBadge(systemName: "clock.fill", radius: ring3R, progress: animatedExercise, color: ActivityRingStyle.workoutColor)
+
+                // --- Ring 4: Distance (inner, purple) ---
+                singleRing(radius: ring4R, progress: animatedDistance, color: ActivityRingStyle.distanceColor)
+                ringIconBadge(systemName: "location.fill", radius: ring4R, progress: animatedDistance, color: ActivityRingStyle.distanceColor)
+            }
+            .frame(width: size, height: size)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .scaleEffect(ringScale)
         .rotationEffect(.degrees(ringRotation))
         .onAppear {
-            if hasAppeared {
-                animateRings()
-            }
+            if hasAppeared { animateRings() }
             startRefreshTimer()
         }
         .onDisappear {
@@ -1763,25 +1683,72 @@ private struct ActivityRingsView: View {
             refreshTimer = nil
         }
         .onChange(of: hasAppeared) { _, newValue in
-            if newValue {
-                animateRings()
-            }
+            if newValue { animateRings() }
         }
     }
 
+    // MARK: - Ring Track + Arc
+
+    @ViewBuilder
+    private func singleRing(radius: CGFloat, progress: Double, color: Color) -> some View {
+        let clamped = min(max(progress, 0), 1.0)
+        let diameter = radius * 2
+
+        // Track
+        Circle()
+            .stroke(color.opacity(0.25), style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
+            .frame(width: diameter, height: diameter)
+
+        // Progress arc
+        Circle()
+            .trim(from: 0, to: clamped)
+            .stroke(
+                AngularGradient(
+                    colors: [color.opacity(0.6), color, color],
+                    center: .center,
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(360 * max(clamped, 0.01))
+                ),
+                style: StrokeStyle(lineWidth: ringWidth, lineCap: .round)
+            )
+            .frame(width: diameter, height: diameter)
+            .rotationEffect(.degrees(-90))
+            .shadow(color: color.opacity(0.35), radius: 3)
+    }
+
+    // MARK: - Icon Badge at Arc Tip
+
+    @ViewBuilder
+    private func ringIconBadge(systemName: String, radius: CGFloat, progress: Double, color: Color) -> some View {
+        let clamped = min(max(progress, 0), 1.0)
+        // Place at tip; when progress is ~0, sit at 12 o'clock
+        let angleDeg: Double = clamped < 0.01 ? -90 : (360 * clamped - 90)
+        let rad = angleDeg * .pi / 180
+        let x = radius * cos(rad)
+        let y = radius * sin(rad)
+        let badgeSize: CGFloat = ringWidth + 5
+
+        ZStack {
+            Circle()
+                .fill(color)
+                .frame(width: badgeSize, height: badgeSize)
+                .shadow(color: color.opacity(0.5), radius: 4)
+
+            Image(systemName: systemName)
+                .font(.system(size: badgeSize * 0.42, weight: .bold))
+                .foregroundColor(.white)
+        }
+        .offset(x: x, y: y)
+    }
+
+    // MARK: - Animation
+
     private func animateRings() {
-        // Scale + rotation entrance
         withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
             ringScale = 1.0
             ringRotation = 0
         }
 
-        // Glow fade in
-        withAnimation(.easeIn(duration: 0.6).delay(0.2)) {
-            glowOpacity = 1.0
-        }
-
-        // Staggered ring fill
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation(.spring(response: 1.2, dampingFraction: 0.65)) {
                 animatedSteps = stepsProgress
@@ -1794,7 +1761,7 @@ private struct ActivityRingsView: View {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             withAnimation(.spring(response: 0.8, dampingFraction: 0.65)) {
-                animatedDiet = dietProgress
+                animatedExercise = exerciseProgress
             }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
@@ -1810,12 +1777,55 @@ private struct ActivityRingsView: View {
                 withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
                     animatedSteps = stepsProgress
                     animatedCalorie = calorieProgress
-                    animatedDiet = dietProgress
+                    animatedExercise = exerciseProgress
                     animatedDistance = distanceProgress
                 }
             }
         }
         RunLoop.current.add(refreshTimer!, forMode: .common)
+    }
+}
+
+// MARK: - Activity Count Row (right side stats)
+
+private struct ActivityCountRow: View {
+    let color: Color
+    let label: String
+    let value: Int
+    let goal: Int
+    let unit: String
+    var isDecimal: Bool = false
+
+    private var displayValue: String {
+        isDecimal ? String(format: "%.1f", Double(value) / 10.0) : "\(value)"
+    }
+
+    private var displayGoal: String {
+        isDecimal ? String(format: "%.0f", Double(goal) / 10.0) : "\(goal)"
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                HStack(alignment: .lastTextBaseline, spacing: 2) {
+                    Text(displayValue)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                        .contentTransition(.numericText())
+                    Text("/\(displayGoal) \(unit)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
     }
 }
 

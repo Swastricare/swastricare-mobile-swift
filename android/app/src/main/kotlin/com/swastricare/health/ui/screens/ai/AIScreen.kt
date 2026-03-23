@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.AutoAwesome
 import com.swastricare.health.data.repository.AIConversation
 import androidx.compose.material3.*
@@ -421,6 +422,15 @@ private fun ChatMessageList(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
+            item {
+                Text(
+                    text = "AI responses are for informational purposes only. Always consult a healthcare professional for medical advice.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
             itemsIndexed(messages, key = { _, msg -> msg.id }) { index, message ->
                 ChatBubble(
                     message = message,
@@ -506,6 +516,38 @@ fun IntroView(
         }
 
         Spacer(modifier = Modifier.weight(1f))
+
+        // Medical disclaimer
+        MedicalDisclaimerBanner()
+    }
+}
+
+@Composable
+private fun MedicalDisclaimerBanner(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(
+                color = AppColors.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Info,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = AppColors.onSurfaceVariant
+        )
+        Text(
+            text = "For informational purposes only. Not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional.",
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant,
+            lineHeight = 16.sp
+        )
     }
 }
 

@@ -644,6 +644,59 @@ fun AboutSection(version: String) {
             Text(version, color = AppColors.onSurfaceVariant)
         }
     }
+
+    // Medical Disclaimer — always accessible
+    MedicalDisclaimerSection()
+}
+
+@Composable
+fun MedicalDisclaimerSection() {
+    var expanded by remember { mutableStateOf(false) }
+
+    SectionContainer(title = "Medical Disclaimer") {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "SwastriCare provides general health information and wellness tracking tools only. It is NOT a medical device and should NOT be used for medical diagnosis or treatment.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.onSurfaceVariant
+            )
+            Text(
+                text = "Always consult a qualified healthcare professional for medical advice, diagnosis, or treatment. Never disregard professional medical advice or delay seeking it because of information provided by this app.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
+            )
+
+            if (expanded) {
+                Text(
+                    text = "AI-generated health insights are for informational purposes only and may not always be accurate. Do not make medical decisions based solely on AI suggestions.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.onSurfaceVariant
+                )
+                Text(
+                    text = "Heart rate measurements, calorie estimates, and other health metrics are approximations and should not replace clinical-grade medical devices.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.onSurfaceVariant
+                )
+                Text(
+                    text = "If you think you may have a medical emergency, call your doctor or emergency services (108 in India) immediately.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.error
+                )
+            }
+
+            TextButton(
+                onClick = { expanded = !expanded },
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(
+                    text = if (expanded) "Show less" else "Read more",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PrimaryColor
+                )
+            }
+        }
+    }
 }
 
 @Composable

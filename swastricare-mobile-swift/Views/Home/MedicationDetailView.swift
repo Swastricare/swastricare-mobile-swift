@@ -104,13 +104,13 @@ struct MedicationDetailView: View {
                             saveChanges()
                         }
                         .disabled(isLoading || !hasChanges)
-                        .foregroundColor(hasChanges ? Color(hex: "2E3192") : .secondary)
+                        .foregroundColor(hasChanges ? AppColors.accentBlue : .secondary)
                         .font(.body)
                     } else {
                         Button("Edit") {
                             isEditing = true
                         }
-                        .foregroundColor(Color(hex: "2E3192"))
+                        .foregroundColor(AppColors.accentBlue)
                         .font(.body)
                     }
                 }
@@ -137,12 +137,12 @@ struct MedicationDetailView: View {
         HStack(spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(hex: "2E3192").opacity(0.12))
+                    .fill(AppColors.accentBlue.opacity(0.12))
                     .frame(width: 64, height: 64)
                 
                 Image(systemName: medication.type.icon)
                     .font(.system(size: 28))
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .foregroundColor(AppColors.accentBlue)
             }
             
             VStack(alignment: .leading, spacing: 6) {
@@ -313,7 +313,7 @@ struct MedicationDetailView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .tint(Color(hex: "2E3192"))
+            .tint(AppColors.accentBlue)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 20)

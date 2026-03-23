@@ -40,11 +40,32 @@ struct RunActivityView: View {
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
-                    // Walk & Run Activity Header
-                    walkRunActivityHeader
-                    
-                    // Start Workout Button
-                    startWorkoutButton
+                    // Top section with map background
+                    ZStack(alignment: .bottom) {
+                        Image("MapBackground")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 280)
+                            .scaleEffect(1.3)
+                            .clipped()
+                            .overlay(
+                                LinearGradient(
+                                    colors: [Color(.systemBackground).opacity(0.6), .clear, .clear, Color(.systemBackground).opacity(0.8), Color(.systemBackground)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+
+                        VStack(spacing: 16) {
+                            // Walk & Run Activity Header
+                            walkRunActivityHeader
+
+                            // Start Workout Button
+                            startWorkoutButton
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .padding(.horizontal, 16)
                     
                     // Time Range Selector
                     timeRangeSelector
@@ -137,25 +158,17 @@ struct RunActivityView: View {
                 .fontWeight(.medium)
                 .foregroundColor(.secondary)
             
-            HStack(alignment: .lastTextBaseline, spacing: 12) {
-                // Running Icon
-                Image(systemName: "figure.run")
-                    .font(.system(size: 32, weight: .medium))
-                    .foregroundColor(accentBlue)
-                
-                // Step Count
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text("\(viewModel.totalSteps)")
-                        .font(.system(size: 56, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .contentTransition(.numericText())
-                    
-                    Text("Steps")
-                        .font(.title3)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
-                        .padding(.bottom, 8)
-                }
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text("\(viewModel.totalSteps)")
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .contentTransition(.numericText())
+
+                Text("Steps")
+                    .font(.title3)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -163,7 +176,7 @@ struct RunActivityView: View {
         .opacity(isAnimating ? 1 : 0)
         .offset(y: isAnimating ? 0 : 20)
     }
-    
+
     // MARK: - Start Workout Button
     
     private var startWorkoutButton: some View {
@@ -211,7 +224,6 @@ struct RunActivityView: View {
             .shadow(color: accentGreen.opacity(0.18), radius: 14, x: 0, y: 8)
         }
         .buttonStyle(ScaleButtonStyle())
-        .padding(.horizontal, 20)
         .opacity(isAnimating ? 1 : 0)
         .offset(y: isAnimating ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.08), value: isAnimating)

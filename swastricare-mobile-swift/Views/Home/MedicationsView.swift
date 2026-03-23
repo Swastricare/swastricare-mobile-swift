@@ -86,14 +86,14 @@ struct MedicationsView: View {
                                         Text("Ask AI about my medications")
                                             .font(.system(size: 14, weight: .semibold))
                                     }
-                                    .foregroundColor(Color(hex: "2E3192"))
+                                    .foregroundColor(AppColors.accentBlue)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 12)
-                                    .background(Color(hex: "2E3192").opacity(0.08))
+                                    .background(AppColors.accentBlue.opacity(0.08))
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5)
+                                            .stroke(AppColors.accentBlue.opacity(0.15), lineWidth: 0.5)
                                     )
                                 }
                                 .padding(.horizontal, 20)
@@ -115,7 +115,7 @@ struct MedicationsView: View {
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .foregroundColor(AppColors.accentBlue)
                     }
                 }
                 
@@ -208,7 +208,7 @@ struct MedicationsView: View {
             
             Image(systemName: "pills.circle.fill")
                 .font(.system(size: 100))
-                .foregroundColor(Color(hex: "2E3192").opacity(0.3))
+                .foregroundColor(AppColors.accentBlue.opacity(0.3))
             
             VStack(spacing: 12) {
                 Text("No Medications Yet")
@@ -234,7 +234,7 @@ struct MedicationsView: View {
                 .foregroundColor(.white)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 14)
-                .background(Color(hex: "2E3192"))
+                .background(AppColors.accentBlue)
                 .cornerRadius(14)
             }
             .buttonStyle(ScaleButtonStyle())
@@ -270,14 +270,14 @@ struct MedicationsView: View {
                                 .frame(width: 36, height: 36)
                                 .background(
                                     Circle()
-                                        .fill(isSelected ? Color(hex: "2E3192") : Color.clear)
+                                        .fill(isSelected ? AppColors.accentBlue : Color.clear)
                                 )
                         }
                         .frame(width: 56)
                         .padding(.vertical, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(isToday && !isSelected ? Color(hex: "2E3192").opacity(0.1) : Color.clear)
+                                .fill(isToday && !isSelected ? AppColors.accentBlue.opacity(0.1) : Color.clear)
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -425,7 +425,7 @@ struct TimelineMedicationCard: View {
     }
 
     private var showTakeButton: Bool {
-        dose.status == .pending
+        dose.status == .pending && dose.scheduledTime <= Date()
     }
 
     var body: some View {
@@ -434,12 +434,12 @@ struct TimelineMedicationCard: View {
                 // Medication type icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(hex: "2E3192").opacity(0.12))
+                        .fill(AppColors.accentBlue.opacity(0.12))
                         .frame(width: 40, height: 40)
 
                     Image(systemName: medication.medication.type.icon)
                         .font(.system(size: 18))
-                        .foregroundColor(Color(hex: "2E3192"))
+                        .foregroundColor(AppColors.accentBlue)
                 }
 
                 // Name + dosage

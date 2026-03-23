@@ -470,8 +470,8 @@ fun TimelineMedicationCard(
                 }
             }
 
-            // Action icon on right
-            if (dose.status == AdherenceStatus.PENDING) {
+            // Action icon on right (only show take button for past/current doses, not future)
+            if (dose.status == AdherenceStatus.PENDING && !dose.scheduledTime.isAfter(java.time.LocalDateTime.now())) {
                 IconButton(
                     onClick = onTaken,
                     modifier = Modifier.size(36.dp)

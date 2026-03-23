@@ -21,6 +21,11 @@ final class MedicationViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var isSyncing = false
     @Published var errorMessage: String?
+
+    // Drug search state
+    @Published var drugSuggestions: [DrugSearchResult] = []
+    @Published var drugDetails: DrugDetails?
+    @Published var isSearching = false
     
     // MARK: - Computed Properties
     
@@ -52,16 +57,22 @@ final class MedicationViewModel: ObservableObject {
     }
     
     // MARK: - Dependencies
-    
+
     private let medicationService: MedicationServiceProtocol
+    private let drugSearchService: DrugSearchServiceProtocol
     private let supabaseManager = SupabaseManager.shared
     private let widgetService = WidgetService.shared
     private var cancellables = Set<AnyCancellable>()
+    private var searchTask: Task<Void, Never>?
     
     // MARK: - Init
     
-    init(medicationService: MedicationServiceProtocol = MedicationService.shared) {
+    init(
+        medicationService: MedicationServiceProtocol = MedicationService.shared,
+        drugSearchService: DrugSearchServiceProtocol = DrugSearchService.shared
+    ) {
         self.medicationService = medicationService
+        self.drugSearchService = drugSearchService
         
         // Load data on init
         Task {
@@ -191,8 +202,11 @@ final class MedicationViewModel: ObservableObject {
     
     // MARK: - Adherence Actions
     
-    /// Mark medication as taken
+    /// Mark medication as taken (only past/current doses)
     func markAsTaken(medicationId: UUID, scheduledTime: Date, source: String = "in_app") async throws {
+        // Block marking future doses as taken
+        guard scheduledTime <= Date() else { return }
+
         do {
             try await medicationService.markAsTaken(medicationId: medicationId, scheduledTime: scheduledTime)
             
@@ -369,8 +383,45 @@ final class MedicationViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Drug Search (OpenFDA)
+
+    func searchDrug(query: String) {
+        guard query.count >= 2 else {
+            drugSuggestions = []
+            isSearching = false
+            return
+        }
+
+        searchTask?.cancel()
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 400_000_000) // 400ms debounce
+            guard !Task.isCancelled else { return }
+
+            isSearching = true
+            let results = await drugSearchService.searchDrugs(query: query)
+            guard !Task.isCancelled else { return }
+
+            drugSuggestions = results
+            isSearching = false
+        }
+    }
+
+    func selectDrug(_ drug: DrugSearchResult) {
+        drugSuggestions = []
+        Task {
+            drugDetails = await drugSearchService.getDrugDetails(brandName: drug.brandName)
+        }
+    }
+
+    func clearDrugSearch() {
+        searchTask?.cancel()
+        drugSuggestions = []
+        drugDetails = nil
+        isSearching = false
+    }
+
     // MARK: - Helpers
-    
+
     func clearError() {
         errorMessage = nil
     }
