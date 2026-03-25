@@ -27,5 +27,6 @@ data class ContextMessageDto(
  */
 @Serializable
 data class ChatResponseDto(
-    val response: String
+    val response: String,
+    val error: Boolean? = null
 )

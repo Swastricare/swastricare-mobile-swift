@@ -260,7 +260,7 @@ If it's a medical image, provide only general observations with strong disclaime
       }
       
       // Add medical disclaimer
-      aiResponse += MEDICAL_DISCLAIMER
+      // Disclaimer shown in app UI, not appended to response
       
       console.log('Got vision analysis response')
 
@@ -308,7 +308,7 @@ If it's a medical image, provide only general observations with strong disclaime
   } catch (error) {
     console.error('MedGemma Vision error:', error)
     return new Response(JSON.stringify({ 
-      response: "I apologize, but I'm having trouble analyzing this image. Please try again with a clearer image, or consult your healthcare provider directly for interpretation." + MEDICAL_DISCLAIMER,
+      response: "I apologize, but I'm having trouble analyzing this image. Please try again with a clearer image.",
       model: "error",
       isMedical: true,
       isImageAnalysis: true,

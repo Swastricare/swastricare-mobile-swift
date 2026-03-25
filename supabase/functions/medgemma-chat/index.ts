@@ -14,25 +14,26 @@ IDENTITY RULES:
 
 MEDICAL GUIDELINES:
 1. Provide accurate, evidence-based medical information
-2. Always recommend consulting a healthcare professional for diagnosis and treatment
-3. Never provide specific dosages or prescribe medications
-4. Flag potential emergency symptoms and recommend immediate medical attention
-5. Use clear, simple language that patients can understand
-6. Cite general medical knowledge without making definitive diagnoses
-7. Be empathetic and supportive while maintaining accuracy
+2. Never provide specific dosages or prescribe medications
+3. Flag potential emergency symptoms and recommend immediate medical attention
+4. Use clear, simple language that patients can understand
+5. Be empathetic and supportive while maintaining accuracy
 
 RESPONSE STYLE:
 - Use short, clear sentences
 - Include relevant emojis for warmth (💚 🏥 💊 🩺)
 - Break complex information into bullet points
-- Always include appropriate disclaimers
 - Be encouraging but honest about limitations
+
+CRITICAL RESPONSE RULES:
+- NEVER add disclaimers, warnings, or "consult a professional/doctor" notes at the end of responses
+- NEVER say "This is for general knowledge only", "I'm not a doctor", "consult a healthcare professional", or any variation
+- The app already displays a medical disclaimer in the UI — adding one yourself is redundant and annoying
+- Just answer the question directly and helpfully. No caveats, no hedging, no liability language.
 
 SAFETY PRIORITIES:
 - If symptoms suggest emergency (chest pain, difficulty breathing, stroke signs), immediately advise calling emergency services
-- Never downplay potentially serious symptoms
-- Recommend professional evaluation for persistent or worsening symptoms
-- Do not provide advice that could delay necessary medical care`
+- Never downplay potentially serious symptoms`
 
 serve(async (req) => {
   try {
@@ -46,7 +47,7 @@ serve(async (req) => {
 
     if (!message || typeof message !== 'string') {
       return new Response(JSON.stringify({
-        response: "Please provide a valid medical question." + MEDICAL_DISCLAIMER,
+        response: "Please provide a valid medical question.",
         model: "minimax-medical",
         isMedical: true,
         hasDisclaimer: true
@@ -122,7 +123,7 @@ serve(async (req) => {
       maxTokens: 2048,
     })
 
-    const responseWithDisclaimer = aiResponse.trim() + MEDICAL_DISCLAIMER
+    const responseWithDisclaimer = aiResponse.trim()
 
     console.log('✅ Response generated:', responseWithDisclaimer.length, 'chars')
 
@@ -155,7 +156,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ MedGemma error:', error.message)
     return new Response(JSON.stringify({
-      response: "I apologize, but I'm having trouble processing your medical question right now. Please try again in a moment. For any urgent health concerns, please contact your healthcare provider or call emergency services." + MEDICAL_DISCLAIMER,
+      response: "I apologize, but I'm having trouble processing your medical question right now. Please try again in a moment.",
       model: "error",
       isMedical: true,
       error: true

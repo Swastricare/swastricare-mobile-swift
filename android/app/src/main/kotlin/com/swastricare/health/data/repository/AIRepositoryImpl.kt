@@ -36,6 +36,10 @@ class AIRepositoryImpl @Inject constructor(
     private val prefs: SharedPreferences
 ) : AIRepository {
 
+    companion object {
+        private const val FRIENDLY_ERROR = "I'm having trouble connecting right now. Please try again in a moment."
+    }
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -241,12 +245,22 @@ class AIRepositoryImpl @Inject constructor(
             healthContext = healthContext?.toContextString()
         )
 
-        val response = supabaseClient.functions.invoke(
-            function = "ai-router",
-            body = request
-        )
-        val body = response.body<String>()
-        json.decodeFromString<ChatResponseDto>(body).response
+        try {
+            val response = supabaseClient.functions.invoke(
+                function = "ai-router",
+                body = request
+            )
+            val body = response.body<String>()
+            val chatResponse = json.decodeFromString<ChatResponseDto>(body)
+            if (chatResponse.error == true) {
+                FRIENDLY_ERROR
+            } else {
+                chatResponse.response
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("AIRepositoryImpl", "sendChatMessage failed: ${e.message}")
+            FRIENDLY_ERROR
+        }
     }
 
     override suspend fun analyzeHealth(healthContext: HealthContext): HealthAnalysisResult =
@@ -285,12 +299,22 @@ class AIRepositoryImpl @Inject constructor(
                 imageData = imageBase64
             )
 
-            val response = supabaseClient.functions.invoke(
-                function = "ai-router",
-                body = request
-            )
-            val body = response.body<String>()
-            json.decodeFromString<ChatResponseDto>(body).response
+            try {
+                val response = supabaseClient.functions.invoke(
+                    function = "ai-router",
+                    body = request
+                )
+                val body = response.body<String>()
+                val chatResponse = json.decodeFromString<ChatResponseDto>(body)
+                if (chatResponse.error == true) {
+                    FRIENDLY_ERROR
+                } else {
+                    chatResponse.response
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("AIRepositoryImpl", "analyzeImage failed: ${e.message}")
+                FRIENDLY_ERROR
+            }
         }
 
     // ── Local Storage Fallback ──

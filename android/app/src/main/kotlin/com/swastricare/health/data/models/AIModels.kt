@@ -119,5 +119,6 @@ data class ContextMessage(
 
 @Serializable
 data class ChatResponse(
-    val response: String
+    val response: String,
+    val error: Boolean? = null
 )

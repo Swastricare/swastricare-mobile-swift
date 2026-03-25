@@ -245,11 +245,12 @@ class AIViewModel @Inject constructor(
                 // Persist assistant response
                 persistMessage("assistant", responseText)
             } catch (e: Exception) {
-                val newMessages = _uiState.value.messages.filter { !it.isLoading }
+                Log.w("AIViewModel", "sendMessage failed", e)
+                val newMessages = _uiState.value.messages.filter { !it.isLoading }.toMutableList()
+                newMessages.add(ChatMessage.assistantMessage("I'm having trouble connecting right now. Please try again in a moment."))
                 _uiState.value = _uiState.value.copy(
                     messages = newMessages,
-                    isLoading = false,
-                    error = e.message ?: "Failed to send message"
+                    isLoading = false
                 )
             }
         }
@@ -396,11 +397,12 @@ class AIViewModel @Inject constructor(
 
                 persistMessage("assistant", responseText)
             } catch (e: Exception) {
-                val newMessages = _uiState.value.messages.filter { !it.isLoading }
+                Log.w("AIViewModel", "sendImageForAnalysis failed", e)
+                val newMessages = _uiState.value.messages.filter { !it.isLoading }.toMutableList()
+                newMessages.add(ChatMessage.assistantMessage("I'm having trouble analyzing this image right now. Please try again in a moment."))
                 _uiState.value = _uiState.value.copy(
                     messages = newMessages,
                     isLoading = false,
-                    error = e.message ?: "Image analysis failed",
                     pendingImageUri = null
                 )
             }

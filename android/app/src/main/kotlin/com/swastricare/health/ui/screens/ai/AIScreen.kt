@@ -179,8 +179,10 @@ fun AIScreen(
         }
     }
 
-    // Auto-scroll to bottom
-    LaunchedEffect(uiState.messages.size) {
+    // Auto-scroll to bottom when new messages arrive or loading state changes
+    val lastMessageContent = uiState.messages.lastOrNull()?.content
+    val isLoading = uiState.isLoading
+    LaunchedEffect(uiState.messages.size, lastMessageContent, isLoading) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
@@ -285,6 +287,13 @@ fun AIScreen(
                         onScrollToBottomClick = {
                             scope.launch {
                                 listState.animateScrollToItem(uiState.messages.size - 1)
+                            }
+                        },
+                        onScrollToBottom = {
+                            scope.launch {
+                                if (uiState.messages.isNotEmpty()) {
+                                    listState.animateScrollToItem(uiState.messages.size - 1)
+                                }
                             }
                         }
                     )
@@ -405,7 +414,8 @@ private fun ChatMessageList(
     onMessageCopied: () -> Unit,
     onMessageBookmarked: () -> Unit,
     onFollowUpChipClick: (String) -> Unit,
-    onScrollToBottomClick: () -> Unit
+    onScrollToBottomClick: () -> Unit,
+    onScrollToBottom: () -> Unit = {}
 ) {
     // Scroll-to-bottom FAB visibility — must be computed before Box to avoid snapshot issues
     val showScrollFab by remember {
@@ -422,21 +432,13 @@ private fun ChatMessageList(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            item {
-                Text(
-                    text = "AI responses are for informational purposes only. Always consult a healthcare professional for medical advice.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AppColors.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
             itemsIndexed(messages, key = { _, msg -> msg.id }) { index, message ->
                 ChatBubble(
                     message = message,
                     onAnimationComplete = { onMarkMessageAnimated(message.id) },
                     onCopy = onMessageCopied,
-                    onBookmark = onMessageBookmarked
+                    onBookmark = onMessageBookmarked,
+                    onTextGrow = if (index == messages.size - 1) onScrollToBottom else null
                 )
                 // Show health metric card below AI bubble if response discusses health metrics
                 val hasHealthMetrics = remember(message.id, message.content) {
@@ -639,7 +641,8 @@ fun ChatBubble(
     message: ChatMessage,
     onAnimationComplete: () -> Unit = {},
     onCopy: () -> Unit = {},
-    onBookmark: () -> Unit = {}
+    onBookmark: () -> Unit = {},
+    onTextGrow: (() -> Unit)? = null
 ) {
     val isUser = message.isUser
 
@@ -781,12 +784,14 @@ fun ChatBubble(
                             TypingIndicator()
                         }
                     } else if (message.shouldAnimate) {
-                        TypewriterText(
-                            fullText = message.content,
+                        // Show full text immediately, no typewriter animation
+                        Text(
+                            text = parseMarkdown(message.content),
                             color = AppColors.onBackground,
                             style = MaterialTheme.typography.bodyLarge,
-                            onAnimationComplete = onAnimationComplete
+                            fontFamily = Poppins
                         )
+                        LaunchedEffect(message.id) { onAnimationComplete() }
                     } else {
                         Text(
                             text = parseMarkdown(message.content),
@@ -836,63 +841,113 @@ fun ChatBubble(
     }
 }
 
-// MARK: - Typewriter Text Animation
+// MARK: - Smooth Line-by-Line Text Animation
 @Composable
 fun TypewriterText(
     fullText: String,
     color: Color,
     style: androidx.compose.ui.text.TextStyle,
-    charDelayMillis: Long = 15L,
-    onAnimationComplete: () -> Unit = {}
+    charDelayMillis: Long = 12L,
+    onAnimationComplete: () -> Unit = {},
+    onTextGrow: (() -> Unit)? = null
 ) {
-    var visibleCount by remember(fullText) { mutableIntStateOf(0) }
-    val totalChars = fullText.length
-    val isAnimating = visibleCount < totalChars
+    // Split into lines and reveal line by line with fade
+    val lines = remember(fullText) { fullText.split("\n") }
+    var visibleLineCount by remember(fullText) { mutableIntStateOf(0) }
+    val totalLines = lines.size
 
-    // Blinking cursor while animating
-    val cursorTransition = rememberInfiniteTransition(label = "cursor")
-    val cursorAlpha by cursorTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "cursorAlpha"
-    )
-
+    // Animate each line appearing
     LaunchedEffect(fullText) {
-        visibleCount = 0
-        var i = 0
-        while (i < totalChars) {
-            delay(charDelayMillis)
-            // Reveal faster through whitespace/punctuation runs
-            val charsToReveal = when {
-                fullText[i] == ' ' || fullText[i] == '\n' -> 2
-                totalChars > 500 -> 3 // Speed up long messages
-                else -> 1
+        visibleLineCount = 0
+        for (i in 1..totalLines) {
+            // Delay proportional to line length for natural pacing
+            val lineLength = lines.getOrNull(i - 1)?.length ?: 0
+            val lineDelay = when {
+                lineLength == 0 -> 40L // empty line (paragraph break)
+                lineLength < 20 -> 60L // short line (heading, bullet)
+                lineLength < 60 -> 100L
+                else -> 140L
             }
-            i = (i + charsToReveal).coerceAtMost(totalChars)
-            visibleCount = i
+            delay(lineDelay)
+            visibleLineCount = i
+            onTextGrow?.invoke()
         }
         onAnimationComplete()
     }
 
-    val displayedText = fullText.substring(0, visibleCount)
-    val annotated = buildAnnotatedString {
-        append(displayedText)
-        if (isAnimating) {
-            withStyle(SpanStyle(color = color.copy(alpha = cursorAlpha))) {
-                append("▎")
+    Column {
+        lines.forEachIndexed { index, line ->
+            if (index < visibleLineCount) {
+                // Each line fades + slides in
+                val lineAlpha = remember { Animatable(0f) }
+                val lineOffset = remember { Animatable(8f) }
+                LaunchedEffect(Unit) {
+                    launch { lineAlpha.animateTo(1f, tween(200, easing = FastOutSlowInEasing)) }
+                    launch { lineOffset.animateTo(0f, tween(200, easing = FastOutSlowInEasing)) }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            alpha = lineAlpha.value
+                            translationY = lineOffset.value
+                        }
+                ) {
+                    if (line.isBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    } else {
+                        Text(
+                            text = parseMarkdownLine(line),
+                            color = color,
+                            style = style,
+                            fontFamily = Poppins
+                        )
+                    }
+                }
             }
         }
     }
-    Text(
-        text = annotated,
-        color = color,
-        style = style,
-        fontFamily = Poppins
-    )
+}
+
+private fun parseMarkdownLine(rawLine: String): AnnotatedString {
+    val builder = AnnotatedString.Builder()
+
+    val isH2 = rawLine.startsWith("## ")
+    val isH1 = !isH2 && rawLine.startsWith("# ")
+    val isBullet = rawLine.startsWith("- ") || rawLine.startsWith("* ")
+
+    val line = when {
+        isH2 -> rawLine.removePrefix("## ")
+        isH1 -> rawLine.removePrefix("# ")
+        isBullet -> "• ${rawLine.drop(2)}"
+        else -> rawLine
+    }
+
+    if (isH1) builder.pushStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp))
+    else if (isH2) builder.pushStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp))
+
+    var cursor = 0
+    for (match in INLINE_MARKDOWN_REGEX.findAll(line)) {
+        if (match.range.first > cursor) builder.append(line.substring(cursor, match.range.first))
+        val full = match.value
+        when {
+            full.startsWith("**") -> builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(match.groupValues[1]) }
+            full.startsWith("`") -> builder.withStyle(
+                SpanStyle(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    background = Color(0x22888888)
+                )
+            ) { append(match.groupValues[2]) }
+            full.startsWith("*") -> builder.withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(match.groupValues[3]) }
+            full.startsWith("_") -> builder.withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(match.groupValues[4]) }
+        }
+        cursor = match.range.last + 1
+    }
+    if (cursor < line.length) builder.append(line.substring(cursor))
+
+    if (isH1 || isH2) builder.pop()
+
+    return builder.toAnnotatedString()
 }
 
 private val INLINE_MARKDOWN_REGEX = "\\*\\*(.*?)\\*\\*|`(.*?)`|\\*(.*?)\\*|_(.*?)_".toRegex()

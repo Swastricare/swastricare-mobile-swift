@@ -1,5 +1,6 @@
 package com.swastricare.health.data.services
 
+import android.util.Log
 import com.swastricare.health.data.models.ChatMessage
 import com.swastricare.health.data.models.ChatRequest
 import com.swastricare.health.data.models.ChatResponse
@@ -15,6 +16,23 @@ import kotlinx.serialization.json.Json
 class AIService(private val client: SupabaseClient) {
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    companion object {
+        private const val FRIENDLY_ERROR = "I'm having trouble connecting right now. Please try again in a moment."
+    }
+
+    private fun parseResponseSafely(body: String): String {
+        return try {
+            val chatResponse = json.decodeFromString<ChatResponse>(body)
+            if (chatResponse.error == true) {
+                FRIENDLY_ERROR
+            } else {
+                chatResponse.response
+            }
+        } catch (_: Exception) {
+            FRIENDLY_ERROR
+        }
+    }
 
     suspend fun sendChatMessage(
         message: String,
@@ -33,12 +51,17 @@ class AIService(private val client: SupabaseClient) {
             healthContext = healthContext
         )
 
-        val response = client.functions.invoke(
-            function = "ai-router",
-            body = request
-        )
-        val body = response.body<String>()
-        return json.decodeFromString<ChatResponse>(body).response
+        return try {
+            val response = client.functions.invoke(
+                function = "ai-router",
+                body = request
+            )
+            val body = response.body<String>()
+            parseResponseSafely(body)
+        } catch (e: Exception) {
+            Log.w("AIService", "sendChatMessage failed: ${e.message}")
+            FRIENDLY_ERROR
+        }
     }
 
     suspend fun analyzeHealth(metrics: HealthMetrics): HealthAnalysisResponse {
@@ -86,12 +109,17 @@ class AIService(private val client: SupabaseClient) {
             conversationHistory = emptyList(),
             imageData = imageBase64
         )
-        val response = client.functions.invoke(
-            function = "ai-router",
-            body = request
-        )
-        val body = response.body<String>()
-        return json.decodeFromString<ChatResponse>(body).response
+        return try {
+            val response = client.functions.invoke(
+                function = "ai-router",
+                body = request
+            )
+            val body = response.body<String>()
+            parseResponseSafely(body)
+        } catch (e: Exception) {
+            Log.w("AIService", "sendImageMessage failed: ${e.message}")
+            FRIENDLY_ERROR
+        }
     }
 
     suspend fun analyzeFoodImage(imageBase64: String): SnapFoodResult {
@@ -116,13 +144,22 @@ class AIService(private val client: SupabaseClient) {
             imageData = imageBase64
         )
 
-        val response = client.functions.invoke(
-            function = "ai-router",
-            body = request
-        )
-        val body = response.body<String>()
-        val responseText = json.decodeFromString<ChatResponse>(body).response
-        return parseFoodSnapResponse(responseText)
+        return try {
+            val response = client.functions.invoke(
+                function = "ai-router",
+                body = request
+            )
+            val body = response.body<String>()
+            val responseText = parseResponseSafely(body)
+            parseFoodSnapResponse(responseText)
+        } catch (e: Exception) {
+            Log.w("AIService", "analyzeFoodImage failed: ${e.message}")
+            SnapFoodResult(
+                name = "Unknown Food",
+                calories = 0.0, proteinG = 0.0, carbsG = 0.0, fatG = 0.0, fiberG = 0.0,
+                servingSize = 1.0, servingUnit = "piece", category = "other"
+            )
+        }
     }
 
     private fun parseFoodSnapResponse(text: String): SnapFoodResult {
