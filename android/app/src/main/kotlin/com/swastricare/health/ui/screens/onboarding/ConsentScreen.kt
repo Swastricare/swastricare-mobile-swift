@@ -77,46 +77,6 @@ fun ConsentScreen(onAccepted: () -> Unit) {
 
             Spacer(Modifier.height(24.dp))
 
-            // Select All toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        val newValue = !allAccepted
-                        termsAccepted = newValue
-                        privacyAccepted = newValue
-                        dataProcessingAccepted = newValue
-                    }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Checkbox(
-                    checked = allAccepted,
-                    onCheckedChange = { newValue ->
-                        termsAccepted = newValue
-                        privacyAccepted = newValue
-                        dataProcessingAccepted = newValue
-                    },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = PrimaryColor,
-                        uncheckedColor = AppColors.onSurface.copy(alpha = 0.4f)
-                    )
-                )
-                Text(
-                    "Accept All",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.onSurface
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
             // Three consent cards with staggered animation
             ConsentCard(
                 icon = Icons.Default.Description,
@@ -159,6 +119,68 @@ fun ConsentScreen(onAccepted: () -> Unit) {
             )
 
             Spacer(Modifier.weight(1f))
+
+            // Select All toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        val newValue = !allAccepted
+                        termsAccepted = newValue
+                        privacyAccepted = newValue
+                        dataProcessingAccepted = newValue
+                    }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                val selectAllScale by animateFloatAsState(
+                    targetValue = if (allAccepted) 1f else 0f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    label = "selectAllCheck"
+                )
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (allAccepted) PrimaryColor else AppColors.onSurface.copy(alpha = 0.1f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .scale(selectAllScale)
+                    )
+                }
+                Text(
+                    "Accept All",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onSurface
+                )
+            }
+
+            // Acceptance message
+            Text(
+                "By continuing, you agree to our Terms of Service, Privacy Policy, and consent to health data processing.",
+                fontSize = 12.sp,
+                color = AppColors.onBackground.copy(alpha = 0.5f),
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 12.dp)
+            )
 
             // Continue button
             Button(

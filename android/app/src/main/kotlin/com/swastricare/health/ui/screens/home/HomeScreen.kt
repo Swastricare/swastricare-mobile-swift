@@ -50,7 +50,6 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -473,19 +472,6 @@ fun HomeScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Medical disclaimer footer
-                Text(
-                    text = "Health data shown is for informational purposes only and is not medical advice. Always consult a healthcare professional for diagnosis or treatment.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AppColors.onBackground.copy(alpha = 0.45f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    lineHeight = 16.sp
-                )
             }
         }
     }

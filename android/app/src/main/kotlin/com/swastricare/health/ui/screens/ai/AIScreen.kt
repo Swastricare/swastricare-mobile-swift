@@ -188,6 +188,19 @@ fun AIScreen(
         }
     }
 
+    // Haptic feedback: light tap when sending, stronger tap when response arrives
+    LaunchedEffect(isLoading) {
+        if (isLoading) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
+    val lastMessage = uiState.messages.lastOrNull()
+    LaunchedEffect(lastMessage?.id) {
+        if (lastMessage != null && !lastMessage.isUser && !lastMessage.isLoading) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
     val isDark = isSystemInDarkTheme()
     val screenBackground = if (isDark) Color.Black else Color.White
     val view = LocalView.current

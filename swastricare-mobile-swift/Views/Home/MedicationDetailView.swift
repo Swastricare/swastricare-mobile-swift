@@ -2,7 +2,7 @@
 //  MedicationDetailView.swift
 //  swastricare-mobile-swift
 //
-//  View for editing existing medications
+//  View for viewing and editing medication details
 //
 
 import SwiftUI
@@ -11,7 +11,7 @@ struct MedicationDetailView: View {
     @Environment(\.dismiss) var dismiss
     let medication: Medication
     @StateObject private var viewModel: MedicationViewModel
-    
+
     @State private var name: String
     @State private var dosage: String
     @State private var selectedType: MedicationType
@@ -21,18 +21,28 @@ struct MedicationDetailView: View {
     @State private var endDate: Date
     @State private var isOngoing: Bool
     @State private var notes: String
-    
+
     @State private var isEditing = false
     @State private var isLoading = false
     @State private var showDeleteConfirmation = false
     @State private var showError = false
     @State private var errorMessage = ""
-    
+
+    private var typeColor: Color {
+        switch medication.type {
+        case .pill:      return AppColors.medication
+        case .liquid:    return .cyan
+        case .injection: return .red
+        case .inhaler:   return .teal
+        case .drops:     return .blue
+        case .cream:     return .pink
+        case .other:     return .gray
+        }
+    }
+
     init(medication: Medication, viewModel: MedicationViewModel) {
         self.medication = medication
         _viewModel = StateObject(wrappedValue: viewModel)
-        
-        // Initialize state from medication
         _name = State(initialValue: medication.name)
         _dosage = State(initialValue: medication.dosage)
         _selectedType = State(initialValue: medication.type)
@@ -43,41 +53,36 @@ struct MedicationDetailView: View {
         _isOngoing = State(initialValue: medication.isOngoing)
         _notes = State(initialValue: medication.notes ?? "")
     }
-    
+
     var body: some View {
         NavigationView {
             ZStack {
-                Color.black.opacity(0.95)
+                Color(.systemGroupedBackground)
                     .ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Header Card
-                        medicationHeader
-                            .padding(.horizontal, 20)
+                        heroHeader
+                            .padding(.horizontal, 16)
                             .padding(.top, 8)
-                        
-                        // Today's Doses
+
                         todaysDosesSection
-                            .padding(.horizontal, 20)
-                        
-                        // Edit Form (when editing)
+                            .padding(.horizontal, 16)
+
+                        weeklyAdherenceSection
+                            .padding(.horizontal, 16)
+
                         if isEditing {
                             editFormSection
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 16)
                         } else {
                             detailsSection
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 16)
                         }
-                        
-                        // Adherence History
-                        adherenceSection
-                            .padding(.horizontal, 20)
-                        
-                        // Delete Button
+
                         if isEditing {
                             deleteButton
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 16)
                         }
                     }
                     .padding(.bottom, 24)
@@ -89,7 +94,11 @@ struct MedicationDetailView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(isEditing ? "Cancel" : "Close") {
                         if isEditing {
-                            cancelEditing()
+                            var transaction = Transaction()
+                            transaction.disablesAnimations = true
+                            withTransaction(transaction) {
+                                cancelEditing()
+                            }
                         } else {
                             dismiss()
                         }
@@ -97,20 +106,28 @@ struct MedicationDetailView: View {
                     .foregroundColor(.primary)
                     .font(.body)
                 }
-                
+
                 ToolbarItem(placement: .topBarTrailing) {
                     if isEditing {
                         Button("Save") {
-                            saveChanges()
+                            var transaction = Transaction()
+                            transaction.disablesAnimations = true
+                            withTransaction(transaction) {
+                                saveChanges()
+                            }
                         }
                         .disabled(isLoading || !hasChanges)
-                        .foregroundColor(hasChanges ? AppColors.accentBlue : .secondary)
+                        .foregroundColor(hasChanges ? AppColors.medication : .secondary)
                         .font(.body)
                     } else {
                         Button("Edit") {
-                            isEditing = true
+                            var transaction = Transaction()
+                            transaction.disablesAnimations = true
+                            withTransaction(transaction) {
+                                isEditing = true
+                            }
                         }
-                        .foregroundColor(AppColors.accentBlue)
+                        .foregroundColor(AppColors.medication)
                         .font(.body)
                     }
                 }
@@ -130,76 +147,83 @@ struct MedicationDetailView: View {
             }
         }
     }
-    
-    // MARK: - Medication Header
-    
-    private var medicationHeader: some View {
+
+    // MARK: - Hero Header
+
+    private var heroHeader: some View {
         HStack(spacing: 16) {
+            // Large type icon with colored background
             ZStack {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(AppColors.accentBlue.opacity(0.12))
-                    .frame(width: 64, height: 64)
-                
+                Circle()
+                    .fill(typeColor.opacity(0.12))
+                    .frame(width: 72, height: 72)
+
                 Image(systemName: medication.type.icon)
-                    .font(.system(size: 28))
-                    .foregroundColor(AppColors.accentBlue)
+                    .font(.system(size: 30, weight: .medium))
+                    .foregroundColor(typeColor)
             }
-            
+
             VStack(alignment: .leading, spacing: 6) {
                 Text(medication.name)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.primary)
-                
+                    .lineLimit(2)
+
                 Text(medication.dosage)
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
-                
-                HStack(spacing: 6) {
-                    Image(systemName: "clock.fill")
-                        .font(.system(size: 12))
-                    Text(medication.scheduleTemplate.displayName)
-                        .font(.system(size: 13))
+
+                HStack(spacing: 12) {
+                    Label(medication.scheduleTemplate.displayName, systemImage: "clock.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+
+                    if medication.isOngoing {
+                        Label("Ongoing", systemImage: "infinity")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
                 }
-                .foregroundColor(.secondary)
             }
-            
+
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 20)
-        .glass(cornerRadius: 18)
+        .padding(20)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
     }
-    
-    // MARK: - Today's Doses Section
-    
+
+    // MARK: - Today's Doses
+
     private var todaysDosesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Today's Doses")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.primary)
-            
+                .padding(.horizontal, 4)
+
             let adherence = viewModel.getAdherence(for: medication.id, date: Date())
-            
+
             if adherence.isEmpty {
                 HStack {
                     Spacer()
                     VStack(spacing: 8) {
                         Image(systemName: "calendar.badge.clock")
-                            .font(.system(size: 32))
-                            .foregroundColor(.secondary.opacity(0.5))
+                            .font(.system(size: 28))
+                            .foregroundColor(.secondary.opacity(0.4))
                         Text("No doses scheduled for today")
-                            .font(.system(size: 15))
+                            .font(.system(size: 14))
                             .foregroundColor(.secondary)
                     }
-                    .padding(.vertical, 32)
+                    .padding(.vertical, 28)
                     Spacer()
                 }
-                .frame(maxWidth: .infinity)
-                .glass(cornerRadius: 16)
+                .background(Color(UIColor.secondarySystemGroupedBackground))
+                .cornerRadius(14)
             } else {
-                VStack(spacing: 10) {
-                    ForEach(adherence) { dose in
-                        DoseCard(
+                VStack(spacing: 0) {
+                    ForEach(Array(adherence.enumerated()), id: \.element.id) { index, dose in
+                        DoseActionRow(
                             dose: dose,
                             onMarkTaken: {
                                 Task {
@@ -212,185 +236,243 @@ struct MedicationDetailView: View {
                                 }
                             }
                         )
+
+                        if index < adherence.count - 1 {
+                            Divider().padding(.leading, 60)
+                        }
                     }
                 }
+                .background(Color(UIColor.secondarySystemGroupedBackground))
+                .cornerRadius(14)
             }
         }
     }
-    
+
+    // MARK: - Weekly Adherence
+
+    private var weeklyAdherenceSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("This Week")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
+                .padding(.horizontal, 4)
+
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { dayOffset in
+                    let date = weekDate(offset: dayOffset)
+                    let isToday = Calendar.current.isDateInToday(date)
+                    let isFuture = Calendar.current.startOfDay(for: date) > Calendar.current.startOfDay(for: Date())
+                    let dayAdherence = viewModel.getAdherence(for: medication.id, date: date)
+                    let taken = dayAdherence.filter { $0.status == .taken || $0.status == .late || $0.status == .early }.count
+                    let total = dayAdherence.count
+
+                    VStack(spacing: 6) {
+                        Text(date.formatted(.dateTime.weekday(.narrow)))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(isToday ? AppColors.medication : .secondary)
+
+                        ZStack {
+                            Circle()
+                                .fill(adherenceDotColor(taken: taken, total: total, isFuture: isFuture))
+                                .frame(width: 28, height: 28)
+
+                            if !isFuture && total > 0 {
+                                if taken == total {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.white)
+                                } else {
+                                    Text("\(taken)")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
+
+                        if !isFuture && total > 0 {
+                            Text("\(taken)/\(total)")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text(" ")
+                                .font(.system(size: 9))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 8)
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(14)
+        }
+    }
+
+    private func weekDate(offset: Int) -> Date {
+        let cal = Calendar.current
+        let today = Date()
+        let weekday = cal.component(.weekday, from: today)
+        let daysFromMonday = (weekday + 5) % 7
+        return cal.date(byAdding: .day, value: offset - daysFromMonday, to: today) ?? today
+    }
+
+    private func adherenceDotColor(taken: Int, total: Int, isFuture: Bool) -> Color {
+        if isFuture || total == 0 { return Color(.systemGray5) }
+        if taken == total { return AppColors.accentGreen }
+        if taken > 0 { return .orange }
+        return Color(.systemGray4)
+    }
+
     // MARK: - Details Section
-    
+
     private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Details")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.primary)
-            
-            VStack(spacing: 10) {
-                DetailRow(label: "Type", value: medication.type.displayName, icon: medication.type.icon)
-                DetailRow(label: "Schedule", value: medication.scheduleTemplate.displayName, icon: "calendar")
-                
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                MedicationInfoRow(icon: medication.type.icon, label: "Type", value: medication.type.displayName, color: typeColor)
+                Divider().padding(.leading, 48)
+                MedicationInfoRow(icon: "calendar", label: "Schedule", value: medication.scheduleTemplate.displayName, color: AppColors.medication)
+                Divider().padding(.leading, 48)
+
                 if medication.isOngoing {
-                    DetailRow(label: "Duration", value: "Ongoing", icon: "infinity")
+                    MedicationInfoRow(icon: "infinity", label: "Duration", value: "Ongoing", color: .secondary)
                 } else if let endDate = medication.endDate {
-                    DetailRow(label: "End Date", value: formatDate(endDate), icon: "calendar.badge.clock")
+                    MedicationInfoRow(icon: "calendar.badge.clock", label: "End Date", value: formatDate(endDate), color: .secondary)
                 }
-            }
-            
-            if let notes = medication.notes, !notes.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "note.text")
+
+                if let notes = medication.notes, !notes.isEmpty {
+                    Divider().padding(.leading, 48)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "note.text")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                                .frame(width: 24)
+                            Text("Notes")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        Text(notes)
                             .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                        Text("Notes")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    
-                    Text(notes)
-                        .font(.system(size: 15))
-                        .foregroundColor(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .glass(cornerRadius: 14)
             }
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(14)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 20)
-        .glass(cornerRadius: 18)
     }
-    
-    // MARK: - Edit Form Section
-    
+
+    // MARK: - Edit Form
+
     private var editFormSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Edit Details")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.primary)
-            
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Name")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-                TextField("Medication name", text: $name)
-                    .textFieldStyle(PremiumTextFieldStyle())
-            }
-            
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Dosage")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-                TextField("Dosage", text: $dosage)
-                    .textFieldStyle(PremiumTextFieldStyle())
-            }
-            
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Notes")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-                TextEditor(text: $notes)
-                    .frame(height: 100)
-                    .scrollContentBackground(.hidden)
-                    .padding(16)
-                    .background(Color.primary.opacity(0.05))
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                    )
-            }
-            
-            Toggle(isOn: $isOngoing) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Ongoing medication")
-                        .font(.system(size: 15))
-                        .foregroundColor(.primary)
-                    Text("No end date")
-                        .font(.system(size: 13))
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Name")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
+                    TextField("Medication name", text: $name)
+                        .textFieldStyle(PremiumTextFieldStyle())
                 }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Dosage")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    TextField("Dosage", text: $dosage)
+                        .textFieldStyle(PremiumTextFieldStyle())
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Notes")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    TextEditor(text: $notes)
+                        .frame(height: 100)
+                        .scrollContentBackground(.hidden)
+                        .padding(14)
+                        .background(Color(UIColor.tertiarySystemFill))
+                        .cornerRadius(12)
+                }
+
+                Toggle(isOn: $isOngoing) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Ongoing medication")
+                            .font(.system(size: 15))
+                            .foregroundColor(.primary)
+                        Text("No end date")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .tint(AppColors.medication)
             }
-            .tint(AppColors.accentBlue)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 20)
-        .glass(cornerRadius: 18)
-    }
-    
-    // MARK: - Adherence Section
-    
-    private var adherenceSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Adherence History")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.primary)
-            
-            let adherence = viewModel.getAdherence(for: medication.id, date: Date())
-            let stats = AdherenceStatistics(adherenceRecords: adherence)
-            
-            HStack(spacing: 12) {
-                MedicationStatCard(title: "Taken", value: "\(stats.takenDoses)", color: .green)
-                MedicationStatCard(title: "Missed", value: "\(stats.missedDoses)", color: .red)
-                MedicationStatCard(title: "Skipped", value: "\(stats.skippedDoses)", color: .orange)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 20)
-            .glass(cornerRadius: 18)
+            .padding(16)
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(14)
         }
     }
-    
+
     // MARK: - Delete Button
-    
+
     private var deleteButton: some View {
-        Button(action: {
+        Button {
             showDeleteConfirmation = true
-        }) {
+        } label: {
             HStack(spacing: 8) {
                 Image(systemName: "trash.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 15))
                 Text("Delete Medication")
                     .font(.system(size: 16, weight: .semibold))
             }
             .foregroundColor(.red)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color.red.opacity(0.1))
+            .padding(.vertical, 14)
+            .background(Color.red.opacity(0.08))
             .cornerRadius(14)
         }
         .buttonStyle(ScaleButtonStyle())
     }
-    
+
     // MARK: - Actions
-    
+
     private var hasChanges: Bool {
         name != medication.name ||
         dosage != medication.dosage ||
         notes != (medication.notes ?? "") ||
         isOngoing != medication.isOngoing
     }
-    
+
     private func cancelEditing() {
-        // Reset to original values
         name = medication.name
         dosage = medication.dosage
         notes = medication.notes ?? ""
         isOngoing = medication.isOngoing
         isEditing = false
     }
-    
+
     private func saveChanges() {
         isLoading = true
-        
         var updatedMedication = medication
         updatedMedication.name = name
         updatedMedication.dosage = dosage
         updatedMedication.notes = notes.isEmpty ? nil : notes
         updatedMedication.isOngoing = isOngoing
         updatedMedication.endDate = isOngoing ? nil : endDate
-        
+
         Task {
             do {
                 try await viewModel.updateMedication(updatedMedication)
@@ -407,10 +489,9 @@ struct MedicationDetailView: View {
             }
         }
     }
-    
+
     private func deleteMedication() {
         isLoading = true
-        
         Task {
             do {
                 try await viewModel.deleteMedication(id: medication.id)
@@ -427,9 +508,7 @@ struct MedicationDetailView: View {
             }
         }
     }
-    
-    // MARK: - Helpers
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -437,46 +516,93 @@ struct MedicationDetailView: View {
     }
 }
 
-// MARK: - Dose Card
+// MARK: - Dose Action Row
 
-struct DoseCard: View {
+struct DoseActionRow: View {
     let dose: MedicationAdherence
     let onMarkTaken: () -> Void
     let onMarkSkipped: () -> Void
-    
+
+    @State private var justTaken = false
+
+    private var statusColor: Color {
+        switch dose.status {
+        case .taken, .early: return AppColors.accentGreen
+        case .late:          return .orange
+        case .missed:        return .red
+        case .skipped:       return .secondary
+        case .pending:       return dose.isOverdue() ? .red : .secondary
+        }
+    }
+
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(spacing: 14) {
+            // Time circle
+            ZStack {
+                Circle()
+                    .fill(statusColor.opacity(0.12))
+                    .frame(width: 44, height: 44)
+
+                if justTaken || dose.status == .taken || dose.status == .late || dose.status == .early {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(AppColors.accentGreen)
+                } else {
+                    Text(formatTime(dose.scheduledTime))
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(statusColor)
+                }
+            }
+
+            // Status info
+            VStack(alignment: .leading, spacing: 3) {
                 Text(formatTime(dose.scheduledTime))
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.primary)
-                
-                HStack(spacing: 6) {
+
+                HStack(spacing: 4) {
                     Image(systemName: dose.status.icon)
-                        .font(.system(size: 12))
-                    Text(dose.status.displayName)
+                        .font(.system(size: 11))
+                    Text(statusText)
                         .font(.system(size: 13))
                 }
-                .foregroundColor(statusColor(dose.status))
+                .foregroundColor(statusColor)
             }
-            
+
             Spacer()
-            
-            if dose.status == .pending {
-                HStack(spacing: 12) {
-                    Button(action: onMarkTaken) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.green)
+
+            // Action buttons
+            if dose.status == .pending && !justTaken {
+                HStack(spacing: 10) {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                            justTaken = true
+                        }
+                        onMarkTaken()
+                    } label: {
+                        Text("Take")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(dose.isOverdue() ? Color.red : AppColors.accentGreen)
+                            .cornerRadius(20)
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button(action: onMarkSkipped) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.orange)
+                    .buttonStyle(.plain)
+
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onMarkSkipped()
+                    } label: {
+                        Image(systemName: "forward.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .frame(width: 32, height: 32)
+                            .background(Color(UIColor.tertiarySystemFill))
+                            .clipShape(Circle())
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.plain)
                 }
             } else if let takenAt = dose.takenAt {
                 HStack(spacing: 4) {
@@ -488,75 +614,68 @@ struct DoseCard: View {
                 .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
-        .glass(cornerRadius: 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
-    
+
+    private var statusText: String {
+        if dose.status == .pending && dose.isOverdue() {
+            return "Overdue"
+        }
+        return dose.status.displayName
+    }
+
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
-    
-    private func statusColor(_ status: AdherenceStatus) -> Color {
-        switch status {
-        case .taken: return .green
-        case .missed: return .red
-        case .skipped: return .orange
-        case .pending: return .secondary
-        case .late: return .yellow
-        case .early: return .blue
-        }
-    }
 }
 
-// MARK: - Detail Row
+// MARK: - Info Row
 
-struct DetailRow: View {
+struct MedicationInfoRow: View {
+    let icon: String
     let label: String
     let value: String
-    let icon: String
-    
+    let color: Color
+
     var body: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .frame(width: 20)
-                Text(label)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-            }
-            
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(color)
+                .frame(width: 24)
+
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
+
             Spacer()
-            
+
             Text(value)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.primary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .glass(cornerRadius: 14)
     }
 }
 
-// MARK: - Medication Stat Card
+// MARK: - Medication Stat Card (kept for compatibility)
 
 struct MedicationStatCard: View {
     let title: String
     let value: String
     let color: Color
-    
+
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundColor(color)
-            
             Text(title)
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -573,6 +692,6 @@ struct MedicationStatCard: View {
         startDate: Date(),
         isOngoing: true
     )
-    
+
     MedicationDetailView(medication: medication, viewModel: MedicationViewModel())
 }

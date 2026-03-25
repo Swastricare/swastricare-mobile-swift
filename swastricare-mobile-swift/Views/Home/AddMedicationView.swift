@@ -92,8 +92,7 @@ private enum ScheduleOption: String, CaseIterable {
 
 // MARK: - Theme Colors
 
-private let medBlue = AppColors.accentBlue           // #4F46E5 — vibrant indigo
-private let medPurple = AppColors.medication         // #5856D6 — iOS system purple
+private let medAccent = AppColors.medication          // #5856D6 — unified medication accent
 private let tealGreen = Color(hex: "10B981")         // Emerald green for success states
 
 // MARK: - AddMedicationView
@@ -167,6 +166,9 @@ struct AddMedicationView: View {
     var body: some View {
         NavigationView {
             ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
+
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(spacing: 20) {
@@ -266,12 +268,8 @@ struct AddMedicationView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
-                .background(Color(UIColor.tertiarySystemFill))
+                .background(Color(UIColor.secondarySystemGroupedBackground))
                 .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                )
 
                 // Suggestions dropdown
                 if !viewModel.drugSuggestions.isEmpty {
@@ -287,7 +285,7 @@ struct AddMedicationView: View {
                             } label: {
                                 HStack(spacing: 10) {
                                     Image(systemName: "pills.fill")
-                                        .foregroundColor(medBlue)
+                                        .foregroundColor(medAccent)
                                         .font(.system(size: 14))
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(drug.displayName)
@@ -311,12 +309,8 @@ struct AddMedicationView: View {
                             Divider().padding(.leading, 40)
                         }
                     }
-                    .background(Color(UIColor.systemBackground))
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                    )
                     .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
                 }
             }
@@ -341,7 +335,8 @@ struct AddMedicationView: View {
             }
         }
         .padding(16)
-        .glass(cornerRadius: 16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
     }
 
     // MARK: - Drug Info Section (FDA)
@@ -357,7 +352,7 @@ struct AddMedicationView: View {
                         icon: "info.circle.fill",
                         label: "Indications",
                         text: desc,
-                        color: medBlue
+                        color: medAccent
                     )
                 }
                 if let warnings = details.warnings {
@@ -370,7 +365,8 @@ struct AddMedicationView: View {
                 }
             }
             .padding(16)
-            .glass(cornerRadius: 16)
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
@@ -394,7 +390,8 @@ struct AddMedicationView: View {
             }
         }
         .padding(16)
-        .glass(cornerRadius: 16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
     }
 
     // MARK: - Section 3: Schedule + Time Pickers
@@ -430,18 +427,19 @@ struct AddMedicationView: View {
                         Text("Add Time Slot")
                             .font(.system(size: 14, weight: .semibold))
                     }
-                    .foregroundColor(medBlue)
+                    .foregroundColor(medAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(medBlue.opacity(0.3), lineWidth: 1)
+                            .stroke(medAccent.opacity(0.3), lineWidth: 1)
                     )
                 }
             }
         }
         .padding(16)
-        .glass(cornerRadius: 16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
     }
 
     // MARK: - Section 4: Duration (Full Customization)
@@ -520,7 +518,8 @@ struct AddMedicationView: View {
             }
         }
         .padding(16)
-        .glass(cornerRadius: 16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
     }
 
     // MARK: - Section 5: Notes
@@ -533,15 +532,12 @@ struct AddMedicationView: View {
                 .frame(height: 100)
                 .scrollContentBackground(.hidden)
                 .padding(12)
-                .background(Color.primary.opacity(0.05))
+                .background(Color(UIColor.tertiarySystemFill))
                 .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                )
         }
         .padding(16)
-        .glass(cornerRadius: 16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
     }
 
     // MARK: - Save Button
@@ -562,19 +558,7 @@ struct AddMedicationView: View {
                 .foregroundColor(canSave ? .white : .secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(
-                    canSave
-                    ? LinearGradient(
-                        colors: [medBlue, medPurple],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                      )
-                    : LinearGradient(
-                        colors: [Color.gray.opacity(0.2), Color.gray.opacity(0.2)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                      )
-                )
+                .background(canSave ? AppColors.medication : Color(UIColor.tertiarySystemFill))
                 .cornerRadius(16)
             }
             .disabled(!canSave || isLoading)
@@ -607,12 +591,8 @@ struct AddMedicationView: View {
             .foregroundColor(isSelected ? .white : .primary)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(isSelected ? medBlue : Color.primary.opacity(0.05))
+            .background(isSelected ? medAccent : Color(UIColor.tertiarySystemFill))
             .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.clear : Color.primary.opacity(0.1), lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
     }
@@ -630,15 +610,11 @@ struct AddMedicationView: View {
                 Text(option.label)
                     .font(.system(size: 12, weight: .medium))
             }
-            .foregroundColor(isSelected ? .white : medBlue)
+            .foregroundColor(isSelected ? .white : medAccent)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(isSelected ? medBlue : Color.primary.opacity(0.05))
+            .background(isSelected ? medAccent : Color(UIColor.tertiarySystemFill))
             .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.clear : Color.primary.opacity(0.1), lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
     }
@@ -657,7 +633,7 @@ struct AddMedicationView: View {
             HStack(spacing: 8) {
                 Text(formatTime(scheduleTimes[index].time))
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(medBlue)
+                    .foregroundColor(medAccent)
 
                 if scheduleOption == .custom && scheduleTimes.count > 1 {
                     Button {
@@ -672,12 +648,8 @@ struct AddMedicationView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.primary.opacity(0.05))
+        .background(Color(UIColor.tertiarySystemFill))
         .cornerRadius(10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        )
         .onTapGesture {
             showTimePickerForIndex = index
         }
@@ -699,12 +671,8 @@ struct AddMedicationView: View {
             .foregroundColor(isSelected ? .white : .primary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(isSelected ? medBlue : Color.primary.opacity(0.05))
+            .background(isSelected ? medAccent : Color(UIColor.tertiarySystemFill))
             .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.clear : Color.primary.opacity(0.1), lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
     }
@@ -719,12 +687,8 @@ struct AddMedicationView: View {
                 .foregroundColor(isSelected ? .white : .primary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(isSelected ? medBlue : Color.primary.opacity(0.05))
+                .background(isSelected ? medAccent : Color(UIColor.tertiarySystemFill))
                 .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isSelected ? Color.clear : Color.primary.opacity(0.1), lineWidth: 1)
-                )
         }
         .buttonStyle(.plain)
     }
@@ -733,7 +697,7 @@ struct AddMedicationView: View {
         HStack {
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
-                    .foregroundColor(medBlue)
+                    .foregroundColor(medAccent)
                     .font(.system(size: 16))
                 Text(label)
                     .font(.system(size: 14))
@@ -752,16 +716,12 @@ struct AddMedicationView: View {
                 }
             }
             .labelsHidden()
-            .tint(medBlue)
+            .tint(medAccent)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.primary.opacity(0.05))
+        .background(Color(UIColor.tertiarySystemFill))
         .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        )
     }
 
     private func calculatedDateBanner(text: String) -> some View {

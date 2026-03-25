@@ -359,10 +359,9 @@ class AIViewModel @Inject constructor(
     }
 
     private fun sendImageForAnalysis(imageType: ImageType) {
+        val imageUri = _uiState.value.pendingImageUri ?: return
         val userText = "[Image: ${imageType.label}] Please analyze this ${imageType.label.lowercase()} image."
-        val userMessage = ChatMessage.userMessage(userText, _uiState.value.pendingImageUri)
-        // Capture prior messages for context BEFORE adding the new user message
-        val priorMessages = _uiState.value.messages.filter { !it.isLoading }
+        val userMessage = ChatMessage.userMessage(userText, imageUri)
         val currentMessages = _uiState.value.messages.toMutableList()
         currentMessages.add(userMessage)
         currentMessages.add(ChatMessage.loadingMessage())
@@ -378,10 +377,14 @@ class AIViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val responseText = aiService.sendChatMessage(
-                    "Analyze this ${imageType.label} image using MedGemma 4B model",
-                    priorMessages
-                )
+                // Read image bytes from URI and convert to base64
+                val uri = android.net.Uri.parse(imageUri)
+                val imageBytes = appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: throw Exception("Failed to read image")
+                val imageBase64 = android.util.Base64.encodeToString(imageBytes, android.util.Base64.NO_WRAP)
+
+                val prompt = "Analyze this ${imageType.label} image. Provide detailed observations."
+                val responseText = aiService.sendImageMessage(prompt, imageBase64)
 
                 val newMessages = _uiState.value.messages.filter { !it.isLoading }.toMutableList()
                 newMessages.add(ChatMessage.assistantMessage(responseText))
@@ -444,15 +447,34 @@ class AIViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(showHistorySheet = false, isLoading = true)
             try {
-                val records = conversationRepo.getMessages(conversation.id)
-                val messages = records.map { record ->
-                    ChatMessage(
-                        id = record.id,
-                        content = record.content,
-                        isUser = record.role == "user",
-                        shouldAnimate = false
-                    )
+                // Try embedded messages first (iOS approach), then ai_messages table
+                val embeddedMessages = conversation.messages
+                    ?.filter { it.content.isNotBlank() }
+                    ?.mapIndexed { index, msg ->
+                        ChatMessage(
+                            id = "${conversation.id}_$index",
+                            content = msg.content,
+                            isUser = msg.role == "user",
+                            shouldAnimate = false
+                        )
+                    }
+
+                val messages = if (!embeddedMessages.isNullOrEmpty()) {
+                    Log.d("AIViewModel", "Loaded ${embeddedMessages.size} embedded messages")
+                    embeddedMessages
+                } else {
+                    val records = conversationRepo.getMessages(conversation.id)
+                    Log.d("AIViewModel", "Loaded ${records.size} messages from ai_messages table")
+                    records.map { record ->
+                        ChatMessage(
+                            id = record.id,
+                            content = record.content,
+                            isUser = record.role == "user",
+                            shouldAnimate = false
+                        )
+                    }
                 }
+
                 currentConversationId = conversation.id
                 _uiState.value = _uiState.value.copy(
                     messages = messages,
@@ -460,6 +482,7 @@ class AIViewModel @Inject constructor(
                     isLoading = false
                 )
             } catch (e: Exception) {
+                Log.e("AIViewModel", "loadConversation failed", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Failed to load conversation"

@@ -16,12 +16,20 @@ private val aiJson = Json { ignoreUnknownKeys = true; isLenient = true }
 // ── Models ──
 
 @Serializable
+data class EmbeddedMessage(
+    val role: String = "",
+    val content: String = "",
+    val timestamp: String? = null
+)
+
+@Serializable
 data class AIConversation(
     val id: String = java.util.UUID.randomUUID().toString(),
     val title: String = "New Conversation",
     val created_at: String = java.time.Instant.now().toString(),
     val updated_at: String = java.time.Instant.now().toString(),
-    val is_archived: Boolean = false
+    val is_archived: Boolean = false,
+    val messages: List<EmbeddedMessage>? = null
 )
 
 @Serializable
@@ -117,10 +125,29 @@ class SupabaseAIConversationRepository @Inject constructor(
     override suspend fun getMessages(conversationId: String): List<AIMessageRecord> =
         withContext(Dispatchers.IO) {
             try {
-                supabaseClient.from("ai_messages")
+                // Try ai_messages table first (Android approach)
+                val messages = supabaseClient.from("ai_messages")
                     .select { filter { eq("conversation_id", conversationId) } }
                     .decodeList<AIMessageRecord>()
                     .sortedBy { it.created_at }
+
+                if (messages.isNotEmpty()) return@withContext messages
+
+                // Fallback: read embedded messages from ai_conversations (iOS approach)
+                val conversation = supabaseClient.from("ai_conversations")
+                    .select { filter { eq("id", conversationId) } }
+                    .decodeList<AIConversation>()
+                    .firstOrNull()
+
+                conversation?.messages?.mapIndexed { index, msg ->
+                    AIMessageRecord(
+                        id = "${conversationId}_$index",
+                        conversation_id = conversationId,
+                        role = msg.role,
+                        content = msg.content,
+                        created_at = msg.timestamp ?: conversation.created_at
+                    )
+                } ?: emptyList()
             } catch (e: Exception) {
                 loadLocalMessages().filter { it.conversation_id == conversationId }
             }

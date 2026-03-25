@@ -249,6 +249,13 @@ struct ConsentView: View {
                 .foregroundColor(.accentColor)
             }
             
+            // Acceptance message
+            Text("By continuing, you agree to our Terms of Service, Privacy Policy, and consent to health data processing.")
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+
             // Continue Button
             Button {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -274,7 +281,7 @@ struct ConsentView: View {
             .disabled(!allAccepted)
             .padding(.horizontal, 20)
             .padding(.bottom, 10)
-            
+
             // Disclaimer
             Text("You can withdraw consent anytime in Settings")
                 .font(.caption)
