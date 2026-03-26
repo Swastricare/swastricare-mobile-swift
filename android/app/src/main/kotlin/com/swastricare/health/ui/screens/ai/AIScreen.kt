@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.Info
@@ -87,6 +88,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.data.models.ChatMessage
 import com.swastricare.health.data.models.HealthMetrics
 import com.swastricare.health.data.models.QuickAction
+import com.swastricare.health.data.models.SnapFoodResult
+import com.swastricare.health.domain.model.MealType
 import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -297,6 +300,7 @@ fun AIScreen(
                         onMessageCopied = { viewModel.onMessageCopied() },
                         onMessageBookmarked = { viewModel.onMessageBookmarked() },
                         onFollowUpChipClick = { viewModel.sendFollowUp(it) },
+                        onAddFoodToDiet = { viewModel.onAddToDietClicked(it) },
                         onScrollToBottomClick = {
                             scope.launch {
                                 listState.animateScrollToItem(uiState.messages.size - 1)
@@ -395,6 +399,32 @@ fun AIScreen(
             )
         }
 
+        // Meal Type Selector Sheet
+        if (uiState.showMealTypeSheet && uiState.pendingFoodResult != null) {
+            MealTypeSelectorSheet(
+                foodName = uiState.pendingFoodResult!!.name,
+                onMealTypeSelected = { viewModel.logFoodToDiet(it) },
+                onDismiss = { viewModel.dismissMealTypeSheet() }
+            )
+        }
+
+        // Snackbar for diet logging success
+        if (uiState.snackbarMessage != null) {
+            LaunchedEffect(uiState.snackbarMessage) {
+                delay(3000)
+                viewModel.clearSnackbar()
+            }
+            Snackbar(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .align(Alignment.BottomCenter),
+                containerColor = AppColors.primaryContainer,
+                contentColor = AppColors.onBackground
+            ) {
+                Text(uiState.snackbarMessage!!)
+            }
+        }
+
         // Error Toast
         if (uiState.error != null) {
             Snackbar(
@@ -427,6 +457,7 @@ private fun ChatMessageList(
     onMessageCopied: () -> Unit,
     onMessageBookmarked: () -> Unit,
     onFollowUpChipClick: (String) -> Unit,
+    onAddFoodToDiet: ((SnapFoodResult) -> Unit)? = null,
     onScrollToBottomClick: () -> Unit,
     onScrollToBottom: () -> Unit = {}
 ) {
@@ -451,11 +482,12 @@ private fun ChatMessageList(
                     onAnimationComplete = { onMarkMessageAnimated(message.id) },
                     onCopy = onMessageCopied,
                     onBookmark = onMessageBookmarked,
-                    onTextGrow = if (index == messages.size - 1) onScrollToBottom else null
+                    onTextGrow = if (index == messages.size - 1) onScrollToBottom else null,
+                    onAddFoodToDiet = onAddFoodToDiet
                 )
-                // Show health metric card below AI bubble if response discusses health metrics
+                // Show health insight card below AI bubble if analysis is completed and response discusses health
                 val hasHealthMetrics = remember(message.id, message.content) {
-                    containsHealthMetrics(message.content)
+                    detectHealthMetrics(message.content).isNotEmpty()
                 }
                 val completedAnalysis = analysisState as? AnalysisState.Completed
                 if (!message.isUser && !message.isLoading && hasHealthMetrics && completedAnalysis != null) {
@@ -655,7 +687,8 @@ fun ChatBubble(
     onAnimationComplete: () -> Unit = {},
     onCopy: () -> Unit = {},
     onBookmark: () -> Unit = {},
-    onTextGrow: (() -> Unit)? = null
+    onTextGrow: (() -> Unit)? = null,
+    onAddFoodToDiet: ((SnapFoodResult) -> Unit)? = null
 ) {
     val isUser = message.isUser
 
@@ -796,21 +829,22 @@ fun ChatBubble(
                         ) {
                             TypingIndicator()
                         }
+                    } else if (message.foodResult != null) {
+                        // Food result — show only the card, skip raw text
+                        FoodAnalysisCard(
+                            foodResult = message.foodResult!!,
+                            onAddToDiet = { onAddFoodToDiet?.invoke(message.foodResult!!) }
+                        )
                     } else if (message.shouldAnimate) {
-                        // Show full text immediately, no typewriter animation
-                        Text(
-                            text = parseMarkdown(message.content),
-                            color = AppColors.onBackground,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontFamily = Poppins
+                        MarkdownContent(
+                            content = message.content,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         LaunchedEffect(message.id) { onAnimationComplete() }
                     } else {
-                        Text(
-                            text = parseMarkdown(message.content),
-                            color = AppColors.onBackground,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontFamily = Poppins
+                        MarkdownContent(
+                            content = message.content,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
@@ -848,6 +882,15 @@ fun ChatBubble(
                             }
                         )
                     }
+                }
+
+                // Health metric badges extracted from AI response (skip for food analysis cards)
+                if (!message.isLoading && message.content.isNotBlank() && message.foodResult == null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    InlineHealthMetricsRow(
+                        content = message.content,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
                 }
             }
         }
@@ -1014,12 +1057,6 @@ private fun parseMarkdown(text: String): AnnotatedString {
     return builder.toAnnotatedString()
 }
 
-
-private fun containsHealthMetrics(text: String): Boolean {
-    val lower = text.lowercase()
-    val keywords = listOf("steps", "heart rate", "sleep", "calorie", "blood pressure", "exercise", "weight")
-    return keywords.count { lower.contains(it) } >= 2
-}
 
 private const val DOT_CYCLE_MS = 900
 private const val DOT_RISE_MS = 300
@@ -1334,7 +1371,45 @@ private fun ImageTypeSheet(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            ImageType.entries.forEach { type ->
+
+            // Food Photo — prominent green button
+            Button(
+                onClick = { onTypeSelected(ImageType.FoodPhoto) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF22C55E)
+                )
+            ) {
+                Icon(
+                    Icons.Default.Restaurant,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Food Photo", fontWeight = FontWeight.SemiBold)
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Divider with label
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f))
+                Text(
+                    "Medical Image",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.onSurfaceVariant
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Medical image types (skip FoodPhoto since it's already shown above)
+            ImageType.entries.filter { it != ImageType.FoodPhoto }.forEach { type ->
                 OutlinedButton(
                     onClick = { onTypeSelected(type) },
                     modifier = Modifier.fillMaxWidth()
@@ -1654,6 +1729,182 @@ private fun ChatHistoryItem(
                 tint = AppColors.onBackground.copy(alpha = 0.4f),
                 modifier = Modifier.size(18.dp)
             )
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - FoodAnalysisCard
+// ─────────────────────────────────────
+
+@Composable
+private fun FoodAnalysisCard(
+    foodResult: SnapFoodResult,
+    onAddToDiet: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val greenAccent = Color(0xFF22C55E)
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .glass(cornerRadius = 16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Header
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Default.Restaurant,
+                contentDescription = null,
+                tint = greenAccent,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = foodResult.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                fontFamily = Poppins,
+                color = AppColors.onBackground
+            )
+        }
+
+        // Calorie hero
+        Text(
+            text = "${foodResult.calories.toInt()} cal",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            fontFamily = Poppins,
+            color = greenAccent
+        )
+
+        // Macro pills row
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MacroPill("Protein", "${foodResult.proteinG.toInt()}g", Color(0xFF3B82F6))
+            MacroPill("Carbs", "${foodResult.carbsG.toInt()}g", Color(0xFFF59E0B))
+            MacroPill("Fat", "${foodResult.fatG.toInt()}g", Color(0xFFEF4444))
+        }
+
+        // Serving size
+        Text(
+            text = "Serving: ${foodResult.servingSize.toInt()} ${foodResult.servingUnit}",
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = Poppins,
+            color = AppColors.onSurfaceVariant
+        )
+
+        // Add to Diet button
+        Button(
+            onClick = onAddToDiet,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = greenAccent),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                "Add to Diet",
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = Poppins
+            )
+        }
+    }
+}
+
+@Composable
+private fun MacroPill(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .background(
+                color = color.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            fontFamily = Poppins
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = color,
+            fontFamily = Poppins
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - MealTypeSelectorSheet
+// ─────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MealTypeSelectorSheet(
+    foodName: String,
+    onMealTypeSelected: (MealType) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Add \"$foodName\" to...",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = Poppins,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            MealType.entries.forEach { mealType ->
+                OutlinedButton(
+                    onClick = { onMealTypeSelected(mealType) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = mealType.displayName,
+                            fontWeight = FontWeight.Medium,
+                            fontFamily = Poppins
+                        )
+                        Text(
+                            text = mealType.typicalTime,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AppColors.onSurfaceVariant,
+                            fontFamily = Poppins
+                        )
+                    }
+                }
+            }
         }
     }
 }

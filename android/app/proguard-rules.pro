@@ -154,6 +154,14 @@
 -keep class * extends androidx.lifecycle.ViewModel { *; }
 
 # ===========================================================================
+# Multiplatform Markdown Renderer (mikepenz)
+# ===========================================================================
+-keep class com.mikepenz.markdown.** { *; }
+-dontwarn com.mikepenz.markdown.**
+-keep class org.intellij.markdown.** { *; }
+-dontwarn org.intellij.markdown.**
+
+# ===========================================================================
 # SLF4J (used by Ktor/Supabase internals — no runtime impl needed on Android)
 # ===========================================================================
 -dontwarn org.slf4j.impl.StaticLoggerBinder

@@ -11,6 +11,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.rememberScrollState
@@ -49,6 +50,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -115,12 +117,7 @@ fun HomeScreen(
         PremiumBackground()
 
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = AppColors.primary)
-            }
+            HomeSkeletonLoading()
         } else {
             Column(
                 modifier = Modifier
@@ -554,5 +551,191 @@ fun StaggeredEntrance(
         )
     ) {
         content()
+    }
+}
+
+// MARK: - Skeleton Loading
+@Composable
+private fun ShimmerBox(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 12.dp
+) {
+    val isDark = isSystemInDarkTheme()
+    val baseColor = if (isDark) Color.White.copy(alpha = 0.06f) else Color.Gray.copy(alpha = 0.12f)
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(baseColor)
+            .shimmer()
+    )
+}
+
+@Composable
+fun HomeSkeletonLoading() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(bottom = 76.dp)
+    ) {
+        // Header skeleton
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                ShimmerBox(
+                    modifier = Modifier.width(80.dp).height(14.dp),
+                    cornerRadius = 7.dp
+                )
+                ShimmerBox(
+                    modifier = Modifier.width(140.dp).height(28.dp),
+                    cornerRadius = 8.dp
+                )
+            }
+            ShimmerBox(
+                modifier = Modifier.size(44.dp),
+                cornerRadius = 22.dp
+            )
+        }
+
+        // Body status section skeleton (3D model + stats area)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(320.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            // Left stats placeholders
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.48f)
+                    .align(Alignment.CenterStart)
+            ) {
+                repeat(3) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                    ) {
+                        ShimmerBox(
+                            modifier = Modifier.size(38.dp),
+                            cornerRadius = 19.dp
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            ShimmerBox(
+                                modifier = Modifier.width(50.dp).height(20.dp),
+                                cornerRadius = 6.dp
+                            )
+                            ShimmerBox(
+                                modifier = Modifier.width(70.dp).height(12.dp),
+                                cornerRadius = 4.dp
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Right side model placeholder
+            ShimmerBox(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .fillMaxWidth(0.55f)
+                    .fillMaxHeight(0.85f),
+                cornerRadius = 20.dp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Vitals grid skeleton (3 cards)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            repeat(3) {
+                ShimmerBox(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(130.dp),
+                    cornerRadius = 20.dp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Health Analytics card skeleton
+        ShimmerBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .padding(horizontal = 16.dp),
+            cornerRadius = 24.dp
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // "Quick Actions" title skeleton
+        ShimmerBox(
+            modifier = Modifier
+                .width(120.dp)
+                .height(18.dp)
+                .padding(start = 16.dp),
+            cornerRadius = 6.dp
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Medication + Hydration row skeleton
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ShimmerBox(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(160.dp),
+                cornerRadius = 24.dp
+            )
+            ShimmerBox(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(160.dp),
+                cornerRadius = 24.dp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Diet + Cycle row skeleton
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ShimmerBox(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(160.dp),
+                cornerRadius = 24.dp
+            )
+            ShimmerBox(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(160.dp),
+                cornerRadius = 24.dp
+            )
+        }
     }
 }

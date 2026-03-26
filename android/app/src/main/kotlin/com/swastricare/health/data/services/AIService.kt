@@ -37,7 +37,9 @@ class AIService(private val client: SupabaseClient) {
     suspend fun sendChatMessage(
         message: String,
         context: List<ChatMessage>,
-        healthContext: String? = null
+        healthContext: String? = null,
+        systemContext: String? = null,
+        forceModel: String? = null
     ): String {
         val contextMessages = context.takeLast(10).map { msg ->
             ContextMessage(
@@ -48,7 +50,9 @@ class AIService(private val client: SupabaseClient) {
         val request = ChatRequest(
             message = message,
             conversationHistory = contextMessages,
-            healthContext = healthContext
+            healthContext = healthContext,
+            systemContext = systemContext,
+            forceModel = forceModel
         )
 
         return try {
@@ -64,7 +68,7 @@ class AIService(private val client: SupabaseClient) {
         }
     }
 
-    suspend fun analyzeHealth(metrics: HealthMetrics): HealthAnalysisResponse {
+    suspend fun analyzeHealth(metrics: HealthMetrics, systemContext: String? = null): HealthAnalysisResponse {
         // Build a structured prompt with health metrics for the ai-router
         val prompt = buildString {
             appendLine("Analyze my current health metrics and provide a detailed health assessment.")
@@ -88,7 +92,7 @@ class AIService(private val client: SupabaseClient) {
         }
 
         return try {
-            val responseText = sendChatMessage(prompt, emptyList())
+            val responseText = sendChatMessage(prompt, emptyList(), systemContext = systemContext)
             parseHealthAnalysisResponse(responseText)
         } catch (e: Exception) {
             HealthAnalysisResponse(

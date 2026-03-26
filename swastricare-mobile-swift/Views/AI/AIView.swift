@@ -38,6 +38,12 @@ struct AIView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var capturedImage: UIImage?
     @State private var useCamera = false  // Track user's source preference
+    @State private var isFoodPhotoMode = false  // Track if user selected Food Photo
+
+    // MARK: - Add to Diet State
+    @State private var showMealTypePicker = false
+    @State private var pendingFoodForDiet: SnapFoodResult?
+    @StateObject private var dietViewModel = DependencyContainer.shared.dietViewModel
     
     // MARK: - Toast State
     @State private var showToast = false
@@ -285,24 +291,33 @@ struct AIView: View {
             Button("Cancel", role: .cancel) {}
         }
         // Image Type Selection Sheet
-        .confirmationDialog("Select Document Type", isPresented: $showImageTypeSheet, titleVisibility: .visible) {
+        .confirmationDialog("What are you scanning?", isPresented: $showImageTypeSheet, titleVisibility: .visible) {
+            Button("Food Photo") {
+                isFoodPhotoMode = true
+                openImageSource()
+            }
             Button("Prescription") {
+                isFoodPhotoMode = false
                 selectedImageType = .prescription
                 openImageSource()
             }
             Button("Lab Report") {
+                isFoodPhotoMode = false
                 selectedImageType = .labReport
                 openImageSource()
             }
             Button("Medical Document") {
+                isFoodPhotoMode = false
                 selectedImageType = .medicalDocument
                 openImageSource()
             }
             Button("X-Ray / Scan") {
+                isFoodPhotoMode = false
                 selectedImageType = .xray
                 openImageSource()
             }
             Button("Other Medical Image") {
+                isFoodPhotoMode = false
                 selectedImageType = .general
                 openImageSource()
             }
@@ -329,8 +344,13 @@ struct AIView: View {
                         withAnimation { showToast = true }
                         return
                     }
-                    viewModel.setSelectedImage(data)
-                    await viewModel.analyzeSelectedImage(type: selectedImageType)
+                    if isFoodPhotoMode {
+                        await viewModel.analyzeFoodImage(data)
+                        isFoodPhotoMode = false
+                    } else {
+                        viewModel.setSelectedImage(data)
+                        await viewModel.analyzeSelectedImage(type: selectedImageType)
+                    }
                 } catch {
                     toastMessage = "Failed to load image"
                     toastIcon = "exclamationmark.triangle"
@@ -346,9 +366,16 @@ struct AIView: View {
         }
         .onChange(of: capturedImage) { _, newImage in
             if let image = newImage, let imageData = image.jpegData(compressionQuality: 0.8) {
-                viewModel.setSelectedImage(imageData)
-                Task {
-                    await viewModel.analyzeSelectedImage(type: selectedImageType)
+                if isFoodPhotoMode {
+                    Task {
+                        await viewModel.analyzeFoodImage(imageData)
+                        isFoodPhotoMode = false
+                    }
+                } else {
+                    viewModel.setSelectedImage(imageData)
+                    Task {
+                        await viewModel.analyzeSelectedImage(type: selectedImageType)
+                    }
                 }
                 capturedImage = nil
             }
@@ -359,6 +386,29 @@ struct AIView: View {
             await viewModel.loadHistory()
             // Mark loaded history messages as already animated (no typewriter for history)
             typewriterAnimatedIds = Set(viewModel.messages.map(\.id))
+        }
+        // Meal Type Picker for Add to Diet
+        .confirmationDialog("Add to which meal?", isPresented: $showMealTypePicker, titleVisibility: .visible) {
+            ForEach(MealType.allCases) { meal in
+                Button(meal.displayName) {
+                    if let food = pendingFoodForDiet {
+                        Task {
+                            await dietViewModel.logFoodFromSnap(result: food, mealType: meal, quantity: food.servingSize)
+                            toastMessage = "\(food.name) added to \(meal.displayName)"
+                            toastIcon = "checkmark.circle.fill"
+                            toastColor = Color(hex: "22C55E")
+                            withAnimation { showToast = true }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                withAnimation { showToast = false }
+                            }
+                        }
+                        pendingFoodForDiet = nil
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                pendingFoodForDiet = nil
+            }
         }
     }
     
@@ -415,6 +465,10 @@ struct AIView: View {
                                             } else {
                                                 speechManager.speak(text)
                                             }
+                                        } : nil,
+                                        onAddToDiet: message.foodResult != nil ? { food in
+                                            pendingFoodForDiet = food
+                                            showMealTypePicker = true
                                         } : nil,
                                         isSpeaking: speechManager.isSpeaking && !message.isUser && !message.isLoading
                                     )
@@ -1101,12 +1155,13 @@ private struct ChatBubble: View {
     let onTypewriteComplete: (() -> Void)?
     let onBookmark: (() -> Void)?
     let onSpeak: ((String) -> Void)?
+    let onAddToDiet: ((SnapFoodResult) -> Void)?
     let isSpeaking: Bool
     @State private var appeared = false
     @State private var showFeedbackButtons = false
     @State private var showCopied = false
 
-    init(message: ChatMessage, loadingOperation: LoadingOperationType, shouldTypewrite: Bool = false, onFeedback: ((MessageFeedback) -> Void)? = nil, onTypewriteComplete: (() -> Void)? = nil, onBookmark: (() -> Void)? = nil, onSpeak: ((String) -> Void)? = nil, isSpeaking: Bool = false) {
+    init(message: ChatMessage, loadingOperation: LoadingOperationType, shouldTypewrite: Bool = false, onFeedback: ((MessageFeedback) -> Void)? = nil, onTypewriteComplete: (() -> Void)? = nil, onBookmark: (() -> Void)? = nil, onSpeak: ((String) -> Void)? = nil, onAddToDiet: ((SnapFoodResult) -> Void)? = nil, isSpeaking: Bool = false) {
         self.message = message
         self.loadingOperation = loadingOperation
         self.shouldTypewrite = shouldTypewrite
@@ -1114,6 +1169,7 @@ private struct ChatBubble: View {
         self.onTypewriteComplete = onTypewriteComplete
         self.onBookmark = onBookmark
         self.onSpeak = onSpeak
+        self.onAddToDiet = onAddToDiet
         self.isSpeaking = isSpeaking
     }
     
@@ -1147,6 +1203,12 @@ private struct ChatBubble: View {
                     TypingIndicator(loadingOperation: loadingOperation)
                 } else {
                     VStack(alignment: message.isUser ? .trailing : .leading, spacing: 8) {
+                        // Food Analysis Card — show card only, no raw text
+                        if let foodResult = message.foodResult {
+                            FoodAnalysisCardView(foodResult: foodResult, onAddToDiet: onAddToDiet)
+                                .scaleEffect(appeared ? 1 : 0.85)
+                                .opacity(appeared ? 1 : 0)
+                        } else {
                         Group {
                             if message.isUser {
                                 Text(message.content)
@@ -1196,9 +1258,10 @@ private struct ChatBubble: View {
                         }
                         .scaleEffect(appeared ? 1 : 0.85)
                         .opacity(appeared ? 1 : 0)
+                        } // end else (non-food message)
 
-                        // Inline health metric pills
-                        if !message.isUser && !message.isLoading {
+                        // Inline health metric pills (skip for food analysis)
+                        if !message.isUser && !message.isLoading && message.foodResult == nil {
                             let metrics = Self.detectHealthMetrics(in: message.content)
                             if !metrics.isEmpty {
                                 ScrollView(.horizontal, showsIndicators: false) {
@@ -3062,6 +3125,98 @@ private struct ParticleOrbView: UIViewRepresentable {
 #Preview {
     NavigationStack {
         AIView()
+    }
+}
+
+// MARK: - Food Analysis Card (AI Chat)
+
+struct FoodAnalysisCardView: View {
+    let foodResult: SnapFoodResult
+    var onAddToDiet: ((SnapFoodResult) -> Void)? = nil
+
+    private let greenAccent = Color(hex: "22C55E")
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack(spacing: 8) {
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 14))
+                    .foregroundColor(greenAccent)
+                Text(foodResult.name)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.primary)
+            }
+
+            // Calorie hero
+            Text("\(Int(foodResult.calories)) cal")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(greenAccent)
+
+            // Macro pills
+            HStack(spacing: 8) {
+                MacroPillView(label: "Protein", value: "\(Int(foodResult.proteinG))g", color: Color(hex: "3B82F6"))
+                MacroPillView(label: "Carbs", value: "\(Int(foodResult.carbsG))g", color: Color(hex: "F59E0B"))
+                MacroPillView(label: "Fat", value: "\(Int(foodResult.fatG))g", color: Color(hex: "EF4444"))
+            }
+
+            // Serving
+            Text("Serving: \(Int(foodResult.servingSize)) \(foodResult.servingUnit.rawValue)")
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+
+            // Add to Diet button
+            if onAddToDiet != nil {
+                Button {
+                    onAddToDiet?(foodResult)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Add to Diet")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(greenAccent)
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(UIColor.secondarySystemBackground).opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private struct MacroPillView: View {
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(color.opacity(0.8))
+            Text(value)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(color)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.1))
+        .clipShape(RoundedCornerShape(radius: 8))
+    }
+}
+
+private struct RoundedCornerShape: Shape {
+    let radius: CGFloat
+    func path(in rect: CGRect) -> Path {
+        Path(roundedRect: rect, cornerRadius: radius)
     }
 }
 

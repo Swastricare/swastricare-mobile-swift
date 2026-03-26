@@ -35,6 +35,117 @@ const EMERGENCY_KEYWORDS = [
   'overdose', 'suicide', 'suicidal', 'dying', 'emergency'
 ]
 
+// Health & wellness keywords — if ANY of these appear, the message is on-topic
+const HEALTH_KEYWORDS = [
+  // General health & wellness
+  'health', 'wellness', 'wellbeing', 'well-being', 'fitness', 'exercise', 'workout',
+  'yoga', 'meditation', 'stretching', 'walk', 'run', 'jog', 'gym', 'cardio', 'strength',
+  'weight', 'bmi', 'body', 'muscle', 'bone', 'joint', 'posture',
+
+  // Nutrition & diet
+  'nutrition', 'diet', 'calorie', 'protein', 'carb', 'fat', 'fiber', 'vitamin',
+  'mineral', 'food', 'meal', 'eat', 'hydration', 'water', 'drink', 'fasting',
+  'macro', 'nutrient', 'supplement', 'iron', 'calcium', 'zinc', 'omega',
+
+  // Medical & symptoms (extends MEDICAL_KEYWORDS)
+  ...MEDICAL_KEYWORDS,
+
+  // Mental health
+  'stress', 'mental health', 'mindfulness', 'sleep', 'rest', 'relaxation',
+  'burnout', 'mood', 'emotion', 'self-care', 'self care', 'wellbeing',
+
+  // Hygiene & prevention
+  'hygiene', 'vaccine', 'vaccination', 'immunity', 'immune', 'prevention',
+  'first aid', 'wound', 'bandage', 'sanitize', 'disinfect',
+
+  // App-related
+  'swastricare', 'swastrica', 'swasthicare', 'tracker', 'vault', 'app',
+  'heart rate', 'steps', 'medication reminder', 'hydration tracker',
+
+  // Indian health context
+  'ayurveda', 'ayurvedic', 'homeopathy', 'unani', 'pranayama', 'asana',
+
+  // Vital signs & metrics
+  'pulse', 'temperature', 'fever', 'bp', 'sugar level', 'hemoglobin',
+
+  // Greeting & identity (always allowed)
+  'hello', 'hi', 'hey', 'good morning', 'good evening', 'good night',
+  'thank', 'thanks', 'who are you', 'what can you do', 'help',
+  'your name', 'what are you',
+]
+
+// Clearly off-topic keywords — things that have nothing to do with health
+const OFF_TOPIC_KEYWORDS = [
+  // Programming & tech
+  'code', 'coding', 'programming', 'javascript', 'python', 'java', 'html', 'css',
+  'react', 'flutter', 'swift', 'kotlin', 'api', 'database', 'server', 'deploy',
+  'github', 'git', 'debug', 'compile', 'algorithm', 'software', 'hardware',
+
+  // Business & finance
+  'tax', 'invoice', 'gst', 'accounting', 'stock market', 'shares', 'mutual fund',
+  'crypto', 'bitcoin', 'trading', 'investment', 'loan', 'emi', 'mortgage',
+  'business plan', 'startup', 'revenue', 'profit', 'marketing', 'seo',
+
+  // Entertainment
+  'movie', 'film', 'song', 'music', 'lyrics', 'cricket', 'football', 'ipl',
+  'world cup', 'game', 'gaming', 'playstation', 'xbox', 'netflix', 'anime',
+  'celebrity', 'actor', 'actress', 'bollywood', 'hollywood',
+
+  // Education (non-health)
+  'math', 'physics', 'chemistry', 'history', 'geography', 'algebra', 'calculus',
+  'essay', 'homework', 'assignment', 'exam', 'syllabus',
+
+  // General knowledge
+  'capital of', 'president of', 'prime minister', 'population', 'country',
+  'planet', 'solar system', 'universe', 'language', 'translate',
+
+  // Travel
+  'flight', 'hotel', 'booking', 'tourist', 'visa', 'passport', 'itinerary',
+
+  // Shopping & products
+  'buy', 'purchase', 'amazon', 'flipkart', 'discount', 'coupon', 'price of',
+
+  // Social media
+  'instagram', 'facebook', 'twitter', 'tiktok', 'snapchat', 'whatsapp',
+
+  // Politics & religion
+  'election', 'vote', 'political', 'party', 'government', 'policy',
+
+  // Creative writing
+  'write a story', 'write a poem', 'joke', 'riddle', 'tell me a story',
+
+  // Weather (non-health context)
+  'weather forecast', 'rain today', 'temperature outside',
+
+  // Miscellaneous
+  'recipe', 'cook', 'bake', 'restaurant', 'car', 'bike', 'vehicle',
+  'real estate', 'property', 'rent', 'house',
+]
+
+// Check if message is health-related
+function isHealthRelated(message: string): boolean {
+  const lowerMessage = message.toLowerCase()
+  return HEALTH_KEYWORDS.some(keyword => lowerMessage.includes(keyword))
+}
+
+// Check if message is clearly off-topic
+function isOffTopicQuery(message: string): boolean {
+  const lowerMessage = message.toLowerCase()
+
+  // Short generic messages like "ok", "yes", "tell me more" — let the LLM handle via system prompt
+  if (lowerMessage.trim().split(/\s+/).length <= 3) {
+    return false
+  }
+
+  // If it contains health keywords, it's on-topic regardless
+  if (isHealthRelated(message)) {
+    return false
+  }
+
+  // Check for off-topic keywords
+  return OFF_TOPIC_KEYWORDS.some(keyword => lowerMessage.includes(keyword))
+}
+
 // Check if message contains medical keywords
 function isMedicalQuery(message: string): boolean {
   const lowerMessage = message.toLowerCase()
@@ -50,6 +161,20 @@ function isEmergencyQuery(message: string): boolean {
 // Check if request contains image data
 function hasImageData(payload: any): boolean {
   return payload.imageData || payload.image || payload.imageBase64
+}
+
+// Food keywords for detecting food image analysis requests
+const FOOD_KEYWORDS = [
+  'food', 'meal', 'dish', 'cuisine', 'eat', 'calories', 'nutrition',
+  'identify the food', 'what food', 'biryani', 'curry', 'rice', 'roti',
+  'dosa', 'idli', 'snack', 'fruit', 'vegetable', 'breakfast', 'lunch',
+  'dinner', 'serving', 'protein', 'carbs', 'fat', 'fiber', 'macros'
+]
+
+// Check if message is requesting food image analysis
+function isFoodImageRequest(message: string): boolean {
+  const lowerMessage = message.toLowerCase()
+  return FOOD_KEYWORDS.some(keyword => lowerMessage.includes(keyword))
 }
 
 serve(async (req) => {
@@ -85,6 +210,31 @@ serve(async (req) => {
     let targetModel = 'minimax' // default
     let targetFunction = 'ai-chat'
 
+    // Check for emergency first (always, regardless of forceModel)
+    if (isEmergencyQuery(message)) {
+      return new Response(JSON.stringify({
+        response: "🚨 EMERGENCY DETECTED\n\nIf you or someone else is experiencing a medical emergency, please:\n\n1. Call emergency services immediately (911 in US, 112 in EU, 108 in India)\n2. Stay calm and follow dispatcher instructions\n3. Do not delay seeking professional help\n\nThis AI cannot provide emergency medical care. Your safety is the priority.",
+        model: "emergency",
+        isEmergency: true,
+        disclaimer: "If this is a life-threatening emergency, call emergency services immediately."
+      }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+
+    // Block off-topic messages before they reach any LLM
+    if (isOffTopicQuery(message)) {
+      console.log('=== OFF-TOPIC BLOCKED ===')
+      console.log(`Message: ${message.substring(0, 100)}`)
+      return new Response(JSON.stringify({
+        response: "I'm Swastrica, your health assistant! 💚 I can only help with health and wellness topics like nutrition, fitness, symptoms, medications, mental health, and more.\n\nFeel free to ask me anything related to your well-being! 🌿",
+        model: "off-topic-filter",
+        isOffTopic: true
+      }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+
     // Check for forced model selection
     if (forceModel) {
       if (forceModel === 'medical' || forceModel === 'medgemma' || forceModel === 'medgemma-27b') {
@@ -96,19 +246,6 @@ serve(async (req) => {
       }
     } else {
       // Auto-detect based on content
-
-      // Check for emergency first
-      if (isEmergencyQuery(message)) {
-        // Return emergency response immediately
-        return new Response(JSON.stringify({
-          response: "🚨 EMERGENCY DETECTED\n\nIf you or someone else is experiencing a medical emergency, please:\n\n1. Call emergency services immediately (911 in US, 112 in EU, 108 in India)\n2. Stay calm and follow dispatcher instructions\n3. Do not delay seeking professional help\n\nThis AI cannot provide emergency medical care. Your safety is the priority.",
-          model: "emergency",
-          isEmergency: true,
-          disclaimer: "If this is a life-threatening emergency, call emergency services immediately."
-        }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        })
-      }
 
       // Check for image data - route to MedGemma Vision (stays on Gemini)
       if (hasImageData(payload)) {
@@ -141,6 +278,7 @@ serve(async (req) => {
       conversationHistory,
       ...(imageData && { imageData }),
       ...(systemContext && { systemContext }),
+      ...(hasImageData(payload) && isFoodImageRequest(message) && { analysisType: 'food' }),
       routedFrom: 'ai-router',
       originalModel: targetModel
     }
@@ -148,32 +286,49 @@ serve(async (req) => {
     console.log('=== FORWARDING REQUEST ===')
     console.log(`URL: ${functionUrl}`)
 
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader || `Bearer ${supabaseAnonKey}`,
-        'apikey': supabaseAnonKey
-      },
-      body: JSON.stringify(forwardPayload)
-    })
+    // Helper to call a downstream function with auth fallback
+    const callFunction = async (url: string, body: object): Promise<Response> => {
+      // First try with user's auth token
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader || `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey
+        },
+        body: JSON.stringify(body)
+      })
+
+      // If 401 (expired JWT), retry with anon key only
+      if (res.status === 401 && authHeader) {
+        console.log('Auth token rejected (401), retrying with anon key...')
+        return await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey
+          },
+          body: JSON.stringify(body)
+        })
+      }
+
+      return res
+    }
+
+    const response = await callFunction(functionUrl, forwardPayload)
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`${targetFunction} error:`, errorText)
+      console.error(`${targetFunction} error (${response.status}):`, errorText)
 
       // Fallback to general chat if medical chat fails
       if (targetModel === 'minimax-medical') {
         console.log('Falling back to general chat...')
-        const fallbackResponse = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader || `Bearer ${supabaseAnonKey}`,
-            'apikey': supabaseAnonKey
-          },
-          body: JSON.stringify({ message, conversationHistory })
-        })
+        const fallbackResponse = await callFunction(
+          `${supabaseUrl}/functions/v1/ai-chat`,
+          { message, conversationHistory }
+        )
 
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json()

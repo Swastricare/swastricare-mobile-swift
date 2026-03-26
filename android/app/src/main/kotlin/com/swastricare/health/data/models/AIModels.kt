@@ -12,12 +12,14 @@ data class ChatMessage(
     val timestamp: Long = System.currentTimeMillis(),
     val isLoading: Boolean = false,
     val shouldAnimate: Boolean = false,
-    val imageUri: String? = null
+    val imageUri: String? = null,
+    val foodResult: SnapFoodResult? = null
 ) {
     companion object {
         fun userMessage(content: String) = ChatMessage(content = content, isUser = true)
         fun userMessage(content: String, imageUri: String?) = ChatMessage(content = content, isUser = true, imageUri = imageUri)
         fun assistantMessage(content: String) = ChatMessage(content = content, isUser = false, shouldAnimate = true)
+        fun foodAnalysisMessage(content: String, foodResult: SnapFoodResult) = ChatMessage(content = content, isUser = false, shouldAnimate = true, foodResult = foodResult)
         fun loadingMessage() = ChatMessage(content = "", isUser = false, isLoading = true)
     }
 }
@@ -108,7 +110,9 @@ data class ChatRequest(
     val message: String,
     val conversationHistory: List<ContextMessage>,
     val imageData: String? = null,
-    val healthContext: String? = null
+    val healthContext: String? = null,
+    val systemContext: String? = null,
+    val forceModel: String? = null
 )
 
 @Serializable

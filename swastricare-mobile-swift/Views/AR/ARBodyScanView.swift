@@ -204,44 +204,44 @@ struct OrganOverlay: Identifiable, Equatable {
     static let allOrgans: [OrganOverlay] = [
         OrganOverlay(
             id: "brain", name: "Brain", icon: "brain.head.profile",
-            color: "8B5CF6", relativePosition: CGPoint(x: 0.5, y: 0.08),
-            size: 32, healthMetric: "sleep",
+            color: "8B5CF6", relativePosition: CGPoint(x: 0.5, y: 0.06),
+            size: 30, healthMetric: "sleep",
             description: "Your brain consolidates memories during deep sleep. Quality rest improves cognitive function and mood."
         ),
         OrganOverlay(
             id: "heart", name: "Heart", icon: "heart.fill",
-            color: "EF4444", relativePosition: CGPoint(x: 0.45, y: 0.32),
-            size: 34, healthMetric: "heartRate",
+            color: "EF4444", relativePosition: CGPoint(x: 0.35, y: 0.28),
+            size: 30, healthMetric: "heartRate",
             description: "Your heart beats about 100,000 times a day. Regular cardio exercise strengthens it and lowers resting heart rate."
         ),
         OrganOverlay(
             id: "lungs", name: "Lungs", icon: "lungs.fill",
-            color: "3B82F6", relativePosition: CGPoint(x: 0.55, y: 0.30),
-            size: 30, healthMetric: nil,
+            color: "3B82F6", relativePosition: CGPoint(x: 0.65, y: 0.28),
+            size: 28, healthMetric: nil,
             description: "Your lungs process about 11,000 liters of air daily. Deep breathing exercises improve lung capacity and reduce stress."
         ),
         OrganOverlay(
             id: "stomach", name: "Stomach", icon: "fork.knife",
-            color: "F59E0B", relativePosition: CGPoint(x: 0.48, y: 0.42),
-            size: 28, healthMetric: "calories",
+            color: "F59E0B", relativePosition: CGPoint(x: 0.50, y: 0.40),
+            size: 26, healthMetric: "calories",
             description: "Your stomach breaks down food using hydrochloric acid. Eating slowly improves digestion and nutrient absorption."
         ),
         OrganOverlay(
             id: "liver", name: "Liver", icon: "cross.vial.fill",
-            color: "D97706", relativePosition: CGPoint(x: 0.40, y: 0.40),
-            size: 26, healthMetric: nil,
+            color: "D97706", relativePosition: CGPoint(x: 0.28, y: 0.42),
+            size: 24, healthMetric: nil,
             description: "Your liver performs over 500 functions including filtering blood and producing bile. Stay hydrated to support it."
         ),
         OrganOverlay(
             id: "kidneys", name: "Kidneys", icon: "drop.fill",
-            color: "06B6D4", relativePosition: CGPoint(x: 0.50, y: 0.46),
+            color: "06B6D4", relativePosition: CGPoint(x: 0.72, y: 0.42),
             size: 24, healthMetric: nil,
             description: "Your kidneys filter about 200 liters of blood daily. Drinking enough water keeps them functioning optimally."
         ),
         OrganOverlay(
             id: "legs", name: "Legs", icon: "figure.walk",
-            color: "22C55E", relativePosition: CGPoint(x: 0.50, y: 0.75),
-            size: 28, healthMetric: "steps",
+            color: "22C55E", relativePosition: CGPoint(x: 0.50, y: 0.72),
+            size: 26, healthMetric: "steps",
             description: "Walking is the most underrated exercise. Even 7,000 steps a day significantly reduces mortality risk."
         )
     ]
@@ -592,16 +592,10 @@ private struct OrganIconView: View {
                     if organ.id == "heart" {
                         Circle()
                             .stroke(Color(hex: organ.color).opacity(0.3), lineWidth: 2)
-                            .frame(width: organ.size + 16, height: organ.size + 16)
-                            .scaleEffect(pulse ? 1.4 : 1.0)
+                            .frame(width: organ.size + 12, height: organ.size + 12)
+                            .scaleEffect(pulse ? 1.3 : 1.0)
                             .opacity(pulse ? 0 : 0.6)
                     }
-
-                    // Glow
-                    Circle()
-                        .fill(Color(hex: organ.color).opacity(0.25))
-                        .frame(width: organ.size + 8, height: organ.size + 8)
-                        .blur(radius: 4)
 
                     // Icon circle
                     Circle()
@@ -614,24 +608,25 @@ private struct OrganIconView: View {
                         )
                         .overlay(
                             Circle()
-                                .stroke(Color.white.opacity(0.5), lineWidth: 1)
+                                .stroke(Color.white.opacity(isSelected ? 0.8 : 0.4), lineWidth: isSelected ? 2 : 1)
                         )
-                        .shadow(color: Color(hex: organ.color).opacity(0.5), radius: 8)
+                        .shadow(color: Color(hex: organ.color).opacity(0.4), radius: 4)
                 }
 
-                // Health value label
-                if let value = healthValue {
+                // Health value label — only show when selected
+                if isSelected, let value = healthValue {
                     Text(value)
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color(hex: organ.color).opacity(0.8))
+                        .padding(.vertical, 3)
+                        .background(Color(hex: organ.color).opacity(0.85))
                         .clipShape(Capsule())
                         .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
-            .scaleEffect(isSelected ? 1.25 : 1.0)
+            .scaleEffect(isSelected ? 1.2 : 1.0)
             .animation(.spring(response: 0.3), value: isSelected)
         }
         .buttonStyle(.plain)

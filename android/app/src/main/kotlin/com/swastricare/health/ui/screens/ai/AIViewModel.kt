@@ -11,9 +11,16 @@ import com.swastricare.health.data.repository.SupabaseAIConversationRepository
 import com.swastricare.health.data.services.AIService
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.AppAnalyticsService
+import com.swastricare.health.data.models.SnapFoodResult
 import com.swastricare.health.data.services.HealthConnectService
+import com.swastricare.health.data.services.ImageUtils
 import com.swastricare.health.data.services.SpeechService
+import com.swastricare.health.domain.model.FoodEntry
+import com.swastricare.health.domain.model.MealType
+import com.swastricare.health.domain.model.NutritionInfo
+import com.swastricare.health.domain.model.ServingUnit
 import com.swastricare.health.domain.repository.AuthRepository
+import com.swastricare.health.domain.repository.DietRepository
 import com.swastricare.health.domain.repository.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,6 +28,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
 
@@ -35,6 +45,7 @@ enum class AIMode(val label: String) {
 // MARK: - Image Type for Analysis
 
 enum class ImageType(val label: String, val icon: String) {
+    FoodPhoto("Food Photo", "restaurant"),
     XRay("X-Ray", "radiology"),
     MRI("MRI", "mri"),
     CTScan("CT Scan", "ct_scan"),
@@ -65,7 +76,9 @@ data class AIUiState(
     val snackbarMessage: String? = null,
     val showHistorySheet: Boolean = false,
     val historyConversations: List<com.swastricare.health.data.repository.AIConversation> = emptyList(),
-    val isHistoryLoading: Boolean = false
+    val isHistoryLoading: Boolean = false,
+    val showMealTypeSheet: Boolean = false,
+    val pendingFoodResult: com.swastricare.health.data.models.SnapFoodResult? = null
 )
 
 sealed class AnalysisState {
@@ -84,6 +97,7 @@ class AIViewModel @Inject constructor(
     private val healthConnectService: HealthConnectService,
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val dietRepository: DietRepository,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -229,7 +243,14 @@ class AIViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val responseText = aiService.sendChatMessage(text, priorMessages)
+                // Fetch 7-day health history for system context (graceful degradation)
+                val systemContext = fetchHealthContext()
+
+                val responseText = aiService.sendChatMessage(
+                    text,
+                    priorMessages,
+                    systemContext = systemContext
+                )
 
                 val newMessages = _uiState.value.messages.filter { !it.isLoading }.toMutableList()
                 newMessages.add(ChatMessage.assistantMessage(responseText))
@@ -347,8 +368,11 @@ class AIViewModel @Inject constructor(
             selectedImageType = type,
             showImageTypeSheet = false
         )
-        // Send the image with type context
-        sendImageForAnalysis(type)
+        if (type == ImageType.FoodPhoto) {
+            sendFoodImageForAnalysis()
+        } else {
+            sendImageForAnalysis(type)
+        }
     }
 
     fun dismissImageTypeSheet() {
@@ -408,6 +432,140 @@ class AIViewModel @Inject constructor(
                     isLoading = false,
                     pendingImageUri = null
                 )
+            }
+        }
+    }
+
+    // MARK: - Food Image Analysis
+
+    private fun sendFoodImageForAnalysis() {
+        val imageUri = _uiState.value.pendingImageUri ?: return
+        val userText = "[Image: Food Photo] Analyzing food for nutrition info..."
+        val userMessage = ChatMessage.userMessage(userText, imageUri)
+        val currentMessages = _uiState.value.messages.toMutableList()
+        currentMessages.add(userMessage)
+        currentMessages.add(ChatMessage.loadingMessage())
+
+        _uiState.value = _uiState.value.copy(
+            messages = currentMessages,
+            isLoading = true,
+            showEmptyState = false,
+            followUpSuggestions = emptyList()
+        )
+
+        persistMessage("user", userText)
+
+        viewModelScope.launch {
+            try {
+                val uri = android.net.Uri.parse(imageUri)
+                val imageBase64 = ImageUtils.compressAndEncode(appContext, uri)
+                    ?: throw Exception("Failed to read image")
+
+                val foodResult = aiService.analyzeFoodImage(imageBase64)
+
+                val summaryText = buildString {
+                    appendLine("**${foodResult.name}**")
+                    appendLine()
+                    appendLine("**${foodResult.calories.toInt()} cal** per ${foodResult.servingSize.toInt()} ${foodResult.servingUnit}")
+                    appendLine()
+                    appendLine("**Protein:** ${foodResult.proteinG.toInt()}g  ·  **Carbs:** ${foodResult.carbsG.toInt()}g  ·  **Fat:** ${foodResult.fatG.toInt()}g")
+                    if (foodResult.fiberG > 0) {
+                        appendLine("**Fiber:** ${foodResult.fiberG.toInt()}g")
+                    }
+                }
+
+                val newMessages = _uiState.value.messages.filter { !it.isLoading }.toMutableList()
+                newMessages.add(ChatMessage.foodAnalysisMessage(summaryText, foodResult))
+
+                val suggestions = listOf(
+                    "Is this food healthy?",
+                    "What are healthier alternatives?",
+                    "How does this fit my daily goals?"
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    messages = newMessages,
+                    isLoading = false,
+                    pendingImageUri = null,
+                    followUpSuggestions = suggestions
+                )
+
+                persistMessage("assistant", summaryText)
+            } catch (e: Exception) {
+                Log.w("AIViewModel", "sendFoodImageForAnalysis failed", e)
+                val newMessages = _uiState.value.messages.filter { !it.isLoading }.toMutableList()
+                newMessages.add(ChatMessage.assistantMessage("I'm having trouble analyzing this food image right now. Please try again in a moment."))
+                _uiState.value = _uiState.value.copy(
+                    messages = newMessages,
+                    isLoading = false,
+                    pendingImageUri = null
+                )
+            }
+        }
+    }
+
+    // MARK: - Diet Logging from AI Chat
+
+    fun onAddToDietClicked(foodResult: SnapFoodResult) {
+        _uiState.value = _uiState.value.copy(
+            showMealTypeSheet = true,
+            pendingFoodResult = foodResult
+        )
+    }
+
+    fun dismissMealTypeSheet() {
+        _uiState.value = _uiState.value.copy(
+            showMealTypeSheet = false,
+            pendingFoodResult = null
+        )
+    }
+
+    fun logFoodToDiet(mealType: MealType) {
+        val foodResult = _uiState.value.pendingFoodResult ?: return
+        _uiState.value = _uiState.value.copy(
+            showMealTypeSheet = false,
+            pendingFoodResult = null
+        )
+
+        viewModelScope.launch {
+            try {
+                val servingUnit = try {
+                    ServingUnit.valueOf(foodResult.servingUnit.uppercase())
+                } catch (_: Exception) {
+                    ServingUnit.PIECE
+                }
+
+                val entry = FoodEntry(
+                    id = UUID.randomUUID().toString(),
+                    mealType = mealType,
+                    foodName = foodResult.name,
+                    quantity = foodResult.servingSize,
+                    servingUnit = servingUnit,
+                    nutritionInfo = NutritionInfo(
+                        calories = foodResult.calories.coerceAtLeast(0.0),
+                        proteinG = foodResult.proteinG.coerceAtLeast(0.0),
+                        carbsG = foodResult.carbsG.coerceAtLeast(0.0),
+                        fatG = foodResult.fatG.coerceAtLeast(0.0),
+                        fiberG = foodResult.fiberG.coerceAtLeast(0.0)
+                    ),
+                    loggedAt = LocalDateTime.now(),
+                    synced = false
+                )
+
+                dietRepository.addFoodEntry(entry)
+                showSnackbar("${foodResult.name} added to ${mealType.displayName}")
+
+                // Sync in background
+                viewModelScope.launch {
+                    try {
+                        dietRepository.syncEntries()
+                    } catch (e: Exception) {
+                        Log.w("AIViewModel", "Diet sync failed: ${e.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AIViewModel", "logFoodToDiet failed", e)
+                showSnackbar("Failed to add food to diet log")
             }
         }
     }
@@ -578,6 +736,60 @@ class AIViewModel @Inject constructor(
         }
     }
 
+    // MARK: - Health Context Formatting
+
+    private fun formatHealthHistoryForChat(
+        history: List<Pair<LocalDate, HealthConnectService.DailyHealthSummary>>
+    ): String {
+        val parts = mutableListOf<String>()
+        val dateFormatter = DateTimeFormatter.ofPattern("dd/MM")
+
+        parts.add("Past 7 Days Health:")
+
+        for ((date, summary) in history) {
+            val dateStr = date.format(dateFormatter)
+            val sleepVal = if (summary.sleepMinutes <= 0) "N/A" else summary.sleepFormatted
+            val stepsK = String.format("%.1fk", summary.steps / 1000.0)
+
+            parts.add("$dateStr: Steps:$stepsK, Sleep:$sleepVal, HR:${summary.heartRate}, Cal:${summary.activeCalories}, Ex:${summary.exerciseMinutes}m")
+        }
+
+        return parts.joinToString("\n")
+    }
+
+    private fun formatHealthMetricsForChat(summary: HealthConnectService.DailyHealthSummary): String {
+        val parts = mutableListOf<String>()
+
+        parts.add("Today's Activity:")
+        parts.add("- Steps: ${summary.steps}")
+        parts.add("- Distance: ${"%.1f".format(summary.distanceKm)} km")
+        parts.add("- Exercise: ${summary.exerciseMinutes} minutes")
+        parts.add("- Stand Hours: ${summary.standHours}")
+        parts.add("- Active Calories: ${summary.activeCalories} cal")
+        parts.add("")
+        parts.add("Vitals:")
+        parts.add("- Heart Rate: ${summary.heartRate} bpm")
+        parts.add("- Blood Pressure: ${summary.bloodPressureFormatted}")
+        parts.add("- Weight: ${"%.1f".format(summary.weightKg)} kg")
+        parts.add("")
+        parts.add("Rest:")
+        parts.add("- Sleep: ${summary.sleepFormatted}")
+
+        return parts.joinToString("\n")
+    }
+
+    private suspend fun fetchHealthContext(): String? {
+        return try {
+            if (!healthConnectService.isAvailable) return null
+            if (!healthConnectService.hasReadPermissions()) return null
+            val history = healthConnectService.fetchHealthHistory(7)
+            formatHealthHistoryForChat(history)
+        } catch (e: Exception) {
+            Log.w("AIViewModel", "Failed to fetch health context: ${e.message}")
+            null
+        }
+    }
+
     // MARK: - Health Analysis
 
     private fun analyzeCurrentHealth() {
@@ -620,7 +832,10 @@ class AIViewModel @Inject constructor(
                     return@launch
                 }
 
-                val response = aiService.analyzeHealth(metrics)
+                // Fetch 7-day history for richer analysis context
+                val systemContext = fetchHealthContext()
+
+                val response = aiService.analyzeHealth(metrics, systemContext = systemContext)
 
                 val result = HealthAnalysisResult(
                     metrics = metrics,

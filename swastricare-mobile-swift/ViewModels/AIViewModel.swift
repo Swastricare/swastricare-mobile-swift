@@ -615,8 +615,47 @@ final class AIViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Food Image Analysis
+
+    func analyzeFoodImage(_ imageData: Data) async {
+        AppAnalyticsService.shared.logAIAnalysisRequest(type: "food")
+
+        let userMessage = ChatMessage.userMessage("Analyze this food photo")
+        messages.append(userMessage)
+
+        let loadingMessage = ChatMessage.loadingMessage()
+        messages.append(loadingMessage)
+
+        currentLoadingOperation = .imageAnalysis
+        chatState = .sending
+
+        do {
+            let foodResult = try await aiService.analyzeFoodImage(imageData)
+
+            // Remove loading message
+            messages.removeLast()
+
+            let summaryText = "\(foodResult.name) - \(Int(foodResult.calories)) cal per \(Int(foodResult.servingSize)) \(foodResult.servingUnit.rawValue)"
+            messages.append(ChatMessage.foodAnalysisMessage(summaryText, foodResult: foodResult))
+            chatState = .idle
+
+            // Save chat history
+            do {
+                currentConversationId = try await aiService.saveChatHistory(messages, conversationId: currentConversationId)
+            } catch {
+                print("Failed to save chat history: \(error.localizedDescription)")
+            }
+        } catch {
+            if !messages.isEmpty { messages.removeLast() } // Remove loading
+            if !messages.isEmpty { messages.removeLast() } // Remove user message
+            chatState = .error(error.localizedDescription)
+            errorMessage = error.localizedDescription
+            AppAnalyticsService.shared.logFailure(context: "ai_food_analysis", type: "analysis_failed", message: error.localizedDescription)
+        }
+    }
+
     // MARK: - Message Classification
-    
+
     private func isMedicalMessage(_ text: String) -> Bool {
         let lowercased = text.lowercased()
         return Self.medicalKeywords.contains { lowercased.contains($0) }

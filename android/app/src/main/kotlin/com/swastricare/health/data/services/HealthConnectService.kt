@@ -312,6 +312,93 @@ class HealthConnectService(
         }
     }
 
+    // ── READ: Arbitrary-day summary (for multi-day history) ──
+
+    suspend fun fetchDaySummary(date: LocalDate): DailyHealthSummary = withContext(Dispatchers.IO) {
+        val hc = client ?: return@withContext DailyHealthSummary()
+
+        val zone = ZoneId.systemDefault()
+        val startOfDay = date.atStartOfDay(zone).toInstant()
+        val endOfDay = date.plusDays(1).atStartOfDay(zone).toInstant()
+        // Clamp end to now so we don't query the future
+        val now = Instant.now()
+        val effectiveEnd = if (endOfDay.isAfter(now)) now else endOfDay
+        if (!effectiveEnd.isAfter(startOfDay)) return@withContext DailyHealthSummary()
+
+        val dayFilter = TimeRangeFilter.between(startOfDay, effectiveEnd)
+
+        coroutineScope {
+            val stepsDeferred = async {
+                try {
+                    hc.readRecords(ReadRecordsRequest(StepsRecord::class, dayFilter))
+                        .records.sumOf { it.count }.toInt()
+                } catch (e: Exception) { 0 }
+            }
+            val hrDeferred = async {
+                try {
+                    hc.readRecords(ReadRecordsRequest(HeartRateRecord::class, dayFilter))
+                        .records.lastOrNull()?.samples?.lastOrNull()?.beatsPerMinute?.toInt() ?: 0
+                } catch (e: Exception) { 0 }
+            }
+            val activeCalDeferred = async {
+                try {
+                    hc.readRecords(ReadRecordsRequest(ActiveCaloriesBurnedRecord::class, dayFilter))
+                        .records.sumOf { it.energy.inKilocalories }.toInt()
+                } catch (e: Exception) { 0 }
+            }
+            val totalCalDeferred = async {
+                try {
+                    hc.readRecords(ReadRecordsRequest(TotalCaloriesBurnedRecord::class, dayFilter))
+                        .records.sumOf { it.energy.inKilocalories }.toInt()
+                } catch (e: Exception) { 0 }
+            }
+            val sleepDeferred = async {
+                try {
+                    // Sleep: look from 6pm the day before to end of target day
+                    val sleepStart = date.minusDays(1).atTime(18, 0).atZone(zone).toInstant()
+                    val sleepFilter = TimeRangeFilter.between(sleepStart, effectiveEnd)
+                    hc.readRecords(ReadRecordsRequest(SleepSessionRecord::class, sleepFilter))
+                        .records.sumOf { ChronoUnit.MINUTES.between(it.startTime, it.endTime) }.toInt()
+                } catch (e: Exception) { 0 }
+            }
+            val distDeferred = async {
+                try {
+                    hc.readRecords(ReadRecordsRequest(DistanceRecord::class, dayFilter))
+                        .records.sumOf { it.distance.inKilometers }
+                } catch (e: Exception) { 0.0 }
+            }
+            val exerciseDeferred = async {
+                try {
+                    hc.readRecords(ReadRecordsRequest(ExerciseSessionRecord::class, dayFilter))
+                        .records.sumOf { ChronoUnit.MINUTES.between(it.startTime, it.endTime) }.toInt()
+                } catch (e: Exception) { 0 }
+            }
+
+            val activeCal = activeCalDeferred.await()
+            val totalCal = totalCalDeferred.await()
+            val displayCalories = if (activeCal > 0) activeCal else totalCal
+
+            DailyHealthSummary(
+                steps = stepsDeferred.await(),
+                heartRate = hrDeferred.await(),
+                activeCalories = displayCalories,
+                totalCalories = totalCal,
+                sleepMinutes = sleepDeferred.await(),
+                distanceKm = distDeferred.await(),
+                exerciseMinutes = exerciseDeferred.await()
+            )
+        }
+    }
+
+    suspend fun fetchHealthHistory(days: Int): List<Pair<LocalDate, DailyHealthSummary>> =
+        withContext(Dispatchers.IO) {
+            val today = LocalDate.now()
+            (0 until days).reversed().map { offset ->
+                val date = today.minusDays(offset.toLong())
+                date to fetchDaySummary(date)
+            }
+        }
+
     // ── READ: Individual Metrics ──
 
     /** Reads SleepSessionRecord for last night (6pm yesterday -> now) and returns total minutes. */

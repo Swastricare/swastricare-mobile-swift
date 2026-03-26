@@ -116,8 +116,60 @@ serve(async (req) => {
 
     // Build analysis prompt based on type
     let analysisPrompt = VISION_SYSTEM_PROMPT + "\n\n"
-    
+    let temperature = 0.2 // default for medical accuracy
+
     switch (analysisType) {
+      case 'food':
+        temperature = 0.5
+        analysisPrompt = `You are a food identification AI. Analyze the food in this image and provide nutritional information.
+
+IMPORTANT: You MUST respond in EXACTLY this format (do not add any other text):
+
+FOOD: <name of the food item>
+CALORIES: <estimated calories as a number>
+PROTEIN: <grams of protein as a number>
+CARBS: <grams of carbohydrates as a number>
+FAT: <grams of fat as a number>
+FIBER: <grams of fiber as a number>
+SERVING_SIZE: <number>
+SERVING_UNIT: <unit (e.g., cup, piece, bowl, plate)>
+CATEGORY: <one of: fruits, vegetables, grains, protein, dairy, beverages, snacks, sweets, other>
+
+CONTEXT:
+- This is likely Indian cuisine or common foods in India
+- Estimate nutritional values for a typical serving size shown in the image
+- Be reasonable with portion estimates
+- If you see multiple items, analyze the main/largest item
+- Use whole numbers for all nutritional values
+
+EXAMPLES:
+For a plate of chicken biryani:
+FOOD: Chicken Biryani
+CALORIES: 450
+PROTEIN: 25
+CARBS: 58
+FAT: 12
+FIBER: 3
+SERVING_SIZE: 1
+SERVING_UNIT: plate
+CATEGORY: grains
+
+For a bowl of fruit salad:
+FOOD: Mixed Fruit Salad
+CALORIES: 120
+PROTEIN: 2
+CARBS: 30
+FAT: 1
+FIBER: 4
+SERVING_SIZE: 1
+SERVING_UNIT: bowl
+CATEGORY: fruits`
+
+        if (message) {
+          analysisPrompt += `\n\nUser's note: ${message}`
+        }
+        break
+
       case 'prescription':
         analysisPrompt += `TASK: Analyze this prescription image
 Extract:
@@ -194,9 +246,10 @@ If it's a medical image, provide only general observations with strong disclaime
       if (VERTEX_AI_PROJECT && MEDGEMMA_API_KEY) {
         try {
           const vertexResponse = await callVertexAIMedGemmaVision(
-            analysisPrompt, 
-            imageData, 
+            analysisPrompt,
+            imageData,
             detectedType,
+            temperature,
             controller.signal
           )
           if (vertexResponse) {
@@ -234,9 +287,9 @@ If it's a medical image, provide only general observations with strong disclaime
                   }
                 ]
               }],
-              generationConfig: { 
-                temperature: 0.2, // Very low for accuracy
-                maxOutputTokens: 2048 
+              generationConfig: {
+                temperature: temperature,
+                maxOutputTokens: 2048
               }
             }),
             signal: controller.signal
@@ -364,9 +417,10 @@ function detectImageType(base64Data: string): string | null {
 
 // Helper function to call Vertex AI MedGemma Vision
 async function callVertexAIMedGemmaVision(
-  prompt: string, 
-  imageData: string, 
+  prompt: string,
+  imageData: string,
   imageType: string,
+  temperature: number,
   signal: AbortSignal
 ): Promise<string | null> {
   const projectId = Deno.env.get('GOOGLE_VERTEX_AI_PROJECT_ID')
@@ -405,7 +459,7 @@ async function callVertexAIMedGemmaVision(
         ]
       }],
       generationConfig: {
-        temperature: 0.2,
+        temperature: temperature,
         maxOutputTokens: 2048,
         topP: 0.8,
         topK: 40

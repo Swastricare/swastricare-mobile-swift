@@ -18,6 +18,7 @@ struct ChatMessage: Identifiable, Equatable {
     let responseMode: AIResponseMode?
     var userFeedback: MessageFeedback?
     var isBookmarked: Bool
+    let foodResult: SnapFoodResult?
 
     init(
         id: UUID = UUID(),
@@ -27,7 +28,8 @@ struct ChatMessage: Identifiable, Equatable {
         isLoading: Bool = false,
         responseMode: AIResponseMode? = nil,
         userFeedback: MessageFeedback? = nil,
-        isBookmarked: Bool = false
+        isBookmarked: Bool = false,
+        foodResult: SnapFoodResult? = nil
     ) {
         self.id = id
         self.content = content
@@ -37,16 +39,21 @@ struct ChatMessage: Identifiable, Equatable {
         self.responseMode = responseMode
         self.userFeedback = userFeedback
         self.isBookmarked = isBookmarked
+        self.foodResult = foodResult
     }
-    
+
     static func userMessage(_ content: String) -> ChatMessage {
         ChatMessage(content: content, isUser: true)
     }
-    
+
     static func assistantMessage(_ content: String, mode: AIResponseMode = .general) -> ChatMessage {
         ChatMessage(content: content, isUser: false, responseMode: mode)
     }
-    
+
+    static func foodAnalysisMessage(_ content: String, foodResult: SnapFoodResult) -> ChatMessage {
+        ChatMessage(content: content, isUser: false, responseMode: .foodAnalysis, foodResult: foodResult)
+    }
+
     static func loadingMessage() -> ChatMessage {
         ChatMessage(content: "", isUser: false, isLoading: true)
     }
@@ -66,31 +73,35 @@ enum AIResponseMode: String, Equatable {
     case medical
     case healthAnalysis
     case imageAnalysis
-    
+    case foodAnalysis
+
     var badgeText: String {
         switch self {
         case .general: return "Swastri"
         case .medical: return "Medical Expert"
         case .healthAnalysis: return "Health Analysis"
         case .imageAnalysis: return "Image Analysis"
+        case .foodAnalysis: return "Food Analysis"
         }
     }
-    
+
     var badgeIcon: String {
         switch self {
         case .general: return "sparkles"
         case .medical: return "stethoscope"
         case .healthAnalysis: return "waveform.path.ecg"
         case .imageAnalysis: return "doc.viewfinder"
+        case .foodAnalysis: return "fork.knife"
         }
     }
-    
+
     var badgeColor: String {
         switch self {
         case .general: return "2E3192"
         case .medical: return "00A86B"
         case .healthAnalysis: return "4A90E2"
         case .imageAnalysis: return "8B5CF6"
+        case .foodAnalysis: return "22C55E"
         }
     }
 }

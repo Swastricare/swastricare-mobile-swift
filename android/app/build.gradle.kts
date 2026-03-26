@@ -154,6 +154,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("io.coil-kt:coil-compose:2.5.0")
 
+    // Markdown rendering for AI chat
+    implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.26.0")
+    implementation("com.mikepenz:multiplatform-markdown-renderer-coil2:0.26.0")
+
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics-ktx")

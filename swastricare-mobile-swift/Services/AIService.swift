@@ -518,18 +518,17 @@ final class AIService: AIServiceProtocol {
             print("❌ No user ID - not authenticated")
             return ([], nil)
         }
-        
+
         struct ConversationRecord: Decodable {
             let id: UUID
-            let messages: [[String: String]]
+            let messages: [[String: AnyCodableValue]]
             let updated_at: String
         }
-        
+
         var conversations: [ConversationRecord] = []
-        
+
         // Try to get health profile ID first, but fall back to user_id if not available
         if let profileId = try? await getHealthProfileId() {
-            // Try querying by health_profile_id first - only load ACTIVE conversations
             conversations = try await supabase.client
                 .from("ai_conversations")
                 .select("id, messages, updated_at")
@@ -540,8 +539,7 @@ final class AIService: AIServiceProtocol {
                 .execute()
                 .value
         }
-        
-        // If no conversations found by profile_id, or no profile exists, query by user_id
+
         if conversations.isEmpty {
             conversations = try await supabase.client
                 .from("ai_conversations")
@@ -553,31 +551,34 @@ final class AIService: AIServiceProtocol {
                 .execute()
                 .value
         }
-        
-        // Only return conversation if it has messages
+
         guard let conversation = conversations.first,
               !conversation.messages.isEmpty else {
             return ([], nil)
         }
-        
-        // Convert JSON messages to ChatMessage array
+
+        let chatMessages = Self.parseMessages(conversation.messages)
+        return (chatMessages, conversation.id)
+    }
+
+    /// Shared message parser for flexible JSON decoding
+    private static func parseMessages(_ rawMessages: [[String: AnyCodableValue]]) -> [ChatMessage] {
         var chatMessages: [ChatMessage] = []
-        
-        // Try parsing with fractional seconds first, then without
+
         let dateFormatterWithFractional = ISO8601DateFormatter()
         dateFormatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
+
         let dateFormatterWithoutFractional = ISO8601DateFormatter()
         dateFormatterWithoutFractional.formatOptions = [.withInternetDateTime]
-        
-        for msgDict in conversation.messages {
-            guard let role = msgDict["role"],
-                  let content = msgDict["content"] else {
+
+        for msgDict in rawMessages {
+            guard let role = msgDict["role"]?.stringValue,
+                  let content = msgDict["content"]?.stringValue else {
                 continue
             }
 
             let timestamp: Date
-            if let timestampStr = msgDict["timestamp"] {
+            if let timestampStr = msgDict["timestamp"]?.stringValue {
                 if let parsedDate = dateFormatterWithFractional.date(from: timestampStr) {
                     timestamp = parsedDate
                 } else if let parsedDate = dateFormatterWithoutFractional.date(from: timestampStr) {
@@ -590,20 +591,19 @@ final class AIService: AIServiceProtocol {
             }
 
             let isUser = role == "user"
-            let isBookmarked = msgDict["is_bookmarked"] == "true"
-            let feedback: MessageFeedback? = msgDict["user_feedback"].flatMap { MessageFeedback(rawValue: $0) }
+            let isBookmarked = msgDict["is_bookmarked"]?.boolValue ?? false
+            let feedback: MessageFeedback? = msgDict["user_feedback"]?.stringValue.flatMap { MessageFeedback(rawValue: $0) }
 
-            let message = ChatMessage(
+            chatMessages.append(ChatMessage(
                 content: content,
                 isUser: isUser,
                 timestamp: timestamp,
                 userFeedback: feedback,
                 isBookmarked: isBookmarked
-            )
-            chatMessages.append(message)
+            ))
         }
 
-        return (chatMessages, conversation.id)
+        return chatMessages
     }
     
     func loadAllConversations() async throws -> [ConversationSummary] {
@@ -616,17 +616,16 @@ final class AIService: AIServiceProtocol {
         struct ConversationRecord: Decodable {
             let id: UUID
             let title: String?
-            let messages: [[String: String]]
+            let messages: [[String: AnyCodableValue]]
             let updated_at: String
             let status: String?
         }
-        
+
         // Try to get health profile ID first, but fall back to user_id if not available
         var conversations: [ConversationRecord] = []
-        
+
         if let profileId = try? await getHealthProfileId() {
             print("📋 Loading conversations for profile: \(profileId.uuidString)")
-            // Try querying by health_profile_id first
             conversations = try await supabase.client
                 .from("ai_conversations")
                 .select("id, title, messages, updated_at, status")
@@ -636,8 +635,7 @@ final class AIService: AIServiceProtocol {
                 .execute()
                 .value
         }
-        
-        // If no conversations found by profile_id, or no profile exists, query by user_id
+
         if conversations.isEmpty {
             print("📋 Loading conversations for user: \(userId.uuidString)")
             conversations = try await supabase.client
@@ -649,14 +647,14 @@ final class AIService: AIServiceProtocol {
                 .execute()
                 .value
         }
-        
+
         print("📋 Found \(conversations.count) conversations in database")
-        
+
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
+
         return conversations.map { conv in
-            let lastMessage = conv.messages.last?["content"] ?? "No messages"
+            let lastMessage = conv.messages.last?["content"]?.stringValue ?? "No messages"
             let updatedAt = dateFormatter.date(from: conv.updated_at) ?? Date()
             let status = conv.status ?? "active"
             
@@ -665,8 +663,7 @@ final class AIService: AIServiceProtocol {
             if let existingTitle = conv.title, !existingTitle.isEmpty {
                 title = existingTitle
             } else {
-                // Find first user message for title
-                let firstUserMessage = conv.messages.first(where: { $0["role"] == "user" })?["content"] ?? lastMessage
+                let firstUserMessage = conv.messages.first(where: { $0["role"]?.stringValue == "user" })?["content"]?.stringValue ?? lastMessage
                 title = String(firstUserMessage.prefix(50))
             }
             
@@ -684,9 +681,9 @@ final class AIService: AIServiceProtocol {
     func loadConversation(id: UUID) async throws -> [ChatMessage] {
         struct ConversationRecord: Decodable {
             let id: UUID
-            let messages: [[String: String]]
+            let messages: [[String: AnyCodableValue]]
         }
-        
+
         let conversation: ConversationRecord = try await supabase.client
             .from("ai_conversations")
             .select("id, messages")
@@ -694,50 +691,8 @@ final class AIService: AIServiceProtocol {
             .single()
             .execute()
             .value
-        
-        // Convert JSON messages to ChatMessage array
-        var chatMessages: [ChatMessage] = []
-        
-        let dateFormatterWithFractional = ISO8601DateFormatter()
-        dateFormatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
-        let dateFormatterWithoutFractional = ISO8601DateFormatter()
-        dateFormatterWithoutFractional.formatOptions = [.withInternetDateTime]
-        
-        for msgDict in conversation.messages {
-            guard let role = msgDict["role"],
-                  let content = msgDict["content"] else {
-                continue
-            }
 
-            let timestamp: Date
-            if let timestampStr = msgDict["timestamp"] {
-                if let parsedDate = dateFormatterWithFractional.date(from: timestampStr) {
-                    timestamp = parsedDate
-                } else if let parsedDate = dateFormatterWithoutFractional.date(from: timestampStr) {
-                    timestamp = parsedDate
-                } else {
-                    timestamp = Date()
-                }
-            } else {
-                timestamp = Date()
-            }
-
-            let isUser = role == "user"
-            let isBookmarked = msgDict["is_bookmarked"] == "true"
-            let feedback: MessageFeedback? = msgDict["user_feedback"].flatMap { MessageFeedback(rawValue: $0) }
-
-            let message = ChatMessage(
-                content: content,
-                isUser: isUser,
-                timestamp: timestamp,
-                userFeedback: feedback,
-                isBookmarked: isBookmarked
-            )
-            chatMessages.append(message)
-        }
-
-        return chatMessages
+        return Self.parseMessages(conversation.messages)
     }
     
     func saveChatHistory(_ messages: [ChatMessage], conversationId: UUID?) async throws -> UUID {
@@ -1080,13 +1035,51 @@ enum AIError: LocalizedError {
     case networkError
     case rateLimited
     case serverError
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidResponse: return "Invalid response from AI"
         case .networkError: return "Network connection failed"
         case .rateLimited: return "Too many requests. Please wait."
         case .serverError: return "Server error. Try again later."
+        }
+    }
+}
+
+// MARK: - AnyCodableValue (handles mixed JSON types like bool/string/number)
+
+enum AnyCodableValue: Decodable {
+    case string(String)
+    case bool(Bool)
+    case int(Int)
+    case double(Double)
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let v = try? container.decode(Bool.self) { self = .bool(v) }
+        else if let v = try? container.decode(Int.self) { self = .int(v) }
+        else if let v = try? container.decode(Double.self) { self = .double(v) }
+        else if let v = try? container.decode(String.self) { self = .string(v) }
+        else { self = .null }
+    }
+
+    var boolValue: Bool {
+        switch self {
+        case .bool(let v): return v
+        case .string(let v): return v == "true"
+        case .int(let v): return v != 0
+        default: return false
+        }
+    }
+
+    var stringValue: String? {
+        switch self {
+        case .string(let v): return v
+        case .bool(let v): return String(v)
+        case .int(let v): return String(v)
+        case .double(let v): return String(v)
+        case .null: return nil
         }
     }
 }
