@@ -1,5 +1,5 @@
--- Fix: complete_referral should unlock AI for BOTH referrer and referred user
--- Previously only the referrer was unlocked, causing the referred user's apply to appear failed.
+-- Fix: complete_referral should only unlock AI for the referrer.
+-- The referred user must refer someone else to unlock their own AI.
 
 CREATE OR REPLACE FUNCTION public.complete_referral(p_referral_code VARCHAR, p_referred_user_id UUID)
 RETURNS BOOLEAN AS $$
@@ -35,9 +35,8 @@ BEGIN
     VALUES (v_referrer_id, p_referred_user_id, p_referral_code, 'completed', NOW())
     ON CONFLICT DO NOTHING;
 
-    -- Unlock AI for both the referrer and the referred user
+    -- Unlock AI for the referrer only
     UPDATE public.users SET ai_unlocked = true WHERE id = v_referrer_id;
-    UPDATE public.users SET ai_unlocked = true WHERE id = p_referred_user_id;
 
     RETURN true;
 END;

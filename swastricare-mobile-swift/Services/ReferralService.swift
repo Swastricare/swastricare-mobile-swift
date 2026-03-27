@@ -34,22 +34,32 @@ final class ReferralService: ReferralServiceProtocol {
         struct UserCode: Decodable {
             let referral_code: String?
         }
-        let existing: UserCode = try await client
-            .from("users")
-            .select("referral_code")
-            .eq("id", value: userId.uuidString)
-            .single()
-            .execute()
-            .value
 
-        if let code = existing.referral_code, !code.isEmpty {
-            return code
+        do {
+            let existing: UserCode = try await client
+                .from("users")
+                .select("referral_code")
+                .eq("id", value: userId.uuidString)
+                .single()
+                .execute()
+                .value
+
+            if let code = existing.referral_code, !code.isEmpty {
+                return code
+            }
+        } catch {
+            print("⚠️ ReferralService: Failed to fetch existing code: \(error)")
         }
 
         // No code yet — call RPC to generate one
-        try await client
-            .rpc("generate_referral_code", params: ["p_user_id": AnyJSON.string(userId.uuidString)])
-            .execute()
+        do {
+            try await client
+                .rpc("generate_referral_code", params: ["p_user_id": AnyJSON.string(userId.uuidString)])
+                .execute()
+        } catch {
+            print("⚠️ ReferralService: RPC generate_referral_code failed: \(error)")
+            throw ReferralError.codeGenerationFailed
+        }
 
         // Read back the generated code
         let updated: UserCode = try await client
@@ -89,27 +99,21 @@ final class ReferralService: ReferralServiceProtocol {
         let session = try await client.auth.session
         let userId = session.user.id
 
-        // Call RPC to complete the referral
-        try await client
+        // Call RPC to complete the referral — unlocks AI for the referrer, not the current user
+        let response = try await client
             .rpc("complete_referral", params: [
                 "p_referral_code": AnyJSON.string(code.uppercased()),
                 "p_referred_user_id": AnyJSON.string(userId.uuidString)
             ])
             .execute()
 
-        // Verify it actually worked by checking the user's ai_unlocked status
-        struct UserAI: Decodable {
-            let ai_unlocked: Bool?
+        // Parse the boolean result from the RPC response
+        if let data = String(data: response.data, encoding: .utf8) {
+            let trimmed = data.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed == "true"
         }
-        let user: UserAI = try await client
-            .from("users")
-            .select("ai_unlocked")
-            .eq("id", value: userId.uuidString)
-            .single()
-            .execute()
-            .value
-
-        return user.ai_unlocked ?? false
+        // If RPC didn't throw, consider it successful
+        return true
     }
 }
 

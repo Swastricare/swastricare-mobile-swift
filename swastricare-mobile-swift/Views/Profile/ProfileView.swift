@@ -381,7 +381,7 @@ struct ProfileView: View {
                     Text("Activity Level")
                 } icon: {
                     Image(systemName: hydrationViewModel.preferences.activityLevel.icon)
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(AppColors.accentBlue)
                 }
                 Spacer()
                 Text(hydrationViewModel.preferences.activityLevel.displayName)
@@ -393,7 +393,7 @@ struct ProfileView: View {
                     Text("Daily Goal")
                 } icon: {
                     Image(systemName: "drop.fill")
-                        .foregroundColor(Color(hex: "06B6D4"))
+                        .foregroundColor(AppColors.accentBlue)
                 }
                 Spacer()
                 Text("\(hydrationViewModel.dailyGoal) ml")
@@ -406,7 +406,7 @@ struct ProfileView: View {
                         Text("Hydration Preferences")
                     } icon: {
                         Image(systemName: "gearshape.fill")
-                            .foregroundColor(Color(hex: "64748B"))
+                            .foregroundColor(AppColors.accentBlue)
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
@@ -439,13 +439,7 @@ struct ProfileView: View {
                         }
                     } icon: {
                         Image(systemName: "heart.fill")
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [.red, .pink],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .foregroundColor(AppColors.accentBlue)
                     }
                 }
             }
@@ -466,13 +460,7 @@ struct ProfileView: View {
                         Text("Theme")
                     } icon: {
                         Image(systemName: "paintpalette.fill")
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color(hex: "7C3AED"), Color(hex: "A78BFA")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .foregroundColor(AppColors.accentBlue)
                     }
                     Spacer()
                     Text(themeManager.currentTheme.displayName)

@@ -101,7 +101,7 @@ struct AIReferralGateView: View {
                     // Share button (primary CTA)
                     if let code = viewModel.referralCode {
                         ShareLink(
-                            item: "Hey! I'm using SwasthiCare — a personal health companion app. Join using my referral code: \(code)\n\nTap to join: swastricareapp://referral?code=\(code)\n\nDownload SwasthiCare: https://apps.apple.com/app/swasthicare/id6740091498"
+                            item: "Hey! I'm using SwasthiCare — a personal health companion app. Join using my referral code: \(code)\n\nDownload SwasthiCare: https://apps.apple.com/in/app/swastricare/id6757637229"
                         ) {
                             HStack(spacing: 10) {
                                 Image(systemName: "square.and.arrow.up")
@@ -124,22 +124,10 @@ struct AIReferralGateView: View {
                         .buttonStyle(ScaleButtonStyle())
                     }
 
-                    // "I have a referral code" secondary action
-                    Button {
-                        viewModel.showCodeEntry = true
-                    } label: {
-                        Text("I have a referral code")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(AppColors.accentBlue)
-                    }
-
                     Spacer().frame(height: 40)
                 }
                 .padding(.horizontal, 24)
             }
-        }
-        .sheet(isPresented: $viewModel.showCodeEntry) {
-            referralCodeEntrySheet
         }
     }
 
@@ -170,67 +158,4 @@ struct AIReferralGateView: View {
         }
     }
 
-    // MARK: - Code Entry Sheet
-
-    private var referralCodeEntrySheet: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Text("Enter Referral Code")
-                    .font(.system(size: 22, weight: .bold))
-
-                Text("Enter the code your friend shared with you")
-                    .font(.system(size: 15))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-
-                TextField("e.g. SYA7K2", text: $viewModel.enteredCode)
-                    .font(.system(size: 24, weight: .semibold, design: .monospaced))
-                    .multilineTextAlignment(.center)
-                    .textInputAutocapitalization(.characters)
-                    .autocorrectionDisabled()
-                    .padding()
-                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 12))
-
-                if let error = viewModel.applyCodeError {
-                    Text(error)
-                        .font(.system(size: 14))
-                        .foregroundColor(AppColors.accentRed)
-                        .multilineTextAlignment(.center)
-                }
-
-                Button {
-                    Task {
-                        await viewModel.applyEnteredCode()
-                    }
-                } label: {
-                    HStack {
-                        if viewModel.isApplyingCode {
-                            ProgressView()
-                                .tint(.white)
-                        }
-                        Text("Apply Code")
-                            .font(.system(size: 17, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(AppColors.accentBlue)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                .disabled(viewModel.enteredCode.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isApplyingCode)
-
-                Spacer()
-            }
-            .padding(24)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") {
-                        viewModel.showCodeEntry = false
-                        viewModel.enteredCode = ""
-                    }
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
 }

@@ -45,6 +45,9 @@ struct swastricare_mobile_swiftApp: App {
     @State private var hasCompletedHealthProfile: Bool = false
     @State private var isCheckingHealthProfile: Bool = false
     @State private var hasCheckedHealthProfile: Bool = false
+
+    // Referral code entry state - shown once after signup
+    @State private var hasCompletedReferralStep: Bool = UserDefaults.standard.bool(forKey: "hasCompletedReferralStep")
     
     // App version state
     @State private var hasCheckedAppVersion: Bool = false
@@ -129,12 +132,19 @@ struct swastricare_mobile_swiftApp: App {
                     ConsentView(hasAcceptedConsent: $hasAcceptedConsent)
                 } else if authViewModel.isAuthenticated {
                     // CRITICAL: User MUST be authenticated to reach here
-                    if !hasCompletedHealthProfile {
+                    if !hasCompletedReferralStep {
+                        // Show referral code entry ONCE after signup, before health profile
+                        ReferralCodeEntryView(pendingCode: authViewModel.pendingReferralCode) {
+                            hasCompletedReferralStep = true
+                            UserDefaults.standard.set(true, forKey: "hasCompletedReferralStep")
+                            authViewModel.pendingReferralCode = nil
+                        }
+                    } else if !hasCompletedHealthProfile {
                         // Show health profile questionnaire ONLY if:
                         // 1. User is authenticated (already checked above)
                         // 2. Profile check is complete (hasCheckedHealthProfile == true)
                         // 3. No profile found (!hasCompletedHealthProfile)
-                        
+
                         // TRIPLE-CHECK: Verify authentication one more time
                         if authViewModel.isAuthenticated && authViewModel.currentUser != nil {
                             OneQuestionPerScreenOnboardingView {
@@ -166,6 +176,7 @@ struct swastricare_mobile_swiftApp: App {
             .animation(.easeInOut, value: authViewModel.authState)
             .animation(.easeInOut, value: hasCompletedOnboarding)
             .animation(.easeInOut, value: hasAcceptedConsent)
+            .animation(.easeInOut, value: hasCompletedReferralStep)
             .animation(.easeInOut, value: hasCompletedHealthProfile)
             .animation(.easeInOut, value: hasCheckedAppVersion)
             .withDependencies()
@@ -186,6 +197,9 @@ struct swastricare_mobile_swiftApp: App {
                     hasCompletedHealthProfile = false
                     isCheckingHealthProfile = false  // Don't check until next login
                     hasCheckedHealthProfile = false
+                    // Reset referral step so new signups see it
+                    hasCompletedReferralStep = false
+                    UserDefaults.standard.removeObject(forKey: "hasCompletedReferralStep")
                 }
             }
             .onChange(of: scenePhase) { oldPhase, newPhase in
@@ -289,6 +303,11 @@ struct swastricare_mobile_swiftApp: App {
                 hasCompletedHealthProfile = hasLoggedInBefore
                 isCheckingHealthProfile = false
                 hasCheckedHealthProfile = true
+                // Returning user offline — skip referral screen
+                if hasLoggedInBefore {
+                    hasCompletedReferralStep = true
+                    UserDefaults.standard.set(true, forKey: "hasCompletedReferralStep")
+                }
             }
             return
         }
@@ -309,6 +328,11 @@ struct swastricare_mobile_swiftApp: App {
                     hasCompletedHealthProfile = hasProfile
                     isCheckingHealthProfile = false
                     hasCheckedHealthProfile = true
+                    // Returning user with existing profile — skip referral screen
+                    if hasProfile {
+                        hasCompletedReferralStep = true
+                        UserDefaults.standard.set(true, forKey: "hasCompletedReferralStep")
+                    }
                 }
                 return // Success, exit
                 

@@ -98,13 +98,6 @@ final class AuthViewModel: ObservableObject {
                 CacheService.shared.setCurrentUser(user.id)
                 await fetchHealthProfile()
                 clearForm()
-                // Apply pending referral code if present
-                if let code = pendingReferralCode {
-                    Task {
-                        let _ = try? await ReferralService.shared.applyReferralCode(code)
-                        pendingReferralCode = nil
-                    }
-                }
             } else {
                 errorMessage = "Please check your email to verify your account."
             }
@@ -135,13 +128,6 @@ final class AuthViewModel: ObservableObject {
             CacheService.shared.setCurrentUser(user.id)
             await fetchHealthProfile()
             clearForm()
-            // Apply pending referral code if present
-            if let code = pendingReferralCode {
-                Task {
-                    let _ = try? await ReferralService.shared.applyReferralCode(code)
-                    pendingReferralCode = nil
-                }
-            }
         } catch {
             AppAnalyticsService.shared.logLoginFailed(method: "email", errorType: String(describing: type(of: error)))
             errorMessage = mapError(error)
@@ -161,13 +147,6 @@ final class AuthViewModel: ObservableObject {
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
             CacheService.shared.setCurrentUser(user.id)
             await fetchHealthProfile()
-            // Apply pending referral code if present
-            if let code = pendingReferralCode {
-                Task {
-                    let _ = try? await ReferralService.shared.applyReferralCode(code)
-                    pendingReferralCode = nil
-                }
-            }
         } catch {
             AppAnalyticsService.shared.logLoginFailed(method: "google", errorType: String(describing: type(of: error)))
             errorMessage = mapError(error)
@@ -187,13 +166,6 @@ final class AuthViewModel: ObservableObject {
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
             CacheService.shared.setCurrentUser(user.id)
             await fetchHealthProfile()
-            // Apply pending referral code if present
-            if let code = pendingReferralCode {
-                Task {
-                    let _ = try? await ReferralService.shared.applyReferralCode(code)
-                    pendingReferralCode = nil
-                }
-            }
         } catch {
             AppAnalyticsService.shared.logLoginFailed(method: "apple", errorType: String(describing: type(of: error)))
             errorMessage = mapError(error)

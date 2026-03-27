@@ -77,9 +77,8 @@ BEGIN
     VALUES (v_referrer_id, p_referred_user_id, p_referral_code, 'completed', NOW())
     ON CONFLICT DO NOTHING;
 
-    -- Unlock AI for both the referrer and the referred user
+    -- Unlock AI for the referrer only
     UPDATE public.users SET ai_unlocked = true WHERE id = v_referrer_id;
-    UPDATE public.users SET ai_unlocked = true WHERE id = p_referred_user_id;
 
     RETURN true;
 END;

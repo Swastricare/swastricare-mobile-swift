@@ -166,7 +166,7 @@ final class AppVersionService: ObservableObject {
         guard let urlString = versionInfo?.updateUrl,
               let url = URL(string: urlString) else {
             // Fallback to App Store search
-            if let appStoreURL = URL(string: "https://apps.apple.com/app/swastricare") {
+            if let appStoreURL = URL(string: "https://apps.apple.com/in/app/swastricare/id6757637229") {
                 UIApplication.shared.open(appStoreURL)
             }
             return
