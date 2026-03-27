@@ -42,7 +42,6 @@ import com.swastricare.health.data.services.RouteTracker
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.GpsStatusChip
 import com.swastricare.health.ui.components.RouteMapView
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
@@ -90,7 +89,6 @@ fun LiveWorkoutScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
         when (uiState.phase) {
             WorkoutPhase.IDLE -> IdlePhaseContent(
                 uiState = uiState,

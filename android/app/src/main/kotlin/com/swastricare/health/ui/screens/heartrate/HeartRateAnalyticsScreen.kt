@@ -34,7 +34,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.HeartRateColor
 import com.swastricare.health.ui.theme.PremiumColor
@@ -108,7 +107,6 @@ fun HeartRateAnalyticsScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(
             modifier = Modifier

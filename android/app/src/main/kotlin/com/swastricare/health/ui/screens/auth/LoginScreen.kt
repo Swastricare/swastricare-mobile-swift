@@ -69,7 +69,6 @@ fun LoginScreen(
         containerColor = Color.Transparent
     ) { paddingValues ->
         Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
-            PremiumBackground()
 
             Column(
                 modifier = Modifier

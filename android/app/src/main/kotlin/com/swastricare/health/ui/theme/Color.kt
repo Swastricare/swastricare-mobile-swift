@@ -13,7 +13,7 @@ val AccentColor = Color(0xFFEF4444) // Red 500 (iOS accentRed)
 
 // Background Colors
 val BackgroundLight = Color(0xFFFFFFFF) // Pure white for light theme
-val BackgroundDark = Color(0xFF000000) // True OLED Black
+val BackgroundDark = Color(0xFF121212) // Dark Grey
 
 // Surface Colors
 val SurfaceLight = Color(0xFFFFFFFF)

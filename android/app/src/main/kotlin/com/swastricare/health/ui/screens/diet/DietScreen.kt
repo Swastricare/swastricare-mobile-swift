@@ -23,7 +23,6 @@ import com.swastricare.health.data.models.DietInsights
 import com.swastricare.health.data.models.MealType
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.EmptyStateView
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
@@ -47,7 +46,6 @@ fun DietScreen(
     var showSettingsSheet by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(
             modifier = Modifier

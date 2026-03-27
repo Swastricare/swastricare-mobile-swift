@@ -29,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -52,7 +51,6 @@ fun ConsentScreen(onAccepted: () -> Unit) {
     LaunchedEffect(Unit) { isVisible = true }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(
             modifier = Modifier

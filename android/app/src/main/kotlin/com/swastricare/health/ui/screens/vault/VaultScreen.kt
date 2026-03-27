@@ -27,13 +27,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import coil.compose.rememberAsyncImagePainter
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import com.swastricare.health.data.model.MedicalDocument
 import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.VaultCategory
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 
@@ -205,8 +206,9 @@ fun VaultScreen(
         return
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(AppColors.background)) {
 
         // Folder Detail Overlay
         if (uiState.openFolderName != null) {
@@ -1120,22 +1122,26 @@ fun EmptyState() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            imageVector = Icons.Default.FolderOpen,
+        Image(
+            painter = rememberAsyncImagePainter("file:///android_asset/images/hand-drawn-no-data-concept.png"),
             contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = AppColors.primary.copy(alpha = 0.5f)
+            modifier = Modifier.size(width = 160.dp, height = 140.dp),
+            contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+            alignment = Alignment.TopCenter
         )
-        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No Documents Yet",
+            text = "Your vault is empty for now!",
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Upload your medical records to get started",
+            text = "Upload your medical records, prescriptions and lab reports to keep them organized.",
             style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.onSurfaceVariant
+            color = AppColors.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
         )
     }
 }

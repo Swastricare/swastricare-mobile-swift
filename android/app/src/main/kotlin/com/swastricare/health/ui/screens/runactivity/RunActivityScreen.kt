@@ -27,7 +27,6 @@ import com.swastricare.health.data.models.ActivityType
 import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.data.models.RunActivity
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
@@ -59,7 +58,6 @@ fun RunActivityScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(
             modifier = Modifier

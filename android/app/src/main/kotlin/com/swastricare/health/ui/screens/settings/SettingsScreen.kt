@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
@@ -64,7 +63,6 @@ fun SettingsScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(modifier = Modifier.fillMaxSize()) {
             if (uiState.isLoading && uiState.user == null) {
@@ -154,7 +152,7 @@ fun SettingsScreen(
                         GlassSectionContainer(title = "Account") {
                             SettingsNavigationRow(
                                 icon = Icons.Default.AccountCircle,
-                                iconTint = Color(0xFF2E3192),
+                                iconTint = PrimaryColor,
                                 label = "Account Data",
                                 subtitle = "Edit profile, body stats, location",
                                 onClick = onNavigateToEditProfile
@@ -193,7 +191,7 @@ fun SettingsScreen(
                         GlassSectionContainer(title = "Health Data") {
                             SettingsNavigationRow(
                                 icon = Icons.Default.Sync,
-                                iconTint = Color(0xFFEF4444),
+                                iconTint = PrimaryColor,
                                 label = "Health Data Sync",
                                 subtitle = "Connect Health Connect, Google Health & more",
                                 onClick = onNavigateToHealthDataSync
@@ -206,7 +204,7 @@ fun SettingsScreen(
                         GlassSectionContainer(title = "Appearance") {
                             SettingsNavigationRow(
                                 icon = Icons.Default.Palette,
-                                iconTint = Color(0xFF7C3AED),
+                                iconTint = PrimaryColor,
                                 label = "Theme",
                                 subtitle = viewModel.themeDisplayName,
                                 onClick = onNavigateToThemeSettings
@@ -536,21 +534,21 @@ private fun SettingsHealthProfileSection(
                     icon = Icons.Default.Straighten,
                     value = "${uiState.healthProfile.heightCm} cm",
                     label = "Height",
-                    color = Color(0xFF30D158),
+                    color = PrimaryColor,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 QuickStatTile(
                     icon = Icons.Default.MonitorWeight,
                     value = "${uiState.healthProfile.weightKg} kg",
                     label = "Weight",
-                    color = Color(0xFF64D2FF),
+                    color = PrimaryColor,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 QuickStatTile(
                     icon = Icons.Default.Accessibility,
                     value = profileBMI,
                     label = "BMI",
-                    color = Color(0xFFBF5AF2),
+                    color = PrimaryColor,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
             }
@@ -582,7 +580,7 @@ private fun SettingsHealthProfileSection(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.Default.WaterDrop, contentDescription = null, tint = Color(0xFFFF3B30), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.WaterDrop, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                         Text(uiState.healthProfile.bloodType, style = MaterialTheme.typography.bodySmall, color = AppColors.onSurface)
                     }
                 }
@@ -670,20 +668,13 @@ private fun SettingsFamilySection(onNavigateToFamily: () -> Unit) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFFFF6B6B).copy(alpha = 0.2f),
-                                Color(0xFFFF8E53).copy(alpha = 0.2f)
-                            )
-                        )
-                    ),
+                    .background(PrimaryColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.People,
                     contentDescription = null,
-                    tint = Color(0xFFFF6B6B),
+                    tint = PrimaryColor,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -722,7 +713,7 @@ private fun SettingsNotificationsSection(
     GlassSectionContainer(title = "Notifications") {
         SettingsToggleRow(
             icon = Icons.Default.Notifications,
-            iconTint = Color(0xFFFF9F0A),
+            iconTint = PrimaryColor,
             label = "Notifications",
             checked = notificationsEnabled,
             onCheckedChange = onNotificationToggle
@@ -735,7 +726,7 @@ private fun SettingsNotificationsSection(
 
         SettingsNavigationRow(
             icon = Icons.Default.NotificationsActive,
-            iconTint = Color(0xFFFF6B6B),
+            iconTint = PrimaryColor,
             label = "Reminders & Notifications",
             subtitle = "Hydration, medication, diet, cycle, AI",
             onClick = onNavigateToNotificationSettings
@@ -752,7 +743,7 @@ private fun SettingsHydrationSection(
     GlassSectionContainer(title = "Hydration Reminders") {
         SettingsInfoRow(
             icon = Icons.AutoMirrored.Filled.DirectionsRun,
-            iconTint = Color(0xFFF59E0B),
+            iconTint = PrimaryColor,
             label = "Activity Level",
             value = "Moderate"
         )
@@ -764,7 +755,7 @@ private fun SettingsHydrationSection(
 
         SettingsInfoRow(
             icon = Icons.Default.WaterDrop,
-            iconTint = Color(0xFF06B6D4),
+            iconTint = PrimaryColor,
             label = "Daily Goal",
             value = "2000 ml"
         )
@@ -776,7 +767,7 @@ private fun SettingsHydrationSection(
 
         SettingsNavigationRow(
             icon = Icons.Default.Settings,
-            iconTint = Color(0xFF64748B),
+            iconTint = PrimaryColor,
             label = "Hydration Preferences",
             onClick = onNavigateToHydrationSettings
         )
@@ -808,7 +799,7 @@ private fun SettingsSecuritySection(
     GlassSectionContainer(title = "Security") {
         SettingsToggleRow(
             icon = Icons.Default.Fingerprint,
-            iconTint = Color(0xFF0EA5E9),
+            iconTint = PrimaryColor,
             label = "Biometric Lock",
             checked = biometricEnabled,
             onCheckedChange = onBiometricToggle
@@ -832,7 +823,7 @@ private fun SettingsAppVersionSection(
                 imageVector = if (hasUpdate) Icons.Default.SystemUpdate else Icons.Outlined.Info,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = if (hasUpdate) PremiumColor.NeonGreenStart else PrimaryColor
+                tint = PrimaryColor
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(

@@ -28,7 +28,6 @@ import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import com.swastricare.health.ui.screens.home.glass
@@ -202,7 +201,6 @@ fun NotificationHistoryScreen(
     var showClearDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar ──

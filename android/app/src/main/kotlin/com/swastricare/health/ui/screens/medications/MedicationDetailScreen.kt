@@ -23,7 +23,6 @@ import com.swastricare.health.data.models.AdherenceStatus
 import com.swastricare.health.data.models.MedicationDose
 import com.swastricare.health.data.models.MedicationWithDoses
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -61,7 +60,6 @@ fun MedicationDetailScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         if (mwd == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

@@ -45,7 +45,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
@@ -102,7 +101,6 @@ fun RunCalendarScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // 1. Premium Animated Background
-        PremiumBackground()
 
         Column(
             modifier = Modifier

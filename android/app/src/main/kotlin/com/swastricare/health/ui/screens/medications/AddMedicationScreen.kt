@@ -37,7 +37,6 @@ import com.swastricare.health.data.models.MedicationType
 import com.swastricare.health.data.models.ScheduleType
 import com.swastricare.health.data.repository.DrugSearchResult
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -180,7 +179,6 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar ──

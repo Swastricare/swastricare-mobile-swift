@@ -39,7 +39,6 @@ import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
 import com.swastricare.health.data.model.MedicalDocument
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.theme.AppColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,7 +56,6 @@ fun DocumentViewerScreen(
     val isPdf = fileType == "pdf"
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Scaffold(
             containerColor = Color.Transparent,

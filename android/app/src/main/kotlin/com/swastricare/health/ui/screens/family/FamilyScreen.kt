@@ -26,7 +26,6 @@ import com.swastricare.health.domain.model.FamilyMember
 import com.swastricare.health.domain.model.FamilyRole
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.presentation.feature.family.FamilyUiState
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
@@ -52,7 +51,6 @@ fun FamilyScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(
             modifier = Modifier

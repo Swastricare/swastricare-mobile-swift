@@ -37,7 +37,6 @@ import com.swastricare.health.data.model.SplitData
 import com.swastricare.health.data.model.WorkoutDetail
 import com.swastricare.health.data.models.RunActivity
 import com.swastricare.health.ui.components.RouteMapView
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import kotlinx.coroutines.delay
@@ -118,7 +117,6 @@ fun ActivityDetailScreen(
         }
         else -> {
             Box(modifier = Modifier.fillMaxSize()) {
-                PremiumBackground()
 
                 Column(
                     modifier = Modifier

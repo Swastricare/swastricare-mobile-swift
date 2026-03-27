@@ -114,7 +114,6 @@ fun HomeScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // 1. Premium Animated Background
-        PremiumBackground()
 
         if (uiState.isLoading) {
             HomeSkeletonLoading()

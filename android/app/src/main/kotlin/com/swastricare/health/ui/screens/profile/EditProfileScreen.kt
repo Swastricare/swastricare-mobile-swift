@@ -31,10 +31,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swastricare.health.data.model.Gender
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.PremiumColor
+import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.AppColors
 import java.util.Locale
 
@@ -104,7 +104,6 @@ fun EditProfileScreen(
     ) { paddingValues ->
 
         Box(modifier = Modifier.fillMaxSize()) {
-            PremiumBackground()
 
             Column(
                 modifier = Modifier
@@ -133,7 +132,7 @@ fun EditProfileScreen(
                     EditTextField(
                         title = "Full Name",
                         icon = Icons.Default.Person,
-                        iconColor = Color(0xFF4A90E2),
+                        iconColor = PrimaryColor,
                         value = formState.name,
                         onValueChange = viewModel::updateEditName
                     )
@@ -144,7 +143,7 @@ fun EditProfileScreen(
                     EditTextField(
                         title = "Phone Number",
                         icon = Icons.Default.Phone,
-                        iconColor = Color(0xFF34C759),
+                        iconColor = PrimaryColor,
                         value = formState.phone,
                         onValueChange = viewModel::updateEditPhone,
                         placeholder = "Add phone number",
@@ -186,7 +185,7 @@ fun EditProfileScreen(
                         range = 100f..250f,
                         steps = 150,
                         icon = Icons.Default.Straighten,
-                        iconColor = Color(0xFF34C759),
+                        iconColor = PrimaryColor,
                         onValueChange = { viewModel.updateEditHeightCm(it.toDouble()) }
                     )
 
@@ -200,7 +199,7 @@ fun EditProfileScreen(
                         range = 20f..250f,
                         steps = 460,
                         icon = Icons.Default.MonitorWeight,
-                        iconColor = Color(0xFF64D2FF),
+                        iconColor = PrimaryColor,
                         onValueChange = { viewModel.updateEditWeightKg(it.toDouble()) }
                     )
 
@@ -225,7 +224,7 @@ fun EditProfileScreen(
                     EditTextField(
                         title = "City",
                         icon = Icons.Default.LocationOn,
-                        iconColor = Color(0xFF30D5C8),
+                        iconColor = PrimaryColor,
                         value = formState.city,
                         onValueChange = viewModel::updateEditCity,
                         placeholder = "Your city"
@@ -236,7 +235,7 @@ fun EditProfileScreen(
                 EditSection(title = "ACCOUNT DETAILS") {
                     ReadOnlyRow(
                         icon = Icons.Default.Email,
-                        iconColor = Color(0xFF4F46E5),
+                        iconColor = PrimaryColor,
                         label = "Email",
                         value = uiState.user?.email ?: "Not available"
                     )
@@ -248,7 +247,7 @@ fun EditProfileScreen(
 
                     ReadOnlyRow(
                         icon = Icons.Default.CalendarMonth,
-                        iconColor = Color(0xFFFF9F0A),
+                        iconColor = PrimaryColor,
                         label = "Member Since",
                         value = viewModel.memberSince
                     )
@@ -351,7 +350,7 @@ private fun PhoneMissingBanner() {
             imageVector = Icons.Default.PhoneAndroid,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = Color(0xFFFF6B6B)
+            tint = PrimaryColor
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -494,7 +493,7 @@ private fun BioField(
             Icon(
                 imageVector = Icons.Default.FormatQuote,
                 contentDescription = null,
-                tint = Color(0xFF9C27B0),
+                tint = PrimaryColor,
                 modifier = Modifier
                     .size(24.dp)
                     .padding(top = 12.dp)
@@ -563,7 +562,7 @@ private fun GenderSelector(
                 Icon(
                     imageVector = Icons.Default.People,
                     contentDescription = null,
-                    tint = Color(0xFF4F46E5),
+                    tint = PrimaryColor,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
@@ -626,7 +625,7 @@ private fun DateOfBirthField(
             Icon(
                 imageVector = Icons.Default.CalendarToday,
                 contentDescription = null,
-                tint = Color(0xFFFF9F0A),
+                tint = PrimaryColor,
                 modifier = Modifier.size(24.dp)
             )
 
@@ -755,7 +754,7 @@ private fun BmiRow(bmi: Double, category: String) {
         Icon(
             imageVector = Icons.Default.Accessibility,
             contentDescription = null,
-            tint = Color(0xFF4F46E5),
+            tint = PrimaryColor,
             modifier = Modifier.size(24.dp)
         )
 
@@ -824,7 +823,7 @@ private fun BloodTypeSelector(
                 Icon(
                     imageVector = Icons.Default.WaterDrop,
                     contentDescription = null,
-                    tint = Color(0xFFFF3B30),
+                    tint = PrimaryColor,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(

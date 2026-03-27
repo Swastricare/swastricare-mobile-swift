@@ -28,7 +28,6 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import java.time.LocalDate
@@ -55,7 +54,6 @@ fun HealthMetricDetailScreen(
     val historyDays = remember { (6 downTo 0).map { today.minusDays(it.toLong()) } }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
         Column(
             modifier = Modifier
                 .fillMaxSize()

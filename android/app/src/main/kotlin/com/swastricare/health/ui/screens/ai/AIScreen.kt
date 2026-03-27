@@ -90,7 +90,6 @@ import com.swastricare.health.data.models.HealthMetrics
 import com.swastricare.health.data.models.QuickAction
 import com.swastricare.health.data.models.SnapFoodResult
 import com.swastricare.health.domain.model.MealType
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import androidx.compose.ui.graphics.Brush

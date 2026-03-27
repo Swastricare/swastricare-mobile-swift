@@ -42,7 +42,6 @@ import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.ServingUnit
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import java.io.File
@@ -130,7 +129,6 @@ fun FoodSnapScreen(
     val snapState = uiState.snapState
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         when (snapState) {
             is SnapAnalysisState.Idle -> {

@@ -79,7 +79,6 @@ fun OnboardingScreen(onFinished: () -> Unit) {
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        PremiumBackground()
 
         Column(modifier = Modifier.fillMaxSize()) {
             // Top bar

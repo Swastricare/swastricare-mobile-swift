@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swastricare.health.ui.screens.auth.components.PremiumBackground
 import com.swastricare.health.ui.screens.auth.components.PremiumButton
 import com.swastricare.health.ui.screens.auth.components.PremiumButtonStyle
 import com.swastricare.health.ui.screens.auth.components.PremiumColors
@@ -89,7 +88,6 @@ fun EmailVerificationScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            PremiumBackground()
 
             Column(
                 modifier = Modifier

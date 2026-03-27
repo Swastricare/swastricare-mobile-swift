@@ -12,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.swastricare.health.ui.screens.home.PremiumBackground
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.ThemeMode
@@ -47,7 +46,6 @@ fun ThemeSettingsScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            PremiumBackground()
 
             LazyColumn(
                 modifier = Modifier
