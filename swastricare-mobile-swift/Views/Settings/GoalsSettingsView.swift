@@ -70,14 +70,14 @@ struct GoalsSettingsView: View {
             // Steps Goal
             goalRow(
                 icon: "figure.walk",
-                iconColor: Color(hex: "4CAF50"),
+                iconColor: AppColors.accentBlue,
                 title: "Daily Steps",
                 value: Int(stepsGoal),
                 unit: "steps"
             )
 
             Slider(value: $stepsGoal, in: 2000...30000, step: 500)
-                .tint(Color(hex: "4CAF50"))
+                .tint(AppColors.accentBlue)
 
             HStack {
                 Text("2,000")
@@ -92,7 +92,7 @@ struct GoalsSettingsView: View {
             // Distance Goal
             goalRow(
                 icon: "map.fill",
-                iconColor: Color(hex: "2196F3"),
+                iconColor: AppColors.accentBlue,
                 title: "Daily Distance",
                 value: nil,
                 unit: "km",
@@ -100,7 +100,7 @@ struct GoalsSettingsView: View {
             )
 
             Slider(value: $distanceGoal, in: 1...30, step: 0.5)
-                .tint(Color(hex: "2196F3"))
+                .tint(AppColors.accentBlue)
 
             HStack {
                 Text("1 km")
@@ -115,14 +115,14 @@ struct GoalsSettingsView: View {
             // Active Calories Goal
             goalRow(
                 icon: "flame.fill",
-                iconColor: Color(hex: "FF5722"),
+                iconColor: AppColors.accentBlue,
                 title: "Active Calories",
                 value: Int(activeCaloriesGoal),
                 unit: "cal"
             )
 
             Slider(value: $activeCaloriesGoal, in: 100...2000, step: 50)
-                .tint(Color(hex: "FF5722"))
+                .tint(AppColors.accentBlue)
 
             HStack {
                 Text("100")
@@ -144,11 +144,11 @@ struct GoalsSettingsView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(Color.cyan.opacity(0.15))
+                        .fill(AppColors.accentBlue.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "drop.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.cyan)
+                        .foregroundColor(AppColors.accentBlue)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -180,11 +180,11 @@ struct GoalsSettingsView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(AppColors.accentGreen.opacity(0.15))
+                        .fill(AppColors.accentBlue.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "fork.knife")
                         .font(.system(size: 18))
-                        .foregroundColor(AppColors.accentGreen)
+                        .foregroundColor(AppColors.accentBlue)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {

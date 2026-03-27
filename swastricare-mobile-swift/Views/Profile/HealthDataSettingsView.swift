@@ -22,7 +22,7 @@ struct HealthDataSettingsView: View {
                 HStack(spacing: 16) {
                     Image(systemName: homeVM.isAuthorized ? "checkmark.circle.fill" : "xmark.circle.fill")
                         .font(.title2)
-                        .foregroundColor(homeVM.isAuthorized ? .green : .orange)
+                        .foregroundColor(AppColors.accentBlue)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(homeVM.isAuthorized ? "Connected" : "Not Connected")
                             .font(.headline)
@@ -60,7 +60,7 @@ struct HealthDataSettingsView: View {
                     HStack(spacing: 12) {
                         Image(systemName: dataType.icon)
                             .font(.body)
-                            .foregroundColor(homeVM.isAuthorized ? .green : .secondary)
+                            .foregroundColor(AppColors.accentBlue)
                             .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(dataType.name)
@@ -72,7 +72,7 @@ struct HealthDataSettingsView: View {
                         Spacer()
                         if homeVM.isAuthorized {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
+                                .foregroundColor(AppColors.accentBlue)
                                 .font(.subheadline)
                         }
                     }

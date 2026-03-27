@@ -151,13 +151,7 @@ struct AccountView: View {
         HStack(spacing: 12) {
             Image(systemName: "phone.badge.plus")
                 .font(.system(size: 20))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color(hex: "FF6B6B"), Color(hex: "FF8E53")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .foregroundColor(AppColors.accentBlue)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text("Add your phone number")
@@ -188,14 +182,14 @@ struct AccountView: View {
                 AccountEditField(
                     title: "Full Name",
                     icon: "person.fill",
-                    iconColor: .blue,
+                    iconColor: AppColors.accentBlue,
                     text: $editedName
                 )
-                
+
                 AccountEditField(
                     title: "Phone Number",
                     icon: "phone.fill",
-                    iconColor: .green,
+                    iconColor: AppColors.accentBlue,
                     text: $editedPhone,
                     keyboardType: .phonePad,
                     placeholder: "Add phone number"
@@ -208,7 +202,7 @@ struct AccountView: View {
                     
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "text.quote")
-                            .foregroundColor(.purple)
+                            .foregroundColor(AppColors.accentBlue)
                             .frame(width: 24)
                             .padding(.top, 10)
                         
@@ -233,7 +227,7 @@ struct AccountView: View {
                     
                     HStack(spacing: 12) {
                         Image(systemName: "person.2.fill")
-                            .foregroundColor(.indigo)
+                            .foregroundColor(AppColors.accentBlue)
                             .frame(width: 24)
                         
                         Picker("Gender", selection: $editedGender) {
@@ -262,7 +256,7 @@ struct AccountView: View {
                     
                     HStack(spacing: 12) {
                         Image(systemName: "calendar")
-                            .foregroundColor(.orange)
+                            .foregroundColor(AppColors.accentBlue)
                             .frame(width: 24)
                         
                         DatePicker(
@@ -306,7 +300,7 @@ struct AccountView: View {
                     
                     HStack(spacing: 12) {
                         Image(systemName: "ruler.fill")
-                            .foregroundColor(.green)
+                            .foregroundColor(AppColors.accentBlue)
                             .frame(width: 24)
                         
                         Slider(value: $editedHeightCm, in: 100...250, step: 1)
@@ -334,7 +328,7 @@ struct AccountView: View {
                     
                     HStack(spacing: 12) {
                         Image(systemName: "scalemass.fill")
-                            .foregroundColor(.cyan)
+                            .foregroundColor(AppColors.accentBlue)
                             .frame(width: 24)
                         
                         Slider(value: $editedWeightKg, in: 20...250, step: 0.5)
@@ -354,7 +348,7 @@ struct AccountView: View {
                 let bmi = heightM > 0 ? editedWeightKg / (heightM * heightM) : 0
                 HStack(spacing: 12) {
                     Image(systemName: "figure.stand")
-                        .foregroundColor(.indigo)
+                        .foregroundColor(AppColors.accentBlue)
                         .frame(width: 24)
                     Text("BMI")
                         .font(.system(size: 16))
@@ -381,7 +375,7 @@ struct AccountView: View {
                     
                     HStack(spacing: 12) {
                         Image(systemName: "drop.fill")
-                            .foregroundColor(.red)
+                            .foregroundColor(AppColors.accentBlue)
                             .frame(width: 24)
                         
                         Picker("Blood Type", selection: $editedBloodType) {
@@ -414,7 +408,7 @@ struct AccountView: View {
             AccountEditField(
                 title: "City",
                 icon: "location.fill",
-                iconColor: .teal,
+                iconColor: AppColors.accentBlue,
                 text: $editedCity,
                 placeholder: "Your city"
             )
@@ -428,16 +422,16 @@ struct AccountView: View {
             VStack(spacing: 0) {
                 AccountReadOnlyRow(
                     icon: "envelope.fill",
-                    iconColor: .indigo,
+                    iconColor: AppColors.accentBlue,
                     label: "Email",
                     value: viewModel.userEmail
                 )
-                
+
                 Divider().padding(.leading, 52)
-                
+
                 AccountReadOnlyRow(
                     icon: "calendar.badge.clock",
-                    iconColor: .orange,
+                    iconColor: AppColors.accentBlue,
                     label: "Member Since",
                     value: viewModel.memberSince
                 )

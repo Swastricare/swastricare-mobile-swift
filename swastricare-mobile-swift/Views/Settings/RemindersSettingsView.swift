@@ -24,7 +24,7 @@ struct RemindersSettingsView: View {
                         categoryCard(
                             id: "hydration",
                             icon: "drop.fill",
-                            color: .cyan,
+                            color: AppColors.accentBlue,
                             title: "Hydration",
                             subtitle: hydrationSubtitle,
                             enabled: Binding(
@@ -36,7 +36,7 @@ struct RemindersSettingsView: View {
                         categoryCard(
                             id: "medication",
                             icon: "pills.fill",
-                            color: Color(hex: "8B5CF6"),
+                            color: AppColors.accentBlue,
                             title: "Medication",
                             subtitle: "Before-dose reminders & follow-ups",
                             enabled: Binding(
@@ -48,7 +48,7 @@ struct RemindersSettingsView: View {
                         categoryCard(
                             id: "diet",
                             icon: "fork.knife",
-                            color: Color(hex: "F59E0B"),
+                            color: AppColors.accentBlue,
                             title: "Diet",
                             subtitle: dietSubtitle,
                             enabled: Binding(
@@ -60,7 +60,7 @@ struct RemindersSettingsView: View {
                         categoryCard(
                             id: "menstrual",
                             icon: "heart.fill",
-                            color: Color(hex: "EC4899"),
+                            color: AppColors.accentBlue,
                             title: "Menstrual Cycle",
                             subtitle: "Period predictions & symptom tracking",
                             enabled: Binding(
@@ -72,7 +72,7 @@ struct RemindersSettingsView: View {
                         categoryCard(
                             id: "ai",
                             icon: "sparkles",
-                            color: Color(hex: "6366F1"),
+                            color: AppColors.accentBlue,
                             title: "AI Nudges",
                             subtitle: "\(viewModel.settings.aiNudges.frequencyPerDay)x per day",
                             enabled: Binding(

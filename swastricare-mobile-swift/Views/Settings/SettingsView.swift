@@ -276,26 +276,26 @@ struct SettingsView: View {
                 }
             } else if viewModel.hasHealthProfile {
                 // Name
-                HealthProfileRow(icon: "person.fill", iconColor: .blue, label: "Name", value: viewModel.profileName)
-                
+                HealthProfileRow(icon: "person.fill", iconColor: AppColors.accentBlue, label: "Name", value: viewModel.profileName)
+
                 // Gender
-                HealthProfileRow(icon: "person.2.fill", iconColor: .purple, label: "Gender", value: viewModel.profileGender)
-                
+                HealthProfileRow(icon: "person.2.fill", iconColor: AppColors.accentBlue, label: "Gender", value: viewModel.profileGender)
+
                 // Age
-                HealthProfileRow(icon: "calendar", iconColor: .orange, label: "Age", value: viewModel.profileAge)
-                
+                HealthProfileRow(icon: "calendar", iconColor: AppColors.accentBlue, label: "Age", value: viewModel.profileAge)
+
                 // Height
-                HealthProfileRow(icon: "ruler.fill", iconColor: .green, label: "Height", value: viewModel.profileHeight)
-                
+                HealthProfileRow(icon: "ruler.fill", iconColor: AppColors.accentBlue, label: "Height", value: viewModel.profileHeight)
+
                 // Weight
-                HealthProfileRow(icon: "scalemass.fill", iconColor: .cyan, label: "Weight", value: viewModel.profileWeight)
-                
+                HealthProfileRow(icon: "scalemass.fill", iconColor: AppColors.accentBlue, label: "Weight", value: viewModel.profileWeight)
+
                 // BMI
-                HealthProfileRow(icon: "figure.stand", iconColor: .indigo, label: "BMI", value: viewModel.profileBMI)
-                
+                HealthProfileRow(icon: "figure.stand", iconColor: AppColors.accentBlue, label: "BMI", value: viewModel.profileBMI)
+
                 // Blood Type
                 if viewModel.profileBloodType != "Not set" {
-                    HealthProfileRow(icon: "drop.fill", iconColor: .red, label: "Blood Type", value: viewModel.profileBloodType)
+                    HealthProfileRow(icon: "drop.fill", iconColor: AppColors.accentBlue, label: "Blood Type", value: viewModel.profileBloodType)
                 }
             } else {
                 // No profile found
@@ -348,24 +348,12 @@ struct SettingsView: View {
                 HStack(spacing: 16) {
                     ZStack {
                         Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "FF6B6B").opacity(0.2), Color(hex: "FF8E53").opacity(0.2)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .fill(AppColors.accentBlue.opacity(0.15))
                             .frame(width: 44, height: 44)
-                        
+
                         Image(systemName: "person.3.fill")
                             .font(.system(size: 18))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color(hex: "FF6B6B"), Color(hex: "FF8E53")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .foregroundColor(AppColors.accentBlue)
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -399,24 +387,12 @@ struct SettingsView: View {
                 HStack(spacing: 16) {
                     ZStack {
                         Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "4CAF50").opacity(0.2), Color(hex: "8BC34A").opacity(0.2)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .fill(AppColors.accentBlue.opacity(0.15))
                             .frame(width: 44, height: 44)
 
                         Image(systemName: "target")
                             .font(.system(size: 18))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color(hex: "4CAF50"), Color(hex: "8BC34A")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .foregroundColor(AppColors.accentBlue)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -457,7 +433,6 @@ struct SettingsView: View {
             // Hydration Goal
             HStack {
                 Label("Daily Goal", systemImage: "drop.fill")
-                    .foregroundColor(.cyan)
                 Spacer()
                 Text("\(hydrationViewModel.dailyGoal) ml")
                     .foregroundColor(.secondary)
@@ -491,13 +466,7 @@ struct SettingsView: View {
                         }
                     } icon: {
                         Image(systemName: "bell.badge.fill")
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color(hex: "FF6B6B"), Color(hex: "FF8E53")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .foregroundColor(AppColors.accentBlue)
                     }
                 }
             }
@@ -572,19 +541,7 @@ struct SettingsView: View {
                     Text("App Version")
                 } icon: {
                     Image(systemName: appVersionService.updateStatus.hasUpdate ? "arrow.down.app.fill" : "app.badge.checkmark.fill")
-                        .foregroundStyle(
-                            appVersionService.updateStatus.hasUpdate
-                                ? LinearGradient(
-                                    colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                : LinearGradient(
-                                    colors: [Color(hex: "2E3192"), Color(hex: "654ea3")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                        )
+                        .foregroundColor(AppColors.accentBlue)
                 }
                 
                 Spacer()

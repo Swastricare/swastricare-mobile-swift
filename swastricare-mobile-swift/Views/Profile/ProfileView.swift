@@ -252,24 +252,12 @@ struct ProfileView: View {
                 HStack(spacing: 16) {
                     ZStack {
                         Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "2E3192").opacity(0.2), Color(hex: "4A90E2").opacity(0.2)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .fill(AppColors.accentBlue.opacity(0.15))
                             .frame(width: 44, height: 44)
-                        
+
                         Image(systemName: "person.text.rectangle.fill")
                             .font(.system(size: 18))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .foregroundColor(AppColors.accentBlue)
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -318,19 +306,19 @@ struct ProfileView: View {
                             icon: "ruler.fill",
                             value: viewModel.profileHeight,
                             label: "Height",
-                            color: .green
+                            color: AppColors.accentBlue
                         )
                         QuickStatCard(
                             icon: "scalemass.fill",
                             value: viewModel.profileWeight,
                             label: "Weight",
-                            color: .cyan
+                            color: AppColors.accentBlue
                         )
                         QuickStatCard(
                             icon: "figure.stand",
                             value: viewModel.profileBMI,
                             label: "BMI",
-                            color: .indigo
+                            color: AppColors.accentBlue
                         )
                     }
                     
@@ -348,7 +336,7 @@ struct ProfileView: View {
                         if viewModel.profileBloodType != "Not set" {
                             Label(viewModel.profileBloodType, systemImage: "drop.fill")
                                 .font(.caption)
-                                .foregroundColor(.red.opacity(0.8))
+                                .foregroundColor(AppColors.accentBlue)
                         }
                         Spacer()
                     }
@@ -480,13 +468,7 @@ struct ProfileView: View {
                         }
                     } icon: {
                         Image(systemName: "bell.badge.fill")
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color(hex: "FF6B6B"), Color(hex: "FF8E53")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .foregroundColor(AppColors.accentBlue)
                     }
                 }
             }
@@ -496,13 +478,7 @@ struct ProfileView: View {
                     Text(viewModel.biometricTypeName)
                 } icon: {
                     Image(systemName: viewModel.biometricIcon)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color(hex: "0EA5E9"), Color(hex: "38BDF8")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .foregroundColor(AppColors.accentBlue)
                 }
                 Spacer()
                 if viewModel.isTogglingBiometric {
@@ -537,19 +513,7 @@ struct ProfileView: View {
                     Text("App Version")
                 } icon: {
                     Image(systemName: appVersionService.updateStatus.hasUpdate ? "arrow.down.app.fill" : "app.badge.checkmark.fill")
-                        .foregroundStyle(
-                            appVersionService.updateStatus.hasUpdate
-                                ? LinearGradient(
-                                    colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                : LinearGradient(
-                                    colors: [Color(hex: "2E3192"), Color(hex: "654ea3")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                        )
+                        .foregroundColor(AppColors.accentBlue)
                 }
                 
                 Spacer()
