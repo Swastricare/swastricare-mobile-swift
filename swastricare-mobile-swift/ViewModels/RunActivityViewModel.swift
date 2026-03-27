@@ -184,7 +184,7 @@ final class RunActivityViewModel: ObservableObject {
             updateRunWidgetSnapshot()
             
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFriendlyError.message(from: error)
             // Don't fall back to mock data - show empty state on error
             // await loadMockData()
         }
@@ -300,7 +300,7 @@ final class RunActivityViewModel: ObservableObject {
         } catch {
             isAuthorized = false
             UserDefaults.standard.set(false, forKey: userDefaultsKey)
-            errorMessage = "Failed to get health authorization: \(error.localizedDescription)"
+            errorMessage = UserFriendlyError.message(from: error)
         }
     }
     
@@ -475,7 +475,7 @@ final class RunActivityViewModel: ObservableObject {
             } catch {
                 print("❌ Failed to delete activity from API: \(error.localizedDescription)")
                 // Surface the error (helps debug "delete not working")
-                errorMessage = "Delete failed: \(error.localizedDescription)"
+                errorMessage = "Unable to delete. Please try again."
                 return false
             }
         } else {
@@ -516,7 +516,7 @@ final class RunActivityViewModel: ObservableObject {
             activityGoal.currentDistance = statistics.totalDistance
             activityGoal.currentCalories = statistics.totalCalories
         } catch {
-            errorMessage = "Failed to update goals: \(error.localizedDescription)"
+            errorMessage = "Unable to update goals. Please try again."
         }
     }
     

@@ -27,7 +27,9 @@ struct AIView: View {
     @State private var sendButtonScale: CGFloat = 1.0
     @StateObject private var speechManager = SpeechManager.shared
     @State private var isModeSwitching = false
-    
+    @ObservedObject private var networkMonitor = NetworkMonitorService.shared
+    @StateObject private var referralViewModel = DependencyContainer.shared.referralViewModel
+
     // MARK: - Image Picker State
     
     @State private var showImagePicker = false
@@ -75,9 +77,21 @@ struct AIView: View {
     
     // MARK: - Body
     
+    @ViewBuilder
+    private var mainContent: some View {
+        if referralViewModel.isAIUnlocked {
+            chatView
+        } else {
+            AIReferralGateView(viewModel: referralViewModel)
+                .task {
+                    await referralViewModel.loadReferralState()
+                }
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            chatView
+            mainContent
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
@@ -92,11 +106,7 @@ struct AIView: View {
                             }
                         }) {
                             Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(.primary)
-                                .frame(width: 34, height: 34)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Circle())
+                                .font(.system(size: 18, weight: .medium))
                                 .overlay(Circle().stroke(Color.primary.opacity(0.06), lineWidth: 0.5))
                         }
                     }
@@ -197,12 +207,7 @@ struct AIView: View {
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.primary)
-                                .frame(width: 34, height: 34)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.primary.opacity(0.06), lineWidth: 0.5))
+                                .font(.system(size: 18, weight: .medium))
                         }
                     }
                 }
@@ -994,7 +999,8 @@ struct AIView: View {
                     .padding(.bottom, 8)
 
                     // Text input
-                    TextField("Ask anything...", text: $viewModel.inputText, axis: .vertical)
+                    TextField(networkMonitor.isConnected ? "Ask anything..." : "AI chat requires internet", text: $viewModel.inputText, axis: .vertical)
+                        .disabled(!networkMonitor.isConnected)
                         .font(.system(size: 15))
                         .focused($isInputFocused)
                         .lineLimit(1...5)
@@ -1022,7 +1028,7 @@ struct AIView: View {
                             .foregroundColor(viewModel.canSend ? Color(hex: "2E3192") : .gray.opacity(0.25))
                             .scaleEffect(sendButtonScale)
                     }
-                    .disabled(!viewModel.canSend)
+                    .disabled(!viewModel.canSend || !networkMonitor.isConnected)
                     .padding(.trailing, 6)
                     .padding(.bottom, 5)
                     .padding(.top, 5)
@@ -1949,7 +1955,7 @@ struct BookmarkedMessagesView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                PremiumBackground()
+                Color(UIColor.systemBackground).ignoresSafeArea()
 
                 if viewModel.bookmarkedMessages.isEmpty {
                     VStack(spacing: 20) {
@@ -2675,7 +2681,7 @@ struct ConversationHistoryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                PremiumBackground()
+                Color(UIColor.systemBackground).ignoresSafeArea()
 
                 if viewModel.isLoadingConversations {
                     conversationsSkeletonView

@@ -12,7 +12,7 @@ import Supabase
 // MARK: - Auth Service Protocol
 
 protocol AuthServiceProtocol {
-    func checkSession() async throws -> AppUser?
+    func checkSession(isOnline: Bool) async throws -> AppUser?
     func signUp(email: String, password: String, fullName: String, phone: String) async throws -> AppUser?
     func signIn(email: String, password: String) async throws -> AppUser
     func signInWithGoogle() async throws -> AppUser
@@ -37,14 +37,20 @@ final class AuthService: AuthServiceProtocol {
     
     // MARK: - Check Session
     
-    func checkSession() async throws -> AppUser? {
-        // Use timeout to prevent blocking UI
+    func checkSession(isOnline: Bool = true) async throws -> AppUser? {
+        // When offline, trust the locally cached session without network check
+        if !isOnline {
+            if let user = client.auth.currentUser {
+                return mapUser(user)
+            }
+            return nil
+        }
+
+        // Online: check session with timeout
         do {
             return try await withTimeout(seconds: 5) {
                 do {
                     let session = try await self.client.auth.session
-                    // Important: with newer SDK behavior, a locally stored session may be emitted
-                    // even if it's expired. Never treat an expired session as authenticated.
                     guard !session.isExpired else { return nil }
                     return self.mapUser(session.user)
                 } catch {
@@ -52,7 +58,10 @@ final class AuthService: AuthServiceProtocol {
                 }
             }
         } catch {
-            // Timeout or other error - return nil silently
+            // Timeout — could be slow network. Fall back to local session.
+            if let user = client.auth.currentUser {
+                return mapUser(user)
+            }
             return nil
         }
     }

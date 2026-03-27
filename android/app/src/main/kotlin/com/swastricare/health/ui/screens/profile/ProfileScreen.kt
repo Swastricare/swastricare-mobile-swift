@@ -31,8 +31,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swastricare.health.data.model.AppUser
-import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.AppColors
+import com.swastricare.health.ui.theme.PrimaryColor
+import com.swastricare.health.ui.theme.ThemeMode
+import com.swastricare.health.ui.theme.ThemePreferenceManager
 
 @Composable
 fun ProfileScreen(
@@ -41,10 +43,12 @@ fun ProfileScreen(
     onNavigateToNotificationSettings: () -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToFamily: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToHealthConnect: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
+    val themePreferenceManager = viewModel.themePreferenceManager
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -66,6 +70,7 @@ fun ProfileScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         ProfileScreenContent(
             uiState = uiState,
+            themePreferenceManager = themePreferenceManager,
             memberSince = viewModel.memberSince,
             profileAge = viewModel.profileAge,
             profileBMI = viewModel.profileBMI,
@@ -85,7 +90,8 @@ fun ProfileScreen(
             onDismissSignOutDialog = { viewModel.setShowSignOutConfirmation(false) },
             onDismissDeleteAccountDialog = { viewModel.setShowDeleteAccountConfirmation(false) },
             onNavigateToFamily = onNavigateToFamily,
-            onNavigateToSettings = onNavigateToSettings
+            onNavigateToSettings = onNavigateToSettings,
+            onNavigateToHealthConnect = onNavigateToHealthConnect
         )
 
         SnackbarHost(
@@ -98,6 +104,7 @@ fun ProfileScreen(
 @Composable
 fun ProfileScreenContent(
     uiState: ProfileUiState,
+    themePreferenceManager: ThemePreferenceManager,
     memberSince: String,
     profileAge: String,
     profileBMI: String,
@@ -114,8 +121,10 @@ fun ProfileScreenContent(
     onDismissSignOutDialog: () -> Unit,
     onDismissDeleteAccountDialog: () -> Unit,
     onNavigateToFamily: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToHealthConnect: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     // Background - solid color based on theme
     Box(
         modifier = Modifier
@@ -157,9 +166,18 @@ fun ProfileScreenContent(
                 FamilySection(onNavigateToFamily = onNavigateToFamily)
             }
 
+            // Health Data Section
+            item {
+                HealthConnectSection(
+                    isConnected = uiState.healthSyncEnabled,
+                    onOpenHealthConnect = onNavigateToHealthConnect
+                )
+            }
+
             // Settings Section
             item {
                 SettingsSection(
+                    themePreferenceManager = themePreferenceManager,
                     notificationsEnabled = uiState.notificationsEnabled,
                     biometricEnabled = uiState.biometricEnabled,
                     healthSyncEnabled = uiState.healthSyncEnabled,
@@ -554,6 +572,7 @@ fun HydrationSection() {
 
 @Composable
 fun SettingsSection(
+    themePreferenceManager: ThemePreferenceManager,
     notificationsEnabled: Boolean,
     biometricEnabled: Boolean,
     healthSyncEnabled: Boolean,
@@ -561,8 +580,47 @@ fun SettingsSection(
     onBiometricToggle: (Boolean) -> Unit,
     onSyncToggle: (Boolean) -> Unit
 ) {
+    var showThemeDialog by remember { mutableStateOf(false) }
+    val currentTheme by themePreferenceManager.themeMode.collectAsState()
+
     SectionContainer(title = "Settings") {
-        // Notification Settings — navigates to full settings screen
+        // Theme row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showThemeDialog = true },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Palette,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = PrimaryColor
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "Theme",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.onSurface
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = currentTheme.displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = AppColors.onSurfaceVariant
+            )
+        }
+
+        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+        // Notification Settings row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -589,14 +647,133 @@ fun SettingsSection(
             checked = biometricEnabled,
             onCheckedChange = onBiometricToggle
         )
+    }
+
+    // Theme selection dialog
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("Choose Theme") },
+            text = {
+                Column {
+                    ThemeMode.entries.forEach { mode ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    themePreferenceManager.setTheme(mode)
+                                    showThemeDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = mode == currentTheme,
+                                onClick = {
+                                    themePreferenceManager.setTheme(mode)
+                                    showThemeDialog = false
+                                },
+                                colors = RadioButtonDefaults.colors(selectedColor = PrimaryColor)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = mode.displayName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = AppColors.onSurface
+                                )
+                                Text(
+                                    text = mode.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AppColors.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showThemeDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = AppColors.surface,
+            titleContentColor = AppColors.onSurface
+        )
+    }
+}
+
+@Composable
+fun HealthConnectSection(
+    isConnected: Boolean,
+    onOpenHealthConnect: () -> Unit
+) {
+    SectionContainer(title = "Health Data") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onOpenHealthConnect() },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.FavoriteBorder,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = Color(0xFFDE3730)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Health Connect",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.onSurface
+                )
+                Text(
+                    text = "Manage connected health data",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.OpenInNew,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = AppColors.onSurfaceVariant
+            )
+        }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-        SettingToggleRow(
-            icon = Icons.Default.Sync,
-            label = "Auto Sync Health",
-            checked = healthSyncEnabled,
-            onCheckedChange = onSyncToggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = if (isConnected) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = if (isConnected) Color(0xFF4CAF50) else AppColors.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "Sync Status",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.onSurface
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = if (isConnected) "Connected" else "Not Connected",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isConnected) Color(0xFF4CAF50) else AppColors.onSurfaceVariant
+            )
+        }
+
+        Text(
+            text = "SwasthiCare reads steps, heart rate, sleep, calories, and exercise from Health Connect.",
+            style = MaterialTheme.typography.bodySmall,
+            color = AppColors.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp)
         )
     }
 }

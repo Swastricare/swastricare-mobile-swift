@@ -18,6 +18,7 @@ final class AuthViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     @Published var formState = AuthFormState()
+    @Published var pendingReferralCode: String?
     
     // MARK: - Computed Properties
     
@@ -51,13 +52,15 @@ final class AuthViewModel: ObservableObject {
     // MARK: - Auth Actions
     
     func checkAuthStatus() async {
+        let isOnline = NetworkMonitorService.shared.isConnected
         do {
-            if let user = try await authService.checkSession() {
+            if let user = try await authService.checkSession(isOnline: isOnline) {
                 authState = .authenticated(user)
-                // Mark that user has logged in before (for onboarding logic)
                 UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
-                // Fetch health profile for user name
-                await fetchHealthProfile()
+                CacheService.shared.setCurrentUser(user.id)
+                if isOnline {
+                    await fetchHealthProfile()
+                }
             } else {
                 authState = .unauthenticated
             }
@@ -91,11 +94,17 @@ final class AuthViewModel: ObservableObject {
                 phone: formState.phoneNumber
             ) {
                 authState = .authenticated(user)
-                // Mark that user has logged in before (for onboarding logic)
                 UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
-                // Fetch health profile
+                CacheService.shared.setCurrentUser(user.id)
                 await fetchHealthProfile()
                 clearForm()
+                // Apply pending referral code if present
+                if let code = pendingReferralCode {
+                    Task {
+                        let _ = try? await ReferralService.shared.applyReferralCode(code)
+                        pendingReferralCode = nil
+                    }
+                }
             } else {
                 errorMessage = "Please check your email to verify your account."
             }
@@ -122,11 +131,17 @@ final class AuthViewModel: ObservableObject {
             )
             authState = .authenticated(user)
             AppAnalyticsService.shared.logLoginSuccess(method: "email")
-            // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
-            // Fetch health profile
+            CacheService.shared.setCurrentUser(user.id)
             await fetchHealthProfile()
             clearForm()
+            // Apply pending referral code if present
+            if let code = pendingReferralCode {
+                Task {
+                    let _ = try? await ReferralService.shared.applyReferralCode(code)
+                    pendingReferralCode = nil
+                }
+            }
         } catch {
             AppAnalyticsService.shared.logLoginFailed(method: "email", errorType: String(describing: type(of: error)))
             errorMessage = mapError(error)
@@ -143,9 +158,8 @@ final class AuthViewModel: ObservableObject {
             let user = try await authService.signInWithGoogle()
             authState = .authenticated(user)
             AppAnalyticsService.shared.logLoginSuccess(method: "google")
-            // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
-            // Fetch health profile
+            CacheService.shared.setCurrentUser(user.id)
             await fetchHealthProfile()
         } catch {
             AppAnalyticsService.shared.logLoginFailed(method: "google", errorType: String(describing: type(of: error)))
@@ -163,9 +177,8 @@ final class AuthViewModel: ObservableObject {
             let user = try await authService.signInWithApple()
             authState = .authenticated(user)
             AppAnalyticsService.shared.logLoginSuccess(method: "apple")
-            // Mark that user has logged in before (for onboarding logic)
             UserDefaults.standard.set(true, forKey: AppConfig.hasLoggedInBeforeKey)
-            // Fetch health profile
+            CacheService.shared.setCurrentUser(user.id)
             await fetchHealthProfile()
         } catch {
             AppAnalyticsService.shared.logLoginFailed(method: "apple", errorType: String(describing: type(of: error)))
@@ -178,13 +191,18 @@ final class AuthViewModel: ObservableObject {
     func signOut() async {
         isLoading = true
         errorMessage = nil
-        
+        let userId = currentUser?.id
+
         do {
             try await authService.signOut()
             AppAnalyticsService.shared.logLogout()
+            if let userId {
+                CacheService.shared.clearAll(forUserId: userId)
+            }
             authState = .unauthenticated
             healthProfile = nil
             clearForm()
+            DependencyContainer.shared.referralViewModel.clearOnSignOut()
         } catch {
             errorMessage = mapError(error)
         }

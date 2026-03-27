@@ -31,6 +31,7 @@ import com.swastricare.health.ui.lock.LockScreenViewModel
 import com.swastricare.health.ui.navigation.AppNavigation
 import com.swastricare.health.ui.screens.auth.AuthViewModel
 import com.swastricare.health.ui.theme.SwastriCareTheme
+import com.swastricare.health.ui.theme.ThemePreferenceManager
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.handleDeeplinks
@@ -41,6 +42,7 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var notificationService: com.swastricare.health.data.services.NotificationService
     @Inject lateinit var supabaseClient: SupabaseClient
+    @Inject lateinit var themePreferenceManager: ThemePreferenceManager
 
     // AuthViewModel obtained at Activity level so deep link callbacks can call it
     // outside of Compose composition (e.g. from onNewIntent).
@@ -74,7 +76,7 @@ class MainActivity : FragmentActivity() {
         handleDeepLink(intent)
 
         setContent {
-            SwastriCareTheme {
+            SwastriCareTheme(themePreferenceManager = themePreferenceManager) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = AppColors.background

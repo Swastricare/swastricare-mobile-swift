@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.data.models.*
 import com.swastricare.health.data.repository.DrugSearchRepository
 import com.swastricare.health.data.repository.DrugSearchResult
@@ -119,7 +120,7 @@ class MedicationsViewModel @Inject constructor(
                 Log.e(TAG, "loadMedications failed", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Failed to load medications"
+                    error = "Unable to load medications. Please try again."
                 )
             }
         }

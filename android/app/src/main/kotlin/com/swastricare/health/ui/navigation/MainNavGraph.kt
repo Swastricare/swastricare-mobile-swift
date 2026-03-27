@@ -138,6 +138,7 @@ fun MainNavGraph(
                 onNavigateToNotificationSettings = { navController.navigate("notification_settings") },
                 onNavigateToHydrationSettings = { navController.navigate("hydration_settings") },
                 onNavigateToHealthDataSync = { navController.navigate("health_data_sync") },
+                onNavigateToThemeSettings = { navController.navigate("theme_settings") },
                 onSignOut = onSignOut
             )
         }
@@ -145,6 +146,16 @@ fun MainNavGraph(
         // ═══════════════════════════════════════════════════════════
         // NESTED SCREENS (Full screen, back navigation required)
         // ═══════════════════════════════════════════════════════════
+
+        // ─── Theme Settings ───
+        composable("theme_settings") {
+            val settingsViewModel: com.swastricare.health.ui.screens.settings.SettingsViewModel =
+                androidx.hilt.navigation.compose.hiltViewModel()
+            com.swastricare.health.ui.screens.settings.ThemeSettingsScreen(
+                themePreferenceManager = settingsViewModel.themePreferenceManager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
 
         // ─── Medications ───
         composable("medications") {

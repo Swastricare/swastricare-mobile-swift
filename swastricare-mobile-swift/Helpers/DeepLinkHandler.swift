@@ -20,7 +20,8 @@ enum DeepLink: Equatable {
     case heartRate
     case activeWorkout
     case familyJoin(code: String)
-    
+    case referral(code: String)
+
     init?(url: URL) {
         // Supported schemes:
         // - swastricareapp://... (primary, also used for OAuth redirect)
@@ -69,6 +70,12 @@ enum DeepLink: Equatable {
             } else {
                 return nil
             }
+        case "referral":
+            if let code = queryItems?.first(where: { $0.name == "code" })?.value, !code.isEmpty {
+                self = .referral(code: code)
+            } else {
+                return nil
+            }
         default:
             return nil
         }
@@ -83,11 +90,13 @@ extension Notification.Name {
     static let deepLinkOpenHeartRate = Notification.Name("DeepLink.OpenHeartRate")
     static let deepLinkOpenLiveTracking = Notification.Name("DeepLink.OpenLiveTracking")
     static let deepLinkFamilyJoin = Notification.Name("DeepLink.FamilyJoin")
+    static let deepLinkReferral = Notification.Name("DeepLink.Referral")
 }
 
 enum DeepLinkUserInfoKey {
     static let workoutType = "workoutType" // String: "run" | "walk" | "commute" | etc.
     static let familyInviteCode = "familyInviteCode" // String: invite code
+    static let referralCode = "referralCode"
 }
 
 // MARK: - Pending Workout from Widget
@@ -105,7 +114,8 @@ class DeepLinkHandler: ObservableObject {
     @Published var currentDeepLink: DeepLink?
     @Published var pendingWorkout: PendingWidgetWorkout?
     @Published var pendingFamilyInviteCode: String?
-    
+    @Published var pendingReferralCode: String?
+
     private let appGroupSuiteName = "group.com.swasthicare.shared"
     
     func handle(_ url: URL) {
@@ -126,14 +136,27 @@ class DeepLinkHandler: ObservableObject {
                 userInfo: [DeepLinkUserInfoKey.familyInviteCode: code]
             )
         }
-        
+
+        if case .referral(let code) = deepLink {
+            pendingReferralCode = code
+            NotificationCenter.default.post(
+                name: .deepLinkReferral,
+                object: nil,
+                userInfo: [DeepLinkUserInfoKey.referralCode: code]
+            )
+        }
+
         currentDeepLink = deepLink
     }
     
     func clearFamilyInviteCode() {
         pendingFamilyInviteCode = nil
     }
-    
+
+    func clearReferralCode() {
+        pendingReferralCode = nil
+    }
+
     /// Check for workouts started from widget (call on app launch/foreground)
     func checkForPendingWidgetWorkout() {
         guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else { return }

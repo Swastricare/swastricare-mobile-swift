@@ -29,7 +29,9 @@ class AuthViewModel @Inject constructor(
     private val authRepository: SupabaseAuthRepository,
     private val googleAuthHelper: GoogleAuthHelper,
     private val analyticsService: AnalyticsService,
-    private val crashlyticsService: CrashlyticsService
+    private val crashlyticsService: CrashlyticsService,
+    private val networkMonitor: com.swastricare.health.data.services.NetworkMonitorService,
+    private val cacheService: com.swastricare.health.data.services.CacheService
 ) : ViewModel() {
 
     // UI State
@@ -68,11 +70,13 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
             try {
-                val user = authRepository.checkSession()
-                _uiState.value = if (user != null) {
-                    AuthUiState.Success(user)
+                val isOnline = networkMonitor.isConnected.value
+                val user = authRepository.checkSession(isOnline)
+                if (user != null) {
+                    cacheService.setCurrentUser(user.id)
+                    _uiState.value = AuthUiState.Success(user)
                 } else {
-                    AuthUiState.Idle
+                    _uiState.value = AuthUiState.Idle
                 }
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Idle
@@ -108,6 +112,7 @@ class AuthViewModel @Inject constructor(
                 analyticsService.logEvent("sign_in", mapOf("method" to "email"))
                 analyticsService.setUserId(user.id)
                 crashlyticsService.setUserId(user.id)
+                cacheService.setCurrentUser(user.id)
                 _uiState.value = AuthUiState.Success(user)
                 clearForm()
             } catch (e: Exception) {
@@ -147,6 +152,7 @@ class AuthViewModel @Inject constructor(
                     analyticsService.logEvent("sign_up", mapOf("method" to "email"))
                     analyticsService.setUserId(user.id)
                     crashlyticsService.setUserId(user.id)
+                    cacheService.setCurrentUser(user.id)
                     _uiState.value = AuthUiState.Success(user)
                     clearForm()
                 } else {
@@ -187,6 +193,7 @@ class AuthViewModel @Inject constructor(
                 analyticsService.logEvent("sign_in", mapOf("method" to "google"))
                 analyticsService.setUserId(user.id)
                 crashlyticsService.setUserId(user.id)
+                cacheService.setCurrentUser(user.id)
                 _uiState.value = AuthUiState.Success(user)
             } catch (e: GoogleSignInCancelledException) {
                 Log.w("GoogleAuth", "Cancelled by user", e)
@@ -233,6 +240,7 @@ class AuthViewModel @Inject constructor(
                 analyticsService.logEvent("email_verified", mapOf("method" to "otp"))
                 analyticsService.setUserId(user.id)
                 crashlyticsService.setUserId(user.id)
+                cacheService.setCurrentUser(user.id)
                 _uiState.value = AuthUiState.Success(user)
                 clearForm()
             } catch (e: Exception) {
@@ -330,6 +338,7 @@ class AuthViewModel @Inject constructor(
                     analyticsService.logEvent("email_verified", mapOf("method" to "link"))
                     analyticsService.setUserId(user.id)
                     crashlyticsService.setUserId(user.id)
+                    cacheService.setCurrentUser(user.id)
                     _uiState.value = AuthUiState.Success(user)
                     clearForm()
                 }

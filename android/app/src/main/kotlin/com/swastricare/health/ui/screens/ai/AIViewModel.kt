@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.data.models.*
 import com.swastricare.health.data.repository.AIConversationRepository
 import com.swastricare.health.data.repository.AIMessageRecord
@@ -98,7 +99,8 @@ class AIViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val dietRepository: DietRepository,
-    @ApplicationContext private val appContext: Context
+    @ApplicationContext private val appContext: Context,
+    val networkMonitor: com.swastricare.health.data.services.NetworkMonitorService
 ) : ViewModel() {
 
     private val speechService = SpeechService(appContext)
@@ -847,7 +849,7 @@ class AIViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    analysisState = AnalysisState.Error(e.message ?: "Analysis failed")
+                    analysisState = AnalysisState.Error("Unable to analyze health data. Please try again.")
                 )
             }
         }

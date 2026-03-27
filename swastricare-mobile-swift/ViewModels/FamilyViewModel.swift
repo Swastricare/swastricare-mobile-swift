@@ -87,7 +87,7 @@ final class FamilyViewModel: ObservableObject {
                 self.inviteCode = ""
             }
         } catch {
-            self.error = error.localizedDescription
+            self.error = UserFriendlyError.message(from: error)
             print("FamilyViewModel: Error loading family - \(error)")
         }
 
@@ -116,7 +116,7 @@ final class FamilyViewModel: ObservableObject {
             let fetchedMembers = try await supabase.fetchFamilyMembers(groupId: group.id)
             self.members = fetchedMembers
         } catch {
-            self.error = error.localizedDescription
+            self.error = UserFriendlyError.message(from: error)
             print("FamilyViewModel: Error creating family - \(error)")
         }
 
@@ -143,7 +143,7 @@ final class FamilyViewModel: ObservableObject {
             // Reload everything
             await loadFamily()
         } catch {
-            self.error = error.localizedDescription
+            self.error = UserFriendlyError.message(from: error)
             print("FamilyViewModel: Error joining family - \(error)")
         }
 
@@ -176,7 +176,7 @@ final class FamilyViewModel: ObservableObject {
             self.inviteCode = ""
             self.successMessage = "You have left the family group."
         } catch {
-            self.error = error.localizedDescription
+            self.error = UserFriendlyError.message(from: error)
             print("FamilyViewModel: Error leaving family - \(error)")
         }
 
@@ -198,7 +198,7 @@ final class FamilyViewModel: ObservableObject {
             self.members.removeAll { $0.id == member.id }
             self.successMessage = "Member removed."
         } catch {
-            self.error = error.localizedDescription
+            self.error = UserFriendlyError.message(from: error)
             print("FamilyViewModel: Error removing member - \(error)")
         }
     }
@@ -216,7 +216,7 @@ final class FamilyViewModel: ObservableObject {
             self.familyGroup?.inviteCode = newCode
             self.successMessage = "Invite code regenerated."
         } catch {
-            self.error = error.localizedDescription
+            self.error = UserFriendlyError.message(from: error)
             print("FamilyViewModel: Error regenerating code - \(error)")
         }
     }

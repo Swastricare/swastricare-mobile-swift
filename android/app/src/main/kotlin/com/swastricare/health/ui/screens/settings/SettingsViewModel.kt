@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import com.swastricare.health.BuildConfig
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.data.model.AppUser
 import com.swastricare.health.data.model.HealthProfile
 import com.swastricare.health.data.repository.ProfileRepository
@@ -37,7 +38,8 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val authRepository: SupabaseAuthRepository,
     private val profileRepository: ProfileRepository,
-    private val prefs: SharedPreferences
+    private val prefs: SharedPreferences,
+    val themePreferenceManager: com.swastricare.health.ui.theme.ThemePreferenceManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -80,7 +82,7 @@ class SettingsViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
+                _uiState.update { it.copy(errorMessage = UserFriendlyError.from(e), isLoading = false) }
             }
         }
     }
@@ -151,7 +153,7 @@ class SettingsViewModel @Inject constructor(
                 }
                 _signOutEvent.value = true
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
+                _uiState.update { it.copy(errorMessage = UserFriendlyError.from(e), isLoading = false) }
             }
         }
     }
@@ -233,4 +235,7 @@ class SettingsViewModel @Inject constructor(
         }
 
     val appVersion: String = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+
+    val themeDisplayName: String
+        get() = themePreferenceManager.themeMode.value.displayName
 }

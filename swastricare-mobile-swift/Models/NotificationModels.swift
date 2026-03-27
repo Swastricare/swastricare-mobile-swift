@@ -91,6 +91,188 @@ struct NotificationSettings: Codable, Equatable {
     }
 }
 
+// MARK: - Unified Reminder Settings
+
+struct ReminderSettings: Codable, Equatable {
+    var globalEnabled: Bool
+    var hydration: HydrationReminderSettings
+    var medication: MedicationReminderSettings
+    var diet: DietReminderSettings
+    var menstrual: MenstrualReminderSettings
+    var aiNudges: AIReminderSettings
+
+    init(
+        globalEnabled: Bool = true,
+        hydration: HydrationReminderSettings = HydrationReminderSettings(),
+        medication: MedicationReminderSettings = MedicationReminderSettings(),
+        diet: DietReminderSettings = DietReminderSettings(),
+        menstrual: MenstrualReminderSettings = MenstrualReminderSettings(),
+        aiNudges: AIReminderSettings = AIReminderSettings()
+    ) {
+        self.globalEnabled = globalEnabled
+        self.hydration = hydration
+        self.medication = medication
+        self.diet = diet
+        self.menstrual = menstrual
+        self.aiNudges = aiNudges
+    }
+
+    /// Migrate from legacy NotificationSettings
+    static func migrateFromLegacy(_ legacy: NotificationSettings) -> ReminderSettings {
+        ReminderSettings(
+            globalEnabled: legacy.enabled,
+            hydration: HydrationReminderSettings(
+                enabled: legacy.enabled,
+                smartReminders: legacy.smartReminders,
+                quietHoursStart: legacy.quietHoursStart,
+                quietHoursEnd: legacy.quietHoursEnd,
+                reminderFrequencyHours: legacy.reminderFrequencyHours,
+                showProgress: legacy.showProgress,
+                showMotivational: legacy.showMotivational,
+                snoozeMinutes: legacy.snoozeMinutes,
+                useAdaptiveLearning: legacy.useAdaptiveLearning
+            )
+        )
+    }
+}
+
+struct HydrationReminderSettings: Codable, Equatable {
+    var enabled: Bool
+    var smartReminders: Bool
+    var quietHoursStart: Date
+    var quietHoursEnd: Date
+    var reminderFrequencyHours: Int
+    var showProgress: Bool
+    var showMotivational: Bool
+    var snoozeMinutes: Int
+    var useAdaptiveLearning: Bool
+
+    init(
+        enabled: Bool = true,
+        smartReminders: Bool = true,
+        quietHoursStart: Date = Calendar.current.date(from: DateComponents(hour: 22, minute: 0)) ?? Date(),
+        quietHoursEnd: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date(),
+        reminderFrequencyHours: Int = 3,
+        showProgress: Bool = true,
+        showMotivational: Bool = true,
+        snoozeMinutes: Int = 15,
+        useAdaptiveLearning: Bool = true
+    ) {
+        self.enabled = enabled
+        self.smartReminders = smartReminders
+        self.quietHoursStart = quietHoursStart
+        self.quietHoursEnd = quietHoursEnd
+        self.reminderFrequencyHours = reminderFrequencyHours
+        self.showProgress = showProgress
+        self.showMotivational = showMotivational
+        self.snoozeMinutes = snoozeMinutes
+        self.useAdaptiveLearning = useAdaptiveLearning
+    }
+}
+
+struct MedicationReminderSettings: Codable, Equatable {
+    var enabled: Bool
+    var reminderBeforeDoseMinutes: Int
+    var missedDoseFollowUp: Bool
+    var snoozeMinutes: Int
+
+    init(
+        enabled: Bool = true,
+        reminderBeforeDoseMinutes: Int = 15,
+        missedDoseFollowUp: Bool = true,
+        snoozeMinutes: Int = 15
+    ) {
+        self.enabled = enabled
+        self.reminderBeforeDoseMinutes = reminderBeforeDoseMinutes
+        self.missedDoseFollowUp = missedDoseFollowUp
+        self.snoozeMinutes = snoozeMinutes
+    }
+}
+
+struct DietReminderSettings: Codable, Equatable {
+    var enabled: Bool
+    var breakfastEnabled: Bool
+    var breakfastTime: Date
+    var lunchEnabled: Bool
+    var lunchTime: Date
+    var dinnerEnabled: Bool
+    var dinnerTime: Date
+    var snacksEnabled: Bool
+    var snacksTime: Date
+    var logNudgeEnabled: Bool
+
+    init(
+        enabled: Bool = true,
+        breakfastEnabled: Bool = true,
+        breakfastTime: Date = Calendar.current.date(from: DateComponents(hour: 8, minute: 0)) ?? Date(),
+        lunchEnabled: Bool = true,
+        lunchTime: Date = Calendar.current.date(from: DateComponents(hour: 12, minute: 30)) ?? Date(),
+        dinnerEnabled: Bool = true,
+        dinnerTime: Date = Calendar.current.date(from: DateComponents(hour: 19, minute: 30)) ?? Date(),
+        snacksEnabled: Bool = false,
+        snacksTime: Date = Calendar.current.date(from: DateComponents(hour: 16, minute: 0)) ?? Date(),
+        logNudgeEnabled: Bool = true
+    ) {
+        self.enabled = enabled
+        self.breakfastEnabled = breakfastEnabled
+        self.breakfastTime = breakfastTime
+        self.lunchEnabled = lunchEnabled
+        self.lunchTime = lunchTime
+        self.dinnerEnabled = dinnerEnabled
+        self.dinnerTime = dinnerTime
+        self.snacksEnabled = snacksEnabled
+        self.snacksTime = snacksTime
+        self.logNudgeEnabled = logNudgeEnabled
+    }
+}
+
+struct MenstrualReminderSettings: Codable, Equatable {
+    var enabled: Bool
+    var periodPredictionEnabled: Bool
+    var periodPredictionDaysBefore: Int
+    var dailySymptomCheckIn: Bool
+    var symptomCheckInTime: Date
+    var ovulationAlertEnabled: Bool
+    var cycleSummaryEnabled: Bool
+
+    init(
+        enabled: Bool = false,
+        periodPredictionEnabled: Bool = true,
+        periodPredictionDaysBefore: Int = 2,
+        dailySymptomCheckIn: Bool = true,
+        symptomCheckInTime: Date = Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date(),
+        ovulationAlertEnabled: Bool = true,
+        cycleSummaryEnabled: Bool = true
+    ) {
+        self.enabled = enabled
+        self.periodPredictionEnabled = periodPredictionEnabled
+        self.periodPredictionDaysBefore = periodPredictionDaysBefore
+        self.dailySymptomCheckIn = dailySymptomCheckIn
+        self.symptomCheckInTime = symptomCheckInTime
+        self.ovulationAlertEnabled = ovulationAlertEnabled
+        self.cycleSummaryEnabled = cycleSummaryEnabled
+    }
+}
+
+struct AIReminderSettings: Codable, Equatable {
+    var enabled: Bool
+    var frequencyPerDay: Int
+    var useGlobalQuietHours: Bool
+    var whatsAppNudgesEnabled: Bool
+
+    init(
+        enabled: Bool = true,
+        frequencyPerDay: Int = 2,
+        useGlobalQuietHours: Bool = true,
+        whatsAppNudgesEnabled: Bool = false
+    ) {
+        self.enabled = enabled
+        self.frequencyPerDay = frequencyPerDay
+        self.useGlobalQuietHours = useGlobalQuietHours
+        self.whatsAppNudgesEnabled = whatsAppNudgesEnabled
+    }
+}
+
 // MARK: - Notification Permission Status
 
 enum NotificationPermissionStatus {

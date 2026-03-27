@@ -3,6 +3,7 @@ package com.swastricare.health.ui.screens.vault
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.MedicalDocument
 import com.swastricare.health.data.model.VaultCategory
@@ -89,7 +90,7 @@ class VaultViewModel @Inject constructor(
                 val documents = repository.getDocuments()
                 _uiState.update { it.copy(documents = documents, isLoading = false) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _uiState.update { it.copy(isLoading = false, errorMessage = UserFriendlyError.from(e)) }
             }
         }
     }
@@ -125,10 +126,10 @@ class VaultViewModel @Inject constructor(
                     val documents = repository.getDocuments()
                     _uiState.update { it.copy(documents = documents, isUploading = false, showAddSheet = false) }
                 } catch (e: Exception) {
-                    _uiState.update { it.copy(isUploading = false, showAddSheet = false, errorMessage = "Uploaded but failed to refresh: ${e.message}") }
+                    _uiState.update { it.copy(isUploading = false, showAddSheet = false, errorMessage = "Unable to upload document. Please try again.") }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isUploading = false, errorMessage = "Upload failed: ${e.message}") }
+                _uiState.update { it.copy(isUploading = false, errorMessage = "Unable to upload document. Please try again.") }
             }
         }
     }
@@ -200,7 +201,7 @@ class VaultViewModel @Inject constructor(
                      )
                  }
              } catch (e: Exception) {
-                 _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to delete documents: ${e.message}") }
+                 _uiState.update { it.copy(isLoading = false, errorMessage = "Unable to delete documents. Please try again.") }
              }
         }
     }
@@ -270,7 +271,7 @@ class VaultViewModel @Inject constructor(
                 _uiState.update { it.copy(isEditMode = false) }
                 loadDocuments()
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "Failed to update document: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = "Unable to update document. Please try again.") }
             }
         }
     }
@@ -288,7 +289,7 @@ class VaultViewModel @Inject constructor(
                 val response = aiService.sendImageMessage(prompt, base64)
                 _uiState.update { it.copy(isAnalyzingAI = false, aiAnalysisResult = response) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isAnalyzingAI = false, aiAnalysisResult = "Unable to analyze document: ${e.message}") }
+                _uiState.update { it.copy(isAnalyzingAI = false, aiAnalysisResult = "Unable to analyze document. Please try again.") }
             }
         }
     }
@@ -373,7 +374,7 @@ class VaultViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isUploading = false,
-                        errorMessage = "Batch upload failed: ${e.message}"
+                        errorMessage = "Unable to upload document. Please try again."
                     )
                 }
             }

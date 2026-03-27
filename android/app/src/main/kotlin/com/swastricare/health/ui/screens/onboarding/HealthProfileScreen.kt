@@ -148,7 +148,7 @@ fun HealthProfileScreen(
                     result.onSuccess {
                         onCompleted()
                     }.onFailure { e ->
-                        errorMessage = "Failed to save profile: ${e.message}"
+                        errorMessage = "Unable to save profile. Please try again."
                         isLoading = false
                     }
                 }

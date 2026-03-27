@@ -462,9 +462,9 @@ final class LiveActivityViewModel: ObservableObject {
     }
     
     private func handleError(_ error: Error) {
-        errorMessage = error.localizedDescription
+        errorMessage = UserFriendlyError.message(from: error)
         showError = true
-        viewState = .error(error.localizedDescription)
+        viewState = .error(UserFriendlyError.message(from: error))
     }
     
     private func resetState() {

@@ -3,11 +3,13 @@ package com.swastricare.health.ui.screens.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.BuildConfig
+import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.data.model.AppUser
 import com.swastricare.health.data.model.Gender
 import com.swastricare.health.data.model.HealthProfile
 import com.swastricare.health.data.repository.ProfileRepository
 import com.swastricare.health.data.repository.SupabaseAuthRepository
+import com.swastricare.health.ui.theme.ThemePreferenceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
@@ -55,7 +57,8 @@ data class EditProfileFormState(
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: SupabaseAuthRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    val themePreferenceManager: ThemePreferenceManager
 ) : ViewModel() {
     
     // Expose sign out event for navigation
@@ -93,7 +96,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update { it.copy(user = null, isLoading = false) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
+                _uiState.update { it.copy(errorMessage = UserFriendlyError.from(e), isLoading = false) }
             }
         }
     }
@@ -157,11 +160,11 @@ class ProfileViewModel @Inject constructor(
                 // Trigger sign out event for navigation
                 _signOutEvent.value = true
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
+                _uiState.update { it.copy(errorMessage = UserFriendlyError.from(e), isLoading = false) }
             }
         }
     }
-    
+
     fun onSignOutHandled() {
         _signOutEvent.value = false
     }
@@ -379,7 +382,7 @@ class ProfileViewModel @Inject constructor(
                 _editFormState.update {
                     it.copy(
                         isSaving = false,
-                        saveError = "Failed to save: ${e.localizedMessage ?: "Unknown error"}"
+                        saveError = "Unable to save profile. Please try again."
                     )
                 }
             }

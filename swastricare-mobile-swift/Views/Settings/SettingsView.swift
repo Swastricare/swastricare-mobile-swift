@@ -96,7 +96,10 @@ struct SettingsView: View {
                     
                     // Family Section
                     familySection
-                    
+
+                    // Goals Section
+                    goalsSection
+
                     // Hydration Section
                     hydrationSection
                     
@@ -390,6 +393,57 @@ struct SettingsView: View {
         }
     }
     
+    private var goalsSection: some View {
+        Section {
+            NavigationLink(destination: GoalsSettingsView()) {
+                HStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "4CAF50").opacity(0.2), Color(hex: "8BC34A").opacity(0.2)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 44, height: 44)
+
+                        Image(systemName: "target")
+                            .font(.system(size: 18))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "4CAF50"), Color(hex: "8BC34A")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Goals")
+                            .font(.headline)
+
+                        Text("Steps, diet, hydration & more")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+        } header: {
+            Text("Goals")
+        } footer: {
+            Text("Set daily targets for activity, nutrition and hydration")
+                .font(.caption)
+        }
+    }
+
     private var hydrationSection: some View {
         Section("Hydration") {
             // Activity Level for hydration
@@ -425,10 +479,29 @@ struct SettingsView: View {
     
     private var settingsSection: some View {
         Section {
-            Toggle(isOn: $viewModel.notificationsEnabled) {
-                Label("Notifications", systemImage: "bell.fill")
+            NavigationLink(destination: RemindersSettingsView()) {
+                HStack {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Reminders & Notifications")
+                                .foregroundColor(.primary)
+                            Text("Hydration, medication, diet, cycle, AI")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "bell.badge.fill")
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "FF6B6B"), Color(hex: "FF8E53")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                }
             }
-            
+
             // Biometric toggle - uses custom binding to verify before enabling
             HStack {
                 Label(viewModel.biometricTypeName, systemImage: viewModel.biometricIcon)

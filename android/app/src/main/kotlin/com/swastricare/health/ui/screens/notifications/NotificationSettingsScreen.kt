@@ -132,6 +132,38 @@ fun NotificationSettingsScreen(
                                 Modifier.padding(vertical = 8.dp),
                                 color = AppColors.onSurface.copy(alpha = 0.1f)
                             )
+                            FrequencySelector(
+                                label = "Remind Before Dose",
+                                selectedMinutes = uiState.medicationReminderBeforeMinutes,
+                                options = listOf(15, 30, 60),
+                                optionLabels = listOf("15 min", "30 min", "1 hour"),
+                                onSelected = { viewModel.setMedicationReminderBefore(it) }
+                            )
+                            HorizontalDivider(
+                                Modifier.padding(vertical = 8.dp),
+                                color = AppColors.onSurface.copy(alpha = 0.1f)
+                            )
+                            NotifToggleRow(
+                                icon = Icons.Default.Notifications,
+                                label = "Missed Dose Follow-up",
+                                checked = uiState.missedDoseFollowUp,
+                                onCheckedChange = { viewModel.setMissedDoseFollowUp(it) }
+                            )
+                            HorizontalDivider(
+                                Modifier.padding(vertical = 8.dp),
+                                color = AppColors.onSurface.copy(alpha = 0.1f)
+                            )
+                            FrequencySelector(
+                                label = "Snooze Duration",
+                                selectedMinutes = uiState.medicationSnoozeMinutes,
+                                options = listOf(5, 10, 15, 30),
+                                optionLabels = listOf("5 min", "10 min", "15 min", "30 min"),
+                                onSelected = { viewModel.setMedicationSnoozeMinutes(it) }
+                            )
+                            HorizontalDivider(
+                                Modifier.padding(vertical = 8.dp),
+                                color = AppColors.onSurface.copy(alpha = 0.1f)
+                            )
                             TestButton(onClick = { viewModel.testMedication() })
                         }
                     }
@@ -187,6 +219,59 @@ fun NotificationSettingsScreen(
                             onCheckedChange = { viewModel.setCycleEnabled(it) }
                         )
                         if (uiState.cycleEnabled) {
+                            HorizontalDivider(
+                                Modifier.padding(vertical = 8.dp),
+                                color = AppColors.onSurface.copy(alpha = 0.1f)
+                            )
+                            NotifToggleRow(
+                                icon = Icons.Default.Favorite,
+                                label = "Period Prediction Alerts",
+                                checked = uiState.periodPredictionEnabled,
+                                onCheckedChange = { viewModel.setPeriodPredictionEnabled(it) }
+                            )
+                            if (uiState.periodPredictionEnabled) {
+                                HorizontalDivider(
+                                    Modifier.padding(vertical = 8.dp),
+                                    color = AppColors.onSurface.copy(alpha = 0.1f)
+                                )
+                                FrequencySelector(
+                                    label = "Days Before Period",
+                                    selectedMinutes = uiState.periodPredictionDaysBefore,
+                                    options = listOf(1, 2, 3),
+                                    optionLabels = listOf("1 day", "2 days", "3 days"),
+                                    onSelected = { viewModel.setPeriodPredictionDaysBefore(it) }
+                                )
+                            }
+                            HorizontalDivider(
+                                Modifier.padding(vertical = 8.dp),
+                                color = AppColors.onSurface.copy(alpha = 0.1f)
+                            )
+                            NotifToggleRow(
+                                icon = Icons.Default.Favorite,
+                                label = "Daily Symptom Check-in",
+                                checked = uiState.dailySymptomCheckIn,
+                                onCheckedChange = { viewModel.setDailySymptomCheckIn(it) }
+                            )
+                            HorizontalDivider(
+                                Modifier.padding(vertical = 8.dp),
+                                color = AppColors.onSurface.copy(alpha = 0.1f)
+                            )
+                            NotifToggleRow(
+                                icon = Icons.Default.Favorite,
+                                label = "Ovulation Alerts",
+                                checked = uiState.ovulationAlertEnabled,
+                                onCheckedChange = { viewModel.setOvulationAlertEnabled(it) }
+                            )
+                            HorizontalDivider(
+                                Modifier.padding(vertical = 8.dp),
+                                color = AppColors.onSurface.copy(alpha = 0.1f)
+                            )
+                            NotifToggleRow(
+                                icon = Icons.Default.Favorite,
+                                label = "Cycle Summary",
+                                checked = uiState.cycleSummaryEnabled,
+                                onCheckedChange = { viewModel.setCycleSummaryEnabled(it) }
+                            )
                             HorizontalDivider(
                                 Modifier.padding(vertical = 8.dp),
                                 color = AppColors.onSurface.copy(alpha = 0.1f)
@@ -270,6 +355,17 @@ fun NotificationSettingsScreen(
                                 "Personalized AI messages based on your health patterns.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AppColors.onSurfaceVariant
+                            )
+                            HorizontalDivider(
+                                Modifier.padding(vertical = 8.dp),
+                                color = AppColors.onSurface.copy(alpha = 0.1f)
+                            )
+                            FrequencySelector(
+                                label = "Daily Frequency",
+                                selectedMinutes = uiState.aiNudgeFrequencyPerDay,
+                                options = listOf(1, 2, 3),
+                                optionLabels = listOf("1x/day", "2x/day", "3x/day"),
+                                onSelected = { viewModel.setAiNudgeFrequencyPerDay(it) }
                             )
                             HorizontalDivider(
                                 Modifier.padding(vertical = 8.dp),

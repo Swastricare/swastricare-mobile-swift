@@ -18,6 +18,7 @@ struct ProfileView: View {
     
     // MARK: - State
     
+    @EnvironmentObject private var themeManager: ThemeManager
     @State private var activeSheet: ProfileSheet?
     @State private var showFamilyFromDeepLink = false
     @State private var deepLinkInviteCode: String?
@@ -43,7 +44,9 @@ struct ProfileView: View {
                 }
                 
                 hydrationSection
-                
+
+                healthDataSection
+
                 settingsSection
                 
                 signOutSection
@@ -374,23 +377,37 @@ struct ProfileView: View {
     private var hydrationSection: some View {
         Section("Hydration") {
             HStack {
-                Label("Activity Level", systemImage: hydrationViewModel.preferences.activityLevel.icon)
+                Label {
+                    Text("Activity Level")
+                } icon: {
+                    Image(systemName: hydrationViewModel.preferences.activityLevel.icon)
+                        .foregroundColor(Color(hex: "F59E0B"))
+                }
                 Spacer()
                 Text(hydrationViewModel.preferences.activityLevel.displayName)
                     .foregroundColor(.secondary)
             }
-            
+
             HStack {
-                Label("Daily Goal", systemImage: "drop.fill")
-                    .foregroundColor(.cyan)
+                Label {
+                    Text("Daily Goal")
+                } icon: {
+                    Image(systemName: "drop.fill")
+                        .foregroundColor(Color(hex: "06B6D4"))
+                }
                 Spacer()
                 Text("\(hydrationViewModel.dailyGoal) ml")
                     .foregroundColor(.secondary)
             }
-            
+
             Button(action: { activeSheet = .hydrationSettings }) {
                 HStack {
-                    Label("Hydration Preferences", systemImage: "gearshape.fill")
+                    Label {
+                        Text("Hydration Preferences")
+                    } icon: {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundColor(Color(hex: "64748B"))
+                    }
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption)
@@ -404,16 +421,101 @@ struct ProfileView: View {
         }
     }
     
+    // MARK: - Health Data
+
+    private var healthDataSection: some View {
+        Section {
+            NavigationLink {
+                HealthDataSettingsView()
+            } label: {
+                HStack {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Apple Health")
+                                .foregroundColor(.primary)
+                            Text("Manage health data permissions")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "heart.fill")
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.red, .pink],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                }
+            }
+        } header: {
+            Text("Health Data")
+        }
+    }
+
     // MARK: - Settings
-    
+
     private var settingsSection: some View {
         Section {
-            Toggle(isOn: $viewModel.notificationsEnabled) {
-                Label("Notifications", systemImage: "bell.fill")
+            NavigationLink {
+                ThemeSettingsView()
+            } label: {
+                HStack {
+                    Label {
+                        Text("Theme")
+                    } icon: {
+                        Image(systemName: "paintpalette.fill")
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "7C3AED"), Color(hex: "A78BFA")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                    Spacer()
+                    Text(themeManager.currentTheme.displayName)
+                        .foregroundColor(.secondary)
+                }
             }
-            
+
+            NavigationLink(destination: RemindersSettingsView()) {
+                HStack {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Reminders & Notifications")
+                                .foregroundColor(.primary)
+                            Text("Hydration, medication, diet, cycle, AI")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "bell.badge.fill")
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "FF6B6B"), Color(hex: "FF8E53")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                }
+            }
+
             HStack {
-                Label(viewModel.biometricTypeName, systemImage: viewModel.biometricIcon)
+                Label {
+                    Text(viewModel.biometricTypeName)
+                } icon: {
+                    Image(systemName: viewModel.biometricIcon)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color(hex: "0EA5E9"), Color(hex: "38BDF8")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
                 Spacer()
                 if viewModel.isTogglingBiometric {
                     ProgressView().scaleEffect(0.8)
@@ -426,10 +528,6 @@ struct ProfileView: View {
                     ))
                     .labelsHidden()
                 }
-            }
-            
-            Toggle(isOn: $viewModel.healthSyncEnabled) {
-                Label("Auto Sync Health", systemImage: "arrow.triangle.2.circlepath")
             }
             
             appVersionRow

@@ -773,11 +773,6 @@ struct HomeViewV2: View {
                 .buttonStyle(PlainButtonStyle())
             }
             
-            // Motivational text
-            Text("Let's start living healthy from now on")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
-
             // Date Chip
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
@@ -788,16 +783,6 @@ struct HomeViewV2: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary.opacity(0.85))
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        Capsule()
-                            .stroke(Color(hex: "2563EB").opacity(0.2), lineWidth: 1)
-                    )
-            )
 
         }
         .opacity(hasAppeared ? 1 : 0)

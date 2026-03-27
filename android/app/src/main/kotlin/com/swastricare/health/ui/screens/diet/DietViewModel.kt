@@ -2,6 +2,7 @@ package com.swastricare.health.ui.screens.diet
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.data.models.*
 import com.swastricare.health.data.repository.SupabaseDietRepository
 import com.swastricare.health.data.repository.SupabaseProfileRepository
@@ -255,7 +256,7 @@ class DietViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    snapState = SnapAnalysisState.Error(e.message ?: "Analysis failed")
+                    snapState = SnapAnalysisState.Error("Unable to analyze food. Please try again.")
                 )
             }
         }

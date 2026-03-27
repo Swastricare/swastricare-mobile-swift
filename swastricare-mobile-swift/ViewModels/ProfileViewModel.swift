@@ -158,17 +158,17 @@ final class ProfileViewModel: ObservableObject {
         
         do {
             let fetchedUser = try await Task.detached(priority: .utility) {
-                try await service.checkSession()
+                try await service.checkSession(isOnline: true)
             }.value
             
             user = fetchedUser
             await loadHealthProfile()
             hasLoadedUserOnce = true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFriendlyError.message(from: error)
         }
     }
-    
+
     func loadHealthProfile() async {
         isLoadingHealthProfile = true
         defer { isLoadingHealthProfile = false }
@@ -268,7 +268,7 @@ final class ProfileViewModel: ObservableObject {
             // Update auth state to trigger navigation back to auth screen
             await DependencyContainer.shared.authViewModel.signOut()
         } catch {
-            errorMessage = "Failed to delete account: \(error.localizedDescription)"
+            errorMessage = "Unable to delete account. Please try again."
         }
         
         isLoading = false
@@ -324,10 +324,10 @@ final class ProfileViewModel: ObservableObject {
                 case .lockout:
                     errorMessage = "Too many failed attempts. Please try again later."
                 default:
-                    errorMessage = error.localizedDescription
+                    errorMessage = UserFriendlyError.message(from: error)
                 }
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = UserFriendlyError.message(from: error)
             }
         }
     }

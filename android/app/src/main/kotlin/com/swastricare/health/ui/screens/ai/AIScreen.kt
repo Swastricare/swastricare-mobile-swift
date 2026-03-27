@@ -130,6 +130,7 @@ fun AIScreen(
     viewModel: AIViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isOnline by viewModel.networkMonitor.isConnected.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
@@ -328,11 +329,13 @@ fun AIScreen(
             }
 
             ChatInputBar(
-                inputText = uiState.inputText,
-                onTextChanged = viewModel::onInputTextChanged,
+                inputText = if (isOnline) uiState.inputText else "",
+                onTextChanged = if (isOnline) viewModel::onInputTextChanged else { _ -> },
                 onSendClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    viewModel.sendMessage()
+                    if (isOnline) {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.sendMessage()
+                    }
                 },
                 onMicClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)

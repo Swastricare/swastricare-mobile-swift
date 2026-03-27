@@ -1,5 +1,6 @@
 package com.swastricare.health.ui.screens.notifications
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import com.swastricare.health.data.services.NotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,12 +26,25 @@ data class NotificationSettingsState(
     val lunchHour: Int = 12,
     val lunchMinute: Int = 30,
     val dinnerHour: Int = 19,
-    val dinnerMinute: Int = 30
+    val dinnerMinute: Int = 30,
+    // Medication detailed settings
+    val medicationReminderBeforeMinutes: Int = 15,
+    val missedDoseFollowUp: Boolean = true,
+    val medicationSnoozeMinutes: Int = 15,
+    // Menstrual detailed settings
+    val periodPredictionEnabled: Boolean = true,
+    val periodPredictionDaysBefore: Int = 2,
+    val dailySymptomCheckIn: Boolean = true,
+    val ovulationAlertEnabled: Boolean = true,
+    val cycleSummaryEnabled: Boolean = true,
+    // AI Nudge detailed settings
+    val aiNudgeFrequencyPerDay: Int = 2
 )
 
 @HiltViewModel
 class NotificationSettingsViewModel @Inject constructor(
-    private val notifService: NotificationService
+    private val notifService: NotificationService,
+    private val prefs: SharedPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(loadFromService())
@@ -53,7 +67,19 @@ class NotificationSettingsViewModel @Inject constructor(
             lunchHour = notifService.lunchHour,
             lunchMinute = notifService.lunchMinute,
             dinnerHour = notifService.dinnerHour,
-            dinnerMinute = notifService.dinnerMinute
+            dinnerMinute = notifService.dinnerMinute,
+            // Medication detailed
+            medicationReminderBeforeMinutes = prefs.getInt("medication_before_minutes", 15),
+            missedDoseFollowUp = prefs.getBoolean("missed_dose_followup", true),
+            medicationSnoozeMinutes = prefs.getInt("medication_snooze_minutes", 15),
+            // Menstrual detailed
+            periodPredictionEnabled = prefs.getBoolean("period_prediction_enabled", true),
+            periodPredictionDaysBefore = prefs.getInt("period_prediction_days", 2),
+            dailySymptomCheckIn = prefs.getBoolean("daily_symptom_checkin", true),
+            ovulationAlertEnabled = prefs.getBoolean("ovulation_alert_enabled", true),
+            cycleSummaryEnabled = prefs.getBoolean("cycle_summary_enabled", true),
+            // AI Nudge detailed
+            aiNudgeFrequencyPerDay = prefs.getInt("ai_nudge_frequency", 2)
         )
     }
 
@@ -131,6 +157,57 @@ class NotificationSettingsViewModel @Inject constructor(
         notifService.dinnerMinute = minute
         _uiState.update { it.copy(dinnerHour = hour, dinnerMinute = minute) }
         notifService.scheduleDietReminders()
+    }
+
+    // ── Medication detailed setters ──
+
+    fun setMedicationReminderBefore(minutes: Int) {
+        prefs.edit().putInt("medication_before_minutes", minutes).apply()
+        _uiState.update { it.copy(medicationReminderBeforeMinutes = minutes) }
+    }
+
+    fun setMissedDoseFollowUp(enabled: Boolean) {
+        prefs.edit().putBoolean("missed_dose_followup", enabled).apply()
+        _uiState.update { it.copy(missedDoseFollowUp = enabled) }
+    }
+
+    fun setMedicationSnoozeMinutes(minutes: Int) {
+        prefs.edit().putInt("medication_snooze_minutes", minutes).apply()
+        _uiState.update { it.copy(medicationSnoozeMinutes = minutes) }
+    }
+
+    // ── Menstrual detailed setters ──
+
+    fun setPeriodPredictionEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("period_prediction_enabled", enabled).apply()
+        _uiState.update { it.copy(periodPredictionEnabled = enabled) }
+    }
+
+    fun setPeriodPredictionDaysBefore(days: Int) {
+        prefs.edit().putInt("period_prediction_days", days).apply()
+        _uiState.update { it.copy(periodPredictionDaysBefore = days) }
+    }
+
+    fun setDailySymptomCheckIn(enabled: Boolean) {
+        prefs.edit().putBoolean("daily_symptom_checkin", enabled).apply()
+        _uiState.update { it.copy(dailySymptomCheckIn = enabled) }
+    }
+
+    fun setOvulationAlertEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("ovulation_alert_enabled", enabled).apply()
+        _uiState.update { it.copy(ovulationAlertEnabled = enabled) }
+    }
+
+    fun setCycleSummaryEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("cycle_summary_enabled", enabled).apply()
+        _uiState.update { it.copy(cycleSummaryEnabled = enabled) }
+    }
+
+    // ── AI Nudge detailed setters ──
+
+    fun setAiNudgeFrequencyPerDay(frequency: Int) {
+        prefs.edit().putInt("ai_nudge_frequency", frequency).apply()
+        _uiState.update { it.copy(aiNudgeFrequencyPerDay = frequency) }
     }
 
     // Test notifications

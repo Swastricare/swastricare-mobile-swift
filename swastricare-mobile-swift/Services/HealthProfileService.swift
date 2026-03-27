@@ -78,14 +78,13 @@ final class HealthProfileService: HealthProfileServiceProtocol {
                 let height_cm: Double
                 let weight_kg: Double
                 let blood_type: String?
-                let city: String?
                 let updated_at: Date
             }
-            
+
             let dobFormatter = DateFormatter()
             dobFormatter.dateFormat = "yyyy-MM-dd"
             dobFormatter.timeZone = TimeZone(identifier: "UTC")
-            
+
             let updatePayload = HealthProfileUpdate(
                 full_name: profileToSave.fullName,
                 gender: profileToSave.gender.rawValue,
@@ -93,7 +92,6 @@ final class HealthProfileService: HealthProfileServiceProtocol {
                 height_cm: profileToSave.heightCm,
                 weight_kg: profileToSave.weightKg,
                 blood_type: profileToSave.bloodType,
-                city: profileToSave.city,
                 updated_at: Date()
             )
             

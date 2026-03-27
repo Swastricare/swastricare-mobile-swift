@@ -308,7 +308,7 @@ private fun PdfViewer(document: MedicalDocument) {
             isLoading = false
         } catch (e: Exception) {
             isLoading = false
-            errorMessage = "Failed to render PDF: ${e.message}"
+            errorMessage = "Unable to display this document. Please try again."
         }
     }
 

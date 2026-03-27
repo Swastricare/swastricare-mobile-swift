@@ -22,6 +22,7 @@ struct swastricare_mobile_swiftApp: App {
     @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @StateObject private var lockViewModel = DependencyContainer.shared.lockScreenViewModel
     @StateObject private var appVersionService = AppVersionService.shared
+    @StateObject private var themeManager = ThemeManager.shared
     
     @State private var hasCompletedOnboarding: Bool = {
         if AppConfig.isTestingMode {
@@ -168,6 +169,8 @@ struct swastricare_mobile_swiftApp: App {
             .animation(.easeInOut, value: hasCompletedHealthProfile)
             .animation(.easeInOut, value: hasCheckedAppVersion)
             .withDependencies()
+            .preferredColorScheme(themeManager.colorScheme)
+            .environmentObject(themeManager)
             .environmentObject(appVersionService)
             .environmentObject(deepLinkHandler)
             .onChange(of: authViewModel.isAuthenticated) { _, isAuthenticated in
@@ -188,6 +191,13 @@ struct swastricare_mobile_swiftApp: App {
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
             }
+            .onReceive(NetworkMonitorService.shared.$isConnected) { isConnected in
+                if isConnected && authViewModel.isAuthenticated {
+                    Task {
+                        await authViewModel.fetchHealthProfile()
+                    }
+                }
+            }
             .onOpenURL { url in
                 // Pass OAuth callbacks to Supabase SDK
                 Task {
@@ -196,6 +206,11 @@ struct swastricare_mobile_swiftApp: App {
 
                 // Route widget/live-activity deep links
                 deepLinkHandler.handle(url)
+
+                // Pass referral code to auth for signup flow
+                if let deepLink = DeepLink(url: url), case .referral(let code) = deepLink {
+                    authViewModel.pendingReferralCode = code
+                }
             }
         }
     }
@@ -265,7 +280,19 @@ struct swastricare_mobile_swiftApp: App {
         }
         
         print("✅ Health profile check: User is authenticated, proceeding with check")
-        
+
+        // When offline, skip DB check — if user has logged in before, assume profile exists
+        if !NetworkMonitorService.shared.isConnected {
+            let hasLoggedInBefore = UserDefaults.standard.bool(forKey: AppConfig.hasLoggedInBeforeKey)
+            print("📋 Health profile check: OFFLINE — assuming profile \(hasLoggedInBefore ? "exists" : "not found") based on login history")
+            await MainActor.run {
+                hasCompletedHealthProfile = hasLoggedInBefore
+                isCheckingHealthProfile = false
+                hasCheckedHealthProfile = true
+            }
+            return
+        }
+
         // Retry up to 3 times if session isn't ready
         var attempts = 0
         let maxAttempts = 3

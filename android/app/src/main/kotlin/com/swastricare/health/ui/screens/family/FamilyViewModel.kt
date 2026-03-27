@@ -2,6 +2,7 @@ package com.swastricare.health.ui.screens.family
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.core.logger.Logger
 import com.swastricare.health.core.result.ResultWrapper
 import com.swastricare.health.domain.repository.AuthRepository
@@ -80,7 +81,7 @@ class FamilyViewModel @Inject constructor(
                     logger.e(tag, "Error loading family group: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
-                            error = result.exception.message ?: "Failed to load family group",
+                            error = "Unable to load family group.",
                             isLoading = false
                         )
                     }
@@ -116,7 +117,7 @@ class FamilyViewModel @Inject constructor(
                     is ResultWrapper.Error -> {
                         _uiState.update {
                             it.copy(
-                                error = groupResult.exception.message ?: "Failed to load group details",
+                                error = "Unable to load family group.",
                                 isLoading = false
                             )
                         }
@@ -128,7 +129,7 @@ class FamilyViewModel @Inject constructor(
                 logger.e(tag, "Error loading members: ${membersResult.exception.message}")
                 _uiState.update {
                     it.copy(
-                        error = membersResult.exception.message ?: "Failed to load members",
+                        error = "Unable to load members.",
                         isLoading = false
                     )
                 }
@@ -166,7 +167,7 @@ class FamilyViewModel @Inject constructor(
                     logger.e(tag, "Error creating family group: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
-                            error = result.exception.message ?: "Failed to create family group",
+                            error = "Unable to create family group.",
                             isLoading = false
                         )
                     }
@@ -219,7 +220,7 @@ class FamilyViewModel @Inject constructor(
                     logger.e(tag, "Error joining group: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
-                            error = result.exception.message ?: "Failed to join group",
+                            error = "Unable to join family.",
                             isJoining = false
                         )
                     }
@@ -267,7 +268,7 @@ class FamilyViewModel @Inject constructor(
                     logger.e(tag, "Error generating invite code: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
-                            error = result.exception.message ?: "Failed to generate invite code",
+                            error = "Unable to generate invite code.",
                             isGeneratingCode = false
                         )
                     }
@@ -317,7 +318,7 @@ class FamilyViewModel @Inject constructor(
                     logger.e(tag, "Error leaving group: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
-                            error = result.exception.message ?: "Failed to leave group",
+                            error = "Unable to leave family.",
                             isLoading = false
                         )
                     }
@@ -366,7 +367,7 @@ class FamilyViewModel @Inject constructor(
                     logger.e(tag, "Error removing member: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
-                            error = result.exception.message ?: "Failed to remove member",
+                            error = "Unable to remove member.",
                             memberToRemove = null,
                             isLoading = false
                         )

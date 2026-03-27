@@ -176,7 +176,7 @@ final class HeartRateViewModel: ObservableObject {
             resetState()
             
         } catch {
-            saveError = error.localizedDescription
+            saveError = UserFriendlyError.message(from: error)
             AppAnalyticsService.shared.logFailure(context: "heartbeat", type: "save_failed", message: error.localizedDescription)
             announceForAccessibility("Failed to save reading: \(error.localizedDescription)")
         }
@@ -353,7 +353,7 @@ extension HeartRateViewModel: HeartRateDetectorDelegate {
         Task { @MainActor in
             self.isRunning = false
             self.measurementPhase = .idle
-            self.errorMessage = error.localizedDescription
+            self.errorMessage = UserFriendlyError.message(from: error)
             
             announceForAccessibility("Error: \(error.localizedDescription)")
         }

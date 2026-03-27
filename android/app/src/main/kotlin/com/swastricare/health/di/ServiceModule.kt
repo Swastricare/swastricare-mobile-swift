@@ -17,6 +17,8 @@ import com.swastricare.health.data.services.BiometricService
 import com.swastricare.health.data.services.CrashlyticsService
 import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.data.services.NotificationService
+import com.swastricare.health.data.services.CacheService
+import com.swastricare.health.data.services.NetworkMonitorService
 import com.swastricare.health.data.services.SessionManager
 import dagger.Binds
 import dagger.Module
@@ -68,9 +70,10 @@ object ServiceModule {
     @Singleton
     fun provideSupabaseAuthRepository(
         supabaseClient: SupabaseClient,
-        sharedPreferences: SharedPreferences
+        sharedPreferences: SharedPreferences,
+        cacheService: CacheService
     ): SupabaseAuthRepository {
-        return SupabaseAuthRepository(supabaseClient, sharedPreferences)
+        return SupabaseAuthRepository(supabaseClient, sharedPreferences, cacheService)
     }
 
     /**
@@ -119,6 +122,22 @@ object ServiceModule {
         supabaseClient: SupabaseClient
     ): SessionManager {
         return SessionManager(supabaseClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkMonitorService(
+        @ApplicationContext context: Context
+    ): NetworkMonitorService {
+        return NetworkMonitorService(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCacheService(
+        sharedPreferences: SharedPreferences
+    ): CacheService {
+        return CacheService(sharedPreferences)
     }
 
     /**

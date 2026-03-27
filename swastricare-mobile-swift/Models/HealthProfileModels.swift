@@ -95,7 +95,7 @@ struct HealthProfile: Codable {
         try container.encode(heightCm, forKey: .heightCm)
         try container.encode(weightKg, forKey: .weightKg)
         try container.encodeIfPresent(bloodType, forKey: .bloodType)
-        try container.encodeIfPresent(city, forKey: .city)
+        // Note: city is not encoded because the health_profiles table has no city column
         
         // Encode dateOfBirth as date-only string (PostgreSQL date type)
         let formatter = DateFormatter()

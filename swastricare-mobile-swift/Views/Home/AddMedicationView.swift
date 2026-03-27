@@ -822,7 +822,7 @@ struct AddMedicationView: View {
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = UserFriendlyError.message(from: error)
                     showError = true
                 }
             }

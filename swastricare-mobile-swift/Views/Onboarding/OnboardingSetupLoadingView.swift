@@ -103,7 +103,7 @@ struct OnboardingSetupLoadingView: View {
             } catch {
                 await MainActor.run {
                     hasError = true
-                    errorMessage = error.localizedDescription
+                    errorMessage = UserFriendlyError.message(from: error)
                 }
             }
         }

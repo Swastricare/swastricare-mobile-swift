@@ -186,7 +186,7 @@ final class OneQuestionOnboardingViewModel: ObservableObject {
             try await onboardingService.saveOnboardingData(onboardingData)
             
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFriendlyError.message(from: error)
             throw error
         }
     }

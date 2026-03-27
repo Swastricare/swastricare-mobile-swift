@@ -263,7 +263,7 @@ final class AIViewModel: ObservableObject {
             if !messages.isEmpty { messages.removeLast() } // Remove user message (we'll restore it on retry)
             lastFailedMessage = text
             currentErrorState = AIErrorState.fromError(error, mode: selectedAIMode)
-            chatState = .error(currentErrorState?.message ?? error.localizedDescription)
+            chatState = .error(currentErrorState?.message ?? UserFriendlyError.message(from: error))
             AppAnalyticsService.shared.logFailure(context: "chat", type: "send_failed", message: error.localizedDescription)
             AppAnalyticsService.shared.logError(error, context: "sendMessage")
             // Don't set errorMessage to prevent alert popup - show inline instead
@@ -376,7 +376,7 @@ final class AIViewModel: ObservableObject {
                 // Silently fail for network/auth errors - user might not be authenticated
                 print("⚠️ Network/auth error - user may not be authenticated")
             } else {
-                errorMessage = "Failed to load chat history: \(error.localizedDescription)"
+                errorMessage = "Unable to load chat history. Please try again."
             }
         }
     }
@@ -451,11 +451,11 @@ final class AIViewModel: ObservableObject {
         } catch {
             if !messages.isEmpty { messages.removeLast() } // Remove loading message
             if !messages.isEmpty { messages.removeLast() } // Remove user message
-            chatState = .error(error.localizedDescription)
-            errorMessage = error.localizedDescription
+            chatState = .error(UserFriendlyError.message(from: error))
+            errorMessage = UserFriendlyError.message(from: error)
         }
     }
-    
+
     func clearChat() {
         // Prevent clearing during in-flight requests to avoid race conditions
         guard !chatState.isBusy else { return }
@@ -607,8 +607,8 @@ final class AIViewModel: ObservableObject {
         } catch {
             if !messages.isEmpty { messages.removeLast() } // Remove loading message
             if !messages.isEmpty { messages.removeLast() } // Remove user message
-            chatState = .error(error.localizedDescription)
-            errorMessage = error.localizedDescription
+            chatState = .error(UserFriendlyError.message(from: error))
+            errorMessage = UserFriendlyError.message(from: error)
             isAnalyzingImage = false
             AppAnalyticsService.shared.logFailure(context: "ai_image_analysis", type: "analysis_failed", message: error.localizedDescription)
             AppAnalyticsService.shared.logError(error, context: "analyzeSelectedImage")
@@ -648,8 +648,8 @@ final class AIViewModel: ObservableObject {
         } catch {
             if !messages.isEmpty { messages.removeLast() } // Remove loading
             if !messages.isEmpty { messages.removeLast() } // Remove user message
-            chatState = .error(error.localizedDescription)
-            errorMessage = error.localizedDescription
+            chatState = .error(UserFriendlyError.message(from: error))
+            errorMessage = UserFriendlyError.message(from: error)
             AppAnalyticsService.shared.logFailure(context: "ai_food_analysis", type: "analysis_failed", message: error.localizedDescription)
         }
     }

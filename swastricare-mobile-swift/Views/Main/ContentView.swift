@@ -56,6 +56,8 @@ struct ContentView: View {
     // MARK: - Body
     
     var body: some View {
+        VStack(spacing: 0) {
+        OfflineBanner()
         TabView(selection: $currentTab) {
             // Vitals Tab
             NavigationStack {
@@ -160,6 +162,7 @@ struct ContentView: View {
                 )
             }
         }
+        } // VStack
     }
 
     // MARK: - Deep Link Routing
@@ -231,7 +234,11 @@ struct ContentView: View {
                     name: .deepLinkFamilyJoin,
                     object: nil,
                     userInfo: [DeepLinkUserInfoKey.familyInviteCode: code]
-                ) 
+                )
+            }
+        case .referral:
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                currentTab = .profile
             }
         }
     }

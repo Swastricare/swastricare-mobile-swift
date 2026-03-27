@@ -83,16 +83,21 @@ final class HomeViewModel: ObservableObject {
             // Fetch data after authorization
             await loadTodaysData()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFriendlyError.message(from: error)
         }
     }
-    
+
     func loadTodaysData() async {
         guard isAuthorized else {
             print("🏠 HomeVM: Not authorized, skipping fetch")
             return
         }
-        
+
+        // Load cached metrics for instant UI
+        if let cached: HealthMetrics = CacheService.shared.load(forKey: "home_health_metrics", as: HealthMetrics.self) {
+            healthMetrics = cached
+        }
+
         isLoading = true
         print("🏠 HomeVM: Loading today's data...")
         
@@ -116,6 +121,7 @@ final class HomeViewModel: ObservableObject {
         }
 
         healthMetrics = metrics
+        try? CacheService.shared.save(metrics, forKey: "home_health_metrics", ttl: 86400)
         weeklySteps = await healthService.fetchWeeklySteps()
 
         // Keep Steps widget in sync with latest HealthKit totals
@@ -170,7 +176,7 @@ final class HomeViewModel: ObservableObject {
             )
             lastSyncTime = Date()
         } catch {
-            errorMessage = "Sync failed: \(error.localizedDescription)"
+            errorMessage = UserFriendlyError.message(from: error)
         }
         
         isSyncing = false

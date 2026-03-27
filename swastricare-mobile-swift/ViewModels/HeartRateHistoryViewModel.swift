@@ -73,7 +73,7 @@ final class HeartRateHistoryViewModel: ObservableObject {
             items = merge(local: local, cloud: cloud)
         } catch {
             items = local
-            errorMessage = error.localizedDescription
+            errorMessage = UserFriendlyError.message(from: error)
         }
         
         isLoading = false

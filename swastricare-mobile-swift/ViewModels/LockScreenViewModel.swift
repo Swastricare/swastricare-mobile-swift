@@ -68,7 +68,7 @@ final class LockScreenViewModel: ObservableObject {
             }
         } catch {
             biometricState = .failed(error.localizedDescription)
-            errorMessage = error.localizedDescription
+            errorMessage = UserFriendlyError.message(from: error)
         }
     }
     

@@ -1880,7 +1880,7 @@ private struct FolderDetailSheet: View {
                 }
                 .padding(20)
             }
-            .background(PremiumBackground())
+            .background(Color(UIColor.systemBackground))
             .navigationTitle(folder.folderTitle)
             .navigationBarTitleDisplayMode(.inline)
         }

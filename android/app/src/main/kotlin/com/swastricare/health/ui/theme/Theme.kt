@@ -12,6 +12,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -52,12 +53,19 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun SwastriCareTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themePreferenceManager: ThemePreferenceManager? = null,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = if (themePreferenceManager != null) {
+        val themeMode by themePreferenceManager.themeMode.collectAsState()
+        themePreferenceManager.isDarkTheme(isSystemInDarkTheme())
+    } else {
+        isSystemInDarkTheme()
+    }
+
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val view = LocalView.current
-    
+
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window

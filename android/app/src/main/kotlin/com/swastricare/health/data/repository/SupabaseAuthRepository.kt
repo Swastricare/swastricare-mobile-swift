@@ -27,7 +27,8 @@ import javax.inject.Singleton
 @Singleton
 class SupabaseAuthRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
-    private val sharedPreferences: SharedPreferences
+    private val sharedPreferences: SharedPreferences,
+    private val cacheService: com.swastricare.health.data.services.CacheService
 ) : AuthRepository {
     
     override val currentUser: AppUser?
@@ -40,12 +41,18 @@ class SupabaseAuthRepository @Inject constructor(
      * Check current session with timeout
      * Matches iOS: checkSession() async throws -> AppUser?
      */
-    suspend fun checkSession(): AppUser? {
+    suspend fun checkSession(isOnline: Boolean = true): AppUser? {
+        // When offline, trust the locally cached session
+        if (!isOnline) {
+            val user = supabaseClient.auth.currentUserOrNull()
+            return user?.let { mapUser(it) }
+        }
+
+        // Online: check session with timeout
         return try {
-            withTimeout(5000) { // 5 second timeout matching iOS
+            withTimeout(5000) {
                 try {
                     val session = supabaseClient.auth.currentSessionOrNull()
-                    // Check if session exists
                     if (session != null) {
                         session.user?.let { mapUser(it) }
                     } else {
@@ -56,8 +63,9 @@ class SupabaseAuthRepository @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            // Timeout or other error - return nil silently (like iOS)
-            null
+            // Timeout — fall back to local session
+            val user = supabaseClient.auth.currentUserOrNull()
+            user?.let { mapUser(it) }
         }
     }
     
@@ -150,8 +158,11 @@ class SupabaseAuthRepository @Inject constructor(
      * Matches iOS: signOut() async throws
      */
     override suspend fun signOut() {
-        // iOS: try await client.auth.signOut()
+        val userId = supabaseClient.auth.currentUserOrNull()?.id
         supabaseClient.auth.signOut()
+        if (userId != null) {
+            cacheService.clearAll(userId)
+        }
         clearLocalData()
     }
 
@@ -165,13 +176,13 @@ class SupabaseAuthRepository @Inject constructor(
         val userId = supabaseClient.auth.currentUserOrNull()?.id
         if (userId != null) {
             try {
-                // Delete user row from public.users (CASCADE will remove health_profiles, etc.)
                 supabaseClient.from("users").delete {
                     filter { eq("id", userId) }
                 }
             } catch (e: Exception) {
                 android.util.Log.w("AuthRepo", "Failed to delete user data from DB", e)
             }
+            cacheService.clearAll(userId)
         }
         supabaseClient.auth.signOut()
         clearLocalData()

@@ -34,6 +34,9 @@ final class DependencyContainer: ObservableObject {
     let dietService: DietServiceProtocol
     let barcodeScannerService: BarcodeScannerServiceProtocol
     let nudgeService: NudgeServiceProtocol
+    let networkMonitor: NetworkMonitorServiceProtocol
+    let cacheService: CacheServiceProtocol
+    let referralService: ReferralServiceProtocol
 
     // MARK: - ViewModels (Lazy initialized)
 
@@ -104,6 +107,14 @@ final class DependencyContainer: ObservableObject {
         FamilyViewModel()
     }()
 
+    lazy var referralViewModel: ReferralViewModel = {
+        ReferralViewModel(referralService: referralService)
+    }()
+
+    lazy var remindersSettingsViewModel: RemindersSettingsViewModel = {
+        RemindersSettingsViewModel()
+    }()
+
     // MARK: - Init
 
     private init() {
@@ -122,6 +133,9 @@ final class DependencyContainer: ObservableObject {
         self.dietService = DietService.shared
         self.barcodeScannerService = BarcodeScannerService.shared
         self.nudgeService = NudgeService.shared
+        self.networkMonitor = NetworkMonitorService.shared
+        self.cacheService = CacheService.shared
+        self.referralService = ReferralService.shared
     }
 
     // MARK: - Factory Methods (for creating new instances if needed)
@@ -196,5 +210,18 @@ extension EnvironmentValues {
 extension View {
     func withDependencies(_ container: DependencyContainer = .shared) -> some View {
         self.environment(\.dependencies, container)
+    }
+}
+
+// MARK: - Network Monitor Environment Key
+
+private struct NetworkMonitorKey: EnvironmentKey {
+    static let defaultValue: NetworkMonitorService = NetworkMonitorService.shared
+}
+
+extension EnvironmentValues {
+    var networkMonitor: NetworkMonitorService {
+        get { self[NetworkMonitorKey.self] }
+        set { self[NetworkMonitorKey.self] = newValue }
     }
 }

@@ -48,6 +48,7 @@ fun SettingsScreen(
     onNavigateToNotificationSettings: () -> Unit = {},
     onNavigateToHydrationSettings: () -> Unit = {},
     onNavigateToHealthDataSync: () -> Unit = {},
+    onNavigateToThemeSettings: () -> Unit = {},
     onSignOut: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -153,7 +154,7 @@ fun SettingsScreen(
                         GlassSectionContainer(title = "Account") {
                             SettingsNavigationRow(
                                 icon = Icons.Default.AccountCircle,
-                                iconTint = PrimaryColor,
+                                iconTint = Color(0xFF2E3192),
                                 label = "Account Data",
                                 subtitle = "Edit profile, body stats, location",
                                 onClick = onNavigateToEditProfile
@@ -192,10 +193,23 @@ fun SettingsScreen(
                         GlassSectionContainer(title = "Health Data") {
                             SettingsNavigationRow(
                                 icon = Icons.Default.Sync,
-                                iconTint = PrimaryColor,
+                                iconTint = Color(0xFFEF4444),
                                 label = "Health Data Sync",
                                 subtitle = "Connect Health Connect, Google Health & more",
                                 onClick = onNavigateToHealthDataSync
+                            )
+                        }
+                    }
+
+                    // Appearance Section
+                    item {
+                        GlassSectionContainer(title = "Appearance") {
+                            SettingsNavigationRow(
+                                icon = Icons.Default.Palette,
+                                iconTint = Color(0xFF7C3AED),
+                                label = "Theme",
+                                subtitle = viewModel.themeDisplayName,
+                                onClick = onNavigateToThemeSettings
                             )
                         }
                     }
@@ -708,6 +722,7 @@ private fun SettingsNotificationsSection(
     GlassSectionContainer(title = "Notifications") {
         SettingsToggleRow(
             icon = Icons.Default.Notifications,
+            iconTint = Color(0xFFFF9F0A),
             label = "Notifications",
             checked = notificationsEnabled,
             onCheckedChange = onNotificationToggle
@@ -720,8 +735,9 @@ private fun SettingsNotificationsSection(
 
         SettingsNavigationRow(
             icon = Icons.Default.NotificationsActive,
-            label = "Notification Settings",
-            subtitle = "Customize notification preferences",
+            iconTint = Color(0xFFFF6B6B),
+            label = "Reminders & Notifications",
+            subtitle = "Hydration, medication, diet, cycle, AI",
             onClick = onNavigateToNotificationSettings
         )
     }
@@ -736,6 +752,7 @@ private fun SettingsHydrationSection(
     GlassSectionContainer(title = "Hydration Reminders") {
         SettingsInfoRow(
             icon = Icons.AutoMirrored.Filled.DirectionsRun,
+            iconTint = Color(0xFFF59E0B),
             label = "Activity Level",
             value = "Moderate"
         )
@@ -747,7 +764,7 @@ private fun SettingsHydrationSection(
 
         SettingsInfoRow(
             icon = Icons.Default.WaterDrop,
-            iconTint = Color(0xFF00C7BE),
+            iconTint = Color(0xFF06B6D4),
             label = "Daily Goal",
             value = "2000 ml"
         )
@@ -759,7 +776,7 @@ private fun SettingsHydrationSection(
 
         SettingsNavigationRow(
             icon = Icons.Default.Settings,
-            iconTint = AppColors.onSurface,
+            iconTint = Color(0xFF64748B),
             label = "Hydration Preferences",
             onClick = onNavigateToHydrationSettings
         )
@@ -791,6 +808,7 @@ private fun SettingsSecuritySection(
     GlassSectionContainer(title = "Security") {
         SettingsToggleRow(
             icon = Icons.Default.Fingerprint,
+            iconTint = Color(0xFF0EA5E9),
             label = "Biometric Lock",
             checked = biometricEnabled,
             onCheckedChange = onBiometricToggle

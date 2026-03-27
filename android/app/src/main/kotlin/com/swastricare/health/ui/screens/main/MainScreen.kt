@@ -1,5 +1,6 @@
 package com.swastricare.health.ui.screens.main
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +19,7 @@ import com.swastricare.health.ui.navigation.BottomNavConfig
 import com.swastricare.health.ui.navigation.BottomNavTab
 import com.swastricare.health.ui.navigation.MainNavGraph
 import com.swastricare.health.ui.navigation.MainScaffold
+import com.swastricare.health.ui.components.OfflineBanner
 import com.swastricare.health.ui.screens.profile.ProfileViewModel
 
 /**
@@ -105,12 +107,15 @@ fun MainScreen(
         navController = navController,
         showBottomNav = showBottomNav
     ) { modifier ->
-        MainNavGraph(
-            navController = navController,
-            modifier = modifier,
-            profileViewModel = profileViewModel,
-            onSignOut = onSignOut,
-            onAiFullScreenChange = { aiFullScreen = it }
-        )
+        Column(modifier = modifier) {
+            OfflineBanner(networkMonitor = mainScreenViewModel.networkMonitor)
+            MainNavGraph(
+                navController = navController,
+                modifier = Modifier.weight(1f),
+                profileViewModel = profileViewModel,
+                onSignOut = onSignOut,
+                onAiFullScreenChange = { aiFullScreen = it }
+            )
+        }
     }
 }
