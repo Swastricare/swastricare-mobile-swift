@@ -101,7 +101,7 @@ struct AIReferralGateView: View {
                     // Share button (primary CTA)
                     if let code = viewModel.referralCode {
                         ShareLink(
-                            item: "Hey! I'm using SwasthiCare — a personal health companion app. Join using my referral code: \(code)\n\nDownload SwasthiCare: https://apps.apple.com/app/swasthicare/id6740091498"
+                            item: "Hey! I'm using SwasthiCare — a personal health companion app. Join using my referral code: \(code)\n\nTap to join: swastricareapp://referral?code=\(code)\n\nDownload SwasthiCare: https://apps.apple.com/app/swasthicare/id6740091498"
                         ) {
                             HStack(spacing: 10) {
                                 Image(systemName: "square.and.arrow.up")
