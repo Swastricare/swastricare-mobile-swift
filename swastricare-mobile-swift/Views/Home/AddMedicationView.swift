@@ -229,6 +229,7 @@ struct AddMedicationView: View {
                 )
             }
         }
+        .trackScreen("AddMedication")
     }
 
     // MARK: - Section 1: Medication Details + Drug Search

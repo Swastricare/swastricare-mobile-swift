@@ -157,6 +157,7 @@ struct AddFoodView: View {
                 }
             }
         }
+        .trackScreen("AddFood")
     }
 
     // MARK: - Recent Foods Section

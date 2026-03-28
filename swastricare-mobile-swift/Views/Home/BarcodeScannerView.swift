@@ -97,6 +97,7 @@ struct BarcodeScannerView: View {
                 checkCameraPermission()
             }
         }
+        .trackScreen("BarcodeScanner")
     }
 
     // MARK: - Scanner Overlay

@@ -125,7 +125,6 @@ struct DietView: View {
             }
         }
         .onAppear {
-            AppAnalyticsService.shared.logScreen("diet", durationSeconds: 0)
             withAnimation(.easeOut(duration: 0.35)) { appeared = true }
         }
         .task { await viewModel.onAppear() }
@@ -147,6 +146,7 @@ struct DietView: View {
         .fullScreenCover(isPresented: $showFoodSnap) {
             FoodSnapView(viewModel: viewModel, suggestedMealType: MealType.autoDetect())
         }
+        .trackScreen("Diet")
     }
 
     // MARK: - Date Strip

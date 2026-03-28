@@ -107,6 +107,7 @@ struct NotificationSettingsView: View {
                 Text("A phone number is required for WhatsApp nudges. Please add your phone number in your profile settings.")
             }
         }
+        .trackScreen("NotificationSettings")
     }
     
     // MARK: - Permission Section

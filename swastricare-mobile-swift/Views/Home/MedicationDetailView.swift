@@ -146,6 +146,7 @@ struct MedicationDetailView: View {
                 Text("Are you sure you want to delete \(medication.name)? This will also cancel all scheduled reminders.")
             }
         }
+        .trackScreen("MedicationDetail")
     }
 
     // MARK: - Hero Header

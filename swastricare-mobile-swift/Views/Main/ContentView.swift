@@ -119,7 +119,6 @@ struct ContentView: View {
         }
         .onAppear {
             AppAnalyticsService.shared.log(eventName: "app_open", eventType: "action", properties: [:])
-            AppAnalyticsService.shared.logScreen(Tab.vitals.rawValue, durationSeconds: 0)
         }
         .onChange(of: currentTab) { oldTab, newTab in
             AppAnalyticsService.shared.logTabSelected(tab: newTab.rawValue.lowercased())

@@ -185,10 +185,11 @@ struct HomeViewV2: View {
             //     FillOverlay(opacity: fillOpacity)
             // }
         }
+        .trackScreen("Home")
         .onAppear {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
-            
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     hasAppeared = true

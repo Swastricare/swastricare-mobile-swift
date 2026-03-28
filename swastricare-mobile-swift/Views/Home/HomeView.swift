@@ -205,8 +205,8 @@ struct HomeView: View {
         .fullScreenCover(isPresented: $showARBodyScan) {
             ARBodyScanView()
         }
+        .trackScreen("Home")
         .onAppear {
-            AppAnalyticsService.shared.logScreen("Home", durationSeconds: 0)
             // Haptic feedback when opening vitals screen
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()

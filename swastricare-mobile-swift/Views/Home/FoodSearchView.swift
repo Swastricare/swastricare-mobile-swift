@@ -138,6 +138,7 @@ struct FoodSearchView: View {
                 viewModel.searchFoodsOnline(query: newValue)
             }
         }
+        .trackScreen("FoodSearch")
     }
 
     // MARK: - Category Filter

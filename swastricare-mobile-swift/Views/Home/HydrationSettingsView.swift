@@ -67,8 +67,9 @@ struct HydrationSettingsView: View {
                 NotificationSettingsView(viewModel: viewModel)
             }
         }
+        .trackScreen("HydrationSettings")
     }
-    
+
     // MARK: - Personal Info Section
     
     private var personalInfoSection: some View {

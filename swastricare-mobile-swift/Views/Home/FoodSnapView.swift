@@ -76,6 +76,7 @@ struct FoodSnapView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { snapToolbar }
         }
+        .trackScreen("FoodSnap")
     }
     
     private var mainContent: some View {

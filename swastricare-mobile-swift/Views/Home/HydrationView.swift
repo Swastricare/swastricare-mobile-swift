@@ -152,9 +152,6 @@ struct HydrationView: View {
                     .foregroundColor(.primary)
                 }
             }
-            .onAppear {
-                AppAnalyticsService.shared.logScreen("hydration", durationSeconds: 0)
-            }
             .task {
                 await viewModel.onAppear()
             }
@@ -171,6 +168,7 @@ struct HydrationView: View {
                 drinkTypePickerSheet
             }
         }
+        .trackScreen("Hydration")
     }
     
     // MARK: - Missing Data Tooltip

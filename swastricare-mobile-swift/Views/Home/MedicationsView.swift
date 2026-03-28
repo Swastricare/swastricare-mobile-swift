@@ -121,9 +121,6 @@ struct MedicationsView: View {
                     }
                 }
             }
-            .onAppear {
-                AppAnalyticsService.shared.logScreen("medications", durationSeconds: 0)
-            }
             .navigationTitle("Medications")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -153,6 +150,7 @@ struct MedicationsView: View {
         .task {
             await viewModel.loadMedications()
         }
+        .trackScreen("Medications")
     }
 
     // MARK: - Calendar Strip

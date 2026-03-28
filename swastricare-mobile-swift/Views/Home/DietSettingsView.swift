@@ -76,6 +76,7 @@ struct DietSettingsView: View {
                 }
             }
         }
+        .trackScreen("DietSettings")
     }
     
     // MARK: - Calorie Section

@@ -42,6 +42,7 @@ struct RemindersView: View {
                 await loadReminders()
             }
         }
+        .trackScreen("Reminders")
     }
 
     private var emptyStateView: some View {
