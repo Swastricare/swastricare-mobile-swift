@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.HeartRateColor
 import com.swastricare.health.ui.theme.PremiumColor
@@ -96,6 +97,7 @@ data class HeartRateAnalyticsState(
 fun HeartRateAnalyticsScreen(
     onNavigateBack: () -> Unit = {}
 ) {
+    TrackScreen("HeartRateAnalytics")
     val heartRateViewModel: HeartRateViewModel = hiltViewModel()
     var state by remember { mutableStateOf(HeartRateAnalyticsState()) }
 

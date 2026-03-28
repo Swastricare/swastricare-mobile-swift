@@ -34,6 +34,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.*
 import kotlinx.coroutines.Job
@@ -55,6 +56,7 @@ fun HealthAnalyticsScreen(
     onNavigateToAI: () -> Unit = {},
     onNavigateToMetricDetail: (LegacyMetricType) -> Unit = {}
 ) {
+    TrackScreen("HealthAnalytics")
     val uiState by viewModel.uiState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {

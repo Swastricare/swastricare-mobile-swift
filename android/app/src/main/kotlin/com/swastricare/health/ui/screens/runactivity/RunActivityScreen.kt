@@ -27,6 +27,7 @@ import com.swastricare.health.data.models.ActivityType
 import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.data.models.RunActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
@@ -42,6 +43,7 @@ fun RunActivityScreen(
     onNavigateToCalendar: () -> Unit = {},
     onNavigateBack: (() -> Unit)? = null
 ) {
+    TrackScreen("RunActivity")
     val viewModel: RunActivityViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
     val haptic = LocalHapticFeedback.current

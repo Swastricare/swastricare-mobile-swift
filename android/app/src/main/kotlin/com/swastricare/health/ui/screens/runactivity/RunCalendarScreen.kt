@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
@@ -96,6 +97,7 @@ fun RunCalendarScreen(
     onNavigateToActivityDetail: (String) -> Unit = {},
     viewModel: RunCalendarViewModel = hiltViewModel()
 ) {
+    TrackScreen("RunCalendar")
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 

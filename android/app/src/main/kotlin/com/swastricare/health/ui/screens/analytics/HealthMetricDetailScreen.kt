@@ -28,6 +28,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import java.time.LocalDate
@@ -41,6 +42,7 @@ fun HealthMetricDetailScreen(
     viewModel: HealthAnalyticsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
+    TrackScreen("HealthMetricDetail")
     val metric = remember(metricTypeName) {
         LegacyMetricType.entries.firstOrNull { it.name == metricTypeName }
             ?: LegacyMetricType.Steps

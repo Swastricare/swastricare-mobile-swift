@@ -42,6 +42,7 @@ import com.swastricare.health.data.services.RouteTracker
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.GpsStatusChip
 import com.swastricare.health.ui.components.RouteMapView
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
@@ -56,6 +57,7 @@ fun LiveWorkoutScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToSummary: () -> Unit = {}
 ) {
+    TrackScreen("LiveWorkout")
     val context = LocalContext.current
     val viewModel: LiveWorkoutViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()

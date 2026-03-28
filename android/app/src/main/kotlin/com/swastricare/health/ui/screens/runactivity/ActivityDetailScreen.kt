@@ -37,6 +37,7 @@ import com.swastricare.health.data.model.SplitData
 import com.swastricare.health.data.model.WorkoutDetail
 import com.swastricare.health.data.models.RunActivity
 import com.swastricare.health.ui.components.RouteMapView
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import kotlinx.coroutines.delay
@@ -81,6 +82,7 @@ fun ActivityDetailScreen(
     onNavigateBack: () -> Unit = {},
     onDelete: (String) -> Unit = {}
 ) {
+    TrackScreen("ActivityDetail")
     val context = LocalContext.current
     val viewModel: ActivityDetailViewModel = hiltViewModel()
     var selectedTab by remember { mutableStateOf(DetailTab.OVERVIEW) }
