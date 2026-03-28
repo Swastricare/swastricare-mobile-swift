@@ -202,7 +202,7 @@ class AppAnalyticsService(
     // ─────────────────────────────────────
 
     fun trackScreenView(screenName: String) {
-        track("screen_view", mapOf("screen_name" to screenName))
+        trackScreen(screenName, durationSeconds = 0)
     }
 
     fun trackTabSelected(tabName: String) {
@@ -271,6 +271,7 @@ class AppAnalyticsService(
     fun trackSessionEnd(durationSeconds: Long) {
         track("session_end", mapOf("duration_seconds" to durationSeconds.toString()))
         sessionStartTime = System.currentTimeMillis()
+        sessionId = UUID.randomUUID().toString()
     }
 
     // Diet
