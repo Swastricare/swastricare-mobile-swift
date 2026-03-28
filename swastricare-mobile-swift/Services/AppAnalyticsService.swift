@@ -31,6 +31,7 @@ final class AppAnalyticsService {
     private var sessionId: UUID?
     private var flushTask: Task<Void, Never>?
     private var isFlushing = false
+    private var sessionStartTime: Date = Date()
     private let lock = NSLock()
 
     private init() {
@@ -58,11 +59,13 @@ final class AppAnalyticsService {
         Task { await flushIfNeeded() }
     }
 
-    /// Log a screen view.
-    func logScreen(_ name: String, screenClass: String? = nil) {
-        var props: [String: Any] = ["screen": name]
-        if let sc = screenClass { props["screen_class"] = sc }
-        log(eventName: "screen_view", eventType: "screen", properties: props)
+    /// Log a screen view with dwell time. Called from ScreenTrackingModifier on disappear.
+    func logScreen(_ name: String, durationSeconds: Int) {
+        log(
+            eventName: "screen_view",
+            eventType: "screen",
+            properties: ["screen": name, "duration_seconds": durationSeconds]
+        )
     }
 
     /// Log an error (sanitized message, no PII).
@@ -189,6 +192,105 @@ final class AppAnalyticsService {
         log(eventName: "vault_delete", eventType: "action", properties: [:])
     }
 
+    // MARK: - Diet
+
+    func logFoodSearched(queryLength: Int, resultsCount: Int) {
+        log(eventName: "food_searched", eventType: "feature_usage",
+            properties: ["query_length": queryLength, "results_count": resultsCount])
+    }
+
+    func logFoodAdded(mealType: String, calories: Int, isCustom: Bool) {
+        log(eventName: "food_added", eventType: "feature_usage",
+            properties: ["meal_type": mealType, "calories": calories, "is_custom": isCustom])
+    }
+
+    func logFoodDeleted(mealType: String) {
+        log(eventName: "food_deleted", eventType: "feature_usage", properties: ["meal_type": mealType])
+    }
+
+    func logMealCopied() {
+        log(eventName: "meal_copied", eventType: "feature_usage", properties: [:])
+    }
+
+    func logCalorieGoalReached(goalKcal: Int, actualKcal: Int) {
+        log(eventName: "calorie_goal_reached", eventType: "feature_usage",
+            properties: ["goal_kcal": goalKcal, "actual_kcal": actualKcal])
+    }
+
+    // MARK: - Menstrual Cycle
+
+    func logCycleLogged(entryType: String) {
+        log(eventName: "cycle_logged", eventType: "feature_usage", properties: ["entry_type": entryType])
+    }
+
+    func logSymptomLogged(symptomType: String) {
+        log(eventName: "symptom_logged", eventType: "feature_usage", properties: ["symptom_type": symptomType])
+    }
+
+    func logCyclePredictionViewed() {
+        log(eventName: "cycle_prediction_viewed", eventType: "feature_usage", properties: [:])
+    }
+
+    // MARK: - Family
+
+    func logFamilyCreated() {
+        log(eventName: "family_created", eventType: "feature_usage", properties: [:])
+    }
+
+    func logFamilyJoined() {
+        log(eventName: "family_joined", eventType: "feature_usage", properties: [:])
+    }
+
+    func logFamilyMemberViewed() {
+        log(eventName: "family_member_viewed", eventType: "feature_usage", properties: [:])
+    }
+
+    func logFamilyInviteSent() {
+        log(eventName: "family_invite_sent", eventType: "feature_usage", properties: [:])
+    }
+
+    // MARK: - Settings
+
+    func logNotificationToggled(type: String, enabled: Bool) {
+        log(eventName: "notification_toggled", eventType: "feature_usage",
+            properties: ["type": type, "enabled": enabled])
+    }
+
+    func logProfileUpdated(fieldsChanged: [String]) {
+        log(eventName: "profile_updated", eventType: "feature_usage",
+            properties: ["fields_changed": fieldsChanged.joined(separator: ",")])
+    }
+
+    func logHealthKitToggled(enabled: Bool) {
+        log(eventName: "healthkit_toggled", eventType: "feature_usage", properties: ["enabled": enabled])
+    }
+
+    // MARK: - AR
+
+    func logARLaunched() {
+        log(eventName: "ar_launched", eventType: "feature_usage", properties: [:])
+    }
+
+    func logARScanCompleted(durationSeconds: Int) {
+        log(eventName: "ar_scan_completed", eventType: "feature_usage",
+            properties: ["duration_seconds": durationSeconds])
+    }
+
+    // MARK: - Notifications
+
+    func logNotificationTapped(notificationType: String) {
+        log(eventName: "notification_tapped", eventType: "feature_usage",
+            properties: ["notification_type": notificationType])
+    }
+
+    // MARK: - Session
+
+    func logSessionEnd() {
+        let duration = Int(Date().timeIntervalSince(sessionStartTime))
+        log(eventName: "session_end", eventType: "action", properties: ["duration_seconds": duration])
+        sessionStartTime = Date()
+    }
+
     // MARK: - Onboarding / Consent
 
     func logOnboardingComplete() {
@@ -246,7 +348,8 @@ final class AppAnalyticsService {
         let deviceInfo: [String: String] = [
             "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0",
             "os": "iOS",
-            "device_model": DeviceModelHelper.deviceModelName()
+            "device_model": DeviceModelHelper.deviceModelName(),
+            "platform": "ios"
         ]
         let event = AppEvent(
             userId: nil,

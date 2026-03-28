@@ -63,7 +63,7 @@ struct ProfileView: View {
             }
         }
         .onAppear {
-            AppAnalyticsService.shared.logScreen("Profile")
+            AppAnalyticsService.shared.logScreen("Profile", durationSeconds: 0)
         }
         .navigationDestination(isPresented: $showFamilyFromDeepLink) {
             FamilyView(initialInviteCode: deepLinkInviteCode ?? deepLinkHandler.pendingFamilyInviteCode)

@@ -115,7 +115,7 @@ struct RunActivityView: View {
             }
         }
         .onAppear {
-            AppAnalyticsService.shared.logScreen("Run")
+            AppAnalyticsService.shared.logScreen("Run", durationSeconds: 0)
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 isAnimating = true
             }

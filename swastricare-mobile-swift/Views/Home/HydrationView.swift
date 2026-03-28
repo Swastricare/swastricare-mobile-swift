@@ -153,7 +153,7 @@ struct HydrationView: View {
                 }
             }
             .onAppear {
-                AppAnalyticsService.shared.logScreen("hydration")
+                AppAnalyticsService.shared.logScreen("hydration", durationSeconds: 0)
             }
             .task {
                 await viewModel.onAppear()

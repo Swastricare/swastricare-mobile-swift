@@ -122,7 +122,7 @@ struct MedicationsView: View {
                 }
             }
             .onAppear {
-                AppAnalyticsService.shared.logScreen("medications")
+                AppAnalyticsService.shared.logScreen("medications", durationSeconds: 0)
             }
             .navigationTitle("Medications")
             .navigationBarTitleDisplayMode(.large)

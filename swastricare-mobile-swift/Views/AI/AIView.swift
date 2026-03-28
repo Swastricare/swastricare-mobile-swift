@@ -596,7 +596,7 @@ struct AIView: View {
             }
         }
         .onAppear {
-            AppAnalyticsService.shared.logScreen("AI")
+            AppAnalyticsService.shared.logScreen("AI", durationSeconds: 0)
             // Trigger landing animation
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {

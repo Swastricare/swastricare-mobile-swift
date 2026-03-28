@@ -206,7 +206,7 @@ struct HomeView: View {
             ARBodyScanView()
         }
         .onAppear {
-            AppAnalyticsService.shared.logScreen("Home")
+            AppAnalyticsService.shared.logScreen("Home", durationSeconds: 0)
             // Haptic feedback when opening vitals screen
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()

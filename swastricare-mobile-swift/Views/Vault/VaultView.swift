@@ -57,7 +57,7 @@ struct VaultView: View {
             }
         }
         .onAppear {
-            AppAnalyticsService.shared.logScreen("Vault")
+            AppAnalyticsService.shared.logScreen("Vault", durationSeconds: 0)
         }
         // Documents loaded once in ContentView; use cached data. Pull-to-refresh for manual reload.
         .refreshable {

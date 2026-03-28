@@ -125,7 +125,7 @@ struct DietView: View {
             }
         }
         .onAppear {
-            AppAnalyticsService.shared.logScreen("diet")
+            AppAnalyticsService.shared.logScreen("diet", durationSeconds: 0)
             withAnimation(.easeOut(duration: 0.35)) { appeared = true }
         }
         .task { await viewModel.onAppear() }
