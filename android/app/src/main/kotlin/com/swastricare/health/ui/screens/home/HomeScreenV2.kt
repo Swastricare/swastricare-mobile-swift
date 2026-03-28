@@ -36,6 +36,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swastricare.health.data.models.AdherenceStatus
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.medications.MedicationsViewModel
 import com.swastricare.health.ui.theme.*
 import java.text.SimpleDateFormat
@@ -63,6 +64,7 @@ fun HomeScreenV2(
     viewModel: HomeViewModel = hiltViewModel(),
     medicationsViewModel: MedicationsViewModel = hiltViewModel()
 ) {
+    TrackScreen("Home")
     val uiState by viewModel.uiState.collectAsState()
     val medicationsState by medicationsViewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current

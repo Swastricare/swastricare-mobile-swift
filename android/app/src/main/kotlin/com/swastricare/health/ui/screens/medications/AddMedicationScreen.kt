@@ -37,6 +37,7 @@ import com.swastricare.health.data.models.MedicationType
 import com.swastricare.health.data.models.ScheduleType
 import com.swastricare.health.data.repository.DrugSearchResult
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -106,6 +107,7 @@ private fun timeToDbString(time: LocalTime): String =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMedicationScreen(onDismiss: () -> Unit) {
+    TrackScreen("AddMedication")
     val vm: MedicationsViewModel = hiltViewModel()
 
     // Drug search state

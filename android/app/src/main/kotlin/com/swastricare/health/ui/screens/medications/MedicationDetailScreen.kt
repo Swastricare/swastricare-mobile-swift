@@ -23,6 +23,7 @@ import com.swastricare.health.data.models.AdherenceStatus
 import com.swastricare.health.data.models.MedicationDose
 import com.swastricare.health.data.models.MedicationWithDoses
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -36,6 +37,7 @@ fun MedicationDetailScreen(
     medicationId: String,
     onBack: () -> Unit
 ) {
+    TrackScreen("MedicationDetail")
     val vm: MedicationsViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     var isEditing by remember { mutableStateOf(false) }

@@ -28,6 +28,7 @@ import com.swastricare.health.data.models.FoodCategory
 import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
@@ -42,6 +43,7 @@ fun FoodSearchScreen(
     onFoodSelected: (FoodItem) -> Unit,
     onDismiss: () -> Unit
 ) {
+    TrackScreen("FoodSearch")
     val vm: DietViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
 

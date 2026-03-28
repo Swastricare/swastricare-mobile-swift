@@ -42,6 +42,7 @@ import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.ServingUnit
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import java.io.File
@@ -71,6 +72,7 @@ fun FoodSnapScreen(
     onDismiss: () -> Unit,
     onNavigateToAddFood: (String) -> Unit
 ) {
+    TrackScreen("FoodSnap")
     val vm: DietViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     val context = LocalContext.current

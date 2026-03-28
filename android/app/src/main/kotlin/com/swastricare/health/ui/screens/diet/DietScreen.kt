@@ -15,14 +15,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.swastricare.health.data.models.DietInsights
 import com.swastricare.health.data.models.MealType
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.EmptyStateView
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
@@ -38,8 +42,21 @@ fun DietScreen(
     onNavigateToAI: () -> Unit,
     onNavigateToFoodSnap: (String) -> Unit = {}
 ) {
+    TrackScreen("Diet")
     val vm: DietViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
+
+    // Refresh local data when returning from sub-screens (AddFood, FoodSearch, FoodSnap)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                vm.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val isDark = isSystemInDarkTheme()
     val secondaryBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)

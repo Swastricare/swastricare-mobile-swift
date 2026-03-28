@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.DrinkType
 import com.swastricare.health.data.models.QuickAddPreset
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
@@ -43,6 +44,7 @@ fun HydrationScreen(
     onNavigateToAI: () -> Unit,
     onNavigateToSettings: () -> Unit = {}
 ) {
+    TrackScreen("Hydration")
     val vm: HydrationViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
 

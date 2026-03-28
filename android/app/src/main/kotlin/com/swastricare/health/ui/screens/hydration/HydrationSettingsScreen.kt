@@ -29,6 +29,7 @@ import com.swastricare.health.data.models.ActivityLevel
 import com.swastricare.health.data.models.HydrationCalculator
 import com.swastricare.health.data.models.HydrationPreferences
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -39,6 +40,7 @@ fun HydrationSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToNotifications: () -> Unit
 ) {
+    TrackScreen("HydrationSettings")
     val vm: HydrationViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     val prefs = uiState.preferences

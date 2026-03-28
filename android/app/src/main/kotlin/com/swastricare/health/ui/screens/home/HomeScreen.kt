@@ -57,6 +57,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.ModelViewer
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.medications.MedicationsViewModel
 import com.swastricare.health.ui.theme.*
 
@@ -73,6 +74,7 @@ fun HomeScreen(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToRoute: (String) -> Unit = {}
 ) {
+    TrackScreen("Home")
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     val medicationsViewModel: MedicationsViewModel = hiltViewModel()
