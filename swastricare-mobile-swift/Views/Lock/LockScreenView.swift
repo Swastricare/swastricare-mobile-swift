@@ -83,6 +83,7 @@ struct LockScreenView: View {
             // Auto-authenticate when view appears
             Task { await viewModel.authenticate() }
         }
+        .trackScreen("LockScreen")
     }
 }
 

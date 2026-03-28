@@ -202,6 +202,7 @@ struct LoginView: View {
                 ResetPasswordView()
             }
         }
+        .trackScreen("Auth")
     }
 
     private func runEntranceAnimation() {

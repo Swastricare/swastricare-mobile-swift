@@ -199,6 +199,7 @@ struct ReferralCodeEntryView: View {
                 }
             }
         }
+        .trackScreen("ReferralCodeEntry")
     }
 
     // MARK: - Actions

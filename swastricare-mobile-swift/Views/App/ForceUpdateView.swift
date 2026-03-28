@@ -74,6 +74,7 @@ struct ForceUpdateView: View {
             }
             isAnimating = true
         }
+        .trackScreen("ForceUpdate")
     }
     
     // MARK: - Update Icon

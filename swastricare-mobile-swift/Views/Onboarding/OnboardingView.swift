@@ -220,6 +220,7 @@ struct OnboardingView: View {
                 buttonOpacity = 1.0
             }
         }
+        .trackScreen("Onboarding")
     }
 
     // MARK: - Completion

@@ -111,6 +111,7 @@ struct ConsentView: View {
         .sheet(isPresented: $showPrivacySheet) {
             PrivacyContentView()
         }
+        .trackScreen("Consent")
     }
     
     // MARK: - Header Section

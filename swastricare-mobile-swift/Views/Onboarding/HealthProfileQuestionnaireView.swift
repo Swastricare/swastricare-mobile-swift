@@ -159,8 +159,9 @@ struct HealthProfileQuestionnaireView: View {
                 }
             }
         }
+        .trackScreen("HealthProfileQuestionnaire")
     }
-    
+
     // MARK: - Helpers
     
     private func nextStep() {
