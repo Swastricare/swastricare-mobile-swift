@@ -29,6 +29,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -65,7 +66,8 @@ data class HealthConnectSettingsUiState(
 
 @HiltViewModel
 class HealthConnectSettingsViewModel @Inject constructor(
-    private val healthConnectService: HealthConnectService
+    private val healthConnectService: HealthConnectService,
+    private val analyticsService: AppAnalyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HealthConnectSettingsUiState())
@@ -104,6 +106,7 @@ class HealthConnectSettingsViewModel @Inject constructor(
 
     fun toggleSync(enabled: Boolean) {
         _uiState.update { it.copy(syncEnabled = enabled) }
+        analyticsService.trackHealthConnectToggled(enabled)
     }
 
     fun clearError() {

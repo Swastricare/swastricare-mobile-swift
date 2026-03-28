@@ -9,6 +9,7 @@ import com.swastricare.health.data.model.Gender
 import com.swastricare.health.data.model.HealthProfile
 import com.swastricare.health.data.repository.ProfileRepository
 import com.swastricare.health.data.repository.SupabaseAuthRepository
+import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.ui.theme.ThemePreferenceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,7 +59,8 @@ data class EditProfileFormState(
 class ProfileViewModel @Inject constructor(
     private val authRepository: SupabaseAuthRepository,
     private val profileRepository: ProfileRepository,
-    val themePreferenceManager: ThemePreferenceManager
+    val themePreferenceManager: ThemePreferenceManager,
+    private val analyticsService: AppAnalyticsService
 ) : ViewModel() {
     
     // Expose sign out event for navigation
@@ -375,6 +377,8 @@ class ProfileViewModel @Inject constructor(
                 // Snapshot becomes the new original so hasChanges resets
                 originalFormState = form.copy(isSaving = false, saveSuccess = true, saveError = null)
                 _editFormState.update { it.copy(isSaving = false, saveSuccess = true) }
+
+                analyticsService.trackProfileUpdated(listOf("profile"))
 
                 // Refresh the main profile state so ProfileScreen reflects changes
                 loadHealthProfile(userId)

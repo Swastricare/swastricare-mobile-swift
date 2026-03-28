@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.core.logger.Logger
 import com.swastricare.health.core.result.ResultWrapper
+import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.domain.repository.AuthRepository
 import com.swastricare.health.domain.usecase.family.AcceptInvitationUseCase
 import com.swastricare.health.domain.usecase.family.CreateFamilyGroupUseCase
@@ -38,7 +39,8 @@ class FamilyViewModel @Inject constructor(
     private val leaveFamilyGroupUseCase: LeaveFamilyGroupUseCase,
     private val removeMemberUseCase: RemoveMemberUseCase,
     private val updatePermissionsUseCase: UpdatePermissionsUseCase,
-    private val logger: Logger
+    private val logger: Logger,
+    private val analyticsService: AppAnalyticsService
 ) : ViewModel() {
 
     private val tag = "FamilyViewModel"
@@ -155,6 +157,7 @@ class FamilyViewModel @Inject constructor(
             when (val result = createFamilyGroupUseCase(name, userId)) {
                 is ResultWrapper.Success -> {
                     logger.i(tag, "Family group created: ${result.data.id}")
+                    analyticsService.trackFamilyCreated()
                     _uiState.update {
                         it.copy(
                             successMessage = "Family group '${result.data.name}' created successfully!",
@@ -207,6 +210,7 @@ class FamilyViewModel @Inject constructor(
             when (val result = acceptInvitationUseCase(code, userId, fullName)) {
                 is ResultWrapper.Success -> {
                     logger.i(tag, "Joined family group: ${result.data.id}")
+                    analyticsService.trackFamilyJoined()
                     _uiState.update {
                         it.copy(
                             successMessage = "Joined ${result.data.name} successfully!",
@@ -386,5 +390,13 @@ class FamilyViewModel @Inject constructor(
 
     fun clearSuccess() {
         _uiState.update { it.copy(successMessage = null) }
+    }
+
+    fun trackFamilyMemberViewed() {
+        analyticsService.trackFamilyMemberViewed()
+    }
+
+    fun trackFamilyInviteSent() {
+        analyticsService.trackFamilyInviteSent()
     }
 }

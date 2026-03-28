@@ -7,6 +7,7 @@ import com.swastricare.health.data.models.*
 import com.swastricare.health.data.repository.SupabaseDietRepository
 import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.data.services.AIService
+import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,7 +86,8 @@ class DietViewModel @Inject constructor(
     private val repository: SupabaseDietRepository,
     private val profileRepository: SupabaseProfileRepository,
     private val aiService: AIService,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val analyticsService: AppAnalyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DietUiState(isLoading = true))
@@ -96,6 +98,8 @@ class DietViewModel @Inject constructor(
     init {
         loadData()
     }
+
+    fun refresh() = loadData()
 
     fun loadData() {
         viewModelScope.launch {
@@ -150,6 +154,7 @@ class DietViewModel @Inject constructor(
                 synced = false
             )
             repository.addLocalLog(entry)
+            analyticsService.trackFoodAdded(mealType.dbValue, entry.calories.toInt(), false)
             refreshFromLocal()
             // Background cloud sync
             launch { syncLogToCloud(entry) }
@@ -181,6 +186,7 @@ class DietViewModel @Inject constructor(
                 synced = false
             )
             repository.addLocalLog(entry)
+            analyticsService.trackFoodAdded(mealType.dbValue, entry.calories.toInt(), true)
             refreshFromLocal()
             launch { syncLogToCloud(entry) }
         }
@@ -189,6 +195,7 @@ class DietViewModel @Inject constructor(
     fun deleteLog(entry: DietLogEntry) {
         viewModelScope.launch {
             repository.deleteLocalLog(entry.id)
+            analyticsService.trackFoodDeleted(entry.mealType)
             refreshFromLocal()
             launch { repository.deleteCloudLog(entry.id) }
         }
@@ -210,6 +217,10 @@ class DietViewModel @Inject constructor(
     }
 
     fun isFavorite(foodId: String): Boolean = _uiState.value.favoriteFoodIds.contains(foodId)
+
+    fun trackFoodSearched(queryLength: Int, resultsCount: Int) {
+        analyticsService.trackFoodSearched(queryLength, resultsCount)
+    }
 
     fun getMealLogs(mealType: MealType): List<DietLogEntry> =
         _uiState.value.todaysLogs.filter { it.mealType == mealType.dbValue }

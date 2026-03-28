@@ -4,6 +4,7 @@ import android.graphics.PointF
 import androidx.camera.core.ImageProxy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.data.services.BodyScanResult
 import com.swastricare.health.data.services.PoseDetectionService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -55,7 +56,9 @@ data class ARBodyScanState(
  * Manages camera permission state, body detection, and health data overlays.
  */
 @HiltViewModel
-class ARBodyScanViewModel @Inject constructor() : ViewModel() {
+class ARBodyScanViewModel @Inject constructor(
+    private val analyticsService: AppAnalyticsService
+) : ViewModel() {
 
     private val poseDetectionService = PoseDetectionService()
 
@@ -64,9 +67,13 @@ class ARBodyScanViewModel @Inject constructor() : ViewModel() {
 
     private var frameCounter = 0
     private val processEveryNthFrame = 3 // Only process every 3rd frame for performance
+    private var scanCompletedTracked = false
 
     fun onPermissionResult(granted: Boolean) {
         _uiState.value = _uiState.value.copy(cameraPermissionGranted = granted)
+        if (granted) {
+            analyticsService.trackARLaunched()
+        }
     }
 
     /**
@@ -88,6 +95,10 @@ class ARBodyScanViewModel @Inject constructor() : ViewModel() {
                         detectionState = BodyDetectionState.DETECTED,
                         bodyScanResult = result
                     )
+                    if (!scanCompletedTracked) {
+                        scanCompletedTracked = true
+                        analyticsService.trackARScanCompleted(0)
+                    }
                 } else {
                     _uiState.value = _uiState.value.copy(
                         detectionState = BodyDetectionState.NOT_FOUND,

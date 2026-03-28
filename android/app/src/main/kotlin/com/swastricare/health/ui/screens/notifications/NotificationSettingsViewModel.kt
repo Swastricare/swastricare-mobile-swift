@@ -2,6 +2,7 @@ package com.swastricare.health.ui.screens.notifications
 
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
+import com.swastricare.health.data.services.AppAnalyticsService
 import com.swastricare.health.data.services.NotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,7 +45,8 @@ data class NotificationSettingsState(
 @HiltViewModel
 class NotificationSettingsViewModel @Inject constructor(
     private val notifService: NotificationService,
-    private val prefs: SharedPreferences
+    private val prefs: SharedPreferences,
+    private val analyticsService: AppAnalyticsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(loadFromService())
@@ -87,37 +89,44 @@ class NotificationSettingsViewModel @Inject constructor(
         notifService.hydrationEnabled = enabled
         _uiState.update { it.copy(hydrationEnabled = enabled) }
         if (enabled) notifService.scheduleHydrationReminders() else notifService.cancelHydrationReminders()
+        analyticsService.trackNotificationToggled("hydration", enabled)
     }
 
     fun setMedicationEnabled(enabled: Boolean) {
         notifService.medicationEnabled = enabled
         _uiState.update { it.copy(medicationEnabled = enabled) }
+        analyticsService.trackNotificationToggled("medication", enabled)
     }
 
     fun setDietEnabled(enabled: Boolean) {
         notifService.dietEnabled = enabled
         _uiState.update { it.copy(dietEnabled = enabled) }
         if (enabled) notifService.scheduleDietReminders() else notifService.cancelDietReminders()
+        analyticsService.trackNotificationToggled("diet", enabled)
     }
 
     fun setCycleEnabled(enabled: Boolean) {
         notifService.cycleEnabled = enabled
         _uiState.update { it.copy(cycleEnabled = enabled) }
+        analyticsService.trackNotificationToggled("cycle", enabled)
     }
 
     fun setAppointmentEnabled(enabled: Boolean) {
         notifService.appointmentEnabled = enabled
         _uiState.update { it.copy(appointmentEnabled = enabled) }
+        analyticsService.trackNotificationToggled("appointment", enabled)
     }
 
     fun setActivityEnabled(enabled: Boolean) {
         notifService.activityEnabled = enabled
         _uiState.update { it.copy(activityEnabled = enabled) }
+        analyticsService.trackNotificationToggled("activity", enabled)
     }
 
     fun setAiNudgeEnabled(enabled: Boolean) {
         notifService.aiNudgeEnabled = enabled
         _uiState.update { it.copy(aiNudgeEnabled = enabled) }
+        analyticsService.trackNotificationToggled("ai_nudge", enabled)
     }
 
     fun setHydrationInterval(minutes: Int) {

@@ -55,6 +55,9 @@ class NotificationService(
         const val NOTIF_ACTIVITY_DAILY = 6001
         const val NOTIF_AI_NUDGE_BASE = 7000
 
+        // Intent extras
+        const val EXTRA_NOTIFICATION_TYPE = "notification_type"
+
         // Actions
         const val ACTION_LOG_WATER = "com.swastricare.ACTION_LOG_WATER"
         const val ACTION_MARK_MED_TAKEN = "com.swastricare.ACTION_MARK_MED_TAKEN"

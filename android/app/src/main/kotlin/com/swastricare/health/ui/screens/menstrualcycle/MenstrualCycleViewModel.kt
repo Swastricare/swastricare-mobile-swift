@@ -3,6 +3,8 @@ package com.swastricare.health.ui.screens.menstrualcycle
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.data.services.AppAnalyticsService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,6 +12,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import javax.inject.Inject
 
 // ─────────────────────────────────────
 // MARK: - Cycle Phase Enum
@@ -201,7 +204,10 @@ data class MenstrualCycleUiState(
 // MARK: - ViewModel
 // ─────────────────────────────────────
 
-class MenstrualCycleViewModel : ViewModel() {
+@HiltViewModel
+class MenstrualCycleViewModel @Inject constructor(
+    private val analyticsService: AppAnalyticsService
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MenstrualCycleUiState())
     val uiState: StateFlow<MenstrualCycleUiState> = _uiState.asStateFlow()
@@ -253,8 +259,10 @@ class MenstrualCycleViewModel : ViewModel() {
         val updatedDates = current.loggedPeriodDates.toMutableSet()
         if (updatedDates.contains(date)) {
             updatedDates.remove(date)
+            analyticsService.trackCycleLogged("end")
         } else {
             updatedDates.add(date)
+            analyticsService.trackCycleLogged("start")
         }
         _uiState.value = current.copy(loggedPeriodDates = updatedDates)
         recalculate()
@@ -404,4 +412,8 @@ class MenstrualCycleViewModel : ViewModel() {
     }
 
     fun formatDate(date: LocalDate): String = date.format(dateFormatter)
+
+    fun trackCyclePredictionViewed() {
+        analyticsService.trackCyclePredictionViewed()
+    }
 }

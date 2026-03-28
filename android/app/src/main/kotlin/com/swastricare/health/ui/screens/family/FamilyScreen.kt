@@ -1,6 +1,7 @@
 package com.swastricare.health.ui.screens.family
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -52,6 +53,7 @@ fun FamilyScreen(
         }
     }
 
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         Column(
@@ -96,8 +98,10 @@ fun FamilyScreen(
                         onCopyInviteLink = {
                             val link = "swastricare://family/join?code=${uiState.inviteCode}"
                             clipboardManager.setText(AnnotatedString(link))
+                            vm.trackFamilyInviteSent()
                         },
-                        onLeaveGroup = { vm.showLeaveConfirmation() }
+                        onLeaveGroup = { vm.showLeaveConfirmation() },
+                        onMemberViewed = { vm.trackFamilyMemberViewed() }
                     )
                 }
                 else -> {
@@ -253,7 +257,8 @@ private fun FamilyGroupContent(
     uiState: FamilyUiState,
     onGenerateCode: () -> Unit,
     onCopyInviteLink: () -> Unit,
-    onLeaveGroup: () -> Unit
+    onLeaveGroup: () -> Unit,
+    onMemberViewed: () -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
     val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
@@ -313,7 +318,7 @@ private fun FamilyGroupContent(
         }
 
         items(uiState.members) { member ->
-            FamilyMemberRow(member = member)
+            FamilyMemberRow(member = member, onViewed = onMemberViewed)
         }
 
         // Invite Section
@@ -400,7 +405,7 @@ private fun FamilyGroupContent(
 // -----------------------------------------------
 
 @Composable
-private fun FamilyMemberRow(member: FamilyMember) {
+private fun FamilyMemberRow(member: FamilyMember, onViewed: () -> Unit = {}) {
     val isDark = isSystemInDarkTheme()
     val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
 
@@ -411,6 +416,7 @@ private fun FamilyMemberRow(member: FamilyMember) {
             .lightBorder(12.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(cardBg)
+            .clickable { onViewed() }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)

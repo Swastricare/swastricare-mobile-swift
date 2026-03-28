@@ -58,6 +58,13 @@ fun FoodSearchScreen(
         foods
     }
 
+    // Track food search analytics whenever results update for a non-blank query
+    LaunchedEffect(searchText, filteredFoods.size) {
+        if (searchText.isNotBlank()) {
+            vm.trackFoodSearched(searchText.length, filteredFoods.size)
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {

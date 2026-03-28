@@ -43,6 +43,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var notificationService: com.swastricare.health.data.services.NotificationService
     @Inject lateinit var supabaseClient: SupabaseClient
     @Inject lateinit var themePreferenceManager: ThemePreferenceManager
+    @Inject lateinit var analyticsService: com.swastricare.health.data.services.AppAnalyticsService
 
     // AuthViewModel obtained at Activity level so deep link callbacks can call it
     // outside of Compose composition (e.g. from onNewIntent).
@@ -70,6 +71,11 @@ class MainActivity : FragmentActivity() {
             if (!com.swastricare.health.data.services.NotificationPermissionManager.hasNotificationPermission(this)) {
                 notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
+        }
+
+        // Track notification tap if launched from a notification
+        intent?.getStringExtra(com.swastricare.health.data.services.NotificationService.EXTRA_NOTIFICATION_TYPE)?.let { type ->
+            analyticsService.trackNotificationTapped(type)
         }
 
         // Handle deep link from launch intent

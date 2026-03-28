@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -62,7 +62,7 @@ internal val LutealColor = Color(0xFF9C27B0)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenstrualCycleScreen(
-    viewModel: MenstrualCycleViewModel = viewModel(),
+    viewModel: MenstrualCycleViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
     TrackScreen("MenstrualCycle")
@@ -152,7 +152,10 @@ fun MenstrualCycleScreen(
                     uiState.statistics?.let { stats ->
                         StatisticsPreviewCard(
                             stats = stats,
-                            onTap = { showStatisticsSheet = true },
+                            onTap = {
+                                viewModel.trackCyclePredictionViewed()
+                                showStatisticsSheet = true
+                            },
                             formatDate = { viewModel.formatDate(it) }
                         )
                     }
