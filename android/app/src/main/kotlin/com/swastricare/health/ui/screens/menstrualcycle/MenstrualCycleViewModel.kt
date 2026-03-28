@@ -413,6 +413,12 @@ class MenstrualCycleViewModel @Inject constructor(
 
     fun formatDate(date: LocalDate): String = date.format(dateFormatter)
 
+    fun logSymptoms(symptoms: List<String>) {
+        symptoms.forEach { symptom ->
+            analyticsService.trackSymptomLogged(symptom)
+        }
+    }
+
     fun trackCyclePredictionViewed() {
         analyticsService.trackCyclePredictionViewed()
     }
