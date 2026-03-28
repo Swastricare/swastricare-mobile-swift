@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
+import com.swastricare.health.ui.components.TrackScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +31,7 @@ fun NotificationSettingsScreen(
     viewModel: NotificationSettingsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
+    TrackScreen("NotificationSettings")
     val uiState by viewModel.uiState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {

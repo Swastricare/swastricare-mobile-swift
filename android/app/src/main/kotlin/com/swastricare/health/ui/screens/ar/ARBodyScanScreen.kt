@@ -51,6 +51,7 @@ import com.swastricare.health.ui.theme.HydrationColor
 import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.SecondaryColor
 import java.util.concurrent.Executors
+import com.swastricare.health.ui.components.TrackScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +59,7 @@ fun ARBodyScanScreen(
     onNavigateBack: () -> Unit,
     viewModel: ARBodyScanViewModel = hiltViewModel()
 ) {
+    TrackScreen("ARBodyScan")
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsState()

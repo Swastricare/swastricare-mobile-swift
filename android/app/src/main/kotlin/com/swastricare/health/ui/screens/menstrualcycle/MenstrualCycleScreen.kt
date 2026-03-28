@@ -42,6 +42,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
+import com.swastricare.health.ui.components.TrackScreen
 
 // ─────────────────────────────────────
 // MARK: - Color Constants
@@ -64,6 +65,7 @@ fun MenstrualCycleScreen(
     viewModel: MenstrualCycleViewModel = viewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
+    TrackScreen("MenstrualCycle")
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 

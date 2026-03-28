@@ -42,6 +42,7 @@ import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import com.swastricare.health.ui.components.TrackScreen
 
 // ─────────────────────────────────────
 // MARK: - Data Models
@@ -196,6 +197,7 @@ class NotificationHistoryViewModel @Inject constructor(
 fun NotificationHistoryScreen(
     onNavigateBack: () -> Unit
 ) {
+    TrackScreen("NotificationHistory")
     val vm: NotificationHistoryViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }

@@ -29,6 +29,7 @@ import com.swastricare.health.presentation.feature.family.FamilyUiState
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
+import com.swastricare.health.ui.components.TrackScreen
 
 // -----------------------------------------------
 // MARK: - FamilyScreen
@@ -39,6 +40,7 @@ fun FamilyScreen(
     onNavigateBack: () -> Unit,
     initialJoinCode: String? = null
 ) {
+    TrackScreen("Family")
     val vm: FamilyViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
     val clipboardManager = LocalClipboardManager.current
