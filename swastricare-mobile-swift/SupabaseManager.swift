@@ -1125,6 +1125,7 @@ class SupabaseManager {
             let properties: [String: String]
             let device_info: [String: String]
             let session_id: UUID?
+            let platform: String
         }
         let payloads = events.map { e in
             InsertPayload(
@@ -1133,7 +1134,8 @@ class SupabaseManager {
                 event_type: e.eventType,
                 properties: e.properties,
                 device_info: e.deviceInfo,
-                session_id: e.sessionId
+                session_id: e.sessionId,
+                platform: "ios"
             )
         }
         _ = try await client
