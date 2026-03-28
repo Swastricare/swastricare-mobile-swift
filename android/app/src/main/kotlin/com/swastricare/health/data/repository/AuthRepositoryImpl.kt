@@ -15,6 +15,7 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.buildJsonObject
@@ -143,18 +144,17 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteAccount() {
-        val userId = supabaseClient.auth.currentUserOrNull()?.id
-        if (userId != null) {
-            try {
-                // Delete user row from public.users (CASCADE will remove health_profiles, etc.)
-                supabaseClient.from("users").delete {
-                    filter { eq("id", userId) }
-                }
-            } catch (e: Exception) {
-                android.util.Log.w("AuthRepositoryImpl", "Failed to delete user data from DB", e)
-            }
+        // Call the delete-account edge function which uses the service_role key
+        // to delete the user from auth.users (CASCADE handles all related data)
+        val response = supabaseClient.functions.invoke("delete-account")
+        val status = response.headers["status"]?.toIntOrNull()
+            ?: response.status.value
+        if (status !in 200..299) {
+            throw Exception("Account deletion failed (status $status)")
         }
-        supabaseClient.auth.signOut()
+
+        // Server-side deletion succeeded — clean up locally
+        try { supabaseClient.auth.signOut() } catch (_: Exception) {}
         clearLocalData()
     }
 

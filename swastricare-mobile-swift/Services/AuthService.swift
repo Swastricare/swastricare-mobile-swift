@@ -133,7 +133,12 @@ final class AuthService: AuthServiceProtocol {
     // MARK: - Sign In with Google
     
     func signInWithGoogle() async throws -> AppUser {
-        let session = try await client.auth.signInWithOAuth(provider: .google)
+        let session = try await client.auth.signInWithOAuth(
+            provider: .google,
+            queryParams: [
+                (name: "prompt", value: "select_account")
+            ]
+        )
         return mapUser(session.user)
     }
     
@@ -159,12 +164,34 @@ final class AuthService: AuthServiceProtocol {
     // MARK: - Delete Account
     
     func deleteAccount() async throws {
-        // Sign out the user first, then the account deletion should be handled
-        // by a Supabase Edge Function or database trigger for security
-        // For now, we sign out and clear local data
-        try await client.auth.signOut()
-        
-        // Clear all local user data
+        // Call the delete-account edge function which uses the service_role key
+        // to delete the user from auth.users (CASCADE handles all related data)
+        let session = try await client.auth.session
+
+        let url = URL(string: "\(SupabaseConfig.projectURL)/functions/v1/delete-account")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.unknown("Invalid server response")
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            if let body = try? JSONDecoder().decode([String: String].self, from: data),
+               let detail = body["details"] ?? body["error"] {
+                throw AuthError.unknown(detail)
+            }
+            throw AuthError.unknown("Account deletion failed (status \(httpResponse.statusCode))")
+        }
+
+        // Server-side deletion succeeded — clean up locally
+        try? await client.auth.signOut()
+
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: "notificationsEnabled")
         defaults.removeObject(forKey: "biometricEnabled")

@@ -65,6 +65,7 @@ sealed class HomeAIState {
 
 data class HomeState(
     val userName: String = "",
+    val userAvatarUrl: String? = null,
     val greeting: String = "Good Morning,",
     val stepCount: Int = 0,
     val calories: Int = 0,
@@ -135,10 +136,12 @@ class HomeViewModel @Inject constructor(
                     else -> "Good Night,"
                 }
 
-                // Resolve user name
-                val userName = authRepository.currentUser?.fullName
-                    ?: authRepository.currentUser?.email?.substringBefore("@")
+                // Resolve user name and avatar
+                val currentUser = authRepository.currentUser
+                val userName = currentUser?.fullName
+                    ?: currentUser?.email?.substringBefore("@")
                     ?: ""
+                val userAvatarUrl = currentUser?.avatarUrl
 
                 // Check Health Connect READ permissions (for logging and UI state)
                 val hasPermissions = healthConnectService.hasReadPermissions()
@@ -216,6 +219,7 @@ class HomeViewModel @Inject constructor(
 
                 _uiState.value = HomeState(
                     userName = userName,
+                    userAvatarUrl = userAvatarUrl,
                     greeting = greeting,
                     stepCount = summary.steps,
                     calories = summary.activeCalories,

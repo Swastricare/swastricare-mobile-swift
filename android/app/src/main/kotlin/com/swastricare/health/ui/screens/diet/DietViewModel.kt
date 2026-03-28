@@ -344,20 +344,28 @@ class DietViewModel @Inject constructor(
 
     private suspend fun syncInBackground() {
         // Fetch food items from Supabase and cache
-        val foodResult = repository.fetchFoodItems()
-        if (foodResult.isSuccess) {
-            val items = foodResult.getOrDefault(emptyList())
-            if (items.isNotEmpty()) {
-                repository.cacheFoodItems(items)
-                _uiState.value = _uiState.value.copy(foodItemsCache = items)
+        try {
+            val foodResult = repository.fetchFoodItems()
+            if (foodResult.isSuccess) {
+                val items = foodResult.getOrDefault(emptyList())
+                if (items.isNotEmpty()) {
+                    repository.cacheFoodItems(items)
+                    _uiState.value = _uiState.value.copy(foodItemsCache = items)
+                }
             }
+        } catch (e: Exception) {
+            android.util.Log.w("DietViewModel", "Fetch food items failed: ${e.message}")
         }
 
         // Sync unsynced logs
-        val unsynced = _uiState.value.dietLogs.filter { !it.synced }
-        if (unsynced.isNotEmpty()) {
-            val profileId = resolveProfileId()
-            repository.syncLogsToCloud(unsynced, profileId)
+        try {
+            val unsynced = _uiState.value.dietLogs.filter { !it.synced }
+            if (unsynced.isNotEmpty()) {
+                val profileId = resolveProfileId()
+                repository.syncLogsToCloud(unsynced, profileId)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("DietViewModel", "Background sync failed: ${e.message}")
         }
     }
 

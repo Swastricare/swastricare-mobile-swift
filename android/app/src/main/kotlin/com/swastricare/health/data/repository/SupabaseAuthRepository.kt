@@ -9,6 +9,7 @@ import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
 import io.github.jan.supabase.gotrue.user.UserInfo
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
@@ -167,24 +168,26 @@ class SupabaseAuthRepository @Inject constructor(
     }
 
     /**
-     * Delete current user account.
-     * Deletes user data from public tables, signs out, and clears local data.
-     * Note: Full auth.users deletion requires a Supabase Edge Function with
-     * service_role key — this handles the client-side cleanup.
+     * Delete current user account via the delete-account edge function.
+     * The edge function uses the service_role key to delete the user from
+     * auth.users, and CASCADE constraints clean up all related data.
      */
     override suspend fun deleteAccount() {
         val userId = supabaseClient.auth.currentUserOrNull()?.id
+
+        // Call the edge function that performs the actual deletion
+        val response = supabaseClient.functions.invoke("delete-account")
+        val status = response.headers["status"]?.toIntOrNull()
+            ?: response.status.value
+        if (status !in 200..299) {
+            throw Exception("Account deletion failed (status $status)")
+        }
+
+        // Server-side deletion succeeded — clean up locally
         if (userId != null) {
-            try {
-                supabaseClient.from("users").delete {
-                    filter { eq("id", userId) }
-                }
-            } catch (e: Exception) {
-                android.util.Log.w("AuthRepo", "Failed to delete user data from DB", e)
-            }
             cacheService.clearAll(userId)
         }
-        supabaseClient.auth.signOut()
+        try { supabaseClient.auth.signOut() } catch (_: Exception) {}
         clearLocalData()
     }
 
