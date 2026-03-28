@@ -157,7 +157,8 @@ class AppAnalyticsService(
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        // App goes to background - flush events
+        val durationSeconds = (System.currentTimeMillis() - sessionStartTime) / 1000
+        trackSessionEnd(durationSeconds)
         track("app_background")
         scope.launch { flush() }
     }
@@ -261,6 +262,79 @@ class AppAnalyticsService(
 
     fun trackError(errorType: String, message: String) {
         track("error", mapOf("error_type" to errorType, "message" to message))
+    }
+
+    fun trackScreen(screenName: String, durationSeconds: Int) {
+        track("screen_view", mapOf("screen" to screenName, "duration_seconds" to durationSeconds.toString()))
+    }
+
+    fun trackSessionEnd(durationSeconds: Long) {
+        track("session_end", mapOf("duration_seconds" to durationSeconds.toString()))
+        sessionStartTime = System.currentTimeMillis()
+    }
+
+    // Diet
+    fun trackFoodSearched(queryLength: Int, resultsCount: Int) {
+        track("food_searched", mapOf("query_length" to queryLength.toString(), "results_count" to resultsCount.toString()))
+    }
+
+    fun trackFoodAdded(mealType: String, calories: Int, isCustom: Boolean) {
+        track("food_added", mapOf("meal_type" to mealType, "calories" to calories.toString(), "is_custom" to isCustom.toString()))
+    }
+
+    fun trackFoodDeleted(mealType: String) {
+        track("food_deleted", mapOf("meal_type" to mealType))
+    }
+
+    fun trackMealCopied() {
+        track("meal_copied")
+    }
+
+    fun trackCalorieGoalReached(goalKcal: Int, actualKcal: Int) {
+        track("calorie_goal_reached", mapOf("goal_kcal" to goalKcal.toString(), "actual_kcal" to actualKcal.toString()))
+    }
+
+    // Menstrual Cycle
+    fun trackCycleLogged(entryType: String) {
+        track("cycle_logged", mapOf("entry_type" to entryType))
+    }
+
+    fun trackSymptomLogged(symptomType: String) {
+        track("symptom_logged", mapOf("symptom_type" to symptomType))
+    }
+
+    fun trackCyclePredictionViewed() {
+        track("cycle_prediction_viewed")
+    }
+
+    // Family
+    fun trackFamilyCreated() { track("family_created") }
+    fun trackFamilyJoined() { track("family_joined") }
+    fun trackFamilyMemberViewed() { track("family_member_viewed") }
+    fun trackFamilyInviteSent() { track("family_invite_sent") }
+
+    // Settings
+    fun trackNotificationToggled(type: String, enabled: Boolean) {
+        track("notification_toggled", mapOf("type" to type, "enabled" to enabled.toString()))
+    }
+
+    fun trackProfileUpdated(fieldsChanged: List<String>) {
+        track("profile_updated", mapOf("fields_changed" to fieldsChanged.joinToString(",")))
+    }
+
+    fun trackHealthConnectToggled(enabled: Boolean) {
+        track("health_connect_toggled", mapOf("enabled" to enabled.toString()))
+    }
+
+    // Notifications
+    fun trackNotificationTapped(notificationType: String) {
+        track("notification_tapped", mapOf("notification_type" to notificationType))
+    }
+
+    // AR
+    fun trackARLaunched() { track("ar_launched") }
+    fun trackARScanCompleted(durationSeconds: Int) {
+        track("ar_scan_completed", mapOf("duration_seconds" to durationSeconds.toString()))
     }
 
     // ─────────────────────────────────────
