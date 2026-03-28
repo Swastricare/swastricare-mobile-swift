@@ -46,6 +46,7 @@ data class AppEventRow(
     val event_name: String,
     val event_type: String,
     val properties: JsonObject,
+    val device_info: JsonObject,
     val session_id: String,
     val platform: String = "android",
     val user_id: String? = null
@@ -83,6 +84,17 @@ class AppAnalyticsService(
     }
 
     private var currentUserId: String? = null
+
+    private val deviceInfo: JsonObject by lazy {
+        JsonObject(mapOf(
+            "platform" to JsonPrimitive("android"),
+            "os_version" to JsonPrimitive("Android ${android.os.Build.VERSION.RELEASE}"),
+            "device_model" to JsonPrimitive("${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"),
+            "app_version" to JsonPrimitive(try {
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown"
+            } catch (_: Exception) { "unknown" })
+        ))
+    }
 
     private val eventQueue = ConcurrentLinkedQueue<AppEvent>()
     private var sessionId: String = UUID.randomUUID().toString()
@@ -391,6 +403,7 @@ class AppAnalyticsService(
                         properties = JsonObject(
                             event.properties.mapValues { JsonPrimitive(it.value) }
                         ),
+                        device_info = deviceInfo,
                         session_id = event.sessionId,
                         platform = "android",
                         user_id = event.userId
