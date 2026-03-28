@@ -504,7 +504,18 @@ struct AccountView: View {
                     bio: trimmedBio
                 )
             }
-            AppAnalyticsService.shared.logProfileUpdated(fieldsChanged: ["profile"])
+            var changedFields: [String] = []
+            let hp = viewModel.healthProfile
+            if trimmedName != viewModel.userName { changedFields.append("name") }
+            if trimmedPhone != (viewModel.user?.phone ?? "") { changedFields.append("phone") }
+            if trimmedBio != (viewModel.user?.bio ?? "") { changedFields.append("bio") }
+            if editedGender != (hp?.gender ?? .preferNotToSay) { changedFields.append("gender") }
+            if !Calendar.current.isDate(editedDateOfBirth, inSameDayAs: hp?.dateOfBirth ?? editedDateOfBirth) { changedFields.append("dateOfBirth") }
+            if editedHeightCm != (hp?.heightCm ?? 170) { changedFields.append("heightCm") }
+            if editedWeightKg != (hp?.weightKg ?? 70) { changedFields.append("weightKg") }
+            if editedBloodType != (hp?.bloodType ?? "") { changedFields.append("bloodType") }
+            if trimmedCity != (hp?.city ?? "") { changedFields.append("city") }
+            AppAnalyticsService.shared.logProfileUpdated(fieldsChanged: changedFields.isEmpty ? ["profile"] : changedFields)
             showSaveSuccess = true
         } catch {
             saveError = "Failed to save: \(error.localizedDescription)"
