@@ -136,6 +136,10 @@ struct FoodSearchView: View {
             .onChange(of: searchText) { _, newValue in
                 // Trigger online search when local results are sparse
                 viewModel.searchFoodsOnline(query: newValue)
+                AppAnalyticsService.shared.logFoodSearched(
+                    queryLength: newValue.count,
+                    resultsCount: filteredFoods.count
+                )
             }
         }
         .trackScreen("FoodSearch")
