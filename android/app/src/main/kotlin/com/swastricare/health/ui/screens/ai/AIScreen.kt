@@ -113,6 +113,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.swastricare.health.ui.components.TrackScreen
 
 val Poppins = FontFamily(
     Font(R.font.poppins_light, FontWeight.Light),
@@ -128,6 +129,7 @@ fun AIScreen(
     onFullScreenChange: (Boolean) -> Unit = {},
     viewModel: AIViewModel = hiltViewModel()
 ) {
+    TrackScreen("AI")
     val uiState by viewModel.uiState.collectAsState()
     val isOnline by viewModel.networkMonitor.isConnected.collectAsState()
     val listState = rememberLazyListState()

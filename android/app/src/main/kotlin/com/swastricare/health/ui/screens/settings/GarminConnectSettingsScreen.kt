@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.swastricare.health.ui.components.TrackScreen
 
 private const val GARMIN_CONNECT_PACKAGE = "com.garmin.android.apps.connectmobile"
 private const val GARMIN_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=$GARMIN_CONNECT_PACKAGE"
@@ -95,6 +96,7 @@ fun GarminConnectSettingsScreen(
     onNavigateToHealthConnect: () -> Unit,
     viewModel: GarminConnectSettingsViewModel = hiltViewModel()
 ) {
+    TrackScreen("GarminConnectSettings")
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 

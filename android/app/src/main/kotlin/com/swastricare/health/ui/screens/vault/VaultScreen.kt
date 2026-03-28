@@ -37,6 +37,7 @@ import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.VaultCategory
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
+import com.swastricare.health.ui.components.TrackScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +47,7 @@ fun VaultScreen(
     onNavigateToAIChat: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null
 ) {
+    TrackScreen("Vault")
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }

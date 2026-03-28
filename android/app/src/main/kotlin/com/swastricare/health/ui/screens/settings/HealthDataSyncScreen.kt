@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.swastricare.health.ui.components.TrackScreen
 
 // ── Model ─────────────────────────────────────────────────────────────────────
 
@@ -145,6 +146,7 @@ fun HealthDataSyncScreen(
     onNavigateTo: (HealthAppId) -> Unit,
     viewModel: HealthDataSyncViewModel = hiltViewModel()
 ) {
+    TrackScreen("HealthDataSync")
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 

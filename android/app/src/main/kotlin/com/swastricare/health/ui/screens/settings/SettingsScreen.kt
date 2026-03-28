@@ -38,6 +38,7 @@ import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
 import com.swastricare.health.ui.theme.PrimaryColor
+import com.swastricare.health.ui.components.TrackScreen
 
 @Composable
 fun SettingsScreen(
@@ -51,6 +52,7 @@ fun SettingsScreen(
     onSignOut: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    TrackScreen("Settings")
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
 

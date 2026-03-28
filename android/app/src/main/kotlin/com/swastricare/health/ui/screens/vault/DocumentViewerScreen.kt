@@ -43,6 +43,7 @@ import com.swastricare.health.ui.theme.AppColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.swastricare.health.ui.components.TrackScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +51,7 @@ fun DocumentViewerScreen(
     document: MedicalDocument,
     onBack: () -> Unit
 ) {
+    TrackScreen("DocumentViewer")
     val context = LocalContext.current
     val fileType = document.fileType.lowercase()
     val isImage = fileType in listOf("jpg", "jpeg", "png", "webp", "gif", "bmp")

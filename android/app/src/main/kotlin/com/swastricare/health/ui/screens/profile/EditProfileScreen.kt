@@ -37,6 +37,7 @@ import com.swastricare.health.ui.theme.PremiumColor
 import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.AppColors
 import java.util.Locale
+import com.swastricare.health.ui.components.TrackScreen
 
 // ─────────────────────────────────────────────────────────────────────
 //  EditProfileScreen  (Android equivalent of iOS AccountView)
@@ -48,6 +49,7 @@ fun EditProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
+    TrackScreen("EditProfile")
     val uiState by viewModel.uiState.collectAsState()
     val formState by viewModel.editFormState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }

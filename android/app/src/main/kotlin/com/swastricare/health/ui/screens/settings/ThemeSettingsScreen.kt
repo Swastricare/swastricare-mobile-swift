@@ -16,6 +16,7 @@ import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.ThemeMode
 import com.swastricare.health.ui.theme.ThemePreferenceManager
+import com.swastricare.health.ui.components.TrackScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,6 +24,7 @@ fun ThemeSettingsScreen(
     themePreferenceManager: ThemePreferenceManager,
     onNavigateBack: () -> Unit
 ) {
+    TrackScreen("ThemeSettings")
     val currentTheme by themePreferenceManager.themeMode.collectAsState()
 
     Scaffold(

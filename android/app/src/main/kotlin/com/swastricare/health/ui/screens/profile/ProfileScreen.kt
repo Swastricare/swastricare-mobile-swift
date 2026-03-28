@@ -35,6 +35,7 @@ import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.ThemeMode
 import com.swastricare.health.ui.theme.ThemePreferenceManager
+import com.swastricare.health.ui.components.TrackScreen
 
 @Composable
 fun ProfileScreen(
@@ -46,6 +47,7 @@ fun ProfileScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToHealthConnect: () -> Unit = {}
 ) {
+    TrackScreen("Profile")
     val uiState by viewModel.uiState.collectAsState()
     val signOutEvent by viewModel.signOutEvent.collectAsState()
     val themePreferenceManager = viewModel.themePreferenceManager

@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.swastricare.health.ui.components.TrackScreen
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,7 @@ fun GoogleHealthSettingsScreen(
     onNavigateToHealthConnect: () -> Unit,
     viewModel: GoogleHealthSettingsViewModel = hiltViewModel()
 ) {
+    TrackScreen("GoogleHealthSettings")
     val uiState by viewModel.uiState.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(

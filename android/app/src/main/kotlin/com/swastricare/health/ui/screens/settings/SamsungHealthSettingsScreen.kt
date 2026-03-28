@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.swastricare.health.ui.components.TrackScreen
 
 private const val SAMSUNG_HEALTH_PACKAGE = "com.sec.android.app.shealth"
 private const val PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=$SAMSUNG_HEALTH_PACKAGE"
@@ -94,6 +95,7 @@ fun SamsungHealthSettingsScreen(
     onNavigateToHealthConnect: () -> Unit,
     viewModel: SamsungHealthSettingsViewModel = hiltViewModel()
 ) {
+    TrackScreen("SamsungHealthSettings")
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
