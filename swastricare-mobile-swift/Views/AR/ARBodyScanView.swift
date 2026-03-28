@@ -173,6 +173,7 @@ struct ARBodyScanView: View {
             viewModel.stopSession()
         }
         .statusBarHidden()
+        .trackScreen("ARBodyScan")
     }
 }
 

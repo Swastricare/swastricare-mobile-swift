@@ -89,6 +89,7 @@ struct MenstrualCycleView: View {
                 Text(viewModel.errorMessage ?? "")
             }
         }
+        .trackScreen("MenstrualCycle")
     }
 }
 
