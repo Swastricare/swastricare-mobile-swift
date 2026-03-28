@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.model.Gender
 import com.swastricare.health.data.model.HealthProfile
 import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 import kotlinx.coroutines.launch
@@ -25,6 +26,7 @@ fun HealthProfileScreen(
     profileRepository: ProfileRepository,
     onCompleted: () -> Unit
 ) {
+    TrackScreen("HealthProfile")
     var fullName by remember { mutableStateOf("") }
     var dateOfBirth by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf(Gender.Male) }

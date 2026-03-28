@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.auth.components.*
 import com.swastricare.health.ui.theme.AppColors
 
@@ -33,6 +34,7 @@ fun LoginScreen(
     onNavigateToResetPassword: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    TrackScreen("Login")
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val formState by viewModel.formState.collectAsState()

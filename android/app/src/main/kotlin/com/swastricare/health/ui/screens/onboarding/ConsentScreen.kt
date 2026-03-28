@@ -31,12 +31,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConsentScreen(onAccepted: () -> Unit) {
+    TrackScreen("Consent")
     var termsAccepted by remember { mutableStateOf(false) }
     var privacyAccepted by remember { mutableStateOf(false) }
     var dataProcessingAccepted by remember { mutableStateOf(false) }

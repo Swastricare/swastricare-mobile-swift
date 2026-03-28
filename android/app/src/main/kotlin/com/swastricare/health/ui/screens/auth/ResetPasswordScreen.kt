@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.auth.components.*
 
 @Composable
@@ -25,6 +26,7 @@ fun ResetPasswordScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    TrackScreen("ResetPassword")
     val formState by viewModel.formState.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()

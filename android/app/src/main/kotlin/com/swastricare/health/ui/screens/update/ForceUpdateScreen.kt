@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.auth.components.PremiumColors
 import com.swastricare.health.ui.theme.PrimaryColor
 
@@ -43,6 +44,7 @@ fun ForceUpdateScreen(
     updateMessage: String? = null,
     storeUrl: String? = null
 ) {
+    TrackScreen("ForceUpdate")
     val context = LocalContext.current
 
     // Block back button

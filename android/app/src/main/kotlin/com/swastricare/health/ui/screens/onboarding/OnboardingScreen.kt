@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.theme.PrimaryColor
 import kotlinx.coroutines.launch
 
@@ -66,6 +67,7 @@ private val pages = listOf(
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(onFinished: () -> Unit) {
+    TrackScreen("Onboarding")
     val pagerState = rememberPagerState(pageCount = { pages.size })
     val currentPage = pagerState.currentPage
     val scope = rememberCoroutineScope()

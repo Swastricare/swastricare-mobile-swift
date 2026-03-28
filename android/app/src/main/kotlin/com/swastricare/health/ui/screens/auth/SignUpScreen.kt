@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.auth.components.*
 
 @Composable
@@ -31,6 +32,7 @@ fun SignUpScreen(
     onNavigateToEmailVerification: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    TrackScreen("SignUp")
     val uiState by viewModel.uiState.collectAsState()
     val formState by viewModel.formState.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()

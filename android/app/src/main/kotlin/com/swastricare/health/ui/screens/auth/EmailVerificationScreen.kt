@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.auth.components.PremiumButton
 import com.swastricare.health.ui.screens.auth.components.PremiumButtonStyle
 import com.swastricare.health.ui.screens.auth.components.PremiumColors
@@ -40,6 +41,7 @@ fun EmailVerificationScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    TrackScreen("EmailVerification")
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
