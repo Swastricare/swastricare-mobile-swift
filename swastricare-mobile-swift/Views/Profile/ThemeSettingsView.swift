@@ -48,5 +48,6 @@ struct ThemeSettingsView: View {
         }
         .navigationTitle("Theme")
         .navigationBarTitleDisplayMode(.inline)
+        .trackScreen("ThemeSettings")
     }
 }

@@ -142,8 +142,9 @@ struct MedicalDisclaimerView: View {
                 .background(.ultraThinMaterial)
             }
         }
+        .trackScreen("MedicalDisclaimer")
     }
-    
+
     private func disclaimerSection(icon: String, iconColor: Color, title: String, content: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: icon)

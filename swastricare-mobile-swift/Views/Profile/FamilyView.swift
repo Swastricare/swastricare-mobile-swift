@@ -275,6 +275,7 @@ struct FamilyView: View {
         .overlay(alignment: .top) {
             notificationBanner
         }
+        .trackScreen("Family")
     }
 
     // MARK: - Entrance Sequencing

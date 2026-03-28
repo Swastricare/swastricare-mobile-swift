@@ -103,6 +103,7 @@ struct HealthDataSettingsView: View {
         }
         .navigationTitle("Health Data")
         .navigationBarTitleDisplayMode(.inline)
+        .trackScreen("HealthDataSettings")
     }
 
     private func requestPermissions() {

@@ -163,8 +163,9 @@ struct SettingsView: View {
         .task {
             await loadSettings()
         }
+        .trackScreen("Settings")
     }
-    
+
     // MARK: - Loading
     
     private func loadSettings() async {

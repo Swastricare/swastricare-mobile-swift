@@ -88,8 +88,9 @@ struct AccountView: View {
         } message: {
             Text(saveError ?? "")
         }
+        .trackScreen("Account")
     }
-    
+
     private func loadCurrentValues() {
         let hp = viewModel.healthProfile
         editedName = viewModel.userName

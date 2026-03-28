@@ -129,6 +129,7 @@ struct AIReferralGateView: View {
                 .padding(.horizontal, 24)
             }
         }
+        .trackScreen("AIReferralGate")
     }
 
     // MARK: - How It Works Step

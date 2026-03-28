@@ -93,6 +93,7 @@ struct RemindersSettingsView: View {
             await viewModel.checkPermission()
             await viewModel.loadWhatsAppSettings()
         }
+        .trackScreen("RemindersSettings")
     }
 
     // MARK: - Permission Banner

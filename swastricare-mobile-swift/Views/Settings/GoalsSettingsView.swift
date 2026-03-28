@@ -57,6 +57,7 @@ struct GoalsSettingsView: View {
         .sheet(isPresented: $showDietSettings) {
             DietSettingsView(viewModel: dietViewModel)
         }
+        .trackScreen("GoalsSettings")
     }
 
     // MARK: - Activity Section
