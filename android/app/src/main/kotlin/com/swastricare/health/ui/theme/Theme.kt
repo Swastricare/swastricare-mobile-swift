@@ -101,9 +101,9 @@ fun PremiumBackground(
 
     val gradient = Brush.linearGradient(
         colors = listOf(
-            Color(0xFF0A0A1A),
-            Color(0xFF0D0D2B).copy(alpha = 0.95f + animatedOffset * 0.05f),
-            Color(0xFF12122A)
+            Color(0xFF000000),
+            Color(0xFF050510).copy(alpha = 0.95f + animatedOffset * 0.05f),
+            Color(0xFF000000)
         ),
         start = Offset(0f, animatedOffset * 800f),
         end = Offset(800f, (1f - animatedOffset) * 800f)
