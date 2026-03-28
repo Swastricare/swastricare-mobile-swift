@@ -504,12 +504,13 @@ struct AccountView: View {
                     bio: trimmedBio
                 )
             }
+            AppAnalyticsService.shared.logProfileUpdated(fieldsChanged: ["profile"])
             showSaveSuccess = true
         } catch {
             saveError = "Failed to save: \(error.localizedDescription)"
         }
     }
-    
+
     // MARK: - BMI Helpers
     
     private func bmiColor(_ bmi: Double) -> Color {

@@ -636,6 +636,9 @@ struct FamilyView: View {
                         .shadow(color: AppColors.family.opacity(0.3), radius: 6, x: 0, y: 3)
                     }
                     .buttonStyle(ScaleButtonStyle())
+                    .simultaneousGesture(TapGesture().onEnded {
+                        AppAnalyticsService.shared.logFamilyInviteSent()
+                    })
 
                     if vm.isOwner {
                         Button {
@@ -765,6 +768,9 @@ struct FamilyView: View {
             .spring(response: 0.45, dampingFraction: 0.72).delay(0.18 + Double(index) * 0.07),
             value: animateContent
         )
+        .onTapGesture {
+            AppAnalyticsService.shared.logFamilyMemberViewed()
+        }
     }
 
     // MARK: - Leave Button

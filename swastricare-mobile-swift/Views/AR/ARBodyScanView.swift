@@ -165,8 +165,14 @@ struct ARBodyScanView: View {
         .animation(.spring(response: 0.4), value: selectedOrgan?.id)
         .onAppear {
             viewModel.startSession()
+            AppAnalyticsService.shared.logARLaunched()
             withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                 scanPulse = true
+            }
+        }
+        .onChange(of: viewModel.bodyDetected) { detected in
+            if detected {
+                AppAnalyticsService.shared.logARScanCompleted(durationSeconds: 0)
             }
         }
         .onDisappear {

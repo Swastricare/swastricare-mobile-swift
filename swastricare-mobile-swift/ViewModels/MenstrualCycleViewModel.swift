@@ -202,12 +202,13 @@ final class MenstrualCycleViewModel: ObservableObject {
             try await service.saveDailyLog(log)
             
             await loadData()
-            
+
             // Sync to cloud
             Task {
                 await syncCycleToCloud(newCycle)
             }
-            
+
+            AppAnalyticsService.shared.logCycleLogged(entryType: "start")
             print("🩸 MenstrualVM: Started new period on \(date)")
         } catch {
             errorMessage = "Failed to start period: \(error.localizedDescription)"
@@ -227,12 +228,13 @@ final class MenstrualCycleViewModel: ObservableObject {
             
             try await service.updateCycle(activeCycle)
             await loadData()
-            
+
             // Sync to cloud
             Task {
                 await syncCycleToCloud(activeCycle)
             }
-            
+
+            AppAnalyticsService.shared.logCycleLogged(entryType: "end")
             print("🩸 MenstrualVM: Ended period on \(date)")
         } catch {
             errorMessage = "Failed to end period: \(error.localizedDescription)"
@@ -285,12 +287,16 @@ final class MenstrualCycleViewModel: ObservableObject {
         do {
             try await service.saveDailyLog(log)
             await loadData()
-            
+
             // Sync to cloud
             Task {
                 _ = try? await supabaseManager.syncMenstrualDailyLog(log)
             }
-            
+
+            // Log analytics for each symptom saved
+            for symptom in log.symptoms {
+                AppAnalyticsService.shared.logSymptomLogged(symptomType: symptom.symptomType.displayName)
+            }
             print("🩸 MenstrualVM: Saved daily log for \(log.logDate)")
         } catch {
             errorMessage = "Failed to save log: \(error.localizedDescription)"

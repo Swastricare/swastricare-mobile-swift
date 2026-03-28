@@ -190,6 +190,9 @@ struct NotificationSettingsView: View {
                 }
             }
             .tint(.cyan)
+            .onChange(of: settings.enabled) { newValue in
+                AppAnalyticsService.shared.logNotificationToggled(type: "hydration", enabled: newValue)
+            }
         }
     }
     

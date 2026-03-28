@@ -111,6 +111,7 @@ struct HealthDataSettingsView: View {
         Task {
             await homeVM.requestAuthorization()
             await homeVM.loadTodaysData()
+            AppAnalyticsService.shared.logHealthKitToggled(enabled: homeVM.isAuthorized)
             isRequesting = false
         }
     }

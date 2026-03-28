@@ -906,14 +906,17 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
     func handleNotificationResponse(response: UNNotificationResponse) async {
         let actionIdentifier = response.actionIdentifier
         let userInfo = response.notification.request.content.userInfo
-        
+        let categoryIdentifier = response.notification.request.content.categoryIdentifier
+
         // Check notification type
         if let type = userInfo["type"] as? String {
             if type == "medication_reminder" {
+                AppAnalyticsService.shared.logNotificationTapped(notificationType: categoryIdentifier)
                 await handleMedicationNotificationResponse(response: response)
                 return
             }
             if type == "ai_nudge" {
+                AppAnalyticsService.shared.logNotificationTapped(notificationType: categoryIdentifier)
                 await handleNudgeNotificationResponse(response: response)
                 return
             }
@@ -958,6 +961,7 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
         case UNNotificationDefaultActionIdentifier:
             // User tapped the notification — navigate to hydration screen
             historyManager.recordActionByScheduledTime(scheduledTime, action: "opened_app")
+            AppAnalyticsService.shared.logNotificationTapped(notificationType: categoryIdentifier)
             if let deeplink = userInfo["deeplink"] as? String, let url = URL(string: deeplink) {
                 await MainActor.run { UIApplication.shared.open(url) }
             }

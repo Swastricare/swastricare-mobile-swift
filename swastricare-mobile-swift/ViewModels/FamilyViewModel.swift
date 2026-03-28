@@ -115,6 +115,8 @@ final class FamilyViewModel: ObservableObject {
             // Reload members
             let fetchedMembers = try await supabase.fetchFamilyMembers(groupId: group.id)
             self.members = fetchedMembers
+
+            AppAnalyticsService.shared.logFamilyCreated()
         } catch {
             self.error = UserFriendlyError.message(from: error)
             print("FamilyViewModel: Error creating family - \(error)")
@@ -139,6 +141,8 @@ final class FamilyViewModel: ObservableObject {
             _ = try await supabase.joinFamilyByCode(code)
             self.successMessage = "You have joined the family!"
             self.joinCode = ""
+
+            AppAnalyticsService.shared.logFamilyJoined()
 
             // Reload everything
             await loadFamily()

@@ -493,6 +493,7 @@ struct QuickActionsSection: View {
                     color: .purple
                 ) {
                     viewModel.showStatsSheet = true
+                    AppAnalyticsService.shared.logCyclePredictionViewed()
                 }
             }
         }
