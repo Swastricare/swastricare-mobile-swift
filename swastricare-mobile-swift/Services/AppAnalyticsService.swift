@@ -286,9 +286,12 @@ final class AppAnalyticsService {
     // MARK: - Session
 
     func logSessionEnd() {
-        let duration = Int(Date().timeIntervalSince(sessionStartTime))
-        log(eventName: "session_end", eventType: "action", properties: ["duration_seconds": duration])
+        lock.lock()
+        let start = sessionStartTime
         sessionStartTime = Date()
+        lock.unlock()
+        let duration = Int(Date().timeIntervalSince(start))
+        log(eventName: "session_end", eventType: "action", properties: ["duration_seconds": duration])
     }
 
     // MARK: - Onboarding / Consent
