@@ -364,10 +364,14 @@ struct swastricare_mobile_swiftApp: App {
             if authViewModel.isAuthenticated && UserDefaults.standard.bool(forKey: "biometricEnabled") {
                 lockViewModel.lock()
             }
-            
-            // Note: Workout lifecycle monitoring is handled automatically by 
+
+            // Note: Workout lifecycle monitoring is handled automatically by
             // WorkoutLifecycleHandler which observes UIApplication notifications
-            
+
+            // Emit session_end and flush analytics
+            AppAnalyticsService.shared.logSessionEnd()
+            Task { await AppAnalyticsService.shared.flushNow() }
+
         case .active:
             // Re-check app version periodically when becoming active
             Task {
