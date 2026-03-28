@@ -30,8 +30,9 @@ data class AppEvent(
     val id: String = UUID.randomUUID().toString(),
     @SerialName("event_name")
     val eventName: String,
+    @SerialName("event_type")
+    val eventType: String = "action",
     val properties: Map<String, String> = emptyMap(),
-    val timestamp: String = "",
     val sessionId: String = "",
     @SerialName("user_id")
     val userId: String? = null
@@ -43,8 +44,8 @@ data class AppEvent(
 @Serializable
 data class AppEventRow(
     val event_name: String,
+    val event_type: String,
     val properties: JsonObject,
-    val timestamp: String,
     val session_id: String,
     val platform: String = "android",
     val user_id: String? = null
@@ -120,7 +121,7 @@ class AppAnalyticsService(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to register lifecycle observer: ${e.message}")
         }
-        track("app_open")
+        track("app_open", eventType = "action")
         Log.d(TAG, "Analytics started. Session: $sessionId")
     }
 
@@ -146,20 +147,20 @@ class AppAnalyticsService(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to register lifecycle observer: ${e.message}")
         }
-        track("app_open")
+        track("app_open", eventType = "action")
         Log.d(TAG, "Analytics initialized. Session: $sessionId")
     }
 
     // Lifecycle callbacks
     override fun onStart(owner: LifecycleOwner) {
         // App comes to foreground
-        track("app_open")
+        track("app_open", eventType = "action")
     }
 
     override fun onStop(owner: LifecycleOwner) {
         val durationSeconds = (System.currentTimeMillis() - sessionStartTime) / 1000
         trackSessionEnd(durationSeconds)
-        track("app_background")
+        track("app_background", eventType = "action")
         scope.launch { flush() }
     }
 
@@ -170,12 +171,12 @@ class AppAnalyticsService(
     /**
      * Track a named event with optional properties.
      */
-    fun track(eventName: String, properties: Map<String, String> = emptyMap()) {
+    fun track(eventName: String, properties: Map<String, String> = emptyMap(), eventType: String = "action") {
         val event = AppEvent(
             id = UUID.randomUUID().toString(),
             eventName = eventName,
+            eventType = eventType,
             properties = properties,
-            timestamp = isoFormatter.format(java.time.Instant.now()),
             sessionId = sessionId,
             userId = currentUserId
         )
@@ -206,43 +207,43 @@ class AppAnalyticsService(
     }
 
     fun trackTabSelected(tabName: String) {
-        track("tab_selected", mapOf("tab_name" to tabName))
+        track("tab_selected", mapOf("tab_name" to tabName), eventType = "navigation")
     }
 
     fun trackHydrationLogged(amount: Int, drinkType: String) {
-        track("hydration_logged", mapOf("amount" to amount.toString(), "drink_type" to drinkType))
+        track("hydration_logged", mapOf("amount" to amount.toString(), "drink_type" to drinkType), eventType = "action")
     }
 
     fun trackHydrationGoalMet() {
-        track("hydration_goal_met")
+        track("hydration_goal_met", eventType = "action")
     }
 
     fun trackMedicationTaken(medicationName: String) {
-        track("medication_taken", mapOf("medication_name" to medicationName))
+        track("medication_taken", mapOf("medication_name" to medicationName), eventType = "action")
     }
 
     fun trackMedicationSkipped(medicationName: String, reason: String) {
-        track("medication_skipped", mapOf("medication_name" to medicationName, "reason" to reason))
+        track("medication_skipped", mapOf("medication_name" to medicationName, "reason" to reason), eventType = "action")
     }
 
     fun trackHeartbeatMeasurement(bpm: Int, confidence: Float) {
-        track("heartbeat_measurement", mapOf("bpm" to bpm.toString(), "confidence" to confidence.toString()))
+        track("heartbeat_measurement", mapOf("bpm" to bpm.toString(), "confidence" to confidence.toString()), eventType = "action")
     }
 
     fun trackAIMessageSent(mode: String) {
-        track("ai_message_sent", mapOf("mode" to mode))
+        track("ai_message_sent", mapOf("mode" to mode), eventType = "action")
     }
 
     fun trackAIAnalysisRequest() {
-        track("ai_analysis_request")
+        track("ai_analysis_request", eventType = "action")
     }
 
     fun trackConversationStarted() {
-        track("conversation_started")
+        track("conversation_started", eventType = "action")
     }
 
     fun trackWorkoutStarted(activityType: String) {
-        track("workout_started", mapOf("activity_type" to activityType))
+        track("workout_started", mapOf("activity_type" to activityType), eventType = "action")
     }
 
     fun trackWorkoutCompleted(activityType: String, durationSeconds: Long, distanceMeters: Double) {
@@ -252,90 +253,91 @@ class AppAnalyticsService(
                 "activity_type" to activityType,
                 "duration" to durationSeconds.toString(),
                 "distance" to distanceMeters.toString()
-            )
+            ),
+            eventType = "action"
         )
     }
 
     fun trackVaultUpload(category: String) {
-        track("vault_upload", mapOf("category" to category))
+        track("vault_upload", mapOf("category" to category), eventType = "action")
     }
 
     fun trackError(errorType: String, message: String) {
-        track("error", mapOf("error_type" to errorType, "message" to message))
+        track("error", mapOf("error_type" to errorType, "message" to message), eventType = "error")
     }
 
     fun trackScreen(screenName: String, durationSeconds: Int) {
-        track("screen_view", mapOf("screen" to screenName, "duration_seconds" to durationSeconds.toString()))
+        track("screen_view", mapOf("screen" to screenName, "duration_seconds" to durationSeconds.toString()), eventType = "screen")
     }
 
     fun trackSessionEnd(durationSeconds: Long) {
-        track("session_end", mapOf("duration_seconds" to durationSeconds.toString()))
+        track("session_end", mapOf("duration_seconds" to durationSeconds.toString()), eventType = "action")
         sessionStartTime = System.currentTimeMillis()
         sessionId = UUID.randomUUID().toString()
     }
 
     // Diet
     fun trackFoodSearched(queryLength: Int, resultsCount: Int) {
-        track("food_searched", mapOf("query_length" to queryLength.toString(), "results_count" to resultsCount.toString()))
+        track("food_searched", mapOf("query_length" to queryLength.toString(), "results_count" to resultsCount.toString()), eventType = "feature_usage")
     }
 
     fun trackFoodAdded(mealType: String, calories: Int, isCustom: Boolean) {
-        track("food_added", mapOf("meal_type" to mealType, "calories" to calories.toString(), "is_custom" to isCustom.toString()))
+        track("food_added", mapOf("meal_type" to mealType, "calories" to calories.toString(), "is_custom" to isCustom.toString()), eventType = "feature_usage")
     }
 
     fun trackFoodDeleted(mealType: String) {
-        track("food_deleted", mapOf("meal_type" to mealType))
+        track("food_deleted", mapOf("meal_type" to mealType), eventType = "feature_usage")
     }
 
     fun trackMealCopied() {
-        track("meal_copied")
+        track("meal_copied", eventType = "feature_usage")
     }
 
     fun trackCalorieGoalReached(goalKcal: Int, actualKcal: Int) {
-        track("calorie_goal_reached", mapOf("goal_kcal" to goalKcal.toString(), "actual_kcal" to actualKcal.toString()))
+        track("calorie_goal_reached", mapOf("goal_kcal" to goalKcal.toString(), "actual_kcal" to actualKcal.toString()), eventType = "feature_usage")
     }
 
     // Menstrual Cycle
     fun trackCycleLogged(entryType: String) {
-        track("cycle_logged", mapOf("entry_type" to entryType))
+        track("cycle_logged", mapOf("entry_type" to entryType), eventType = "feature_usage")
     }
 
     fun trackSymptomLogged(symptomType: String) {
-        track("symptom_logged", mapOf("symptom_type" to symptomType))
+        track("symptom_logged", mapOf("symptom_type" to symptomType), eventType = "feature_usage")
     }
 
     fun trackCyclePredictionViewed() {
-        track("cycle_prediction_viewed")
+        track("cycle_prediction_viewed", eventType = "feature_usage")
     }
 
     // Family
-    fun trackFamilyCreated() { track("family_created") }
-    fun trackFamilyJoined() { track("family_joined") }
-    fun trackFamilyMemberViewed() { track("family_member_viewed") }
-    fun trackFamilyInviteSent() { track("family_invite_sent") }
+    fun trackFamilyCreated() { track("family_created", eventType = "feature_usage") }
+    fun trackFamilyJoined() { track("family_joined", eventType = "feature_usage") }
+    fun trackFamilyMemberViewed() { track("family_member_viewed", eventType = "feature_usage") }
+    fun trackFamilyInviteSent() { track("family_invite_sent", eventType = "feature_usage") }
 
     // Settings
     fun trackNotificationToggled(type: String, enabled: Boolean) {
-        track("notification_toggled", mapOf("type" to type, "enabled" to enabled.toString()))
+        track("notification_toggled", mapOf("type" to type, "enabled" to enabled.toString()), eventType = "feature_usage")
     }
 
     fun trackProfileUpdated(fieldsChanged: List<String>) {
-        track("profile_updated", mapOf("fields_changed" to fieldsChanged.joinToString(",")))
+        track("profile_updated", mapOf("fields_changed" to fieldsChanged.joinToString(",")), eventType = "feature_usage")
     }
 
     fun trackHealthConnectToggled(enabled: Boolean) {
-        track("health_connect_toggled", mapOf("enabled" to enabled.toString()))
+        track("health_connect_toggled", mapOf("enabled" to enabled.toString()), eventType = "feature_usage")
     }
 
     // Notifications
     fun trackNotificationTapped(notificationType: String) {
-        track("notification_tapped", mapOf("notification_type" to notificationType))
+        track("notification_tapped", mapOf("notification_type" to notificationType), eventType = "action")
     }
 
     // AR
-    fun trackARLaunched() { track("ar_launched") }
+    fun trackARLaunched() { track("ar_launched", eventType = "feature_usage") }
     fun trackARScanCompleted(durationSeconds: Int) {
-        track("ar_scan_completed", mapOf("duration_seconds" to durationSeconds.toString()))
+        track("ar_scan_completed", mapOf("duration_seconds" to durationSeconds.toString()), eventType = "feature_usage")
     }
 
     // ─────────────────────────────────────
@@ -385,10 +387,10 @@ class AppAnalyticsService(
                 val rows = taggedBatch.map { event ->
                     AppEventRow(
                         event_name = event.eventName,
+                        event_type = event.eventType,
                         properties = JsonObject(
                             event.properties.mapValues { JsonPrimitive(it.value) }
                         ),
-                        timestamp = event.timestamp,
                         session_id = event.sessionId,
                         platform = "android",
                         user_id = event.userId
