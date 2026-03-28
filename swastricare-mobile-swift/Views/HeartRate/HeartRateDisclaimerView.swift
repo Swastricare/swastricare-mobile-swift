@@ -84,8 +84,9 @@ struct HeartRateDisclaimerView: View {
             .navigationBarHidden(true)
         }
         .interactiveDismissDisabled()
+        .trackScreen("HeartRateDisclaimer")
     }
-    
+
     // MARK: - Subviews
     
     private func disclaimerCard(icon: String, title: String, text: String, color: Color) -> some View {

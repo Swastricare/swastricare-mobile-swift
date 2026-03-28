@@ -95,8 +95,9 @@ struct LiveActivityTrackingView: View {
                 Text(message)
             }
         }
+        .trackScreen("LiveActivityTracking")
     }
-    
+
     // MARK: - Activity Type Selection
     
     private var activityTypeSelection: some View {

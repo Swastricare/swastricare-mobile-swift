@@ -48,6 +48,7 @@ struct RunCalendarView: View {
         .onChange(of: selectedMonth) { _, _ in
             generateCalendarData()
         }
+        .trackScreen("RunCalendar")
     }
     
     // MARK: - Month Navigation Header

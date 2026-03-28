@@ -87,8 +87,9 @@ struct TrackerView: View {
                 HeartRateView()
             }
         }
+        .trackScreen("Tracker")
     }
-    
+
     // MARK: - Subviews
     
     private var dateSelector: some View {

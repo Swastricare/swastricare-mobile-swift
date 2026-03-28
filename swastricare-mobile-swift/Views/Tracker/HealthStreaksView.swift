@@ -147,6 +147,7 @@ struct HealthStreaksView: View {
                 }
             }
         }
+        .trackScreen("HealthStreaks")
     }
 }
 

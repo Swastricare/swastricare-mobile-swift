@@ -113,8 +113,9 @@ struct HealthAnalyticsView: View {
                 onDismiss: { viewModel.dismissAnalysis() }
             )
         }
+        .trackScreen("HealthAnalytics")
     }
-    
+
     // MARK: - Header
     
     private var headerView: some View {

@@ -127,8 +127,9 @@ struct WorkoutRecoveryView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
+        .trackScreen("WorkoutRecovery")
     }
-    
+
     // MARK: - Computed Properties
     
     private var activityIcon: String {

@@ -97,8 +97,9 @@ struct HeartRateView: View {
                 HeartRateAnalyticsView()
             }
         }
+        .trackScreen("HeartRate")
     }
-    
+
     // MARK: - Background
     
     private var backgroundView: some View {

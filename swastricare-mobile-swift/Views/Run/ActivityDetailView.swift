@@ -150,8 +150,9 @@ struct ActivityDetailView: View {
             }
             loadAnalytics()
         }
+        .trackScreen("ActivityDetail")
     }
-    
+
     // MARK: - Tab Selector
     
     private var tabSelector: some View {

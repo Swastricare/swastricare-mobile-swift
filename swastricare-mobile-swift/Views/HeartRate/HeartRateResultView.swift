@@ -115,6 +115,7 @@ struct HeartRateResultView: View {
             }
         }
         .interactiveDismissDisabled(viewModel.isSaving)
+        .trackScreen("HeartRateResult")
     }
     
     // MARK: - Hero Section

@@ -61,6 +61,7 @@ struct HeartRateAnalyticsView: View {
         .refreshable {
             await viewModel.refresh()
         }
+        .trackScreen("HeartRateAnalytics")
     }
     
     private var controls: some View {
