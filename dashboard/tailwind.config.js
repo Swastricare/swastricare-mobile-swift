@@ -9,6 +9,7 @@ module.exports = {
       gridTemplateColumns: {
         '24': 'repeat(24, minmax(0, 1fr))',
       },
+      borderOpacity: { '8': '0.08' },
     },
   },
   plugins: [],
