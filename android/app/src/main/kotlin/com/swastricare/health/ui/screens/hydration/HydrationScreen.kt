@@ -1,17 +1,19 @@
 package com.swastricare.health.ui.screens.hydration
 
-import androidx.compose.foundation.BorderStroke
+import android.app.Activity
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,25 +21,41 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.graphics.toArgb
+import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swastricare.health.data.models.DrinkType
 import com.swastricare.health.data.models.QuickAddPreset
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.components.TrackScreen
-import com.swastricare.health.ui.screens.home.lightBorder
+import androidx.core.view.WindowCompat
 import com.swastricare.health.ui.theme.AppColors
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.data.models.DrinkType
+import com.swastricare.health.ui.components.TrackScreen
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 // ─────────────────────────────────────
 // MARK: - HydrationScreen
 // ─────────────────────────────────────
 
+// Drink-type gradient palettes: (lightTop, lightBottom, darkTop, darkBottom)
+private data class DrinkGradient(val lightTop: Color, val lightBottom: Color, val darkTop: Color, val darkBottom: Color)
+
+private val drinkGradients = mapOf(
+    DrinkType.WATER   to DrinkGradient(Color(0xFF0EA5E9), Color(0xFF2563EB), Color(0xFF0369A1), Color(0xFF1E3A5F)),
+    DrinkType.COFFEE  to DrinkGradient(Color(0xFF8B6914), Color(0xFF5C3D0E), Color(0xFF5C3D0E), Color(0xFF3A2508)),
+    DrinkType.TEA     to DrinkGradient(Color(0xFF7CB342), Color(0xFF558B2F), Color(0xFF4E6B2F), Color(0xFF2E4A1A)),
+    DrinkType.JUICE   to DrinkGradient(Color(0xFFF57C00), Color(0xFFE65100), Color(0xFFC25700), Color(0xFF8B3A00)),
+    DrinkType.MILK    to DrinkGradient(Color(0xFF90A4AE), Color(0xFF607D8B), Color(0xFF546E7A), Color(0xFF37474F))
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HydrationScreen(
     onNavigateBack: () -> Unit,
@@ -47,380 +65,373 @@ fun HydrationScreen(
     TrackScreen("Hydration")
     val vm: HydrationViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
+    val isDark = isSystemInDarkTheme()
 
-    // Local state for custom drink input
-    var selectedDrinkType by remember { mutableStateOf(DrinkType.WATER) }
-    var customAmountText by remember { mutableStateOf("") }
+    val palette = drinkGradients[uiState.dominantDrinkType] ?: drinkGradients[DrinkType.WATER]!!
+    val gradientTop by animateColorAsState(
+        targetValue = palette.lightTop,
+        animationSpec = tween(durationMillis = 600),
+        label = "gradientTop"
+    )
+    val gradientBottom by animateColorAsState(
+        targetValue = palette.lightBottom,
+        animationSpec = tween(durationMillis = 600),
+        label = "gradientBottom"
+    )
+    val sheetColor = if (isDark) Color(0xFF0A0A0A) else Color.White
+
+    var showAddDrinkSheet by remember { mutableStateOf(false) }
     var showUrineGuide by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            // ── Top Bar ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.Default.ArrowBack, "Back",
-                        tint = AppColors.onSurface
-                    )
-                }
-                Text(
-                    "Hydration",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(Icons.Default.Settings, "Settings", tint = AppColors.onSurface.copy(alpha = 0.7f))
-                }
-                IconButton(onClick = onNavigateToAI) {
-                    Icon(Icons.Default.AutoAwesome, "Ask AI", tint = HydrationCyan)
-                }
+    // Fill status bar AND navigation bar with gradient colors
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        DisposableEffect(isDark, gradientTop) {
+            val activity = view.context as? Activity ?: return@DisposableEffect onDispose {}
+            val originalStatusBarColor = activity.window.statusBarColor
+            val originalNavBarColor = activity.window.navigationBarColor
+            activity.window.statusBarColor = gradientTop.toArgb()
+            activity.window.navigationBarColor = sheetColor.toArgb()
+            val controller = WindowCompat.getInsetsController(activity.window, view)
+            controller.isAppearanceLightStatusBars = false
+            controller.isAppearanceLightNavigationBars = !isDark
+            onDispose {
+                activity.window.statusBarColor = originalStatusBarColor
+                activity.window.navigationBarColor = originalNavBarColor
+                controller.isAppearanceLightStatusBars = !isDark
+                controller.isAppearanceLightNavigationBars = !isDark
             }
+        }
+    }
 
-            // ── Content ──
-            when {
-                uiState.isLoading -> HydrationSkeletonContent()
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 80.dp)
-                    ) {
-                        // Calendar Strip
-                        item {
-                            Spacer(Modifier.height(4.dp))
-                            HydrationCalendarStrip(
-                                selectedDate = uiState.selectedDate,
-                                onDateSelected = { vm.selectDate(it) }
-                            )
-                            Spacer(Modifier.height(16.dp))
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { msg ->
+            snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
+            vm.clearError()
+        }
+    }
+
+    val bottomSheetState = rememberBottomSheetScaffoldState(
+        bottomSheetState = rememberStandardBottomSheetState(
+            initialValue = SheetValue.PartiallyExpanded,
+            confirmValueChange = { it != SheetValue.Hidden }
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(gradientTop, gradientBottom)))
+    ) {
+        BottomSheetScaffold(
+            scaffoldState = bottomSheetState,
+            sheetContent = {
+                SheetContent(
+                    uiState = uiState,
+                    onDeleteEntry = { vm.deleteDrink(it) },
+                    onNavigateToAI = onNavigateToAI,
+                    onShowAddDrink = { showAddDrinkSheet = true }
+                )
+            },
+            sheetPeekHeight = 250.dp,
+            sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            sheetContainerColor = sheetColor,
+            sheetShadowElevation = 8.dp,
+            sheetTonalElevation = 0.dp,
+            containerColor = Color.Transparent,
+            contentColor = Color.White,
+        ) { innerPadding ->
+            // Fixed gradient content — does NOT scroll
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = innerPadding.calculateBottomPadding())
+            ) {
+                // ── Top Bar ──
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+                    }
+                    Text(
+                        "Hydration",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, "Settings", tint = Color.White.copy(alpha = 0.8f))
+                    }
+                    IconButton(onClick = onNavigateToAI) {
+                        Icon(Icons.Default.AutoAwesome, "Ask AI", tint = Color.White)
+                    }
+                }
+
+                when {
+                    uiState.isLoading -> HydrationSkeletonContent()
+                    else -> {
+                        Spacer(Modifier.height(8.dp))
+
+                        HydrationHeroPager(
+                            uiState = uiState,
+                            onDragAddMl = { ml -> vm.addDrink(DrinkType.WATER, ml) }
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Wrap calendar and chips in Box for proper z-ordering of dragged chips
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Column {
+                                HydrationCalendarStrip(
+                                    selectedDate = uiState.selectedDate,
+                                    onDateSelected = { vm.selectDate(it) }
+                                )
+                                Spacer(Modifier.height(16.dp))
+
+                                // Quick add drink chips
+                                QuickAddDrinkChips(
+                                    onAddDrink = { drinkType -> vm.addDrink(drinkType, 100) }
+                                )
+                            }
                         }
+                        Spacer(Modifier.height(12.dp))
 
-                        // Weather Adjustment Banner
                         if (uiState.isWeatherAdjusted && uiState.weatherData != null) {
-                            item {
-                                WeatherAdjustmentBanner(
-                                    temperature = uiState.weatherData!!.temperatureCelsius,
-                                    city = uiState.weatherData!!.city,
-                                    baseGoal = uiState.baseGoalMl,
-                                    adjustedGoal = uiState.effectiveGoalMl,
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                                Spacer(Modifier.height(16.dp))
-                            }
-                        }
-
-                        // Progress Section: Glass + Stats
-                        item {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                                    .lightBorder(16.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(AppColors.surface)
-                                    .padding(20.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Text(
-                                    if (uiState.isWeatherAdjusted)
-                                        "Goal: ${uiState.effectiveGoalMl}ml (adjusted from ${uiState.baseGoalMl}ml)"
-                                    else
-                                        "Goal: ${uiState.effectiveGoalMl}ml",
-                                    fontSize = 12.sp,
-                                    color = AppColors.onSurface.copy(alpha = 0.5f)
-                                )
-
-                                // Water Glass
-                                WaterGlassView(
-                                    progress = uiState.progress,
-                                    modifier = Modifier.size(180.dp)
-                                )
-
-                                // Stat Pills
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    HydrationStatPill(
-                                        icon = Icons.Default.WaterDrop,
-                                        iconColor = HydrationCyan,
-                                        value = "${uiState.effectiveIntake}",
-                                        label = "of ${uiState.effectiveGoalMl}ml",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    HydrationStatPill(
-                                        icon = Icons.Default.ArrowUpward,
-                                        iconColor = Color(0xFFFF9500),
-                                        value = "${uiState.remainingMl}",
-                                        label = "remaining",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    HydrationStatPill(
-                                        icon = Icons.Default.LocalDrink,
-                                        iconColor = Color(0xFF34C759),
-                                        value = "${uiState.todaysEntries.size}",
-                                        label = "drinks",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(16.dp))
-                        }
-
-                        // Quick Add Section
-                        item {
-                            Text(
-                                "Quick Add",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
+                            WeatherAdjustmentBanner(
+                                temperature = uiState.weatherData!!.temperatureCelsius,
+                                city = uiState.weatherData!!.city,
+                                baseGoal = uiState.baseGoalMl,
+                                adjustedGoal = uiState.effectiveGoalMl,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
-                            Spacer(Modifier.height(8.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(horizontal = 16.dp)
-                            ) {
-                                items(QuickAddPreset.defaults) { preset ->
-                                    QuickAddButton(
-                                        preset = preset,
-                                        onClick = { vm.addDrink(selectedDrinkType, preset.amountMl) }
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(20.dp))
-                        }
-
-                        // Drink Type Picker
-                        item {
-                            Text(
-                                "Drink Type",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            DrinkTypePicker(
-                                selectedType = selectedDrinkType,
-                                onTypeSelected = { selectedDrinkType = it }
-                            )
-                            Spacer(Modifier.height(12.dp))
-                        }
-
-                        // Custom Amount Input
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = customAmountText,
-                                    onValueChange = { value ->
-                                        customAmountText = value.filter { it.isDigit() }
-                                    },
-                                    label = { Text("Custom amount (ml)") },
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Number,
-                                        imeAction = ImeAction.Done
-                                    ),
-                                    keyboardActions = KeyboardActions(
-                                        onDone = { focusManager.clearFocus() }
-                                    ),
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = HydrationCyan,
-                                        cursorColor = HydrationCyan
-                                    )
-                                )
-                                Button(
-                                    onClick = {
-                                        val amount = customAmountText.toIntOrNull()
-                                        if (amount != null && amount > 0) {
-                                            vm.addDrink(selectedDrinkType, amount)
-                                            customAmountText = ""
-                                            focusManager.clearFocus()
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = HydrationCyan
-                                    ),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.height(56.dp)
-                                ) {
-                                    Icon(Icons.Default.Add, "Add")
-                                }
-                            }
-                            Spacer(Modifier.height(20.dp))
-                        }
-
-                        // Insights Card
-                        uiState.insights?.let { insights ->
-                            item {
-                                HydrationInsightsCard(
-                                    insights = insights,
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                                Spacer(Modifier.height(16.dp))
-                            }
-                        }
-
-                        // Today's Entries
-                        if (uiState.todaysEntries.isNotEmpty()) {
-                            item {
-                                Text(
-                                    "Today's Drinks",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                                Spacer(Modifier.height(8.dp))
-                            }
-
-                            item {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(AppColors.surface)
-                                ) {
-                                    uiState.todaysEntries.forEachIndexed { index, entry ->
-                                        HydrationEntryCard(
-                                            entry = entry,
-                                            onDelete = { vm.deleteDrink(entry.id) }
-                                        )
-                                        if (index < uiState.todaysEntries.lastIndex) {
-                                            HorizontalDivider(
-                                                color = AppColors.onSurface.copy(alpha = 0.06f),
-                                                modifier = Modifier.padding(start = 60.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                                Spacer(Modifier.height(16.dp))
-                            }
-                        } else {
-                            // Empty state
-                            item {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text("💧", fontSize = 48.sp)
-                                    Text(
-                                        "No drinks logged yet",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = AppColors.onSurface.copy(alpha = 0.6f)
-                                    )
-                                    Text(
-                                        "Tap a Quick Add button or enter a custom amount to start tracking",
-                                        fontSize = 13.sp,
-                                        color = AppColors.onSurface.copy(alpha = 0.4f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                                Spacer(Modifier.height(16.dp))
-                            }
-                        }
-
-                        // Urine Color Guide Button
-                        item {
-                            OutlinedButton(
-                                onClick = { showUrineGuide = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                                    .height(48.dp),
-                                border = BorderStroke(1.dp, Color(0xFF00C7BE)),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color(0xFF00C7BE)
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Colorize, null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Urine Color Guide",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                        }
-
-                        // Ask AI button
-                        item {
-                            OutlinedButton(
-                                onClick = onNavigateToAI,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                                    .height(48.dp),
-                                border = BorderStroke(1.dp, HydrationCyan),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = HydrationCyan
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.AutoAwesome, null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Ask AI about my hydration",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Spacer(Modifier.height(24.dp))
                         }
                     }
                 }
             }
         }
 
-        // Error snackbar
-        val snackbarHostState = remember { SnackbarHostState() }
-        LaunchedEffect(uiState.error) {
-            uiState.error?.let { msg ->
-                snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
-                vm.clearError()
-            }
-        }
+        // Snackbar
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 88.dp)
         )
 
-        // Urine Color Guide Bottom Sheet
+        // Add drink bottom sheet
+        if (showAddDrinkSheet) {
+            AddDrinkBottomSheet(
+                onDismiss = { showAddDrinkSheet = false },
+                onAddDrink = { type, amount -> vm.addDrink(type, amount) },
+                onShowUrineGuide = {
+                    showAddDrinkSheet = false
+                    showUrineGuide = true
+                }
+            )
+        }
+
+        // Urine color guide sheet
         if (showUrineGuide) {
             UrineColorGuideSheet(
                 onDismiss = { showUrineGuide = false },
                 onLogWater = { amount -> vm.addDrink(DrinkType.WATER, amount) }
             )
         }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - GreetingHeader
+// ─────────────────────────────────────
+
+@Composable
+private fun GreetingHeader(
+    name: String,
+    isGoalMet: Boolean,
+    progress: Float,
+    modifier: Modifier = Modifier
+) {
+    val subtitle = when {
+        isGoalMet -> "Goal reached! Great job today!"
+        progress >= 0.7f -> "You're on track! Keep it up."
+        else -> "Drink more water to stay healthy."
+    }
+    val displayName = if (name.isNotBlank()) name else "there"
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            "Hello, $displayName",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        Text(
+            subtitle,
+            fontSize = 15.sp,
+            color = Color.White.copy(alpha = 0.85f)
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - SheetContent (bottom sheet)
+// ─────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SheetContent(
+    uiState: HydrationUiState,
+    onDeleteEntry: (String) -> Unit,
+    onNavigateToAI: () -> Unit,
+    onShowAddDrink: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val view = LocalView.current
+    val dateFormatter = remember {
+        DateTimeFormatter.ofPattern("EEE, dd MMM yyyy", Locale.getDefault())
+    }
+    val formattedDate = uiState.selectedDate.format(dateFormatter)
+    val drinkCount = uiState.todaysEntries.size
+    val totalMl = uiState.totalIntake
+
+    val titleColor = AppColors.onSurface
+    val subtitleColor = AppColors.onSurfaceVariant
+    val dividerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+    val entryBgColor = if (isDark) Color(0xFF141414) else Color(0xFFF9F9FB)
+    val entryDividerColor = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA)
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+        contentPadding = PaddingValues(
+            start = 20.dp, end = 20.dp,
+            top = 4.dp, bottom = 96.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Date header with add button
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        formattedDate,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = titleColor
+                    )
+                    Text(
+                        if (drinkCount > 0) "$drinkCount drink${if (drinkCount > 1) "s" else ""} · ${totalMl}ml"
+                        else "No drinks yet today",
+                        fontSize = 13.sp,
+                        color = subtitleColor
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        onShowAddDrink()
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add drink",
+                        modifier = Modifier.size(24.dp),
+                        tint = titleColor
+                    )
+                }
+            }
+            HorizontalDivider(
+                color = dividerColor,
+                modifier = Modifier.padding(top = 12.dp)
+            )
+        }
+
+        // Entries or empty state
+        if (uiState.todaysEntries.isNotEmpty()) {
+            items(
+                items = uiState.todaysEntries,
+                key = { it.id }
+            ) { entry ->
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value == SwipeToDismissBoxValue.EndToStart) {
+                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            onDeleteEntry(entry.id)
+                            true
+                        } else false
+                    }
+                )
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFFF3B30))
+                                .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = Color.White
+                            )
+                        }
+                    },
+                    enableDismissFromStartToEnd = false
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(entryBgColor)
+                    ) {
+                        HydrationEntryCard(
+                            entry = entry,
+                            onDelete = { onDeleteEntry(entry.id) }
+                        )
+                    }
+                }
+            }
+        } else {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    DrinkIcon(drinkType = DrinkType.WATER, size = 48.dp)
+                    Text(
+                        "No drinks yet",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = subtitleColor
+                    )
+                    Text(
+                        "Tap + to log your first drink",
+                        fontSize = 13.sp,
+                        color = AppColors.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+
     }
 }

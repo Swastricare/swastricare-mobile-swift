@@ -8,6 +8,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -55,6 +58,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.graphics.BitmapFactory
@@ -443,6 +449,208 @@ fun HydrationStatPill(
 }
 
 // ─────────────────────────────────────
+// MARK: - QuickAddDrinkChips
+// ─────────────────────────────────────
+
+@Composable
+fun QuickAddDrinkChips(
+    onAddDrink: (DrinkType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val view = LocalView.current
+    val isDark = isSystemInDarkTheme()
+    val drinkTypes = listOf(
+        DrinkType.WATER,
+        DrinkType.TEA,
+        DrinkType.COFFEE,
+        DrinkType.JUICE,
+        DrinkType.MILK,
+        DrinkType.SPORTS_DRINK
+    )
+
+    var draggedChip by remember { mutableStateOf<DrinkType?>(null) }
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    var dragStartPosition by remember { mutableStateOf(Offset.Zero) }
+    val chipPositions = remember { mutableMapOf<DrinkType, Offset>() }
+    var parentBoxPosition by remember { mutableStateOf(Offset.Zero) }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { coordinates ->
+                // Track parent Box position
+                parentBoxPosition = Offset(
+                    coordinates.positionInRoot().x,
+                    coordinates.positionInRoot().y
+                )
+            }
+    ) {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(drinkTypes) { drinkType ->
+                val isDragging = draggedChip == drinkType
+
+                Box(
+                    modifier = Modifier
+                        .onGloballyPositioned { coordinates ->
+                            // Track chip position in root space
+                            chipPositions[drinkType] = Offset(
+                                coordinates.positionInRoot().x,
+                                coordinates.positionInRoot().y
+                            )
+                        }
+                        .graphicsLayer {
+                            alpha = if (isDragging) 0.3f else 1f
+                        }
+                        .pointerInput(drinkType) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { offset ->
+                                    draggedChip = drinkType
+                                    // Convert chip position to parent Box coordinate space
+                                    val chipRootPos = chipPositions[drinkType] ?: Offset.Zero
+                                    val chipLocalPos = chipRootPos - parentBoxPosition
+                                    dragStartPosition = chipLocalPos + offset
+                                    dragOffset = Offset.Zero
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    dragOffset += dragAmount
+                                },
+                                onDragEnd = {
+                                    if (draggedChip != null) {
+                                        // If dragged significantly upward, add the drink
+                                        if (dragOffset.y < -100f) {
+                                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                            onAddDrink(drinkType)
+                                        }
+                                        draggedChip = null
+                                    }
+                                    dragOffset = Offset.Zero
+                                    dragStartPosition = Offset.Zero
+                                },
+                                onDragCancel = {
+                                    draggedChip = null
+                                    dragOffset = Offset.Zero
+                                    dragStartPosition = Offset.Zero
+                                }
+                            )
+                        }
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            if (isDark)
+                                Brush.linearGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.12f),
+                                        Color.White.copy(alpha = 0.08f)
+                                    )
+                                )
+                            else
+                                Brush.linearGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.25f),
+                                        Color.White.copy(alpha = 0.18f)
+                                    )
+                                )
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = if (isDark) 0.15f else 0.25f),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            onAddDrink(drinkType)
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    DrinkChipContent(drinkType = drinkType, isDark = isDark)
+                }
+            }
+        }
+
+        // Overlay for dragged chip
+        if (draggedChip != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) { } // Block touches
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset {
+                            IntOffset(
+                                (dragStartPosition.x + dragOffset.x).toInt(),
+                                (dragStartPosition.y + dragOffset.y).toInt()
+                            )
+                        }
+                        .graphicsLayer {
+                            scaleX = 1.1f
+                            scaleY = 1.1f
+                            shadowElevation = 32f
+                        }
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    drinkAccentColors[draggedChip] ?: HydrationCyan,
+                                    (drinkAccentColors[draggedChip] ?: HydrationCyan).copy(alpha = 0.8f)
+                                )
+                            )
+                        )
+                        .border(
+                            width = 2.dp,
+                            color = Color.White.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    DrinkChipContent(drinkType = draggedChip!!, isDark = isDark)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DrinkChipContent(drinkType: DrinkType, isDark: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            DrinkIcon(drinkType = drinkType, size = 20.dp)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                drinkType.displayName,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+            Text(
+                "+100ml",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.75f)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────
 // MARK: - DrinkTypePicker
 // ─────────────────────────────────────
 
@@ -558,10 +766,7 @@ fun HydrationEntryCard(
     ) {
         // Drink icon
         Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(AppColors.surfaceVariant),
+            modifier = Modifier.size(44.dp),
             contentAlignment = Alignment.Center
         ) {
             DrinkIcon(drinkType = drinkType, size = 26.dp)
@@ -1336,7 +1541,7 @@ fun HydrationHeroPager(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .padding(top = 4.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1551,6 +1756,7 @@ fun AddDrinkBottomSheet(
     onShowUrineGuide: () -> Unit
 ) {
     val view = LocalView.current
+    val isDark = isSystemInDarkTheme()
     var selectedDrinkType by remember { mutableStateOf(DrinkType.WATER) }
     var customAmountText by remember { mutableStateOf("") }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
@@ -1559,162 +1765,271 @@ fun AddDrinkBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = AppColors.surface
+        containerColor = AppColors.surface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp, bottom = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(AppColors.onSurface.copy(alpha = 0.3f))
+                )
+            }
+        }
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             // Title
             Text(
-                "Add a Drink",
-                fontSize = 20.sp,
+                "Add a drink",
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.onSurface,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp)
             )
 
-            // Drink type chips
+            Spacer(Modifier.height(24.dp))
+
+            // Drink type selector - horizontal scroll
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 0.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp)
             ) {
                 items(DrinkType.entries.toList()) { type ->
                     val selected = type == selectedDrinkType
-                    FilterChip(
-                        selected = selected,
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                            selectedDrinkType = type
-                        },
-                        leadingIcon = {
-                            DrinkIcon(drinkType = type, size = 18.dp)
-                        },
-                        label = {
-                            Text(
-                                type.displayName,
-                                fontSize = 13.sp
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = HydrationCyan,
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-            }
 
-            // Quick-add preset grid (3 columns)
-            Text(
-                "Quick Add",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = AppColors.onSurface.copy(alpha = 0.7f)
-            )
-            val presets = QuickAddPreset.defaults
-            val rows = presets.chunked(3)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                rows.forEach { rowPresets ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        rowPresets.forEach { preset ->
-                            OutlinedButton(
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                    onAddDrink(selectedDrinkType, preset.amountMl)
-                                    onDismiss()
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp, HydrationCyan.copy(alpha = 0.6f)
-                                ),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = HydrationCyan
-                                ),
-                                contentPadding = PaddingValues(vertical = 10.dp, horizontal = 4.dp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .width(72.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(preset.icon, fontSize = 18.sp)
-                                    Text(
-                                        "${preset.amountMl}ml",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
+                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                selectedDrinkType = type
                             }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (selected)
+                                        Brush.linearGradient(
+                                            listOf(
+                                                HydrationCyan.copy(alpha = 0.2f),
+                                                HydrationCyan.copy(alpha = 0.1f)
+                                            )
+                                        )
+                                    else
+                                        Brush.linearGradient(
+                                            listOf(
+                                                AppColors.surfaceVariant,
+                                                AppColors.surfaceVariant
+                                            )
+                                        )
+                                )
+                                .border(
+                                    width = if (selected) 2.dp else 0.dp,
+                                    color = if (selected) HydrationCyan else Color.Transparent,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            DrinkIcon(drinkType = type, size = 36.dp)
                         }
-                        // Fill empty cells in last row
-                        repeat(3 - rowPresets.size) {
-                            Spacer(Modifier.weight(1f))
-                        }
+                        Text(
+                            type.displayName,
+                            fontSize = 11.sp,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                            color = if (selected) HydrationCyan else AppColors.onSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
 
-            // Custom amount input
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Spacer(Modifier.height(28.dp))
+
+            // Custom amount
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
-                    value = customAmountText,
-                    onValueChange = { v -> customAmountText = v.filter { it.isDigit() } },
-                    label = { Text("Custom amount (ml)") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                        imeAction = androidx.compose.ui.text.input.ImeAction.Done
-                    ),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                        onDone = { focusManager.clearFocus() }
-                    ),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = HydrationCyan,
-                        cursorColor = HydrationCyan
-                    )
+                Text(
+                    "Custom Amount",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onSurface.copy(alpha = 0.5f),
+                    letterSpacing = 0.5.sp
                 )
-                Button(
-                    onClick = {
-                        val amount = customAmountText.toIntOrNull()
-                        if (amount != null && amount > 0) {
-                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            onAddDrink(selectedDrinkType, amount)
-                            customAmountText = ""
-                            focusManager.clearFocus()
-                            onDismiss()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = HydrationCyan),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.height(56.dp)
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(Icons.Default.Add, "Add")
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                if (isDark) Color(0xFF1C1C1E)
+                                else Color(0xFFF8F9FA)
+                            )
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = customAmountText,
+                            onValueChange = { v -> customAmountText = v.filter { it.isDigit() } },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = AppColors.onSurface
+                            ),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                            ),
+                            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                onDone = { focusManager.clearFocus() }
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            decorationBox = { innerTextField ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        if (customAmountText.isEmpty()) {
+                                            Text(
+                                                "Enter amount (ml)",
+                                                fontSize = 15.sp,
+                                                color = AppColors.onSurface.copy(alpha = 0.4f)
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                    Text(
+                                        "ml",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = AppColors.onSurface.copy(alpha = 0.4f)
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            val amount = customAmountText.toIntOrNull()
+                            if (amount != null && amount > 0) {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                onAddDrink(selectedDrinkType, amount)
+                                customAmountText = ""
+                                focusManager.clearFocus()
+                                onDismiss()
+                            }
+                        },
+                        enabled = customAmountText.isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = HydrationCyan,
+                            contentColor = Color.White,
+                            disabledContainerColor = AppColors.surfaceVariant,
+                            disabledContentColor = AppColors.onSurface.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.size(56.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
 
-            // Urine color guide
-            HorizontalDivider(color = AppColors.onSurface.copy(alpha = 0.1f))
-            TextButton(
-                onClick = onShowUrineGuide,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+            Spacer(Modifier.height(20.dp))
+
+            // Urine guide footer
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                HydrationCyan.copy(alpha = 0.08f),
+                                HydrationCyan.copy(alpha = 0.12f)
+                            )
+                        )
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onShowUrineGuide() }
+                    .padding(vertical = 20.dp, horizontal = 24.dp)
             ) {
-                Icon(
-                    Icons.Default.Colorize, null,
-                    modifier = Modifier.size(16.dp),
-                    tint = HydrationCyan
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("Urine Color Guide", color = HydrationCyan, fontSize = 14.sp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(HydrationCyan.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Colorize,
+                            contentDescription = null,
+                            tint = HydrationCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Check Hydration Level",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.onSurface
+                        )
+                        Text(
+                            "Use urine color guide",
+                            fontSize = 12.sp,
+                            color = AppColors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = AppColors.onSurface.copy(alpha = 0.3f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
+
+            Spacer(Modifier.height(20.dp))
         }
     }
 }
