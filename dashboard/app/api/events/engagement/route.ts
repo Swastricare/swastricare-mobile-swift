@@ -67,6 +67,27 @@ export async function GET(request: NextRequest) {
       count: Number(r.count),
     }))
 
+    const eventsPerSessionDist = (s.events_per_session_dist || []).map((r: any) => ({
+      bucket: r.bucket,
+      count: Number(r.count),
+    }))
+
+    // Derive session funnel from distribution buckets
+    const allCounts: number[] = []
+    for (const bucket of eventsPerSessionDist) {
+      allCounts.push(...Array(bucket.count).fill(parseInt(bucket.bucket)))
+    }
+    const thresholds = [1, 2, 3, 5, 10, 20]
+    const total = allCounts.length
+    const sessionFunnel = thresholds.map(t => {
+      const count = allCounts.filter((n: number) => n >= t).length
+      return {
+        label: `≥${t} event${t === 1 ? '' : 's'}`,
+        count,
+        percent: total > 0 ? Math.round((count / total) * 100) : 0,
+      }
+    })
+
     return NextResponse.json({
       avgSessionDuration: Number(s.avg_session_duration ?? 0),
       avgEventsPerSession: Number(s.avg_events_per_session ?? 0),
@@ -86,12 +107,10 @@ export async function GET(request: NextRequest) {
         bucket: r.bucket,
         count: Number(r.count),
       })),
-      eventsPerSessionDist: (s.events_per_session_dist || []).map((r: any) => ({
-        bucket: r.bucket,
-        count: Number(r.count),
-      })),
+      eventsPerSessionDist,
       tabNavigation,
       appOpensOverTime,
+      sessionFunnel,
     })
   } catch (error: any) {
     console.error('Error fetching engagement data:', error)

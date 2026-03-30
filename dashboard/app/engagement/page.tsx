@@ -88,6 +88,26 @@ export default function EngagementPage() {
         </ChartCard>
       </div>
 
+      <div className="mb-6">
+        <ChartCard title="Session Depth Funnel">
+          <div className="space-y-2">
+            {data.sessionFunnel.map((step, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-xs text-neutral-400 w-24 shrink-0">{step.label}</span>
+                <div className="flex-1 h-5 bg-neutral-800 rounded-lg overflow-hidden">
+                  <div
+                    className="h-full rounded-lg transition-all duration-500"
+                    style={{ width: `${step.percent}%`, backgroundColor: '#3B82F6', opacity: Math.max(0.3, 1 - i * 0.12) }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-white w-14 text-right">{step.count.toLocaleString()}</span>
+                <span className="text-xs text-neutral-500 w-10 text-right">{step.percent}%</span>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <RankedList data={data.tabNavigation} title="Tab Navigation Frequency" />
         <ChartCard title="App Opens Over Time">

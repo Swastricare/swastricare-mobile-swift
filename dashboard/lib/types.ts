@@ -139,6 +139,7 @@ export interface EngagementData {
   eventsPerSessionDist: { bucket: string; count: number }[]
   tabNavigation: NameCount[]
   appOpensOverTime: TimeSeriesPoint[]
+  sessionFunnel: { label: string; count: number; percent: number }[]
 }
 
 // ── Errors ──
