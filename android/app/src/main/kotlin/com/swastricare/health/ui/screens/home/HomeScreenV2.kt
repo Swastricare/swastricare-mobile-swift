@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -649,29 +650,37 @@ private fun QuickActionSectionV2(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(horizontal = 20.dp)
-        ) {
-            item {
-                HydrationQuickActionCardV2(
-                    current = hydrationCurrent,
-                    goal = hydrationGoal,
-                    onClick = onNavigateToHydration
-                )
-            }
-            item {
-                MedicationQuickActionCardV2(
-                    taken = medicationsTaken,
-                    total = medicationsTotal,
-                    onClick = onNavigateToMedications
-                )
-            }
-            item {
-                DietQuickActionCardV2(onClick = onNavigateToDiet)
-            }
-            item {
-                CycleQuickActionCardV2(onClick = onNavigateToCycleTracker)
+        // Calculate card width to match the Sleep card width in Health Vitals:
+        // both sections use padding(horizontal = 20.dp) and a 16.dp column gap,
+        // so each card = (screenWidth - 40dp padding - 16dp gap) / 2
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val cardWidth = (maxWidth - 40.dp - 16.dp) / 2
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp)
+            ) {
+                item {
+                    HydrationQuickActionCardV2(
+                        current = hydrationCurrent,
+                        goal = hydrationGoal,
+                        onClick = onNavigateToHydration,
+                        cardWidth = cardWidth
+                    )
+                }
+                item {
+                    MedicationQuickActionCardV2(
+                        taken = medicationsTaken,
+                        total = medicationsTotal,
+                        onClick = onNavigateToMedications,
+                        cardWidth = cardWidth
+                    )
+                }
+                item {
+                    DietQuickActionCardV2(onClick = onNavigateToDiet, cardWidth = cardWidth)
+                }
+                item {
+                    CycleQuickActionCardV2(onClick = onNavigateToCycleTracker, cardWidth = cardWidth)
+                }
             }
         }
     }
@@ -681,13 +690,14 @@ private fun QuickActionSectionV2(
 private fun HydrationQuickActionCardV2(
     current: Int,
     goal: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    cardWidth: androidx.compose.ui.unit.Dp = 160.dp
 ) {
     val percentage = if (goal > 0) ((current.toFloat() / goal) * 100).toInt() else 0
 
     Box(
         modifier = Modifier
-            .width(160.dp)
+            .width(cardWidth)
             .height(120.dp)
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
@@ -823,13 +833,14 @@ private fun WaterWaveOverlayV2() {
 private fun MedicationQuickActionCardV2(
     taken: Int,
     total: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    cardWidth: androidx.compose.ui.unit.Dp = 160.dp
 ) {
     val percentage = if (total > 0) ((taken.toFloat() / total) * 100).toInt() else 0
 
     Box(
         modifier = Modifier
-            .width(160.dp)
+            .width(cardWidth)
             .height(120.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(
@@ -890,10 +901,13 @@ private fun MedicationQuickActionCardV2(
 }
 
 @Composable
-private fun DietQuickActionCardV2(onClick: () -> Unit) {
+private fun DietQuickActionCardV2(
+    onClick: () -> Unit,
+    cardWidth: androidx.compose.ui.unit.Dp = 160.dp
+) {
     Box(
         modifier = Modifier
-            .width(160.dp)
+            .width(cardWidth)
             .height(120.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(
@@ -934,10 +948,13 @@ private fun DietQuickActionCardV2(onClick: () -> Unit) {
 }
 
 @Composable
-private fun CycleQuickActionCardV2(onClick: () -> Unit) {
+private fun CycleQuickActionCardV2(
+    onClick: () -> Unit,
+    cardWidth: androidx.compose.ui.unit.Dp = 160.dp
+) {
     Box(
         modifier = Modifier
-            .width(160.dp)
+            .width(cardWidth)
             .height(120.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(
