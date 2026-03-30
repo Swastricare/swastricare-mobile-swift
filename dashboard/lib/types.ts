@@ -48,6 +48,10 @@ export interface OverviewData {
   platformCounts: Record<string, number>
   topEvents: NameCount[]
   topScreens: NameCount[]
+  sparklines?: {
+    events: number[]
+    users: number[]
+  }
 }
 
 // ── Platform ──

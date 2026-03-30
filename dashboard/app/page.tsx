@@ -47,8 +47,8 @@ export default function OverviewPage() {
 
       <div className="p-6 md:p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        <MetricCard title="Total Events" value={data.totalEvents.value} deltaPercent={data.totalEvents.deltaPercent} subtitle={`Last ${range === '1' ? '24h' : range + 'd'}`} />
-        <MetricCard title="Unique Users" value={data.uniqueUsers.value} deltaPercent={data.uniqueUsers.deltaPercent} color="#22C55E" />
+        <MetricCard title="Total Events" value={data.totalEvents.value} deltaPercent={data.totalEvents.deltaPercent} subtitle={`Last ${range === '1' ? '24h' : range + 'd'}`} sparkline={data.sparklines?.events} />
+        <MetricCard title="Unique Users" value={data.uniqueUsers.value} deltaPercent={data.uniqueUsers.deltaPercent} color="#22C55E" sparkline={data.sparklines?.users} />
         <MetricCard title="DAU" value={data.dau.value} color="#3B82F6" />
         <MetricCard title="WAU" value={data.wau.value} color="#8B5CF6" />
         <MetricCard title="MAU" value={data.mau.value} color="#A855F7" />

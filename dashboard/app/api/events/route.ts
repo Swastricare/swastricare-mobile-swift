@@ -44,6 +44,9 @@ export async function GET(req: NextRequest) {
       Unknown: Number(r.unknown),
     }))
 
+    const eventsSpark = eventsOverTime.map(p => (p.iOS || 0) + (p.Android || 0))
+    const usersSpark = usersOverTime.map(p => (p.iOS || 0) + (p.Android || 0))
+
     const totalEvents = Number(s.total_events)
     const prevTotalEvents = Number(s.prev_total_events)
     const users = Number(s.unique_users)
@@ -72,6 +75,7 @@ export async function GET(req: NextRequest) {
       platformCounts,
       topEvents: (s.top_events || []).map((e: any) => ({ name: e.name, count: Number(e.count) })),
       topScreens: (s.top_screens || []).map((e: any) => ({ name: e.name, count: Number(e.count) })),
+      sparklines: { events: eventsSpark, users: usersSpark },
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
