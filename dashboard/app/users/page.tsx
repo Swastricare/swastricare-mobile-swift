@@ -21,6 +21,7 @@ export default function UsersPage() {
   const [data, setData] = useState<UsersData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userSearch, setUserSearch] = useState('')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -41,6 +42,10 @@ export default function UsersPage() {
   if (loading && !data) return <LoadingSkeleton />
   if (error) return <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>
   if (!data) return null
+
+  const filteredUsers = userSearch
+    ? data.topUsers.filter(u => u.userId.toLowerCase().includes(userSearch.toLowerCase()))
+    : data.topUsers
 
   return (
     <>
@@ -65,6 +70,20 @@ export default function UsersPage() {
       </div>
 
       <div className="mb-6">
+        <div className="mb-3">
+          <div className="relative inline-flex">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={userSearch}
+              onChange={e => setUserSearch(e.target.value)}
+              placeholder="Search user ID..."
+              className="pl-8 pr-3 py-1.5 w-64 text-xs bg-neutral-900 border border-white/[0.08] rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        </div>
         <DataTable
           columns={[
             { key: 'userId', label: 'User', sortable: true, render: (val: string) => <span className="font-mono text-xs">{val.slice(0, 12)}</span> },
@@ -74,7 +93,7 @@ export default function UsersPage() {
             { key: 'firstSeen', label: 'First Seen', sortable: true, render: (val: string) => <span className="text-neutral-400 text-xs">{format(parseISO(val), 'MMM d')}</span> },
             { key: 'lastSeen', label: 'Last Seen', sortable: true, render: (val: string) => <span className="text-neutral-400 text-xs">{format(parseISO(val), 'MMM d')}</span> },
           ]}
-          data={data.topUsers}
+          data={filteredUsers}
           defaultSort={{ key: 'events', dir: 'desc' }}
         />
       </div>
