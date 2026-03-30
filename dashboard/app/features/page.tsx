@@ -17,6 +17,27 @@ const DonutChart = dynamic(() => import('@/components/charts/DonutChart'), { ssr
 const HistogramChart = dynamic(() => import('@/components/charts/HistogramChart'), { ssr: false })
 const AreaTimeChart = dynamic(() => import('@/components/charts/AreaTimeChart'), { ssr: false })
 
+function CollapsibleSection({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="mb-6 rounded-2xl border border-white/[0.08] bg-neutral-900 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+          <span className="text-sm font-semibold text-white">{title}</span>
+        </div>
+        <svg className={`w-4 h-4 text-neutral-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && <div className="px-5 pb-5">{children}</div>}
+    </div>
+  )
+}
+
 export default function FeaturesPage() {
   const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<FeaturesData | null>(null)
@@ -82,17 +103,15 @@ export default function FeaturesPage() {
       </div>
 
       {/* Hydration */}
-      <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-5">
-        <h3 className="mb-4 text-sm font-medium text-neutral-300">Hydration</h3>
+      <CollapsibleSection title="Hydration" color={FEATURE_COLORS.Hydration}>
         <div className="grid grid-cols-2 gap-4">
           <MetricCard title="Avg Amount/Log" value={`${Math.round(data.hydration.avgAmount)} ml`} color={FEATURE_COLORS.Hydration} />
           <MetricCard title="Goal Completion" value={`${Math.round(data.hydration.goalCompletionRate * 100)}%`} color="#22C55E" />
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Medication */}
-      <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-5">
-        <h3 className="mb-4 text-sm font-medium text-neutral-300">Medication</h3>
+      <CollapsibleSection title="Medication" color={FEATURE_COLORS.Medication}>
         <div className="grid gap-6 lg:grid-cols-2">
           <ChartCard title="Taken / Skipped / Snoozed">
             <DonutChart data={[{ name: 'Taken', value: data.medication.taken }, { name: 'Skipped', value: data.medication.skipped }, { name: 'Snoozed', value: data.medication.snoozed }]} colors={['#22C55E', '#EF4444', '#F59E0B']} />
@@ -101,11 +120,10 @@ export default function FeaturesPage() {
             <DonutChart data={Object.entries(data.medication.sourceBreakdown).map(([name, value]) => ({ name, value }))} />
           </ChartCard>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Workout */}
-      <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-5">
-        <h3 className="mb-4 text-sm font-medium text-neutral-300">Workout</h3>
+      <CollapsibleSection title="Workout" color={FEATURE_COLORS.Workout}>
         <div className="grid gap-4 md:grid-cols-3">
           <ChartCard title="Activity Types">
             <DonutChart data={Object.entries(data.workout.activityTypes).map(([name, value]) => ({ name, value }))} />
@@ -113,11 +131,10 @@ export default function FeaturesPage() {
           <MetricCard title="Avg Duration" value={`${Math.round(data.workout.avgDuration)}s`} color={FEATURE_COLORS.Workout} />
           <MetricCard title="Completion Rate" value={`${Math.round(data.workout.completionRate * 100)}%`} color="#22C55E" />
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* AI */}
-      <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-5">
-        <h3 className="mb-4 text-sm font-medium text-neutral-300">AI</h3>
+      <CollapsibleSection title="AI" color={FEATURE_COLORS.AI}>
         <div className="grid gap-6 lg:grid-cols-2">
           <ChartCard title="Mode Distribution">
             <DonutChart data={Object.entries(data.ai.modeDistribution).map(([name, value]) => ({ name, value }))} />
@@ -126,18 +143,17 @@ export default function FeaturesPage() {
             <AreaTimeChart data={data.ai.messageTrend} series={[{ key: 'count', color: FEATURE_COLORS.AI }]} />
           </ChartCard>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Heart Rate */}
-      <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-        <h3 className="mb-4 text-sm font-medium text-neutral-300">Heart Rate</h3>
+      <CollapsibleSection title="Heart Rate" color={FEATURE_COLORS['Heart Rate']}>
         <div className="grid gap-6 lg:grid-cols-2">
           <MetricCard title="Avg BPM" value={Math.round(data.heartRate.avgBpm)} color={FEATURE_COLORS['Heart Rate']} />
           <ChartCard title="BPM Distribution">
             <HistogramChart data={data.heartRate.bpmDistribution} color={FEATURE_COLORS['Heart Rate']} />
           </ChartCard>
         </div>
-      </div>
+      </CollapsibleSection>
       </div>
     </>
   )
