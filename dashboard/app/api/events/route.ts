@@ -5,8 +5,17 @@ import { computeDelta } from '@/lib/event-utils'
 
 export const dynamic = 'force-dynamic'
 
+function filterByPlatform<T extends Record<string, unknown>>(rows: T[], plat: string): T[] {
+  if (plat === 'all') return rows
+  return rows.filter(r => {
+    const p = (r.platform ?? (r as any).device_info?.platform ?? '') as string
+    return p.toLowerCase() === plat.toLowerCase()
+  })
+}
+
 export async function GET(req: NextRequest) {
   const range = req.nextUrl.searchParams.get('range') || '7'
+  const platform = req.nextUrl.searchParams.get('platform') || 'all'
   const days = parseInt(range, 10)
   const since = subDays(new Date(), days).toISOString()
   const prevUntil = since

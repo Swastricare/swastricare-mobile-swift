@@ -18,7 +18,7 @@ const HistogramChart = dynamic(() => import('@/components/charts/HistogramChart'
 const AreaTimeChart = dynamic(() => import('@/components/charts/AreaTimeChart'), { ssr: false })
 
 export default function FeaturesPage() {
-  const { range, refreshKey } = useDashboard()
+  const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<FeaturesData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +27,7 @@ export default function FeaturesPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/events/features?range=${range}`)
+      const res = await fetch(`/api/events/features?range=${range}&platform=${platform}`)
       if (!res.ok) throw new Error('Failed to fetch features data')
       setData(await res.json())
     } catch (err: any) {
@@ -35,7 +35,7 @@ export default function FeaturesPage() {
     } finally {
       setLoading(false)
     }
-  }, [range, refreshKey])
+  }, [range, refreshKey, platform])
 
   useEffect(() => { fetchData() }, [fetchData])
 

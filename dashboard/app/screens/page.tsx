@@ -16,7 +16,7 @@ const DualLineChart = dynamic(() => import('@/components/charts/DualLineChart'),
 const GroupedBarChart = dynamic(() => import('@/components/charts/GroupedBarChart'), { ssr: false })
 
 export default function ScreensPage() {
-  const { range, refreshKey } = useDashboard()
+  const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<ScreensData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +25,7 @@ export default function ScreensPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/events/screens?range=${range}`)
+      const res = await fetch(`/api/events/screens?range=${range}&platform=${platform}`)
       if (!res.ok) throw new Error('Failed to fetch screens data')
       setData(await res.json())
     } catch (err: any) {
@@ -33,7 +33,7 @@ export default function ScreensPage() {
     } finally {
       setLoading(false)
     }
-  }, [range, refreshKey])
+  }, [range, refreshKey, platform])
 
   useEffect(() => { fetchData() }, [fetchData])
 

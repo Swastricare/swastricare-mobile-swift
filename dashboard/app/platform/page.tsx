@@ -16,7 +16,7 @@ const GroupedBarChart = dynamic(() => import('@/components/charts/GroupedBarChar
 const HorizontalBarChart = dynamic(() => import('@/components/charts/HorizontalBarChart'), { ssr: false })
 
 export default function PlatformPage() {
-  const { range, refreshKey } = useDashboard()
+  const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<PlatformData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +25,7 @@ export default function PlatformPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/events/platform?range=${range}`)
+      const res = await fetch(`/api/events/platform?range=${range}&platform=${platform}`)
       if (!res.ok) throw new Error('Failed to fetch platform data')
       setData(await res.json())
     } catch (err: any) {
@@ -33,7 +33,7 @@ export default function PlatformPage() {
     } finally {
       setLoading(false)
     }
-  }, [range, refreshKey])
+  }, [range, refreshKey, platform])
 
   useEffect(() => { fetchData() }, [fetchData])
 

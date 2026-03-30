@@ -27,7 +27,7 @@ function formatDuration(seconds: number): string {
 }
 
 export default function EngagementPage() {
-  const { range, refreshKey } = useDashboard()
+  const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<EngagementData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +36,7 @@ export default function EngagementPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/events/engagement?range=${range}`)
+      const res = await fetch(`/api/events/engagement?range=${range}&platform=${platform}`)
       if (!res.ok) throw new Error('Failed to fetch engagement data')
       setData(await res.json())
     } catch (err: any) {
@@ -44,7 +44,7 @@ export default function EngagementPage() {
     } finally {
       setLoading(false)
     }
-  }, [range, refreshKey])
+  }, [range, refreshKey, platform])
 
   useEffect(() => { fetchData() }, [fetchData])
 

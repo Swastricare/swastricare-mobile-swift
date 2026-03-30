@@ -5,6 +5,14 @@ import { computeDelta, getISTDay } from '@/lib/event-utils'
 
 export const dynamic = 'force-dynamic'
 
+function filterByPlatform<T extends Record<string, unknown>>(rows: T[], plat: string): T[] {
+  if (plat === 'all') return rows
+  return rows.filter(r => {
+    const p = (r.platform ?? (r as any).device_info?.platform ?? '') as string
+    return p.toLowerCase() === plat.toLowerCase()
+  })
+}
+
 // Feature group definitions — kept in sync with event inventory
 const FEATURE_GROUPS: Record<string, string[]> = {
   Hydration:    ['hydration_logged', 'hydration_goal_met'],
@@ -25,6 +33,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const range = searchParams.get('range')
     const days = range ? parseInt(range, 10) : 7
+    const platform = searchParams.get('platform') || 'all'
 
     const since = subDays(new Date(), days).toISOString()
     const prevUntil = since
@@ -74,8 +83,11 @@ export async function GET(request: NextRequest) {
     }).sort((a, b) => b.count - a.count)
 
     // Feature trends: daily time series for main features
+    const filteredTrends = filterByPlatform(trendsRes.data as Record<string, unknown>[], platform)
+    const filteredPlatformRows = filterByPlatform(platformRes.data as Record<string, unknown>[], platform)
+
     const dailyFeatureMap = new Map<string, Map<string, number>>()
-    for (const row of (trendsRes.data || []) as { created_at: string; event_name: string }[]) {
+    for (const row of filteredTrends as { created_at: string; event_name: string }[]) {
       const day = getISTDay(row.created_at)
       const feature = Object.entries(FEATURE_GROUPS).find(([, evts]) => evts.includes(row.event_name))?.[0]
       if (!feature || !MAIN_FEATURES.includes(feature)) continue
@@ -93,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     // Feature by platform
     const fpMap = new Map<string, { iOS: number; Android: number }>()
-    for (const row of (platformRes.data || []) as { event_name: string; platform: string | null }[]) {
+    for (const row of filteredPlatformRows as { event_name: string; platform: string | null }[]) {
       const feature = Object.entries(FEATURE_GROUPS).find(([, evts]) => evts.includes(row.event_name))?.[0]
       if (!feature) continue
       if (!fpMap.has(feature)) fpMap.set(feature, { iOS: 0, Android: 0 })
@@ -109,7 +121,7 @@ export async function GET(request: NextRequest) {
 
     // AI message trend: use trends data filtered to AI
     const aiDailyMap = new Map<string, number>()
-    for (const row of (trendsRes.data || []) as { created_at: string; event_name: string }[]) {
+    for (const row of filteredTrends as { created_at: string; event_name: string }[]) {
       if (!FEATURE_GROUPS['AI'].includes(row.event_name)) continue
       const day = getISTDay(row.created_at)
       aiDailyMap.set(day, (aiDailyMap.get(day) || 0) + 1)

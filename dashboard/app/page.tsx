@@ -16,7 +16,7 @@ const HorizontalBarChart = dynamic(() => import('@/components/charts/HorizontalB
 const DonutChart = dynamic(() => import('@/components/charts/DonutChart'), { ssr: false })
 
 export default function OverviewPage() {
-  const { range, refreshKey } = useDashboard()
+  const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<OverviewData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +25,7 @@ export default function OverviewPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/events?range=${range}`)
+      const res = await fetch(`/api/events?range=${range}&platform=${platform}`)
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch')
       setData(await res.json())
     } catch (err: any) {
@@ -33,7 +33,7 @@ export default function OverviewPage() {
     } finally {
       setLoading(false)
     }
-  }, [range, refreshKey])
+  }, [range, refreshKey, platform])
 
   useEffect(() => { fetchData() }, [fetchData])
 

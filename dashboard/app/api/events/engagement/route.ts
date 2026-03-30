@@ -4,10 +4,19 @@ import { supabase } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
+function filterByPlatform<T extends Record<string, unknown>>(rows: T[], plat: string): T[] {
+  if (plat === 'all') return rows
+  return rows.filter(r => {
+    const p = (r.platform ?? (r as any).device_info?.platform ?? '') as string
+    return p.toLowerCase() === plat.toLowerCase()
+  })
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const range = parseInt(searchParams.get('range') || '7', 10)
+    const platform = searchParams.get('platform') || 'all'
     const since = subDays(new Date(), range).toISOString()
 
     const [engagementRes, tabRes, appOpenRes] = await Promise.all([

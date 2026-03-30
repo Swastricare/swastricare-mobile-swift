@@ -6,6 +6,14 @@ import type { AppEvent } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
+function filterByPlatform<T extends Record<string, unknown>>(rows: T[], plat: string): T[] {
+  if (plat === 'all') return rows
+  return rows.filter(r => {
+    const p = (r.platform ?? (r as any).device_info?.platform ?? '') as string
+    return p.toLowerCase() === plat.toLowerCase()
+  })
+}
+
 const PAGE_SIZE = 25
 
 export async function GET(request: NextRequest) {
@@ -14,6 +22,7 @@ export async function GET(request: NextRequest) {
     const range = parseInt(searchParams.get('range') || '7', 10)
     const page = parseInt(searchParams.get('page') || '1', 10)
     const search = searchParams.get('search') || ''
+    const platform = searchParams.get('platform') || 'all'
     const since = subDays(new Date(), range).toISOString()
     const prevUntil = since
     const prevSince = subDays(new Date(), range * 2).toISOString()
@@ -141,6 +150,8 @@ export async function GET(request: NextRequest) {
         (e.user_id && e.user_id.toLowerCase().includes(searchLower))
       )
     }
+
+    errorLog = filterByPlatform(errorLog as Record<string, unknown>[], platform) as typeof errorLog
 
     // errorsByCategory/Platform from SQL (keys may be lowercase platform names)
     const rawByPlatform: Record<string, number> = s.errors_by_platform || {}

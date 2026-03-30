@@ -5,10 +5,19 @@ import { computeDelta, getISTDay } from '@/lib/event-utils'
 
 export const dynamic = 'force-dynamic'
 
+function filterByPlatform<T extends Record<string, unknown>>(rows: T[], plat: string): T[] {
+  if (plat === 'all') return rows
+  return rows.filter(r => {
+    const p = (r.platform ?? (r as any).device_info?.platform ?? '') as string
+    return p.toLowerCase() === plat.toLowerCase()
+  })
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const range = parseInt(searchParams.get('range') || '7', 10)
+    const platform = searchParams.get('platform') || 'all'
     const since = subDays(new Date(), range).toISOString()
     const prevUntil = since
     const prevSince = subDays(new Date(), range * 2).toISOString()
@@ -97,8 +106,8 @@ export async function GET(request: NextRequest) {
     })
     const activityDistribution = Object.entries(buckets).map(([bucket, count]) => ({ bucket, count }))
 
-    // Top users from SQL
-    const topUsers = (s.top_users || []).map((u: any) => ({
+    // Top users from SQL — apply platform filter after mapping
+    const allTopUsers = (s.top_users || []).map((u: any) => ({
       userId: u.user_id,
       events: Number(u.events),
       sessions: Number(u.sessions),
@@ -106,6 +115,7 @@ export async function GET(request: NextRequest) {
       lastSeen: u.last_seen,
       platform: u.platform,
     }))
+    const topUsers = filterByPlatform(allTopUsers as Record<string, unknown>[], platform)
 
     // Daily retention: computed from newVsReturning days
     const allDays = newVsReturning.map(r => r.date)

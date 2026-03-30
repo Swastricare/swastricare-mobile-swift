@@ -18,7 +18,7 @@ const HorizontalBarChart = dynamic(() => import('@/components/charts/HorizontalB
 const DonutChart = dynamic(() => import('@/components/charts/DonutChart'), { ssr: false })
 
 export default function ErrorsPage() {
-  const { range, refreshKey } = useDashboard()
+  const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<ErrorsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +29,7 @@ export default function ErrorsPage() {
     setLoading(true)
     setError(null)
     try {
-      const params = new URLSearchParams({ range, page: String(page) })
+      const params = new URLSearchParams({ range, page: String(page), platform })
       if (search) params.set('search', search)
       const res = await fetch(`/api/events/errors?${params}`)
       if (!res.ok) throw new Error('Failed to fetch errors data')
@@ -39,7 +39,7 @@ export default function ErrorsPage() {
     } finally {
       setLoading(false)
     }
-  }, [range, refreshKey, page, search])
+  }, [range, refreshKey, page, search, platform])
 
   useEffect(() => { fetchData() }, [fetchData])
 

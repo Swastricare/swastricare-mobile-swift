@@ -17,7 +17,7 @@ const HistogramChart = dynamic(() => import('@/components/charts/HistogramChart'
 const DonutChart = dynamic(() => import('@/components/charts/DonutChart'), { ssr: false })
 
 export default function UsersPage() {
-  const { range, refreshKey } = useDashboard()
+  const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<UsersData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +26,7 @@ export default function UsersPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/events/users?range=${range}`)
+      const res = await fetch(`/api/events/users?range=${range}&platform=${platform}`)
       if (!res.ok) throw new Error('Failed to fetch users data')
       setData(await res.json())
     } catch (err: any) {
@@ -34,7 +34,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [range, refreshKey])
+  }, [range, refreshKey, platform])
 
   useEffect(() => { fetchData() }, [fetchData])
 
