@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -19,7 +20,8 @@ fun EmptyStateView(
     subtitle: String,
     modifier: Modifier = Modifier,
     emoji: String = "",
-    illustrationAsset: String? = null
+    illustrationAsset: String? = null,
+    illustrationSize: Dp = 200.dp
 ) {
     Column(
         modifier = modifier.padding(32.dp),
@@ -30,7 +32,7 @@ fun EmptyStateView(
             AsyncImage(
                 model = "file:///android_asset/$illustrationAsset",
                 contentDescription = null,
-                modifier = Modifier.size(200.dp),
+                modifier = Modifier.size(illustrationSize),
                 contentScale = ContentScale.Fit
             )
         } else {

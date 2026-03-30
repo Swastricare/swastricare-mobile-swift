@@ -1202,6 +1202,7 @@ fun HydrationHeroRing(
     progress: Float,
     drinkAccentColor: Color = HydrationCyan,
     onDragAddMl: ((Int) -> Unit)? = null,
+    onTap: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
@@ -1256,6 +1257,17 @@ fun HydrationHeroRing(
 
     Box(
         modifier = modifier
+            .then(
+                if (onTap != null) {
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        onTap()
+                    }
+                } else Modifier
+            )
             .then(
                 if (onDragAddMl != null) {
                     Modifier.pointerInput(goalMl) {
@@ -1436,6 +1448,7 @@ fun HydrationHeroRing(
 fun HydrationHeroPager(
     uiState: HydrationUiState,
     onDragAddMl: ((Int) -> Unit)? = null,
+    onTapAnalytics: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
@@ -1460,6 +1473,7 @@ fun HydrationHeroPager(
                             progress = uiState.progress,
                             drinkAccentColor = drinkAccentColors[uiState.dominantDrinkType] ?: HydrationCyan,
                             onDragAddMl = onDragAddMl,
+                            onTap = onTapAnalytics,
                             modifier = Modifier.size(220.dp)
                         )
                     }
@@ -2030,6 +2044,965 @@ fun AddDrinkBottomSheet(
             }
 
             Spacer(Modifier.height(20.dp))
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - HydrationAnalyticsSheet
+// ─────────────────────────────────────
+
+// ─────────────────────────────────────
+// MARK: - Overview Sheet (tap progress ring)
+// ─────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HydrationOverviewSheet(
+    uiState: HydrationUiState,
+    onDismiss: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val insights = uiState.insights
+    val context = LocalContext.current
+
+    // State for period selection and drink filter
+    var selectedPeriod by remember { mutableStateOf("Today") }
+    var selectedFilter by remember { mutableStateOf<DrinkType?>(null) }
+
+    // Load icons
+    val fireIcon = remember {
+        context.assets.open("icons/fire.png").use { BitmapFactory.decodeStream(it) }.asImageBitmap()
+    }
+    val statisticsIcon = remember {
+        context.assets.open("icons/statistics.png").use { BitmapFactory.decodeStream(it) }.asImageBitmap()
+    }
+    val glassWaterIcon = remember {
+        context.assets.open("icons/glass-water.png").use { BitmapFactory.decodeStream(it) }.asImageBitmap()
+    }
+    val coffeeIcon = remember {
+        context.assets.open("icons/coffee.png").use { BitmapFactory.decodeStream(it) }.asImageBitmap()
+    }
+
+    // Calculate period data
+    val daysToShow = when (selectedPeriod) {
+        "Today" -> 1
+        "7 Days" -> 7
+        "30 Days" -> 30
+        else -> 1
+    }
+
+    val periodEntries = remember(uiState.entries, selectedPeriod) {
+        if (selectedPeriod == "Today") {
+            uiState.todaysEntries
+        } else {
+            val today = LocalDate.now()
+            uiState.entries.filter { entry ->
+                try {
+                    val entryDate = LocalDate.parse(entry.consumedAt.substring(0, 10))
+                    !entryDate.isBefore(today.minusDays(daysToShow.toLong() - 1))
+                } catch (e: Exception) {
+                    false
+                }
+            }
+        }
+    }
+
+    // Chart data for 7D/30D
+    val chartData = remember(uiState.entries, selectedPeriod) {
+        if (selectedPeriod != "Today") {
+            val today = LocalDate.now()
+            (0 until daysToShow).reversed().map { daysAgo ->
+                val date = today.minusDays(daysAgo.toLong())
+                val dateStr = date.toString()
+                val dayEntries = uiState.entries.filter { it.consumedAt.startsWith(dateStr) }
+                val totalMl = dayEntries.sumOf { it.effectiveMl }
+                AnalyticsDataPoint(date = date, ml = totalMl, goalMet = totalMl >= uiState.effectiveGoalMl)
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    // Summary stats for selected period
+    val periodAvg = if (chartData.isNotEmpty()) chartData.sumOf { it.ml } / chartData.size else 0
+    val periodBest = chartData.maxOfOrNull { it.ml } ?: 0
+    val goalMetDays = chartData.count { it.goalMet }
+    val totalPeriodMl = chartData.sumOf { it.ml }
+
+    // Hourly distribution data
+    val hourlyData = remember(periodEntries) {
+        val hourCounts = IntArray(24) { 0 }
+        periodEntries.forEach { entry ->
+            try {
+                val hour = entry.consumedAt.substring(11, 13).toIntOrNull()
+                if (hour != null && hour in 0..23) {
+                    hourCounts[hour] += entry.effectiveMl
+                }
+            } catch (e: Exception) {
+                // Ignore invalid timestamps
+            }
+        }
+        hourCounts
+    }
+
+    // Available drink types in period
+    val availableDrinkTypes = remember(periodEntries) {
+        periodEntries.mapNotNull { entry ->
+            try {
+                DrinkType.fromDb(entry.drinkType)
+            } catch (e: Exception) {
+                null
+            }
+        }.distinct()
+    }
+
+    // Filtered drink breakdown
+    val drinkBreakdown = remember(periodEntries, selectedFilter) {
+        val filteredEntries = if (selectedFilter != null) {
+            periodEntries.filter { entry ->
+                try {
+                    DrinkType.fromDb(entry.drinkType) == selectedFilter
+                } catch (e: Exception) {
+                    false
+                }
+            }
+        } else {
+            periodEntries
+        }
+
+        filteredEntries
+            .groupBy { it.drinkType }
+            .map { (typeStr, entries) ->
+                val drinkType = try {
+                    DrinkType.fromDb(typeStr)
+                } catch (e: Exception) {
+                    null
+                }
+                Triple(drinkType, entries.size, entries.sumOf { it.effectiveMl })
+            }
+            .filter { it.first != null }
+            .sortedByDescending { it.third }
+    }
+
+    val totalBreakdownMl = drinkBreakdown.sumOf { it.third }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = AppColors.surface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp, bottom = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(AppColors.onSurface.copy(alpha = 0.3f))
+                )
+            }
+        }
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // 1. Header
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "Hydration Analytics",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.onSurface
+                    )
+                    Text(
+                        "Your complete overview",
+                        fontSize = 14.sp,
+                        color = AppColors.onSurfaceVariant
+                    )
+                }
+            }
+
+            // 2. Period Selector
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("Today", "7 Days", "30 Days").forEach { period ->
+                        val isSelected = selectedPeriod == period
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isSelected) HydrationCyan
+                                    else if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+                                )
+                                .clickable { selectedPeriod = period }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                period,
+                                fontSize = 14.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else AppColors.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 3. Chart / Progress
+            if (selectedPeriod == "Today") {
+                // Today's progress card
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        drinkAccentColors[uiState.dominantDrinkType] ?: HydrationCyan,
+                                        (drinkAccentColors[uiState.dominantDrinkType] ?: HydrationCyan).copy(alpha = 0.7f)
+                                    )
+                                )
+                            )
+                            .padding(20.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    "${uiState.effectiveIntake}ml",
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    "of ${uiState.effectiveGoalMl}ml goal",
+                                    fontSize = 14.sp,
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    "${(uiState.progress * 100).toInt()}%",
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    if (uiState.isGoalMet) "Goal met!" else "${uiState.remainingMl}ml left",
+                                    fontSize = 13.sp,
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 7D/30D chart
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "DAILY INTAKE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
+                            letterSpacing = 0.8.sp
+                        )
+                        HydrationBarChart(
+                            data = chartData,
+                            goalMl = uiState.effectiveGoalMl,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        )
+                    }
+                }
+            }
+
+            // 4. Period Summary (7D/30D only)
+            if (selectedPeriod != "Today") {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "PERIOD SUMMARY",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
+                            letterSpacing = 0.8.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            AnalyticsMiniCard(
+                                label = "Average",
+                                value = "${periodAvg}ml",
+                                modifier = Modifier.weight(1f)
+                            )
+                            AnalyticsMiniCard(
+                                label = "Best Day",
+                                value = "${periodBest}ml",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            AnalyticsMiniCard(
+                                label = "Goals Met",
+                                value = "$goalMetDays / $daysToShow",
+                                modifier = Modifier.weight(1f)
+                            )
+                            AnalyticsMiniCard(
+                                label = "Total",
+                                value = String.format("%.1fL", totalPeriodMl / 1000.0),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 5. Goal Achievement (7D/30D only)
+            if (selectedPeriod != "Today") {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "GOAL ACHIEVEMENT",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
+                            letterSpacing = 0.8.sp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFF8F9FA))
+                                .padding(16.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Days goal was met",
+                                        fontSize = 14.sp,
+                                        color = AppColors.onSurface
+                                    )
+                                    Text(
+                                        "${if (daysToShow > 0) (goalMetDays * 100 / daysToShow) else 0}%",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (goalMetDays > daysToShow / 2) Color(0xFF34C759) else HydrationCyan
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(AppColors.onSurface.copy(alpha = 0.1f))
+                                ) {
+                                    val achievementPct = if (daysToShow > 0)
+                                        goalMetDays.toFloat() / daysToShow else 0f
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(achievementPct)
+                                            .fillMaxHeight()
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(
+                                                if (goalMetDays > daysToShow / 2) Color(0xFF34C759)
+                                                else HydrationCyan
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 6. Drink Type Filter + Breakdown
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "DRINK BREAKDOWN",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppColors.onSurface.copy(alpha = 0.5f),
+                        letterSpacing = 0.8.sp
+                    )
+
+                    // Filter chips
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // "All" chip
+                        item {
+                            val isSelected = selectedFilter == null
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(
+                                        if (isSelected) HydrationCyan
+                                        else if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+                                    )
+                                    .clickable { selectedFilter = null }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    "All",
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = if (isSelected) Color.White else AppColors.onSurface
+                                )
+                            }
+                        }
+
+                        // Drink type chips
+                        items(availableDrinkTypes) { drinkType ->
+                            val isSelected = selectedFilter == drinkType
+                            val accentColor = drinkAccentColors[drinkType] ?: HydrationCyan
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(
+                                        if (isSelected) accentColor
+                                        else if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+                                    )
+                                    .clickable { selectedFilter = drinkType }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    drinkType.displayName,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = if (isSelected) Color.White else AppColors.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    // Drink breakdown list
+                    if (drinkBreakdown.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFF8F9FA))
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            drinkBreakdown.forEach { (drinkType, count, totalMl) ->
+                                drinkType?.let { type ->
+                                    val proportion = if (totalBreakdownMl > 0) totalMl.toFloat() / totalBreakdownMl else 0f
+                                    val accentColor = drinkAccentColors[type] ?: HydrationCyan
+
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                DrinkIcon(drinkType = type, size = 32.dp)
+                                                Column {
+                                                    Text(
+                                                        type.displayName,
+                                                        fontSize = 15.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = AppColors.onSurface
+                                                    )
+                                                    Text(
+                                                        "$count ${if (count == 1) "drink" else "drinks"}",
+                                                        fontSize = 12.sp,
+                                                        color = AppColors.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                "${totalMl}ml",
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = AppColors.onSurface
+                                            )
+                                        }
+
+                                        // Proportion bar
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(4.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(AppColors.onSurface.copy(alpha = 0.1f))
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(proportion)
+                                                    .fillMaxHeight()
+                                                    .clip(RoundedCornerShape(2.dp))
+                                                    .background(accentColor)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 7. Statistics Grid
+            if (insights != null) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "STATISTICS",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
+                            letterSpacing = 0.8.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            AnalyticsStatCard(
+                                label = "Streak",
+                                value = "${insights.streakDays}",
+                                unit = "days",
+                                icon = fireIcon,
+                                modifier = Modifier.weight(1f)
+                            )
+                            AnalyticsStatCard(
+                                label = "7-Day Avg",
+                                value = "${insights.avgDailyIntake}",
+                                unit = "ml",
+                                icon = statisticsIcon,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            AnalyticsStatCard(
+                                label = "Favorite",
+                                value = insights.mostCommonDrink ?: "—",
+                                unit = "",
+                                icon = glassWaterIcon,
+                                modifier = Modifier.weight(1f)
+                            )
+                            AnalyticsStatCard(
+                                label = "Caffeine",
+                                value = "${insights.caffeineCount}",
+                                unit = "drinks",
+                                icon = coffeeIcon,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 8. Hourly Distribution Chart
+            if (hourlyData.any { it > 0 }) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "DRINKING PATTERNS",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
+                            letterSpacing = 0.8.sp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFF8F9FA))
+                                .padding(16.dp)
+                        ) {
+                            val maxValue = hourlyData.maxOrNull() ?: 1
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val barWidth = size.width / 24f
+                                val chartHeight = size.height - 30f
+
+                                // Draw bars
+                                hourlyData.forEachIndexed { hour, ml ->
+                                    if (ml > 0) {
+                                        val barHeight = (ml.toFloat() / maxValue) * chartHeight
+                                        val x = hour * barWidth + barWidth * 0.2f
+                                        val width = barWidth * 0.6f
+                                        val y = chartHeight - barHeight
+
+                                        drawRect(
+                                            color = HydrationCyan,
+                                            topLeft = Offset(x, y),
+                                            size = Size(width, barHeight)
+                                        )
+                                    }
+                                }
+
+                                // Draw hour labels (every 4th hour)
+                                val hourLabels = listOf(
+                                    0 to "12a", 4 to "4a", 8 to "8a",
+                                    12 to "12p", 16 to "4p", 20 to "8p"
+                                )
+                                hourLabels.forEach { (hour, label) ->
+                                    val x = hour * barWidth + barWidth / 2f
+                                    drawContext.canvas.nativeCanvas.drawText(
+                                        label,
+                                        x,
+                                        size.height,
+                                        android.graphics.Paint().apply {
+                                            color = if (isDark) 0x80FFFFFF.toInt() else 0x80000000.toInt()
+                                            textSize = 24f
+                                            textAlign = android.graphics.Paint.Align.CENTER
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 9. Weather Adjustment
+            if (uiState.isWeatherAdjusted && uiState.weatherData != null) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "WEATHER ADJUSTMENT",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
+                            letterSpacing = 0.8.sp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFFFF9500).copy(alpha = 0.1f))
+                                .border(1.dp, Color(0xFFFF9500).copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        "Goal adjusted for hot weather",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = AppColors.onSurface
+                                    )
+                                    Text(
+                                        "${uiState.weatherData!!.city} • ${uiState.weatherData!!.temperatureCelsius}°C",
+                                        fontSize = 12.sp,
+                                        color = AppColors.onSurfaceVariant
+                                    )
+                                }
+                                Text(
+                                    "+${((uiState.weatherAdjustmentFactor - 1) * 100).toInt()}%",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFF9500)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 10. Bottom Spacer
+            item {
+                Spacer(Modifier.height(20.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsStatCard(
+    label: String,
+    value: String,
+    unit: String,
+    icon: androidx.compose.ui.graphics.ImageBitmap,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isSystemInDarkTheme()
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFF8F9FA))
+            .padding(16.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Image(
+                bitmap = icon,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        value,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.onSurface
+                    )
+                    if (unit.isNotEmpty()) {
+                        Text(
+                            unit,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = AppColors.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        )
+                    }
+                }
+                Text(
+                    label,
+                    fontSize = 12.sp,
+                    color = AppColors.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsMiniCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isSystemInDarkTheme()
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFF8F9FA))
+            .padding(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                label,
+                fontSize = 12.sp,
+                color = AppColors.onSurfaceVariant
+            )
+            Text(
+                value,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsDrinkBreakdown(uiState: HydrationUiState) {
+    val isDark = isSystemInDarkTheme()
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "TODAY'S DRINKS",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onSurface.copy(alpha = 0.5f),
+            letterSpacing = 0.8.sp
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFF8F9FA))
+                .padding(16.dp)
+        ) {
+            val drinkBreakdown = uiState.todaysEntries
+                .groupBy { DrinkType.fromDb(it.drinkType) }
+                .mapValues { it.value.sumOf { e -> e.amountMl } }
+                .toList()
+                .sortedByDescending { it.second }
+
+            if (drinkBreakdown.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    drinkBreakdown.forEach { (drinkType, ml) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            (drinkAccentColors[drinkType] ?: HydrationCyan)
+                                                .copy(alpha = 0.15f)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    DrinkIcon(drinkType = drinkType, size = 24.dp)
+                                }
+                                Column {
+                                    Text(
+                                        drinkType.displayName,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = AppColors.onSurface
+                                    )
+                                    Text(
+                                        "${uiState.todaysEntries.count { DrinkType.fromDb(it.drinkType) == drinkType }} drinks",
+                                        fontSize = 12.sp,
+                                        color = AppColors.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Text(
+                                "${ml}ml",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = drinkAccentColors[drinkType] ?: HydrationCyan
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    "No drinks logged yet today",
+                    fontSize = 14.sp,
+                    color = AppColors.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Data Models & Chart
+// ─────────────────────────────────────
+
+private data class AnalyticsDataPoint(
+    val date: LocalDate,
+    val ml: Int,
+    val goalMet: Boolean
+)
+
+@Composable
+private fun HydrationBarChart(
+    data: List<AnalyticsDataPoint>,
+    goalMl: Int,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isSystemInDarkTheme()
+    val maxMl = maxOf(goalMl, data.maxOfOrNull { it.ml } ?: 0)
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFF8F9FA))
+            .padding(16.dp)
+    ) {
+        Canvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val barWidth = (size.width / data.size) * 0.6f
+            val spacing = (size.width / data.size) * 0.4f
+            val chartHeight = size.height - 40.dp.toPx()
+
+            // Draw goal line
+            val goalY = chartHeight - (goalMl.toFloat() / maxMl) * chartHeight
+            drawLine(
+                color = if (isDark) Color(0xFF3A3A3C) else Color(0xFFD1D1D6),
+                start = Offset(0f, goalY),
+                end = Offset(size.width, goalY),
+                strokeWidth = 2.dp.toPx(),
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                    floatArrayOf(8f, 8f)
+                )
+            )
+
+            // Draw bars
+            data.forEachIndexed { index, point ->
+                val barHeight = if (maxMl > 0) {
+                    (point.ml.toFloat() / maxMl) * chartHeight
+                } else 0f
+                val x = index * (barWidth + spacing) + spacing / 2f
+                val y = chartHeight - barHeight
+
+                drawRoundRect(
+                    color = if (point.goalMet) Color(0xFF34C759) else HydrationCyan,
+                    topLeft = Offset(x, y),
+                    size = Size(barWidth, barHeight),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+                )
+
+                // Draw date label
+                val dateText = if (data.size <= 7) {
+                    point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(1)
+                } else {
+                    point.date.dayOfMonth.toString()
+                }
+                drawContext.canvas.nativeCanvas.apply {
+                    val paint = android.graphics.Paint().apply {
+                        color = if (isDark) 0xFF9C9C9E.toInt() else 0xFF8E8E93.toInt()
+                        textSize = 11.sp.toPx()
+                        textAlign = android.graphics.Paint.Align.CENTER
+                    }
+                    drawText(
+                        dateText,
+                        x + barWidth / 2f,
+                        size.height - 8.dp.toPx(),
+                        paint
+                    )
+                }
+            }
         }
     }
 }

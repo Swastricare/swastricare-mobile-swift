@@ -326,16 +326,6 @@ fun HomeScreen(
                                     )
                                 )
                             )
-                            .border(
-                                width = 0.5.dp,
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF7C4DFF).copy(alpha = 0.5f),
-                                        Color(0xFF4F46E5).copy(alpha = 0.2f)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(24.dp)
-                            )
                             .semantics { contentDescription = "Health Analytics" }
                             .clickable { onNavigateToAnalytics() }
                             .padding(horizontal = 20.dp, vertical = 16.dp)

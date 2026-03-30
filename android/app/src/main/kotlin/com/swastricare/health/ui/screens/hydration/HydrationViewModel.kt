@@ -29,6 +29,7 @@ import javax.inject.Inject
 // -----------------------------------------------
 
 data class HydrationUiState(
+    val userName: String = "",
     val entries: List<HydrationEntry> = emptyList(),
     val preferences: HydrationPreferences = HydrationPreferences.Default,
     val goal: HydrationGoal = HydrationGoal(),
@@ -73,6 +74,15 @@ data class HydrationUiState(
     val caffeineAmountMl: Int get() = todaysEntries
         .filter { DrinkType.fromDb(it.drinkType).containsCaffeine }
         .sumOf { it.amountMl }
+
+    /** The drink type with the highest total ml today, or WATER if no entries */
+    val dominantDrinkType: DrinkType get() {
+        if (todaysEntries.isEmpty()) return DrinkType.WATER
+        return todaysEntries
+            .groupBy { DrinkType.fromDb(it.drinkType) }
+            .maxByOrNull { it.value.sumOf { e -> e.amountMl } }
+            ?.key ?: DrinkType.WATER
+    }
 }
 
 // -----------------------------------------------
@@ -101,6 +111,13 @@ class HydrationViewModel @Inject constructor(
 
     fun loadData() {
         viewModelScope.launch {
+            // Load user name from auth
+            val currentUser = authRepository.getCurrentUser()
+            val resolvedName = currentUser?.fullName
+                ?: currentUser?.email?.substringBefore("@")
+                ?: ""
+            _uiState.value = _uiState.value.copy(userName = resolvedName)
+
             // Show local data immediately so UI is not blank
             val localEntries = repository.loadLocalEntries()
             val prefs = repository.loadPreferences()
@@ -153,7 +170,7 @@ class HydrationViewModel @Inject constructor(
                 drinkType = drinkType.dbValue,
                 amountMl = amountMl,
                 effectiveMl = effectiveMl,
-                consumedAt = LocalDateTime.now().format(isoFormatter),
+                consumedAt = _uiState.value.selectedDate.atTime(java.time.LocalTime.now()).format(isoFormatter),
                 notes = notes,
                 synced = false
             )

@@ -82,6 +82,7 @@ fun HydrationScreen(
 
     var showAddDrinkSheet by remember { mutableStateOf(false) }
     var showUrineGuide by remember { mutableStateOf(false) }
+    var showOverview by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Fill status bar AND navigation bar with gradient colors
@@ -168,9 +169,6 @@ fun HydrationScreen(
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, "Settings", tint = Color.White.copy(alpha = 0.8f))
                     }
-                    IconButton(onClick = onNavigateToAI) {
-                        Icon(Icons.Default.AutoAwesome, "Ask AI", tint = Color.White)
-                    }
                 }
 
                 when {
@@ -180,7 +178,8 @@ fun HydrationScreen(
 
                         HydrationHeroPager(
                             uiState = uiState,
-                            onDragAddMl = { ml -> vm.addDrink(DrinkType.WATER, ml) }
+                            onDragAddMl = { ml -> vm.addDrink(DrinkType.WATER, ml) },
+                            onTapAnalytics = { showOverview = true }
                         )
 
                         Spacer(Modifier.height(16.dp))
@@ -242,6 +241,14 @@ fun HydrationScreen(
             UrineColorGuideSheet(
                 onDismiss = { showUrineGuide = false },
                 onLogWater = { amount -> vm.addDrink(DrinkType.WATER, amount) }
+            )
+        }
+
+        // Analytics sheet (tap on progress ring)
+        if (showOverview) {
+            HydrationOverviewSheet(
+                uiState = uiState,
+                onDismiss = { showOverview = false }
             )
         }
     }
@@ -412,23 +419,28 @@ private fun SheetContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 20.dp),
+                        .padding(vertical = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     DrinkIcon(drinkType = DrinkType.WATER, size = 48.dp)
-                    Text(
-                        "No drinks yet",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = subtitleColor
-                    )
-                    Text(
-                        "Tap + to log your first drink",
-                        fontSize = 13.sp,
-                        color = AppColors.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            "No drinks yet",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = subtitleColor
+                        )
+                        Text(
+                            "Tap + to log your first drink",
+                            fontSize = 13.sp,
+                            color = AppColors.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }

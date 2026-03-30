@@ -22,7 +22,7 @@ import com.swastricare.health.ui.screens.diet.FoodSnapScreen
 import com.swastricare.health.ui.screens.family.FamilyScreen
 import com.swastricare.health.ui.screens.heartrate.HeartRateAnalyticsScreen
 import com.swastricare.health.ui.screens.heartrate.HeartRateScreen
-import com.swastricare.health.ui.screens.home.HomeScreen
+import com.swastricare.health.ui.screens.home.HomeScreenV2
 import com.swastricare.health.ui.screens.hydration.HydrationScreen
 import com.swastricare.health.ui.screens.hydration.HydrationSettingsScreen
 import com.swastricare.health.ui.screens.medications.AddMedicationScreen
@@ -79,7 +79,7 @@ fun MainNavGraph(
 
         // Tab: Vitals (Home)
         composable(BottomNavTab.Vitals.route) {
-            HomeScreen(
+            HomeScreenV2(
                 onNavigateToMedications = { navController.navigate("medications") },
                 onNavigateToDiet = { navController.navigate("diet") },
                 onNavigateToHydration = { navController.navigate("hydration") },

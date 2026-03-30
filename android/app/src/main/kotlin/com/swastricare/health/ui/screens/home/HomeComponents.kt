@@ -833,7 +833,6 @@ fun DietQuickActionCard(
                     colors = listOf(DietOrange.copy(alpha = 0.22f), DietOrange.copy(alpha = 0.08f))
                 )
             )
-            .border(0.5.dp, DietOrange.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
             .clickable { onClick() }
     ) {
         // Orange liquid fill from bottom
@@ -980,11 +979,6 @@ fun CycleTrackerCard(
                         colors = listOf(CyclePurple.copy(alpha = 0.65f), CyclePurple.copy(alpha = 0.35f))
                     )
                 )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
         )
 
         // Pulsing circle decoration in top-right corner
@@ -1702,7 +1696,6 @@ fun PremiumMedicationCard(
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
             .background(gradientBrush)
-            .border(0.5.dp, MedicationColor.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
             .clickable { onNavigate() }
             .padding(16.dp)
     ) {
@@ -1807,7 +1800,6 @@ fun PremiumHydrationCard(
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
             .background(gradientBrush)
-            .border(0.5.dp, HydrationColor.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
             .clickable { onNavigate() }
     ) {
         WaterWave(progress = progress, color = HydrationColor.copy(alpha = 0.25f), modifier = Modifier.fillMaxSize())

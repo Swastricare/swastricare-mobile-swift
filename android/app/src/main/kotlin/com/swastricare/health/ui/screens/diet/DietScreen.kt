@@ -220,6 +220,7 @@ fun DietScreen(
                                     title = "No meals logged today",
                                     subtitle = "Tap + to add breakfast, lunch, or dinner.",
                                     illustrationAsset = "illustrations/eating ffood 2.png",
+                                    illustrationSize = 120.dp,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
