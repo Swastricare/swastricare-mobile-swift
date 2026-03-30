@@ -162,9 +162,24 @@ export interface ErrorsData {
 // ── Dashboard context ──
 export type TimeRange = '1' | '7' | '14' | '30' | '90'
 
+export type Platform = 'all' | 'iOS' | 'Android'
+
+export interface CustomRange {
+  start: string  // ISO date string YYYY-MM-DD
+  end: string
+}
+
 export interface DashboardContextType {
   range: TimeRange
   setRange: (r: TimeRange) => void
   refreshKey: number
   refresh: () => void
+  platform: Platform
+  setPlatform: (p: Platform) => void
+  compareMode: boolean
+  setCompareMode: (v: boolean) => void
+  sidebarCollapsed: boolean
+  setSidebarCollapsed: (v: boolean) => void
+  customRange: CustomRange | null
+  setCustomRange: (r: CustomRange | null) => void
 }

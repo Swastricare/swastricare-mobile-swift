@@ -1,47 +1,45 @@
-'use client';
+'use client'
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import type { TimeRange } from '@/lib/types';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import type { TimeRange, Platform, CustomRange, DashboardContextType } from '@/lib/types'
 
-interface DashboardContextValue {
-  range: TimeRange;
-  setRange: (range: TimeRange) => void;
-  refreshKey: number;
-  refresh: () => void;
-}
+const DashboardContext = createContext<DashboardContextType | undefined>(undefined)
 
-const DashboardContext = createContext<DashboardContextValue | undefined>(undefined);
+export function DashboardProvider({ children }: { children: ReactNode }) {
+  const [range, setRange] = useState<TimeRange>('7')
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [platform, setPlatform] = useState<Platform>('all')
+  const [compareMode, setCompareMode] = useState(false)
+  const [customRange, setCustomRange] = useState<CustomRange | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-interface DashboardProviderProps {
-  children: ReactNode;
-}
+  // Persist sidebar state across reloads
+  useEffect(() => {
+    const stored = localStorage.getItem('sidebarCollapsed')
+    if (stored !== null) setSidebarCollapsed(stored === 'true')
+  }, [])
 
-export function DashboardProvider({ children }: DashboardProviderProps) {
-  const [range, setRange] = useState<TimeRange>('7');
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const refresh = () => {
-    setRefreshKey((prev) => prev + 1);
-  };
-
-  const value: DashboardContextValue = {
-    range,
-    setRange,
-    refreshKey,
-    refresh,
-  };
+  const handleSetSidebarCollapsed = (v: boolean) => {
+    setSidebarCollapsed(v)
+    localStorage.setItem('sidebarCollapsed', String(v))
+  }
 
   return (
-    <DashboardContext.Provider value={value}>
+    <DashboardContext.Provider value={{
+      range, setRange,
+      refreshKey, refresh: () => setRefreshKey(k => k + 1),
+      platform, setPlatform,
+      compareMode, setCompareMode,
+      sidebarCollapsed, setSidebarCollapsed: handleSetSidebarCollapsed,
+      customRange, setCustomRange,
+    }}>
       {children}
     </DashboardContext.Provider>
-  );
+  )
 }
 
 export function useDashboard() {
-  const context = useContext(DashboardContext);
-  if (context === undefined) {
-    throw new Error('useDashboard must be used within a DashboardProvider');
-  }
-  return context;
+  const ctx = useContext(DashboardContext)
+  if (!ctx) throw new Error('useDashboard must be used within DashboardProvider')
+  return ctx
 }
