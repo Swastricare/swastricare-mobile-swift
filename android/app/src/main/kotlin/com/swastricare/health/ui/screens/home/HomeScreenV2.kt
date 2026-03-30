@@ -37,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swastricare.health.data.models.AdherenceStatus
+import com.swastricare.health.ui.components.ModelViewer
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.medications.MedicationsViewModel
 import com.swastricare.health.ui.theme.*
@@ -402,33 +403,36 @@ private fun DailyActivitySectionV2(
             color = AppColors.onSurface
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(280.dp)
         ) {
-            // Activity Rings (left) — compact
+            // 3D Model (right side)
             Box(
-                modifier = Modifier.size(140.dp),
-                contentAlignment = Alignment.Center
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.55f),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                ActivityRingsCanvas(
-                    stepsProgress = if (DEFAULT_STEP_GOAL > 0)
-                        (stepCount.toFloat() / DEFAULT_STEP_GOAL).coerceIn(0f, 1f) else 0f,
-                    caloriesProgress = if (DEFAULT_CALORIE_GOAL > 0)
-                        (calories.toFloat() / DEFAULT_CALORIE_GOAL).coerceIn(0f, 1f) else 0f,
-                    workoutProgress = if (DEFAULT_ACTIVE_MINUTES_GOAL > 0)
-                        (activeMinutes.toFloat() / DEFAULT_ACTIVE_MINUTES_GOAL).coerceIn(0f, 1f) else 0f,
-                    distanceProgress = (distance.toFloat() / DEFAULT_DISTANCE_GOAL.toFloat()).coerceIn(0f, 1f)
+                ModelViewer(
+                    modelName = "anatomy.2",
+                    modifier = Modifier.fillMaxSize(),
+                    autoRotate = false,
+                    allowInteraction = false,
+                    rotationDurationMs = 8000
                 )
             }
 
-            // Stats Column (right) — vertically centered with rings
+            // Stats Column (left side)
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.50f)
+                    .align(Alignment.CenterStart)
             ) {
                 ActivityCountRowV2(
                     color = Color(0xFFEF4444),
