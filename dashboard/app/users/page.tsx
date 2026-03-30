@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { format, parseISO } from 'date-fns'
 import { useDashboard } from '@/components/providers/DashboardProvider'
-import PageHeader from '@/components/layout/PageHeader'
+import TopBar from '@/components/layout/TopBar'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import MetricCard from '@/components/MetricCard'
 import ChartCard from '@/components/ChartCard'
@@ -44,8 +44,9 @@ export default function UsersPage() {
 
   return (
     <>
-      <PageHeader title="Users" description="User acquisition, retention, and behavior" />
+      <TopBar title="Users" description="User acquisition, retention, and behavior" />
 
+      <div className="p-6 md:p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
         <MetricCard title="Total Users" value={data.totalUsers.value} deltaPercent={data.totalUsers.deltaPercent} />
         <MetricCard title="New Users" value={data.newUsers.value} deltaPercent={data.newUsers.deltaPercent} color="#22C55E" />
@@ -93,6 +94,7 @@ export default function UsersPage() {
           <DonutChart data={Object.entries(data.loginFailures).map(([name, value]) => ({ name, value }))} />
         </ChartCard>
         <MetricCard title="Logout Count" value={data.logoutCount} color="#EF4444" />
+      </div>
       </div>
     </>
   )

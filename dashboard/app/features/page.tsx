@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useDashboard } from '@/components/providers/DashboardProvider'
-import PageHeader from '@/components/layout/PageHeader'
+import TopBar from '@/components/layout/TopBar'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import MetricCard from '@/components/MetricCard'
 import ChartCard from '@/components/ChartCard'
@@ -54,8 +54,9 @@ export default function FeaturesPage() {
 
   return (
     <>
-      <PageHeader title="Features" description="Feature adoption and usage details" />
+      <TopBar title="Features" description="Feature adoption and usage details" />
 
+      <div className="p-6 md:p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <MetricCard title="Hydration" value={data.hydrationEvents.value} deltaPercent={data.hydrationEvents.deltaPercent} color={FEATURE_COLORS.Hydration} />
         <MetricCard title="Medication" value={data.medicationEvents.value} deltaPercent={data.medicationEvents.deltaPercent} color={FEATURE_COLORS.Medication} />
@@ -136,6 +137,7 @@ export default function FeaturesPage() {
             <HistogramChart data={data.heartRate.bpmDistribution} color={FEATURE_COLORS['Heart Rate']} />
           </ChartCard>
         </div>
+      </div>
       </div>
     </>
   )

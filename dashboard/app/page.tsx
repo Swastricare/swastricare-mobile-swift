@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useDashboard } from '@/components/providers/DashboardProvider'
-import PageHeader from '@/components/layout/PageHeader'
+import TopBar from '@/components/layout/TopBar'
 import MetricCard from '@/components/MetricCard'
 import ChartCard from '@/components/ChartCard'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
@@ -43,8 +43,9 @@ export default function OverviewPage() {
 
   return (
     <>
-      <PageHeader title="Overview" description="App-wide metrics and trends" />
+      <TopBar title="Overview" description="App-wide metrics and trends" />
 
+      <div className="p-6 md:p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <MetricCard title="Total Events" value={data.totalEvents.value} deltaPercent={data.totalEvents.deltaPercent} subtitle={`Last ${range === '1' ? '24h' : range + 'd'}`} />
         <MetricCard title="Unique Users" value={data.uniqueUsers.value} deltaPercent={data.uniqueUsers.deltaPercent} color="#22C55E" />
@@ -75,6 +76,7 @@ export default function OverviewPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <RankedList data={data.topEvents} title="Top Events" />
         <RankedList data={data.topScreens} title="Top Screens" />
+      </div>
       </div>
     </>
   )

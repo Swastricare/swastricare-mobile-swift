@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useDashboard } from '@/components/providers/DashboardProvider'
-import PageHeader from '@/components/layout/PageHeader'
+import TopBar from '@/components/layout/TopBar'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import MetricCard from '@/components/MetricCard'
 import ChartCard from '@/components/ChartCard'
@@ -54,8 +54,9 @@ export default function EngagementPage() {
 
   return (
     <>
-      <PageHeader title="Engagement" description="Session behavior, timing patterns, and usage depth" />
+      <TopBar title="Engagement" description="Session behavior, timing patterns, and usage depth" />
 
+      <div className="p-6 md:p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard title="Avg Session Duration" value={formatDuration(data.avgSessionDuration)} color="#3B82F6" />
         <MetricCard title="Avg Events/Session" value={data.avgEventsPerSession.toFixed(1)} color="#22C55E" />
@@ -92,6 +93,7 @@ export default function EngagementPage() {
         <ChartCard title="App Opens Over Time">
           <AreaTimeChart data={data.appOpensOverTime} series={[{ key: 'count', color: '#06B6D4' }]} />
         </ChartCard>
+      </div>
       </div>
     </>
   )

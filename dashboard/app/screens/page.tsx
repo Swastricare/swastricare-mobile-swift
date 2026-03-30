@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useDashboard } from '@/components/providers/DashboardProvider'
-import PageHeader from '@/components/layout/PageHeader'
+import TopBar from '@/components/layout/TopBar'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import MetricCard from '@/components/MetricCard'
 import ChartCard from '@/components/ChartCard'
@@ -49,8 +49,9 @@ export default function ScreensPage() {
 
   return (
     <>
-      <PageHeader title="Screens" description="Screen views, navigation flow, and dwell times" />
+      <TopBar title="Screens" description="Screen views, navigation flow, and dwell times" />
 
+      <div className="p-6 md:p-8">
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <MetricCard title="Total Screen Views" value={data.totalScreenViews.value} deltaPercent={data.totalScreenViews.deltaPercent} />
         <MetricCard title="Unique Screens" value={data.uniqueScreens} color="#22C55E" />
@@ -93,6 +94,7 @@ export default function ScreensPage() {
         data={data.transitions}
         defaultSort={{ key: 'count', dir: 'desc' }}
       />
+      </div>
     </>
   )
 }

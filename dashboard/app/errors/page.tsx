@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { format, parseISO } from 'date-fns'
 import { useDashboard } from '@/components/providers/DashboardProvider'
-import PageHeader from '@/components/layout/PageHeader'
+import TopBar from '@/components/layout/TopBar'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import MetricCard from '@/components/MetricCard'
 import ChartCard from '@/components/ChartCard'
@@ -52,8 +52,9 @@ export default function ErrorsPage() {
 
   return (
     <>
-      <PageHeader title="Errors" description="Error tracking, rates, and diagnostics" />
+      <TopBar title="Errors" description="Error tracking, rates, and diagnostics" />
 
+      <div className="p-6 md:p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard title="Total Errors" value={data.totalErrors.value} deltaPercent={data.totalErrors.deltaPercent} color="#EF4444" />
         <MetricCard title="Unique Error Types" value={data.uniqueErrorTypes} color="#F59E0B" />
@@ -145,6 +146,7 @@ export default function ErrorsPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </>
   )

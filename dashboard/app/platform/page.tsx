@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useDashboard } from '@/components/providers/DashboardProvider'
-import PageHeader from '@/components/layout/PageHeader'
+import TopBar from '@/components/layout/TopBar'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import ComparisonMetricCard from '@/components/ComparisonMetricCard'
 import ChartCard from '@/components/ChartCard'
@@ -43,8 +43,9 @@ export default function PlatformPage() {
 
   return (
     <>
-      <PageHeader title="Platform" description="iOS vs Android comparison" />
+      <TopBar title="Platform" description="iOS vs Android comparison" />
 
+      <div className="p-6 md:p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <ComparisonMetricCard title="Events" iosValue={data.eventsIOS} androidValue={data.eventsAndroid} />
         <ComparisonMetricCard title="Users" iosValue={data.usersIOS} androidValue={data.usersAndroid} />
@@ -79,6 +80,7 @@ export default function PlatformPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <RankedList data={data.topEventsIOS} title="Top Events — iOS" barColor="bg-blue-500/60" />
         <RankedList data={data.topEventsAndroid} title="Top Events — Android" barColor="bg-green-500/60" />
+      </div>
       </div>
     </>
   )
