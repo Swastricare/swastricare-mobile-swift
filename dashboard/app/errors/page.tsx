@@ -17,6 +17,15 @@ const DualLineChart = dynamic(() => import('@/components/charts/DualLineChart'),
 const HorizontalBarChart = dynamic(() => import('@/components/charts/HorizontalBarChart'), { ssr: false })
 const DonutChart = dynamic(() => import('@/components/charts/DonutChart'), { ssr: false })
 
+function SeverityBadge({ message }: { message: string }) {
+  const lower = message.toLowerCase()
+  const isCritical = lower.includes('crash') || lower.includes('fatal') || lower.includes('unhandled')
+  const isWarning = lower.includes('timeout') || lower.includes('retry') || lower.includes('failed')
+  if (isCritical) return <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-400">critical</span>
+  if (isWarning) return <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-400">warning</span>
+  return <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-neutral-700 text-neutral-400">info</span>
+}
+
 export default function ErrorsPage() {
   const { range, refreshKey, platform } = useDashboard()
   const [data, setData] = useState<ErrorsData | null>(null)
@@ -84,6 +93,7 @@ export default function ErrorsPage() {
         <DataTable
           columns={[
             { key: 'message', label: 'Message', sortable: true },
+            { key: 'message', label: 'Severity', render: (val: string) => <SeverityBadge message={val} /> },
             { key: 'count', label: 'Count', sortable: true },
             { key: 'lastSeen', label: 'Last Seen', sortable: true, render: (val: string) => format(parseISO(val), 'MMM d, HH:mm') },
           ]}
@@ -110,6 +120,7 @@ export default function ErrorsPage() {
             <thead>
               <tr className="border-b border-white/10 text-left text-neutral-400">
                 <th className="pb-2 pr-4 font-medium">Event</th>
+                <th className="pb-2 pr-4 font-medium">Severity</th>
                 <th className="pb-2 pr-4 font-medium">Message</th>
                 <th className="pb-2 pr-4 font-medium">Platform</th>
                 <th className="pb-2 pr-4 font-medium">User</th>
@@ -122,6 +133,7 @@ export default function ErrorsPage() {
                   <td className="py-2 pr-4">
                     <span className="rounded bg-red-500/20 px-2 py-0.5 text-xs text-red-400">{err.name}</span>
                   </td>
+                  <td className="py-2 pr-4"><SeverityBadge message={err.message} /></td>
                   <td className="max-w-xs truncate py-2 pr-4 text-neutral-400">{err.message}</td>
                   <td className="py-2 pr-4"><PlatformBadge platform={err.platform} /></td>
                   <td className="py-2 pr-4 font-mono text-xs text-neutral-500">
@@ -131,7 +143,7 @@ export default function ErrorsPage() {
                 </tr>
               ))}
               {data.errorLog.length === 0 && (
-                <tr><td colSpan={5} className="py-8 text-center text-neutral-500">No errors found</td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-neutral-500">No errors found</td></tr>
               )}
             </tbody>
           </table>
