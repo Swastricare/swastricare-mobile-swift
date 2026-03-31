@@ -985,7 +985,8 @@ fun UrineColorGuideSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = if (isSystemInDarkTheme()) Color(0xFF0A0A0A) else Color.White
+        containerColor = if (isSystemInDarkTheme()) Color(0xFF0A0A0A) else Color.White,
+        tonalElevation = 0.dp
     ) {
         // Fixed header
         Column(
@@ -1791,6 +1792,7 @@ fun AddDrinkBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = if (isSystemInDarkTheme()) Color(0xFF0A0A0A) else Color.White,
+        tonalElevation = 0.dp,
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -2203,6 +2205,7 @@ fun HydrationOverviewSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = if (isSystemInDarkTheme()) Color(0xFF0A0A0A) else Color.White,
+        tonalElevation = 0.dp,
         dragHandle = {
             Box(
                 modifier = Modifier
