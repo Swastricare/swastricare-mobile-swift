@@ -61,7 +61,7 @@ fun SwastriCareNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .shadow(elevation = 12.dp, shape = CapsuleShape)
+                .shadow(elevation = 38.dp, shape = CapsuleShape)
                 .background(AppColors.navBar, shape = CapsuleShape),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically

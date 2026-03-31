@@ -9,7 +9,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const ml = sidebarCollapsed ? 'ml-16' : 'ml-60'
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-[var(--bg-base)]">
       <Sidebar />
       <main className={`${ml} min-h-screen transition-all duration-200`}>
         {children}

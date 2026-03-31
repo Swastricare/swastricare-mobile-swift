@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useDashboard } from '@/components/providers/DashboardProvider'
 import { RANGE_OPTIONS } from '@/lib/constants'
-import type { Platform } from '@/lib/types'
+import type { Platform, Theme } from '@/lib/types'
 
 const PLATFORMS: { label: string; value: Platform }[] = [
   { label: 'All', value: 'all' },
@@ -11,8 +11,35 @@ const PLATFORMS: { label: string; value: Platform }[] = [
   { label: 'Android', value: 'Android' },
 ]
 
+const THEME_CYCLE: Theme[] = ['dark', 'black', 'light']
+
+function ThemeIcon({ theme }: { theme: Theme }) {
+  if (theme === 'light') return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z" />
+    </svg>
+  )
+  if (theme === 'black') return (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" />
+    </svg>
+  )
+  // dark
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  )
+}
+
+const THEME_LABELS: Record<Theme, string> = {
+  dark: 'Dark',
+  black: 'Pitch Black',
+  light: 'Light',
+}
+
 export default function TopBar({ title, description }: { title: string; description?: string }) {
-  const { range, setRange, platform, setPlatform, compareMode, setCompareMode, refresh } = useDashboard()
+  const { range, setRange, platform, setPlatform, compareMode, setCompareMode, refresh, theme, setTheme } = useDashboard()
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const handleRefresh = () => {
@@ -21,8 +48,13 @@ export default function TopBar({ title, description }: { title: string; descript
     setTimeout(() => setIsRefreshing(false), 800)
   }
 
+  const cycleTheme = () => {
+    const idx = THEME_CYCLE.indexOf(theme)
+    setTheme(THEME_CYCLE[(idx + 1) % THEME_CYCLE.length])
+  }
+
   return (
-    <div className="sticky top-0 z-30 flex items-center gap-4 h-14 px-6 bg-neutral-950/90 backdrop-blur-md border-b border-white/[0.08]">
+    <div className="sticky top-0 z-30 flex items-center gap-3 h-14 px-6 bg-neutral-950/90 backdrop-blur-md border-b border-white/[0.08]">
       {/* Page title */}
       <div className="min-w-0 flex-1">
         <h1 className="text-sm font-semibold text-white truncate">{title}</h1>
@@ -78,6 +110,15 @@ export default function TopBar({ title, description }: { title: string; descript
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
         </svg>
         <span className="hidden md:inline">Compare</span>
+      </button>
+
+      {/* Theme switcher */}
+      <button
+        onClick={cycleTheme}
+        title={`Theme: ${THEME_LABELS[theme]} — click to switch`}
+        className="p-1.5 rounded-xl bg-neutral-900 border border-white/[0.08] text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-all duration-150"
+      >
+        <ThemeIcon theme={theme} />
       </button>
 
       {/* Refresh */}

@@ -20,7 +20,7 @@ const AreaTimeChart = dynamic(() => import('@/components/charts/AreaTimeChart'),
 function CollapsibleSection({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true)
   return (
-    <div className="mb-6 rounded-2xl border border-white/[0.08] bg-neutral-900 overflow-hidden">
+    <div className="mb-6 rounded-2xl bg-neutral-900 overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"

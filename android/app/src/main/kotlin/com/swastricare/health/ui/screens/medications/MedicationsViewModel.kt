@@ -95,7 +95,9 @@ class MedicationsViewModel @Inject constructor(
 
     fun loadMedications(date: LocalDate = _uiState.value.selectedDate) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            // Only show loading on first load (when no data yet)
+            val isFirstLoad = _uiState.value.medicationsWithDoses.isEmpty() && _uiState.value.isLoading
+            _uiState.value = _uiState.value.copy(isLoading = isFirstLoad, error = null, selectedDate = date)
             try {
                 val profileId = resolveProfileId()
                 Log.d(TAG, "loadMedications: profileId=$profileId, date=$date")

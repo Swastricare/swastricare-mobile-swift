@@ -23,9 +23,9 @@ export default function Sidebar() {
   const w = sidebarCollapsed ? 'w-16' : 'w-60'
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen ${w} bg-neutral-950 border-r border-white/[0.08] flex flex-col transition-all duration-200 z-40`}>
+    <aside className={`fixed left-0 top-0 h-screen ${w} bg-[var(--bg-sidebar)] border-r border-[var(--border)] flex flex-col transition-all duration-200 z-40`}>
       {/* Header */}
-      <div className={`flex items-center border-b border-white/[0.08] h-14 px-4 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+      <div className={`flex items-center border-b border-[var(--border)] h-14 px-4 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!sidebarCollapsed && (
           <div>
             <span className="text-sm font-bold text-white">SwasthiCare</span>
@@ -71,7 +71,7 @@ export default function Sidebar() {
 
       {/* Bottom */}
       {!sidebarCollapsed && (
-        <div className="p-3 border-t border-white/[0.08]">
+        <div className="p-3 border-t border-[var(--border)]">
           <div className="text-xs text-neutral-600 text-center">v1.0</div>
         </div>
       )}

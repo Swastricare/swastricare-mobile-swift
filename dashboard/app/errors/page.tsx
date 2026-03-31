@@ -103,7 +103,7 @@ export default function ErrorsPage() {
       </div>
 
       {/* Error Log */}
-      <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+      <div className="rounded-xl bg-white/5 p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-medium text-neutral-400">Error Log ({data.errorLogTotal})</h3>
           <input

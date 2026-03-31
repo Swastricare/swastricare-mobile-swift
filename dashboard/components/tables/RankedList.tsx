@@ -21,7 +21,7 @@ export default function RankedList({
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+    <div className="rounded-xl bg-white/5 p-5">
       {title && (
         <h3 className="mb-4 text-sm font-medium text-neutral-400">{title}</h3>
       )}

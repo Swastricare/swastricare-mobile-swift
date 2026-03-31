@@ -11,7 +11,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.outlined.Accessibility
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.FormatQuote
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.MonitorWeight
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Straighten
+import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,10 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swastricare.health.data.model.Gender
-import com.swastricare.health.ui.screens.home.glass
-import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.PremiumColor
-import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.theme.AppColors
 import java.util.Locale
 import com.swastricare.health.ui.components.TrackScreen
@@ -133,8 +145,8 @@ fun EditProfileScreen(
                     // Full Name
                     EditTextField(
                         title = "Full Name",
-                        icon = Icons.Default.Person,
-                        iconColor = PrimaryColor,
+                        icon = Icons.Outlined.Person,
+                        iconColor = Color(0xFF22C55E),
                         value = formState.name,
                         onValueChange = viewModel::updateEditName
                     )
@@ -144,8 +156,8 @@ fun EditProfileScreen(
                     // Phone Number
                     EditTextField(
                         title = "Phone Number",
-                        icon = Icons.Default.Phone,
-                        iconColor = PrimaryColor,
+                        icon = Icons.Outlined.Phone,
+                        iconColor = Color(0xFF22C55E),
                         value = formState.phone,
                         onValueChange = viewModel::updateEditPhone,
                         placeholder = "Add phone number",
@@ -186,8 +198,8 @@ fun EditProfileScreen(
                         valueLabel = "${formState.heightCm.toInt()} cm",
                         range = 100f..250f,
                         steps = 150,
-                        icon = Icons.Default.Straighten,
-                        iconColor = PrimaryColor,
+                        icon = Icons.Outlined.Straighten,
+                        iconColor = Color(0xFF22C55E),
                         onValueChange = { viewModel.updateEditHeightCm(it.toDouble()) }
                     )
 
@@ -200,8 +212,8 @@ fun EditProfileScreen(
                         valueLabel = String.format(Locale.US, "%.1f kg", formState.weightKg),
                         range = 20f..250f,
                         steps = 460,
-                        icon = Icons.Default.MonitorWeight,
-                        iconColor = PrimaryColor,
+                        icon = Icons.Outlined.MonitorWeight,
+                        iconColor = Color(0xFF22C55E),
                         onValueChange = { viewModel.updateEditWeightKg(it.toDouble()) }
                     )
 
@@ -225,8 +237,8 @@ fun EditProfileScreen(
                 EditSection(title = "LOCATION") {
                     EditTextField(
                         title = "City",
-                        icon = Icons.Default.LocationOn,
-                        iconColor = PrimaryColor,
+                        icon = Icons.Outlined.LocationOn,
+                        iconColor = Color(0xFF22C55E),
                         value = formState.city,
                         onValueChange = viewModel::updateEditCity,
                         placeholder = "Your city"
@@ -236,8 +248,8 @@ fun EditProfileScreen(
                 // ── Account Details (Read-Only) ─────────────────────
                 EditSection(title = "ACCOUNT DETAILS") {
                     ReadOnlyRow(
-                        icon = Icons.Default.Email,
-                        iconColor = PrimaryColor,
+                        icon = Icons.Outlined.Email,
+                        iconColor = Color(0xFF22C55E),
                         label = "Email",
                         value = uiState.user?.email ?: "Not available"
                     )
@@ -248,8 +260,8 @@ fun EditProfileScreen(
                     )
 
                     ReadOnlyRow(
-                        icon = Icons.Default.CalendarMonth,
-                        iconColor = PrimaryColor,
+                        icon = Icons.Outlined.CalendarMonth,
+                        iconColor = Color(0xFF22C55E),
                         label = "Member Since",
                         value = viewModel.memberSince
                     )
@@ -349,10 +361,10 @@ private fun PhoneMissingBanner() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.PhoneAndroid,
+            imageVector = Icons.Outlined.PhoneAndroid,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = PrimaryColor
+            tint = Color(0xFF22C55E)
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -391,7 +403,8 @@ private fun EditSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(cornerRadius = 20.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
                 .padding(20.dp),
             content = content
         )
@@ -421,7 +434,6 @@ private fun EditTextField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .lightBorder(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
@@ -481,7 +493,6 @@ private fun BioField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .lightBorder(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
@@ -493,9 +504,9 @@ private fun BioField(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.FormatQuote,
+                imageVector = Icons.Outlined.FormatQuote,
                 contentDescription = null,
-                tint = PrimaryColor,
+                tint = Color(0xFF22C55E),
                 modifier = Modifier
                     .size(24.dp)
                     .padding(top = 12.dp)
@@ -562,9 +573,9 @@ private fun GenderSelector(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.People,
+                    imageVector = Icons.Outlined.People,
                     contentDescription = null,
-                    tint = PrimaryColor,
+                    tint = Color(0xFF22C55E),
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
@@ -612,7 +623,6 @@ private fun DateOfBirthField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .lightBorder(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
@@ -625,9 +635,9 @@ private fun DateOfBirthField(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.CalendarToday,
+                imageVector = Icons.Outlined.CalendarToday,
                 contentDescription = null,
-                tint = PrimaryColor,
+                tint = Color(0xFF22C55E),
                 modifier = Modifier.size(24.dp)
             )
 
@@ -693,7 +703,6 @@ private fun SliderField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .lightBorder(16.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(AppColors.onBackground.copy(alpha = 0.04f))
                 .border(
@@ -754,9 +763,9 @@ private fun BmiRow(bmi: Double, category: String) {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(
-            imageVector = Icons.Default.Accessibility,
+            imageVector = Icons.Outlined.Accessibility,
             contentDescription = null,
-            tint = PrimaryColor,
+            tint = Color(0xFF22C55E),
             modifier = Modifier.size(24.dp)
         )
 
@@ -823,9 +832,9 @@ private fun BloodTypeSelector(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.WaterDrop,
+                    imageVector = Icons.Outlined.WaterDrop,
                     contentDescription = null,
-                    tint = PrimaryColor,
+                    tint = Color(0xFF22C55E),
                     modifier = Modifier.size(24.dp)
                 )
                 Text(

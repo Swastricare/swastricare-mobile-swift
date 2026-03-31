@@ -19,7 +19,7 @@ interface EventsChartProps {
 
 export function EventsChart({ data, title, color = '#4F46E5' }: EventsChartProps) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+    <div className="rounded-xl bg-white/5 p-5">
       <h3 className="mb-4 text-sm font-medium text-neutral-400">{title}</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">

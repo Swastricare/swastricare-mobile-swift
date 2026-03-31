@@ -1,13 +1,14 @@
 package com.swastricare.health.ui.screens.notifications
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DirectionsRun
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -20,9 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
-import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.components.TrackScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,7 +73,7 @@ fun NotificationSettingsScreen(
                 item {
                     NotifSectionContainer(title = "Hydration Reminders") {
                         NotifToggleRow(
-                            icon = Icons.Default.WaterDrop,
+                            icon = Icons.Outlined.WaterDrop,
                             label = "Enable Hydration Reminders",
                             checked = uiState.hydrationEnabled,
                             onCheckedChange = { viewModel.setHydrationEnabled(it) }
@@ -109,11 +108,6 @@ fun NotificationSettingsScreen(
                                 hour = uiState.quietEnd,
                                 onHourChange = { viewModel.setQuietEnd(it) }
                             )
-                            HorizontalDivider(
-                                Modifier.padding(vertical = 8.dp),
-                                color = AppColors.onSurface.copy(alpha = 0.1f)
-                            )
-                            TestButton(onClick = { viewModel.testHydration() })
                         }
                     }
                 }
@@ -122,7 +116,7 @@ fun NotificationSettingsScreen(
                 item {
                     NotifSectionContainer(title = "Medication Reminders") {
                         NotifToggleRow(
-                            icon = Icons.Default.Medication,
+                            icon = Icons.Outlined.Medication,
                             label = "Enable Medication Reminders",
                             checked = uiState.medicationEnabled,
                             onCheckedChange = { viewModel.setMedicationEnabled(it) }
@@ -144,7 +138,7 @@ fun NotificationSettingsScreen(
                                 color = AppColors.onSurface.copy(alpha = 0.1f)
                             )
                             NotifToggleRow(
-                                icon = Icons.Default.Notifications,
+                                icon = Icons.Outlined.Notifications,
                                 label = "Missed Dose Follow-up",
                                 checked = uiState.missedDoseFollowUp,
                                 onCheckedChange = { viewModel.setMissedDoseFollowUp(it) }
@@ -160,11 +154,6 @@ fun NotificationSettingsScreen(
                                 optionLabels = listOf("5 min", "10 min", "15 min", "30 min"),
                                 onSelected = { viewModel.setMedicationSnoozeMinutes(it) }
                             )
-                            HorizontalDivider(
-                                Modifier.padding(vertical = 8.dp),
-                                color = AppColors.onSurface.copy(alpha = 0.1f)
-                            )
-                            TestButton(onClick = { viewModel.testMedication() })
                         }
                     }
                 }
@@ -173,7 +162,7 @@ fun NotificationSettingsScreen(
                 item {
                     NotifSectionContainer(title = "Diet Reminders") {
                         NotifToggleRow(
-                            icon = Icons.Default.Restaurant,
+                            icon = Icons.Outlined.Restaurant,
                             label = "Enable Diet Reminders",
                             checked = uiState.dietEnabled,
                             onCheckedChange = { viewModel.setDietEnabled(it) }
@@ -200,11 +189,6 @@ fun NotificationSettingsScreen(
                             MealTimeRow("Dinner", uiState.dinnerHour, uiState.dinnerMinute) { h, m ->
                                 viewModel.setDinnerTime(h, m)
                             }
-                            HorizontalDivider(
-                                Modifier.padding(vertical = 8.dp),
-                                color = AppColors.onSurface.copy(alpha = 0.1f)
-                            )
-                            TestButton(onClick = { viewModel.testDiet() })
                         }
                     }
                 }
@@ -213,7 +197,7 @@ fun NotificationSettingsScreen(
                 item {
                     NotifSectionContainer(title = "Cycle Reminders") {
                         NotifToggleRow(
-                            icon = Icons.Default.Favorite,
+                            icon = Icons.Outlined.Favorite,
                             label = "Enable Cycle Reminders",
                             checked = uiState.cycleEnabled,
                             onCheckedChange = { viewModel.setCycleEnabled(it) }
@@ -224,7 +208,7 @@ fun NotificationSettingsScreen(
                                 color = AppColors.onSurface.copy(alpha = 0.1f)
                             )
                             NotifToggleRow(
-                                icon = Icons.Default.Favorite,
+                                icon = Icons.Outlined.Favorite,
                                 label = "Period Prediction Alerts",
                                 checked = uiState.periodPredictionEnabled,
                                 onCheckedChange = { viewModel.setPeriodPredictionEnabled(it) }
@@ -247,7 +231,7 @@ fun NotificationSettingsScreen(
                                 color = AppColors.onSurface.copy(alpha = 0.1f)
                             )
                             NotifToggleRow(
-                                icon = Icons.Default.Favorite,
+                                icon = Icons.Outlined.Favorite,
                                 label = "Daily Symptom Check-in",
                                 checked = uiState.dailySymptomCheckIn,
                                 onCheckedChange = { viewModel.setDailySymptomCheckIn(it) }
@@ -257,7 +241,7 @@ fun NotificationSettingsScreen(
                                 color = AppColors.onSurface.copy(alpha = 0.1f)
                             )
                             NotifToggleRow(
-                                icon = Icons.Default.Favorite,
+                                icon = Icons.Outlined.Favorite,
                                 label = "Ovulation Alerts",
                                 checked = uiState.ovulationAlertEnabled,
                                 onCheckedChange = { viewModel.setOvulationAlertEnabled(it) }
@@ -267,16 +251,11 @@ fun NotificationSettingsScreen(
                                 color = AppColors.onSurface.copy(alpha = 0.1f)
                             )
                             NotifToggleRow(
-                                icon = Icons.Default.Favorite,
+                                icon = Icons.Outlined.Favorite,
                                 label = "Cycle Summary",
                                 checked = uiState.cycleSummaryEnabled,
                                 onCheckedChange = { viewModel.setCycleSummaryEnabled(it) }
                             )
-                            HorizontalDivider(
-                                Modifier.padding(vertical = 8.dp),
-                                color = AppColors.onSurface.copy(alpha = 0.1f)
-                            )
-                            TestButton(onClick = { viewModel.testCycle() })
                         }
                     }
                 }
@@ -285,7 +264,7 @@ fun NotificationSettingsScreen(
                 item {
                     NotifSectionContainer(title = "Appointment Reminders") {
                         NotifToggleRow(
-                            icon = Icons.Default.CalendarMonth,
+                            icon = Icons.Outlined.CalendarMonth,
                             label = "Enable Appointment Reminders",
                             checked = uiState.appointmentEnabled,
                             onCheckedChange = { viewModel.setAppointmentEnabled(it) }
@@ -300,11 +279,6 @@ fun NotificationSettingsScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AppColors.onSurfaceVariant
                             )
-                            HorizontalDivider(
-                                Modifier.padding(vertical = 8.dp),
-                                color = AppColors.onSurface.copy(alpha = 0.1f)
-                            )
-                            TestButton(onClick = { viewModel.testAppointment() })
                         }
                     }
                 }
@@ -313,7 +287,7 @@ fun NotificationSettingsScreen(
                 item {
                     NotifSectionContainer(title = "Activity Reminders") {
                         NotifToggleRow(
-                            icon = Icons.AutoMirrored.Filled.DirectionsRun,
+                            icon = Icons.AutoMirrored.Outlined.DirectionsRun,
                             label = "Enable Activity Reminders",
                             checked = uiState.activityEnabled,
                             onCheckedChange = { viewModel.setActivityEnabled(it) }
@@ -328,11 +302,6 @@ fun NotificationSettingsScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AppColors.onSurfaceVariant
                             )
-                            HorizontalDivider(
-                                Modifier.padding(vertical = 8.dp),
-                                color = AppColors.onSurface.copy(alpha = 0.1f)
-                            )
-                            TestButton(onClick = { viewModel.testActivity() })
                         }
                     }
                 }
@@ -341,7 +310,7 @@ fun NotificationSettingsScreen(
                 item {
                     NotifSectionContainer(title = "AI Health Coach") {
                         NotifToggleRow(
-                            icon = Icons.Default.AutoAwesome,
+                            icon = Icons.Outlined.AutoAwesome,
                             label = "Enable AI Nudges",
                             checked = uiState.aiNudgeEnabled,
                             onCheckedChange = { viewModel.setAiNudgeEnabled(it) }
@@ -367,11 +336,6 @@ fun NotificationSettingsScreen(
                                 optionLabels = listOf("1x/day", "2x/day", "3x/day"),
                                 onSelected = { viewModel.setAiNudgeFrequencyPerDay(it) }
                             )
-                            HorizontalDivider(
-                                Modifier.padding(vertical = 8.dp),
-                                color = AppColors.onSurface.copy(alpha = 0.1f)
-                            )
-                            TestButton(onClick = { viewModel.testAiNudge() })
                         }
                     }
                 }
@@ -391,7 +355,8 @@ private fun NotifSectionContainer(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .glass()
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
             .padding(16.dp)
     ) {
         if (title != null) {
@@ -420,7 +385,7 @@ private fun NotifToggleRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = null, tint = AppColors.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             label,
@@ -433,7 +398,7 @@ private fun NotifToggleRow(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = PrimaryColor,
+                checkedTrackColor = Color(0xFF22C55E),
                 uncheckedThumbColor = AppColors.outline,
                 uncheckedTrackColor = AppColors.surfaceVariant,
                 uncheckedBorderColor = Color.Transparent
@@ -480,14 +445,14 @@ private fun TimeRow(
             formatHour(hour),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = PrimaryColor
+            color = AppColors.onSurface
         )
         // Simple increment/decrement
         IconButton(onClick = { onHourChange((hour - 1 + 24) % 24) }, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+            Icon(Icons.Outlined.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
         }
         IconButton(onClick = { onHourChange((hour + 1) % 24) }, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+            Icon(Icons.Outlined.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -514,10 +479,10 @@ private fun MealTimeRow(
             String.format("%02d:%02d", hour, minute),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = PrimaryColor
+            color = AppColors.onSurface
         )
         Spacer(Modifier.width(4.dp))
-        Icon(Icons.Default.Edit, contentDescription = "Edit time", modifier = Modifier.size(16.dp), tint = PrimaryColor)
+        Icon(Icons.Outlined.Edit, contentDescription = "Edit time", modifier = Modifier.size(16.dp), tint = AppColors.onSurface)
     }
 
     if (showPicker) {
@@ -538,14 +503,6 @@ private fun MealTimeRow(
     }
 }
 
-@Composable
-private fun TestButton(onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(16.dp))
-        Spacer(modifier = Modifier.width(4.dp))
-        Text("Send Test Notification")
-    }
-}
 
 private fun formatHour(hour: Int): String {
     val period = if (hour < 12) "AM" else "PM"

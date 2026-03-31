@@ -9,7 +9,7 @@ export function TopEventsTable({ data, title }: TopEventsTableProps) {
   const max = data.length > 0 ? data[0].count : 1
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+    <div className="rounded-xl bg-white/5 p-5">
       <h3 className="mb-4 text-sm font-medium text-neutral-400">{title}</h3>
       <div className="space-y-2">
         {data.map((item) => (

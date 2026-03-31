@@ -16,7 +16,7 @@ export default function ComparisonMetricCard({
   androidColor = '#22C55E',
 }: ComparisonMetricCardProps) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+    <div className="rounded-xl bg-white/5 p-5">
       <div className="text-sm text-neutral-400 mb-4">{title}</div>
       <div className="grid grid-cols-2 gap-4">
         <div className="text-center">

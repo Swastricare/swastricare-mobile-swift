@@ -20,7 +20,7 @@ export default function MetricCard({
   const isNegative = deltaPercent != null && deltaPercent < 0
 
   return (
-    <div className="relative rounded-2xl border border-white/[0.08] bg-neutral-900 p-5 overflow-hidden transition-all duration-200 hover:-translate-y-0.5 group">
+    <div className="relative rounded-2xl bg-[var(--bg-card)] p-5 overflow-hidden transition-all duration-200 hover:-translate-y-0.5 group">
       {/* Accent left border */}
       <div className="absolute left-0 top-4 bottom-4 w-0.5 rounded-r-full" style={{ backgroundColor: color }} />
 

@@ -82,7 +82,7 @@ export default function ErrorsTable({
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+    <div className="rounded-xl bg-white/5 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-neutral-200">
           Error Log ({total.toLocaleString()})

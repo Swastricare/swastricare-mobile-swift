@@ -169,6 +169,8 @@ export type TimeRange = '1' | '7' | '14' | '30' | '90'
 
 export type Platform = 'all' | 'iOS' | 'Android'
 
+export type Theme = 'dark' | 'black' | 'light'
+
 export interface CustomRange {
   start: string  // ISO date string YYYY-MM-DD
   end: string
@@ -187,4 +189,6 @@ export interface DashboardContextType {
   setSidebarCollapsed: (v: boolean) => void
   customRange: CustomRange | null
   setCustomRange: (r: CustomRange | null) => void
+  theme: Theme
+  setTheme: (t: Theme) => void
 }

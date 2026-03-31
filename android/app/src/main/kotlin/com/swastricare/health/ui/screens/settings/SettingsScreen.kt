@@ -10,10 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,10 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
-import com.swastricare.health.ui.theme.PrimaryColor
 import com.swastricare.health.ui.components.TrackScreen
 
 @Composable
@@ -153,8 +150,7 @@ fun SettingsScreen(
                     item {
                         GlassSectionContainer(title = "Account") {
                             SettingsNavigationRow(
-                                icon = Icons.Default.AccountCircle,
-                                iconTint = PrimaryColor,
+                                icon = Icons.Outlined.AccountCircle,
                                 label = "Account Data",
                                 subtitle = "Edit profile, body stats, location",
                                 onClick = onNavigateToEditProfile
@@ -192,8 +188,7 @@ fun SettingsScreen(
                     item {
                         GlassSectionContainer(title = "Health Data") {
                             SettingsNavigationRow(
-                                icon = Icons.Default.Sync,
-                                iconTint = PrimaryColor,
+                                icon = Icons.Outlined.Sync,
                                 label = "Health Data Sync",
                                 subtitle = "Connect Health Connect, Google Health & more",
                                 onClick = onNavigateToHealthDataSync
@@ -205,8 +200,7 @@ fun SettingsScreen(
                     item {
                         GlassSectionContainer(title = "Appearance") {
                             SettingsNavigationRow(
-                                icon = Icons.Default.Palette,
-                                iconTint = PrimaryColor,
+                                icon = Icons.Outlined.Palette,
                                 label = "Theme",
                                 subtitle = viewModel.themeDisplayName,
                                 onClick = onNavigateToThemeSettings
@@ -312,7 +306,7 @@ private fun SettingsLoadingState(modifier: Modifier = Modifier) {
                     )
             )
             Icon(
-                Icons.Default.Settings,
+                Icons.Outlined.Settings,
                 contentDescription = null,
                 modifier = Modifier
                     .size(50.dp)
@@ -337,7 +331,7 @@ private fun SettingsLoadingState(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .height(6.dp)
                 .clip(RoundedCornerShape(3.dp)),
-            color = PrimaryColor,
+            color = Color(0xFF22C55E),
             trackColor = AppColors.surfaceVariant.copy(alpha = 0.3f)
         )
     }
@@ -355,7 +349,8 @@ private fun GlassSectionContainer(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .glass()
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
             .padding(16.dp)
     ) {
         if (title != null) {
@@ -384,7 +379,7 @@ private fun GlassSectionContainer(
 @Composable
 private fun SettingsInfoRow(
     icon: ImageVector,
-    iconTint: Color = PrimaryColor,
+    iconTint: Color = AppColors.onSurface.copy(alpha = 0.6f),
     label: String,
     value: String
 ) {
@@ -417,7 +412,7 @@ private fun SettingsInfoRow(
 @Composable
 private fun SettingsToggleRow(
     icon: ImageVector,
-    iconTint: Color = PrimaryColor,
+    iconTint: Color = AppColors.onSurface.copy(alpha = 0.6f),
     label: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
@@ -444,7 +439,7 @@ private fun SettingsToggleRow(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = PrimaryColor,
+                checkedTrackColor = Color(0xFF22C55E),
                 uncheckedThumbColor = AppColors.outline,
                 uncheckedTrackColor = AppColors.surfaceVariant,
                 uncheckedBorderColor = Color.Transparent
@@ -456,7 +451,7 @@ private fun SettingsToggleRow(
 @Composable
 private fun SettingsNavigationRow(
     icon: ImageVector,
-    iconTint: Color = PrimaryColor,
+    iconTint: Color = AppColors.onSurface.copy(alpha = 0.6f),
     label: String,
     subtitle: String? = null,
     onClick: () -> Unit
@@ -491,7 +486,7 @@ private fun SettingsNavigationRow(
             }
         }
         Icon(
-            Icons.Default.ChevronRight,
+            Icons.Outlined.ChevronRight,
             contentDescription = null,
             tint = AppColors.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
@@ -513,9 +508,9 @@ private fun SettingsHealthProfileSection(
         headerAction = {
             IconButton(onClick = onRefresh, modifier = Modifier.size(24.dp)) {
                 Icon(
-                    imageVector = Icons.Default.Refresh,
+                    imageVector = Icons.Outlined.Refresh,
                     contentDescription = "Refresh",
-                    tint = PrimaryColor,
+                    tint = AppColors.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -533,24 +528,24 @@ private fun SettingsHealthProfileSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 QuickStatTile(
-                    icon = Icons.Default.Straighten,
+                    icon = Icons.Outlined.Straighten,
                     value = "${uiState.healthProfile.heightCm} cm",
                     label = "Height",
-                    color = PrimaryColor,
+                    color = AppColors.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 QuickStatTile(
-                    icon = Icons.Default.MonitorWeight,
+                    icon = Icons.Outlined.MonitorWeight,
                     value = "${uiState.healthProfile.weightKg} kg",
                     label = "Weight",
-                    color = PrimaryColor,
+                    color = AppColors.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 QuickStatTile(
-                    icon = Icons.Default.Accessibility,
+                    icon = Icons.Outlined.Accessibility,
                     value = profileBMI,
                     label = "BMI",
-                    color = PrimaryColor,
+                    color = AppColors.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
             }
@@ -567,14 +562,14 @@ private fun SettingsHealthProfileSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(Icons.Default.People, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Outlined.People, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     Text(uiState.healthProfile.gender.displayName, style = MaterialTheme.typography.bodySmall, color = AppColors.onSurface)
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Outlined.CalendarToday, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     Text(profileAge, style = MaterialTheme.typography.bodySmall, color = AppColors.onSurface)
                 }
                 if (uiState.healthProfile.bloodType != null) {
@@ -582,7 +577,7 @@ private fun SettingsHealthProfileSection(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.Default.WaterDrop, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Outlined.WaterDrop, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(16.dp))
                         Text(uiState.healthProfile.bloodType, style = MaterialTheme.typography.bodySmall, color = AppColors.onSurface)
                     }
                 }
@@ -596,10 +591,10 @@ private fun SettingsHealthProfileSection(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = Icons.Default.AccountCircle,
+                        imageVector = Icons.Outlined.AccountCircle,
                         contentDescription = null,
                         modifier = Modifier.size(44.dp),
-                        tint = PrimaryColor
+                        tint = AppColors.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -670,13 +665,13 @@ private fun SettingsFamilySection(onNavigateToFamily: () -> Unit) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(PrimaryColor.copy(alpha = 0.15f)),
+                    .background(AppColors.onSurface.copy(alpha = 0.08f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.People,
+                    Icons.Outlined.People,
                     contentDescription = null,
-                    tint = PrimaryColor,
+                    tint = AppColors.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -695,7 +690,7 @@ private fun SettingsFamilySection(onNavigateToFamily: () -> Unit) {
                 )
             }
             Icon(
-                Icons.Default.ChevronRight,
+                Icons.Outlined.ChevronRight,
                 contentDescription = null,
                 tint = AppColors.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
@@ -714,8 +709,7 @@ private fun SettingsNotificationsSection(
 ) {
     GlassSectionContainer(title = "Notifications") {
         SettingsToggleRow(
-            icon = Icons.Default.Notifications,
-            iconTint = PrimaryColor,
+            icon = Icons.Outlined.Notifications,
             label = "Notifications",
             checked = notificationsEnabled,
             onCheckedChange = onNotificationToggle
@@ -727,8 +721,7 @@ private fun SettingsNotificationsSection(
         )
 
         SettingsNavigationRow(
-            icon = Icons.Default.NotificationsActive,
-            iconTint = PrimaryColor,
+            icon = Icons.Outlined.NotificationsActive,
             label = "Reminders & Notifications",
             subtitle = "Hydration, medication, diet, cycle, AI",
             onClick = onNavigateToNotificationSettings
@@ -744,8 +737,7 @@ private fun SettingsHydrationSection(
 ) {
     GlassSectionContainer(title = "Hydration Reminders") {
         SettingsInfoRow(
-            icon = Icons.AutoMirrored.Filled.DirectionsRun,
-            iconTint = PrimaryColor,
+            icon = Icons.AutoMirrored.Outlined.DirectionsRun,
             label = "Activity Level",
             value = "Moderate"
         )
@@ -756,8 +748,7 @@ private fun SettingsHydrationSection(
         )
 
         SettingsInfoRow(
-            icon = Icons.Default.WaterDrop,
-            iconTint = PrimaryColor,
+            icon = Icons.Outlined.WaterDrop,
             label = "Daily Goal",
             value = "2000 ml"
         )
@@ -768,8 +759,7 @@ private fun SettingsHydrationSection(
         )
 
         SettingsNavigationRow(
-            icon = Icons.Default.Settings,
-            iconTint = PrimaryColor,
+            icon = Icons.Outlined.Settings,
             label = "Hydration Preferences",
             onClick = onNavigateToHydrationSettings
         )
@@ -782,8 +772,7 @@ private fun SettingsHydrationSection(
 private fun SettingsHealthDataSyncSection(onNavigate: () -> Unit) {
     GlassSectionContainer(title = "Connected Health Apps") {
         SettingsNavigationRow(
-            icon = Icons.Default.Sync,
-            iconTint = PrimaryColor,
+            icon = Icons.Outlined.Sync,
             label = "Health Data Sync",
             subtitle = "Health Connect, Samsung Health, Garmin & more",
             onClick = onNavigate
@@ -800,8 +789,7 @@ private fun SettingsSecuritySection(
 ) {
     GlassSectionContainer(title = "Security") {
         SettingsToggleRow(
-            icon = Icons.Default.Fingerprint,
-            iconTint = PrimaryColor,
+            icon = Icons.Outlined.Fingerprint,
             label = "Biometric Lock",
             checked = biometricEnabled,
             onCheckedChange = onBiometricToggle
@@ -822,10 +810,10 @@ private fun SettingsAppVersionSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = if (hasUpdate) Icons.Default.SystemUpdate else Icons.Outlined.Info,
+                imageVector = if (hasUpdate) Icons.Outlined.SystemUpdate else Icons.Outlined.Info,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = PrimaryColor
+                tint = AppColors.onSurface.copy(alpha = 0.6f)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
@@ -875,7 +863,8 @@ private fun SettingsSignOutButton(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .glass()
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
             .semantics { contentDescription = "Sign Out" }
             .clickable(enabled = !isLoading) { onClick() }
             .padding(16.dp),
@@ -925,7 +914,8 @@ private fun SettingsDeleteAccountButton(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 6.dp)
-                .glass()
+                .clip(RoundedCornerShape(16.dp))
+                .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
                 .semantics { contentDescription = "Delete Account" }
                 .clickable(enabled = !isLoading) { onClick() }
                 .padding(16.dp),
@@ -936,7 +926,7 @@ private fun SettingsDeleteAccountButton(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    Icons.Default.Delete,
+                    Icons.Outlined.Delete,
                     contentDescription = null,
                     tint = Color(0xFFFF3B30),
                     modifier = Modifier.size(20.dp)
@@ -985,7 +975,7 @@ private fun SettingsFooterLinks(version: String) {
             Text(
                 text = "Terms of Service",
                 style = MaterialTheme.typography.bodySmall,
-                color = PrimaryColor,
+                color = Color(0xFF22C55E),
                 modifier = Modifier.clickable {
                     // Open terms URL or navigate to terms screen
                 }
@@ -998,7 +988,7 @@ private fun SettingsFooterLinks(version: String) {
             Text(
                 text = "Privacy Policy",
                 style = MaterialTheme.typography.bodySmall,
-                color = PrimaryColor,
+                color = Color(0xFF22C55E),
                 modifier = Modifier.clickable {
                     // Open privacy URL or navigate to privacy screen
                 }

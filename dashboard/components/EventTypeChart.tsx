@@ -31,7 +31,7 @@ export function EventTypeChart({ data }: EventTypeChartProps) {
     .sort((a, b) => b.count - a.count)
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+    <div className="rounded-xl bg-white/5 p-5">
       <h3 className="mb-4 text-sm font-medium text-neutral-400">Events by Type</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">

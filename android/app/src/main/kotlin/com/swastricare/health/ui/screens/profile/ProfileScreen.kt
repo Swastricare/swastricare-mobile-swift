@@ -2,7 +2,6 @@ package com.swastricare.health.ui.screens.profile
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -11,7 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -199,10 +198,10 @@ fun ProfileScreenContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Settings,
+                            imageVector = Icons.Outlined.Settings,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = PrimaryColor
+                            tint = AppColors.onSurface.copy(alpha = 0.6f)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -212,7 +211,7 @@ fun ProfileScreenContent(
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Icon(
-                            imageVector = Icons.Default.ChevronRight,
+                            imageVector = Icons.Outlined.ChevronRight,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                             tint = AppColors.onSurfaceVariant
@@ -393,15 +392,14 @@ fun SectionContainer(
     headerAction: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = AppColors.surface,
-        tonalElevation = 2.dp
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
+            .padding(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
         if (title != null) {
             Row(
                 modifier = Modifier
@@ -420,7 +418,6 @@ fun SectionContainer(
             }
         }
         content()
-        }
     }
 }
 
@@ -437,9 +434,9 @@ fun HealthProfileSection(
             if (uiState.healthProfile != null && !uiState.isLoadingHealthProfile) {
                 IconButton(onClick = onRefresh, modifier = Modifier.size(24.dp)) {
                     Icon(
-                        imageVector = Icons.Default.Refresh,
+                        imageVector = Icons.Outlined.Refresh,
                         contentDescription = "Refresh",
-                        tint = PrimaryColor
+                        tint = AppColors.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -451,26 +448,26 @@ fun HealthProfileSection(
                 if (it < 4) Spacer(modifier = Modifier.height(12.dp))
             }
         } else if (uiState.healthProfile != null) {
-            HealthProfileRow(icon = Icons.Default.Person, label = "Name", value = uiState.healthProfile.fullName)
+            HealthProfileRow(icon = Icons.Outlined.Person, label = "Name", value = uiState.healthProfile.fullName)
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            HealthProfileRow(icon = Icons.Default.People, label = "Gender", value = uiState.healthProfile.gender.displayName)
+            HealthProfileRow(icon = Icons.Outlined.People, label = "Gender", value = uiState.healthProfile.gender.displayName)
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            HealthProfileRow(icon = Icons.Default.CalendarToday, label = "Age", value = profileAge)
+            HealthProfileRow(icon = Icons.Outlined.CalendarToday, label = "Age", value = profileAge)
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            HealthProfileRow(icon = Icons.Default.Straighten, label = "Height", value = "${uiState.healthProfile.heightCm} cm")
+            HealthProfileRow(icon = Icons.Outlined.Straighten, label = "Height", value = "${uiState.healthProfile.heightCm} cm")
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            HealthProfileRow(icon = Icons.Default.MonitorWeight, label = "Weight", value = "${uiState.healthProfile.weightKg} kg")
+            HealthProfileRow(icon = Icons.Outlined.MonitorWeight, label = "Weight", value = "${uiState.healthProfile.weightKg} kg")
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            HealthProfileRow(icon = Icons.Default.Accessibility, label = "BMI", value = profileBMI)
+            HealthProfileRow(icon = Icons.Outlined.Accessibility, label = "BMI", value = profileBMI)
 
             if (uiState.healthProfile.bloodType != null) {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                HealthProfileRow(icon = Icons.Default.WaterDrop, label = "Blood Type", value = uiState.healthProfile.bloodType)
+                HealthProfileRow(icon = Icons.Outlined.WaterDrop, label = "Blood Type", value = uiState.healthProfile.bloodType)
             }
         } else {
              Box(
@@ -479,10 +476,10 @@ fun HealthProfileSection(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = Icons.Default.AccountCircle,
+                        imageVector = Icons.Outlined.AccountCircle,
                         contentDescription = null,
                         modifier = Modifier.size(44.dp),
-                        tint = PrimaryColor
+                        tint = AppColors.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -514,7 +511,7 @@ fun HealthProfileRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PrimaryColor,
+            tint = AppColors.onSurface.copy(alpha = 0.6f),
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -536,7 +533,7 @@ fun HydrationSection() {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.DirectionsRun, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.DirectionsRun, contentDescription = null, tint = AppColors.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(12.dp))
             Text("Activity Level", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
             Spacer(modifier = Modifier.weight(1f))
@@ -549,7 +546,7 @@ fun HydrationSection() {
              modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.WaterDrop, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.WaterDrop, contentDescription = null, tint = AppColors.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(12.dp))
             Text("Daily Goal", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
             Spacer(modifier = Modifier.weight(1f))
@@ -563,11 +560,11 @@ fun HydrationSection() {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-             Icon(Icons.Default.Settings, contentDescription = null, tint = AppColors.onSurface, modifier = Modifier.size(20.dp))
+             Icon(Icons.Outlined.Settings, contentDescription = null, tint = AppColors.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
              Spacer(modifier = Modifier.width(12.dp))
              Text("Hydration Preferences", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
              Spacer(modifier = Modifier.weight(1f))
-             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(20.dp))
+             Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -594,10 +591,10 @@ fun SettingsSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Palette,
+                imageVector = Icons.Outlined.Palette,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = PrimaryColor
+                tint = AppColors.onSurface.copy(alpha = 0.6f)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
@@ -613,7 +610,7 @@ fun SettingsSection(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Outlined.ChevronRight,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 tint = AppColors.onSurfaceVariant
@@ -629,12 +626,12 @@ fun SettingsSection(
                 .clickable { onNotificationToggle() },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(imageVector = Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(20.dp), tint = PrimaryColor)
+            Icon(imageVector = Icons.Outlined.Notifications, contentDescription = null, modifier = Modifier.size(20.dp), tint = AppColors.onSurface.copy(alpha = 0.6f))
             Spacer(modifier = Modifier.width(12.dp))
             Text(text = "Notification Settings", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
             Spacer(modifier = Modifier.weight(1f))
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Outlined.ChevronRight,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 tint = AppColors.onSurfaceVariant
@@ -644,7 +641,7 @@ fun SettingsSection(
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
         SettingToggleRow(
-            icon = Icons.Default.Fingerprint,
+            icon = Icons.Outlined.Fingerprint,
             label = "Biometric Login",
             checked = biometricEnabled,
             onCheckedChange = onBiometricToggle
@@ -675,7 +672,7 @@ fun SettingsSection(
                                     themePreferenceManager.setTheme(mode)
                                     showThemeDialog = false
                                 },
-                                colors = RadioButtonDefaults.colors(selectedColor = PrimaryColor)
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF22C55E))
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
@@ -719,7 +716,7 @@ fun HealthConnectSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.FavoriteBorder,
+                imageVector = Icons.Outlined.FavoriteBorder,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 tint = Color(0xFFDE3730)
@@ -738,7 +735,7 @@ fun HealthConnectSection(
                 )
             }
             Icon(
-                imageVector = Icons.Default.OpenInNew,
+                imageVector = Icons.Outlined.OpenInNew,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
                 tint = AppColors.onSurfaceVariant
@@ -791,7 +788,7 @@ fun SettingToggleRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = PrimaryColor)
+        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = AppColors.onSurface.copy(alpha = 0.6f))
         Spacer(modifier = Modifier.width(12.dp))
         Text(text = label, style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
         Spacer(modifier = Modifier.weight(1f))
@@ -800,7 +797,7 @@ fun SettingToggleRow(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = PrimaryColor,
+                checkedTrackColor = Color(0xFF22C55E),
                 uncheckedThumbColor = AppColors.outline,
                 uncheckedTrackColor = AppColors.surfaceVariant,
                 uncheckedBorderColor = Color.Transparent
@@ -816,7 +813,7 @@ fun AboutSection(version: String) {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(20.dp), tint = PrimaryColor)
+            Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(20.dp), tint = AppColors.onSurface.copy(alpha = 0.6f))
             Spacer(modifier = Modifier.width(12.dp))
             Text("Version", style = MaterialTheme.typography.bodyMedium, color = AppColors.onSurface)
             Spacer(modifier = Modifier.weight(1f))
@@ -871,7 +868,7 @@ fun MedicalDisclaimerSection() {
                 Text(
                     text = if (expanded) "Show less" else "Read more",
                     style = MaterialTheme.typography.labelMedium,
-                    color = PrimaryColor
+                    color = Color(0xFF22C55E)
                 )
             }
         }
@@ -938,9 +935,9 @@ fun FamilySection(onNavigateToFamily: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.People,
+                Icons.Outlined.People,
                 contentDescription = null,
-                tint = PrimaryColor,
+                tint = AppColors.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -957,7 +954,7 @@ fun FamilySection(onNavigateToFamily: () -> Unit) {
                 )
             }
             Icon(
-                Icons.Default.ChevronRight,
+                Icons.Outlined.ChevronRight,
                 contentDescription = null,
                 tint = AppColors.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
