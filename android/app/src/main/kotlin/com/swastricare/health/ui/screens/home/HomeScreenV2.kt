@@ -1,6 +1,7 @@
 package com.swastricare.health.ui.screens.home
 
 import androidx.compose.animation.core.*
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,7 +42,6 @@ import com.swastricare.health.ui.components.ModelViewer
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.medications.MedicationsViewModel
 import com.swastricare.health.ui.theme.*
-import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.launch
 import kotlin.math.*
@@ -247,13 +247,6 @@ fun HomeScreenV2(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 5. Health Analytics Card
-                StaggeredEntrance(visible = sectionVisible[5].value) {
-                    HealthAnalyticsCardV2(onClick = onNavigateToAnalytics)
-                }
-
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
@@ -360,29 +353,6 @@ private fun GreetingSectionV2(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Date Chip
-        val dateFormat = remember { SimpleDateFormat("EEEE, d MMM yyyy", Locale.getDefault()) }
-        val currentDate = remember { dateFormat.format(Date()) }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.CalendarToday,
-                contentDescription = null,
-                tint = Color(0xFF60A5FA),
-                modifier = Modifier.size(14.dp)
-            )
-            Text(
-                text = currentDate,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = AppColors.onSurface.copy(alpha = 0.85f)
-            )
-        }
     }
 }
 
@@ -699,6 +669,18 @@ private fun HydrationQuickActionCardV2(
 ) {
     val percentage = if (goal > 0) ((current.toFloat() / goal) * 100).toInt() else 0
 
+    // Animated values
+    val animatedCurrent by animateIntAsState(
+        targetValue = current,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "hydrationCurrent"
+    )
+    val animatedPercentage by animateIntAsState(
+        targetValue = percentage,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "hydrationPercentage"
+    )
+
     Box(
         modifier = Modifier
             .width(cardWidth)
@@ -720,8 +702,8 @@ private fun HydrationQuickActionCardV2(
                 )
         )
 
-        // Water wave overlay
-        WaterWaveOverlayV2()
+        // Water wave overlay — level rises with intake
+        WaterWaveOverlayV2(fillFraction = if (goal > 0) (current.toFloat() / goal).coerceIn(0f, 1f) else 0f)
 
         // Content
         Column(
@@ -750,7 +732,7 @@ private fun HydrationQuickActionCardV2(
                     )
                 }
                 Text(
-                    text = "$percentage%",
+                    text = "$animatedPercentage%",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -766,7 +748,7 @@ private fun HydrationQuickActionCardV2(
                 )
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = "$current",
+                        text = "$animatedCurrent",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -784,7 +766,13 @@ private fun HydrationQuickActionCardV2(
 }
 
 @Composable
-private fun WaterWaveOverlayV2() {
+private fun WaterWaveOverlayV2(fillFraction: Float = 0.5f) {
+    val animatedFill by animateFloatAsState(
+        targetValue = fillFraction,
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        label = "waterLevel"
+    )
+
     val infiniteTransition = rememberInfiniteTransition(label = "wave")
     val waveOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -800,13 +788,15 @@ private fun WaterWaveOverlayV2() {
         val width = size.width
         val height = size.height
         val amp = 8.dp.toPx()
+        // Water level: 0% fill = bottom, 100% fill = top
+        val waterLineY = height * (1f - animatedFill)
 
         // Back wave
         val backPath = Path().apply {
-            moveTo(0f, height * 0.5f)
+            moveTo(0f, waterLineY)
             var x = 0f
             while (x <= width) {
-                val y = height * 0.5f + sin(x / width * PI * 4 + waveOffset).toFloat() * amp
+                val y = waterLineY + sin(x / width * PI * 4 + waveOffset).toFloat() * amp
                 lineTo(x, y)
                 x += 4f
             }
@@ -818,10 +808,10 @@ private fun WaterWaveOverlayV2() {
 
         // Front wave
         val frontPath = Path().apply {
-            moveTo(0f, height * 0.5f)
+            moveTo(0f, waterLineY)
             var x = 0f
             while (x <= width) {
-                val y = height * 0.5f + sin(x / width * PI * 4 + waveOffset + 1.5f).toFloat() * (amp * 0.7f)
+                val y = waterLineY + sin(x / width * PI * 4 + waveOffset + 1.5f).toFloat() * (amp * 0.7f)
                 lineTo(x, y)
                 x += 4f
             }
@@ -1281,88 +1271,6 @@ private fun BPMCardV2(
                 modifier = Modifier
                     .size(24.dp)
                     .scale(heartScale)
-            )
-        }
-    }
-}
-
-// ─── Health Analytics Card ──────────────────────────────────────────────────
-
-@Composable
-private fun HealthAnalyticsCardV2(
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF7C4DFF).copy(alpha = 0.25f),
-                        Color(0xFF4F46E5).copy(alpha = 0.15f)
-                    )
-                )
-            )
-            .border(
-                width = 0.5.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF7C4DFF).copy(alpha = 0.5f),
-                        Color(0xFF4F46E5).copy(alpha = 0.2f)
-                    )
-                ),
-                shape = RoundedCornerShape(24.dp)
-            )
-            .semantics { contentDescription = "Health Analytics" }
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(
-                            color = Color(0xFF7C4DFF),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Column {
-                    Text(
-                        "Health Analytics",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppColors.onSurface
-                    )
-                    Text(
-                        "Track trends & insights",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppColors.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = AppColors.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.size(24.dp)
             )
         }
     }

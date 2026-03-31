@@ -985,7 +985,7 @@ fun UrineColorGuideSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = AppColors.surface
+        containerColor = if (isSystemInDarkTheme()) Color(0xFF0A0A0A) else Color.White
     ) {
         // Fixed header
         Column(
@@ -1201,6 +1201,7 @@ fun HydrationHeroRing(
     goalMl: Int,
     progress: Float,
     drinkAccentColor: Color = HydrationCyan,
+    streakDays: Int = 0,
     onDragAddMl: ((Int) -> Unit)? = null,
     onTap: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -1433,6 +1434,15 @@ fun HydrationHeroRing(
                         color = Color.White
                     )
                 }
+                if (streakDays > 0) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "\uD83D\uDD25 $streakDays day streak",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
             }
         }
 
@@ -1472,6 +1482,7 @@ fun HydrationHeroPager(
                             goalMl = uiState.effectiveGoalMl,
                             progress = uiState.progress,
                             drinkAccentColor = drinkAccentColors[uiState.dominantDrinkType] ?: HydrationCyan,
+                            streakDays = uiState.insights?.streakDays ?: 0,
                             onDragAddMl = onDragAddMl,
                             onTap = onTapAnalytics,
                             modifier = Modifier.size(220.dp)
@@ -1779,7 +1790,7 @@ fun AddDrinkBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = AppColors.surface,
+        containerColor = if (isSystemInDarkTheme()) Color(0xFF0A0A0A) else Color.White,
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -2191,7 +2202,7 @@ fun HydrationOverviewSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = AppColors.surface,
+        containerColor = if (isSystemInDarkTheme()) Color(0xFF0A0A0A) else Color.White,
         dragHandle = {
             Box(
                 modifier = Modifier
