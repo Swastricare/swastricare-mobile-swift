@@ -7,7 +7,9 @@ import com.swastricare.health.data.models.AdherenceStatus
 import com.swastricare.health.data.models.CyclePhase
 import com.swastricare.health.data.models.MedicationDose
 import com.swastricare.health.data.services.HealthConnectService
+import com.swastricare.health.data.models.HydrationCalculator
 import com.swastricare.health.data.models.HydrationEntry
+import com.swastricare.health.data.models.HydrationPreferences
 import com.swastricare.health.data.models.MenstrualSettings
 import com.swastricare.health.data.repository.DietRepository
 import com.swastricare.health.data.repository.HydrationRepository
@@ -162,12 +164,14 @@ class HomeViewModel @Inject constructor(
                     emptyList()
                 }
 
-                // Load hydration data from local store
+                // Load hydration data and goal from local store
                 val todayStr = LocalDate.now().toString()
                 val hydrationEntries = try { hydrationRepository.loadLocalEntries() } catch (_: Exception) { emptyList() }
                 val todayHydration = hydrationEntries
                     .filter { it.consumedAt.startsWith(todayStr) }
                     .sumOf { it.effectiveMl }
+                val hydrationPrefs = try { hydrationRepository.loadPreferences() } catch (_: Exception) { HydrationPreferences() }
+                val hydrationGoalMl = HydrationCalculator.calculateGoal(hydrationPrefs).dailyGoalMl
 
                 // Load diet data from local store
                 val dietEntries = try { dietRepository.loadLocalLogs() } catch (_: Exception) { emptyList() }
@@ -229,7 +233,7 @@ class HomeViewModel @Inject constructor(
                     sleepHours = summary.sleepFormatted,
                     distance = summary.distanceKm,
                     hydrationCurrent = todayHydration,
-                    hydrationGoal = 2500,
+                    hydrationGoal = hydrationGoalMl,
                     medicationsTaken = medicationsTaken,
                     medicationsTotal = medicationsTotal,
                     isLoading = false,

@@ -5,24 +5,36 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DirectionsRun
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import kotlin.math.abs
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.ActivityLevel
@@ -30,8 +42,6 @@ import com.swastricare.health.data.models.HydrationCalculator
 import com.swastricare.health.data.models.HydrationPreferences
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.TrackScreen
-import com.swastricare.health.ui.screens.home.glass
-import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,7 +56,7 @@ fun HydrationSettingsScreen(
     val prefs = uiState.preferences
 
     // Local editable state initialized from current preferences
-    var weightText by remember(prefs) { mutableStateOf(prefs.weightKg?.toString() ?: "") }
+    var weightText by remember(prefs) { mutableStateOf(prefs.weightKg?.toInt()?.toString() ?: "") }
     var selectedActivity by remember(prefs) { mutableStateOf(prefs.activityLevelEnum) }
     var customGoalText by remember(prefs) { mutableStateOf(prefs.customGoalMl?.toString() ?: "") }
     var useCustomGoal by remember(prefs) { mutableStateOf(prefs.customGoalMl != null) }
@@ -105,7 +115,7 @@ fun HydrationSettingsScreen(
                             Text(
                                 "Save",
                                 fontWeight = FontWeight.Bold,
-                                color = if (hasChanges) HydrationCyan else AppColors.onBackground.copy(alpha = 0.3f)
+                                color = if (hasChanges) Color(0xFF22C55E) else AppColors.onBackground.copy(alpha = 0.3f)
                             )
                         }
                     },
@@ -131,23 +141,18 @@ fun HydrationSettingsScreen(
 
                 // Body Stats Section
                 item {
-                    SettingsSection(title = "Body Stats", icon = Icons.Default.MonitorWeight) {
-                        // Weight
-                        SettingsTextField(
-                            label = "Weight",
-                            value = weightText,
-                            onValueChange = { weightText = it; hasChanges = true },
-                            suffix = "kg",
-                            keyboardType = KeyboardType.Decimal,
-                            placeholder = "e.g. 70"
+                    SettingsSection(title = "Weight", icon = Icons.Outlined.MonitorWeight) {
+                        VerticalWeightPicker(
+                            currentWeight = weightText.toIntOrNull() ?: 70,
+                            onWeightChanged = { weightText = it.toString(); hasChanges = true }
                         )
                     }
                 }
 
                 // Activity Level Section
                 item {
-                    SettingsSection(title = "Activity Level", icon = Icons.AutoMirrored.Filled.DirectionsRun) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsSection(title = "Activity Level", icon = Icons.AutoMirrored.Outlined.DirectionsRun) {
+                        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                             ActivityLevel.entries.forEach { level ->
                                 ActivityLevelOption(
                                     level = level,
@@ -161,7 +166,7 @@ fun HydrationSettingsScreen(
 
                 // Custom Goal Section
                 item {
-                    SettingsSection(title = "Daily Goal", icon = Icons.Default.Flag) {
+                    SettingsSection(title = "Daily Goal", icon = Icons.Outlined.Flag) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -177,7 +182,7 @@ fun HydrationSettingsScreen(
                                     onCheckedChange = { useCustomGoal = it; hasChanges = true },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = Color.White,
-                                        checkedTrackColor = HydrationCyan,
+                                        checkedTrackColor = Color(0xFF22C55E),
                                         uncheckedThumbColor = AppColors.outline,
                                         uncheckedTrackColor = AppColors.surfaceVariant,
                                         uncheckedBorderColor = Color.Transparent
@@ -211,7 +216,7 @@ fun HydrationSettingsScreen(
 
                 // Weather Adjustment Section
                 item {
-                    SettingsSection(title = "Weather Adjustment", icon = Icons.Default.WbSunny) {
+                    SettingsSection(title = "Weather Adjustment", icon = Icons.Outlined.WbSunny) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -231,7 +236,7 @@ fun HydrationSettingsScreen(
                                     onCheckedChange = { useWeatherAdjustment = it },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = Color.White,
-                                        checkedTrackColor = HydrationCyan,
+                                        checkedTrackColor = Color(0xFF22C55E),
                                         uncheckedThumbColor = AppColors.outline,
                                         uncheckedTrackColor = AppColors.surfaceVariant,
                                         uncheckedBorderColor = Color.Transparent
@@ -243,7 +248,6 @@ fun HydrationSettingsScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .lightBorder(8.dp)
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(HydrationCyan.copy(alpha = 0.08f))
                                         .padding(12.dp),
@@ -273,7 +277,7 @@ fun HydrationSettingsScreen(
 
                 // Notifications Section
                 item {
-                    SettingsSection(title = "Notifications", icon = Icons.Default.Notifications) {
+                    SettingsSection(title = "Notifications", icon = Icons.Outlined.Notifications) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -285,7 +289,7 @@ fun HydrationSettingsScreen(
                         ) {
                             Text("Hydration Reminder Settings", style = MaterialTheme.typography.bodyLarge)
                             Icon(
-                                Icons.Default.ChevronRight, null,
+                                Icons.Outlined.ChevronRight, null,
                                 tint = AppColors.onSurface.copy(alpha = 0.4f)
                             )
                         }
@@ -296,7 +300,7 @@ fun HydrationSettingsScreen(
                 item {
                     SettingsSection(
                         title = "About the Calculation",
-                        icon = Icons.Default.Info,
+                        icon = Icons.Outlined.Info,
                         collapsible = true,
                         isExpanded = showAboutCalculation,
                         onToggle = { showAboutCalculation = !showAboutCalculation }
@@ -331,7 +335,7 @@ fun HydrationSettingsScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(16.dp),
-                containerColor = HydrationCyan,
+                containerColor = Color(0xFF22C55E),
                 contentColor = Color.White
             ) {
                 Text("Settings saved")
@@ -346,23 +350,34 @@ fun HydrationSettingsScreen(
 
 @Composable
 private fun GoalPreviewCard(goalMl: Int, breakdown: com.swastricare.health.data.models.HydrationGoal.GoalBreakdown) {
-    Box(
+    val context = LocalContext.current
+    val waterBottleBitmap = remember {
+        context.assets.open("icons/hydration goal.png").use { stream ->
+            BitmapFactory.decodeStream(stream)?.asImageBitmap()
+        }
+    }
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 16.dp, opacity = 0.6f)
-            .padding(20.dp)
+            .padding(horizontal = 4.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        waterBottleBitmap?.let { bitmap ->
+            Image(
+                bitmap = bitmap,
+                contentDescription = "Water bottle",
+                modifier = Modifier.size(96.dp)
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Daily Goal", fontSize = 14.sp, color = AppColors.onSurface.copy(alpha = 0.6f))
             Text(
                 "${goalMl}ml",
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
-                color = HydrationCyan
+                color = AppColors.onSurface
             )
             Text(
                 breakdown.description,
@@ -389,7 +404,8 @@ private fun SettingsSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .glass()
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.5f))
             .padding(16.dp)
     ) {
         Row(
@@ -399,7 +415,7 @@ private fun SettingsSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(icon, null, tint = HydrationCyan, modifier = Modifier.size(20.dp))
+            Icon(icon, null, tint = AppColors.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
             Text(
                 title,
                 style = MaterialTheme.typography.titleMedium,
@@ -409,7 +425,7 @@ private fun SettingsSection(
             )
             if (collapsible) {
                 Icon(
-                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                     "Toggle",
                     tint = AppColors.onSurface.copy(alpha = 0.4f)
                 )
@@ -439,7 +455,7 @@ private fun SettingsTextField(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.width(80.dp))
-        OutlinedTextField(
+        TextField(
             value = value,
             onValueChange = { newVal ->
                 onValueChange(newVal.filter { it.isDigit() || it == '.' })
@@ -449,8 +465,11 @@ private fun SettingsTextField(
             singleLine = true,
             modifier = Modifier.weight(1f),
             shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = HydrationCyan,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = AppColors.surfaceVariant,
+                unfocusedContainerColor = AppColors.surfaceVariant,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
                 cursorColor = HydrationCyan
             )
         )
@@ -468,25 +487,20 @@ private fun ActivityLevelOption(
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
-    val bgColor = if (isSelected) HydrationCyan.copy(alpha = 0.15f) else Color.Transparent
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .lightBorder(12.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
             .clickable { onSelect() }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(level.icon, fontSize = 24.sp)
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 level.displayName,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isSelected) HydrationCyan else AppColors.onSurface
+                color = AppColors.onSurface
             )
             Text(
                 level.description,
@@ -495,7 +509,7 @@ private fun ActivityLevelOption(
             )
         }
         if (isSelected) {
-            Icon(Icons.Default.CheckCircle, null, tint = HydrationCyan, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.CheckCircle, null, tint = Color(0xFF22C55E), modifier = Modifier.size(20.dp))
         }
         Text(
             "${(level.multiplier * 100).toInt() - 100}%".let { if (!it.startsWith("-")) "+$it" else it },
@@ -515,5 +529,142 @@ private fun AboutItem(title: String, description: String) {
     Column {
         Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         Text(description, fontSize = 12.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Horizontal Ruler Weight Picker
+// ─────────────────────────────────────
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun VerticalWeightPicker(
+    currentWeight: Int,
+    onWeightChanged: (Int) -> Unit,
+    minWeight: Int = 30,
+    maxWeight: Int = 200
+) {
+    val view = LocalView.current
+    val tickWidthDp = 12.dp
+    val density = LocalDensity.current
+    val tickWidthPx = with(density) { tickWidthDp.toPx() }
+
+    val totalRange = maxWeight - minWeight
+
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = (currentWeight - minWeight)
+    )
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+
+    val centeredIndex by remember {
+        derivedStateOf {
+            val firstVisible = listState.firstVisibleItemIndex
+            val offset = listState.firstVisibleItemScrollOffset
+            val centered = if (offset > tickWidthPx / 2) firstVisible + 1 else firstVisible
+            centered.coerceIn(0, totalRange)
+        }
+    }
+
+    // Haptic feedback on weight change
+    LaunchedEffect(centeredIndex) {
+        val weight = minWeight + centeredIndex
+        if (weight != currentWeight) {
+            onWeightChanged(weight)
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Weight display
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "${minWeight + centeredIndex}",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.onSurface
+            )
+            Text(
+                text = "kg",
+                fontSize = 14.sp,
+                color = AppColors.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+        }
+
+        // Ruler
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            // Center indicator triangle
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xFF22C55E))
+            )
+
+            LazyRow(
+                state = listState,
+                flingBehavior = flingBehavior,
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.Bottom,
+                contentPadding = PaddingValues(horizontal = with(density) { (LocalContext.current.resources.displayMetrics.widthPixels / density.density / 2 - tickWidthDp.value / 2 - 32).dp })
+            ) {
+                items(totalRange + 1) { index ->
+                    val weightIndex = index
+                    val isValid = true
+                    val weight = minWeight + weightIndex
+                    val isMajor = isValid && weight % 5 == 0
+                    val isLabeled = isValid && weight % 10 == 0
+
+                    val distFromCenter = abs(weightIndex - centeredIndex)
+                    val tickAlpha = when {
+                        !isValid -> 0f
+                        distFromCenter <= 2 -> 1f
+                        distFromCenter <= 6 -> 0.6f
+                        distFromCenter <= 12 -> 0.35f
+                        else -> 0.15f
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .width(tickWidthDp)
+                            .fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        if (isLabeled) {
+                            Text(
+                                text = "$weight",
+                                fontSize = 9.sp,
+                                color = AppColors.onSurface.copy(alpha = tickAlpha * 0.6f),
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .width(if (isMajor) 2.dp else 1.dp)
+                                .height(if (isMajor) 24.dp else if (isLabeled) 24.dp else 14.dp)
+                                .alpha(tickAlpha)
+                                .background(
+                                    if (weightIndex == centeredIndex) Color(0xFF22C55E)
+                                    else AppColors.onSurface.copy(alpha = 0.4f),
+                                    RoundedCornerShape(1.dp)
+                                )
+                        )
+                    }
+                }
+            }
+        }
     }
 }

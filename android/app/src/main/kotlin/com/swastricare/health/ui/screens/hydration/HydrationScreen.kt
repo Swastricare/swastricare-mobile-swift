@@ -1,8 +1,11 @@
 package com.swastricare.health.ui.screens.hydration
 
 import android.app.Activity
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -161,11 +164,12 @@ fun HydrationScreen(
                     }
                     Text(
                         "Hydration",
+                        modifier = Modifier.weight(1f),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = Color.White,
+                        textAlign = TextAlign.Center
                     )
-                    Spacer(Modifier.weight(1f))
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, "Settings", tint = Color.White.copy(alpha = 0.8f))
                     }
@@ -372,45 +376,58 @@ private fun SheetContent(
                 items = uiState.todaysEntries,
                 key = { it.id }
             ) { entry ->
+                var isVisible by remember { mutableStateOf(true) }
                 val dismissState = rememberSwipeToDismissBoxState(
                     confirmValueChange = { value ->
                         if (value == SwipeToDismissBoxValue.EndToStart) {
                             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            onDeleteEntry(entry.id)
+                            isVisible = false
                             true
                         } else false
                     }
                 )
-                SwipeToDismissBox(
-                    state = dismissState,
-                    backgroundContent = {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                ) {
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Transparent)
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color(0xFFFF3B30)
+                                )
+                            }
+                        },
+                        enableDismissFromStartToEnd = false
+                    ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFFF3B30))
-                                .padding(horizontal = 20.dp),
-                            contentAlignment = Alignment.CenterEnd
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(entryBgColor)
                         ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color.White
+                            HydrationEntryCard(
+                                entry = entry,
+                                onDelete = { onDeleteEntry(entry.id) }
                             )
                         }
-                    },
-                    enableDismissFromStartToEnd = false
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(entryBgColor)
-                    ) {
-                        HydrationEntryCard(
-                            entry = entry,
-                            onDelete = { onDeleteEntry(entry.id) }
-                        )
+                    }
+                }
+
+                // Delete after animation completes
+                if (!isVisible) {
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(300)
+                        onDeleteEntry(entry.id)
                     }
                 }
             }

@@ -120,7 +120,20 @@ class HydrationViewModel @Inject constructor(
 
             // Show local data immediately so UI is not blank
             val localEntries = repository.loadLocalEntries()
-            val prefs = repository.loadPreferences()
+            var prefs = repository.loadPreferences()
+
+            // Auto-populate weight from health profile if not set in hydration prefs
+            if (prefs.weightKg == null) {
+                val userId = authRepository.getCurrentUser()?.id
+                if (userId != null) {
+                    val profile = try { profileRepository.getHealthProfile(userId) } catch (_: Exception) { null }
+                    if (profile != null && profile.weightKg > 0) {
+                        prefs = prefs.copy(weightKg = profile.weightKg)
+                        repository.savePreferences(prefs)
+                    }
+                }
+            }
+
             val goal = HydrationCalculator.calculateGoal(prefs)
 
             _uiState.value = _uiState.value.copy(
