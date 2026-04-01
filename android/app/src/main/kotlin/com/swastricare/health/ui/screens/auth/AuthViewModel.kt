@@ -209,12 +209,12 @@ class AuthViewModel @Inject constructor(
                 _uiState.value = AuthUiState.Error("No Google accounts found")
             } catch (e: GoogleSignInException) {
                 Log.e("GoogleAuth", "GoogleSignInException: ${e.message}", e)
-                _errorMessage.value = e.message ?: "Google sign-in failed"
-                _uiState.value = AuthUiState.Error(e.message ?: "Google sign-in failed")
+                _errorMessage.value = "Google sign-in failed. Please try again"
+                _uiState.value = AuthUiState.Error("Google sign-in failed")
             } catch (e: Exception) {
                 Log.e("GoogleAuth", "Unexpected: ${e.javaClass.simpleName}: ${e.message}", e)
-                _errorMessage.value = e.message ?: "Google sign-in failed"
-                _uiState.value = AuthUiState.Error(e.message ?: "Google sign-in failed")
+                _errorMessage.value = "Google sign-in failed. Please try again"
+                _uiState.value = AuthUiState.Error("Google sign-in failed")
             } finally {
                 _isLoading.value = false
             }
@@ -319,7 +319,7 @@ class AuthViewModel @Inject constructor(
                 _uiState.value = AuthUiState.Idle
                 clearForm()
             } catch (e: Exception) {
-                _errorMessage.value = e.message ?: "Sign out failed"
+                _errorMessage.value = "Unable to sign out. Please try again"
             } finally {
                 _isLoading.value = false
             }

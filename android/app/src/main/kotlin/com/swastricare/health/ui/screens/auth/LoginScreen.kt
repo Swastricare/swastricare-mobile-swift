@@ -1,5 +1,9 @@
 package com.swastricare.health.ui.screens.auth
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,20 +15,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.auth.components.*
-import com.swastricare.health.ui.theme.AppColors
 
 @Composable
 fun LoginScreen(
@@ -41,13 +46,42 @@ fun LoginScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    val snackbarHostState = remember { SnackbarHostState() }
-
     var emailFocused by remember { mutableStateOf(false) }
     var passwordFocused by remember { mutableStateOf(false) }
     val passwordFocusRequester = remember { FocusRequester() }
 
     var hasAttemptedLogin by remember { mutableStateOf(false) }
+
+    // Entrance animation states
+    var animateIn by remember { mutableStateOf(false) }
+
+    val logoScale by animateFloatAsState(
+        targetValue = if (animateIn) 1f else 0.6f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessLow),
+        label = "logoScale"
+    )
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (animateIn) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessLow),
+        label = "logoAlpha"
+    )
+    val headerAlpha by animateFloatAsState(
+        targetValue = if (animateIn) 1f else 0f,
+        animationSpec = tween(600, delayMillis = 300),
+        label = "headerAlpha"
+    )
+    val formAlpha by animateFloatAsState(
+        targetValue = if (animateIn) 1f else 0f,
+        animationSpec = tween(700, delayMillis = 500),
+        label = "formAlpha"
+    )
+    val footerAlpha by animateFloatAsState(
+        targetValue = if (animateIn) 1f else 0f,
+        animationSpec = tween(400, delayMillis = 800),
+        label = "footerAlpha"
+    )
+
+    LaunchedEffect(Unit) { animateIn = true }
 
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.Success) {
@@ -55,112 +89,109 @@ fun LoginScreen(
         }
     }
 
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            snackbarHostState.showSnackbar(
-                message = it,
-                actionLabel = "Dismiss",
-                duration = SnackbarDuration.Short
-            )
-            viewModel.clearError()
-        }
-    }
-
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent
     ) { paddingValues ->
         Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
+            AuthGradientBackground()
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
                     .imePadding(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Logo hero
+                AnimatedLogo(
+                    logoScale = logoScale,
+                    glowBreathing = animateIn,
+                    modifier = Modifier.alpha(logoAlpha)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Header text
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.alpha(headerAlpha)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            "Welcome Back",
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onBackground
+                    Text(
+                        "SwastriCare",
+                        style = TextStyle(
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Bold,
+                            brush = Brush.linearGradient(PremiumColors.TealGreenGradient)
                         )
-                        Text(
-                            "Sign in to your health companion",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    )
+                    Text(
+                        "Your family's health companion",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(25.dp))
 
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                // Form card
+                GlassCard(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .alpha(formAlpha)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        PremiumTextField(
-                            value = formState.email,
-                            onValueChange = { viewModel.updateEmail(it) },
-                            placeholder = "Email",
-                            icon = Icons.Default.Email,
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next,
-                            keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
-                            isFocused = emailFocused,
-                            modifier = Modifier.onFocusChanged { emailFocused = it.isFocused },
-                            isError = hasAttemptedLogin && !formState.isValidEmail
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                        // Input fields
+                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            PremiumTextField(
+                                value = formState.email,
+                                onValueChange = { viewModel.updateEmail(it) },
+                                placeholder = "Email",
+                                icon = Icons.Default.Email,
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next,
+                                keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
+                                isFocused = emailFocused,
+                                modifier = Modifier.onFocusChanged { emailFocused = it.isFocused },
+                                isError = hasAttemptedLogin && !formState.isValidEmail
+                            )
 
-                        PremiumSecureField(
-                            value = formState.password,
-                            onValueChange = { viewModel.updatePassword(it) },
-                            placeholder = "Password",
-                            icon = Icons.Default.Lock,
-                            imeAction = ImeAction.Done,
-                            keyboardActions = KeyboardActions(onDone = {
-                                hasAttemptedLogin = true
-                                if (formState.isValidForLogin) viewModel.signIn()
-                            }),
-                            isFocused = passwordFocused,
-                            modifier = Modifier.focusRequester(passwordFocusRequester).onFocusChanged { passwordFocused = it.isFocused },
-                            isError = hasAttemptedLogin && !formState.isValidPassword
-                        )
+                            PremiumSecureField(
+                                value = formState.password,
+                                onValueChange = { viewModel.updatePassword(it) },
+                                placeholder = "Password",
+                                icon = Icons.Default.Lock,
+                                imeAction = ImeAction.Done,
+                                keyboardActions = KeyboardActions(onDone = {
+                                    hasAttemptedLogin = true
+                                    if (formState.isValidForLogin) viewModel.signIn()
+                                }),
+                                isFocused = passwordFocused,
+                                modifier = Modifier
+                                    .focusRequester(passwordFocusRequester)
+                                    .onFocusChanged { passwordFocused = it.isFocused },
+                                isError = hasAttemptedLogin && !formState.isValidPassword
+                            )
+                        }
 
+                        // Forgot password
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             Text(
                                 "Forgot Password?",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = PremiumColors.RoyalBlue,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = PremiumColors.Teal,
                                 modifier = Modifier.clickable { onNavigateToResetPassword() }
                             )
                         }
-                    }
 
-                    if (errorMessage != null) {
-                        Text(
-                            errorMessage ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                        // Error banner
+                        if (errorMessage != null) {
+                            AuthAlertBanner(message = errorMessage ?: "", isSuccess = false)
+                        }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Sign In button
                         PremiumButton(
                             "Sign In",
                             onClick = {
@@ -171,19 +202,31 @@ fun LoginScreen(
                             isLoading = isLoading
                         )
 
+                        // Divider
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                            Text("OR", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                            HorizontalDivider(
+                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                            )
+                            Text(
+                                "or",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                            )
                         }
 
+                        // Social buttons - side by side like iOS
                         SocialLoginButton(
-                            icon = Icons.Default.Email,
-                            label = "Continue with Google",
+                            assetPath = "icons/google_icon.png",
+                            label = "Sign in with Google",
                             onClick = { viewModel.signInWithGoogle(context) },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !isLoading && viewModel.isGoogleSignInConfigured
@@ -191,15 +234,30 @@ fun LoginScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.weight(1f))
 
-                Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                    Text("Don't have an account? ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Sign Up", style = MaterialTheme.typography.bodyMedium, color = PremiumColors.RoyalBlue, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { onNavigateToSignUp() })
+                // Footer
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(footerAlpha)
+                        .padding(bottom = 28.dp)
+                ) {
+                    Text(
+                        "New here? ",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Create Account",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = PremiumColors.Teal,
+                        modifier = Modifier.clickable { onNavigateToSignUp() }
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(30.dp))
             }
         }
+        }
     }
-}
+

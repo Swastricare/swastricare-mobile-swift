@@ -47,7 +47,7 @@ data class AuthFormState(
         }
 
     val isValidPhone: Boolean
-        get() = phone.isEmpty() || phone.length >= 10
+        get() = phone.length == 10
 
     val passwordsMatch: Boolean
         get() = password == confirmPassword && password.isNotEmpty()
