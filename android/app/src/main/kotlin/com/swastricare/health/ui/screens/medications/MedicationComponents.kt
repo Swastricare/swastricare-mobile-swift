@@ -28,10 +28,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.swastricare.health.data.models.AdherenceStatus
 import com.swastricare.health.data.models.MedicationDose
 import com.swastricare.health.data.models.MedicationType
@@ -405,7 +408,7 @@ fun TimelineMedicationCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Medication type icon box (40×40)
+            // Medication pill image (40×40)
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -413,11 +416,13 @@ fun TimelineMedicationCard(
                     .background(MedBrandBlue.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = dose.medicationType.toIcon(),
-                    contentDescription = null,
-                    tint = MedBrandBlue,
-                    modifier = Modifier.size(18.dp)
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data("file:///android_asset/images/pill image.png")
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = dose.medicationType.name,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 

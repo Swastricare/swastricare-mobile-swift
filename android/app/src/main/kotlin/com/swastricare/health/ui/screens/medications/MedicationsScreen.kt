@@ -251,7 +251,7 @@ fun MedicationsScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             PillBottleView(progress = uiState.statistics.adherenceRate)
                             Row(
@@ -282,15 +282,13 @@ fun MedicationsScreen(
                             }
                         }
 
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(8.dp))
 
                         // ── Calendar Strip (on gradient) ──
                         MedGradientCalendarStrip(
                             selectedDate = uiState.selectedDate,
                             onDateSelected = { vm.selectDate(it) }
                         )
-
-                        Spacer(Modifier.height(12.dp))
                     }
                 }
             }
@@ -498,9 +496,9 @@ private fun MedGradientCalendarDay(
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                 onClick()
             }
-            .padding(vertical = 4.dp),
+            .padding(vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = dayAbbr,
@@ -625,40 +623,6 @@ private fun MedSheetContent(
                 }
             }
 
-            // Ask AI button
-            item {
-                Spacer(Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .lightBorder(12.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MedBrandBlue.copy(alpha = 0.08f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onNavigateToAI() }
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.AutoAwesome, null,
-                            tint = MedBrandBlue,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            "Ask AI about my medications",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MedBrandBlue
-                        )
-                    }
-                }
-            }
         } else {
             item {
                 Column(
