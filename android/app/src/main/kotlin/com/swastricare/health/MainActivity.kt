@@ -146,23 +146,72 @@ class MainActivity : FragmentActivity() {
         handleDeepLink(intent)
     }
 
+    /**
+     * Extract the `type` parameter from a Supabase auth callback URI.
+     * Supabase encodes auth params in the URL fragment: `#type=recovery&access_token=...`
+     * Also checks query parameters as a fallback.
+     */
+    private fun extractAuthType(uri: Uri): String? {
+        // Try fragment first (Supabase default: #type=recovery&access_token=...)
+        val fragment = uri.fragment
+        if (!fragment.isNullOrEmpty()) {
+            fragment.split("&").forEach { param ->
+                val parts = param.split("=", limit = 2)
+                if (parts.size == 2 && parts[0] == "type") {
+                    return parts[1]
+                }
+            }
+        }
+        // Fallback: check query parameter
+        return uri.getQueryParameter("type")
+    }
+
     private fun handleDeepLink(intent: Intent?) {
         val uri = intent?.data ?: return
 
+        // Handle HTTPS app links from app.swastricare.com (email verification redirects)
+        if (uri.scheme == "https" && uri.host == "swastricare.com") {
+            val path = uri.path ?: ""
+            if (path.startsWith("/auth/callback") || path.startsWith("/auth/confirm")) {
+                val callbackType = extractAuthType(uri)
+                try {
+                    supabaseClient.handleDeeplinks(intent = intent) { session ->
+                        Log.d("Auth", "HTTPS deep link auth session established for: ${session.user?.email}")
+                        CoroutineScope(Dispatchers.Main).launch {
+                            authViewModel.onAuthCallback(callbackType)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("Auth", "Failed to handle HTTPS auth deep link: ${e.message}", e)
+                    CoroutineScope(Dispatchers.Main).launch {
+                        authViewModel.onAuthCallback(callbackType)
+                    }
+                }
+                return
+            }
+            // Non-auth HTTPS links: try to parse as navigation deep link
+            val route = DeepLinkHandler.parse(uri)
+            if (route != null && route !is DeepLinkRoute.Unknown) {
+                pendingDeepLink.value = route
+            }
+            return
+        }
+
         // Handle Supabase auth callbacks (email verification, OAuth redirect)
         if (uri.scheme == "swastricareapp" && uri.host == "auth-callback") {
+            val callbackType = extractAuthType(uri)
             try {
                 supabaseClient.handleDeeplinks(intent = intent) { session ->
                     Log.d("Auth", "Deep link auth session established for: ${session.user?.email}")
                     CoroutineScope(Dispatchers.Main).launch {
-                        authViewModel.onAuthCallback()
+                        authViewModel.onAuthCallback(callbackType)
                     }
                 }
             } catch (e: Exception) {
                 Log.e("Auth", "Failed to handle auth deep link: ${e.message}", e)
                 // Fallback: try to check session anyway (link may have verified the email server-side)
                 CoroutineScope(Dispatchers.Main).launch {
-                    authViewModel.onAuthCallback()
+                    authViewModel.onAuthCallback(callbackType)
                 }
             }
             return

@@ -13,6 +13,8 @@ sealed class AuthUiState {
     data class Success(val user: AppUser) : AuthUiState()
     data class Error(val message: String) : AuthUiState()
     data class EmailVerificationRequired(val email: String) : AuthUiState()
+    data object PasswordRecovery : AuthUiState()
+    data object ProcessingDeepLink : AuthUiState()
 }
 
 /**

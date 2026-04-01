@@ -94,7 +94,10 @@ class SupabaseAuthRepository @Inject constructor(
      * Returns null if email verification is required (no session created).
      */
     suspend fun signUp(email: String, password: String, fullName: String, phone: String = ""): AppUser? {
-        supabaseClient.auth.signUpWith(Email) {
+        supabaseClient.auth.signUpWith(
+            provider = Email,
+            redirectUrl = "swastricareapp://auth-callback"
+        ) {
             this.email = email
             this.password = password
             this.data = buildJsonObject {
@@ -205,7 +208,20 @@ class SupabaseAuthRepository @Inject constructor(
      */
     suspend fun resetPassword(email: String) {
         // iOS: try await client.auth.resetPasswordForEmail(email)
-        supabaseClient.auth.resetPasswordForEmail(email)
+        supabaseClient.auth.resetPasswordForEmail(
+            email = email,
+            redirectUrl = "swastricareapp://auth-callback"
+        )
+    }
+
+    /**
+     * Update the current user's password.
+     * Called after the user opens a password recovery deep link and enters a new password.
+     */
+    suspend fun updatePassword(newPassword: String) {
+        supabaseClient.auth.updateUser {
+            password = newPassword
+        }
     }
 
     /**

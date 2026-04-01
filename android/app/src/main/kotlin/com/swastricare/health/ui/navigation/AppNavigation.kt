@@ -1,11 +1,19 @@
 package com.swastricare.health.ui.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -22,6 +30,7 @@ import com.swastricare.health.ui.screens.auth.AuthUiState
 import com.swastricare.health.ui.screens.auth.AuthViewModel
 import com.swastricare.health.ui.screens.auth.EmailVerificationScreen
 import com.swastricare.health.ui.screens.auth.LoginScreen
+import com.swastricare.health.ui.screens.auth.NewPasswordScreen
 import com.swastricare.health.ui.screens.auth.ResetPasswordScreen
 import com.swastricare.health.ui.screens.auth.SignUpScreen
 import com.swastricare.health.ui.screens.main.MainScreen
@@ -48,6 +57,7 @@ fun AppNavigation(
     val navVm: AppNavigationViewModel = hiltViewModel()
     val navController = rememberNavController()
     val authState by authViewModel.uiState.collectAsState()
+    val isProcessingDeepLink by authViewModel.isProcessingDeepLink.collectAsState()
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -105,6 +115,15 @@ fun AppNavigation(
             authViewModel.onSessionExpired()
             navVm.sessionManager.clearExpiredFlag()
             navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+    // Navigate to new password screen when a recovery deep link is processed
+    LaunchedEffect(authState) {
+        if (authState is AuthUiState.PasswordRecovery) {
+            navController.navigate("new_password") {
                 popUpTo(0) { inclusive = true }
             }
         }
@@ -231,6 +250,18 @@ fun AppNavigation(
             )
         }
 
+        // New Password Screen (after recovery deep link)
+        composable("new_password") {
+            NewPasswordScreen(
+                viewModel = authViewModel,
+                onNavigateToHome = {
+                    navController.navigate("main") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         // Health Profile Questionnaire
         composable("health_profile") {
             val healthProfileVm: HealthProfileViewModel = hiltViewModel()
@@ -270,6 +301,20 @@ fun AppNavigation(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+    }
+
+    // Deep link processing overlay
+    if (isProcessingDeepLink) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }

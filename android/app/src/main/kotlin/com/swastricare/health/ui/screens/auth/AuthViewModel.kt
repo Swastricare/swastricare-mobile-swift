@@ -54,6 +54,10 @@ class AuthViewModel @Inject constructor(
     private val _verificationEmail = MutableStateFlow("")
     val verificationEmail: StateFlow<String> = _verificationEmail.asStateFlow()
 
+    // Deep link processing state
+    private val _isProcessingDeepLink = MutableStateFlow(false)
+    val isProcessingDeepLink: StateFlow<Boolean> = _isProcessingDeepLink.asStateFlow()
+
     // Whether Google Sign-In is available
     val isGoogleSignInConfigured: Boolean
         get() = googleAuthHelper.isConfigured
@@ -327,23 +331,77 @@ class AuthViewModel @Inject constructor(
     }
 
     /**
-     * Called when Supabase processes an auth deep link (email verification link clicked).
-     * Re-checks the session and transitions to Success if a valid session now exists.
+     * Called when Supabase processes an auth deep link (email verification or password recovery).
+     * Routes to the appropriate UI state based on the callback type.
+     *
+     * @param type The callback type extracted from the deep link fragment (e.g. "recovery", "signup").
      */
-    fun onAuthCallback() {
+    fun onAuthCallback(type: String? = null) {
         viewModelScope.launch {
+            _isProcessingDeepLink.value = true
             try {
-                val user = authRepository.checkSession()
-                if (user != null) {
-                    analyticsService.logEvent("email_verified", mapOf("method" to "link"))
-                    analyticsService.setUserId(user.id)
-                    crashlyticsService.setUserId(user.id)
-                    cacheService.setCurrentUser(user.id)
-                    _uiState.value = AuthUiState.Success(user)
-                    clearForm()
+                if (type == "recovery") {
+                    // Password recovery: session is established by handleDeeplinks,
+                    // navigate to NewPasswordScreen so the user can set a new password.
+                    analyticsService.logEvent("auth_callback", mapOf("type" to "recovery"))
+                    _uiState.value = AuthUiState.PasswordRecovery
+                } else {
+                    // Email verification or other callback — check session
+                    val user = authRepository.checkSession()
+                    if (user != null) {
+                        analyticsService.logEvent("email_verified", mapOf("method" to "link"))
+                        analyticsService.setUserId(user.id)
+                        crashlyticsService.setUserId(user.id)
+                        cacheService.setCurrentUser(user.id)
+                        _uiState.value = AuthUiState.Success(user)
+                        clearForm()
+                    }
                 }
             } catch (e: Exception) {
                 Log.w("AuthViewModel", "Auth callback session check failed", e)
+            } finally {
+                _isProcessingDeepLink.value = false
+            }
+        }
+    }
+
+    /**
+     * Update the user's password after a recovery deep link.
+     * Validates that both fields match and meet strength requirements, then
+     * calls the Supabase updateUser API.
+     */
+    fun setNewPassword(newPassword: String, confirmPassword: String) {
+        if (newPassword != confirmPassword) {
+            _errorMessage.value = "Passwords do not match"
+            return
+        }
+        // Reuse existing password validation logic
+        val tempForm = AuthFormState(password = newPassword)
+        tempForm.passwordError?.let { error ->
+            _errorMessage.value = error
+            return
+        }
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                authRepository.updatePassword(newPassword)
+                analyticsService.logEvent("password_updated", mapOf("method" to "recovery"))
+                // After password update, check session and navigate home
+                val user = authRepository.checkSession()
+                if (user != null) {
+                    cacheService.setCurrentUser(user.id)
+                    _uiState.value = AuthUiState.Success(user)
+                } else {
+                    // Session should exist after recovery, but fall back to login
+                    _uiState.value = AuthUiState.Idle
+                }
+                clearForm()
+            } catch (e: Exception) {
+                _errorMessage.value = mapAuthError(e)
+            } finally {
+                _isLoading.value = false
             }
         }
     }
