@@ -27,6 +27,7 @@ final class HydrationViewModel: ObservableObject {
     @Published var showUrineColorGuide = false
     @Published var showSettings = false
     @Published var showAddEntry = false
+    @Published var showOverview = false
     @Published var selectedDate = Date()
     
     // MARK: - Computed Properties
@@ -61,6 +62,20 @@ final class HydrationViewModel: ObservableObject {
     
     var caffeineInfo: (count: Int, totalMl: Int) {
         hydrationService.getCaffeineIntake(entries: todaysEntries)
+    }
+
+    var dominantDrinkType: DrinkType {
+        let grouped = Dictionary(grouping: todaysEntries, by: { $0.drinkType })
+        let sorted = grouped.sorted { $0.value.reduce(0) { $0 + $1.amountMl } > $1.value.reduce(0) { $0 + $1.amountMl } }
+        return sorted.first?.key ?? .water
+    }
+
+    var baseGoalMl: Int {
+        goalBreakdown?.baseAmount ?? dailyGoal
+    }
+
+    var weatherAdjustmentMl: Int {
+        goalBreakdown?.weatherAdjustment ?? 0
     }
     
     var goalDescription: String {

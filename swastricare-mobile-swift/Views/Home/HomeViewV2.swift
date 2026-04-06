@@ -244,7 +244,7 @@ struct HomeViewV2: View {
         .sheet(isPresented: $showMedications) {
             MedicationsView(viewModel: medicationViewModel)
         }
-        .sheet(isPresented: $showHydration) {
+        .fullScreenCover(isPresented: $showHydration) {
             HydrationView(viewModel: hydrationViewModel)
         }
         .sheet(isPresented: $showReminders) {

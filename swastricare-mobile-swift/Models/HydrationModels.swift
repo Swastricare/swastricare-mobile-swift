@@ -92,6 +92,19 @@ enum DrinkType: String, Codable, CaseIterable, Identifiable {
         case .other: return "drop.halffull"
         }
     }
+
+    /// Asset image name from Android icons
+    var assetIcon: String {
+        switch self {
+        case .water: return "glass-water"
+        case .tea: return "tea"
+        case .coffee: return "coffee"
+        case .juice: return "juice"
+        case .milk: return "milk"
+        case .sportsDrink: return "energy-drink"
+        case .other: return "glass-water"
+        }
+    }
     
     var color: Color {
         switch self {

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.swastricare.health",
+      "sha256_cert_fingerprints": ["F5:A7:D4:56:07:7F:F1:E7:53:09:CA:87:85:C8:76:4A:A8:47:74:8F:F3:02:C0:97:57:35:75:D0:0A:8F:5A:D8",
+                                   "78:37:75:0E:87:BD:0A:20:44:63:29:7A:C5:C0:45:69:12:29:01:91:18:C7:D7:B5:6B:20:04:D9:9F:43:84:44"
+      ]
+    }
+  }
+]
