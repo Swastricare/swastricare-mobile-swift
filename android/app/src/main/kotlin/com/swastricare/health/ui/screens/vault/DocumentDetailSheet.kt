@@ -512,7 +512,9 @@ private fun EditModeContent(
 ) {
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = PrimaryColor,
-        unfocusedBorderColor = AppColors.outline.copy(alpha = 0.4f)
+        unfocusedBorderColor = AppColors.outline.copy(alpha = 0.4f),
+        focusedTextColor = AppColors.onBackground,
+        unfocusedTextColor = AppColors.onBackground
     )
     val fieldShape = RoundedCornerShape(10.dp)
 

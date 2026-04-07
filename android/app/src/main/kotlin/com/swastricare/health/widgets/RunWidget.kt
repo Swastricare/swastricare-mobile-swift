@@ -1,8 +1,6 @@
 package com.swastricare.health.widgets
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -11,7 +9,6 @@ import androidx.glance.*
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.*
-import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.*
@@ -39,12 +36,6 @@ class RunWidget : GlanceAppWidget() {
 @Composable
 private fun RunContent(context: Context) {
     val lastRun = WidgetDataManager.getLastRunData(context)
-
-    // Deep-link intent that opens app to start a run
-    val startRunIntent = Intent(Intent.ACTION_VIEW, Uri.parse("swastricare://startRun/run")).apply {
-        setClass(context, MainActivity::class.java)
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-    }
 
     Column(
         modifier = GlanceModifier
@@ -150,7 +141,7 @@ private fun RunContent(context: Context) {
             Box(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .background(Color(0xFF22C55E))
+                    .background(ColorProvider(Color(0xFF22C55E)))
                     .cornerRadius(10.dp)
                     .padding(vertical = 8.dp, horizontal = 12.dp)
                     .clickable(actionStartActivity<MainActivity>()),
@@ -191,7 +182,7 @@ private fun RunContent(context: Context) {
             Box(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .background(Color(0xFF22C55E))
+                    .background(ColorProvider(Color(0xFF22C55E)))
                     .cornerRadius(10.dp)
                     .padding(vertical = 8.dp, horizontal = 12.dp)
                     .clickable(actionStartActivity<MainActivity>()),

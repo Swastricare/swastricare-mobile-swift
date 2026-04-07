@@ -1,5 +1,6 @@
 package com.swastricare.health.ui.screens.hydration
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
@@ -13,7 +14,11 @@ import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.data.services.WeatherData
 import com.swastricare.health.data.services.WeatherService
 import com.swastricare.health.domain.repository.AuthRepository
+import androidx.glance.appwidget.updateAll
+import com.swastricare.health.widgets.HydrationWidget
+import com.swastricare.health.widgets.WidgetDataManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +45,7 @@ data class HydrationUiState(
     // Weather adjustment
     val weatherData: WeatherData? = null,
     val weatherAdjustmentFactor: Double = 1.0,
+    val weatherAdjustmentEnabled: Boolean = true,
     val baseGoalMl: Int = 2500
 ) {
     /** Entries for selectedDate, sorted newest first */
@@ -91,6 +97,7 @@ data class HydrationUiState(
 
 @HiltViewModel
 class HydrationViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: SupabaseHydrationRepository,
     private val profileRepository: SupabaseProfileRepository,
     private val weatherService: WeatherService,
@@ -146,6 +153,7 @@ class HydrationViewModel @Inject constructor(
             )
 
             analyzePatterns()
+            pushWidgetSnapshot()
 
             // Fetch from cloud and merge with local (fixes data loss after reinstall / clear)
             val profileId = resolveProfileId()
@@ -161,6 +169,7 @@ class HydrationViewModel @Inject constructor(
                             insights = computeInsights(merged, goal)
                         )
                         analyzePatterns()
+                        pushWidgetSnapshot()
                         // Push any local-only entries to cloud
                         val stillUnsynced = merged.filter { !it.synced }
                         if (stillUnsynced.isNotEmpty()) {
@@ -189,6 +198,8 @@ class HydrationViewModel @Inject constructor(
             )
             repository.addLocalEntry(entry)
             refreshFromLocal()
+            pushWidgetSnapshot()
+
             launch { syncEntryToCloud(entry) }
             launch { healthConnectService.writeHydration(amountMl.toDouble()) }
         }
@@ -198,6 +209,7 @@ class HydrationViewModel @Inject constructor(
         viewModelScope.launch {
             repository.deleteLocalEntry(entryId)
             refreshFromLocal()
+            pushWidgetSnapshot()
             launch { repository.deleteCloudEntry(entryId) }
         }
     }
@@ -213,6 +225,7 @@ class HydrationViewModel @Inject constructor(
                 baseGoalMl = goal.dailyGoalMl,
                 insights = insights
             )
+            pushWidgetSnapshot()
         }
     }
 
@@ -232,19 +245,63 @@ class HydrationViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val weather = weatherService.getCurrentWeather()
-                val factor = if (weather != null && weather.temperatureCelsius > WeatherService.HOT_WEATHER_THRESHOLD) {
+                val enabled = repository.loadWeatherAdjustmentEnabled()
+                val factor = if (
+                    enabled &&
+                    weather != null &&
+                    weather.temperatureCelsius > WeatherService.HOT_WEATHER_THRESHOLD
+                ) {
                     WeatherService.HOT_WEATHER_MULTIPLIER
                 } else {
                     1.0
                 }
                 _uiState.value = _uiState.value.copy(
                     weatherData = weather,
+                    weatherAdjustmentEnabled = enabled,
                     weatherAdjustmentFactor = factor
                 )
+                pushWidgetSnapshot()
             } catch (_: Exception) {
                 // Silently fail — weather is best effort
             }
         }
+    }
+
+    fun setWeatherAdjustmentEnabled(enabled: Boolean) {
+        repository.saveWeatherAdjustmentEnabled(enabled)
+        val currentWeather = _uiState.value.weatherData
+        val factor = if (
+            enabled &&
+            currentWeather != null &&
+            currentWeather.temperatureCelsius > WeatherService.HOT_WEATHER_THRESHOLD
+        ) {
+            WeatherService.HOT_WEATHER_MULTIPLIER
+        } else {
+            1.0
+        }
+        _uiState.value = _uiState.value.copy(
+            weatherAdjustmentEnabled = enabled,
+            weatherAdjustmentFactor = factor
+        )
+        pushWidgetSnapshot()
+    }
+
+    /**
+     * Push a fresh snapshot of today's hydration to the home-screen widget.
+     *
+     * Always recomputes from `_uiState.value.entries` filtered to **today** (not
+     * `selectedDate`, which may be a past day the user is browsing) and uses
+     * `effectiveMl` so the value matches the in-app progress ring and the
+     * widget's own quick-log buttons (which also use effectiveMl).
+     */
+    private fun pushWidgetSnapshot() {
+        val todayStr = LocalDate.now().toString()
+        val todayEffectiveMl = _uiState.value.entries
+            .filter { it.consumedAt.startsWith(todayStr) }
+            .sumOf { it.effectiveMl }
+        val goal = _uiState.value.effectiveGoalMl
+        WidgetDataManager.updateHydrationWidget(appContext, todayEffectiveMl, goal)
+        viewModelScope.launch { HydrationWidget().updateAll(appContext) }
     }
 
     // -----------------------------------------------

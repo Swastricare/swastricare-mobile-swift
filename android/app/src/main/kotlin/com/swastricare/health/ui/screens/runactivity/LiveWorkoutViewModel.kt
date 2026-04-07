@@ -149,6 +149,7 @@ class LiveWorkoutViewModel @Inject constructor(
     private var maxSpeed: Float = 0f
     private var totalElevationGain: Double = 0.0
     private var workoutStartTime: Instant? = null
+    private var workoutAlreadySaved: Boolean = false
 
     // Elevation smoothing: rolling window to filter GPS altitude noise
     private val altitudeBuffer = ArrayDeque<Double>(5)
@@ -230,6 +231,21 @@ class LiveWorkoutViewModel @Inject constructor(
         }
 
         loadTemplates()
+
+        // Observe stop requests from the workout notification "Stop" action.
+        // This fires when the user taps Stop in the persistent notification while
+        // the app is backgrounded — ensuring the workout is saved and the timer halts.
+        viewModelScope.launch {
+            workoutStateManager.stopRequestedFromNotification.collect { stopRequested ->
+                if (stopRequested) {
+                    workoutStateManager.clearStopRequest()
+                    val phase = _uiState.value.phase
+                    if (phase == WorkoutPhase.TRACKING || phase == WorkoutPhase.PAUSED) {
+                        stopWorkout()
+                    }
+                }
+            }
+        }
     }
 
     // ─────────────────────────────────────
@@ -327,6 +343,10 @@ class LiveWorkoutViewModel @Inject constructor(
         val activityType = state.workoutType.displayName
         analyticsService.logWorkoutComplete(activityType, state.elapsedSeconds, state.distanceKm)
         appAnalyticsService.trackWorkoutCompleted(activityType, state.elapsedSeconds, state.distanceMeters)
+
+        // Auto-save the workout immediately so history is never lost even if the user
+        // dismisses the summary screen without tapping "Save Workout".
+        saveCompletedWorkoutInternal(avgSpeed, calories)
     }
 
     fun resetWorkout() {
@@ -345,18 +365,40 @@ class LiveWorkoutViewModel @Inject constructor(
         altitudeBuffer.clear()
         totalElevationGain = 0.0
         workoutStartTime = null
+        workoutAlreadySaved = false
         _uiState.value = LiveWorkoutUiState()
     }
 
     fun getRouteSnapshot(): List<RoutePoint> = routeTracker.getRouteSnapshot()
 
     /**
-     * Save the completed workout as a RunActivity and persist it locally.
-     * Called when user taps "Save Workout" on the summary.
+     * Called from the summary screen "Save Workout" button.
+     * The workout was already saved automatically in [stopWorkout]; this is a
+     * no-op if the data was already persisted, so the user tapping "Save"
+     * multiple times is safe.
      */
     fun saveCompletedWorkout() {
+        // Auto-save already ran in stopWorkout() — nothing extra to do here.
+        // The flag check inside saveCompletedWorkoutInternal prevents double-writes.
+    }
+
+    /**
+     * Core save logic.  Always uses the state at the time of the call so it can
+     * be invoked both from [stopWorkout] (immediately on stop) and from legacy
+     * call-sites.  The [avgSpeedOverride] / [caloriesOverride] parameters let
+     * [stopWorkout] pass its freshly-computed values before the UI state is
+     * updated.
+     */
+    private fun saveCompletedWorkoutInternal(
+        avgSpeedOverride: Float? = null,
+        caloriesOverride: Int? = null
+    ) {
+        if (workoutAlreadySaved) return
+        workoutAlreadySaved = true
+
         val state = _uiState.value
-        if (state.phase != WorkoutPhase.COMPLETED) return
+        // Minimum threshold: skip saving trivially short sessions (< 5 seconds)
+        if (state.elapsedSeconds < 5) return
 
         val activityType = when (state.workoutType) {
             WorkoutType.RUN, WorkoutType.INDOOR_RUN -> ActivityType.RUNNING
@@ -378,6 +420,8 @@ class LiveWorkoutViewModel @Inject constructor(
             (state.elapsedSeconds / (state.distanceMeters / 1000.0)).toLong()
         } else 0L
 
+        val finalCalories = caloriesOverride ?: state.caloriesBurned
+
         val activity = RunActivity(
             activityType = activityType,
             startTime = workoutStartTime?.let {
@@ -387,7 +431,7 @@ class LiveWorkoutViewModel @Inject constructor(
             distanceMeters = state.distanceMeters,
             durationSeconds = state.elapsedSeconds,
             avgPaceSecondsPerKm = paceSecondsPerKm,
-            caloriesBurned = state.caloriesBurned,
+            caloriesBurned = finalCalories,
             routeCoordinates = routeCoords,
             synced = false
         )

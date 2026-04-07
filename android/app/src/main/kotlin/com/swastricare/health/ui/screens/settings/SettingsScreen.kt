@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -77,170 +78,114 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 88.dp)
                 ) {
-                    // Profile Header
+                    // ── Avatar Header ──
                     item {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 28.dp, bottom = 16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             if (avatarUrl != null) {
                                 AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(avatarUrl)
-                                        .crossfade(true)
-                                        .build(),
+                                    model = ImageRequest.Builder(LocalContext.current).data(avatarUrl).crossfade(true).build(),
                                     contentDescription = "Profile Picture",
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(90.dp)
-                                        .clip(CircleShape)
+                                    modifier = Modifier.size(80.dp).clip(CircleShape)
                                 )
                             } else {
                                 Box(
-                                    modifier = Modifier
-                                        .size(90.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            Brush.linearGradient(
-                                                colors = listOf(
-                                                    PremiumColor.RoyalBlueStart,
-                                                    Color(0xFF4A90E2)
-                                                )
-                                            )
-                                        ),
+                                    modifier = Modifier.size(80.dp).clip(CircleShape)
+                                        .background(Brush.linearGradient(listOf(Color(0xFF2E3192), Color(0xFF4A90E2)))),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = userName.take(1).uppercase(),
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
+                                    Text(userName.take(1).uppercase(), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = userName.ifEmpty { "User" },
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = AppColors.onBackground,
-                                textAlign = TextAlign.Center
-                            )
-                            if (userEmail.isNotEmpty()) {
-                                Text(
-                                    text = userEmail,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = AppColors.onBackground.copy(alpha = 0.6f),
-                                    textAlign = TextAlign.Center
-                                )
+                            Spacer(Modifier.height(8.dp))
+                            Text(userName.ifEmpty { "User" }, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AppColors.onBackground)
+                            Text(userEmail, style = MaterialTheme.typography.bodyMedium, color = AppColors.onBackground.copy(alpha = 0.5f))
+                            Text("Member since ${viewModel.memberSince}", style = MaterialTheme.typography.bodySmall, color = AppColors.onBackground.copy(alpha = 0.35f))
+                        }
+                    }
+
+                    // ── Account ──
+                    item { SettingsSectionHeader("Account") }
+                    item {
+                        SettingsSectionCard {
+                            SettingsCleanRow("Edit Profile", Icons.Outlined.Person, onClick = onNavigateToEditProfile)
+                            SettingsCleanDivider()
+                            SettingsCleanRow("Family", Icons.Outlined.People, onClick = onNavigateToFamily)
+                        }
+                    }
+
+                    // ── Notifications ──
+                    item { SettingsSectionHeader("Notifications") }
+                    item {
+                        SettingsSectionCard {
+                            SettingsCleanToggle("Notifications", Icons.Outlined.Notifications, uiState.notificationsEnabled) { viewModel.toggleNotifications(it) }
+                            SettingsCleanDivider()
+                            SettingsCleanRow("Reminders & Notifications", Icons.Outlined.NotificationsActive, subtitle = "Hydration, medication, diet, cycle, AI", onClick = onNavigateToNotificationSettings)
+                        }
+                    }
+
+                    // ── Hydration ──
+                    item { SettingsSectionHeader("Hydration") }
+                    item {
+                        SettingsSectionCard {
+                            SettingsCleanRow("Hydration Preferences", Icons.Outlined.WaterDrop, onClick = onNavigateToHydrationSettings)
+                        }
+                    }
+
+                    // ── Health Data ──
+                    item { SettingsSectionHeader("Health Data") }
+                    item {
+                        SettingsSectionCard {
+                            SettingsCleanRow("Health Data Sync", Icons.Outlined.Sync, subtitle = "Connect Health Connect, Google Health & more", onClick = onNavigateToHealthDataSync)
+                        }
+                    }
+
+                    // ── Appearance ──
+                    item { SettingsSectionHeader("Appearance") }
+                    item {
+                        SettingsSectionCard {
+                            SettingsCleanRow("Theme", Icons.Outlined.Palette, value = viewModel.themeDisplayName, onClick = onNavigateToThemeSettings)
+                        }
+                    }
+
+                    // ── Security ──
+                    item { SettingsSectionHeader("Security") }
+                    item {
+                        SettingsSectionCard {
+                            SettingsCleanToggle("Biometric Lock", Icons.Outlined.Fingerprint, uiState.biometricEnabled) { viewModel.toggleBiometric(it) }
+                        }
+                    }
+
+                    // ── About ──
+                    item { SettingsSectionHeader("About") }
+                    item {
+                        SettingsSectionCard {
+                            SettingsCleanInfoRow("App Version", viewModel.appVersion)
+                        }
+                    }
+
+                    // ── Sign Out ──
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 20.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFFEF4444).copy(alpha = 0.06f))
+                                .clickable(enabled = !uiState.isLoading) { viewModel.setShowSignOutConfirmation(true) }
+                                .padding(vertical = 14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            if (uiState.isLoading) {
+                                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("Sign Out", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Color(0xFFEF4444))
                             }
-                            Text(
-                                text = "Member since ${viewModel.memberSince}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AppColors.onBackground.copy(alpha = 0.4f),
-                                textAlign = TextAlign.Center
-                            )
                         }
                     }
 
-                    // Account Section
-                    item {
-                        GlassSectionContainer(title = "Account") {
-                            SettingsNavigationRow(
-                                icon = Icons.Outlined.AccountCircle,
-                                label = "Account Data",
-                                subtitle = "Edit profile, body stats, location",
-                                onClick = onNavigateToEditProfile
-                            )
-                        }
-                    }
-
-                    // Health Profile Section
-                    item {
-                        SettingsHealthProfileSection(
-                            uiState = uiState,
-                            profileAge = viewModel.profileAge,
-                            profileBMI = viewModel.profileBMI,
-                            onRefresh = viewModel::refreshHealthProfile
-                        )
-                    }
-
-                    // Notifications Section
-                    item {
-                        SettingsNotificationsSection(
-                            notificationsEnabled = uiState.notificationsEnabled,
-                            onNotificationToggle = { viewModel.toggleNotifications(it) },
-                            onNavigateToNotificationSettings = onNavigateToNotificationSettings
-                        )
-                    }
-
-                    // Hydration Reminders Section
-                    item {
-                        SettingsHydrationSection(
-                            onNavigateToHydrationSettings = onNavigateToHydrationSettings
-                        )
-                    }
-
-                    // Health Data Sync Section
-                    item {
-                        GlassSectionContainer(title = "Health Data") {
-                            SettingsNavigationRow(
-                                icon = Icons.Outlined.Sync,
-                                label = "Health Data Sync",
-                                subtitle = "Connect Health Connect, Google Health & more",
-                                onClick = onNavigateToHealthDataSync
-                            )
-                        }
-                    }
-
-                    // Appearance Section
-                    item {
-                        GlassSectionContainer(title = "Appearance") {
-                            SettingsNavigationRow(
-                                icon = Icons.Outlined.Palette,
-                                label = "Theme",
-                                subtitle = viewModel.themeDisplayName,
-                                onClick = onNavigateToThemeSettings
-                            )
-                        }
-                    }
-
-                    // Security Section
-                    item {
-                        SettingsSecuritySection(
-                            biometricEnabled = uiState.biometricEnabled,
-                            onBiometricToggle = { viewModel.toggleBiometric(it) }
-                        )
-                    }
-
-                    // App Version Section
-                    item {
-                        SettingsAppVersionSection(
-                            version = viewModel.appVersion,
-                            hasUpdate = uiState.hasUpdate
-                        )
-                    }
-
-                    // Sign Out Button
-                    item {
-                        SettingsSignOutButton(
-                            isLoading = uiState.isLoading,
-                            onClick = { viewModel.setShowSignOutConfirmation(true) }
-                        )
-                    }
-
-                    // Delete Account Button
-                    item {
-                        SettingsDeleteAccountButton(
-                            isLoading = uiState.isLoading,
-                            onClick = { viewModel.setShowDeleteAccountConfirmation(true) }
-                        )
-                    }
-
-                    // Footer Links
+                    // ── Footer ──
                     item {
                         SettingsFooterLinks(version = viewModel.appVersion)
                     }
@@ -1127,5 +1072,97 @@ private fun SettingsErrorDialog(
         titleContentColor = AppColors.onSurface,
         textContentColor = AppColors.onSurfaceVariant
     )
+}
+
+// ═══════════════════════════════════════════════════════
+// Clean building blocks (matching Edit Profile design)
+// ═══════════════════════════════════════════════════════
+
+@Composable
+fun SettingsSectionHeader(title: String) {
+    Text(
+        title.uppercase(),
+        fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+        color = AppColors.onBackground.copy(alpha = 0.35f),
+        letterSpacing = 0.8.sp,
+        modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp)
+    )
+}
+
+@Composable
+fun SettingsSectionCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.45f))
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        content = content
+    )
+}
+
+@Composable
+fun SettingsCleanDivider() {
+    HorizontalDivider(color = AppColors.onBackground.copy(alpha = 0.06f), thickness = 0.5.dp)
+}
+
+@Composable
+fun SettingsCleanRow(
+    label: String,
+    icon: ImageVector,
+    subtitle: String? = null,
+    value: String? = null,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, Modifier.size(20.dp), tint = AppColors.onBackground.copy(alpha = 0.5f))
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, fontSize = 15.sp, color = AppColors.onBackground)
+            if (subtitle != null) {
+                Text(subtitle, fontSize = 12.sp, color = AppColors.onBackground.copy(alpha = 0.4f))
+            }
+        }
+        if (value != null) {
+            Text(value, fontSize = 14.sp, color = AppColors.onBackground.copy(alpha = 0.45f))
+            Spacer(Modifier.width(4.dp))
+        }
+        Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp), tint = AppColors.onBackground.copy(alpha = 0.25f))
+    }
+}
+
+@Composable
+fun SettingsCleanToggle(
+    label: String,
+    icon: ImageVector,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, Modifier.size(20.dp), tint = AppColors.onBackground.copy(alpha = 0.5f))
+        Spacer(Modifier.width(12.dp))
+        Text(label, fontSize = 15.sp, color = AppColors.onBackground, modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked, onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF22C55E), checkedThumbColor = Color.White)
+        )
+    }
+}
+
+@Composable
+fun SettingsCleanInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, fontSize = 14.sp, color = AppColors.onBackground.copy(alpha = 0.5f))
+        Text(value, fontSize = 14.sp, color = AppColors.onBackground)
+    }
 }
 

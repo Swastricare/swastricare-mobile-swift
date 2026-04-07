@@ -21,20 +21,20 @@ private val mcJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
 interface MenstrualCycleRepository {
     // Cycles
-    fun loadLocalCycles(): List<MenstrualCycle>
-    fun saveLocalCycles(cycles: List<MenstrualCycle>)
+    fun loadLocalCycles(userId: String): List<MenstrualCycle>
+    fun saveLocalCycles(cycles: List<MenstrualCycle>, userId: String)
     suspend fun syncCyclesToCloud(cycles: List<MenstrualCycle>, profileId: String): Result<Unit>
     suspend fun fetchCyclesFromCloud(profileId: String): Result<List<MenstrualCycle>>
 
     // Daily Logs
-    fun loadLocalDailyLogs(): List<MenstrualDailyLog>
-    fun saveLocalDailyLogs(logs: List<MenstrualDailyLog>)
+    fun loadLocalDailyLogs(userId: String): List<MenstrualDailyLog>
+    fun saveLocalDailyLogs(logs: List<MenstrualDailyLog>, userId: String)
     suspend fun syncDailyLogsToCloud(logs: List<MenstrualDailyLog>, profileId: String): Result<Unit>
     suspend fun fetchDailyLogsFromCloud(profileId: String): Result<List<MenstrualDailyLog>>
 
     // Settings
-    fun loadSettings(): MenstrualSettings
-    fun saveSettings(settings: MenstrualSettings)
+    fun loadSettings(userId: String): MenstrualSettings
+    fun saveSettings(settings: MenstrualSettings, userId: String)
     suspend fun syncSettingsToCloud(settings: MenstrualSettings, profileId: String): Result<Unit>
 
     // Predictions & Statistics
@@ -59,18 +59,24 @@ class SupabaseMenstrualCycleRepository @Inject constructor(
     private val prefs: SharedPreferences
 ) : MenstrualCycleRepository {
 
+    // ── Local key helpers (user-scoped to prevent cross-account data leakage) ──
+
+    private fun cyclesKey(userId: String) = "menstrual_cycles_$userId"
+    private fun dailyLogsKey(userId: String) = "menstrual_daily_logs_$userId"
+    private fun settingsKey(userId: String) = "menstrual_settings_$userId"
+
     // ── Local Cycles ──
 
-    override fun loadLocalCycles(): List<MenstrualCycle> {
+    override fun loadLocalCycles(userId: String): List<MenstrualCycle> {
         return try {
-            val raw = prefs.getString("menstrual_cycles", null) ?: return emptyList()
+            val raw = prefs.getString(cyclesKey(userId), null) ?: return emptyList()
             mcJson.decodeFromString<List<MenstrualCycleDto>>(raw).map { it.toDomain() }
         } catch (_: Exception) { emptyList() }
     }
 
-    override fun saveLocalCycles(cycles: List<MenstrualCycle>) {
-        val dtos = cycles.map { it.toDto("") }
-        prefs.edit().putString("menstrual_cycles", mcJson.encodeToString(dtos)).apply()
+    override fun saveLocalCycles(cycles: List<MenstrualCycle>, userId: String) {
+        val dtos = cycles.map { it.toDto(userId) }
+        prefs.edit().putString(cyclesKey(userId), mcJson.encodeToString(dtos)).apply()
     }
 
     override suspend fun syncCyclesToCloud(
@@ -83,9 +89,9 @@ class SupabaseMenstrualCycleRepository @Inject constructor(
             if (dtos.isNotEmpty()) {
                 supabaseClient.from("menstrual_cycles").upsert(dtos)
             }
-            // Mark as synced
+            // Mark as synced and persist with the user-scoped key
             val updated = cycles.map { it.copy(synced = true) }
-            saveLocalCycles(updated)
+            saveLocalCycles(updated, profileId)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -99,7 +105,7 @@ class SupabaseMenstrualCycleRepository @Inject constructor(
                     filter { eq("health_profile_id", profileId) }
                 }.decodeList<MenstrualCycleDto>()
                 val cycles = dtos.map { it.toDomain() }
-                saveLocalCycles(cycles)
+                saveLocalCycles(cycles, profileId)
                 Result.success(cycles)
             } catch (e: Exception) {
                 Result.failure(e)
@@ -108,16 +114,16 @@ class SupabaseMenstrualCycleRepository @Inject constructor(
 
     // ── Local Daily Logs ──
 
-    override fun loadLocalDailyLogs(): List<MenstrualDailyLog> {
+    override fun loadLocalDailyLogs(userId: String): List<MenstrualDailyLog> {
         return try {
-            val raw = prefs.getString("menstrual_daily_logs", null) ?: return emptyList()
+            val raw = prefs.getString(dailyLogsKey(userId), null) ?: return emptyList()
             mcJson.decodeFromString<List<MenstrualDailyLogDto>>(raw).map { it.toDomain() }
         } catch (_: Exception) { emptyList() }
     }
 
-    override fun saveLocalDailyLogs(logs: List<MenstrualDailyLog>) {
-        val dtos = logs.map { it.toDto("") }
-        prefs.edit().putString("menstrual_daily_logs", mcJson.encodeToString(dtos)).apply()
+    override fun saveLocalDailyLogs(logs: List<MenstrualDailyLog>, userId: String) {
+        val dtos = logs.map { it.toDto(userId) }
+        prefs.edit().putString(dailyLogsKey(userId), mcJson.encodeToString(dtos)).apply()
     }
 
     override suspend fun syncDailyLogsToCloud(
@@ -130,7 +136,7 @@ class SupabaseMenstrualCycleRepository @Inject constructor(
             val dtos = unsynced.map { it.toDto(profileId) }
             supabaseClient.from("menstrual_daily_logs").upsert(dtos)
             val updated = logs.map { it.copy(synced = true) }
-            saveLocalDailyLogs(updated)
+            saveLocalDailyLogs(updated, profileId)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -144,7 +150,7 @@ class SupabaseMenstrualCycleRepository @Inject constructor(
                     filter { eq("health_profile_id", profileId) }
                 }.decodeList<MenstrualDailyLogDto>()
                 val logs = dtos.map { it.toDomain() }
-                saveLocalDailyLogs(logs)
+                saveLocalDailyLogs(logs, profileId)
                 Result.success(logs)
             } catch (e: Exception) {
                 Result.failure(e)
@@ -153,9 +159,9 @@ class SupabaseMenstrualCycleRepository @Inject constructor(
 
     // ── Settings ──
 
-    override fun loadSettings(): MenstrualSettings {
+    override fun loadSettings(userId: String): MenstrualSettings {
         return try {
-            val raw = prefs.getString("menstrual_settings", null)
+            val raw = prefs.getString(settingsKey(userId), null)
                 ?: return MenstrualSettings()
             val dto = mcJson.decodeFromString<MenstrualSettingsDto>(raw)
             MenstrualSettings(
@@ -167,14 +173,14 @@ class SupabaseMenstrualCycleRepository @Inject constructor(
         } catch (_: Exception) { MenstrualSettings() }
     }
 
-    override fun saveSettings(settings: MenstrualSettings) {
+    override fun saveSettings(settings: MenstrualSettings, userId: String) {
         val dto = MenstrualSettingsDto(
             averageCycleLength = settings.averageCycleLength,
             averagePeriodLength = settings.averagePeriodLength,
             reminderEnabled = settings.reminderEnabled,
             reminderTime = "${settings.reminderTime}:00"
         )
-        prefs.edit().putString("menstrual_settings", mcJson.encodeToString(dto)).apply()
+        prefs.edit().putString(settingsKey(userId), mcJson.encodeToString(dto)).apply()
     }
 
     override suspend fun syncSettingsToCloud(

@@ -8,6 +8,8 @@
 import Foundation
 import Combine
 import SwiftUI
+import Supabase
+import Auth
 
 @MainActor
 final class MenstrualCycleViewModel: ObservableObject {
@@ -125,14 +127,21 @@ final class MenstrualCycleViewModel: ObservableObject {
     }
     
     // MARK: - Lifecycle
-    
+
     func onAppear() async {
         await loadData()
     }
-    
+
     func loadData() async {
         isLoading = true
-        
+
+        // Scope the service to the currently authenticated user BEFORE reading
+        // any local storage so we never accidentally surface another account's data.
+        if let concreteService = service as? MenstrualCycleService {
+            let userId = try? await supabaseManager.client.auth.session.user.id
+            concreteService.resetForUser(userId?.uuidString)
+        }
+
         // Load from local storage
         cycles = service.loadCycles()
         settings = service.loadSettings()

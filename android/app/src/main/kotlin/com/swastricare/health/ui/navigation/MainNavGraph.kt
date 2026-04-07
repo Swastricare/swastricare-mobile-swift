@@ -38,12 +38,10 @@ import com.swastricare.health.ui.screens.runactivity.LiveWorkoutScreen
 import com.swastricare.health.ui.screens.runactivity.RunActivityScreen
 import com.swastricare.health.ui.screens.runactivity.RunCalendarScreen
 import com.swastricare.health.ui.screens.runactivity.WorkoutType
-import com.swastricare.health.ui.screens.settings.GarminConnectSettingsScreen
 import com.swastricare.health.ui.screens.settings.GoogleHealthSettingsScreen
 import com.swastricare.health.ui.screens.settings.HealthAppId
 import com.swastricare.health.ui.screens.settings.HealthConnectSettingsScreen
 import com.swastricare.health.ui.screens.settings.HealthDataSyncScreen
-import com.swastricare.health.ui.screens.settings.SamsungHealthSettingsScreen
 import com.swastricare.health.ui.screens.settings.SettingsScreen
 import com.swastricare.health.ui.screens.runactivity.LiveWorkoutViewModel
 
@@ -66,7 +64,7 @@ fun MainNavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = BottomNavTab.AI.route,
+        startDestination = BottomNavTab.Vitals.route,
         modifier = modifier,
         enterTransition = { fadeIn(animationSpec = tween(250)) },
         exitTransition = { fadeOut(animationSpec = tween(250)) },
@@ -117,7 +115,7 @@ fun MainNavGraph(
             RunActivityScreen(
                 onNavigateToLiveWorkout = { workoutType ->
                     if (workoutType != null) {
-                        navController.navigate("live_workout?workout_type=${workoutType.name}")
+                        navController.navigate("live_workout?${NavArgs.WORKOUT_TYPE}=${workoutType.name}")
                     } else {
                         navController.navigate("live_workout")
                     }
@@ -299,8 +297,13 @@ fun MainNavGraph(
         }
 
         // ─── Live Workout (Full Screen) ───
+        // Route supports an optional ?type=RUN query param so it can be launched
+        // both bare ("live_workout") and with a pre-selected activity type
+        // ("live_workout?type=RUN").  The notification deep link also routes here
+        // via swastricare://activeworkout → DeepLinkRoute.StartRun("run") →
+        // "live_workout?type=run".
         composable(
-            route = "live_workout?{NavArgs.WORKOUT_TYPE}={type}",
+            route = "live_workout?${NavArgs.WORKOUT_TYPE}={${NavArgs.WORKOUT_TYPE}}",
             arguments = listOf(
                 navArgument(NavArgs.WORKOUT_TYPE) {
                     type = NavType.StringType
@@ -308,11 +311,11 @@ fun MainNavGraph(
                 }
             )
         ) { backStackEntry ->
-            val workoutType = backStackEntry.arguments?.getString(NavArgs.WORKOUT_TYPE) ?: ""
+            val workoutTypeArg = backStackEntry.arguments?.getString(NavArgs.WORKOUT_TYPE) ?: ""
             val liveWorkoutViewModel: LiveWorkoutViewModel = hiltViewModel()
-            if (workoutType.isNotEmpty()) {
+            if (workoutTypeArg.isNotEmpty()) {
                 val wType = try {
-                    WorkoutType.valueOf(workoutType.uppercase())
+                    WorkoutType.valueOf(workoutTypeArg.uppercase())
                 } catch (_: IllegalArgumentException) { null }
                 if (wType != null) {
                     liveWorkoutViewModel.setWorkoutType(wType)
@@ -420,9 +423,7 @@ fun MainNavGraph(
                 onNavigateTo = { appId ->
                     when (appId) {
                         HealthAppId.HEALTH_CONNECT -> navController.navigate("health_connect_settings")
-                        HealthAppId.GOOGLE_HEALTH  -> navController.navigate("google_health_settings")
-                        HealthAppId.SAMSUNG_HEALTH -> navController.navigate("samsung_health_settings")
-                        HealthAppId.GARMIN_CONNECT -> navController.navigate("garmin_connect_settings")
+                        else -> { /* Removed apps */ }
                     }
                 }
             )
@@ -437,20 +438,6 @@ fun MainNavGraph(
 
         composable("google_health_settings") {
             GoogleHealthSettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }
-            )
-        }
-
-        composable("samsung_health_settings") {
-            SamsungHealthSettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }
-            )
-        }
-
-        composable("garmin_connect_settings") {
-            GarminConnectSettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }
             )

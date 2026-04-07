@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
+/**
+ * Holds the app-lock state. The UI is the system [BiometricPrompt] itself — there is
+ * no custom Compose lock screen. See [MainActivity] for how this is wired.
+ */
 @HiltViewModel
 class LockScreenViewModel @Inject constructor(
     private val biometricService: BiometricService,
@@ -23,17 +27,18 @@ class LockScreenViewModel @Inject constructor(
     )
     val isLocked: StateFlow<Boolean> = _isLocked.asStateFlow()
 
-    private val _authError = MutableStateFlow<String?>(null)
-    val authError: StateFlow<String?> = _authError.asStateFlow()
-
     val isBiometricEnabled: Boolean
         get() = prefs.getBoolean("biometric_enabled", false)
 
     val canUseBiometric: Boolean
         get() = biometricService.canAuthenticate()
 
-    /** Called when app returns from background. Locks if biometric setting is on. */
-    fun onAppResumed() {
+    /**
+     * Called when the app genuinely goes to background (ON_STOP after the activity
+     * has truly left the foreground, not due to a configuration change or a transient
+     * system overlay). Locks the screen if biometric is enabled.
+     */
+    fun onAppBackgrounded() {
         if (isBiometricEnabled && canUseBiometric) {
             _isLocked.value = true
         }
@@ -46,21 +51,25 @@ class LockScreenViewModel @Inject constructor(
         }
     }
 
-    /** Trigger biometric authentication. */
-    fun authenticate(activity: FragmentActivity) {
-        _authError.value = null
+    /**
+     * Trigger the native system biometric / device-credential prompt.
+     *
+     * @param onCancel invoked if the user dismisses the prompt or a non-recoverable
+     *        error occurs. The caller typically calls [FragmentActivity.finish] here
+     *        so the app closes rather than leaving the user stranded on a blank screen.
+     */
+    fun authenticate(
+        activity: FragmentActivity,
+        onCancel: () -> Unit = {}
+    ) {
         biometricService.authenticate(activity) { result ->
             when (result) {
                 is BiometricService.BiometricResult.Success -> {
                     _isLocked.value = false
-                    _authError.value = null
                 }
+                is BiometricService.BiometricResult.Cancelled,
                 is BiometricService.BiometricResult.Error -> {
-                    _authError.value = result.message
-                }
-                is BiometricService.BiometricResult.Cancelled -> {
-                    _authError.value = null
-                    // Stay locked
+                    onCancel()
                 }
             }
         }
@@ -69,9 +78,5 @@ class LockScreenViewModel @Inject constructor(
     /** Unlock without biometric (for cases where biometric is not available). */
     fun unlock() {
         _isLocked.value = false
-    }
-
-    fun clearError() {
-        _authError.value = null
     }
 }

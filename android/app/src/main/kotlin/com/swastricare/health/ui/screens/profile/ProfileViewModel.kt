@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.swastricare.health.BuildConfig
 import com.swastricare.health.core.UserFriendlyError
 import com.swastricare.health.data.model.AppUser
+import com.swastricare.health.data.model.EmergencyContact
 import com.swastricare.health.data.model.Gender
 import com.swastricare.health.data.model.HealthProfile
 import com.swastricare.health.data.repository.ProfileRepository
@@ -33,7 +34,11 @@ data class ProfileUiState(
     val biometricEnabled: Boolean = false,
     val healthSyncEnabled: Boolean = false,
     val showSignOutConfirmation: Boolean = false,
-    val showDeleteAccountConfirmation: Boolean = false
+    val showDeleteAccountConfirmation: Boolean = false,
+    val emergencyContacts: List<EmergencyContact> = emptyList(),
+    val isLoadingEmergencyContacts: Boolean = false,
+    val emergencyContactError: String? = null,
+    val emergencyContactSuccess: String? = null
 )
 
 /**
@@ -60,7 +65,8 @@ class ProfileViewModel @Inject constructor(
     private val authRepository: SupabaseAuthRepository,
     private val profileRepository: ProfileRepository,
     val themePreferenceManager: ThemePreferenceManager,
-    private val analyticsService: AppAnalyticsService
+    private val analyticsService: AppAnalyticsService,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
     
     // Expose sign out event for navigation
@@ -106,13 +112,19 @@ class ProfileViewModel @Inject constructor(
     fun loadHealthProfile(userId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingHealthProfile = true) }
-            
+
             try {
                 // Try fetching real profile
                 val profile = profileRepository.getHealthProfile(userId)
-                
+
                 _uiState.update {
                     it.copy(healthProfile = profile, isLoadingHealthProfile = false)
+                }
+
+                // Load emergency contacts once the health profile id is known
+                if (profile?.id != null) {
+                    val contacts = profileRepository.getEmergencyContacts(profile.id)
+                    _uiState.update { it.copy(emergencyContacts = contacts) }
                 }
             } catch (e: Exception) {
                 // Don't show error for profile load failure (user might not have one)
@@ -258,18 +270,22 @@ class ProfileViewModel @Inject constructor(
      * Call this in `LaunchedEffect` when the EditProfileScreen appears.
      */
     fun initEditForm() {
+        // Don't reinitialize if we're in the middle of saving or just saved
+        if (_editFormState.value.isSaving || _editFormState.value.saveSuccess) return
+
         val user = uiState.value.user
         val hp = uiState.value.healthProfile
+
         val initial = EditProfileFormState(
             name = user?.fullName ?: hp?.fullName ?: "",
-            phone = "", // AppUser doesn't have phone yet — will be populated when model is extended
-            bio = "",   // Same — placeholder for future backend field
+            phone = user?.phone ?: "",
+            bio = user?.bio ?: "",
             gender = hp?.gender ?: Gender.PreferNotToSay,
             dateOfBirth = hp?.dateOfBirth ?: "1999-01-01",
             heightCm = hp?.heightCm ?: 170.0,
             weightKg = hp?.weightKg ?: 70.0,
             bloodType = hp?.bloodType ?: "",
-            city = "",  // HealthProfile doesn't have city yet — placeholder
+            city = user?.city ?: "",
             isSaving = false,
             saveSuccess = false,
             saveError = null
@@ -374,19 +390,30 @@ class ProfileViewModel @Inject constructor(
 
                 result.getOrThrow()
 
+                // Save user-level fields (name, phone, bio, city) to auth user metadata
+                authRepository.updateUserMetadata(
+                    fullName = form.name.trim(),
+                    phone = form.phone.ifBlank { null },
+                    bio = form.bio.ifBlank { null },
+                    city = form.city.ifBlank { null }
+                )
+
                 // Snapshot becomes the new original so hasChanges resets
                 originalFormState = form.copy(isSaving = false, saveSuccess = true, saveError = null)
                 _editFormState.update { it.copy(isSaving = false, saveSuccess = true) }
 
                 analyticsService.trackProfileUpdated(listOf("profile"))
 
-                // Refresh the main profile state so ProfileScreen reflects changes
+                // Refresh auth user (picks up updated metadata: name, phone, bio)
+                loadUser()
+                // Refresh health profile data
                 loadHealthProfile(userId)
             } catch (e: Exception) {
+                android.util.Log.e("ProfileVM", "saveEditProfile failed", e)
                 _editFormState.update {
                     it.copy(
                         isSaving = false,
-                        saveError = "Unable to save profile. Please try again."
+                        saveError = "Save failed: ${e.message?.take(200) ?: "Unknown error"}"
                     )
                 }
             }
@@ -403,5 +430,113 @@ class ProfileViewModel @Inject constructor(
         bmi < 25.0 -> "Normal"
         bmi < 30.0 -> "Overweight"
         else -> "Obese"
+    }
+
+    // ── Avatar Upload ─────────────────────────────────────────────────────────
+
+    fun uploadAvatar(uri: android.net.Uri) {
+        val userId = uiState.value.user?.id ?: return
+        viewModelScope.launch {
+            try {
+                val inputStream = appContext.contentResolver.openInputStream(uri) ?: return@launch
+                val imageData = inputStream.use { it.readBytes() }
+                val fileName = "avatar_${System.currentTimeMillis()}.jpg"
+                val result = profileRepository.uploadAvatar(userId, imageData, fileName)
+                result.onSuccess { publicUrl ->
+                    // Update auth metadata with new avatar URL
+                    authRepository.updateUserMetadata(fullName = null, phone = null, bio = null, city = null)
+                    loadUser()
+                }.onFailure { e ->
+                    android.util.Log.e("ProfileVM", "Avatar upload failed", e)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ProfileVM", "Avatar upload failed", e)
+            }
+        }
+    }
+
+    // ── Emergency Contacts ────────────────────────────────────────────────────
+
+    /**
+     * Load emergency contacts for the current user's health profile.
+     * Safe to call when health profile may not yet be loaded — it will use
+     * the latest healthProfile id from uiState.
+     */
+    fun loadEmergencyContacts() {
+        val healthProfileId = _uiState.value.healthProfile?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingEmergencyContacts = true, emergencyContactError = null) }
+            val contacts = profileRepository.getEmergencyContacts(healthProfileId)
+            _uiState.update { it.copy(emergencyContacts = contacts, isLoadingEmergencyContacts = false) }
+        }
+    }
+
+    fun addEmergencyContact(name: String, relationship: String, phonePrimary: String, phoneSecondary: String?) {
+        val healthProfileId = _uiState.value.healthProfile?.id
+        if (healthProfileId == null) {
+            _uiState.update { it.copy(emergencyContactError = "Please complete your health profile first") }
+            return
+        }
+        if (name.isBlank()) {
+            _uiState.update { it.copy(emergencyContactError = "Contact name is required") }
+            return
+        }
+        if (phonePrimary.isBlank() || phonePrimary.length < 10) {
+            _uiState.update { it.copy(emergencyContactError = "A valid phone number is required") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingEmergencyContacts = true, emergencyContactError = null) }
+            val contact = EmergencyContact(
+                healthProfileId = healthProfileId,
+                name = name.trim(),
+                relationship = relationship.trim().ifBlank { "Other" },
+                phonePrimary = phonePrimary.trim(),
+                phoneSecondary = phoneSecondary?.trim()?.ifBlank { null },
+                priority = (_uiState.value.emergencyContacts.size + 1)
+            )
+            profileRepository.addEmergencyContact(contact)
+                .onSuccess { saved ->
+                    val updated = _uiState.value.emergencyContacts + saved
+                    _uiState.update {
+                        it.copy(
+                            emergencyContacts = updated,
+                            isLoadingEmergencyContacts = false,
+                            emergencyContactSuccess = "${saved.name} added as emergency contact"
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update {
+                        it.copy(
+                            isLoadingEmergencyContacts = false,
+                            emergencyContactError = "Unable to save emergency contact. Please try again."
+                        )
+                    }
+                }
+        }
+    }
+
+    fun deleteEmergencyContact(contactId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingEmergencyContacts = true, emergencyContactError = null) }
+            profileRepository.deleteEmergencyContact(contactId)
+                .onSuccess {
+                    val updated = _uiState.value.emergencyContacts.filter { it.id != contactId }
+                    _uiState.update { it.copy(emergencyContacts = updated, isLoadingEmergencyContacts = false) }
+                }
+                .onFailure {
+                    _uiState.update {
+                        it.copy(
+                            isLoadingEmergencyContacts = false,
+                            emergencyContactError = "Unable to delete contact. Please try again."
+                        )
+                    }
+                }
+        }
+    }
+
+    fun clearEmergencyContactMessages() {
+        _uiState.update { it.copy(emergencyContactError = null, emergencyContactSuccess = null) }
     }
 }

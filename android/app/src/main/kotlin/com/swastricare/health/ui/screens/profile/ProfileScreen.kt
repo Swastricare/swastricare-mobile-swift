@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -125,18 +126,15 @@ fun ProfileScreenContent(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToHealthConnect: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    // Background - solid color based on theme
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppColors.background)
-    ) {
+    var showThemeDialog by remember { mutableStateOf(false) }
+    val currentTheme by themePreferenceManager.themeMode.collectAsState()
+
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // Profile Header
+            // ── Avatar Header ──
             item {
                 ProfileHeader(
                     user = uiState.user,
@@ -147,114 +145,189 @@ fun ProfileScreenContent(
                 )
             }
 
-            // Health Profile Section
+            // ── Account ──
+            item { ProfileSectionHeader("Account") }
             item {
-                HealthProfileSection(
-                    uiState = uiState,
-                    profileAge = profileAge,
-                    profileBMI = profileBMI,
-                    onRefresh = onRefreshHealthProfile
-                )
-            }
-
-            // Hydration Section
-            item {
-                HydrationSection()
-            }
-
-            // Family Section
-            item {
-                FamilySection(onNavigateToFamily = onNavigateToFamily)
-            }
-
-            // Health Data Section
-            item {
-                HealthConnectSection(
-                    isConnected = uiState.healthSyncEnabled,
-                    onOpenHealthConnect = onNavigateToHealthConnect
-                )
-            }
-
-            // Settings Section
-            item {
-                SettingsSection(
-                    themePreferenceManager = themePreferenceManager,
-                    notificationsEnabled = uiState.notificationsEnabled,
-                    biometricEnabled = uiState.biometricEnabled,
-                    healthSyncEnabled = uiState.healthSyncEnabled,
-                    onNotificationToggle = onNotificationToggle,
-                    onBiometricToggle = onBiometricToggle,
-                    onSyncToggle = onSyncToggle
-                )
-            }
-
-            // All Settings navigation
-            item {
-                SectionContainer(title = "More") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToSettings() },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = AppColors.onSurface.copy(alpha = 0.6f)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "All Settings",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AppColors.onSurface
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Icon(
-                            imageVector = Icons.Outlined.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = AppColors.onSurfaceVariant
-                        )
-                    }
+                ProfileSectionCard {
+                    ProfileNavRow("Edit Profile", Icons.Outlined.Person, onClick = onEditProfile)
+                    ProfileDivider()
+                    ProfileNavRow("Family", Icons.Outlined.People, onClick = onNavigateToFamily)
                 }
             }
 
-            // About Section
+            // ── Health Data ──
+            item { ProfileSectionHeader("Health Data") }
             item {
-                AboutSection(version = appVersion)
+                ProfileSectionCard {
+                    ProfileNavRow("Health Connect", Icons.Outlined.FavoriteBorder, onClick = onNavigateToHealthConnect)
+                }
             }
 
-            // Sign Out Section
+            // ── Preferences ──
+            item { ProfileSectionHeader("Preferences") }
             item {
-                SignOutSection(
-                    isLoading = uiState.isLoading,
-                    onDeleteAccount = onDeleteAccountClick,
-                    onSignOut = onSignOutClick
-                )
+                ProfileSectionCard {
+                    ProfileNavRow("Theme", Icons.Outlined.Palette, value = currentTheme.displayName, onClick = { showThemeDialog = true })
+                    ProfileDivider()
+                    ProfileNavRow("Notifications", Icons.Outlined.Notifications, onClick = onNotificationToggle)
+                    ProfileDivider()
+                    ProfileToggleRow("Biometric Lock", Icons.Outlined.Fingerprint, checked = uiState.biometricEnabled, onToggle = onBiometricToggle)
+                }
+            }
+
+            // ── More ──
+            item { ProfileSectionHeader("More") }
+            item {
+                ProfileSectionCard {
+                    ProfileNavRow("All Settings", Icons.Outlined.Settings, onClick = onNavigateToSettings)
+                }
+            }
+
+            // ── About ──
+            item { ProfileSectionHeader("About") }
+            item {
+                ProfileSectionCard {
+                    ProfileInfoRow("App Version", appVersion)
+                }
+            }
+
+            // ── Sign Out ──
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(AppColors.error.copy(alpha = 0.06f))
+                        .clickable(enabled = !uiState.isLoading) { onSignOutClick() }
+                        .padding(vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Sign Out", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AppColors.error)
+                    }
+                }
             }
         }
 
-        // Dialogs
+        // Sign Out Dialog
         if (uiState.showSignOutConfirmation) {
-            ConfirmationDialog(
-                title = "Sign Out",
-                text = "Are you sure you want to sign out?",
-                confirmText = "Sign Out",
-                onConfirm = onConfirmSignOut,
-                onDismiss = onDismissSignOutDialog
+            AlertDialog(
+                onDismissRequest = onDismissSignOutDialog,
+                containerColor = AppColors.surfaceVariant.copy(alpha = 0.97f),
+                titleContentColor = AppColors.onBackground,
+                textContentColor = AppColors.onBackground,
+                title = { Text("Sign Out", fontWeight = FontWeight.Bold) },
+                text = { Text("Are you sure you want to sign out?") },
+                confirmButton = {
+                    Button(onClick = onConfirmSignOut, colors = ButtonDefaults.buttonColors(containerColor = AppColors.error)) { Text("Sign Out") }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismissSignOutDialog) { Text("Cancel", color = AppColors.onBackground.copy(alpha = 0.6f)) }
+                }
             )
         }
 
-        if (uiState.showDeleteAccountConfirmation) {
-            ConfirmationDialog(
-                title = "Delete Account",
-                text = "This action cannot be undone. All your data will be permanently deleted.",
-                confirmText = "Delete",
-                onConfirm = onConfirmDeleteAccount,
-                onDismiss = onDismissDeleteAccountDialog
+        // Theme Dialog
+        if (showThemeDialog) {
+            AlertDialog(
+                onDismissRequest = { showThemeDialog = false },
+                containerColor = AppColors.surfaceVariant.copy(alpha = 0.97f),
+                titleContentColor = AppColors.onBackground,
+                title = { Text("Choose Theme", fontWeight = FontWeight.Bold) },
+                text = {
+                    Column {
+                        ThemeMode.entries.forEach { mode ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable { themePreferenceManager.setTheme(mode); showThemeDialog = false }.padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(selected = mode == currentTheme, onClick = { themePreferenceManager.setTheme(mode); showThemeDialog = false }, colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF22C55E)))
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(mode.displayName, fontSize = 15.sp, color = AppColors.onBackground)
+                                    Text(mode.description, fontSize = 12.sp, color = AppColors.onBackground.copy(alpha = 0.5f))
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = { TextButton(onClick = { showThemeDialog = false }) { Text("Cancel", color = AppColors.onBackground.copy(alpha = 0.6f)) } }
             )
         }
+    }
+}
+
+// ── Profile screen building blocks (matching Edit Profile style) ──
+
+@Composable
+fun ProfileSectionHeader(title: String) {
+    Text(
+        title.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+        color = AppColors.onBackground.copy(alpha = 0.35f), letterSpacing = 0.8.sp,
+        modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp)
+    )
+}
+
+@Composable
+fun ProfileSectionCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(AppColors.surfaceVariant.copy(alpha = 0.45f))
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        content = content
+    )
+}
+
+@Composable
+fun ProfileDivider() {
+    HorizontalDivider(color = AppColors.onBackground.copy(alpha = 0.06f), thickness = 0.5.dp)
+}
+
+@Composable
+fun ProfileNavRow(label: String, icon: ImageVector, value: String? = null, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, Modifier.size(20.dp), tint = AppColors.onBackground.copy(alpha = 0.5f))
+        Spacer(Modifier.width(12.dp))
+        Text(label, fontSize = 15.sp, color = AppColors.onBackground, modifier = Modifier.weight(1f))
+        if (value != null) {
+            Text(value, fontSize = 14.sp, color = AppColors.onBackground.copy(alpha = 0.45f))
+            Spacer(Modifier.width(4.dp))
+        }
+        Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp), tint = AppColors.onBackground.copy(alpha = 0.25f))
+    }
+}
+
+@Composable
+fun ProfileToggleRow(label: String, icon: ImageVector, checked: Boolean, onToggle: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, Modifier.size(20.dp), tint = AppColors.onBackground.copy(alpha = 0.5f))
+        Spacer(Modifier.width(12.dp))
+        Text(label, fontSize = 15.sp, color = AppColors.onBackground, modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked, onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF22C55E), checkedThumbColor = Color.White)
+        )
+    }
+}
+
+@Composable
+fun ProfileInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, fontSize = 14.sp, color = AppColors.onBackground.copy(alpha = 0.5f))
+        Text(value, fontSize = 14.sp, color = AppColors.onBackground)
     }
 }
 
@@ -878,34 +951,10 @@ fun MedicalDisclaimerSection() {
 @Composable
 fun SignOutSection(
     isLoading: Boolean,
-    onDeleteAccount: () -> Unit,
+    onDeleteAccount: () -> Unit = {},
     onSignOut: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        SectionContainer {
-            TextButton(
-                onClick = onDeleteAccount,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading,
-                colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
-            ) {
-                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete Account")
-                }
-            }
-        }
-
-        Text(
-            text = "Permanently delete your account and all associated data.",
-            style = MaterialTheme.typography.bodySmall,
-            color = AppColors.onBackground.copy(alpha = 0.6f),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         SectionContainer {
              TextButton(
                 onClick = onSignOut,

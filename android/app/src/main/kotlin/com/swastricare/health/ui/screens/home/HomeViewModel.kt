@@ -164,27 +164,53 @@ class HomeViewModel @Inject constructor(
                     emptyList()
                 }
 
-                // Load hydration data and goal from local store
+                // Resolve user IDs early so cloud-restore can use healthProfileId
+                val userId = authRepository.currentUser?.id
+                val healthProfileId = if (userId != null) {
+                    try { profileRepository.getHealthProfile(userId)?.id } catch (_: Exception) { null }
+                } else null
+
                 val todayStr = LocalDate.now().toString()
-                val hydrationEntries = try { hydrationRepository.loadLocalEntries() } catch (_: Exception) { emptyList() }
+
+                // Load hydration data — pull from cloud when local cache is empty
+                // (e.g. after a reinstall). Cloud entries are saved locally so subsequent
+                // loads hit the cache (Bug 9 fix).
+                var hydrationEntries = try { hydrationRepository.loadLocalEntries() } catch (_: Exception) { emptyList() }
+                if (hydrationEntries.isEmpty() && healthProfileId != null) {
+                    val cloudResult = try { hydrationRepository.fetchFromCloud(healthProfileId) } catch (_: Exception) { null }
+                    cloudResult?.getOrNull()?.let { cloudEntries ->
+                        if (cloudEntries.isNotEmpty()) {
+                            hydrationRepository.saveLocalEntries(cloudEntries)
+                            hydrationEntries = cloudEntries
+                            Log.d("HomeViewModel", "Restored ${cloudEntries.size} hydration entries from cloud")
+                        }
+                    }
+                }
                 val todayHydration = hydrationEntries
                     .filter { it.consumedAt.startsWith(todayStr) }
                     .sumOf { it.effectiveMl }
                 val hydrationPrefs = try { hydrationRepository.loadPreferences() } catch (_: Exception) { HydrationPreferences() }
                 val hydrationGoalMl = HydrationCalculator.calculateGoal(hydrationPrefs).dailyGoalMl
 
-                // Load diet data from local store
-                val dietEntries = try { dietRepository.loadLocalLogs() } catch (_: Exception) { emptyList() }
+                // Load diet logs — pull from cloud when local cache is empty (Bug 9 fix).
+                var dietEntries = try { dietRepository.loadLocalLogs() } catch (_: Exception) { emptyList() }
+                if (dietEntries.isEmpty() && healthProfileId != null) {
+                    val cloudResult = try { dietRepository.fetchLogsFromCloud(healthProfileId) } catch (_: Exception) { null }
+                    cloudResult?.getOrNull()?.let { cloudLogs ->
+                        if (cloudLogs.isNotEmpty()) {
+                            // Persist cloud logs to local storage so future reads are instant
+                            cloudLogs.forEach { dietRepository.addLocalLog(it) }
+                            dietEntries = cloudLogs
+                            Log.d("HomeViewModel", "Restored ${cloudLogs.size} diet logs from cloud")
+                        }
+                    }
+                }
                 val todayCalories = dietEntries
                     .filter { it.loggedAt.startsWith(todayStr) }
                     .sumOf { it.calories }
                 val dietGoals = try { dietRepository.loadGoals() } catch (_: Exception) { null }
 
-                // Load medication counts — resolve health_profile_id (not auth user ID)
-                val userId = authRepository.currentUser?.id
-                val healthProfileId = if (userId != null) {
-                    try { profileRepository.getHealthProfile(userId)?.id } catch (_: Exception) { null }
-                } else null
+                // Load medication counts using the healthProfileId resolved above
                 val medicationsTotal: Int
                 val medicationsTaken: Int
                 if (healthProfileId != null) {
@@ -197,9 +223,18 @@ class HomeViewModel @Inject constructor(
                     medicationsTaken = 0
                 }
 
-                // Load cycle phase from local cycles
-                val cycles = try { menstrualCycleRepository.loadLocalCycles() } catch (_: Exception) { emptyList() }
-                val settings = try { menstrualCycleRepository.loadSettings() } catch (_: Exception) { MenstrualSettings() }
+                // Load cycle phase from local cycles (scoped to the authenticated user so we
+                // never surface another account's cycle data on a shared device).
+                // Prefer healthProfileId (matches cloud sync key) and fall back to userId.
+                val cycleUserId = healthProfileId ?: userId ?: ""
+                val cycles = try {
+                    if (cycleUserId.isNotEmpty()) menstrualCycleRepository.loadLocalCycles(cycleUserId)
+                    else emptyList()
+                } catch (_: Exception) { emptyList() }
+                val settings = try {
+                    if (cycleUserId.isNotEmpty()) menstrualCycleRepository.loadSettings(cycleUserId)
+                    else MenstrualSettings()
+                } catch (_: Exception) { MenstrualSettings() }
                 val phase = menstrualCycleRepository.detectCurrentPhase(cycles, settings)
                 val cyclePhaseLabel = when (phase) {
                     CyclePhase.MENSTRUAL -> "Menstrual"
@@ -348,10 +383,20 @@ class HomeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(aiAnalysisState = HomeAIState.Idle)
     }
 
+    /**
+     * Call this after the Health Connect permission launcher returns its result.
+     * Invalidates the HC cache and triggers a full data reload so the new
+     * permissions are reflected on the home screen immediately.
+     */
+    fun onHealthPermissionsResult(grantedPermissions: Set<String>) {
+        healthConnectService.invalidateCache()
+        loadData()
+    }
+
+    /** @deprecated Prefer [onHealthPermissionsResult]. Kept for source compatibility. */
     fun requestHealthPermissions() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isAuthorized = true, isDemoMode = false)
-        }
+        healthConnectService.invalidateCache()
+        loadData()
     }
 
     fun syncToCloud() {

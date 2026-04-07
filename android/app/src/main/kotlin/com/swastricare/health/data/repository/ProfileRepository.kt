@@ -1,6 +1,7 @@
 package com.swastricare.health.data.repository
 
 import android.util.Log
+import com.swastricare.health.data.model.EmergencyContact
 import com.swastricare.health.data.model.HealthProfile
 import com.swastricare.health.data.model.Gender
 import com.swastricare.health.data.model.UserProfileRow
@@ -29,6 +30,20 @@ interface ProfileRepository {
 
     /** Upload avatar image to Supabase Storage and return the public URL */
     suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): Result<String>
+
+    // ── Emergency Contacts ────────────────────────────────────────────────────
+
+    /** Fetch all emergency contacts for a given health profile. */
+    suspend fun getEmergencyContacts(healthProfileId: String): List<EmergencyContact>
+
+    /** Insert a new emergency contact row. */
+    suspend fun addEmergencyContact(contact: EmergencyContact): Result<EmergencyContact>
+
+    /** Update an existing emergency contact by its id. */
+    suspend fun updateEmergencyContact(contact: EmergencyContact): Result<Unit>
+
+    /** Delete an emergency contact by id. */
+    suspend fun deleteEmergencyContact(contactId: String): Result<Unit>
 }
 
 class MockProfileRepository : ProfileRepository {
@@ -67,6 +82,11 @@ class MockProfileRepository : ProfileRepository {
     override suspend fun uploadAvatar(userId: String, imageData: ByteArray, fileName: String): Result<String> {
         return Result.success("https://placeholder.com/avatar.jpg")
     }
+
+    override suspend fun getEmergencyContacts(healthProfileId: String): List<EmergencyContact> = emptyList()
+    override suspend fun addEmergencyContact(contact: EmergencyContact): Result<EmergencyContact> = Result.success(contact)
+    override suspend fun updateEmergencyContact(contact: EmergencyContact): Result<Unit> = Result.success(Unit)
+    override suspend fun deleteEmergencyContact(contactId: String): Result<Unit> = Result.success(Unit)
 }
 
 /**
@@ -121,15 +141,32 @@ class SupabaseProfileRepository @javax.inject.Inject constructor(
 
     override suspend fun updateHealthProfile(profile: HealthProfile): Result<HealthProfile> {
         return try {
+            // Use @SerialName values for gender to match DB enum
+            val genderValue = when (profile.gender) {
+                Gender.Male -> "male"
+                Gender.Female -> "female"
+                Gender.Other -> "other"
+                Gender.PreferNotToSay -> "prefer_not_to_say"
+            }
+            val updatePayload = buildJsonObject {
+                put("full_name", profile.fullName)
+                put("gender", genderValue)
+                put("date_of_birth", profile.dateOfBirth)
+                put("height_cm", profile.heightCm)
+                put("weight_kg", profile.weightKg)
+                if (profile.bloodType != null) put("blood_type", profile.bloodType)
+            }
+            Log.d(TAG, "updateHealthProfile: userId=${profile.userId}, payload=$updatePayload")
             supabaseClient.postgrest["health_profiles"]
-                .update(profile) {
+                .update(updatePayload) {
                     filter {
                         eq("user_id", profile.userId)
                     }
                 }
+            Log.d(TAG, "updateHealthProfile: SUCCESS")
             Result.success(profile)
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to update health profile: ${e.message}")
+            Log.e(TAG, "updateHealthProfile FAILED: ${e.javaClass.simpleName}: ${e.message}")
             Result.failure(e)
         }
     }
@@ -182,6 +219,61 @@ class SupabaseProfileRepository @javax.inject.Inject constructor(
             Result.success(bucket.publicUrl(path))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to upload avatar: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    // ── Emergency Contacts ────────────────────────────────────────────────────
+
+    override suspend fun getEmergencyContacts(healthProfileId: String): List<EmergencyContact> {
+        return try {
+            supabaseClient.postgrest["emergency_contacts"]
+                .select {
+                    filter { eq("health_profile_id", healthProfileId) }
+                    order("priority", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                }
+                .decodeList<EmergencyContact>()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch emergency contacts: ${e.message}")
+            emptyList()
+        }
+    }
+
+    override suspend fun addEmergencyContact(contact: EmergencyContact): Result<EmergencyContact> {
+        return try {
+            val inserted = supabaseClient.postgrest["emergency_contacts"]
+                .insert(contact) { select() }
+                .decodeSingle<EmergencyContact>()
+            Result.success(inserted)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to add emergency contact: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateEmergencyContact(contact: EmergencyContact): Result<Unit> {
+        val id = contact.id ?: return Result.failure(IllegalArgumentException("Contact id is null"))
+        return try {
+            supabaseClient.postgrest["emergency_contacts"]
+                .update(contact) {
+                    filter { eq("id", id) }
+                }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update emergency contact: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteEmergencyContact(contactId: String): Result<Unit> {
+        return try {
+            supabaseClient.postgrest["emergency_contacts"]
+                .delete {
+                    filter { eq("id", contactId) }
+                }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to delete emergency contact: ${e.message}")
             Result.failure(e)
         }
     }

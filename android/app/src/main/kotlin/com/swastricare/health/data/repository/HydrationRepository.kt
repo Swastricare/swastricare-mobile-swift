@@ -27,6 +27,9 @@ interface HydrationRepository {
     // Preferences
     fun loadPreferences(): HydrationPreferences
     fun savePreferences(prefs: HydrationPreferences)
+    // Weather adjustment preference
+    fun saveWeatherAdjustmentEnabled(enabled: Boolean)
+    fun loadWeatherAdjustmentEnabled(): Boolean
     // Supabase
     suspend fun fetchFromCloud(profileId: String): Result<List<HydrationEntry>>
     suspend fun syncEntriesToCloud(entries: List<HydrationEntry>, profileId: String): Result<Unit>
@@ -86,6 +89,13 @@ class SupabaseHydrationRepository @javax.inject.Inject constructor(
     override fun savePreferences(prefs: HydrationPreferences) {
         this.prefs.edit().putString("hydration_preferences", hydrationJson.encodeToString(prefs)).apply()
     }
+
+    override fun saveWeatherAdjustmentEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("hydration_weather_adjustment_enabled", enabled).apply()
+    }
+
+    override fun loadWeatherAdjustmentEnabled(): Boolean =
+        prefs.getBoolean("hydration_weather_adjustment_enabled", true)
 
     // ── Supabase: Fetch Entries ──
 

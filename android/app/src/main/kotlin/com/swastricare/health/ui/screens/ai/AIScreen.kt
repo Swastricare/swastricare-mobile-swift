@@ -242,7 +242,7 @@ fun AIScreen(
                     if (isExpanded) {
                         IconButton(onClick = {
                             focusManager.clearFocus()
-                            viewModel.clearChat()
+                            viewModel.clearChat()  // keyboard already dismissed above
                         }) {
                             Box(
                                 modifier = Modifier
@@ -264,7 +264,10 @@ fun AIScreen(
                             Icon(Icons.Default.History, contentDescription = "Chat History", modifier = Modifier.size(16.dp))
                         }
                     }
-                    IconButton(onClick = { viewModel.clearChat() }) {
+                    IconButton(onClick = {
+                        focusManager.clearFocus()
+                        viewModel.clearChat()
+                    }) {
                         Box(
                             modifier = Modifier
                                 .glass(cornerRadius = 20.dp)
@@ -335,6 +338,7 @@ fun AIScreen(
                 onSendClick = {
                     if (isOnline) {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        focusManager.clearFocus()
                         viewModel.sendMessage()
                     }
                 },

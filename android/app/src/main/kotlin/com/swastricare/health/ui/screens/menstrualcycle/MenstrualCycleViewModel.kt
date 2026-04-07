@@ -3,8 +3,11 @@ package com.swastricare.health.ui.screens.menstrualcycle
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swastricare.health.data.repository.SupabaseMenstrualCycleRepository
 import com.swastricare.health.data.services.AppAnalyticsService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -191,6 +194,9 @@ data class MenstrualCycleUiState(
     val settings: CycleSettings = CycleSettings(),
     val statistics: CycleStatistics? = null,
     val isLoading: Boolean = true,
+    /** True when the authenticated user has no logged cycles. The UI should show
+     *  an empty / on-boarding state instead of any data. */
+    val isNotSetUp: Boolean = false,
     val selectedMonth: LocalDate = LocalDate.now().withDayOfMonth(1),
     val loggedPeriodDates: Set<LocalDate> = emptySet(),
     val predictedPeriodDates: Set<LocalDate> = emptySet(),
@@ -206,7 +212,9 @@ data class MenstrualCycleUiState(
 
 @HiltViewModel
 class MenstrualCycleViewModel @Inject constructor(
-    private val analyticsService: AppAnalyticsService
+    private val analyticsService: AppAnalyticsService,
+    private val cycleRepository: SupabaseMenstrualCycleRepository,
+    private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MenstrualCycleUiState())
@@ -220,38 +228,84 @@ class MenstrualCycleViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            // Simulate loading with demo data
+            // Resolve the current authenticated user ID. If no user is logged in,
+            // show an empty state — never fabricate or display demo cycle data.
+            val currentUserId = supabaseClient.auth.currentUserOrNull()?.id
+            if (currentUserId == null) {
+                _uiState.value = MenstrualCycleUiState(isLoading = false, isNotSetUp = true)
+                return@launch
+            }
+
             val settings = CycleSettings()
-            val lastPeriodStart = LocalDate.now().minusDays(14)
             val today = LocalDate.now()
 
-            val dayInCycle = ChronoUnit.DAYS.between(lastPeriodStart, today).toInt() + 1
-            val totalDays = settings.averageCycleLength
-            val daysUntil = totalDays - dayInCycle
-            val phase = calculatePhase(dayInCycle, settings)
+            // Load real cycles from local storage scoped to this user. No data means
+            // the user has never set up cycle tracking — show the empty/onboarding state.
+            val cycles = try {
+                cycleRepository.loadLocalCycles(currentUserId)
+            } catch (_: Exception) { emptyList() }
 
-            // Generate demo calendar data
-            val loggedDates = generateLoggedPeriodDates(lastPeriodStart, settings.averagePeriodLength)
-            val predictedDates = generatePredictedPeriodDates(lastPeriodStart, settings)
-            val fertileDates = generateFertileWindowDates(lastPeriodStart, settings)
+            if (cycles.isEmpty()) {
+                // Attempt a background cloud fetch in case this is a fresh install
+                try {
+                    cycleRepository.fetchCyclesFromCloud(currentUserId).getOrNull()
+                        ?.also { cloudCycles ->
+                            if (cloudCycles.isNotEmpty()) {
+                                buildStateFromCycles(cloudCycles, settings, today, currentUserId)
+                                return@launch
+                            }
+                        }
+                } catch (_: Exception) { /* fall through to empty state */ }
 
-            val statistics = generateDemoStatistics(lastPeriodStart, settings)
+                _uiState.value = MenstrualCycleUiState(
+                    isLoading = false,
+                    isNotSetUp = true,
+                    selectedMonth = today.withDayOfMonth(1)
+                )
+                return@launch
+            }
 
-            _uiState.value = MenstrualCycleUiState(
-                currentPhase = phase,
-                currentDayInCycle = dayInCycle.coerceIn(1, totalDays),
-                totalCycleDays = totalDays,
-                daysUntilNextPeriod = daysUntil.coerceAtLeast(0),
-                lastPeriodStart = lastPeriodStart,
-                settings = settings,
-                statistics = statistics,
-                isLoading = false,
-                selectedMonth = today.withDayOfMonth(1),
-                loggedPeriodDates = loggedDates,
-                predictedPeriodDates = predictedDates,
-                fertileWindowDates = fertileDates
-            )
+            buildStateFromCycles(cycles, settings, today, currentUserId)
         }
+    }
+
+    private fun buildStateFromCycles(
+        cycles: List<com.swastricare.health.data.models.MenstrualCycle>,
+        settings: CycleSettings,
+        today: LocalDate,
+        userId: String
+    ) {
+        val lastPeriodStart = cycles.maxByOrNull { it.startDate }?.startDate ?: today.minusDays(14)
+
+        val dayInCycle = ChronoUnit.DAYS.between(lastPeriodStart, today).toInt() + 1
+        val totalDays = settings.averageCycleLength
+        val daysUntil = totalDays - dayInCycle
+        val phase = calculatePhase(dayInCycle, settings)
+
+        val loggedDates = cycles.flatMap { cycle ->
+            val end = cycle.endDate ?: cycle.startDate.plusDays((cycle.periodLength ?: settings.averagePeriodLength).toLong() - 1)
+            generateSequence(cycle.startDate) { d -> if (d < end) d.plusDays(1) else null }.toSet()
+        }.toSet()
+
+        val predictedDates = generatePredictedPeriodDates(lastPeriodStart, settings)
+        val fertileDates = generateFertileWindowDates(lastPeriodStart, settings)
+        val statistics = buildStatisticsFromCycles(cycles, lastPeriodStart, settings)
+
+        _uiState.value = MenstrualCycleUiState(
+            currentPhase = phase,
+            currentDayInCycle = dayInCycle.coerceIn(1, totalDays),
+            totalCycleDays = totalDays,
+            daysUntilNextPeriod = daysUntil.coerceAtLeast(0),
+            lastPeriodStart = lastPeriodStart,
+            settings = settings,
+            statistics = statistics,
+            isLoading = false,
+            isNotSetUp = false,
+            selectedMonth = today.withDayOfMonth(1),
+            loggedPeriodDates = loggedDates,
+            predictedPeriodDates = predictedDates,
+            fertileWindowDates = fertileDates
+        )
     }
 
     fun togglePeriodDate(date: LocalDate) {
@@ -266,6 +320,8 @@ class MenstrualCycleViewModel @Inject constructor(
         }
         _uiState.value = current.copy(loggedPeriodDates = updatedDates)
         recalculate()
+        // Reload from real data so the toggle is reflected in persisted storage too
+        loadData()
     }
 
     fun changeMonth(delta: Int) {
@@ -300,8 +356,10 @@ class MenstrualCycleViewModel @Inject constructor(
 
     fun loadStatistics() {
         viewModelScope.launch {
+            val currentUserId = supabaseClient.auth.currentUserOrNull()?.id ?: return@launch
+            val cycles = try { cycleRepository.loadLocalCycles(currentUserId) } catch (_: Exception) { emptyList() }
             val current = _uiState.value
-            val stats = generateDemoStatistics(current.lastPeriodStart, current.settings)
+            val stats = buildStatisticsFromCycles(cycles, current.lastPeriodStart, current.settings)
             _uiState.value = current.copy(statistics = stats)
         }
     }
@@ -322,16 +380,15 @@ class MenstrualCycleViewModel @Inject constructor(
 
         val predictedDates = generatePredictedPeriodDates(lastPeriod, settings)
         val fertileDates = generateFertileWindowDates(lastPeriod, settings)
-        val statistics = generateDemoStatistics(lastPeriod, settings)
 
+        // Keep existing statistics — loadData() will refresh them from real data
         _uiState.value = current.copy(
             currentPhase = phase,
             currentDayInCycle = dayInCycle.coerceIn(1, settings.averageCycleLength),
             totalCycleDays = settings.averageCycleLength,
             daysUntilNextPeriod = daysUntil.coerceAtLeast(0),
             predictedPeriodDates = predictedDates,
-            fertileWindowDates = fertileDates,
-            statistics = statistics
+            fertileWindowDates = fertileDates
         )
     }
 
@@ -365,38 +422,50 @@ class MenstrualCycleViewModel @Inject constructor(
         return (0..6).map { fertileStart.plusDays(it.toLong()) }.toSet()
     }
 
-    private fun generateDemoStatistics(lastPeriodStart: LocalDate, settings: CycleSettings): CycleStatistics {
-        val recentCycles = listOf(
-            CycleRecord(lastPeriodStart, settings.averageCycleLength, settings.averagePeriodLength),
-            CycleRecord(lastPeriodStart.minusDays(29), 29, 5),
-            CycleRecord(lastPeriodStart.minusDays(57), 28, 4),
-            CycleRecord(lastPeriodStart.minusDays(84), 27, 5),
-            CycleRecord(lastPeriodStart.minusDays(113), 29, 6),
-            CycleRecord(lastPeriodStart.minusDays(140), 27, 5)
-        )
+    /**
+     * Build real statistics from the user's own cycle history.
+     * Returns null statistics fields when there is insufficient data.
+     */
+    private fun buildStatisticsFromCycles(
+        cycles: List<com.swastricare.health.data.models.MenstrualCycle>,
+        lastPeriodStart: LocalDate,
+        settings: CycleSettings
+    ): CycleStatistics {
+        val sorted = cycles.sortedBy { it.startDate }
 
-        val avgCycle = recentCycles.map { it.cycleLength }.average().toFloat()
-        val avgPeriod = recentCycles.map { it.periodLength }.average().toFloat()
+        val cycleLengths = if (sorted.size >= 2) {
+            sorted.zipWithNext { a, b ->
+                ChronoUnit.DAYS.between(a.startDate, b.startDate).toInt()
+            }
+        } else emptyList()
 
-        val stdDev = kotlin.math.sqrt(
-            recentCycles.map { (it.cycleLength - avgCycle).toDouble() * (it.cycleLength - avgCycle).toDouble() }
-                .average()
-        ).toFloat()
+        val periodLengths = sorted.mapNotNull { it.periodLength }
+
+        val avgCycle = if (cycleLengths.isNotEmpty()) cycleLengths.average().toFloat()
+                       else settings.averageCycleLength.toFloat()
+        val avgPeriod = if (periodLengths.isNotEmpty()) periodLengths.average().toFloat()
+                        else settings.averagePeriodLength.toFloat()
+
+        val stdDev = if (cycleLengths.size > 1) {
+            kotlin.math.sqrt(
+                cycleLengths.map { (it - avgCycle).toDouble() * (it - avgCycle).toDouble() }.average()
+            ).toFloat()
+        } else 0f
 
         val regularity = when {
+            cycleLengths.size < 2 -> CycleRegularity.SOMEWHAT_IRREGULAR
             stdDev <= 1.5f -> CycleRegularity.REGULAR
             stdDev <= 3.0f -> CycleRegularity.SOMEWHAT_IRREGULAR
             else -> CycleRegularity.IRREGULAR
         }
 
-        val symptomFrequencies = listOf(
-            SymptomFrequency("Cramps", 0.83f),
-            SymptomFrequency("Bloating", 0.67f),
-            SymptomFrequency("Mood Swings", 0.50f),
-            SymptomFrequency("Fatigue", 0.67f),
-            SymptomFrequency("Headaches", 0.33f),
-            SymptomFrequency("Back Pain", 0.50f)
-        ).sortedByDescending { it.percentage }
+        val recentCycleRecords = sorted.takeLast(6).map { cycle ->
+            CycleRecord(
+                startDate = cycle.startDate,
+                cycleLength = cycle.cycleLength ?: settings.averageCycleLength,
+                periodLength = cycle.periodLength ?: settings.averagePeriodLength
+            )
+        }
 
         val nextPeriod = lastPeriodStart.plusDays(settings.averageCycleLength.toLong())
 
@@ -406,8 +475,8 @@ class MenstrualCycleViewModel @Inject constructor(
             lastPeriodDate = lastPeriodStart,
             predictedNextPeriod = nextPeriod,
             regularity = regularity,
-            recentCycles = recentCycles,
-            symptomFrequencies = symptomFrequencies
+            recentCycles = recentCycleRecords,
+            symptomFrequencies = emptyList() // populated from daily logs if available
         )
     }
 

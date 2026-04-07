@@ -101,6 +101,9 @@ class VaultViewModel @Inject constructor(
         category: VaultCategory,
         metadata: DocumentMetadata
     ) {
+        // Prevent duplicate uploads from re-entrant calls or multiple taps
+        if (_uiState.value.isUploading) return
+
         viewModelScope.launch {
             _uiState.update { it.copy(isUploading = true, uploadProgress = 0.1f) }
             try {
@@ -344,6 +347,9 @@ class VaultViewModel @Inject constructor(
     }
 
     fun batchUploadDocuments() {
+        // Prevent duplicate batch uploads from re-entrant calls or multiple taps
+        if (_uiState.value.isUploading) return
+
         viewModelScope.launch {
             val items = _uiState.value.batchUploadItems
             if (items.isEmpty()) return@launch

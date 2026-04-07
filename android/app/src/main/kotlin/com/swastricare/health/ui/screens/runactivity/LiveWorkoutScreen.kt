@@ -101,7 +101,20 @@ fun LiveWorkoutScreen(
                 } && !locationPermissions.allPermissionsGranted,
                 onSelectWorkoutType = { viewModel.setWorkoutType(it) },
                 onSelectTemplate = { viewModel.selectTemplate(it) },
-                onStart = { viewModel.startWorkout() },
+                onStart = {
+                    // For GPS-based workouts, request permission when the user
+                    // explicitly taps START (in addition to the auto-request on
+                    // composition).  This covers the case where the user switched
+                    // from an indoor type to an outdoor type and hasn't been
+                    // prompted yet for this session.
+                    if (uiState.workoutType.usesGps && !locationPermissions.allPermissionsGranted) {
+                        locationPermissions.launchMultiplePermissionRequest()
+                        // Do not start yet — we'll re-check on the next tap once
+                        // the user has responded to the permission dialog.
+                    } else {
+                        viewModel.startWorkout()
+                    }
+                },
                 onBack = onNavigateBack,
                 onOpenSettings = {
                     context.startActivity(

@@ -225,6 +225,25 @@ class SupabaseAuthRepository @Inject constructor(
     }
 
     /**
+     * Update user metadata (name, phone, bio) stored in auth.users.user_metadata.
+     */
+    suspend fun updateUserMetadata(
+        fullName: String? = null,
+        phone: String? = null,
+        bio: String? = null,
+        city: String? = null
+    ) {
+        supabaseClient.auth.updateUser {
+            data = buildJsonObject {
+                if (fullName != null) put("full_name", fullName)
+                if (phone != null) put("phone", phone)
+                if (bio != null) put("bio", bio)
+                if (city != null) put("city", city)
+            }
+        }
+    }
+
+    /**
      * Verify OTP token for email signup confirmation.
      * Called after the user enters the 6-digit code sent to their email.
      * Returns the AppUser once the session is established.
@@ -265,11 +284,16 @@ class SupabaseAuthRepository @Inject constructor(
         val phone = userInfo.phone?.takeIf { it.isNotBlank() }
             ?: metadata?.get("phone")?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
 
+        val bio = metadata?.get("bio")?.jsonPrimitive?.contentOrNull
+        val city = metadata?.get("city")?.jsonPrimitive?.contentOrNull
+
         return AppUser(
             id = userInfo.id,
             email = userInfo.email ?: "",
             fullName = fullName,
             phone = phone,
+            bio = bio,
+            city = city,
             createdAt = userInfo.createdAt.toString(),
             avatarUrl = avatarUrl
         )

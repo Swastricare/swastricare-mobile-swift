@@ -60,7 +60,7 @@ fun HydrationSettingsScreen(
     var selectedActivity by remember(prefs) { mutableStateOf(prefs.activityLevelEnum) }
     var customGoalText by remember(prefs) { mutableStateOf(prefs.customGoalMl?.toString() ?: "") }
     var useCustomGoal by remember(prefs) { mutableStateOf(prefs.customGoalMl != null) }
-    var useWeatherAdjustment by remember { mutableStateOf(uiState.weatherAdjustmentFactor > 1.0 || uiState.weatherData != null) }
+    var useWeatherAdjustment by remember(prefs) { mutableStateOf(uiState.weatherAdjustmentEnabled) }
     var showAboutCalculation by remember { mutableStateOf(false) }
     var hasChanges by remember { mutableStateOf(false) }
     var showSavedSnackbar by remember { mutableStateOf(false) }
@@ -233,7 +233,11 @@ fun HydrationSettingsScreen(
                                 }
                                 Switch(
                                     checked = useWeatherAdjustment,
-                                    onCheckedChange = { useWeatherAdjustment = it },
+                                    onCheckedChange = {
+                                        useWeatherAdjustment = it
+                                        vm.setWeatherAdjustmentEnabled(it)
+                                        hasChanges = true
+                                    },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = Color.White,
                                         checkedTrackColor = Color(0xFF22C55E),

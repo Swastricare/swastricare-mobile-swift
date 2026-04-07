@@ -12,11 +12,21 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.swastricare.health.MainActivity
 import com.swastricare.health.R
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class WorkoutNotificationService : Service() {
+
+    @Inject lateinit var workoutStateManager: WorkoutStateManager
 
     private val stopReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            // Signal the ViewModel to stop the workout cleanly (saves history, updates UI).
+            // The ViewModel's stopWorkout() will call WorkoutNotificationService.stop() which
+            // will destroy this service.  We also stop it here as a safety net in case the
+            // ViewModel is not currently active (app killed while in background).
+            workoutStateManager.requestStopFromNotification()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }

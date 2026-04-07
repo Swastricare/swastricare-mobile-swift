@@ -207,10 +207,13 @@ class HealthContextProvider @javax.inject.Inject constructor(
     }
 
     private suspend fun buildCycleSection(): String? = tryOrNull {
-        val cycles = menstrualCycleRepository.loadLocalCycles()
+        // Resolve the current user ID so we never read another account's local cycle data.
+        val currentUserId = supabaseClient.auth.currentUserOrNull()?.id ?: return@tryOrNull null
+
+        val cycles = menstrualCycleRepository.loadLocalCycles(currentUserId)
         if (cycles.isEmpty()) return@tryOrNull null
 
-        val settings = menstrualCycleRepository.loadSettings()
+        val settings = menstrualCycleRepository.loadSettings(currentUserId)
         val phase = menstrualCycleRepository.detectCurrentPhase(cycles, settings)
 
         val parts = mutableListOf<String>()
@@ -233,7 +236,7 @@ class HealthContextProvider @javax.inject.Inject constructor(
         }
 
         // Recent symptoms
-        val dailyLogs = menstrualCycleRepository.loadLocalDailyLogs()
+        val dailyLogs = menstrualCycleRepository.loadLocalDailyLogs(currentUserId)
         val recentLogs = dailyLogs.filter { !it.date.isBefore(LocalDate.now().minusDays(3)) }
         val symptoms = recentLogs.flatMap { it.symptoms }.distinct()
         if (symptoms.isNotEmpty()) {

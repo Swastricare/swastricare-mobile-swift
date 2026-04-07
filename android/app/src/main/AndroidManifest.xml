@@ -155,12 +155,11 @@
             </intent-filter>
         </receiver>
 
-        <!-- Widget Action Receiver -->
+        <!-- Widget Action Receiver (medication mark-as-taken). Hydration uses Glance ActionCallback. -->
         <receiver
             android:name="com.swastricare.health.widgets.WidgetActionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.swastricare.widget.LOG_WATER" />
                 <action android:name="com.swastricare.widget.MARK_MEDICATION_TAKEN" />
             </intent-filter>
         </receiver>

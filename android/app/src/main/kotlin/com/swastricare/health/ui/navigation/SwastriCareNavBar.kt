@@ -68,14 +68,18 @@ fun SwastriCareNavBar(
         ) {
             BottomNavTab.items.forEach { tab ->
                 val selected = currentRoute == tab.route
-                val onClick = remember(tab.route) {
+                val onClick = remember(tab.route, currentRoute) {
                     {
-                        navController.navigate(tab.route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
+                        // Only navigate if this tab is not already selected —
+                        // re-tapping the active tab must NOT pop back to the tab root.
+                        if (currentRoute != tab.route) {
+                            navController.navigate(tab.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 }

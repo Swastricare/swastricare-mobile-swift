@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="notification_color">#2AB58B</color>
-    <color name="background_dark">#000000</color>
+    <!-- Window background — overridden in values-night to black. -->
+    <color name="window_background">#FFFFFF</color>
 </resources>

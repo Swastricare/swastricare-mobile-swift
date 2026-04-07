@@ -33,11 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.health.connect.client.PermissionController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swastricare.health.data.models.AdherenceStatus
+import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.ui.components.ModelViewer
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.medications.MedicationsViewModel
@@ -70,6 +73,15 @@ fun HomeScreenV2(
     val uiState by viewModel.uiState.collectAsState()
     val medicationsState by medicationsViewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Health Connect permission launcher — launches the system HC permission dialog
+    // directly from the banner so the user does not have to navigate to Settings first.
+    // After the result, invalidate the cache and reload home data (Bug 8 fix).
+    val healthPermissionLauncher = rememberLauncherForActivityResult(
+        contract = PermissionController.createRequestPermissionResultContract()
+    ) { grantedPermissions ->
+        viewModel.onHealthPermissionsResult(grantedPermissions)
+    }
 
     // Load medications on mount
     LaunchedEffect(Unit) {
@@ -144,14 +156,24 @@ fun HomeScreenV2(
                 if (showPermissionBanner || showNoDataBanner) {
                     val bannerTitle = if (showPermissionBanner) "Connect Health Data" else "No Health Data Found"
                     val bannerSubtitle = if (showPermissionBanner)
-                        "Grant Health Connect permissions to see your vitals"
+                        "Tap to grant Health Connect permissions"
                     else
                         "Open Google Fit or Samsung Health to start recording your activity"
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp)
-                            .clickable { onNavigateToRoute("health_connect_settings") },
+                            .clickable {
+                                if (showPermissionBanner) {
+                                    // Launch HC permission dialog directly (Bug 8 fix).
+                                    // After the user grants / denies, onHealthPermissionsResult
+                                    // reloads home data automatically.
+                                    healthPermissionLauncher.launch(HealthConnectService.ALL_PERMISSIONS)
+                                } else {
+                                    // No-data state: navigate to settings for guidance
+                                    onNavigateToRoute("health_connect_settings")
+                                }
+                            },
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF1C2A3A)),
                         shape = RoundedCornerShape(14.dp)
                     ) {

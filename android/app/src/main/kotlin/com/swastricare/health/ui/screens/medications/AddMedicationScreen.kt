@@ -125,6 +125,23 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
     var endDate by remember { mutableStateOf(LocalDate.now().plusMonths(1)) }
     var notes by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+
+    // Observe save result — dismiss only on success, reset loading on failure
+    val addResult by vm.addMedicationSuccess.collectAsState()
+    LaunchedEffect(addResult) {
+        when (addResult) {
+            true -> {
+                vm.clearAddMedicationResult()
+                vm.clearDrugSearch()
+                onDismiss()
+            }
+            false -> {
+                isLoading = false
+                vm.clearAddMedicationResult()
+            }
+            null -> { /* no-op */ }
+        }
+    }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
     var suppressSearch by remember { mutableStateOf(false) }
@@ -670,7 +687,9 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                             focusedBorderColor = MedBrandBlue,
                             unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
                             focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedTextColor = AppColors.onSurface,
+                            unfocusedTextColor = AppColors.onSurface
                         ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -708,8 +727,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                                 isOngoing = isOngoing,
                                 notes = notes.ifBlank { null }
                             )
-                            vm.clearDrugSearch()
-                            onDismiss()
+                            // Dismiss is handled by the LaunchedEffect observing addMedicationSuccess
                         }
                         .padding(vertical = 16.dp),
                     contentAlignment = Alignment.Center
@@ -970,7 +988,9 @@ private fun MedTextField(
             focusedBorderColor = MedBrandBlue,
             unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
             focusedContainerColor = Color.Transparent,
-            unfocusedContainerColor = Color.Transparent
+            unfocusedContainerColor = Color.Transparent,
+            focusedTextColor = AppColors.onSurface,
+            unfocusedTextColor = AppColors.onSurface
         ),
         shape = RoundedCornerShape(12.dp),
         modifier = modifier.fillMaxWidth()

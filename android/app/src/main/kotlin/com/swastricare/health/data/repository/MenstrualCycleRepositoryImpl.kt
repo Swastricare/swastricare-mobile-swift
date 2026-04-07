@@ -36,15 +36,18 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
 ) : MenstrualCycleRepository {
 
     private companion object {
-        const val KEY_CYCLES = "menstrual_cycles"
-        const val KEY_LOGS = "menstrual_daily_logs"
-        const val KEY_SETTINGS = "menstrual_settings"
         const val KEY_PROFILE_ID = "current_health_profile_id"
     }
 
     private fun getProfileId(): String {
         return prefs.getString(KEY_PROFILE_ID, "") ?: ""
     }
+
+    // Keys are user-scoped to prevent cross-account data leakage on shared devices.
+    // The legacy un-scoped keys are intentionally NOT read.
+    private fun cyclesKey(profileId: String) = "menstrual_cycles_$profileId"
+    private fun logsKey(profileId: String) = "menstrual_daily_logs_$profileId"
+    private fun settingsKey(profileId: String) = "menstrual_settings_$profileId"
 
     // ── Cycle Management ──
 
@@ -544,8 +547,10 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     // ── Local Storage Helpers ──
 
     private fun loadLocalCycles(): List<CycleRecord> {
+        val profileId = getProfileId()
+        if (profileId.isEmpty()) return emptyList()
         return try {
-            val raw = prefs.getString(KEY_CYCLES, null) ?: return emptyList()
+            val raw = prefs.getString(cyclesKey(profileId), null) ?: return emptyList()
             json.decodeFromString<List<MenstrualCycleDto>>(raw).map { it.toDomain() }
         } catch (e: Exception) {
             emptyList()
@@ -554,13 +559,16 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
 
     private fun saveLocalCycles(cycles: List<CycleRecord>) {
         val profileId = getProfileId()
+        if (profileId.isEmpty()) return
         val dtos = cycles.map { it.toDto(profileId) }
-        prefs.edit().putString(KEY_CYCLES, json.encodeToString(dtos)).apply()
+        prefs.edit().putString(cyclesKey(profileId), json.encodeToString(dtos)).apply()
     }
 
     private fun loadLocalLogs(): List<DailyLog> {
+        val profileId = getProfileId()
+        if (profileId.isEmpty()) return emptyList()
         return try {
-            val raw = prefs.getString(KEY_LOGS, null) ?: return emptyList()
+            val raw = prefs.getString(logsKey(profileId), null) ?: return emptyList()
             json.decodeFromString<List<MenstrualDailyLogDto>>(raw).map { it.toDomain() }
         } catch (e: Exception) {
             emptyList()
@@ -569,13 +577,16 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
 
     private fun saveLocalLogs(logs: List<DailyLog>) {
         val profileId = getProfileId()
+        if (profileId.isEmpty()) return
         val dtos = logs.map { it.toDto(profileId) }
-        prefs.edit().putString(KEY_LOGS, json.encodeToString(dtos)).apply()
+        prefs.edit().putString(logsKey(profileId), json.encodeToString(dtos)).apply()
     }
 
     private fun loadLocalSettings(): CycleSettings {
+        val profileId = getProfileId()
+        if (profileId.isEmpty()) return CycleSettings()
         return try {
-            val raw = prefs.getString(KEY_SETTINGS, null) ?: return CycleSettings()
+            val raw = prefs.getString(settingsKey(profileId), null) ?: return CycleSettings()
             json.decodeFromString<com.swastricare.health.data.remote.dto.menstrualcycle.MenstrualSettingsDto>(raw).toDomain()
         } catch (e: Exception) {
             CycleSettings()
@@ -584,7 +595,8 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
 
     private fun saveLocalSettings(settings: CycleSettings) {
         val profileId = getProfileId()
+        if (profileId.isEmpty()) return
         val dto = settings.toDto(profileId)
-        prefs.edit().putString(KEY_SETTINGS, json.encodeToString(dto)).apply()
+        prefs.edit().putString(settingsKey(profileId), json.encodeToString(dto)).apply()
     }
 }

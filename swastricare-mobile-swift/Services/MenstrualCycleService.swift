@@ -49,27 +49,54 @@ protocol MenstrualCycleServiceProtocol {
 
 @MainActor
 final class MenstrualCycleService: MenstrualCycleServiceProtocol {
-    
+
     static let shared = MenstrualCycleService()
-    
+
     // MARK: - Properties
-    
+
     private let userDefaults = UserDefaults.standard
-    private let cyclesKey = "menstrual_cycles_v1"
-    private let dailyLogsKey = "menstrual_daily_logs_v1"
-    private let settingsKey = "menstrual_settings_v1"
-    
+
+    /// The user ID whose data is currently loaded. When the authenticated user
+    /// changes (login / logout / account switch) call `resetForUser(_:)` so the
+    /// in-memory state and storage keys are scoped to the new user.
+    private var currentUserId: String?
+
+    // Storage keys are user-scoped to prevent data leakage between accounts on
+    // a shared device. The legacy un-scoped keys are intentionally NOT read so
+    // that stale data from a different user can never be surfaced.
+    private func cyclesKey(for userId: String) -> String { "menstrual_cycles_v1_\(userId)" }
+    private func dailyLogsKey(for userId: String) -> String { "menstrual_daily_logs_v1_\(userId)" }
+    private func settingsKey(for userId: String) -> String { "menstrual_settings_v1_\(userId)" }
+
+    // Convenience accessors that fall back to empty-string key (returns nil from
+    // UserDefaults) when no user is set, ensuring an unauthenticated app shows
+    // no data at all.
+    private var activeCyclesKey: String { currentUserId.map { cyclesKey(for: $0) } ?? "" }
+    private var activeDailyLogsKey: String { currentUserId.map { dailyLogsKey(for: $0) } ?? "" }
+    private var activeSettingsKey: String { currentUserId.map { settingsKey(for: $0) } ?? "" }
+
     // MARK: - Init
-    
+
     private init() {}
+
+    // MARK: - User Scoping
+
+    /// Call this when the authenticated user changes. Clears any cached state
+    /// so the next `loadCycles()` / `loadSettings()` reads from the correct
+    /// user-scoped UserDefaults key.
+    func resetForUser(_ userId: String?) {
+        currentUserId = userId
+        print("🩸 MenstrualService: Scoped to user \(userId ?? "none")")
+    }
     
     // MARK: - Cycles
     
     func loadCycles() -> [MenstrualCycle] {
-        guard let data = userDefaults.data(forKey: cyclesKey) else {
+        guard !activeCyclesKey.isEmpty,
+              let data = userDefaults.data(forKey: activeCyclesKey) else {
             return []
         }
-        
+
         do {
             let cycles = try JSONDecoder().decode([MenstrualCycle].self, from: data)
             return cycles.sorted { $0.startDate > $1.startDate }
@@ -189,10 +216,11 @@ final class MenstrualCycleService: MenstrualCycleServiceProtocol {
     }
     
     private func loadAllDailyLogs() -> [MenstrualDailyLog] {
-        guard let data = userDefaults.data(forKey: dailyLogsKey) else {
+        guard !activeDailyLogsKey.isEmpty,
+              let data = userDefaults.data(forKey: activeDailyLogsKey) else {
             return []
         }
-        
+
         do {
             return try JSONDecoder().decode([MenstrualDailyLog].self, from: data)
         } catch {
@@ -248,10 +276,11 @@ final class MenstrualCycleService: MenstrualCycleServiceProtocol {
     // MARK: - Settings
     
     func loadSettings() -> MenstrualSettings {
-        guard let data = userDefaults.data(forKey: settingsKey) else {
+        guard !activeSettingsKey.isEmpty,
+              let data = userDefaults.data(forKey: activeSettingsKey) else {
             return MenstrualSettings()
         }
-        
+
         do {
             return try JSONDecoder().decode(MenstrualSettings.self, from: data)
         } catch {
@@ -261,11 +290,14 @@ final class MenstrualCycleService: MenstrualCycleServiceProtocol {
     }
     
     func saveSettings(_ settings: MenstrualSettings) async throws {
+        guard !activeSettingsKey.isEmpty else {
+            throw MenstrualCycleError.invalidData("No authenticated user — cannot save settings")
+        }
         var updatedSettings = settings
         updatedSettings.lastUpdated = Date()
-        
+
         let data = try JSONEncoder().encode(updatedSettings)
-        userDefaults.set(data, forKey: settingsKey)
+        userDefaults.set(data, forKey: activeSettingsKey)
         print("🩸 MenstrualService: Saved settings")
     }
     
@@ -540,15 +572,21 @@ final class MenstrualCycleService: MenstrualCycleServiceProtocol {
     }
     
     // MARK: - Storage Helpers
-    
+
     private func saveCyclesToStorage(_ cycles: [MenstrualCycle]) throws {
+        guard !activeCyclesKey.isEmpty else {
+            throw MenstrualCycleError.invalidData("No authenticated user — cannot save cycles")
+        }
         let data = try JSONEncoder().encode(cycles)
-        userDefaults.set(data, forKey: cyclesKey)
+        userDefaults.set(data, forKey: activeCyclesKey)
     }
-    
+
     private func saveDailyLogsToStorage(_ logs: [MenstrualDailyLog]) throws {
+        guard !activeDailyLogsKey.isEmpty else {
+            throw MenstrualCycleError.invalidData("No authenticated user — cannot save daily logs")
+        }
         let data = try JSONEncoder().encode(logs)
-        userDefaults.set(data, forKey: dailyLogsKey)
+        userDefaults.set(data, forKey: activeDailyLogsKey)
     }
     
     // MARK: - Notifications

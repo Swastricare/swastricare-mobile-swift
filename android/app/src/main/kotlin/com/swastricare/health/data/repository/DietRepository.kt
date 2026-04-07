@@ -32,6 +32,7 @@ interface DietRepository {
     fun saveFavoriteIds(ids: Set<String>)
     // Supabase
     suspend fun fetchFoodItems(limit: Int = 500): Result<List<FoodItem>>
+    suspend fun fetchLogsFromCloud(profileId: String): Result<List<DietLogEntry>>
     suspend fun syncLogsToCloud(entries: List<DietLogEntry>, profileId: String): Result<Unit>
     suspend fun deleteCloudLog(id: String): Result<Unit>
 }
@@ -122,6 +123,41 @@ class SupabaseDietRepository @javax.inject.Inject constructor(
                 }.decodeList<FoodItem>()
                 Result.success(items)
             } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    // ── Supabase: Fetch Logs from Cloud (restore after reinstall) ──
+
+    override suspend fun fetchLogsFromCloud(profileId: String): Result<List<DietLogEntry>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val records = supabaseClient.from("diet_logs")
+                    .select {
+                        filter { eq("health_profile_id", profileId) }
+                    }
+                    .decodeList<DietLogRecord>()
+                val entries = records.map { record ->
+                    DietLogEntry(
+                        id = record.id,
+                        foodItemId = record.foodItemId,
+                        mealType = record.mealType,
+                        foodName = record.foodName,
+                        quantity = record.quantity,
+                        servingUnit = record.servingUnit,
+                        calories = record.calories,
+                        proteinG = record.proteinG,
+                        carbsG = record.carbsG,
+                        fatG = record.fatG,
+                        fiberG = record.fiberG,
+                        loggedAt = record.loggedAt,
+                        notes = record.notes,
+                        synced = true
+                    )
+                }
+                Result.success(entries)
+            } catch (e: Exception) {
+                android.util.Log.e("DietRepo", "fetchLogsFromCloud error: ${e.message}", e)
                 Result.failure(e)
             }
         }

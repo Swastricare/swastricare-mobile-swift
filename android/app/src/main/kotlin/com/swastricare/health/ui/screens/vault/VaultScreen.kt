@@ -24,7 +24,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Image
@@ -52,6 +56,17 @@ fun VaultScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+
+    // Lock to portrait to prevent session header repositioning on rotation
+    val activity = LocalContext.current as? android.app.Activity
+    DisposableEffect(Unit) {
+        val originalOrientation = activity?.requestedOrientation
+        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        onDispose {
+            activity?.requestedOrientation = originalOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
 
     val allowedMimeTypes = arrayOf(
         "application/pdf",
@@ -286,6 +301,10 @@ fun VaultScreen(
                         .height(56.dp),
                     placeholder = { Text("Search documents...") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
+                        onSearch = { focusManager.clearFocus() }
+                    ),
                     shape = RoundedCornerShape(14.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = AppColors.surfaceVariant,
@@ -692,6 +711,7 @@ fun VaultAppBar(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Search Bar
+        val appBarFocusManager = LocalFocusManager.current
         TextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
@@ -700,6 +720,10 @@ fun VaultAppBar(
                 .height(56.dp),
             placeholder = { Text("Search documents...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = { appBarFocusManager.clearFocus() }
+            ),
             shape = RoundedCornerShape(14.dp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = AppColors.surfaceVariant,

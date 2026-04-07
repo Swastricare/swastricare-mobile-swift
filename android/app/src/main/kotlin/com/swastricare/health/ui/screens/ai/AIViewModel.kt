@@ -154,7 +154,7 @@ class AIViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val conversations = conversationRepo.getConversations()
-                    .filter { !it.is_archived }
+                    .filter { it.status != "archived" }
                 val latest = conversations.firstOrNull() ?: return@launch
 
                 val records = conversationRepo.getMessages(latest.id)

@@ -5,11 +5,13 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.fragment.app.FragmentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -26,7 +28,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swastricare.health.navigation.DeepLinkHandler
 import com.swastricare.health.navigation.DeepLinkRoute
-import com.swastricare.health.ui.lock.LockScreen
 import com.swastricare.health.ui.lock.LockScreenViewModel
 import com.swastricare.health.ui.navigation.AppNavigation
 import com.swastricare.health.ui.screens.auth.AuthViewModel
@@ -66,6 +67,14 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // FLAG_SECURE blanks the app's preview in the Recents / task switcher and
+        // blocks screenshots and screen recording of the window. Standard practice
+        // for apps handling sensitive medical data.
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
+
         // Request POST_NOTIFICATIONS permission on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (!com.swastricare.health.data.services.NotificationPermissionManager.hasNotificationPermission(this)) {
@@ -90,30 +99,47 @@ class MainActivity : FragmentActivity() {
                     val lockViewModel: LockScreenViewModel = hiltViewModel()
                     val isLocked by lockViewModel.isLocked.collectAsState()
 
-                    // Lifecycle observer: lock app when going to background
+                    // Lifecycle observer drives both the lock-on-background and the
+                    // show-prompt-on-foreground behavior. This is more reliable than
+                    // keying a LaunchedEffect on the isLocked StateFlow because state
+                    // changes that happen during ON_STOP can be missed by the recomposer
+                    // when the activity returns — manifesting as a black screen with no
+                    // biometric prompt on minimise + reopen.
+                    //
+                    // On attach, the observer is replayed the current state events
+                    // (ON_CREATE → ON_START → ON_RESUME), so initial launches also
+                    // trigger the prompt via the same code path.
                     val lifecycleOwner = LocalLifecycleOwner.current
                     DisposableEffect(lifecycleOwner) {
                         val observer = LifecycleEventObserver { _, event ->
                             when (event) {
                                 Lifecycle.Event.ON_STOP -> {
-                                    // App going to background
-                                    if (lockViewModel.isBiometricEnabled) {
-                                        lockViewModel.onAppResumed() // This sets isLocked = true
+                                    // Only lock when the activity is truly going to background,
+                                    // not during configuration changes (rotation) or when a
+                                    // system overlay (permission dialog, notification shade)
+                                    // temporarily covers the window.
+                                    if (!isChangingConfigurations && lockViewModel.isBiometricEnabled) {
+                                        lockViewModel.onAppBackgrounded()
                                     }
                                 }
-                                Lifecycle.Event.ON_START -> {
-                                    // App coming to foreground — lock screen will show if needed
+                                Lifecycle.Event.ON_RESUME -> {
+                                    // Activity is fully resumed — safe to commit the
+                                    // BiometricPrompt DialogFragment. If the app is locked
+                                    // (either from initial launch or from a background trip),
+                                    // show the native system prompt. On user cancel, finish
+                                    // the activity (WhatsApp / Signal app-lock pattern).
+                                    if (lockViewModel.isLocked.value) {
+                                        lockViewModel.authenticate(
+                                            activity = this@MainActivity,
+                                            onCancel = { finish() }
+                                        )
+                                    }
                                 }
                                 else -> {}
                             }
                         }
                         lifecycleOwner.lifecycle.addObserver(observer)
                         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-                    }
-
-                    // Check initial lock state on first composition
-                    LaunchedEffect(Unit) {
-                        lockViewModel.checkInitialLock()
                     }
 
                     val currentDeepLink by pendingDeepLink.collectAsState()
@@ -129,11 +155,14 @@ class MainActivity : FragmentActivity() {
                                 deepLinkRoute = currentDeepLink,
                                 onDeepLinkConsumed = { pendingDeepLink.value = null }
                             )
-                        }
-
-                        // Lock screen — rendered when app is locked
-                        if (isLocked) {
-                            LockScreen(viewModel = lockViewModel)
+                        } else {
+                            // Solid background rendered behind the system biometric prompt
+                            // so private app content is never visible while locked.
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(AppColors.background)
+                            )
                         }
                     }
                 }
@@ -220,6 +249,15 @@ class MainActivity : FragmentActivity() {
         // Handle app navigation deep links
         val route = DeepLinkHandler.parse(uri) ?: return
         if (route is DeepLinkRoute.Unknown) return
-        pendingDeepLink.value = route
+
+        // For the activeworkout deep link (from notification tap): only navigate
+        // if there is an active workout.  If the back stack already has the
+        // live_workout entry the navigation layer will reuse it (launchSingleTop),
+        // so the in-progress workout is never reset.
+        if (route is DeepLinkRoute.StartRun && uri.host?.lowercase() == "activeworkout") {
+            pendingDeepLink.value = DeepLinkRoute.StartRun("__resume__")
+        } else {
+            pendingDeepLink.value = route
+        }
     }
 }

@@ -140,7 +140,7 @@ class RouteTracker(private val context: Context) {
 
     // Auto-pause: track consecutive stationary readings
     private var stationaryCount = 0
-    private val STATIONARY_THRESHOLD = 3  // ~9s at 3s intervals to trigger auto-pause
+    private val STATIONARY_THRESHOLD = 6  // ~18s at 3s intervals to trigger auto-pause (was 3 = ~9s, too aggressive)
     private val STATIONARY_SPEED = 0.5f   // m/s — reported speed below this is "not moving"
     private val STATIONARY_DISTANCE = 5.0 // meters — actual movement below this is "not moving"
 

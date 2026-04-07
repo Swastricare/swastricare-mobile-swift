@@ -167,19 +167,31 @@ class AIService(private val client: SupabaseClient) {
     }
 
     private fun parseFoodSnapResponse(text: String): SnapFoodResult {
+        // Extract the full value after a key (for text fields like name, unit, category)
         fun extractValue(key: String): String? {
             val regex = Regex("$key:\\s*(.+)", RegexOption.IGNORE_CASE)
             return regex.find(text)?.groupValues?.get(1)?.trim()
         }
 
+        // Extract only the leading numeric part so "300 kcal" correctly parses as 300.0
+        fun extractNumericValue(key: String): Double? {
+            val raw = extractValue(key) ?: return null
+            // Match an optional leading number including decimals, ignoring trailing units
+            return Regex("^([0-9]+(?:\\.[0-9]*)?)").find(raw.trim())
+                ?.groupValues?.get(1)?.toDoubleOrNull()
+        }
+
+        // Serving size must be positive; default to 1.0 to satisfy SnapFoodResult invariant
+        val servingSize = extractNumericValue("SERVING_SIZE")?.takeIf { it > 0 } ?: 1.0
+
         return SnapFoodResult(
             name = extractValue("FOOD") ?: "Unknown Food",
-            calories = extractValue("CALORIES")?.toDoubleOrNull() ?: 0.0,
-            proteinG = extractValue("PROTEIN")?.toDoubleOrNull() ?: 0.0,
-            carbsG = extractValue("CARBS")?.toDoubleOrNull() ?: 0.0,
-            fatG = extractValue("FAT")?.toDoubleOrNull() ?: 0.0,
-            fiberG = extractValue("FIBER")?.toDoubleOrNull() ?: 0.0,
-            servingSize = extractValue("SERVING_SIZE")?.toDoubleOrNull() ?: 1.0,
+            calories = extractNumericValue("CALORIES") ?: 0.0,
+            proteinG = extractNumericValue("PROTEIN") ?: 0.0,
+            carbsG = extractNumericValue("CARBS") ?: 0.0,
+            fatG = extractNumericValue("FAT") ?: 0.0,
+            fiberG = extractNumericValue("FIBER") ?: 0.0,
+            servingSize = servingSize,
             servingUnit = extractValue("SERVING_UNIT") ?: "piece",
             category = extractValue("CATEGORY") ?: "other"
         )

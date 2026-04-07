@@ -1,16 +1,16 @@
 package com.swastricare.health.widgets
 
 import android.content.Context
-import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.*
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.*
-import androidx.glance.appwidget.action.actionSendBroadcast
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.*
@@ -96,20 +96,15 @@ private fun HydrationContent(context: Context) {
             modifier = GlanceModifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val log250Intent = Intent(context, WidgetActionReceiver::class.java).apply {
-                action = WidgetActionReceiver.ACTION_LOG_WATER
-                putExtra(WidgetActionReceiver.EXTRA_WATER_AMOUNT, 250)
-            }
-            val log500Intent = Intent(context, WidgetActionReceiver::class.java).apply {
-                action = WidgetActionReceiver.ACTION_LOG_WATER
-                putExtra(WidgetActionReceiver.EXTRA_WATER_AMOUNT, 500)
-            }
-
             Box(
                 modifier = GlanceModifier
                     .cornerRadius(8.dp)
                     .background(ColorProvider(Color(0x1A64D2FF)))
-                    .clickable(actionSendBroadcast(log250Intent))
+                    .clickable(
+                        actionRunCallback<HydrationLogActionCallback>(
+                            actionParametersOf(HydrationLogActionCallback.AMOUNT_KEY to 250)
+                        )
+                    )
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -129,7 +124,11 @@ private fun HydrationContent(context: Context) {
                 modifier = GlanceModifier
                     .cornerRadius(8.dp)
                     .background(ColorProvider(Color(0x1A64D2FF)))
-                    .clickable(actionSendBroadcast(log500Intent))
+                    .clickable(
+                        actionRunCallback<HydrationLogActionCallback>(
+                            actionParametersOf(HydrationLogActionCallback.AMOUNT_KEY to 500)
+                        )
+                    )
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {

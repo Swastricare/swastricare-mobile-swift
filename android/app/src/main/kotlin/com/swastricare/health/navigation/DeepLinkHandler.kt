@@ -113,6 +113,11 @@ object DeepLinkHandler {
     /**
      * Convert a [DeepLinkRoute] into a navigation route string
      * that can be used with NavController.navigate().
+     *
+     * The special type `__resume__` is used for the notification deep link so
+     * the navigation system routes to `live_workout` without a workout_type arg,
+     * which keeps any existing back-stack entry (launchSingleTop) rather than
+     * starting a fresh workout.
      */
     fun toNavRoute(route: DeepLinkRoute): String = when (route) {
         is DeepLinkRoute.Home -> "vitals"
@@ -121,7 +126,9 @@ object DeepLinkHandler {
         is DeepLinkRoute.HeartRate -> "heart_rate"
         is DeepLinkRoute.Steps -> "steps"
         is DeepLinkRoute.Run -> "steps"
-        is DeepLinkRoute.StartRun -> "live_workout?type=${route.type}"
+        is DeepLinkRoute.StartRun ->
+            if (route.type == "__resume__") "live_workout"
+            else "live_workout?type=${route.type}"
         is DeepLinkRoute.Diet -> "diet"
         is DeepLinkRoute.Vault -> "vault"
         is DeepLinkRoute.AI -> "ai"

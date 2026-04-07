@@ -80,6 +80,9 @@ class MedicationsViewModel @Inject constructor(
     private val _isSearching = MutableStateFlow(false)
     val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
 
+    private val _addMedicationSuccess = MutableStateFlow<Boolean?>(null)
+    val addMedicationSuccess: StateFlow<Boolean?> = _addMedicationSuccess.asStateFlow()
+
     private var searchJob: Job? = null
 
     // Resolved from authenticated user
@@ -191,6 +194,10 @@ class MedicationsViewModel @Inject constructor(
         }
     }
 
+    fun clearAddMedicationResult() {
+        _addMedicationSuccess.value = null
+    }
+
     fun addMedication(
         name: String,
         dosage: String,
@@ -205,51 +212,75 @@ class MedicationsViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val profileId = resolveProfileId()
-            val medicationDto = MedicationDto(
-                id = UUID.randomUUID().toString(),
-                healthProfileId = profileId,
-                name = name,
-                dosage = dosage,
-                dosageUnit = dosageUnit,
-                form = type.dbForm,
-                startDate = startDate.toString(),
-                endDate = endDate?.toString(),
-                isOngoing = isOngoing,
-                notes = notes,
-                status = "active"
-            )
-            val result = repository.upsertMedication(medicationDto)
-            if (result.isSuccess) {
-                val savedMed = result.getOrThrow()
-                val schedules = buildSchedules(savedMed.id, profileId, scheduleType, scheduleTimes)
-                Log.d(TAG, "addMedication: upserting ${schedules.size} schedules for med=${savedMed.id}")
-                val schedResult = repository.upsertSchedules(schedules)
-                if (schedResult.isFailure) {
-                    Log.e(TAG, "addMedication: schedule upsert FAILED", schedResult.exceptionOrNull())
-                }
+            try {
+                val profileId = resolveProfileId()
+                val medicationDto = MedicationDto(
+                    id = UUID.randomUUID().toString(),
+                    healthProfileId = profileId,
+                    name = name,
+                    dosage = dosage,
+                    dosageUnit = dosageUnit,
+                    form = type.dbForm,
+                    startDate = startDate.toString(),
+                    endDate = endDate?.toString(),
+                    isOngoing = isOngoing,
+                    notes = notes,
+                    status = "active"
+                )
+                val result = repository.upsertMedication(medicationDto)
+                if (result.isSuccess) {
+                    val savedMed = result.getOrThrow()
+                    val schedules = buildSchedules(savedMed.id, profileId, scheduleType, scheduleTimes)
+                    Log.d(TAG, "addMedication: upserting ${schedules.size} schedules for med=${savedMed.id}")
+                    val schedResult = repository.upsertSchedules(schedules)
+                    if (schedResult.isFailure) {
+                        Log.e(TAG, "addMedication: schedule upsert FAILED", schedResult.exceptionOrNull())
+                    }
 
-                // Schedule reminders for each schedule
-                schedules.forEach { schedule ->
-                    val parts = schedule.timeOfDay.split(":")
-                    val hour = parts.getOrNull(0)?.toIntOrNull() ?: return@forEach
-                    val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-                    MedicationReminderScheduler.schedule(
-                        context = context,
-                        medId = savedMed.id,
-                        scheduleId = schedule.id,
-                        medName = savedMed.name,
-                        timeHour = hour,
-                        timeMinute = minute
+                    // Schedule reminders for each schedule — wrapped so a missing
+                    // notification permission does not crash the save flow
+                    try {
+                        schedules.forEach { schedule ->
+                            val parts = schedule.timeOfDay.split(":")
+                            val hour = parts.getOrNull(0)?.toIntOrNull() ?: return@forEach
+                            val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                            MedicationReminderScheduler.schedule(
+                                context = context,
+                                medId = savedMed.id,
+                                scheduleId = schedule.id,
+                                medName = savedMed.name,
+                                timeHour = hour,
+                                timeMinute = minute
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to schedule reminder: ${e.message}")
+                    }
+
+                    _addMedicationSuccess.value = true
+                    loadMedications()
+                } else {
+                    Log.e(TAG, "addMedication: upsert failed", result.exceptionOrNull())
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Failed to save medication"
                     )
+                    _addMedicationSuccess.value = false
                 }
-
-                loadMedications()
-            } else {
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "addMedication: profile resolution failed", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Failed to save medication"
+                    error = "Unable to save: health profile not found. Please complete your profile setup."
                 )
+                _addMedicationSuccess.value = false
+            } catch (e: Exception) {
+                Log.e(TAG, "addMedication: unexpected error", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to save medication. Please try again."
+                )
+                _addMedicationSuccess.value = false
             }
         }
     }
