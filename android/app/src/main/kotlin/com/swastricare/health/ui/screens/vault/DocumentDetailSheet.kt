@@ -2,12 +2,14 @@ package com.swastricare.health.ui.screens.vault
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,13 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swastricare.health.data.model.MedicalDocument
 import com.swastricare.health.data.model.VaultCategory
-import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
-import com.swastricare.health.ui.theme.PrimaryColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +77,6 @@ fun DocumentDetailSheet(
 
     // Dialog state
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showCategoryPicker by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val isImageFile = document.fileType.lowercase() in listOf("jpg", "jpeg", "png")
@@ -158,37 +158,31 @@ fun DocumentDetailSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 20.dp)
+                .padding(top = 4.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // ---- B. Title + Category row ----
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            // ---- B. Title + Category chip ----
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = document.title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
+                    color = AppColors.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = getCategoryColor(document.category)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(AppColors.surfaceVariant)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = document.category,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        color = AppColors.onSurfaceVariant
                     )
                 }
             }
@@ -201,8 +195,6 @@ fun DocumentDetailSheet(
                     editedTitle = editedTitle,
                     onTitleChange = { editedTitle = it },
                     editedCategory = editedCategory,
-                    showCategoryPicker = showCategoryPicker,
-                    onShowCategoryPicker = { showCategoryPicker = it },
                     onCategoryChange = { editedCategory = it },
                     editedDoctorName = editedDoctorName,
                     onDoctorNameChange = { editedDoctorName = it },
@@ -219,16 +211,17 @@ fun DocumentDetailSheet(
                 // Save / Cancel row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
+                    FlatButton(
+                        text = "Cancel",
                         onClick = { onToggleEditMode(false) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Cancel")
-                    }
-                    Button(
+                        filled = false
+                    )
+                    FlatButton(
+                        text = "Save",
+                        leadingIcon = Icons.Default.Save,
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             document.id?.let { id ->
@@ -249,17 +242,8 @@ fun DocumentDetailSheet(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                    ) {
-                        Icon(
-                            Icons.Default.Save,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Save", fontWeight = FontWeight.Bold)
-                    }
+                        filled = true
+                    )
                 }
             }
 
@@ -268,18 +252,33 @@ fun DocumentDetailSheet(
                 AIAnalysisSection(
                     isAnalyzingAI = isAnalyzingAI,
                     aiAnalysisResult = aiAnalysisResult,
-                    onContinueInAIChat = { onContinueInAIChat(document, aiAnalysisResult ?: "") }
+                    onContinueInAIChat = {
+                        onContinueInAIChat(document, aiAnalysisResult ?: "")
+                    }
                 )
             }
 
             // ---- F. Action buttons row ----
-            ActionButtonsRow(
-                isEditMode = isEditMode,
-                onViewDocument = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onViewDocument(document) },
-                onAskAI = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onAskAI(document) },
-                onToggleEditMode = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onToggleEditMode(!isEditMode) },
-                onDelete = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); showDeleteDialog = true }
-            )
+            if (!isEditMode) {
+                ActionButtonsRow(
+                    onViewDocument = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onViewDocument(document)
+                    },
+                    onAskAI = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onAskAI(document)
+                    },
+                    onToggleEditMode = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onToggleEditMode(true)
+                    },
+                    onDelete = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showDeleteDialog = true
+                    }
+                )
+            }
         }
     }
 }
@@ -294,7 +293,7 @@ private fun HeroImageSection(
     fileType: String,
     signedImageUrl: String?
 ) {
-    val shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    val shape = RoundedCornerShape(20.dp)
 
     if (isImageFile && signedImageUrl != null) {
         AsyncImage(
@@ -306,11 +305,11 @@ private fun HeroImageSection(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .height(220.dp)
                 .clip(shape)
         )
     } else {
-        // Placeholder card — PDF or unknown type
         val icon = if (fileType.lowercase() == "pdf") {
             Icons.Default.Description
         } else {
@@ -321,7 +320,8 @@ private fun HeroImageSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .height(220.dp)
                 .clip(shape)
                 .background(AppColors.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -351,59 +351,43 @@ private fun HeroImageSection(
 
 @Composable
 private fun ViewModeContent(document: MedicalDocument) {
-    // Primary metadata
     val hasPrimaryMeta = document.doctorName != null ||
         document.appointmentDate != null ||
-        document.location != null
+        document.location != null ||
+        document.documentDate != null
 
     if (hasPrimaryMeta) {
-        DetailSectionContainer(title = "Details") {
-            var isFirst = true
-
+        SectionHeader("Details")
+        Spacer(Modifier.height(4.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(AppColors.surfaceVariant)
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+        ) {
             if (document.doctorName != null) {
-                if (!isFirst) HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    color = AppColors.onSurface.copy(alpha = 0.08f)
-                )
                 DetailInfoRow(
                     icon = Icons.Default.Person,
                     label = "Doctor",
                     value = document.doctorName
                 )
-                isFirst = false
             }
-
             if (document.appointmentDate != null) {
-                if (!isFirst) HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    color = AppColors.onSurface.copy(alpha = 0.08f)
-                )
                 DetailInfoRow(
                     icon = Icons.Default.Event,
                     label = "Appointment",
                     value = document.appointmentDate.substringBefore("T")
                 )
-                isFirst = false
             }
-
             if (document.location != null) {
-                if (!isFirst) HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    color = AppColors.onSurface.copy(alpha = 0.08f)
-                )
                 DetailInfoRow(
                     icon = Icons.Default.LocationOn,
                     label = "Location",
                     value = document.location
                 )
-                isFirst = false
             }
-
             if (document.documentDate != null) {
-                if (!isFirst) HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    color = AppColors.onSurface.copy(alpha = 0.08f)
-                )
                 DetailInfoRow(
                     icon = Icons.Default.CalendarToday,
                     label = "Document date",
@@ -436,7 +420,15 @@ private fun ViewModeContent(document: MedicalDocument) {
     // Notes
     if (!document.notes.isNullOrBlank()) {
         var expanded by remember { mutableStateOf(false) }
-        DetailSectionContainer(title = "Notes") {
+        SectionHeader("Notes")
+        Spacer(Modifier.height(4.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(AppColors.surfaceVariant)
+                .padding(14.dp)
+        ) {
             Text(
                 text = document.notes,
                 style = MaterialTheme.typography.bodyMedium,
@@ -445,11 +437,12 @@ private fun ViewModeContent(document: MedicalDocument) {
                 overflow = if (expanded) TextOverflow.Visible else TextOverflow.Ellipsis
             )
             if (document.notes.length > 120) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = if (expanded) "Show less" else "Show more",
                     style = MaterialTheme.typography.labelMedium,
-                    color = PrimaryColor,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onSurface,
                     modifier = Modifier.clickable { expanded = !expanded }
                 )
             }
@@ -458,29 +451,27 @@ private fun ViewModeContent(document: MedicalDocument) {
 
     // Tags
     if (!document.tags.isNullOrEmpty()) {
-        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "Tags",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = AppColors.onSurface.copy(alpha = 0.7f)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                document.tags.take(6).forEach { tag ->
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = PrimaryColor.copy(alpha = 0.12f)
-                    ) {
-                        Text(
-                            text = tag,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = PrimaryColor,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+        SectionHeader("Tags")
+        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            document.tags.forEach { tag ->
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(AppColors.surfaceVariant)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = tag,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppColors.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -496,8 +487,6 @@ private fun EditModeContent(
     editedTitle: String,
     onTitleChange: (String) -> Unit,
     editedCategory: VaultCategory,
-    showCategoryPicker: Boolean,
-    onShowCategoryPicker: (Boolean) -> Unit,
     onCategoryChange: (VaultCategory) -> Unit,
     editedDoctorName: String,
     onDoctorNameChange: (String) -> Unit,
@@ -510,134 +499,103 @@ private fun EditModeContent(
     editedTagsRaw: String,
     onTagsChange: (String) -> Unit
 ) {
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = PrimaryColor,
-        unfocusedBorderColor = AppColors.outline.copy(alpha = 0.4f),
-        focusedTextColor = AppColors.onBackground,
-        unfocusedTextColor = AppColors.onBackground
-    )
-    val fieldShape = RoundedCornerShape(10.dp)
-
     // Title
-    OutlinedTextField(
+    FlatTextField(
         value = editedTitle,
         onValueChange = onTitleChange,
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        label = { Text("Title") },
-        shape = fieldShape,
-        colors = fieldColors
+        label = "Title",
+        leadingIcon = Icons.Default.Title
     )
 
-    // Category dropdown
-    Box {
-        OutlinedTextField(
-            value = editedCategory.title,
-            onValueChange = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onShowCategoryPicker(true) },
-            readOnly = true,
-            label = { Text("Category") },
-            trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-            },
-            shape = fieldShape,
-            colors = fieldColors
-        )
-        DropdownMenu(
-            expanded = showCategoryPicker,
-            onDismissRequest = { onShowCategoryPicker(false) }
-        ) {
-            VaultCategory.values().forEach { cat ->
-                DropdownMenuItem(
-                    text = { Text(cat.title) },
-                    onClick = { onCategoryChange(cat); onShowCategoryPicker(false) },
-                    leadingIcon = {
-                        if (editedCategory == cat) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                tint = PrimaryColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
+    // Category (flat chips)
+    Text(
+        text = "Category",
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = AppColors.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp)
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        VaultCategory.entries.forEach { category ->
+            val selected = category == editedCategory
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        if (selected) AppColors.primary
+                        else AppColors.surfaceVariant
+                    )
+                    .clickable { onCategoryChange(category) }
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = category.title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selected) Color.White else AppColors.onSurfaceVariant
                 )
             }
         }
     }
 
     // Doctor name
-    OutlinedTextField(
+    FlatTextField(
         value = editedDoctorName,
         onValueChange = onDoctorNameChange,
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        label = { Text("Doctor name") },
-        leadingIcon = {
-            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(20.dp))
-        },
-        shape = fieldShape,
-        colors = fieldColors
+        label = "Doctor name",
+        leadingIcon = Icons.Default.Person
     )
 
     // Appointment date — opens DatePickerDialog
-    OutlinedTextField(
+    FlatTextField(
         value = editedAppointmentDate,
         onValueChange = {},
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onShowDatePicker() },
+        label = "Appointment date",
+        leadingIcon = Icons.Default.Event,
+        placeholder = "YYYY-MM-DD",
         readOnly = true,
-        label = { Text("Appointment date") },
-        placeholder = { Text("YYYY-MM-DD") },
         trailingIcon = {
-            IconButton(onClick = { onShowDatePicker() }) {
-                Icon(Icons.Default.CalendarToday, contentDescription = "Pick date")
+            IconButton(onClick = onShowDatePicker) {
+                Icon(
+                    Icons.Default.CalendarToday,
+                    contentDescription = "Pick date",
+                    tint = AppColors.onSurface
+                )
             }
-        },
-        shape = fieldShape,
-        colors = fieldColors
+        }
     )
 
     // Location
-    OutlinedTextField(
+    FlatTextField(
         value = editedLocation,
         onValueChange = onLocationChange,
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        label = { Text("Location") },
-        leadingIcon = {
-            Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(20.dp))
-        },
-        shape = fieldShape,
-        colors = fieldColors
+        label = "Location",
+        leadingIcon = Icons.Default.LocationOn
     )
 
     // Notes
-    OutlinedTextField(
+    FlatTextField(
         value = editedNotes,
         onValueChange = onNotesChange,
-        modifier = Modifier.fillMaxWidth(),
-        minLines = 3,
-        maxLines = 6,
-        label = { Text("Notes") },
-        placeholder = { Text("Add notes...") },
-        shape = fieldShape,
-        colors = fieldColors
+        label = "Notes",
+        leadingIcon = Icons.AutoMirrored.Filled.Notes,
+        placeholder = "Add notes...",
+        singleLine = false,
+        minLines = 3
     )
 
-    // Tags (comma-separated)
-    OutlinedTextField(
+    // Tags
+    FlatTextField(
         value = editedTagsRaw,
         onValueChange = onTagsChange,
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        label = { Text("Tags (comma-separated)") },
-        placeholder = { Text("e.g. blood test, cardiology") },
-        shape = fieldShape,
-        colors = fieldColors
+        label = "Tags (comma-separated)",
+        leadingIcon = Icons.Default.LocalOffer,
+        placeholder = "e.g. blood test, cardiology"
     )
 }
 
@@ -655,55 +613,52 @@ private fun AIAnalysisSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                Icons.Default.AutoAwesome,
-                contentDescription = null,
-                tint = PrimaryColor,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                text = "AI Analysis",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = PrimaryColor
-            )
-        }
+        SectionHeader("AI Analysis")
 
         if (isAnalyzingAI) {
-            // Shimmer loading card
             val brush = shimmerBrush()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(80.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(brush)
             )
         }
 
         if (aiAnalysisResult != null) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = PrimaryColor.copy(alpha = 0.06f)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(AppColors.surfaceVariant)
+                    .padding(14.dp)
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = aiAnalysisResult,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AppColors.onSurface
+                Text(
+                    text = aiAnalysisResult,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.onSurface
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(onClick = onContinueInAIChat)
+                        .padding(vertical = 6.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = AppColors.primary,
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Continue in AI Chat",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = PrimaryColor,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { onContinueInAIChat() }
+                        style = MaterialTheme.typography.labelLarge,
+                        color = AppColors.primary,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -717,7 +672,6 @@ private fun AIAnalysisSection(
 
 @Composable
 private fun ActionButtonsRow(
-    isEditMode: Boolean,
     onViewDocument: () -> Unit,
     onAskAI: () -> Unit,
     onToggleEditMode: () -> Unit,
@@ -725,75 +679,161 @@ private fun ActionButtonsRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // View
-        FilledTonalButton(
+        FlatIconButton(
+            icon = Icons.Default.Visibility,
+            label = "View",
             onClick = onViewDocument,
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(10.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-        ) {
-            Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("View", style = MaterialTheme.typography.labelMedium)
-        }
-
-        // Ask AI
-        FilledTonalButton(
+            modifier = Modifier.weight(1f)
+        )
+        FlatIconButton(
+            icon = Icons.Default.AutoAwesome,
+            label = "Ask AI",
             onClick = onAskAI,
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(10.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = PrimaryColor.copy(alpha = 0.12f),
-                contentColor = PrimaryColor
-            )
-        ) {
-            Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Ask AI", style = MaterialTheme.typography.labelMedium)
-        }
-
-        // Edit / Cancel Edit
-        OutlinedButton(
+            modifier = Modifier.weight(1f)
+        )
+        FlatIconButton(
+            icon = Icons.Default.Edit,
+            label = "Edit",
             onClick = onToggleEditMode,
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(10.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-        ) {
-            Icon(
-                imageVector = if (isEditMode) Icons.Default.Close else Icons.Default.Edit,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = if (isEditMode) "Cancel" else "Edit",
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
-
-        // Delete
-        FilledTonalButton(
+            modifier = Modifier.weight(1f)
+        )
+        FlatIconButton(
+            icon = Icons.Default.Delete,
+            label = "Delete",
             onClick = onDelete,
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(10.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = AppColors.error.copy(alpha = 0.12f),
-                contentColor = AppColors.error
-            )
-        ) {
-            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Delete", style = MaterialTheme.typography.labelMedium)
-        }
+            destructive = true
+        )
     }
 }
 
 // ---------------------------------------------------------------------------
-// Helper composables (kept from original)
+// Flat building blocks
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.8.sp,
+        color = AppColors.onSurfaceVariant
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FlatTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    leadingIcon: ImageVector,
+    placeholder: String? = null,
+    readOnly: Boolean = false,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    trailingIcon: (@Composable () -> Unit)? = null
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        leadingIcon = {
+            Icon(leadingIcon, contentDescription = null, tint = AppColors.onSurfaceVariant)
+        },
+        trailingIcon = trailingIcon,
+        placeholder = placeholder?.let { { Text(it) } },
+        readOnly = readOnly,
+        singleLine = singleLine,
+        minLines = minLines,
+        shape = RoundedCornerShape(14.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = AppColors.surfaceVariant,
+            unfocusedContainerColor = AppColors.surfaceVariant,
+            disabledContainerColor = AppColors.surfaceVariant,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent
+        ),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun FlatButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
+    filled: Boolean = true
+) {
+    Box(
+        modifier = modifier
+            .height(52.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (filled) AppColors.primary else AppColors.surfaceVariant)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (leadingIcon != null) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = if (filled) Color.White else AppColors.onSurface,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+            Text(
+                text = text,
+                color = if (filled) Color.White else AppColors.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun FlatIconButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    destructive: Boolean = false
+) {
+    val contentColor = if (destructive) AppColors.error else AppColors.onSurface
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(AppColors.surfaceVariant)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = contentColor
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -804,14 +844,15 @@ internal fun DetailSectionContainer(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .glass()
+            .clip(RoundedCornerShape(14.dp))
+            .background(AppColors.surfaceVariant)
             .padding(16.dp)
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
-            color = AppColors.onSurface.copy(alpha = 0.7f),
+            color = AppColors.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 12.dp)
         )
         content()
@@ -823,39 +864,39 @@ internal fun DetailInfoRow(
     icon: ImageVector,
     label: String,
     value: String,
-    valueColor: Color = AppColors.onSurfaceVariant,
+    valueColor: Color = AppColors.onSurface,
     trailingIcon: ImageVector? = null,
     onClick: (() -> Unit)? = null
 ) {
     val rowModifier = if (onClick != null) {
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
-            .padding(vertical = 6.dp)
+            .padding(vertical = 12.dp)
     } else {
         Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
+            .padding(vertical = 12.dp)
     }
 
     Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PrimaryColor,
+            tint = AppColors.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.onSurface
+            color = AppColors.onSurfaceVariant
         )
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
             color = valueColor,
             textAlign = TextAlign.End,
             maxLines = 1,

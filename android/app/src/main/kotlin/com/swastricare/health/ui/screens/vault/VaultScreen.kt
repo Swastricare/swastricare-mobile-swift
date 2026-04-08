@@ -496,9 +496,13 @@ fun VaultScreen(
             },
             onAskAI = { viewModel.analyzeDocumentWithAI(it) },
             onContinueInAIChat = { doc, analysis ->
+                // Only pass imageUri for actual image files so the AI chat
+                // doesn't try to render a PDF URL through AsyncImage.
+                val isImage = doc.fileType.lowercase() in listOf("jpg", "jpeg", "png", "webp")
                 com.swastricare.health.ui.screens.ai.PendingAIContext.set(
                     title = doc.title,
-                    analysis = analysis
+                    analysis = analysis,
+                    imageUri = if (isImage) detailImageUrl else null
                 )
                 viewModel.selectDocumentForDetail(null)
                 onNavigateToAIChat?.invoke()

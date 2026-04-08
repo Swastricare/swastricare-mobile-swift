@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,15 +44,51 @@ class AppointmentAlarmScheduler @Inject constructor(
     }
 
     fun schedule(appt: AppointmentInfo) {
-        val apptTime = try { ZonedDateTime.parse(appt.scheduledAtIso) } catch (e: Exception) {
+        val apptTime = parseAppointmentTime(appt.scheduledAtIso) ?: run {
             Log.w(TAG, "Invalid appointment time: ${appt.scheduledAtIso}")
             return
         }
+        // Cancel any previously-scheduled alarms for this appointment before (re)scheduling
+        cancel(appt.id)
         val now = ZonedDateTime.now()
         val dayBefore = apptTime.minusHours(24)
         val hourBefore = apptTime.minusHours(1)
-        if (dayBefore.isAfter(now)) setAlarm(appt, dayBefore.toInstant().toEpochMilli(), true)
-        if (hourBefore.isAfter(now)) setAlarm(appt, hourBefore.toInstant().toEpochMilli(), false)
+        var scheduled = 0
+        if (dayBefore.isAfter(now)) {
+            setAlarm(appt, dayBefore.toInstant().toEpochMilli(), true)
+            scheduled++
+        }
+        if (hourBefore.isAfter(now)) {
+            setAlarm(appt, hourBefore.toInstant().toEpochMilli(), false)
+            scheduled++
+        }
+        Log.d(TAG, "Scheduled $scheduled reminder(s) for appt ${appt.id} at $apptTime")
+    }
+
+    /**
+     * Parses the scheduled-at string. Accepts:
+     *  - Full ISO 8601 with zone: "2025-04-15T09:00:00+05:30"
+     *  - Local date-time: "2025-04-15T09:00:00" (assumes system default zone)
+     *  - Date-only: "2025-04-15" (defaults to 09:00 in system default zone)
+     */
+    private fun parseAppointmentTime(iso: String): ZonedDateTime? {
+        if (iso.isBlank()) return null
+        // Try full zoned ISO first
+        try {
+            return ZonedDateTime.parse(iso)
+        } catch (_: Exception) {
+        }
+        // Try local date-time (no zone) -> system default zone
+        try {
+            return java.time.LocalDateTime.parse(iso).atZone(ZoneId.systemDefault())
+        } catch (_: Exception) {
+        }
+        // Try date-only -> default to 09:00 system default zone
+        try {
+            return LocalDate.parse(iso).atTime(LocalTime.of(9, 0)).atZone(ZoneId.systemDefault())
+        } catch (_: Exception) {
+        }
+        return null
     }
 
     fun cancel(appointmentId: String) {

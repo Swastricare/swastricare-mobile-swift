@@ -111,7 +111,14 @@ class AIViewModel @Inject constructor(
     private var currentConversationId: String? = null
 
     init {
-        loadLastConversation()
+        // If the user tapped "Continue in AI Chat" from the vault, seed the chat
+        // with the document context INSTEAD of loading the last conversation.
+        // Otherwise, restore the previous chat history.
+        if (PendingAIContext.documentTitle != null) {
+            loadPendingDocumentContext()
+        } else {
+            loadLastConversation()
+        }
         loadUserName()
     }
 
@@ -212,6 +219,35 @@ class AIViewModel @Inject constructor(
 
     fun onInputTextChanged(text: String) {
         _uiState.value = _uiState.value.copy(inputText = text)
+    }
+
+    // MARK: - Pending Document Context (from Vault)
+
+    /**
+     * Consumes a pending document context (set by Vault's "Continue in AI Chat")
+     * and seeds the chat with the document image and its analysis so the user
+     * can ask follow-up questions.
+     */
+    fun loadPendingDocumentContext() {
+        val pending = PendingAIContext.consume() ?: return
+
+        val userText = "Can you help me understand this document: ${pending.title}"
+        val userMsg = ChatMessage.userMessage(userText, pending.imageUri)
+        val assistantMsg = ChatMessage.assistantMessage(pending.analysis)
+
+        val newMessages = _uiState.value.messages.toMutableList().apply {
+            add(userMsg)
+            add(assistantMsg)
+        }
+
+        _uiState.value = _uiState.value.copy(
+            messages = newMessages,
+            showEmptyState = false
+        )
+
+        // Persist seeded messages so they survive app restart
+        persistMessage("user", userText)
+        persistMessage("assistant", pending.analysis)
     }
 
     fun sendMessage() {

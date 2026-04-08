@@ -89,9 +89,32 @@ class VaultViewModel @Inject constructor(
             try {
                 val documents = repository.getDocuments()
                 _uiState.update { it.copy(documents = documents, isLoading = false) }
+                rescheduleAppointmentReminders(documents)
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = UserFriendlyError.from(e)) }
             }
+        }
+    }
+
+    /**
+     * Re-registers alarms for every document that has an appointment date.
+     * Called after loadDocuments() so that reminders survive app restarts and
+     * device reboots, and so existing appointments get scheduled after the
+     * parser fix (previously failed silently on date-only strings).
+     */
+    private fun rescheduleAppointmentReminders(documents: List<MedicalDocument>) {
+        val appointments = documents
+            .filter { !it.id.isNullOrBlank() && !it.appointmentDate.isNullOrBlank() }
+            .map { doc ->
+                AppointmentAlarmScheduler.AppointmentInfo(
+                    id = doc.id!!,
+                    scheduledAtIso = doc.appointmentDate!!,
+                    doctorName = doc.doctorName ?: "Doctor",
+                    location = doc.location ?: ""
+                )
+            }
+        if (appointments.isNotEmpty()) {
+            appointmentScheduler.scheduleAll(appointments)
         }
     }
 

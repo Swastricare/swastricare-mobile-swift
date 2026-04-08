@@ -137,6 +137,11 @@ fun AIScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
 
+    // Consume any pending document context seeded by the Vault screen
+    LaunchedEffect(Unit) {
+        viewModel.loadPendingDocumentContext()
+    }
+
     // Track whether chat input is focused
     var inputFocused by remember { mutableStateOf(false) }
 
@@ -745,7 +750,8 @@ fun ChatBubble(
                             )
                             // Extract image type label from content "[Image: X-Ray] Please analyze..."
                             val rawContent = message.content
-                            val typeLabel = if (rawContent.contains("[Image: ") && rawContent.contains("]")) {
+                            val hasTypeLabel = rawContent.startsWith("[Image: ") && rawContent.contains("]")
+                            val typeLabel = if (hasTypeLabel) {
                                 rawContent.removePrefix("[Image: ").substringBefore("]").trim()
                             } else ""
                             if (typeLabel.isNotBlank()) {
@@ -761,6 +767,17 @@ fun ChatBubble(
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
+                            }
+                            // If there is meaningful text alongside the image (i.e. not
+                            // just the "[Image: X]" placeholder), render it below the
+                            // image so the user always sees the question/context.
+                            if (!hasTypeLabel && rawContent.isNotBlank()) {
+                                Text(
+                                    text = parseMarkdown(rawContent),
+                                    color = AppColors.onBackground,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontFamily = Poppins
+                                )
                             }
                         }
                     } else {

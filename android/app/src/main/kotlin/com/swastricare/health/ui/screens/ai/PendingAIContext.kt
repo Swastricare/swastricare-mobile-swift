@@ -11,26 +11,32 @@ object PendingAIContext {
         private set
     var analysisResult: String? = null
         private set
-    var imageBase64: String? = null
+    var imageUri: String? = null
         private set
 
-    fun set(title: String, analysis: String, base64: String? = null) {
+    fun set(title: String, analysis: String, imageUri: String? = null) {
         documentTitle = title
         analysisResult = analysis
-        imageBase64 = base64
+        this.imageUri = imageUri
     }
 
-    fun consume(): Triple<String, String, String?>? {
+    data class PendingDocument(
+        val title: String,
+        val analysis: String,
+        val imageUri: String?
+    )
+
+    fun consume(): PendingDocument? {
         val title = documentTitle ?: return null
         val analysis = analysisResult ?: return null
-        val img = imageBase64
+        val img = imageUri
         clear()
-        return Triple(title, analysis, img)
+        return PendingDocument(title, analysis, img)
     }
 
     fun clear() {
         documentTitle = null
         analysisResult = null
-        imageBase64 = null
+        imageUri = null
     }
 }
