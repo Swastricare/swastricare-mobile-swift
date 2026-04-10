@@ -743,7 +743,7 @@ private fun StepDate(selected: java.time.LocalDate, onChange: (java.time.LocalDa
     LaunchedEffect(datePickerState.selectedDateMillis) {
         datePickerState.selectedDateMillis?.let { millis ->
             val date = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-            onChange(date)
+            if (date != selected) onChange(date)
         }
     }
     Text("When did it start?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -867,12 +867,13 @@ private fun StepSymptoms(
 }
 
 // ── Step 4: Mood ──
+private data class MoodEntry(val mood: com.swastricare.health.domain.model.menstrualcycle.Mood, val emoji: String, val label: String)
+
 @Composable
 private fun StepMood(
     selected: com.swastricare.health.domain.model.menstrualcycle.Mood?,
     onChange: (com.swastricare.health.domain.model.menstrualcycle.Mood?) -> Unit
 ) {
-    data class MoodEntry(val mood: com.swastricare.health.domain.model.menstrualcycle.Mood, val emoji: String, val label: String)
     val moods = listOf(
         MoodEntry(com.swastricare.health.domain.model.menstrualcycle.Mood.HAPPY, "\uD83D\uDE0A", "Happy"),
         MoodEntry(com.swastricare.health.domain.model.menstrualcycle.Mood.CALM, "\uD83D\uDE0C", "Calm"),
@@ -956,8 +957,8 @@ private fun StepPain(level: Int, onChange: (Int) -> Unit) {
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = when {
-                    level <= 3 -> Color(0xFF4CAF50)
-                    level <= 6 -> Color(0xFFFF9800)
+                    level <= 3 -> FollicularColor
+                    level <= 6 -> OvulationColor
                     else -> CyclePink
                 }
             )
