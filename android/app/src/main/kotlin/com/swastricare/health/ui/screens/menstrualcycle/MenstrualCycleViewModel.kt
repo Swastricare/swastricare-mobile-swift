@@ -374,7 +374,7 @@ class MenstrualCycleViewModel @Inject constructor(
                 return@launch
             }
             // 2. Log daily data for the start date
-            cycleRepository.logDailyData(
+            val dailyResult = cycleRepository.logDailyData(
                 date = startDate,
                 flowLevel = flowLevel,
                 symptoms = symptoms,
@@ -382,6 +382,13 @@ class MenstrualCycleViewModel @Inject constructor(
                 notes = notes,
                 painLevel = painLevel
             )
+            if (dailyResult is ResultWrapper.Error) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Period started but failed to save details"
+                )
+                return@launch
+            }
             analyticsService.trackCycleLogged("full_log")
             // 3. Optimistic clear + reload
             _uiState.value = _uiState.value.copy(isNotSetUp = false, isLoading = true)
