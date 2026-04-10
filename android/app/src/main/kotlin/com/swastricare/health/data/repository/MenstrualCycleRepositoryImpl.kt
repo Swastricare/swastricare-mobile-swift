@@ -9,10 +9,13 @@ import com.swastricare.health.data.remote.dto.menstrualcycle.MenstrualDailyLogDt
 import com.swastricare.health.domain.model.menstrualcycle.*
 import com.swastricare.health.domain.repository.MenstrualCycleRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
@@ -25,6 +28,9 @@ import kotlin.math.sqrt
 
 private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
+@Serializable
+private data class HealthProfileIdRow(val id: String)
+
 /**
  * Implementation of MenstrualCycleRepository using Supabase and local storage.
  * Handles data persistence, synchronization, and business logic for cycle tracking.
@@ -35,19 +41,29 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     private val prefs: SharedPreferences
 ) : MenstrualCycleRepository {
 
-    private companion object {
-        const val KEY_PROFILE_ID = "current_health_profile_id"
-    }
-
-    private fun getProfileId(): String {
-        return prefs.getString(KEY_PROFILE_ID, "") ?: ""
-    }
-
     // Keys are user-scoped to prevent cross-account data leakage on shared devices.
     // The legacy un-scoped keys are intentionally NOT read.
     private fun cyclesKey(profileId: String) = "menstrual_cycles_$profileId"
     private fun logsKey(profileId: String) = "menstrual_daily_logs_$profileId"
     private fun settingsKey(profileId: String) = "menstrual_settings_$profileId"
+
+    @Volatile private var cachedProfileId: String? = null
+
+    private suspend fun getProfileId(): String {
+        cachedProfileId?.let { return it }
+        return try {
+            val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return ""
+            val id = supabaseClient.from("health_profiles")
+                .select { filter { eq("user_id", userId) } }
+                .decodeSingleOrNull<HealthProfileIdRow>()?.id ?: ""
+            if (id.isNotEmpty()) cachedProfileId = id
+            id
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    fun clearProfileIdCache() { cachedProfileId = null }
 
     // ── Cycle Management ──
 
@@ -569,7 +585,7 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
 
     // ── Local Storage Helpers ──
 
-    private fun loadLocalCycles(): List<CycleRecord> {
+    private suspend fun loadLocalCycles(): List<CycleRecord> {
         val profileId = getProfileId()
         if (profileId.isEmpty()) return emptyList()
         return try {
@@ -580,14 +596,14 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun saveLocalCycles(cycles: List<CycleRecord>) {
+    private suspend fun saveLocalCycles(cycles: List<CycleRecord>) {
         val profileId = getProfileId()
         if (profileId.isEmpty()) return
         val dtos = cycles.map { it.toDto(profileId) }
         prefs.edit().putString(cyclesKey(profileId), json.encodeToString(dtos)).apply()
     }
 
-    private fun loadLocalLogs(): List<DailyLog> {
+    private suspend fun loadLocalLogs(): List<DailyLog> {
         val profileId = getProfileId()
         if (profileId.isEmpty()) return emptyList()
         return try {
@@ -598,14 +614,14 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun saveLocalLogs(logs: List<DailyLog>) {
+    private suspend fun saveLocalLogs(logs: List<DailyLog>) {
         val profileId = getProfileId()
         if (profileId.isEmpty()) return
         val dtos = logs.map { it.toDto(profileId) }
         prefs.edit().putString(logsKey(profileId), json.encodeToString(dtos)).apply()
     }
 
-    private fun loadLocalSettings(): CycleSettings {
+    private suspend fun loadLocalSettings(): CycleSettings {
         val profileId = getProfileId()
         if (profileId.isEmpty()) return CycleSettings()
         return try {
@@ -616,7 +632,7 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun saveLocalSettings(settings: CycleSettings) {
+    private suspend fun saveLocalSettings(settings: CycleSettings) {
         val profileId = getProfileId()
         if (profileId.isEmpty()) return
         val dto = settings.toDto(profileId)
