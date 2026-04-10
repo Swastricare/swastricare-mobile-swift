@@ -13,6 +13,8 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -47,19 +49,23 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     private fun logsKey(profileId: String) = "menstrual_daily_logs_$profileId"
     private fun settingsKey(profileId: String) = "menstrual_settings_$profileId"
 
-    @Volatile private var cachedProfileId: String? = null
+    private val profileIdMutex = Mutex()
+    private var cachedProfileId: String? = null
 
     private suspend fun getProfileId(): String {
         cachedProfileId?.let { return it }
-        return try {
-            val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return ""
-            val id = supabaseClient.from("health_profiles")
-                .select { filter { eq("user_id", userId) } }
-                .decodeSingleOrNull<HealthProfileIdRow>()?.id ?: ""
-            if (id.isNotEmpty()) cachedProfileId = id
-            id
-        } catch (_: Exception) {
-            ""
+        return profileIdMutex.withLock {
+            cachedProfileId?.let { return@withLock it }
+            try {
+                val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return@withLock ""
+                val id = supabaseClient.from("health_profiles")
+                    .select { filter { eq("user_id", userId) } }
+                    .decodeSingleOrNull<HealthProfileIdRow>()?.id ?: ""
+                if (id.isNotEmpty()) cachedProfileId = id
+                id
+            } catch (_: Exception) {
+                ""
+            }
         }
     }
 
