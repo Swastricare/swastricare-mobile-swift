@@ -71,6 +71,27 @@ class HealthConnectService(
 
     // ── Data Models ──
 
+    /**
+     * Detailed sleep session including stage breakdown.
+     */
+    data class SleepSessionDetail(
+        val startTimeMillis: Long,
+        val endTimeMillis: Long,
+        val totalMinutes: Int,
+        val stages: List<SleepStageDetail>,
+        val nightDate: LocalDate
+    )
+
+    /**
+     * A single sleep stage within a session.
+     */
+    data class SleepStageDetail(
+        val stageType: Int, // SleepSessionRecord.STAGE_TYPE_*
+        val startTimeMillis: Long,
+        val endTimeMillis: Long,
+        val durationMinutes: Int
+    )
+
     data class DailyHealthSummary(
         val steps: Int = 0,
         val heartRate: Int = 0,
@@ -691,6 +712,145 @@ class HealthConnectService(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to read VO2Max: ${e.message}")
             null
+        }
+    }
+
+    // ── READ: Sleep Session Detail (with stage breakdown) ──
+
+    /**
+     * Reads last night's sleep session with full stage breakdown.
+     * Uses the same 6pm cutoff as getTodaySleep().
+     */
+    suspend fun getSleepSessionDetail(): SleepSessionDetail? = withContext(Dispatchers.IO) {
+        val hc = client ?: return@withContext null
+        val now = Instant.now()
+        val yesterday6pm = LocalDate.now().minusDays(1).atTime(18, 0)
+            .atZone(ZoneId.systemDefault()).toInstant()
+        val filter = TimeRangeFilter.between(yesterday6pm, now)
+
+        try {
+            val records = hc.readRecords(ReadRecordsRequest(SleepSessionRecord::class, filter))
+            if (records.records.isEmpty()) return@withContext null
+
+            // Merge all sessions for last night
+            val allStages = mutableListOf<SleepStageDetail>()
+            var earliestStart = Long.MAX_VALUE
+            var latestEnd = Long.MIN_VALUE
+            var totalMin = 0
+
+            for (record in records.records) {
+                val startMs = record.startTime.toEpochMilli()
+                val endMs = record.endTime.toEpochMilli()
+                if (startMs < earliestStart) earliestStart = startMs
+                if (endMs > latestEnd) latestEnd = endMs
+                totalMin += ChronoUnit.MINUTES.between(record.startTime, record.endTime).toInt()
+
+                for (stage in record.stages) {
+                    val stageStartMs = stage.startTime.toEpochMilli()
+                    val stageEndMs = stage.endTime.toEpochMilli()
+                    val stageDuration = ChronoUnit.MINUTES.between(stage.startTime, stage.endTime).toInt()
+                    allStages.add(
+                        SleepStageDetail(
+                            stageType = stage.stage,
+                            startTimeMillis = stageStartMs,
+                            endTimeMillis = stageEndMs,
+                            durationMinutes = stageDuration
+                        )
+                    )
+                }
+            }
+
+            val nightDate = LocalDate.now()
+
+            SleepSessionDetail(
+                startTimeMillis = earliestStart,
+                endTimeMillis = latestEnd,
+                totalMinutes = totalMin,
+                stages = allStages.sortedBy { it.startTimeMillis },
+                nightDate = nightDate
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "getSleepSessionDetail failed: ${e.message}")
+            crashlyticsService.recordException(e)
+            null
+        }
+    }
+
+    /**
+     * Reads N days of sleep history with stage breakdown.
+     * Groups sessions by sleep night using 6pm cutoff.
+     */
+    suspend fun getSleepHistory(days: Int): List<SleepSessionDetail> = withContext(Dispatchers.IO) {
+        val hc = client ?: return@withContext emptyList()
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val startDate = today.minusDays(days.toLong())
+        val start6pm = startDate.minusDays(1).atTime(18, 0).atZone(zone).toInstant()
+        val now = Instant.now()
+        val filter = TimeRangeFilter.between(start6pm, now)
+
+        try {
+            val records = hc.readRecords(ReadRecordsRequest(SleepSessionRecord::class, filter))
+            if (records.records.isEmpty()) return@withContext emptyList()
+
+            // Group sessions by night date (the date you wake up on).
+            // Sessions starting before 6pm belong to the current date's night;
+            // sessions starting at/after 6pm belong to the next date's night.
+            data class NightKey(val date: LocalDate)
+
+            val nightSessions = mutableMapOf<NightKey, MutableList<SleepSessionRecord>>()
+
+            for (record in records.records) {
+                val startLocal = record.startTime.atZone(zone).toLocalDateTime()
+                val nightDate = if (startLocal.hour < 18) {
+                    startLocal.toLocalDate()
+                } else {
+                    startLocal.toLocalDate().plusDays(1)
+                }
+                val key = NightKey(nightDate)
+                nightSessions.getOrPut(key) { mutableListOf() }.add(record)
+            }
+
+            nightSessions.map { (key, sessionRecords) ->
+                val allStages = mutableListOf<SleepStageDetail>()
+                var earliestStart = Long.MAX_VALUE
+                var latestEnd = Long.MIN_VALUE
+                var totalMin = 0
+
+                for (record in sessionRecords) {
+                    val startMs = record.startTime.toEpochMilli()
+                    val endMs = record.endTime.toEpochMilli()
+                    if (startMs < earliestStart) earliestStart = startMs
+                    if (endMs > latestEnd) latestEnd = endMs
+                    totalMin += ChronoUnit.MINUTES.between(record.startTime, record.endTime).toInt()
+
+                    for (stage in record.stages) {
+                        val stageStartMs = stage.startTime.toEpochMilli()
+                        val stageEndMs = stage.endTime.toEpochMilli()
+                        val stageDuration = ChronoUnit.MINUTES.between(stage.startTime, stage.endTime).toInt()
+                        allStages.add(
+                            SleepStageDetail(
+                                stageType = stage.stage,
+                                startTimeMillis = stageStartMs,
+                                endTimeMillis = stageEndMs,
+                                durationMinutes = stageDuration
+                            )
+                        )
+                    }
+                }
+
+                SleepSessionDetail(
+                    startTimeMillis = earliestStart,
+                    endTimeMillis = latestEnd,
+                    totalMinutes = totalMin,
+                    stages = allStages.sortedBy { it.startTimeMillis },
+                    nightDate = key.date
+                )
+            }.sortedByDescending { it.nightDate }
+        } catch (e: Exception) {
+            Log.w(TAG, "getSleepHistory failed: ${e.message}")
+            crashlyticsService.recordException(e)
+            emptyList()
         }
     }
 
