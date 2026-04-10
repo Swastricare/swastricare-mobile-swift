@@ -32,7 +32,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -959,8 +964,6 @@ private fun StatItem(label: String, value: String, color: Color) {
 private fun CycleOnboardingContent(
     onLogPeriod: () -> Unit
 ) {
-    val today = LocalDate.now()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -972,10 +975,10 @@ private fun CycleOnboardingContent(
         Spacer(modifier = Modifier.height(48.dp))
 
         // Illustration
-        val context = androidx.compose.ui.platform.LocalContext.current
-        androidx.compose.foundation.Image(
-            painter = coil.compose.rememberAsyncImagePainter(
-                coil.request.ImageRequest.Builder(context)
+        val context = LocalContext.current
+        Image(
+            painter = rememberAsyncImagePainter(
+                ImageRequest.Builder(context)
                     .data("file:///android_asset/illustrations/cycle illustration.png")
                     .build()
             ),
@@ -984,7 +987,7 @@ private fun CycleOnboardingContent(
                 .fillMaxWidth()
                 .height(220.dp)
                 .clip(RoundedCornerShape(20.dp)),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            contentScale = ContentScale.Crop
         )
 
         Spacer(modifier = Modifier.height(24.dp))
