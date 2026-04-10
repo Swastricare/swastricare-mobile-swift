@@ -12,9 +12,9 @@ data class MenstrualCycleDto(
     val id: String,
     @SerialName("health_profile_id")
     val healthProfileId: String,
-    @SerialName("start_date")
+    @SerialName("period_start")
     val startDate: String, // yyyy-MM-dd
-    @SerialName("end_date")
+    @SerialName("period_end")
     val endDate: String? = null, // yyyy-MM-dd
     @SerialName("cycle_length")
     val cycleLength: Int? = null,

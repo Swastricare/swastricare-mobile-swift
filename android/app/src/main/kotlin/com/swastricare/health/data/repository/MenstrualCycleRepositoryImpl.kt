@@ -219,9 +219,32 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
             val logId = UUID.randomUUID().toString()
 
             // Determine cycle ID (find active cycle or create one)
-            val cycles = loadLocalCycles()
+            val cycles = loadLocalCycles().toMutableList()
             val activeCycle = cycles.firstOrNull { it.isActive }
-            val cycleId = activeCycle?.id ?: UUID.randomUUID().toString()
+            val cycleId: String
+            if (activeCycle != null) {
+                cycleId = activeCycle.id
+            } else {
+                // Auto-create a cycle for this date so the log isn't orphaned
+                cycleId = UUID.randomUUID().toString()
+                val newCycle = CycleRecord(
+                    id = cycleId,
+                    userId = profileId,
+                    startDate = date,
+                    endDate = null,
+                    cycleLength = null,
+                    periodLength = null,
+                    notes = null
+                )
+                cycles.add(newCycle)
+                saveLocalCycles(cycles)
+
+                // Save to cloud
+                if (profileId.isNotEmpty()) {
+                    val cycleDto = newCycle.toDto(profileId)
+                    supabaseClient.from("menstrual_cycles").insert(cycleDto)
+                }
+            }
 
             val log = DailyLog(
                 id = logId,

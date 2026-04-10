@@ -66,6 +66,7 @@ class SwastriCareApplication : Application(), Configuration.Provider {
             // Enqueue WorkManager periodic jobs
             com.swastricare.health.data.workers.AiNudgeWorker.enqueue(this@SwastriCareApplication)
             com.swastricare.health.data.workers.ActivityReminderWorker.enqueue(this@SwastriCareApplication)
+            com.swastricare.health.data.workers.CycleSyncWorker.enqueuePeriodicSync(this@SwastriCareApplication)
 
             // Start custom Supabase analytics service (triggers Supabase client initialization)
             try {

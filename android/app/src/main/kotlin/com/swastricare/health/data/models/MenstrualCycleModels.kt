@@ -80,8 +80,8 @@ enum class MenstrualMood(val dbValue: String, val displayName: String, val emoji
 data class MenstrualCycleDto(
     val id: String = UUID.randomUUID().toString(),
     @SerialName("health_profile_id") val healthProfileId: String = "",
-    @SerialName("start_date") val startDate: String = "", // yyyy-MM-dd
-    @SerialName("end_date") val endDate: String? = null,
+    @SerialName("period_start") val startDate: String = "", // yyyy-MM-dd
+    @SerialName("period_end") val endDate: String? = null,
     @SerialName("cycle_length") val cycleLength: Int? = null,
     @SerialName("period_length") val periodLength: Int? = null,
     val notes: String? = null,

@@ -114,6 +114,11 @@ fun MenstrualCycleScreen(
                 ) {
                     CircularProgressIndicator(color = CyclePink)
                 }
+            } else if (uiState.isNotSetUp) {
+                // ── Empty / Onboarding State ──
+                CycleOnboardingContent(
+                    onStartPeriod = { date -> viewModel.startPeriod(date) }
+                )
             } else {
                 Column(
                     modifier = Modifier
@@ -161,6 +166,21 @@ fun MenstrualCycleScreen(
                     }
 
                     Spacer(modifier = Modifier.height(120.dp))
+                }
+            }
+
+            // Error snackbar
+            uiState.error?.let { errorMsg ->
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    action = {
+                        TextButton(onClick = { viewModel.dismissError() }) {
+                            Text("Dismiss", color = Color.White)
+                        }
+                    },
+                    containerColor = Color(0xFFB71C1C)
+                ) {
+                    Text(errorMsg, color = Color.White)
                 }
             }
         }
@@ -904,6 +924,218 @@ private fun StatItem(label: String, value: String, color: Color) {
             color = color,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Onboarding Empty State
+// ─────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CycleOnboardingContent(
+    onStartPeriod: (LocalDate) -> Unit
+) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    val today = LocalDate.now()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Icon
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            CyclePink.copy(alpha = 0.2f),
+                            CyclePurple.copy(alpha = 0.1f),
+                            Color.Transparent
+                        )
+                    ),
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "\uD83C\uDF38", // cherry blossom
+                fontSize = 48.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Track Your Cycle",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Log your period to get predictions for your next cycle, fertile window, and ovulation day.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            lineHeight = 22.sp
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Features list
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glass(cornerRadius = 20.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OnboardingFeatureRow(
+                icon = "\uD83D\uDCC5",
+                title = "Period Tracking",
+                description = "Log start and end dates of your period"
+            )
+            OnboardingFeatureRow(
+                icon = "\uD83D\uDD2E",
+                title = "Cycle Predictions",
+                description = "Get accurate predictions for your next period"
+            )
+            OnboardingFeatureRow(
+                icon = "\uD83E\uDD5A",
+                title = "Fertility Window",
+                description = "Know your most fertile days and ovulation"
+            )
+            OnboardingFeatureRow(
+                icon = "\uD83D\uDCC8",
+                title = "Cycle Insights",
+                description = "Track patterns with statistics and charts"
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Log Period Button
+        Button(
+            onClick = { showDatePicker = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CyclePink
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Log Your Period",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "You can always edit this later",
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
+    }
+
+    // Date Picker Dialog
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = System.currentTimeMillis()
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val date = java.time.Instant.ofEpochMilli(millis)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .toLocalDate()
+                            onStartPeriod(date)
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("Confirm", color = CyclePink)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    selectedDayContainerColor = CyclePink,
+                    todayDateBorderColor = CyclePink
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun OnboardingFeatureRow(
+    icon: String,
+    title: String,
+    description: String
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    CyclePink.copy(alpha = 0.1f),
+                    RoundedCornerShape(12.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = icon, fontSize = 20.sp)
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = AppColors.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.onSurface.copy(alpha = 0.7f)
+            )
+        }
     }
 }
 
