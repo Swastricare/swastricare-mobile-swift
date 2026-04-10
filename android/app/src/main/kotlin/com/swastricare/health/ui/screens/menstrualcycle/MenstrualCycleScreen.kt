@@ -71,6 +71,7 @@ fun MenstrualCycleScreen(
 
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showStatisticsSheet by remember { mutableStateOf(false) }
+    var showLogPeriodSheet by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -116,9 +117,7 @@ fun MenstrualCycleScreen(
                 }
             } else if (uiState.isNotSetUp) {
                 // ── Empty / Onboarding State ──
-                CycleOnboardingContent(
-                    onStartPeriod = { date -> viewModel.startPeriod(date) }
-                )
+                CycleOnboardingContent(onLogPeriod = { showLogPeriodSheet = true })
             } else {
                 Column(
                     modifier = Modifier
@@ -184,6 +183,21 @@ fun MenstrualCycleScreen(
                 }
             }
         }
+
+        // FAB — shown only when cycle is set up
+        if (!uiState.isLoading && !uiState.isNotSetUp) {
+            FloatingActionButton(
+                onClick = { showLogPeriodSheet = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 24.dp, bottom = 100.dp),
+                containerColor = CyclePink,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Log period")
+            }
+        }
     }
 
     // ── Bottom Sheets ──
@@ -208,6 +222,15 @@ fun MenstrualCycleScreen(
                 formatDate = { viewModel.formatDate(it) }
             )
         }
+    }
+
+    if (showLogPeriodSheet) {
+        LogPeriodSheet(
+            onDismiss = { showLogPeriodSheet = false },
+            onConfirm = { date, flow, symptoms, mood, painLevel, notes ->
+                viewModel.logPeriodWithDetails(date, flow, symptoms, mood, painLevel, notes)
+            }
+        )
     }
 }
 
@@ -444,7 +467,7 @@ private fun CycleCalendar(
             }
             Text(
                 text = "${selectedMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${selectedMonth.year}",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
             IconButton(onClick = { onMonthChange(1) }) {
@@ -934,9 +957,8 @@ private fun StatItem(label: String, value: String, color: Color) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CycleOnboardingContent(
-    onStartPeriod: (LocalDate) -> Unit
+    onLogPeriod: () -> Unit
 ) {
-    var showDatePicker by remember { mutableStateOf(false) }
     val today = LocalDate.now()
 
     Column(
@@ -949,27 +971,21 @@ private fun CycleOnboardingContent(
     ) {
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Icon
-        Box(
+        // Illustration
+        val context = androidx.compose.ui.platform.LocalContext.current
+        androidx.compose.foundation.Image(
+            painter = coil.compose.rememberAsyncImagePainter(
+                coil.request.ImageRequest.Builder(context)
+                    .data("file:///android_asset/illustrations/cycle illustration.png")
+                    .build()
+            ),
+            contentDescription = null,
             modifier = Modifier
-                .size(100.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            CyclePink.copy(alpha = 0.2f),
-                            CyclePurple.copy(alpha = 0.1f),
-                            Color.Transparent
-                        )
-                    ),
-                    CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "\uD83C\uDF38", // cherry blossom
-                fontSize = 48.sp
-            )
-        }
+                .fillMaxWidth()
+                .height(220.dp)
+                .clip(RoundedCornerShape(20.dp)),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -1026,7 +1042,7 @@ private fun CycleOnboardingContent(
 
         // Log Period Button
         Button(
-            onClick = { showDatePicker = true },
+            onClick = { onLogPeriod() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -1059,44 +1075,6 @@ private fun CycleOnboardingContent(
         Spacer(modifier = Modifier.height(48.dp))
     }
 
-    // Date Picker Dialog
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = System.currentTimeMillis()
-        )
-
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val date = java.time.Instant.ofEpochMilli(millis)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .toLocalDate()
-                            onStartPeriod(date)
-                        }
-                        showDatePicker = false
-                    }
-                ) {
-                    Text("Confirm", color = CyclePink)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DatePicker(
-                state = datePickerState,
-                colors = DatePickerDefaults.colors(
-                    selectedDayContainerColor = CyclePink,
-                    todayDateBorderColor = CyclePink
-                )
-            )
-        }
-    }
 }
 
 @Composable
