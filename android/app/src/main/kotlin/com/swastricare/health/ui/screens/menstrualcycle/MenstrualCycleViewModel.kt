@@ -342,15 +342,50 @@ class MenstrualCycleViewModel @Inject constructor(
             when (cycleRepository.startCycle(date)) {
                 is ResultWrapper.Success -> {
                     analyticsService.trackCycleLogged("start")
+                    // Optimistically clear empty state so calendar shows immediately
+                    _uiState.value = _uiState.value.copy(isNotSetUp = false, isLoading = true)
                     loadData()
                 }
                 is ResultWrapper.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        error = "Failed to start period"
-                    )
+                    _uiState.value = _uiState.value.copy(error = "Failed to start period")
                 }
                 is ResultWrapper.Loading -> { /* no-op */ }
             }
+        }
+    }
+
+    fun logPeriodWithDetails(
+        startDate: LocalDate,
+        flowLevel: com.swastricare.health.domain.model.menstrualcycle.FlowLevel,
+        symptoms: List<com.swastricare.health.domain.model.menstrualcycle.Symptom>,
+        mood: com.swastricare.health.domain.model.menstrualcycle.Mood?,
+        painLevel: Int,
+        notes: String?
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            // 1. Start the cycle
+            val cycleResult = cycleRepository.startCycle(startDate, notes)
+            if (cycleResult is ResultWrapper.Error) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to log period"
+                )
+                return@launch
+            }
+            // 2. Log daily data for the start date
+            cycleRepository.logDailyData(
+                date = startDate,
+                flowLevel = flowLevel,
+                symptoms = symptoms,
+                mood = mood,
+                notes = notes,
+                painLevel = painLevel
+            )
+            analyticsService.trackCycleLogged("full_log")
+            // 3. Optimistic clear + reload
+            _uiState.value = _uiState.value.copy(isNotSetUp = false, isLoading = true)
+            loadData()
         }
     }
 
