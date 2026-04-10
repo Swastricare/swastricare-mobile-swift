@@ -98,15 +98,29 @@ class HeartRateViewModel @Inject constructor(
     }
 
     private fun loadLastReading() {
-        val readings = getReadings()
-        val lastReading = readings.lastOrNull()
-        if (lastReading != null) {
-            _uiState.update {
-                it.copy(
-                    lastBpm = lastReading.bpm,
-                    confidence = lastReading.confidence,
-                    source = lastReading.source
-                )
+        viewModelScope.launch {
+            val lastMeasurement = heartRateRepository.getLastMeasurement()
+            if (lastMeasurement != null) {
+                _uiState.update {
+                    it.copy(
+                        lastBpm = lastMeasurement.bpm,
+                        confidence = lastMeasurement.confidence,
+                        source = lastMeasurement.source.displayName
+                    )
+                }
+            } else {
+                // Fallback to legacy SharedPreferences
+                val readings = getReadings()
+                val lastReading = readings.lastOrNull()
+                if (lastReading != null) {
+                    _uiState.update {
+                        it.copy(
+                            lastBpm = lastReading.bpm,
+                            confidence = lastReading.confidence,
+                            source = lastReading.source
+                        )
+                    }
+                }
             }
         }
     }

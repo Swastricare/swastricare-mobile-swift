@@ -10,6 +10,8 @@ import com.swastricare.health.data.repository.HydrationRepositoryImpl
 import com.swastricare.health.data.repository.MedicationRepositoryImpl
 import com.swastricare.health.data.repository.MenstrualCycleRepositoryImpl
 import com.swastricare.health.data.repository.ProfileRepositoryImpl
+import com.swastricare.health.data.repository.SleepRepositoryImpl
+import com.swastricare.health.data.repository.StressRepositoryImpl
 import com.swastricare.health.data.repository.VaultRepositoryImpl
 import com.swastricare.health.data.repository.runactivity.RunActivityRepositoryImpl
 import com.swastricare.health.domain.repository.AIRepository
@@ -23,6 +25,8 @@ import com.swastricare.health.domain.repository.MedicationRepository
 import com.swastricare.health.domain.repository.MenstrualCycleRepository
 import com.swastricare.health.domain.repository.ProfileRepository
 import com.swastricare.health.domain.repository.RunActivityRepository
+import com.swastricare.health.domain.repository.SleepRepository
+import com.swastricare.health.domain.repository.StressRepository
 import com.swastricare.health.domain.repository.VaultRepository
 import dagger.Binds
 import dagger.Module
@@ -81,4 +85,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindMenstrualCycleRepository(impl: MenstrualCycleRepositoryImpl): MenstrualCycleRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSleepRepository(impl: SleepRepositoryImpl): SleepRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStressRepository(impl: StressRepositoryImpl): StressRepository
 }

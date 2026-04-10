@@ -43,6 +43,9 @@ import com.swastricare.health.ui.screens.settings.HealthAppId
 import com.swastricare.health.ui.screens.settings.HealthConnectSettingsScreen
 import com.swastricare.health.ui.screens.settings.HealthDataSyncScreen
 import com.swastricare.health.ui.screens.settings.SettingsScreen
+import com.swastricare.health.ui.screens.sleep.SleepScreen
+import com.swastricare.health.ui.screens.stress.StressAnalyticsScreen
+import com.swastricare.health.ui.screens.stress.StressScreen
 import com.swastricare.health.ui.screens.runactivity.LiveWorkoutViewModel
 
 /**
@@ -83,6 +86,8 @@ fun MainNavGraph(
                 onNavigateToHydration = { navController.navigate("hydration") },
                 onNavigateToCycleTracker = { navController.navigate("cycle_tracker") },
                 onNavigateToHeartRate = { navController.navigate("heart_rate") },
+                onNavigateToStress = { navController.navigate("stress") },
+                onNavigateToSleep = { navController.navigate("sleep") },
                 onNavigateToBodyScan = { navController.navigate("ar_body_scan") },
                 onNavigateToNotifications = { navController.navigate("notification_history") },
                 onNavigateToAnalytics = { navController.navigate("health_analytics") },
@@ -285,6 +290,27 @@ fun MainNavGraph(
 
         composable("heart_rate_analytics") {
             HeartRateAnalyticsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ─── Stress ───
+        composable("stress") {
+            StressScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAnalytics = { navController.navigate("stress_analytics") }
+            )
+        }
+
+        composable("stress_analytics") {
+            StressAnalyticsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ─── Sleep ───
+        composable("sleep") {
+            SleepScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

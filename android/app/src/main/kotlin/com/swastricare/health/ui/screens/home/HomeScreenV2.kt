@@ -62,6 +62,8 @@ fun HomeScreenV2(
     onNavigateToHydration: () -> Unit = {},
     onNavigateToCycleTracker: () -> Unit = {},
     onNavigateToHeartRate: () -> Unit = {},
+    onNavigateToStress: () -> Unit = {},
+    onNavigateToSleep: () -> Unit = {},
     onNavigateToBodyScan: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
@@ -265,7 +267,9 @@ fun HomeScreenV2(
                         sleepHours = uiState.sleepHours,
                         heartRate = uiState.heartRate,
                         activeMinutes = uiState.activeMinutes,
-                        onNavigateToHeartRate = onNavigateToHeartRate
+                        onNavigateToHeartRate = onNavigateToHeartRate,
+                        onNavigateToStress = onNavigateToStress,
+                        onNavigateToSleep = onNavigateToSleep
                     )
                 }
 
@@ -1017,7 +1021,9 @@ private fun HealthVitalsSectionV2(
     sleepHours: String,
     heartRate: Int,
     activeMinutes: Int,
-    onNavigateToHeartRate: () -> Unit
+    onNavigateToHeartRate: () -> Unit,
+    onNavigateToStress: () -> Unit = {},
+    onNavigateToSleep: () -> Unit = {}
 ) {
     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
         Text(
@@ -1036,6 +1042,7 @@ private fun HealthVitalsSectionV2(
             // Sleep Card (Left, full height 172dp)
             SleepCardV2(
                 sleepHours = sleepHours,
+                onClick = onNavigateToSleep,
                 modifier = Modifier.weight(1f)
             )
 
@@ -1046,7 +1053,8 @@ private fun HealthVitalsSectionV2(
             ) {
                 StressLevelCardV2(
                     heartRate = heartRate,
-                    activeMinutes = activeMinutes
+                    activeMinutes = activeMinutes,
+                    onClick = onNavigateToStress
                 )
                 BPMCardV2(
                     heartRate = heartRate,
@@ -1060,6 +1068,7 @@ private fun HealthVitalsSectionV2(
 @Composable
 private fun SleepCardV2(
     sleepHours: String,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val parsedHours = remember(sleepHours) { parseSleepHoursV2(sleepHours) }
@@ -1082,6 +1091,7 @@ private fun SleepCardV2(
                     )
                 )
             )
+            .clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -1171,7 +1181,8 @@ private fun SleepWaveformV2(modifier: Modifier = Modifier) {
 @Composable
 private fun StressLevelCardV2(
     heartRate: Int,
-    activeMinutes: Int
+    activeMinutes: Int,
+    onClick: () -> Unit = {}
 ) {
     val stressLevel = remember(heartRate, activeMinutes) {
         val baseStress = 20
@@ -1194,6 +1205,7 @@ private fun StressLevelCardV2(
                     )
                 )
             )
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp)
     ) {
         Row(
