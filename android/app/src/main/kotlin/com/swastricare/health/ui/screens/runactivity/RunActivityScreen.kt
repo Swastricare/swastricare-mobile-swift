@@ -261,7 +261,106 @@ private fun HeroStatItem(
 }
 
 @Composable
-private fun WeeklyBarChart(activities: List<RunActivity>) {}
+private fun WeeklyBarChart(activities: List<RunActivity>) {
+    // Build per-day data for Mon–Sun of current week
+    val today = java.time.LocalDate.now()
+    val weekStart = today.minusDays((today.dayOfWeek.value - 1).toLong()) // Monday
+
+    data class DayData(val distanceKm: Double, val type: ActivityType?)
+
+    val dayMap: Map<Int, DayData> = (0..6).associateWith { offset ->
+        val date = weekStart.plusDays(offset.toLong())
+        val dayActivities = activities.filter {
+            it.startTime?.toLocalDate() == date
+        }
+        val totalDist = dayActivities.sumOf { it.distanceKm }
+        val dominant = dayActivities.maxByOrNull { it.distanceKm }?.activityType
+        DayData(totalDist, dominant)
+    }
+
+    val maxDist = dayMap.values.maxOfOrNull { it.distanceKm }?.coerceAtLeast(1.0) ?: 1.0
+    val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+    val todayOffset = today.dayOfWeek.value - 1 // 0=Mon..6=Sun
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.surfaceVariant)
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "THIS WEEK",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onSurfaceVariant,
+            letterSpacing = 1.5.sp
+        )
+        Spacer(Modifier.height(14.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            dayMap.entries.sortedBy { it.key }.forEach { (offset, data) ->
+                val barColor = when (data.type) {
+                    ActivityType.RUNNING -> RunningCyan
+                    ActivityType.WALKING -> WalkingGreen
+                    ActivityType.CYCLING -> CyclingYellow
+                    ActivityType.HIKING -> HikingPurple
+                    null -> AppColors.outlineVariant
+                }
+                val heightFraction = (data.distanceKm / maxDist).toFloat().coerceIn(0.06f, 1f)
+                val isToday = offset == todayOffset
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                ) {
+                    // Dot above today's bar
+                    if (isToday) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(SecondaryColor)
+                        )
+                        Spacer(Modifier.height(3.dp))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(14.dp)
+                            .fillMaxHeight(heightFraction)
+                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                            .background(
+                                if (isToday) barColor else barColor.copy(alpha = 0.45f)
+                            )
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            dayLabels.forEachIndexed { idx, label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (idx == todayOffset) AppColors.onSurface
+                            else AppColors.onSurfaceVariant.copy(alpha = 0.5f),
+                    fontWeight = if (idx == todayOffset) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun FitnessInsightChips(
