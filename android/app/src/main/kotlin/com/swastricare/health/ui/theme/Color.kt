@@ -39,6 +39,13 @@ val DistanceColor = Color(0xFF0A84FF)
 val CycleColor = Color(0xFFBF5AF2)
 val SystemBlue = Color(0xFF007AFF)
 
+// Activity-specific theme colors
+val RunningCyan = Color(0xFF00E5FF)
+val WalkingGreen = Color(0xFF38EF7D)
+val CyclingYellow = Color(0xFFFFD60A)
+val HikingPurple = Color(0xFFBF5AF2)
+val SwimmingTeal = Color(0xFF00BCD4)
+
 // Nutrition-specific Colors
 val NutritionProtein = Color(0xFFFF6B6B)
 val NutritionCarbs = Color(0xFF4ECDC4)

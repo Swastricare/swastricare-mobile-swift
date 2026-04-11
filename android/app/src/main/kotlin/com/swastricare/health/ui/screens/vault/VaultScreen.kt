@@ -9,37 +9,37 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import coil.compose.rememberAsyncImagePainter
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import com.swastricare.health.data.model.MedicalDocument
 import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.VaultCategory
-import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.components.TrackScreen
 
@@ -98,7 +98,6 @@ fun VaultScreen(
                     size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
                 }
             }
-            // Validate file size (fallback via file descriptor if cursor returned 0)
             val fileSize = if (size > 0) size else {
                 contentResolver.openFileDescriptor(it, "r")?.use { fd -> fd.statSize } ?: 0L
             }
@@ -126,7 +125,6 @@ fun VaultScreen(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         if (uris.size == 1) {
-            // Single file: use normal flow
             val uri = uris.first()
             val contentResolver = context.contentResolver
             var name = "unknown"
@@ -139,7 +137,6 @@ fun VaultScreen(
                     size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
                 }
             }
-            // Validate file size
             val fileSize = if (size > 0) size else {
                 contentResolver.openFileDescriptor(uri, "r")?.use { fd -> fd.statSize } ?: 0L
             }
@@ -160,7 +157,6 @@ fun VaultScreen(
             pendingFileUri = uri
             viewModel.setShowAddSheet(true)
         } else if (uris.size > 1) {
-            // Multiple files: batch upload flow with size validation
             var skippedCount = 0
             val batchItems = uris.mapNotNull { uri ->
                 try {
@@ -175,7 +171,6 @@ fun VaultScreen(
                             size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
                         }
                     }
-                    // Validate file size
                     val fileSize = if (size > 0) size else {
                         contentResolver.openFileDescriptor(uri, "r")?.use { fd -> fd.statSize } ?: 0L
                     }
@@ -211,10 +206,9 @@ fun VaultScreen(
         }
     }
 
-    // Internal document viewer state (when no external navigation is provided)
+    // Internal document viewer state
     var viewingDocument by remember { mutableStateOf<MedicalDocument?>(null) }
 
-    // Show full-screen viewer if viewing a document internally
     if (viewingDocument != null && onNavigateToViewer == null) {
         DocumentViewerScreen(
             document = viewingDocument!!,
@@ -238,179 +232,268 @@ fun VaultScreen(
                 }
             )
         } else {
-            // Main Vault Content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
+            // Main Vault Content — LazyColumn like Settings
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 160.dp)
             ) {
-                TopAppBar(
-                    title = {
+                // ── Header ──
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            text = "Medical Vault",
+                            "Medical Vault",
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.onBackground
                         )
-                    },
-                    navigationIcon = {
-                        if (onBack != null) {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                            }
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                val newMode = when (uiState.viewMode) {
-                                    VaultViewMode.List -> VaultViewMode.Folders
-                                    VaultViewMode.Folders -> VaultViewMode.Timeline
-                                    VaultViewMode.Timeline -> VaultViewMode.List
-                                }
-                                viewModel.setViewMode(newMode)
-                            }
+                        Text(
+                            "${uiState.documents.size} documents",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AppColors.onBackground.copy(alpha = 0.5f)
+                        )
+
+                        // View mode + selection mode controls
+                        Row(
+                            modifier = Modifier.padding(top = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(
-                                imageVector = when (uiState.viewMode) {
-                                    VaultViewMode.List -> Icons.Default.List
-                                    VaultViewMode.Folders -> Icons.Default.Folder
-                                    VaultViewMode.Timeline -> Icons.Default.CalendarToday
+                            FilterChip(
+                                selected = false,
+                                onClick = {
+                                    val newMode = when (uiState.viewMode) {
+                                        VaultViewMode.List -> VaultViewMode.Folders
+                                        VaultViewMode.Folders -> VaultViewMode.Timeline
+                                        VaultViewMode.Timeline -> VaultViewMode.List
+                                    }
+                                    viewModel.setViewMode(newMode)
                                 },
-                                contentDescription = "View Mode"
+                                label = {
+                                    Text(
+                                        when (uiState.viewMode) {
+                                            VaultViewMode.List -> "List"
+                                            VaultViewMode.Folders -> "Folders"
+                                            VaultViewMode.Timeline -> "Timeline"
+                                        },
+                                        fontSize = 13.sp
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = when (uiState.viewMode) {
+                                            VaultViewMode.List -> Icons.AutoMirrored.Outlined.List
+                                            VaultViewMode.Folders -> Icons.Outlined.Folder
+                                            VaultViewMode.Timeline -> Icons.Outlined.CalendarToday
+                                        },
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                            FilterChip(
+                                selected = uiState.isSelectionMode,
+                                onClick = viewModel::toggleSelectionMode,
+                                label = { Text("Select", fontSize = 13.sp) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (uiState.isSelectionMode) Icons.Default.Close else Icons.Outlined.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             )
                         }
-                        IconButton(onClick = viewModel::toggleSelectionMode) {
-                            Icon(
-                                imageVector = if (uiState.isSelectionMode) Icons.Default.Close else Icons.Default.CheckCircle,
-                                contentDescription = "Select"
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
-                    ),
-                    windowInsets = WindowInsets(0, 0, 0, 0)
-                )
-
-                // Search Bar
-                TextField(
-                    value = uiState.searchQuery,
-                    onValueChange = viewModel::setSearchQuery,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .height(56.dp),
-                    placeholder = { Text("Search documents...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = { focusManager.clearFocus() }
-                    ),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = AppColors.surfaceVariant,
-                        unfocusedContainerColor = AppColors.surfaceVariant,
-                        disabledContainerColor = AppColors.surfaceVariant,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
-                        focusedTextColor = AppColors.onSurface,
-                        unfocusedTextColor = AppColors.onSurface,
-                        focusedLeadingIconColor = AppColors.onSurfaceVariant,
-                        unfocusedLeadingIconColor = AppColors.onSurfaceVariant,
-                        focusedPlaceholderColor = AppColors.onSurfaceVariant,
-                        unfocusedPlaceholderColor = AppColors.onSurfaceVariant
-                    )
-                )
-
-                // Category Filters
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    item {
-                        FilterPill(
-                            title = "All",
-                            count = uiState.documents.size,
-                            isSelected = uiState.selectedCategory == null,
-                            colorHex = 0xFF2E3192,
-                            onClick = { viewModel.setCategory(null) }
-                        )
                     }
-                    items(VaultCategory.values()) { category ->
-                        val count = uiState.documents.count { it.category.equals(category.title, ignoreCase = true) }
-                        FilterPill(
-                            title = category.title,
-                            count = count,
-                            isSelected = uiState.selectedCategory == category,
-                            colorHex = category.colorHex,
-                            onClick = { viewModel.setCategory(category) }
+                }
+
+                // ── Search ──
+                item { VaultSectionHeader("Search") }
+                item {
+                    VaultSectionCard {
+                        TextField(
+                            value = uiState.searchQuery,
+                            onValueChange = viewModel::setSearchQuery,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Search documents...") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = { focusManager.clearFocus() }
+                            ),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                                focusedTextColor = AppColors.onSurface,
+                                unfocusedTextColor = AppColors.onSurface,
+                                focusedLeadingIconColor = AppColors.onSurfaceVariant,
+                                unfocusedLeadingIconColor = AppColors.onSurfaceVariant,
+                                focusedPlaceholderColor = AppColors.onSurfaceVariant,
+                                unfocusedPlaceholderColor = AppColors.onSurfaceVariant
+                            )
                         )
                     }
                 }
 
-                // Selection Bar
+                // ── Categories ──
+                item { VaultSectionHeader("Categories") }
+                item {
+                    VaultSectionCard {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            item {
+                                FilterPill(
+                                    title = "All",
+                                    count = uiState.documents.size,
+                                    isSelected = uiState.selectedCategory == null,
+                                    colorHex = 0xFF2E3192,
+                                    onClick = { viewModel.setCategory(null) }
+                                )
+                            }
+                            items(VaultCategory.values()) { category ->
+                                val count = uiState.documents.count { it.category.equals(category.title, ignoreCase = true) }
+                                FilterPill(
+                                    title = category.title,
+                                    count = count,
+                                    isSelected = uiState.selectedCategory == category,
+                                    colorHex = category.colorHex,
+                                    onClick = { viewModel.setCategory(category) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // ── Selection Bar ──
                 if (uiState.isSelectionMode) {
-                    SelectionBar(
-                        selectedCount = uiState.selectedDocuments.size,
-                        onSelectAll = viewModel::selectAllDocuments,
-                        onDelete = viewModel::deleteSelectedDocuments
-                    )
+                    item {
+                        SelectionBar(
+                            selectedCount = uiState.selectedDocuments.size,
+                            onSelectAll = viewModel::selectAllDocuments,
+                            onDelete = viewModel::deleteSelectedDocuments
+                        )
+                    }
                 }
 
-                // Upload Progress
+                // ── Upload Progress ──
                 if (uiState.isUploading) {
-                    LinearProgressIndicator(
-                        progress = { uiState.uploadProgress },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    item {
+                        LinearProgressIndicator(
+                            progress = { uiState.uploadProgress },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
                 }
 
-                // Error Message
+                // ── Error Message ──
                 uiState.errorMessage?.let { error ->
-                    Text(
-                        text = error,
-                        color = AppColors.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                    item {
+                        Text(
+                            text = error,
+                            color = AppColors.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
-                // Content
-                Box(modifier = Modifier.weight(1f).padding(bottom = 88.dp)) {
-                    if (uiState.isLoading && uiState.documents.isEmpty()) {
-                        ShimmerDocumentList()
-                    } else if (viewModel.filteredDocuments.isEmpty()) {
+                // ── Documents ──
+                if (uiState.isLoading && uiState.documents.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillParentMaxHeight(0.5f)) {
+                            ShimmerDocumentList()
+                        }
+                    }
+                } else if (viewModel.filteredDocuments.isEmpty()) {
+                    item {
                         EmptyState()
-                    } else {
-                        when (uiState.viewMode) {
-                            VaultViewMode.List -> DocumentListView(
-                                documents = viewModel.filteredDocuments,
-                                isSelectionMode = uiState.isSelectionMode,
-                                selectedDocuments = uiState.selectedDocuments,
-                                onDocumentTap = {
-                                    if (uiState.isSelectionMode) {
-                                        viewModel.toggleDocumentSelection(it.id ?: "")
-                                    } else {
-                                        viewModel.selectDocumentForDetail(it)
+                    }
+                } else {
+                    when (uiState.viewMode) {
+                        VaultViewMode.List -> {
+                            item { VaultSectionHeader("Documents") }
+                            item {
+                                VaultSectionCard {
+                                    val docs = viewModel.filteredDocuments
+                                    docs.forEachIndexed { index, document ->
+                                        DocumentRow(
+                                            document = document,
+                                            isSelectionMode = uiState.isSelectionMode,
+                                            isSelected = uiState.selectedDocuments.contains(document.id),
+                                            onTap = {
+                                                if (uiState.isSelectionMode) {
+                                                    viewModel.toggleDocumentSelection(document.id ?: "")
+                                                } else {
+                                                    viewModel.selectDocumentForDetail(document)
+                                                }
+                                            },
+                                            onViewClick = { doc ->
+                                                viewModel.openDocumentViewer(doc) { resolvedDoc ->
+                                                    if (onNavigateToViewer != null) onNavigateToViewer(resolvedDoc)
+                                                    else viewingDocument = resolvedDoc
+                                                }
+                                            },
+                                            onEditClick = { viewModel.selectDocumentForDetail(it) },
+                                            onDeleteClick = { it.id?.let { id -> viewModel.deleteDocument(id) } }
+                                        )
+                                        if (index < docs.size - 1) {
+                                            VaultCleanDivider()
+                                        }
                                     }
-                                },
-                                onViewClick = { doc ->
-                                    viewModel.openDocumentViewer(doc) { resolvedDoc ->
-                                        if (onNavigateToViewer != null) onNavigateToViewer(resolvedDoc)
-                                        else viewingDocument = resolvedDoc
+                                }
+                            }
+                        }
+                        VaultViewMode.Folders -> {
+                            item { VaultSectionHeader("Folders") }
+                            item {
+                                VaultSectionCard {
+                                    val folders = viewModel.groupedDocuments.keys.toList()
+                                    folders.forEachIndexed { index, folderName ->
+                                        val docs = viewModel.groupedDocuments[folderName] ?: emptyList()
+                                        FolderRow(
+                                            folderName = folderName,
+                                            count = docs.size,
+                                            onClick = { viewModel.openFolder(folderName) }
+                                        )
+                                        if (index < folders.size - 1) {
+                                            VaultCleanDivider()
+                                        }
                                     }
-                                },
-                                onEditClick = { viewModel.selectDocumentForDetail(it) },
-                                onDeleteClick = { it.id?.let { id -> viewModel.deleteDocument(id) } }
-                            )
-                            VaultViewMode.Folders -> FoldersGridView(
-                                groupedDocuments = viewModel.groupedDocuments,
-                                onFolderClick = { viewModel.openFolder(it) }
-                            )
-                            VaultViewMode.Timeline -> TimelineView(
-                                documents = viewModel.filteredDocuments,
-                                onDocumentTap = { viewModel.selectDocumentForDetail(it) }
-                            )
+                                }
+                            }
+                        }
+                        VaultViewMode.Timeline -> {
+                            val grouped = viewModel.filteredDocuments.groupBy {
+                                it.documentDate?.substringBefore("T") ?: "Unknown Date"
+                            }
+                            grouped.forEach { (date, docs) ->
+                                item { VaultSectionHeader(date) }
+                                item {
+                                    VaultSectionCard {
+                                        docs.forEachIndexed { index, document ->
+                                            DocumentRow(
+                                                document = document,
+                                                isSelectionMode = false,
+                                                isSelected = false,
+                                                onTap = { viewModel.selectDocumentForDetail(document) },
+                                                onViewClick = { viewModel.selectDocumentForDetail(it) },
+                                                onEditClick = { viewModel.selectDocumentForDetail(it) },
+                                                onDeleteClick = { }
+                                            )
+                                            if (index < docs.size - 1) {
+                                                VaultCleanDivider()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -496,8 +579,6 @@ fun VaultScreen(
             },
             onAskAI = { viewModel.analyzeDocumentWithAI(it) },
             onContinueInAIChat = { doc, analysis ->
-                // Only pass imageUri for actual image files so the AI chat
-                // doesn't try to render a PDF URL through AsyncImage.
                 val isImage = doc.fileType.lowercase() in listOf("jpg", "jpeg", "png", "webp")
                 com.swastricare.health.ui.screens.ai.PendingAIContext.set(
                     title = doc.title,
@@ -509,13 +590,13 @@ fun VaultScreen(
             }
         )
 
-        // Snackbar Host (overlays all content)
+        // Snackbar Host
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 184.dp) // above FAB (which is now at navBar + 100dp)
+                .padding(bottom = 184.dp)
         )
 
         // Batch Upload Preview Sheet
@@ -637,115 +718,9 @@ private fun BatchUploadBottomSheet(
     }
 }
 
-@Composable
-fun VaultAppBar(
-    totalDocuments: Int,
-    viewMode: VaultViewMode,
-    onViewModeChange: (VaultViewMode) -> Unit,
-    isSelectionMode: Boolean,
-    onToggleSelectionMode: () -> Unit,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .glass()
-            .padding(horizontal = 16.dp, vertical = 14.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Medical Vault",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "$totalDocuments documents",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.onSurfaceVariant
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                // View Mode Toggle
-                IconButton(
-                    onClick = {
-                        val newMode = when (viewMode) {
-                            VaultViewMode.List -> VaultViewMode.Folders
-                            VaultViewMode.Folders -> VaultViewMode.Timeline
-                            VaultViewMode.Timeline -> VaultViewMode.List
-                        }
-                        onViewModeChange(newMode)
-                    },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Icon(
-                        imageVector = when (viewMode) {
-                            VaultViewMode.List -> Icons.Default.List
-                            VaultViewMode.Folders -> Icons.Default.Folder
-                            VaultViewMode.Timeline -> Icons.Default.CalendarToday
-                        },
-                        contentDescription = "View Mode"
-                    )
-                }
-
-                // Selection Mode
-                IconButton(
-                    onClick = onToggleSelectionMode,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = AppColors.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (isSelectionMode) Icons.Default.Close else Icons.Default.CheckCircle,
-                        contentDescription = "Select"
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Search Bar
-        val appBarFocusManager = LocalFocusManager.current
-        TextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            placeholder = { Text("Search documents...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(
-                onSearch = { appBarFocusManager.clearFocus() }
-            ),
-            shape = RoundedCornerShape(14.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = AppColors.surfaceVariant,
-                unfocusedContainerColor = AppColors.surfaceVariant,
-                disabledContainerColor = AppColors.surfaceVariant,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent,
-                focusedTextColor = AppColors.onSurface,
-                unfocusedTextColor = AppColors.onSurface,
-                focusedLeadingIconColor = AppColors.onSurfaceVariant,
-                unfocusedLeadingIconColor = AppColors.onSurfaceVariant,
-                focusedPlaceholderColor = AppColors.onSurfaceVariant,
-                unfocusedPlaceholderColor = AppColors.onSurfaceVariant
-            )
-        )
-    }
-}
+// ─────────────────────────────────────
+// MARK: - Selection Bar
+// ─────────────────────────────────────
 
 @Composable
 fun SelectionBar(
@@ -753,32 +728,39 @@ fun SelectionBar(
     onSelectAll: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .glass(cornerRadius = 16.dp)
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text("$selectedCount selected", style = MaterialTheme.typography.bodyMedium)
-
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextButton(onClick = onSelectAll) {
-                Text("Select All")
-            }
-            TextButton(
-                onClick = onDelete,
-                colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
+    Column(modifier = Modifier.padding(top = 8.dp)) {
+        VaultSectionCard {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Delete, contentDescription = null)
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Delete")
+                Text(
+                    "$selectedCount selected",
+                    fontSize = 15.sp,
+                    color = AppColors.onBackground
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TextButton(onClick = onSelectAll) {
+                        Text("Select All", fontSize = 13.sp)
+                    }
+                    TextButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.textButtonColors(contentColor = AppColors.error)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Delete", fontSize = 13.sp)
+                    }
+                }
             }
         }
     }
 }
+
+// ─────────────────────────────────────
+// MARK: - View Composables (kept for backward compat)
+// ─────────────────────────────────────
 
 @Composable
 fun DocumentListView(
@@ -790,12 +772,9 @@ fun DocumentListView(
     onEditClick: (MedicalDocument) -> Unit,
     onDeleteClick: (MedicalDocument) -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(documents) { document ->
-            DocumentCard(
+    VaultSectionCard {
+        documents.forEachIndexed { index, document ->
+            DocumentRow(
                 document = document,
                 isSelectionMode = isSelectionMode,
                 isSelected = selectedDocuments.contains(document.id),
@@ -804,6 +783,9 @@ fun DocumentListView(
                 onEditClick = onEditClick,
                 onDeleteClick = onDeleteClick
             )
+            if (index < documents.size - 1) {
+                VaultCleanDivider()
+            }
         }
     }
 }
@@ -813,22 +795,18 @@ fun FoldersGridView(
     groupedDocuments: Map<String, List<MedicalDocument>>,
     onFolderClick: (String) -> Unit
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(groupedDocuments.keys.toList()) { folderName ->
+    VaultSectionCard {
+        val folders = groupedDocuments.keys.toList()
+        folders.forEachIndexed { index, folderName ->
             val docs = groupedDocuments[folderName] ?: emptyList()
-            val color = if (folderName.hashCode() % 2 == 0) Color(0xFF2E3192) else Color(0xFF1BBBCE)
-
-            FolderCard(
+            FolderRow(
                 folderName = folderName,
                 count = docs.size,
-                color = color,
                 onClick = { onFolderClick(folderName) }
             )
+            if (index < folders.size - 1) {
+                VaultCleanDivider()
+            }
         }
     }
 }
@@ -838,41 +816,25 @@ fun TimelineView(
     documents: List<MedicalDocument>,
     onDocumentTap: (MedicalDocument) -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Text(
-                "Timeline",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-
-        // Group by date
-        val grouped = documents.groupBy { it.documentDate?.substringBefore("T") ?: "Unknown Date" }
-
+    val grouped = documents.groupBy { it.documentDate?.substringBefore("T") ?: "Unknown Date" }
+    Column {
         grouped.forEach { (date, docs) ->
-            item {
-                Text(
-                    text = date,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = AppColors.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-            items(docs) { document ->
-                DocumentCard(
-                    document = document,
-                    isSelectionMode = false,
-                    isSelected = false,
-                    onTap = { onDocumentTap(document) },
-                    onViewClick = { onDocumentTap(it) },
-                    onEditClick = { onDocumentTap(it) },
-                    onDeleteClick = { }
-                )
+            VaultSectionHeader(date)
+            VaultSectionCard {
+                docs.forEachIndexed { index, document ->
+                    DocumentRow(
+                        document = document,
+                        isSelectionMode = false,
+                        isSelected = false,
+                        onTap = { onDocumentTap(document) },
+                        onViewClick = { onDocumentTap(it) },
+                        onEditClick = { onDocumentTap(it) },
+                        onDeleteClick = { }
+                    )
+                    if (index < docs.size - 1) {
+                        VaultCleanDivider()
+                    }
+                }
             }
         }
     }
@@ -885,58 +847,70 @@ fun FolderDetailView(
     onBack: () -> Unit,
     onDocumentTap: (MedicalDocument) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 88.dp)
+    ) {
         // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 14.dp, start = 8.dp, end = 20.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-            }
-            Column(modifier = Modifier.weight(1f)) {
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                }
                 Text(
-                    text = folderName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    folderName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.onBackground
                 )
                 Text(
-                    text = "${documents.size} documents",
+                    "${documents.size} documents",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.onSurfaceVariant
+                    color = AppColors.onBackground.copy(alpha = 0.5f)
                 )
             }
         }
 
-        // Documents in folder
         if (documents.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "This folder is empty",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = AppColors.onSurfaceVariant
-                )
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "This folder is empty",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = AppColors.onSurfaceVariant
+                    )
+                }
             }
         } else {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(documents) { document ->
-                    DocumentCard(
-                        document = document,
-                        isSelectionMode = false,
-                        isSelected = false,
-                        onTap = { onDocumentTap(document) },
-                        onViewClick = { onDocumentTap(it) },
-                        onEditClick = { onDocumentTap(it) },
-                        onDeleteClick = { }
-                    )
+            item { VaultSectionHeader("Documents") }
+            item {
+                VaultSectionCard {
+                    documents.forEachIndexed { index, document ->
+                        DocumentRow(
+                            document = document,
+                            isSelectionMode = false,
+                            isSelected = false,
+                            onTap = { onDocumentTap(document) },
+                            onViewClick = { onDocumentTap(it) },
+                            onEditClick = { onDocumentTap(it) },
+                            onDeleteClick = { }
+                        )
+                        if (index < documents.size - 1) {
+                            VaultCleanDivider()
+                        }
+                    }
                 }
             }
         }
@@ -960,7 +934,6 @@ fun BatchUploadPreviewSheet(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -995,25 +968,22 @@ fun BatchUploadPreviewSheet(
             }
         }
 
-        // File list
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 400.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            itemsIndexed(items) { index, item ->
-                BatchUploadItemCard(
+        // File list inside a section card
+        VaultSectionCard {
+            items.forEachIndexed { index, item ->
+                BatchUploadItemRow(
                     item = item,
                     index = index,
                     onCategoryChange = { category -> onCategoryChange(index, category) },
                     onRemove = { onRemoveItem(index) },
                     enabled = !isUploading
                 )
+                if (index < items.size - 1) {
+                    VaultCleanDivider()
+                }
             }
         }
 
-        // Actions
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1044,7 +1014,7 @@ fun BatchUploadPreviewSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BatchUploadItemCard(
+private fun BatchUploadItemRow(
     item: BatchUploadItem,
     index: Int,
     onCategoryChange: (VaultCategory) -> Unit,
@@ -1054,101 +1024,97 @@ private fun BatchUploadItemCard(
     var showCategoryDropdown by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .glass(cornerRadius = 14.dp)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = getFileIcon(item.fileName.substringAfterLast('.', "")),
-                        contentDescription = null,
-                        tint = AppColors.primary,
-                        modifier = Modifier.size(24.dp)
+                Icon(
+                    imageVector = getFileIcon(item.fileName.substringAfterLast('.', "")),
+                    contentDescription = null,
+                    tint = AppColors.onBackground.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.fileName,
+                        fontSize = 15.sp,
+                        color = AppColors.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = item.fileName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = formatFileSize(item.fileSize),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AppColors.onSurfaceVariant
-                        )
-                    }
-                }
-                if (enabled) {
-                    IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Remove",
-                            modifier = Modifier.size(18.dp),
-                            tint = AppColors.error
-                        )
-                    }
+                    Text(
+                        text = formatFileSize(item.fileSize),
+                        fontSize = 12.sp,
+                        color = AppColors.onBackground.copy(alpha = 0.4f)
+                    )
                 }
             }
-
-            // Category selector
-            Box {
-                FilterChip(
-                    selected = true,
-                    onClick = { if (enabled) showCategoryDropdown = true },
-                    label = { Text(item.category.title, style = MaterialTheme.typography.bodySmall) },
-                    trailingIcon = {
-                        Icon(
-                            Icons.Default.ArrowDropDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                )
-                DropdownMenu(
-                    expanded = showCategoryDropdown,
-                    onDismissRequest = { showCategoryDropdown = false }
-                ) {
-                    VaultCategory.values().forEach { category ->
-                        DropdownMenuItem(
-                            text = { Text(category.title) },
-                            onClick = {
-                                onCategoryChange(category)
-                                showCategoryDropdown = false
-                            },
-                            leadingIcon = {
-                                if (item.category == category) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = AppColors.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                        )
-                    }
+            if (enabled) {
+                IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Remove",
+                        modifier = Modifier.size(18.dp),
+                        tint = AppColors.error
+                    )
                 }
             }
         }
+
+        Box {
+            FilterChip(
+                selected = true,
+                onClick = { if (enabled) showCategoryDropdown = true },
+                label = { Text(item.category.title, style = MaterialTheme.typography.bodySmall) },
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            )
+            DropdownMenu(
+                expanded = showCategoryDropdown,
+                onDismissRequest = { showCategoryDropdown = false }
+            ) {
+                VaultCategory.values().forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.title) },
+                        onClick = {
+                            onCategoryChange(category)
+                            showCategoryDropdown = false
+                        },
+                        leadingIcon = {
+                            if (item.category == category) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = AppColors.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun EmptyState() {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -1163,14 +1129,14 @@ fun EmptyState() {
             text = "Your vault is empty for now!",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "Upload your medical records, prescriptions and lab reports to keep them organized.",
             style = MaterialTheme.typography.bodyMedium,
             color = AppColors.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 32.dp)
         )
     }

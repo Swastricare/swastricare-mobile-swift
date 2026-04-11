@@ -33,14 +33,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import java.time.LocalDate
@@ -602,23 +598,9 @@ internal fun LogPeriodSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight(0.85f)
                 .navigationBarsPadding()
         ) {
-            // ── Illustration header ──
-            val context = LocalContext.current
-            Image(
-                painter = rememberAsyncImagePainter(
-                    ImageRequest.Builder(context)
-                        .data("file:///android_asset/illustrations/cycle illustration.png")
-                        .build()
-                ),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(130.dp),
-                contentScale = ContentScale.Crop
-            )
-
             // ── Step dots ──
             Row(
                 modifier = Modifier
@@ -652,12 +634,12 @@ internal fun LogPeriodSheet(
                         (slideInHorizontally { -it } togetherWith slideOutHorizontally { it })
                     }
                 },
-                label = "LogStep"
+                label = "LogStep",
+                modifier = Modifier.weight(1f)
             ) { currentStep ->
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 340.dp)
+                        .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 24.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)

@@ -28,6 +28,7 @@ import com.swastricare.health.ui.screens.hydration.HydrationSettingsScreen
 import com.swastricare.health.ui.screens.medications.AddMedicationScreen
 import com.swastricare.health.ui.screens.medications.MedicationDetailScreen
 import com.swastricare.health.ui.screens.medications.MedicationsScreen
+import com.swastricare.health.ui.screens.menstrualcycle.LogPeriodScreen
 import com.swastricare.health.ui.screens.menstrualcycle.MenstrualCycleScreen
 import com.swastricare.health.ui.screens.notifications.NotificationHistoryScreen
 import com.swastricare.health.ui.screens.notifications.NotificationSettingsScreen
@@ -275,6 +276,22 @@ fun MainNavGraph(
         // ─── Menstrual Cycle ───
         composable("cycle_tracker") {
             MenstrualCycleScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToLog = { navController.navigate("cycle_log") },
+                onNavigateToCalendar = { navController.navigate("cycle_calendar") }
+            )
+        }
+
+        composable("cycle_calendar") {
+            com.swastricare.health.ui.screens.menstrualcycle.CycleCalendarScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("cycle_log") {
+            val viewModel: com.swastricare.health.ui.screens.menstrualcycle.MenstrualCycleViewModel = hiltViewModel()
+            LogPeriodScreen(
+                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
