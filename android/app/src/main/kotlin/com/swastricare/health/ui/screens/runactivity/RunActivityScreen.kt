@@ -2,6 +2,7 @@ package com.swastricare.health.ui.screens.runactivity
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,7 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -31,6 +36,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swastricare.health.data.models.ActivityType
+import com.swastricare.health.data.models.RouteCoordinate
 import com.swastricare.health.data.models.RunActivity
 import com.swastricare.health.data.models.TimeRangeFilter
 import com.swastricare.health.data.services.FitnessAnalyticsService
@@ -80,7 +86,8 @@ fun RunActivityScreen(
                     onStartWorkout = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onNavigateToLiveWorkout(null)
-                    }
+                    },
+                    onNavigateToCalendar = onNavigateToCalendar
                 )
             }
 
@@ -145,102 +152,138 @@ fun RunActivityScreen(
 private fun HeroSection(
     steps: Int,
     isLoading: Boolean,
-    onStartWorkout: () -> Unit
+    onStartWorkout: () -> Unit,
+    onNavigateToCalendar: () -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(AppColors.background)
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        // Step count
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "Walk & Run Activity",
-                style = MaterialTheme.typography.labelMedium,
-                color = AppColors.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .width(160.dp)
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(AppColors.surfaceVariant)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .shadow(16.dp, RoundedCornerShape(24.dp), clip = false)
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(Color(0xFF0F172A), Color(0xFF134E2E)),
+                    start = Offset(0f, 0f),
+                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
                 )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = if (steps > 0) "%,d".format(steps) else "0",
-                        style = MaterialTheme.typography.displayLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.onBackground,
-                        fontSize = 52.sp
-                    )
-                    Text(
-                        text = "Steps",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = AppColors.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 10.dp)
-                    )
-                }
-            }
-        }
-
-        // Start Workout button — iOS style: green circle play + text + chevron
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(8.dp, RoundedCornerShape(16.dp), clip = false)
-                .clip(RoundedCornerShape(16.dp))
-                .clickable { onStartWorkout() },
-            color = SecondaryColor.copy(alpha = 0.10f),
-            shape = RoundedCornerShape(16.dp)
+            )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header row: title + calendar icon
             Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(SecondaryColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
+                Text(
+                    text = "Activity",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+                IconButton(
+                    onClick = onNavigateToCalendar,
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        tint = SecondaryColor,
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Calendar",
+                        tint = Color.White.copy(alpha = 0.75f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Start Workout",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppColors.onBackground
+            }
+
+            // Step count
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Today",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.55f),
+                    fontWeight = FontWeight.Medium
+                )
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .width(160.dp)
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.12f))
                     )
-                    Text(
-                        text = "Track GPS, distance, and route",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppColors.onSurfaceVariant
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = if (steps > 0) "%,d".format(steps) else "0",
+                            style = MaterialTheme.typography.displayLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 52.sp
+                        )
+                        Text(
+                            text = "steps",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White.copy(alpha = 0.60f),
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 10.dp)
+                        )
+                    }
+                }
+            }
+
+            // Start Workout button — green circle play + text + chevron
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.10f))
+                    .clickable { onStartWorkout() }
+                    .padding(14.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(SecondaryColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "Start Workout",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Track GPS, distance, and route",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.60f)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = SecondaryColor,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = SecondaryColor,
-                    modifier = Modifier.size(18.dp)
-                )
             }
         }
     }
@@ -498,20 +541,24 @@ private fun ActivityCard(activity: RunActivity, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Icon box (map thumbnail placeholder)
+        // Map thumbnail (or icon fallback when no GPS route recorded)
         Box(
             modifier = Modifier
                 .size(72.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(AppColors.surfaceVariant),
+                .background(Color(0xFF1A1A2E)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = typeIcon,
-                contentDescription = null,
-                tint = AppColors.onSurfaceVariant,
-                modifier = Modifier.size(32.dp)
-            )
+            if (activity.routeCoordinates.size >= 2) {
+                ActivityRouteThumbnail(coordinates = activity.routeCoordinates)
+            } else {
+                Icon(
+                    imageVector = typeIcon,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -593,4 +640,59 @@ private fun EmptyActivitiesState() {
             textAlign = TextAlign.Center
         )
     }
+}
+
+// ─── Activity Route Canvas Thumbnail ─────────────────────────────────────────
+// Lightweight, non-interactive canvas — safe to use inside LazyColumn items.
+
+@Composable
+private fun ActivityRouteThumbnail(coordinates: List<RouteCoordinate>) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val padding = 8f
+        val drawW = size.width - padding * 2
+        val drawH = size.height - padding * 2
+
+        val minLat = coordinates.minOf { it.latitude }
+        val maxLat = coordinates.maxOf { it.latitude }
+        val minLng = coordinates.minOf { it.longitude }
+        val maxLng = coordinates.maxOf { it.longitude }
+
+        val latRange = (maxLat - minLat).coerceAtLeast(0.0001)
+        val lngRange = (maxLng - minLng).coerceAtLeast(0.0001)
+        val scale = minOf(drawW / lngRange, drawH / latRange)
+
+        val offX = padding + (drawW - lngRange * scale).toFloat() / 2f
+        val offY = padding + (drawH - latRange * scale).toFloat() / 2f
+
+        fun project(c: RouteCoordinate) = Offset(
+            x = ((c.longitude - minLng) * scale).toFloat() + offX,
+            y = ((maxLat - c.latitude) * scale).toFloat() + offY
+        )
+
+        val pts = coordinates.map { project(it) }
+        val startColor = Color(0xFF00E5FF)
+        val endColor = Color(0xFF38EF7D)
+        val n = (pts.size - 1).coerceAtLeast(1)
+
+        // Glow pass
+        for (i in 0 until pts.size - 1) {
+            val f = i.toFloat() / n
+            val c = lerpColor(startColor, endColor, f)
+            drawLine(c.copy(alpha = 0.25f), pts[i], pts[i + 1], 6.dp.toPx(), StrokeCap.Round)
+        }
+        // Route pass
+        for (i in 0 until pts.size - 1) {
+            val f = i.toFloat() / n
+            drawLine(lerpColor(startColor, endColor, f), pts[i], pts[i + 1], 2.5.dp.toPx(), StrokeCap.Round)
+        }
+
+        drawCircle(endColor, 4f, pts.first())
+        drawCircle(Color(0xFFFF4757), 4f, pts.last())
+    }
+}
+
+private fun lerpColor(a: Color, b: Color, f: Float): Color {
+    val t = f.coerceIn(0f, 1f)
+    return Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t,
+        a.blue + (b.blue - a.blue) * t, 1f)
 }
