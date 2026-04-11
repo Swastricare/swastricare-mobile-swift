@@ -367,10 +367,110 @@ private fun FitnessInsightChips(
     vo2Max: Double?,
     weeklyLoad: Int,
     loadTrend: FitnessAnalyticsService.LoadTrend
-) {}
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (vo2Max != null) {
+            InsightChip(
+                icon = Icons.Default.Favorite,
+                value = "%.1f".format(vo2Max),
+                label = "VO₂ Max",
+                color = RunningCyan
+            )
+        }
+        if (weeklyLoad > 0) {
+            InsightChip(
+                icon = Icons.Default.FlashOn,
+                value = "$weeklyLoad",
+                label = "Load",
+                color = CyclingYellow
+            )
+        }
+        val (trendIcon, trendColor, trendLabel) = when (loadTrend) {
+            FitnessAnalyticsService.LoadTrend.INCREASING ->
+                Triple(Icons.Default.TrendingUp, WalkingGreen, "Building")
+            FitnessAnalyticsService.LoadTrend.DECREASING ->
+                Triple(Icons.Default.TrendingDown, Color(0xFFFF9F0A), "Tapering")
+            FitnessAnalyticsService.LoadTrend.MAINTAINING ->
+                Triple(Icons.Default.TrendingFlat, RunningCyan, "Steady")
+        }
+        InsightChip(
+            icon = trendIcon,
+            value = trendLabel,
+            label = "Trend",
+            color = trendColor
+        )
+    }
+}
 
 @Composable
-private fun RecentWorkoutsHeader(onSeeAll: () -> Unit) {}
+private fun InsightChip(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50.dp))
+            .background(color.copy(alpha = 0.13f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(14.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun RecentWorkoutsHeader(onSeeAll: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "Recent",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onBackground
+        )
+        TextButton(
+            onClick = onSeeAll,
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+        ) {
+            Text(
+                text = "See all",
+                style = MaterialTheme.typography.labelMedium,
+                color = SecondaryColor
+            )
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = SecondaryColor,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
 
 @Composable
 private fun EmptyWorkoutsState() {}
