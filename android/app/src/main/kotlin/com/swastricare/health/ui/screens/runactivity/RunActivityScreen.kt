@@ -91,14 +91,12 @@ fun RunActivityScreen(
                 )
             }
             item { WeeklyBarChart(activities = uiState.activities) }
-            if (uiState.vo2Max != null || uiState.weeklyTrainingLoad > 0) {
-                item {
-                    FitnessInsightChips(
-                        vo2Max = uiState.vo2Max,
-                        weeklyLoad = uiState.weeklyTrainingLoad,
-                        loadTrend = uiState.loadTrend
-                    )
-                }
+            item {
+                FitnessInsightChips(
+                    vo2Max = uiState.vo2Max,
+                    weeklyLoad = uiState.weeklyTrainingLoad,
+                    loadTrend = uiState.loadTrend
+                )
             }
             item { RecentWorkoutsHeader(onSeeAll = onNavigateToCalendar) }
             if (uiState.activities.isEmpty()) {
