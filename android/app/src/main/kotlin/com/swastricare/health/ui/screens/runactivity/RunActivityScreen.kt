@@ -471,13 +471,132 @@ private fun RecentWorkoutsHeader(onSeeAll: () -> Unit) {
 }
 
 @Composable
-private fun EmptyWorkoutsState() {}
+private fun EmptyWorkoutsState() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.surfaceVariant)
+            .padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.DirectionsRun,
+            contentDescription = null,
+            tint = AppColors.onSurfaceVariant.copy(alpha = 0.3f),
+            modifier = Modifier.size(52.dp)
+        )
+        Text(
+            text = "No workouts yet",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onSurfaceVariant
+        )
+        Text(
+            text = "Pick a workout below and hit Start",
+            style = MaterialTheme.typography.bodySmall,
+            color = AppColors.onSurfaceVariant.copy(alpha = 0.55f),
+            textAlign = TextAlign.Center
+        )
+    }
+}
 
 @Composable
 private fun StravaWorkoutCard(
     activity: RunActivity,
     onClick: () -> Unit
-) {}
+) {
+    val typeColor = when (activity.activityType) {
+        ActivityType.RUNNING -> RunningCyan
+        ActivityType.WALKING -> WalkingGreen
+        ActivityType.CYCLING -> CyclingYellow
+        ActivityType.HIKING -> HikingPurple
+    }
+    val typeIcon: ImageVector = when (activity.activityType) {
+        ActivityType.RUNNING -> Icons.Default.DirectionsRun
+        ActivityType.WALKING -> Icons.Default.DirectionsWalk
+        ActivityType.CYCLING -> Icons.Default.DirectionsBike
+        ActivityType.HIKING -> Icons.Default.Terrain
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant)
+            .clickable { onClick() }
+    ) {
+        // Strava-style colored left border stripe
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(80.dp)
+                .background(typeColor)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Icon badge
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(typeColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = typeIcon,
+                    contentDescription = null,
+                    tint = typeColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            // Text content
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "${activity.formattedDistance} km",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.onSurface
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = buildString {
+                        append(activity.formattedDate)
+                        append("  ·  ")
+                        append(activity.formattedDuration)
+                        if (activity.formattedPace != "--:--") {
+                            append("  ·  ")
+                            append(activity.formattedPace)
+                            append("/km")
+                        }
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.onSurfaceVariant
+                )
+            }
+            // Calories
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "${activity.caloriesBurned}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFFF9F0A)
+                )
+                Text(
+                    text = "kcal",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun WorkoutPanel(
