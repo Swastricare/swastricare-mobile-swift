@@ -531,7 +531,7 @@ private fun StravaWorkoutCard(
         Box(
             modifier = Modifier
                 .width(4.dp)
-                .height(80.dp)
+                .fillMaxHeight()
                 .background(typeColor)
         )
         Row(
