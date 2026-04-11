@@ -240,25 +240,33 @@ fun VaultScreen(
                 // ── Header ──
                 item {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp)
                     ) {
-                        Text(
-                            "Medical Vault",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.onBackground
-                        )
-                        Text(
-                            "${uiState.documents.size} documents",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AppColors.onBackground.copy(alpha = 0.5f)
-                        )
+                        // Title and count - centered
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "Medical Vault",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = AppColors.onBackground
+                            )
+                            Text(
+                                "${uiState.documents.size} documents",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AppColors.onBackground.copy(alpha = 0.5f)
+                            )
+                        }
 
-                        // View mode + selection mode controls
+                        // View mode + selection mode controls - start aligned
                         Row(
-                            modifier = Modifier.padding(top = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             FilterChip(
                                 selected = false,
