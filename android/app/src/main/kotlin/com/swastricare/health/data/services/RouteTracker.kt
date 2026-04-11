@@ -123,6 +123,7 @@ class RouteTracker(private val context: Context) {
 
     private var isTracking = false
     private var isPaused = false
+    var autoPauseEnabled: Boolean = true
 
     private val _gpsMode = MutableStateFlow(GpsMode.HIGH_ACCURACY)
     val gpsMode: StateFlow<GpsMode> = _gpsMode.asStateFlow()
@@ -216,16 +217,24 @@ class RouteTracker(private val context: Context) {
 
         // Auto-pause: use BOTH speed AND actual distance to detect stationary state
         // GPS can report false speed while sitting still due to signal noise
-        val isStationary = smoothedSpeed < STATIONARY_SPEED && actualDistance < STATIONARY_DISTANCE
+        if (autoPauseEnabled) {
+            val isStationary = smoothedSpeed < STATIONARY_SPEED && actualDistance < STATIONARY_DISTANCE
 
-        if (isStationary) {
-            stationaryCount++
-            if (stationaryCount >= STATIONARY_THRESHOLD && !_isAutopaused.value) {
-                _isAutopaused.value = true
+            if (isStationary) {
+                stationaryCount++
+                if (stationaryCount >= STATIONARY_THRESHOLD && !_isAutopaused.value) {
+                    _isAutopaused.value = true
+                }
+                // While autopaused, don't add route points (prevents GPS drift cluster)
+                if (_isAutopaused.value) return
+            } else {
+                if (_isAutopaused.value) {
+                    _isAutopaused.value = false
+                }
+                stationaryCount = 0
             }
-            // While autopaused, don't add route points (prevents GPS drift cluster)
-            if (_isAutopaused.value) return
         } else {
+            // Auto-pause disabled — clear any existing auto-pause state
             if (_isAutopaused.value) {
                 _isAutopaused.value = false
             }

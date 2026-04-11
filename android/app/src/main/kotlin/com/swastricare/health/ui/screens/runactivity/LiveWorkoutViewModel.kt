@@ -103,6 +103,13 @@ data class LiveWorkoutUiState(
     val maxSpeedMps: Float = 0f,
     val elevationGainMeters: Double = 0.0,
 
+    // Auto-pause
+    val autoPauseEnabled: Boolean = true,
+
+    // Split pace
+    val lastSplitPace: String = "",
+    val completedKmSplits: Int = 0,
+
     // Templates
     val templates: List<WorkoutTemplate> = emptyList(),
     val activeTemplate: WorkoutTemplate? = null
@@ -187,6 +194,10 @@ class LiveWorkoutViewModel @Inject constructor(
     private val MIN_ELEVATION_CHANGE = 3.0  // ignore < 3m altitude fluctuations
     private var smoothedAltitude: Double? = null
 
+    // Split pace tracking
+    private var lastKmBoundary: Int = 0
+    private var lastKmBoundaryElapsed: Long = 0
+
     private val autoSaveJson = Json { encodeDefaults = true }
     private val isoFormatter = DateTimeFormatter.ISO_INSTANT
 
@@ -221,6 +232,21 @@ class LiveWorkoutViewModel @Inject constructor(
         viewModelScope.launch {
             routeTracker.totalDistanceMeters.collect { dist ->
                 _uiState.update { it.copy(distanceMeters = dist) }
+                // Track split pace when crossing km boundaries
+                val currentKm = (dist / 1000.0).toInt()
+                if (currentKm > lastKmBoundary && dist > 0) {
+                    val elapsed = _uiState.value.elapsedSeconds
+                    val splitSeconds = elapsed - lastKmBoundaryElapsed
+                    val splitMin = (splitSeconds / 60).toInt()
+                    val splitSec = (splitSeconds % 60).toInt()
+                    val splitPace = String.format("%d:%02d", splitMin, splitSec)
+                    lastKmBoundary = currentKm
+                    lastKmBoundaryElapsed = elapsed
+                    _uiState.update { it.copy(
+                        lastSplitPace = splitPace,
+                        completedKmSplits = currentKm
+                    ) }
+                }
             }
         }
 
@@ -297,6 +323,12 @@ class LiveWorkoutViewModel @Inject constructor(
 
     fun clearTemplate() {
         _uiState.update { it.copy(activeTemplate = null) }
+    }
+
+    fun toggleAutoPause() {
+        val newValue = !_uiState.value.autoPauseEnabled
+        routeTracker.autoPauseEnabled = newValue
+        _uiState.update { it.copy(autoPauseEnabled = newValue) }
     }
 
     fun setWorkoutType(type: WorkoutType) {
@@ -425,6 +457,8 @@ class LiveWorkoutViewModel @Inject constructor(
         totalElevationGain = 0.0
         workoutStartTime = null
         workoutAlreadySaved = false
+        lastKmBoundary = 0
+        lastKmBoundaryElapsed = 0
         _uiState.value = LiveWorkoutUiState()
     }
 

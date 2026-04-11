@@ -181,7 +181,8 @@ fun LiveWorkoutScreen(
                 isPaused = uiState.phase == WorkoutPhase.PAUSED,
                 onPause = { viewModel.pauseWorkout() },
                 onResume = { viewModel.resumeWorkout() },
-                onStop = { viewModel.stopWorkout() }
+                onStop = { viewModel.stopWorkout() },
+                onToggleAutoPause = { viewModel.toggleAutoPause() }
             )
 
             "COMPLETED" -> WorkoutPhaseCompleted(

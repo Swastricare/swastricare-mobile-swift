@@ -35,13 +35,17 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.*
 import com.swastricare.health.R
-import com.swastricare.health.ui.components.GpsStatusChip
 import com.swastricare.health.ui.screens.runactivity.LiveWorkoutUiState
 import com.swastricare.health.ui.theme.*
 import kotlinx.coroutines.launch
@@ -57,7 +61,8 @@ fun WorkoutPhaseTracking(
     isPaused: Boolean = false,
     onPause: () -> Unit,
     onResume: () -> Unit = {},
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onToggleAutoPause: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val isDark = isSystemInDarkTheme()
@@ -161,7 +166,15 @@ fun WorkoutPhaseTracking(
                     fontWeight = FontWeight.Bold,
                     color = textColor
                 )
-                if (isPaused) {
+                if (uiState.isAutopaused) {
+                    Text(
+                        "AUTO-PAUSED",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFA500).copy(alpha = pulseAlpha),
+                        letterSpacing = 2.sp
+                    )
+                } else if (isPaused) {
                     Text(
                         "PAUSED",
                         style = MaterialTheme.typography.labelSmall,
@@ -171,7 +184,51 @@ fun WorkoutPhaseTracking(
                     )
                 }
             }
-            Spacer(Modifier.width(48.dp))
+            // GPS status + auto-pause toggle (icons only)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Auto-pause toggle icon
+                val apColor = if (uiState.autoPauseEnabled) Color(0xFF38EF7D) else Color.Gray
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(apColor.copy(alpha = 0.2f))
+                        .clickable { onToggleAutoPause() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.PauseCircle,
+                        contentDescription = if (uiState.autoPauseEnabled) "Auto-pause on" else "Auto-pause off",
+                        tint = apColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                // GPS status icon
+                val gpsColor = when (uiState.gpsStatus) {
+                    com.swastricare.health.data.services.RouteTracker.GpsStatus.OFF -> Color.Gray
+                    com.swastricare.health.data.services.RouteTracker.GpsStatus.SEARCHING -> Color(0xFFFFA500)
+                    com.swastricare.health.data.services.RouteTracker.GpsStatus.POOR -> Color(0xFFFF6B6B)
+                    com.swastricare.health.data.services.RouteTracker.GpsStatus.FAIR -> Color(0xFFFFD60A)
+                    com.swastricare.health.data.services.RouteTracker.GpsStatus.GOOD -> Color(0xFF38EF7D)
+                }
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(gpsColor.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.GpsFixed,
+                        contentDescription = "GPS status",
+                        tint = gpsColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
 
         // ═══════════════════════════════════════
@@ -219,8 +276,13 @@ fun WorkoutPhaseTracking(
 
             if (uiState.distanceMeters > 10) {
                 Spacer(Modifier.height(8.dp))
+                val splitText = if (uiState.lastSplitPace.isNotEmpty()) {
+                    "KM ${uiState.completedKmSplits} · ${uiState.lastSplitPace}"
+                } else {
+                    "KM ${uiState.currentKmSplit}"
+                }
                 Text(
-                    text = "KM ${uiState.currentKmSplit}",
+                    text = splitText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF00E5FF).copy(alpha = 0.8f),
@@ -405,21 +467,29 @@ private fun FullScreenTrackingMap(uiState: LiveWorkoutUiState, isDark: Boolean) 
                 icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
                     .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_GREEN)
             )
-            // Live position circle
-            Circle(
-                center = latLngs.last(),
-                radius = 8.0,
-                fillColor = Color(0xFF00B4D8),
-                strokeColor = Color.White,
-                strokeWidth = 3f
+            // Live position — navigation arrow pointing in direction of travel
+            val bearing = if (latLngs.size >= 2) {
+                computeBearing(latLngs[latLngs.size - 2], latLngs.last())
+            } else 0f
+            val navArrowBitmap = remember(bearing) {
+                createNavigationArrowBitmap()
+            }
+            Marker(
+                state = MarkerState(position = latLngs.last()),
+                icon = BitmapDescriptorFactory.fromBitmap(navArrowBitmap),
+                rotation = bearing,
+                anchor = Offset(0.5f, 0.5f),
+                flat = true,
+                title = "Current Position"
             )
         } else if (uiState.currentLocation != null) {
-            Circle(
-                center = LatLng(uiState.currentLocation.first, uiState.currentLocation.second),
-                radius = 8.0,
-                fillColor = Color(0xFF00B4D8),
-                strokeColor = Color.White,
-                strokeWidth = 3f
+            val navArrowBitmap = remember { createNavigationArrowBitmap() }
+            Marker(
+                state = MarkerState(position = LatLng(uiState.currentLocation.first, uiState.currentLocation.second)),
+                icon = BitmapDescriptorFactory.fromBitmap(navArrowBitmap),
+                anchor = Offset(0.5f, 0.5f),
+                flat = true,
+                title = "Current Position"
             )
         }
     }
@@ -520,6 +590,48 @@ private fun HoldToStopButton(enabled: Boolean, onComplete: () -> Unit) {
             modifier = Modifier.size(28.dp)
         )
     }
+}
+
+// ─────────────────────────────────────
+// Navigation arrow bitmap for map marker
+// ─────────────────────────────────────
+
+private fun createNavigationArrowBitmap(): Bitmap {
+    val size = 64
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val cx = size / 2f
+    val cy = size / 2f
+
+    // White stroke/outline
+    val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        style = Paint.Style.FILL
+    }
+    val strokePath = Path().apply {
+        moveTo(cx, cy - 28f)       // top point
+        lineTo(cx + 18f, cy + 20f) // bottom right
+        lineTo(cx, cy + 10f)       // bottom notch
+        lineTo(cx - 18f, cy + 20f) // bottom left
+        close()
+    }
+    canvas.drawPath(strokePath, strokePaint)
+
+    // Cyan fill (matches route color #00E5FF)
+    val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor("#00E5FF")
+        style = Paint.Style.FILL
+    }
+    val fillPath = Path().apply {
+        moveTo(cx, cy - 24f)       // top point
+        lineTo(cx + 14f, cy + 16f) // bottom right
+        lineTo(cx, cy + 8f)        // bottom notch
+        lineTo(cx - 14f, cy + 16f) // bottom left
+        close()
+    }
+    canvas.drawPath(fillPath, fillPaint)
+
+    return bitmap
 }
 
 // ─────────────────────────────────────
