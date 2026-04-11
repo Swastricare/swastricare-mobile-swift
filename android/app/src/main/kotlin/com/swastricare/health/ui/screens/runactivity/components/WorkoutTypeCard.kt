@@ -43,11 +43,10 @@ fun WorkoutTypeCard(
 
     // Get activity-specific theme color
     val accentColor = when (type) {
-        WorkoutType.RUN, WorkoutType.INDOOR_RUN -> RunningCyan
-        WorkoutType.WALK, WorkoutType.INDOOR_WALK -> WalkingGreen
+        WorkoutType.RUN -> RunningCyan
+        WorkoutType.WALK -> WalkingGreen
         WorkoutType.CYCLE -> CyclingYellow
         WorkoutType.HIKE -> HikingPurple
-        WorkoutType.SWIM -> Color(0xFF00BCD4) // Cyan for swimming
     }
 
     // Icon for the workout type
@@ -56,9 +55,6 @@ fun WorkoutTypeCard(
         WorkoutType.WALK -> Icons.Default.DirectionsWalk
         WorkoutType.CYCLE -> Icons.Default.DirectionsBike
         WorkoutType.HIKE -> Icons.Default.Terrain
-        WorkoutType.SWIM -> Icons.Default.Pool
-        WorkoutType.INDOOR_RUN -> Icons.Default.FitnessCenter
-        WorkoutType.INDOOR_WALK -> Icons.Default.FitnessCenter
     }
 
     // Animated selection properties

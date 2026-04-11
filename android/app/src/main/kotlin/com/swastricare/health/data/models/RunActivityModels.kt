@@ -14,8 +14,7 @@ enum class ActivityType(val dbValue: String, val displayName: String, val emoji:
     WALKING("walk", "Walking", "🚶"),
     RUNNING("run", "Running", "🏃"),
     CYCLING("cycling", "Cycling", "🚴"),
-    HIKING("hike", "Hiking", "🥾"),
-    SWIMMING("swim", "Swimming", "🏊");
+    HIKING("hike", "Hiking", "🥾");
 
     companion object {
         fun fromDb(value: String): ActivityType =

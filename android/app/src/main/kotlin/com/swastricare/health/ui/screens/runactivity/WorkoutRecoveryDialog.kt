@@ -46,7 +46,6 @@ private val RunningColor = Color(0xFF22C55E)
 private val WalkingColor = Color(0xFF64D2FF)
 private val CyclingColor = Color(0xFFFF9F0A)
 private val HikingColor = Color(0xFF30D158)
-private val SwimmingColor = Color(0xFF4F46E5)
 private val DiscardRed = Color(0xFFFF453A)
 private val WarningOrange = Color(0xFFFF9F0A)
 
@@ -57,7 +56,6 @@ private fun workoutTypeIcon(type: String): ImageVector = when (type.uppercase())
     "WALKING"  -> Icons.Default.DirectionsWalk
     "CYCLING"  -> Icons.Default.DirectionsBike
     "HIKING"   -> Icons.Default.Terrain
-    "SWIMMING" -> Icons.Default.Pool
     else       -> Icons.Default.DirectionsRun
 }
 
@@ -66,7 +64,6 @@ private fun workoutTypeLabel(type: String): String = when (type.uppercase()) {
     "WALKING"  -> "Walking"
     "CYCLING"  -> "Cycling"
     "HIKING"   -> "Hiking"
-    "SWIMMING" -> "Swimming"
     else       -> type.replaceFirstChar { it.uppercase() }
 }
 
@@ -75,7 +72,6 @@ private fun workoutTypeEmoji(type: String): String = when (type.uppercase()) {
     "WALKING"  -> "\uD83D\uDEB6"
     "CYCLING"  -> "\uD83D\uDEB4"
     "HIKING"   -> "\u26F0\uFE0F"
-    "SWIMMING" -> "\uD83C\uDFCA"
     else       -> "\uD83C\uDFC3"
 }
 
@@ -84,7 +80,6 @@ private fun workoutTypeColor(type: String): Color = when (type.uppercase()) {
     "WALKING"  -> WalkingColor
     "CYCLING"  -> CyclingColor
     "HIKING"   -> HikingColor
-    "SWIMMING" -> SwimmingColor
     else       -> RunningColor
 }
 

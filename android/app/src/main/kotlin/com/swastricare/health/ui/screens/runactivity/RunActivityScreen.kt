@@ -31,7 +31,6 @@ import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.data.models.RunActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.TrackScreen
-import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.SecondaryColor
 
@@ -249,7 +248,8 @@ private fun TodayStatsRow(steps: Int, distanceKm: Double, calories: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.surfaceVariant)
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -314,7 +314,8 @@ private fun WeeklyStatsCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.surfaceVariant)
             .padding(16.dp)
     ) {
         Text(
@@ -386,7 +387,6 @@ private fun WorkoutHistoryCard(
         ActivityType.WALKING -> Icons.Default.DirectionsWalk
         ActivityType.CYCLING -> Icons.Default.DirectionsBike
         ActivityType.HIKING -> Icons.Default.Terrain
-        ActivityType.SWIMMING -> Icons.Default.Pool
     }
 
     val typeColor = when (activity.activityType) {
@@ -394,13 +394,13 @@ private fun WorkoutHistoryCard(
         ActivityType.WALKING -> SecondaryColor
         ActivityType.CYCLING -> Color(0xFFFFD60A)
         ActivityType.HIKING -> Color(0xFFBF5AF2)
-        ActivityType.SWIMMING -> Color(0xFF00BCD4)
     }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant)
             .clickable { onClick() }
             .padding(14.dp)
     ) {
@@ -583,7 +583,8 @@ private fun QuickStartButton(
 ) {
     Column(
         modifier = modifier
-            .glass(cornerRadius = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppColors.surfaceVariant)
             .clickable { onClick() }
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -626,7 +627,8 @@ private fun FitnessCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.surfaceVariant)
             .padding(16.dp)
     ) {
         Text(
@@ -708,7 +710,8 @@ private fun EmptyWorkoutsCard() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.surfaceVariant)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)

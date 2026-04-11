@@ -40,10 +40,7 @@ enum class WorkoutType(val displayName: String, val icon: String, val usesGps: B
     RUN("Run", "directions_run", true),
     WALK("Walk", "directions_walk", true),
     HIKE("Hike", "terrain", true),
-    SWIM("Swim", "pool", false),
-    CYCLE("Cycle", "directions_bike", true),
-    INDOOR_RUN("Indoor Run", "fitness_center", false),
-    INDOOR_WALK("Indoor Walk", "fitness_center", false)
+    CYCLE("Cycle", "directions_bike", true)
 }
 
 // ─────────────────────────────────────
@@ -463,11 +460,10 @@ class LiveWorkoutViewModel @Inject constructor(
         if (state.elapsedSeconds < 5) return
 
         val activityType = when (state.workoutType) {
-            WorkoutType.RUN, WorkoutType.INDOOR_RUN -> ActivityType.RUNNING
-            WorkoutType.WALK, WorkoutType.INDOOR_WALK -> ActivityType.WALKING
+            WorkoutType.RUN -> ActivityType.RUNNING
+            WorkoutType.WALK -> ActivityType.WALKING
             WorkoutType.CYCLE -> ActivityType.CYCLING
             WorkoutType.HIKE -> ActivityType.HIKING
-            WorkoutType.SWIM -> ActivityType.SWIMMING
         }
 
         val routeCoords = state.routePoints.map { rp ->
@@ -508,7 +504,6 @@ class LiveWorkoutViewModel @Inject constructor(
                 ActivityType.WALKING -> ExerciseSessionRecord.EXERCISE_TYPE_WALKING
                 ActivityType.CYCLING -> ExerciseSessionRecord.EXERCISE_TYPE_BIKING
                 ActivityType.HIKING -> ExerciseSessionRecord.EXERCISE_TYPE_HIKING
-                ActivityType.SWIMMING -> ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL
             }
             healthConnectService.writeExerciseSession(
                 exerciseType = hcExerciseType,

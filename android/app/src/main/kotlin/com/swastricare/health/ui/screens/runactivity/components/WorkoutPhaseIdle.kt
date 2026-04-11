@@ -139,7 +139,8 @@ fun WorkoutPhaseIdle(
                         AnimatedVisibility(
                             visible = visible,
                             enter = fadeIn(animationSpec = tween(300)) +
-                                    scaleIn(initialScale = 0.8f, animationSpec = tween(300))
+                                    scaleIn(initialScale = 0.8f, animationSpec = tween(300)),
+                            modifier = Modifier.weight(1f)
                         ) {
                             WorkoutTypeCard(
                                 type = type,
@@ -148,7 +149,7 @@ fun WorkoutPhaseIdle(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onSelectWorkoutType(type)
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }

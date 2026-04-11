@@ -2,7 +2,7 @@ package com.swastricare.health.ui.navigation
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.composables.icons.lucide.Footprints
+import com.composables.icons.lucide.Activity
 import com.composables.icons.lucide.Heart
 import com.composables.icons.lucide.Lock
 import com.composables.icons.lucide.Lucide
@@ -15,7 +15,7 @@ import com.swastricare.health.ui.theme.PrimaryColor
 private val iconHeart: ImageVector = Lucide.Heart
 private val iconLock: ImageVector = Lucide.Lock
 private val iconSparkles: ImageVector = Lucide.Sparkles
-private val iconFootprints: ImageVector = Lucide.Footprints
+private val iconActivity: ImageVector = Lucide.Activity
 private val iconUser: ImageVector = Lucide.User
 
 /**
@@ -52,9 +52,9 @@ sealed class BottomNavTab(
     )
     object Steps : BottomNavTab(
         route = "steps",
-        title = "Steps",
-        icon = iconFootprints,
-        selectedIcon = iconFootprints,
+        title = "Activity",
+        icon = iconActivity,
+        selectedIcon = iconActivity,
         color = PrimaryColor
     )
     object Profile : BottomNavTab(

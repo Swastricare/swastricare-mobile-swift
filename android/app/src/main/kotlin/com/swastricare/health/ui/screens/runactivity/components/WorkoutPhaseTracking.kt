@@ -96,10 +96,7 @@ fun WorkoutPhaseTracking(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    when (uiState.workoutType) {
-                        com.swastricare.health.ui.screens.runactivity.WorkoutType.SWIM -> Icons.Default.Pool
-                        else -> Icons.Default.FitnessCenter
-                    },
+                    Icons.Default.FitnessCenter,
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.1f),
                     modifier = Modifier.size(120.dp)
