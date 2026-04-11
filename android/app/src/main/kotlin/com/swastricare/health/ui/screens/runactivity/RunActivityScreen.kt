@@ -604,4 +604,129 @@ private fun WorkoutPanel(
     onTypeSelected: (WorkoutType) -> Unit,
     onStart: () -> Unit,
     modifier: Modifier = Modifier
-) {}
+) {
+    val haptic = LocalHapticFeedback.current
+
+    // Pulse animation on the START button while idle
+    val infiniteTransition = rememberInfiniteTransition(label = "startPulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.025f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = AppColors.surface,
+        shadowElevation = 16.dp,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Workout type chip row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                WorkoutType.entries.forEach { type ->
+                    WorkoutChip(
+                        type = type,
+                        isSelected = type == selectedType,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onTypeSelected(type)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Pulsing START button
+            Button(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onStart()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .scale(pulseScale),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SecondaryColor)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "START ${selectedType.displayName.uppercase()}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutChip(
+    type: WorkoutType,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val accentColor = when (type) {
+        WorkoutType.RUN -> RunningCyan
+        WorkoutType.WALK -> WalkingGreen
+        WorkoutType.CYCLE -> CyclingYellow
+        WorkoutType.HIKE -> HikingPurple
+    }
+    val icon: ImageVector = when (type) {
+        WorkoutType.RUN -> Icons.Default.DirectionsRun
+        WorkoutType.WALK -> Icons.Default.DirectionsWalk
+        WorkoutType.CYCLE -> Icons.Default.DirectionsBike
+        WorkoutType.HIKE -> Icons.Default.Terrain
+    }
+    val bgColor by animateColorAsState(
+        targetValue = if (isSelected) accentColor else AppColors.surfaceVariant,
+        animationSpec = tween(200),
+        label = "chipBg"
+    )
+    val contentColor = if (isSelected) Color.Black else AppColors.onSurfaceVariant
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(bgColor)
+            .clickable { onClick() }
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = type.displayName,
+            tint = contentColor,
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            text = type.displayName,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+        )
+    }
+}
