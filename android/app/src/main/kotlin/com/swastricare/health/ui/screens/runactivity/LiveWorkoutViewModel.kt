@@ -39,8 +39,9 @@ import javax.inject.Inject
 enum class WorkoutType(val displayName: String, val icon: String, val usesGps: Boolean) {
     RUN("Run", "directions_run", true),
     WALK("Walk", "directions_walk", true),
-    CYCLE("Cycle", "directions_bike", true),
     HIKE("Hike", "terrain", true),
+    SWIM("Swim", "pool", false),
+    CYCLE("Cycle", "directions_bike", true),
     INDOOR_RUN("Indoor Run", "fitness_center", false),
     INDOOR_WALK("Indoor Walk", "fitness_center", false)
 }
@@ -56,6 +57,23 @@ enum class WorkoutPhase {
     PAUSED,     // Workout paused
     COMPLETED   // Workout finished
 }
+
+// ─────────────────────────────────────
+// MARK: - Permission State
+// ─────────────────────────────────────
+
+enum class PermissionStatus {
+    NOT_CHECKED,
+    GRANTED,
+    DENIED_FIRST_TIME,
+    PERMANENTLY_DENIED
+}
+
+data class PermissionState(
+    val status: PermissionStatus = PermissionStatus.NOT_CHECKED,
+    val showRationaleSheet: Boolean = false,
+    val showSettingsDialog: Boolean = false
+)
 
 // ─────────────────────────────────────
 // MARK: - UI State
@@ -118,6 +136,18 @@ data class LiveWorkoutUiState(
         return String.format("%d:%02d", paceMin, paceSec)
     }
 
+    val currentPaceFormatted: String get() {
+        // Live pace derived from current GPS speed
+        if (currentSpeedMps < 0.3f) return "--:--" // below ~1 km/h
+        val paceSeconds = 1000.0 / currentSpeedMps // seconds per km
+        if (paceSeconds > 5999) return "99:59"
+        val paceMin = (paceSeconds / 60).toInt()
+        val paceSec = (paceSeconds % 60).toInt()
+        return String.format("%d:%02d", paceMin, paceSec)
+    }
+
+    val currentKmSplit: Int get() = (distanceMeters / 1000.0).toInt() + 1
+
     val currentSpeedKmh: Float get() = currentSpeedMps * 3.6f
 
     val averageSpeedKmh: Float get() = averageSpeedMps * 3.6f
@@ -140,6 +170,9 @@ class LiveWorkoutViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(LiveWorkoutUiState())
     val uiState: StateFlow<LiveWorkoutUiState> = _uiState.asStateFlow()
+
+    private val _permissionState = MutableStateFlow(PermissionState())
+    val permissionState: StateFlow<PermissionState> = _permissionState.asStateFlow()
 
     private val routeTracker = RouteTracker(context)
 
@@ -277,6 +310,35 @@ class LiveWorkoutViewModel @Inject constructor(
         _uiState.update { it.copy(hasLocationPermission = granted) }
     }
 
+    fun checkLocationPermission(granted: Boolean, shouldShowRationale: Boolean) {
+        _permissionState.value = when {
+            granted -> PermissionState(PermissionStatus.GRANTED)
+            shouldShowRationale -> PermissionState(
+                PermissionStatus.DENIED_FIRST_TIME,
+                showRationaleSheet = true
+            )
+            else -> PermissionState(
+                PermissionStatus.PERMANENTLY_DENIED,
+                showSettingsDialog = true
+            )
+        }
+    }
+
+    fun dismissRationaleSheet() {
+        _permissionState.update { it.copy(showRationaleSheet = false) }
+    }
+
+    fun dismissSettingsDialog() {
+        _permissionState.update { it.copy(showSettingsDialog = false) }
+    }
+
+    fun canStartWorkout(): Boolean {
+        val usesGps = _uiState.value.workoutType.usesGps
+        if (!usesGps) return true
+
+        return _permissionState.value.status != PermissionStatus.PERMANENTLY_DENIED
+    }
+
     fun startWorkout() {
         // Guard against double-taps: only start from IDLE
         if (_uiState.value.phase != WorkoutPhase.IDLE) return
@@ -405,6 +467,7 @@ class LiveWorkoutViewModel @Inject constructor(
             WorkoutType.WALK, WorkoutType.INDOOR_WALK -> ActivityType.WALKING
             WorkoutType.CYCLE -> ActivityType.CYCLING
             WorkoutType.HIKE -> ActivityType.HIKING
+            WorkoutType.SWIM -> ActivityType.SWIMMING
         }
 
         val routeCoords = state.routePoints.map { rp ->
@@ -445,6 +508,7 @@ class LiveWorkoutViewModel @Inject constructor(
                 ActivityType.WALKING -> ExerciseSessionRecord.EXERCISE_TYPE_WALKING
                 ActivityType.CYCLING -> ExerciseSessionRecord.EXERCISE_TYPE_BIKING
                 ActivityType.HIKING -> ExerciseSessionRecord.EXERCISE_TYPE_HIKING
+                ActivityType.SWIMMING -> ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL
             }
             healthConnectService.writeExerciseSession(
                 exerciseType = hcExerciseType,

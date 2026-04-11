@@ -122,10 +122,14 @@ class RunActivityViewModel @Inject constructor(
 
     private suspend fun syncInBackground() {
         try {
-            val profileId = supabaseClient.auth.currentUserOrNull()?.id ?: return
+            // Get current user's health profile ID (NOT the auth user ID)
+            val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return
+            val profile = profileRepository.getHealthProfile(userId)
+            val healthProfileId = profile?.id ?: return
+
             val unsynced = _uiState.value.activities.filter { !it.synced }
             if (unsynced.isNotEmpty()) {
-                repository.syncActivitiesToCloud(unsynced, profileId)
+                repository.syncActivitiesToCloud(unsynced, healthProfileId)
             }
         } catch (e: Exception) {
             android.util.Log.w("RunActivityVM", "Sync failed: ${e.message}")

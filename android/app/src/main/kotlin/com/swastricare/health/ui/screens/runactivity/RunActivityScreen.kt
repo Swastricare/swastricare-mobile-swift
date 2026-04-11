@@ -33,7 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
-import com.swastricare.health.ui.theme.PremiumColor
+import com.swastricare.health.ui.theme.SecondaryColor
 
 // ─────────────────────────────────────
 // MARK: - RunActivityScreen
@@ -166,7 +166,7 @@ fun RunActivityScreen(
                 QuickStartButton(
                     icon = Icons.Default.DirectionsWalk,
                     label = "Walk",
-                    color = PremiumColor.NeonGreenEnd,
+                    color = SecondaryColor,
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onNavigateToLiveWorkout(WorkoutType.WALK)
@@ -263,7 +263,7 @@ private fun TodayStatsRow(steps: Int, distanceKm: Double, calories: Int) {
             icon = Icons.Default.Route,
             value = if (distanceKm > 0) "%.1f".format(distanceKm) else "--",
             label = "km",
-            color = PremiumColor.NeonGreenEnd
+            color = SecondaryColor
         )
         TodayStatItem(
             icon = Icons.Default.LocalFireDepartment,
@@ -333,7 +333,7 @@ private fun WeeklyStatsCard(
             StatColumn(
                 value = String.format("%.1f", statistics.totalDistanceKm),
                 label = "km total",
-                color = PremiumColor.NeonGreenEnd
+                color = SecondaryColor
             )
             StatColumn(
                 value = statistics.formattedTotalDuration,
@@ -386,13 +386,15 @@ private fun WorkoutHistoryCard(
         ActivityType.WALKING -> Icons.Default.DirectionsWalk
         ActivityType.CYCLING -> Icons.Default.DirectionsBike
         ActivityType.HIKING -> Icons.Default.Terrain
+        ActivityType.SWIMMING -> Icons.Default.Pool
     }
 
     val typeColor = when (activity.activityType) {
         ActivityType.RUNNING -> Color(0xFF00E5FF)
-        ActivityType.WALKING -> PremiumColor.NeonGreenEnd
+        ActivityType.WALKING -> SecondaryColor
         ActivityType.CYCLING -> Color(0xFFFFD60A)
         ActivityType.HIKING -> Color(0xFFBF5AF2)
+        ActivityType.SWIMMING -> Color(0xFF00BCD4)
     }
 
     Column(
@@ -511,7 +513,7 @@ private fun StartWorkoutCard(onClick: () -> Unit) {
             .fillMaxWidth()
             .height(160.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(PremiumColor.NeonGreenEnd.copy(alpha = 0.85f))
+            .background(SecondaryColor.copy(alpha = 0.85f))
             .clickable { onClick() }
     ) {
         // Decorative circle
@@ -662,7 +664,7 @@ private fun FitnessCard(
                         "$weeklyLoad",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = PremiumColor.NeonGreenEnd
+                        color = SecondaryColor
                     )
                     Text(
                         "Weekly Load",
@@ -675,7 +677,7 @@ private fun FitnessCard(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 val (trendIcon, trendColor, trendLabel) = when (loadTrend) {
                     FitnessAnalyticsService.LoadTrend.INCREASING ->
-                        Triple(Icons.Default.TrendingUp, PremiumColor.NeonGreenEnd, "Building")
+                        Triple(Icons.Default.TrendingUp, SecondaryColor, "Building")
                     FitnessAnalyticsService.LoadTrend.DECREASING ->
                         Triple(Icons.Default.TrendingDown, Color(0xFFFF9F0A), "Tapering")
                     FitnessAnalyticsService.LoadTrend.MAINTAINING ->

@@ -11,10 +11,11 @@ import java.util.UUID
 // ------------------------------------
 
 enum class ActivityType(val dbValue: String, val displayName: String, val emoji: String) {
-    WALKING("walking", "Walking", "🚶"),
-    RUNNING("running", "Running", "🏃"),
+    WALKING("walk", "Walking", "🚶"),
+    RUNNING("run", "Running", "🏃"),
     CYCLING("cycling", "Cycling", "🚴"),
-    HIKING("hiking", "Hiking", "🥾");
+    HIKING("hike", "Hiking", "🥾"),
+    SWIMMING("swim", "Swimming", "🏊");
 
     companion object {
         fun fromDb(value: String): ActivityType =
@@ -141,9 +142,9 @@ enum class TimeRangeFilter(val displayName: String, val days: Int) {
 data class RunActivityDto(
     val id: String = UUID.randomUUID().toString(),
     @SerialName("health_profile_id") val healthProfileId: String = "",
-    @SerialName("activity_type") val activityType: String = "running",
-    @SerialName("start_time") val startTime: String? = null,
-    @SerialName("end_time") val endTime: String? = null,
+    @SerialName("activity_type") val activityType: String = "run",
+    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("ended_at") val endedAt: String? = null,
     @SerialName("distance_meters") val distanceMeters: Double = 0.0,
     @SerialName("duration_seconds") val durationSeconds: Long = 0,
     @SerialName("avg_pace_seconds_per_km") val avgPaceSecondsPerKm: Long = 0,
@@ -151,6 +152,7 @@ data class RunActivityDto(
     @SerialName("avg_heart_rate") val avgHeartRate: Int? = null,
     @SerialName("route_coordinates") val routeCoordinates: String? = null, // JSON string
     val splits: String? = null, // JSON string
+    val steps: Int = 0, // Required by database schema
     @SerialName("created_at") val createdAt: String? = null
 )
 
@@ -158,9 +160,14 @@ data class RunActivityDto(
 // MARK: - Conversion
 // ------------------------------------
 
-private val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
-
+// Use ISO instant formatter for Supabase TIMESTAMPTZ columns
+private val isoFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 private val routeJson = kotlinx.serialization.json.Json { encodeDefaults = true }
+
+// Helper to convert LocalDateTime to ISO string with timezone
+private fun LocalDateTime.toIsoStringWithZone(): String {
+    return this.atZone(java.time.ZoneId.systemDefault()).format(isoFormatter)
+}
 
 @Serializable
 private data class RouteCoordinateDto(
@@ -208,15 +215,16 @@ fun RunActivity.toDto(profileId: String): RunActivityDto {
         id = id,
         healthProfileId = profileId,
         activityType = activityType.dbValue,
-        startTime = startTime?.format(isoFormatter),
-        endTime = endTime?.format(isoFormatter),
+        startedAt = startTime?.toIsoStringWithZone(),
+        endedAt = endTime?.toIsoStringWithZone(),
         distanceMeters = distanceMeters,
         durationSeconds = durationSeconds,
         avgPaceSecondsPerKm = avgPaceSecondsPerKm,
         caloriesBurned = caloriesBurned,
         avgHeartRate = avgHeartRate,
         routeCoordinates = routeCoordsJson,
-        splits = splitsJson
+        splits = splitsJson,
+        steps = 0 // TODO: Add step counting from Health Connect if available
     )
 }
 
@@ -253,8 +261,16 @@ fun RunActivityDto.toDomain(): RunActivity {
         id = id,
         userId = healthProfileId,
         activityType = ActivityType.fromDb(activityType),
-        startTime = startTime?.let { try { LocalDateTime.parse(it, isoFormatter) } catch (_: Exception) { null } },
-        endTime = endTime?.let { try { LocalDateTime.parse(it, isoFormatter) } catch (_: Exception) { null } },
+        startTime = startedAt?.let {
+            try {
+                java.time.ZonedDateTime.parse(it, isoFormatter).toLocalDateTime()
+            } catch (_: Exception) { null }
+        },
+        endTime = endedAt?.let {
+            try {
+                java.time.ZonedDateTime.parse(it, isoFormatter).toLocalDateTime()
+            } catch (_: Exception) { null }
+        },
         distanceMeters = distanceMeters,
         durationSeconds = durationSeconds,
         avgPaceSecondsPerKm = avgPaceSecondsPerKm,
