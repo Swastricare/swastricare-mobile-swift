@@ -636,7 +636,7 @@ private fun WorkoutPanel(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                WorkoutType.entries.forEach { type ->
+                listOf(WorkoutType.RUN, WorkoutType.WALK, WorkoutType.CYCLE, WorkoutType.HIKE).forEach { type ->
                     WorkoutChip(
                         type = type,
                         isSelected = type == selectedType,
