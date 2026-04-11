@@ -133,7 +133,27 @@ fun RunActivityScreen(
 // ─── Stub composables (filled in subsequent tasks) ───────────────────────────
 
 @Composable
-private fun ActivityHeader(onNavigateToCalendar: () -> Unit) {}
+private fun ActivityHeader(onNavigateToCalendar: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "Activity",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = AppColors.onBackground
+        )
+        IconButton(onClick = onNavigateToCalendar) {
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = "Calendar",
+                tint = AppColors.onSurfaceVariant
+            )
+        }
+    }
+}
 
 @Composable
 private fun HeroStatsCard(
@@ -141,7 +161,104 @@ private fun HeroStatsCard(
     distanceKm: Double,
     calories: Int,
     isLoading: Boolean
-) {}
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.surfaceVariant)
+            .padding(20.dp)
+    ) {
+        Text(
+            text = "TODAY",
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.5.sp
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HeroStatItem(
+                value = if (steps > 0) "%,d".format(steps) else "—",
+                label = "Steps",
+                icon = Icons.Default.DirectionsWalk,
+                color = RunningCyan,
+                isLoading = isLoading
+            )
+            Box(
+                modifier = Modifier
+                    .height(48.dp)
+                    .width(1.dp)
+                    .background(AppColors.outlineVariant)
+            )
+            HeroStatItem(
+                value = if (distanceKm > 0) "%.1f".format(distanceKm) else "—",
+                label = "km",
+                icon = Icons.Default.Straighten,
+                color = WalkingGreen,
+                isLoading = isLoading
+            )
+            Box(
+                modifier = Modifier
+                    .height(48.dp)
+                    .width(1.dp)
+                    .background(AppColors.outlineVariant)
+            )
+            HeroStatItem(
+                value = if (calories > 0) "$calories" else "—",
+                label = "kcal",
+                icon = Icons.Default.LocalFireDepartment,
+                color = Color(0xFFFF9F0A),
+                isLoading = isLoading
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroStatItem(
+    value: String,
+    label: String,
+    icon: ImageVector,
+    color: Color,
+    isLoading: Boolean
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = color,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.height(6.dp))
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .width(52.dp)
+                    .height(30.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(AppColors.outlineVariant)
+            )
+        } else {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.onSurface
+            )
+        }
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.onSurfaceVariant
+        )
+    }
+}
 
 @Composable
 private fun WeeklyBarChart(activities: List<RunActivity>) {}
