@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -72,16 +74,22 @@ fun RunActivityScreen(
             .fillMaxSize()
             .background(AppColors.background)
     ) {
-        // Scrollable content — bottom padding clears the fixed workout panel
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 20.dp, end = 20.dp,
-                top = 16.dp, bottom = 200.dp
+                top = 16.dp, bottom = 100.dp
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { ActivityHeader(onNavigateToCalendar = onNavigateToCalendar) }
+            item {
+                WorkoutLauncherCard(
+                    selectedType = selectedType,
+                    onTypeSelected = { selectedType = it },
+                    onStart = { onNavigateToLiveWorkout(selectedType) }
+                )
+            }
             item {
                 HeroStatsCard(
                     steps = uiState.todaySteps,
@@ -111,19 +119,11 @@ fun RunActivityScreen(
             }
         }
 
-        // Fixed bottom workout panel — always visible, not part of scroll
-        WorkoutPanel(
-            selectedType = selectedType,
-            onTypeSelected = { selectedType = it },
-            onStart = { onNavigateToLiveWorkout(selectedType) },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 196.dp)
+                .padding(bottom = 96.dp)
         )
     }
 }
@@ -163,8 +163,9 @@ private fun HeroStatsCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp), clip = false)
             .clip(RoundedCornerShape(20.dp))
-            .background(AppColors.surfaceVariant)
+            .background(AppColors.surface)
             .padding(20.dp)
     ) {
         Text(
@@ -283,8 +284,9 @@ private fun WeeklyBarChart(activities: List<RunActivity>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp), clip = false)
             .clip(RoundedCornerShape(20.dp))
-            .background(AppColors.surfaceVariant)
+            .background(AppColors.surface)
             .padding(16.dp)
     ) {
         Text(
@@ -475,8 +477,9 @@ private fun EmptyWorkoutsState() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp), clip = false)
             .clip(RoundedCornerShape(20.dp))
-            .background(AppColors.surfaceVariant)
+            .background(AppColors.surface)
             .padding(40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -523,8 +526,9 @@ private fun StravaWorkoutCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(3.dp, RoundedCornerShape(16.dp), clip = false)
             .clip(RoundedCornerShape(16.dp))
-            .background(AppColors.surfaceVariant)
+            .background(AppColors.surface)
             .clickable { onClick() }
     ) {
         // Strava-style colored left border stripe
@@ -599,134 +603,124 @@ private fun StravaWorkoutCard(
 }
 
 @Composable
-private fun WorkoutPanel(
+private fun WorkoutLauncherCard(
     selectedType: WorkoutType,
     onTypeSelected: (WorkoutType) -> Unit,
-    onStart: () -> Unit,
-    modifier: Modifier = Modifier
+    onStart: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
 
-    // Pulse animation on the START button while idle
     val infiniteTransition = rememberInfiniteTransition(label = "startPulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.025f,
+        targetValue = 1.018f,
         animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = FastOutSlowInEasing),
+            animation = tween(1000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse"
     )
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = AppColors.surface,
-        shadowElevation = 16.dp,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp), clip = false)
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.surface)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+        Text(
+            text = "START WORKOUT",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onSurfaceVariant,
+            letterSpacing = 1.5.sp
+        )
+
+        // 4 workout type tiles
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Workout type chip row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf(WorkoutType.RUN, WorkoutType.WALK, WorkoutType.CYCLE, WorkoutType.HIKE).forEach { type ->
-                    WorkoutChip(
-                        type = type,
-                        isSelected = type == selectedType,
-                        onClick = {
+            listOf(WorkoutType.RUN, WorkoutType.WALK, WorkoutType.CYCLE, WorkoutType.HIKE).forEach { type ->
+                val accentColor = when (type) {
+                    WorkoutType.RUN -> RunningCyan
+                    WorkoutType.WALK -> WalkingGreen
+                    WorkoutType.CYCLE -> CyclingYellow
+                    WorkoutType.HIKE -> HikingPurple
+                }
+                val icon: ImageVector = when (type) {
+                    WorkoutType.RUN -> Icons.Default.DirectionsRun
+                    WorkoutType.WALK -> Icons.Default.DirectionsWalk
+                    WorkoutType.CYCLE -> Icons.Default.DirectionsBike
+                    WorkoutType.HIKE -> Icons.Default.Terrain
+                }
+                val isSelected = type == selectedType
+                val bgColor by animateColorAsState(
+                    targetValue = if (isSelected) accentColor else AppColors.surfaceVariant,
+                    animationSpec = tween(200),
+                    label = "tile_${type.name}"
+                )
+                val contentColor = if (isSelected) Color.Black else AppColors.onSurfaceVariant
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(bgColor)
+                        .clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onTypeSelected(type)
-                        },
-                        modifier = Modifier.weight(1f)
+                        }
+                        .padding(vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = type.displayName,
+                        tint = contentColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = type.displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
-
-            // Pulsing START button
-            Button(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onStart()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .scale(pulseScale),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SecondaryColor)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "START ${selectedType.displayName.uppercase()}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    letterSpacing = 1.sp
-                )
-            }
         }
-    }
-}
 
-@Composable
-private fun WorkoutChip(
-    type: WorkoutType,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val accentColor = when (type) {
-        WorkoutType.RUN -> RunningCyan
-        WorkoutType.WALK -> WalkingGreen
-        WorkoutType.CYCLE -> CyclingYellow
-        WorkoutType.HIKE -> HikingPurple
-    }
-    val icon: ImageVector = when (type) {
-        WorkoutType.RUN -> Icons.Default.DirectionsRun
-        WorkoutType.WALK -> Icons.Default.DirectionsWalk
-        WorkoutType.CYCLE -> Icons.Default.DirectionsBike
-        WorkoutType.HIKE -> Icons.Default.Terrain
-    }
-    val bgColor by animateColorAsState(
-        targetValue = if (isSelected) accentColor else AppColors.surfaceVariant,
-        animationSpec = tween(200),
-        label = "chipBg"
-    )
-    val contentColor = if (isSelected) Color.Black else AppColors.onSurfaceVariant
-
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(bgColor)
-            .clickable { onClick() }
-            .padding(vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = type.displayName,
-            tint = contentColor,
-            modifier = Modifier.size(22.dp)
-        )
-        Text(
-            text = type.displayName,
-            style = MaterialTheme.typography.labelSmall,
-            color = contentColor,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
+        // START button — full width, green, pulsing
+        Button(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onStart()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .scale(pulseScale),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = SecondaryColor),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "START ${selectedType.displayName.uppercase()}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                letterSpacing = 1.sp
+            )
+        }
     }
 }
