@@ -1,11 +1,14 @@
 package com.swastricare.health.ui.screens.runactivity
 
+import android.Manifest
+import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -26,7 +29,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import android.location.LocationManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -35,14 +40,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.accompanist.permissions.*
 import com.swastricare.health.data.models.ActivityType
 import com.swastricare.health.data.models.RouteCoordinate
 import com.swastricare.health.data.models.RunActivity
 import com.swastricare.health.data.models.TimeRangeFilter
-import com.swastricare.health.data.services.FitnessAnalyticsService
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.theme.*
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun RunActivityScreen(
     onNavigateToLiveWorkout: (WorkoutType?) -> Unit = {},
@@ -56,6 +62,42 @@ fun RunActivityScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val lifecycleOwner = LocalLifecycleOwner.current
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+
+    // ── Required permissions ──────────────────────────────────────────────────
+    val permissionsToRequest = remember {
+        buildList {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                add(Manifest.permission.ACTIVITY_RECOGNITION)
+            }
+        }
+    }
+    val permissionsState = rememberMultiplePermissionsState(permissionsToRequest)
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    var showLocationServicesDialog by remember { mutableStateOf(false) }
+
+    // ── Permission dialog ─────────────────────────────────────────────────────
+    if (showPermissionDialog) {
+        WorkoutPermissionDialog(
+            onAllow = {
+                showPermissionDialog = false
+                if (permissionsState.shouldShowRationale) {
+                    permissionsState.launchMultiplePermissionRequest()
+                } else {
+                    showSettingsDialog = true
+                }
+            },
+            onDismiss = { showPermissionDialog = false }
+        )
+    }
+    if (showSettingsDialog) {
+        WorkoutPermissionSettingsDialog(onDismiss = { showSettingsDialog = false })
+    }
+    if (showLocationServicesDialog) {
+        LocationServicesDialog(onDismiss = { showLocationServicesDialog = false })
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -72,6 +114,25 @@ fun RunActivityScreen(
         }
     }
 
+    // Closure used by HeroSection — checks permissions AND location services before navigating
+    val onStartWorkoutSafe: () -> Unit = {
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
+        val isGpsOn = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+
+        when {
+            !permissionsState.allPermissionsGranted -> {
+                if (permissionsState.shouldShowRationale) {
+                    showPermissionDialog = true
+                } else {
+                    permissionsState.launchMultiplePermissionRequest()
+                }
+            }
+            !isGpsOn -> showLocationServicesDialog = true
+            else -> onNavigateToLiveWorkout(null)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -83,10 +144,7 @@ fun RunActivityScreen(
                 HeroSection(
                     steps = uiState.todaySteps,
                     isLoading = uiState.isLoading,
-                    onStartWorkout = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onNavigateToLiveWorkout(null)
-                    },
+                    onStartWorkout = onStartWorkoutSafe,
                     onNavigateToCalendar = onNavigateToCalendar
                 )
             }
@@ -109,14 +167,8 @@ fun RunActivityScreen(
             }
 
             // ── Fitness Insights (compact chips) ─────────────────────────
-            if (uiState.vo2Max != null || uiState.weeklyTrainingLoad > 0) {
-                item {
-                    FitnessChips(
-                        vo2Max = uiState.vo2Max,
-                        weeklyLoad = uiState.weeklyTrainingLoad,
-                        loadTrend = uiState.loadTrend
-                    )
-                }
+            if (uiState.vo2Max != null) {
+                item { FitnessChips(vo2Max = uiState.vo2Max) }
             }
 
             // ── Recent Activities ────────────────────────────────────────
@@ -130,7 +182,7 @@ fun RunActivityScreen(
             if (uiState.activities.isEmpty()) {
                 item { EmptyActivitiesState() }
             } else {
-                items(uiState.activities.take(5), key = { it.id }) { activity ->
+                items(uiState.activities, key = { it.id }) { activity ->
                     ActivityCard(
                         activity = activity,
                         onClick = { onNavigateToActivityDetail(activity.id) }
@@ -433,29 +485,15 @@ private fun MetricItem(value: String, unit: String, label: String) {
 // ─── Fitness Chips ────────────────────────────────────────────────────────────
 
 @Composable
-private fun FitnessChips(
-    vo2Max: Double?,
-    weeklyLoad: Int,
-    loadTrend: FitnessAnalyticsService.LoadTrend
-) {
+private fun FitnessChips(vo2Max: Double?) {
+    if (vo2Max == null) return
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (vo2Max != null) {
-            FitnessChip(icon = Icons.Default.Favorite, value = "%.1f VO₂".format(vo2Max))
-        }
-        if (weeklyLoad > 0) {
-            FitnessChip(icon = Icons.Default.Bolt, value = "$weeklyLoad Load")
-        }
-        val trendLabel = when (loadTrend) {
-            FitnessAnalyticsService.LoadTrend.INCREASING -> "Building ↑"
-            FitnessAnalyticsService.LoadTrend.DECREASING -> "Tapering ↓"
-            FitnessAnalyticsService.LoadTrend.MAINTAINING -> "Steady →"
-        }
-        FitnessChip(icon = Icons.Default.TrendingUp, value = trendLabel)
+        FitnessChip(icon = Icons.Default.Favorite, value = "%.1f VO₂".format(vo2Max))
     }
 }
 
@@ -695,4 +733,148 @@ private fun lerpColor(a: Color, b: Color, f: Float): Color {
     val t = f.coerceIn(0f, 1f)
     return Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t,
         a.blue + (b.blue - a.blue) * t, 1f)
+}
+
+// ─── Permission Dialogs (Samsung-style bottom sheet) ─────────────────────────
+
+@Composable
+private fun WorkoutPermissionDialog(onAllow: () -> Unit, onDismiss: () -> Unit) {
+    PermissionBottomSheet(
+        title = "Permissions required",
+        reason = "Allow the app to access Location and Physical Activity to track your workout.",
+        body = "You won't be able to start a workout unless you grant the required permissions, " +
+               "but it won't affect your use of other features. " +
+               "You can always change permissions in Settings.",
+        denyLabel = "Deny",
+        allowLabel = "Allow",
+        onDeny = onDismiss,
+        onAllow = onAllow
+    )
+}
+
+@Composable
+private fun LocationServicesDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    PermissionBottomSheet(
+        title = "Permissions required",
+        reason = "Allow the app to access Location Services (GPS) to record your route and distance.",
+        body = "Your GPS is currently turned off. You won't be able to start a workout until Location " +
+               "Services is enabled. You can turn it on in Settings at any time.",
+        denyLabel = "Deny",
+        allowLabel = "Allow",
+        onDeny = onDismiss,
+        onAllow = {
+            context.startActivity(android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            onDismiss()
+        }
+    )
+}
+
+@Composable
+private fun WorkoutPermissionSettingsDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    PermissionBottomSheet(
+        title = "Permissions required",
+        reason = "Allow the app to access Location and Physical Activity.",
+        body = "You won't be able to use this feature unless you grant the required permissions, " +
+               "but it won't affect your use of other services. " +
+               "You can always restrict permissions in Settings.",
+        denyLabel = "Deny",
+        allowLabel = "Allow",
+        onDeny = onDismiss,
+        onAllow = {
+            val intent = android.content.Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                android.net.Uri.fromParts("package", context.packageName, null)
+            )
+            context.startActivity(intent)
+            onDismiss()
+        }
+    )
+}
+
+@Composable
+private fun PermissionBottomSheet(
+    title: String,
+    reason: String,
+    body: String,
+    denyLabel: String,
+    allowLabel: String,
+    onDeny: () -> Unit,
+    onAllow: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDeny,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(AppColors.surface)
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.onSurface
+                )
+
+                Text(
+                    text = reason,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.onSurface
+                )
+
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.onSurfaceVariant,
+                    lineHeight = 22.sp
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Deny
+                    Button(
+                        onClick = onDeny,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppColors.surfaceVariant,
+                            contentColor = AppColors.onSurface
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(0.dp)
+                    ) {
+                        Text(denyLabel, fontWeight = FontWeight.SemiBold)
+                    }
+                    // Allow
+                    Button(
+                        onClick = onAllow,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SecondaryColor),
+                        elevation = ButtonDefaults.buttonElevation(0.dp)
+                    ) {
+                        Text(allowLabel, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    }
+                }
+
+                Spacer(Modifier.navigationBarsPadding())
+            }
+        }
+    }
 }

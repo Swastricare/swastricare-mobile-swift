@@ -272,12 +272,15 @@ fun WorkoutPhaseTracking(
                 TrackingStatItem(value = uiState.currentPaceFormatted, label = "pace", color = textColor, subColor = statSubColor)
                 TrackingStatItem(value = uiState.paceFormatted, label = "avg", color = textColor, subColor = statSubColor)
                 TrackingStatItem(value = if (uiState.caloriesBurned > 0) "${uiState.caloriesBurned}" else "--", label = "kcal", color = textColor, subColor = statSubColor)
+                if (uiState.cadence > 0) {
+                    TrackingStatItem(value = "${uiState.cadence}", label = "spm", color = textColor, subColor = statSubColor)
+                }
             }
 
             if (uiState.distanceMeters > 10) {
                 Spacer(Modifier.height(8.dp))
                 val splitText = if (uiState.lastSplitPace.isNotEmpty()) {
-                    "KM ${uiState.completedKmSplits} · ${uiState.lastSplitPace}"
+                    "KM ${uiState.completedKmSplits} · ${uiState.lastSplitPace}/km"
                 } else {
                     "KM ${uiState.currentKmSplit}"
                 }
@@ -307,14 +310,12 @@ fun WorkoutPhaseTracking(
                     }
                 )
 
-                // Pause
+                // Pause — simple tap
                 Box(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(CircleShape)
-                        .background(
-                            if (!isPaused) pauseBg else pauseBg.copy(alpha = 0.2f)
-                        )
+                        .background(if (!isPaused) pauseBg else pauseBg.copy(alpha = 0.2f))
                         .then(
                             if (!isPaused) Modifier.clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -518,7 +519,7 @@ private fun TrackingStatItem(value: String, label: String, color: Color, subColo
 }
 
 // ─────────────────────────────────────
-// Hold-to-stop button with circular progress
+// Hold-to-stop button with tooltip + circular progress
 // ─────────────────────────────────────
 
 @Composable
@@ -526,69 +527,102 @@ private fun HoldToStopButton(enabled: Boolean, onComplete: () -> Unit) {
     val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     var completed by remember { mutableStateOf(false) }
+    var isHolding by remember { mutableStateOf(false) }
+    var showTooltip by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val stopRed = Color(0xFFFF4757)
     val alpha = if (enabled) 1f else 0.3f
 
+    LaunchedEffect(isHolding) {
+        if (isHolding) {
+            showTooltip = true
+        } else {
+            kotlinx.coroutines.delay(500)
+            showTooltip = false
+        }
+    }
+
     Box(
-        modifier = Modifier
-            .size(72.dp)
-            .drawBehind {
-                drawCircle(
-                    color = stopRed.copy(alpha = 0.15f * alpha),
-                    radius = size.minDimension / 2f
-                )
-                if (progress.value > 0f) {
-                    val strokeWidth = 4.dp.toPx()
-                    val arcSize = size.minDimension - strokeWidth
-                    drawArc(
-                        color = stopRed,
-                        startAngle = -90f,
-                        sweepAngle = 360f * progress.value,
-                        useCenter = false,
-                        topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
-                        size = Size(arcSize, arcSize),
-                        style = Stroke(width = strokeWidth)
-                    )
-                }
-            }
-            .then(
-                if (enabled && !completed) {
-                    Modifier.pointerInput(Unit) {
-                        detectTapGestures(
-                            onPress = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                val job = scope.launch {
-                                    progress.animateTo(
-                                        targetValue = 1f,
-                                        animationSpec = tween(
-                                            durationMillis = 3000,
-                                            easing = LinearEasing
-                                        )
-                                    )
-                                    completed = true
-                                    onComplete()
-                                }
-                                tryAwaitRelease()
-                                if (!completed) {
-                                    job.cancel()
-                                    scope.launch {
-                                        progress.animateTo(0f, animationSpec = tween(200))
-                                    }
-                                }
-                            }
-                        )
-                    }
-                } else Modifier
-            ),
+        modifier = Modifier.size(72.dp),   // fixed size — never shifts the row
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            Icons.Default.Stop,
-            contentDescription = "Hold to stop",
-            tint = stopRed.copy(alpha = alpha),
-            modifier = Modifier.size(28.dp)
-        )
+        // Tooltip floats above via offset — does NOT affect layout
+        if (showTooltip) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-44).dp),
+                shape = RoundedCornerShape(8.dp),
+                color = Color.Black.copy(alpha = 0.75f),
+                shadowElevation = 4.dp
+            ) {
+                Text(
+                    text = "Hold to stop",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .drawBehind {
+                    drawCircle(
+                        color = stopRed.copy(alpha = 0.15f * alpha),
+                        radius = size.minDimension / 2f
+                    )
+                    if (progress.value > 0f) {
+                        val strokeWidth = 4.dp.toPx()
+                        val arcSize = size.minDimension - strokeWidth
+                        drawArc(
+                            color = stopRed,
+                            startAngle = -90f,
+                            sweepAngle = 360f * progress.value,
+                            useCenter = false,
+                            topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
+                            size = Size(arcSize, arcSize),
+                            style = Stroke(width = strokeWidth)
+                        )
+                    }
+                }
+                .then(
+                    if (enabled && !completed) {
+                        Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    isHolding = true
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    val job = scope.launch {
+                                        progress.animateTo(
+                                            targetValue = 1f,
+                                            animationSpec = tween(durationMillis = 3000, easing = LinearEasing)
+                                        )
+                                        completed = true
+                                        onComplete()
+                                    }
+                                    tryAwaitRelease()
+                                    isHolding = false
+                                    if (!completed) {
+                                        job.cancel()
+                                        scope.launch { progress.animateTo(0f, animationSpec = tween(200)) }
+                                    }
+                                }
+                            )
+                        }
+                    } else Modifier
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Stop,
+                contentDescription = "Hold to stop",
+                tint = stopRed.copy(alpha = alpha),
+                modifier = Modifier.size(28.dp)
+            )
+        }
     }
 }
 

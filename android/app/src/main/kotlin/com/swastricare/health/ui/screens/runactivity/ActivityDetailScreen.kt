@@ -227,7 +227,8 @@ fun ActivityDetailScreen(
                         TextButton(
                             onClick = {
                                 showDeleteDialog = false
-                                onDelete(workout!!.id)
+                                viewModel.deleteActivity(workout!!.id)
+                                onNavigateBack()
                             },
                             colors = ButtonDefaults.textButtonColors(contentColor = RedAccent)
                         ) {
@@ -353,7 +354,7 @@ private fun ActivityHeaderCard(
                 alpha = animatedAlpha
                 translationY = animatedOffset
             }
-            .glass(cornerRadius = 20.dp)
+            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -389,11 +390,6 @@ private fun ActivityHeaderCard(
                 )
             }
         }
-
-        HorizontalDivider(
-            color = AppColors.onSurface.copy(alpha = 0.1f),
-            thickness = 1.dp
-        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -468,7 +464,7 @@ private fun DetailTabRow(
         selectedTabIndex = selectedTab.ordinal,
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .glass(cornerRadius = 16.dp, opacity = 0.15f),
+            .glass(cornerRadius = 16.dp, opacity = 0.15f, strokeWidth = 0.dp),
         containerColor = Color.Transparent,
         contentColor = AppColors.onSurface,
         indicator = { tabPositions ->
@@ -593,7 +589,7 @@ private fun StatCardContent(
                 scaleX = animatedScale
                 scaleY = animatedScale
             }
-            .glass(cornerRadius = 16.dp)
+            .glass(cornerRadius = 16.dp, strokeWidth = 0.dp)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -661,7 +657,7 @@ private fun SplitsTab(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
+            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
     ) {
         // Header row
         Row(
@@ -806,7 +802,7 @@ private fun PaceTab(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
+            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -1039,7 +1035,7 @@ private fun HeartRateTab(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
+            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -1286,7 +1282,7 @@ private fun EmptyTabPlaceholder(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp)
+            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
             .padding(40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)

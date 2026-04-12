@@ -6,11 +6,17 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.isGranted
@@ -18,6 +24,7 @@ import com.google.accompanist.permissions.shouldShowRationale
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.runactivity.components.*
+import com.swastricare.health.ui.theme.SecondaryColor
 
 /**
  * LiveWorkoutScreen - Phase orchestrator for workout tracking.
@@ -87,6 +94,30 @@ fun LiveWorkoutScreen(
             } else {
                 viewModel.checkLocationPermission(granted = true, shouldShowRationale = false)
             }
+        }
+    }
+
+    // ── Too-short workout dialog ──
+    var showTooShortDialog by remember { mutableStateOf(false) }
+
+    if (showTooShortDialog) {
+        TooShortWorkoutDialog(
+            onContinue = { showTooShortDialog = false },
+            onEnd = {
+                showTooShortDialog = false
+                viewModel.resetWorkout()
+                onNavigateBack()
+            }
+        )
+    }
+
+    // Helper: check if workout is too short before stopping
+    val onStopRequested = {
+        val tooShort = uiState.elapsedSeconds < 60 || uiState.distanceMeters < 50
+        if (tooShort) {
+            showTooShortDialog = true
+        } else {
+            viewModel.stopWorkout()
         }
     }
 
@@ -181,7 +212,7 @@ fun LiveWorkoutScreen(
                 isPaused = uiState.phase == WorkoutPhase.PAUSED,
                 onPause = { viewModel.pauseWorkout() },
                 onResume = { viewModel.resumeWorkout() },
-                onStop = { viewModel.stopWorkout() },
+                onStop = onStopRequested,
                 onToggleAutoPause = { viewModel.toggleAutoPause() }
             )
 
@@ -197,6 +228,73 @@ fun LiveWorkoutScreen(
                     onNavigateBack()
                 }
             )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TooShortWorkoutDialog(onContinue: () -> Unit, onEnd: () -> Unit) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onContinue,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(28.dp)
+                    )
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Workout too short",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Workout time is too short. This session won't be recorded. End anyway?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = MaterialTheme.typography.bodyMedium.fontSize * 1.5
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = onContinue,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(0.dp)
+                    ) {
+                        Text("Continue", fontWeight = FontWeight.SemiBold)
+                    }
+                    Button(
+                        onClick = onEnd,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4757)),
+                        elevation = ButtonDefaults.buttonElevation(0.dp)
+                    ) {
+                        Text("End", fontWeight = FontWeight.SemiBold, color = Color.White)
+                    }
+                }
+                Spacer(Modifier.navigationBarsPadding())
             }
         }
     }

@@ -4,78 +4,89 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.swastricare.health.ui.theme.SecondaryColor
 
 /**
- * COUNTDOWN phase component - 3-2-1 countdown with animated black/white flash.
+ * COUNTDOWN phase — 3-2-1-GO! with punch-in scale animation and haptic feedback.
  */
 @Composable
-fun WorkoutPhaseCountdown(
-    countdownValue: Int
-) {
-    // Punch-in scale: starts large, springs down to 1
-    var targetScale by remember { mutableFloatStateOf(2.5f) }
-    LaunchedEffect(countdownValue) {
-        targetScale = 2.5f
-        // Triggers recomposition so the animation runs from 2.5 → 1
-        targetScale = 1f
-    }
-    val scale by animateFloatAsState(
-        targetValue = targetScale,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "countdownScale"
-    )
-
-    // Animated background flash: toggles between black and white each tick
+fun WorkoutPhaseCountdown(countdownValue: Int) {
+    val haptic = LocalHapticFeedback.current
     val isDark = isSystemInDarkTheme()
-    val bgTarget = if (countdownValue % 2 == 0) {
-        if (isDark) Color(0xFF1A1A1A) else Color.White
-    } else {
-        if (isDark) Color.Black else Color(0xFFF0F0F0)
+
+    // Animatable so we can snap to large scale then spring down — avoids the
+    // "set high then immediately set low in one block" bug where the high value
+    // is never rendered.
+    val scale = remember { Animatable(1.4f) }
+
+    LaunchedEffect(countdownValue) {
+        // Snap to punch-in size instantly
+        scale.snapTo(1.4f)
+        // Haptic on each tick
+        if (countdownValue > 0) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        } else {
+            // "GO!" — double pulse
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            kotlinx.coroutines.delay(80)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+        // Spring down to resting size
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        )
     }
-    val animatedBg by animateColorAsState(
-        targetValue = bgTarget,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "countdownBg"
+
+    // Background: pure black / pure white; green tint on GO
+    val bgColor by animateColorAsState(
+        targetValue = when {
+            countdownValue == 0 -> if (isDark) Color(0xFF0A1F0D) else Color(0xFFECFDF5)
+            isDark -> Color.Black
+            else -> Color.White
+        },
+        animationSpec = tween(250),
+        label = "bg"
     )
 
-    // Text color: inverse of background
-    val textTarget = if (countdownValue % 2 == 0) Color.White else Color.Black
-    val animatedText by animateColorAsState(
-        targetValue = textTarget,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "countdownText"
+    // Number color: pure white (dark) / pure black (light); green for GO
+    val textColor by animateColorAsState(
+        targetValue = if (countdownValue == 0) SecondaryColor else if (isDark) Color.White else Color.Black,
+        animationSpec = tween(200),
+        label = "textColor"
     )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(animatedBg),
+            .background(bgColor),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "$countdownValue",
-            fontSize = 120.sp,
-            fontWeight = FontWeight.Black,
-            color = animatedText,
-            modifier = Modifier.scale(scale)
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = if (countdownValue > 0) "$countdownValue" else "GO!",
+                fontSize = if (countdownValue > 0) 140.sp else 96.sp,
+                fontWeight = FontWeight.Black,
+                color = textColor,
+                modifier = Modifier.scale(scale.value)
+            )
+        }
     }
 }

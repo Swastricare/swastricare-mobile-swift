@@ -3,6 +3,7 @@ package com.swastricare.health.ui.screens.runactivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
+import java.time.LocalDate
 import com.swastricare.health.data.repository.RunActivityRepository
 import com.swastricare.health.data.repository.ProfileRepository
 import com.swastricare.health.data.services.FitnessAnalyticsService
@@ -21,7 +22,8 @@ import javax.inject.Inject
 // ------------------------------------
 
 data class RunActivityUiState(
-    val activities: List<RunActivity> = emptyList(),
+    val activities: List<RunActivity> = emptyList(),          // filtered for display
+    val allActivities: List<RunActivity> = emptyList(),       // full list (used for re-filtering)
     val statistics: ActivityStatistics = ActivityStatistics(),
     val timeRangeFilter: TimeRangeFilter = TimeRangeFilter.ONE_MONTH,
     val isLoading: Boolean = false,
@@ -57,19 +59,27 @@ class RunActivityViewModel @Inject constructor(
         loadData()
     }
 
+    private fun filterActivities(all: List<RunActivity>, filter: TimeRangeFilter): List<RunActivity> {
+        val cutoff = LocalDate.now().minusDays(filter.days.toLong()).atStartOfDay()
+        return all.filter { it.startTime?.isAfter(cutoff) ?: true }
+    }
+
     fun loadData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             try {
-                val activities = repository.loadLocalActivities()
-                val stats = repository.calculateStatistics(activities, _uiState.value.timeRangeFilter)
+                val allActivities = repository.loadLocalActivities()
+                val filter = _uiState.value.timeRangeFilter
+                val filtered = filterActivities(allActivities, filter)
+                val stats = repository.calculateStatistics(allActivities, filter)
 
                 // Load real data from Health Connect
                 val summary = healthConnectService.getTodaySummary()
 
                 _uiState.value = _uiState.value.copy(
-                    activities = activities,
+                    allActivities = allActivities,
+                    activities = filtered,
                     statistics = stats,
                     isLoading = false,
                     todaySteps = summary.steps,
@@ -81,7 +91,7 @@ class RunActivityViewModel @Inject constructor(
 
                 // Load fitness analytics
                 try {
-                    val fitnessData = fitnessAnalyticsService.getFitnessData(activities)
+                    val fitnessData = fitnessAnalyticsService.getFitnessData(allActivities)
                     _uiState.value = _uiState.value.copy(
                         vo2Max = fitnessData.vo2Max,
                         vo2MaxSource = fitnessData.vo2MaxSource,
@@ -96,10 +106,12 @@ class RunActivityViewModel @Inject constructor(
     }
 
     fun setTimeRange(filter: TimeRangeFilter) {
-        val activities = _uiState.value.activities
-        val stats = repository.calculateStatistics(activities, filter)
+        val all = _uiState.value.allActivities
+        val filtered = filterActivities(all, filter)
+        val stats = repository.calculateStatistics(all, filter)
         _uiState.value = _uiState.value.copy(
             timeRangeFilter = filter,
+            activities = filtered,
             statistics = stats
         )
     }
@@ -107,10 +119,13 @@ class RunActivityViewModel @Inject constructor(
     fun deleteActivity(id: String) {
         viewModelScope.launch {
             repository.deleteLocalActivity(id)
-            val activities = repository.loadLocalActivities()
-            val stats = repository.calculateStatistics(activities, _uiState.value.timeRangeFilter)
+            val all = repository.loadLocalActivities()
+            val filter = _uiState.value.timeRangeFilter
+            val filtered = filterActivities(all, filter)
+            val stats = repository.calculateStatistics(all, filter)
             _uiState.value = _uiState.value.copy(
-                activities = activities,
+                allActivities = all,
+                activities = filtered,
                 statistics = stats
             )
         }

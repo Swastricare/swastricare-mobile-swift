@@ -7,9 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -217,6 +215,38 @@ fun WorkoutPhaseCompleted(
                 }
             }
 
+            // Steps + cadence row (only if step counter was available)
+            if (uiState.totalSteps > 0) {
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CompletedStatCard(
+                        icon = Icons.Default.DirectionsWalk,
+                        value = "${uiState.totalSteps}",
+                        label = "Steps",
+                        iconColor = Color(0xFF00BCD4),
+                        bgColor = cardBg,
+                        textColor = textColor,
+                        subtextColor = subtextColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (uiState.cadence > 0) {
+                        CompletedStatCard(
+                            icon = Icons.Default.Timer,
+                            value = "${uiState.cadence} spm",
+                            label = "Avg Cadence",
+                            iconColor = Color(0xFFE91E63),
+                            bgColor = cardBg,
+                            textColor = textColor,
+                            subtextColor = subtextColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
 
             // Save button
@@ -225,9 +255,7 @@ fun WorkoutPhaseCompleted(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onDone()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = solidGreen),
                 shape = RoundedCornerShape(14.dp)
             ) {

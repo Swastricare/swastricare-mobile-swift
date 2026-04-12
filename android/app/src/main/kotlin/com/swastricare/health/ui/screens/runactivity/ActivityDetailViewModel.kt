@@ -32,6 +32,12 @@ class ActivityDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ActivityDetailUiState())
     val uiState: StateFlow<ActivityDetailUiState> = _uiState.asStateFlow()
 
+    fun deleteActivity(id: String) {
+        viewModelScope.launch {
+            runActivityRepository.deleteLocalActivity(id)
+        }
+    }
+
     fun loadActivity(workoutId: String) {
         viewModelScope.launch {
             _uiState.value = ActivityDetailUiState(isLoading = true)

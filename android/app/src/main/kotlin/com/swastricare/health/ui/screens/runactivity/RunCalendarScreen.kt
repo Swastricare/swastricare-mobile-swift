@@ -8,9 +8,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -225,13 +226,15 @@ private fun MonthNavigationHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        val haptic = LocalHapticFeedback.current
+
         // Previous month button
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(AccentIndigo.copy(alpha = 0.1f))
-                .clickable { onPrevious() },
+                .clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onPrevious() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -265,7 +268,7 @@ private fun MonthNavigationHeader(
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(nextTint.copy(alpha = 0.1f))
-                .then(if (nextEnabled) Modifier.clickable { onNext() } else Modifier),
+                .then(if (nextEnabled) Modifier.clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onNext() } else Modifier),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -319,7 +322,7 @@ private fun CalendarGrid(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha; translationY = offsetY }
-            .glass(cornerRadius = 20.dp)
+            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -396,6 +399,7 @@ private fun CalendarDayCell(
 ) {
     val hasWorkouts = !workouts.isNullOrEmpty()
     val isDark = isSystemInDarkTheme()
+    val haptic = LocalHapticFeedback.current
 
     val textColor = when {
         isSelected -> Color.White
@@ -406,6 +410,7 @@ private fun CalendarDayCell(
 
     val backgroundColor = when {
         isSelected -> AccentIndigo
+        isToday -> AccentIndigo.copy(alpha = 0.12f)
         else -> Color.Transparent
     }
 
@@ -414,16 +419,10 @@ private fun CalendarDayCell(
             .height(48.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(backgroundColor)
-            .then(
-                if (isToday && !isSelected) {
-                    Modifier.border(
-                        width = 2.dp,
-                        color = AccentIndigo.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                } else Modifier
-            )
-            .clickable(enabled = !isFuture) { onClick() },
+            .clickable(enabled = !isFuture) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -544,6 +543,7 @@ private fun WorkoutCard(
     )
 
     val typeColor = workoutTypeColor(workout.type)
+    val haptic = LocalHapticFeedback.current
 
     Row(
         modifier = Modifier
@@ -554,8 +554,11 @@ private fun WorkoutCard(
                 scaleY = scale
                 translationY = offsetY
             }
-            .glass(cornerRadius = 16.dp)
-            .clickable { onClick() }
+            .glass(cornerRadius = 16.dp, strokeWidth = 0.dp)
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            }
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -644,7 +647,7 @@ private fun EmptyDayCard() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 16.dp)
+            .glass(cornerRadius = 16.dp, strokeWidth = 0.dp)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -802,7 +805,7 @@ private fun SummaryStatCard(
                 scaleX = scale
                 scaleY = scale
             }
-            .glass(cornerRadius = 16.dp)
+            .glass(cornerRadius = 16.dp, strokeWidth = 0.dp)
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)

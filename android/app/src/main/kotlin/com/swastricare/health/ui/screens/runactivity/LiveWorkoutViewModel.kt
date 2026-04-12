@@ -2,10 +2,15 @@ package com.swastricare.health.ui.screens.runactivity
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import com.swastricare.health.data.model.RoutePoint
+import com.swastricare.health.data.models.ActivitySplit
 import com.swastricare.health.data.models.ActivityType
 import com.swastricare.health.data.models.WorkoutTemplate
 import com.swastricare.health.data.models.RouteCoordinate
@@ -110,6 +115,10 @@ data class LiveWorkoutUiState(
     val lastSplitPace: String = "",
     val completedKmSplits: Int = 0,
 
+    // Step counting / cadence
+    val cadence: Int = 0,           // steps per minute (running average)
+    val totalSteps: Int = 0,
+
     // Templates
     val templates: List<WorkoutTemplate> = emptyList(),
     val activeTemplate: WorkoutTemplate? = null
@@ -198,6 +207,28 @@ class LiveWorkoutViewModel @Inject constructor(
     private var lastKmBoundary: Int = 0
     private var lastKmBoundaryElapsed: Long = 0
 
+    // Splits accumulation (populated as each km is completed)
+    private val accumulatedSplits = mutableListOf<ActivitySplit>()
+    private var lastSplitElevationGain: Double = 0.0   // totalElevationGain at start of current split
+
+    // Step counter / cadence
+    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    private val stepSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+    private var stepCounterBaseline: Int = -1  // raw counter value when workout started
+
+    private val stepSensorListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor.type != Sensor.TYPE_STEP_COUNTER) return
+            val rawSteps = event.values[0].toInt()
+            if (stepCounterBaseline < 0) stepCounterBaseline = rawSteps
+            val workoutSteps = rawSteps - stepCounterBaseline
+            val elapsed = _uiState.value.elapsedSeconds
+            val cadence = if (elapsed >= 10) (workoutSteps / (elapsed / 60.0)).toInt() else 0
+            _uiState.update { it.copy(totalSteps = workoutSteps, cadence = cadence) }
+        }
+        override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
+    }
+
     private val autoSaveJson = Json { encodeDefaults = true }
     private val isoFormatter = DateTimeFormatter.ISO_INSTANT
 
@@ -232,7 +263,7 @@ class LiveWorkoutViewModel @Inject constructor(
         viewModelScope.launch {
             routeTracker.totalDistanceMeters.collect { dist ->
                 _uiState.update { it.copy(distanceMeters = dist) }
-                // Track split pace when crossing km boundaries
+                // Record a split every time a new km boundary is crossed
                 val currentKm = (dist / 1000.0).toInt()
                 if (currentKm > lastKmBoundary && dist > 0) {
                     val elapsed = _uiState.value.elapsedSeconds
@@ -240,6 +271,21 @@ class LiveWorkoutViewModel @Inject constructor(
                     val splitMin = (splitSeconds / 60).toInt()
                     val splitSec = (splitSeconds % 60).toInt()
                     val splitPace = String.format("%d:%02d", splitMin, splitSec)
+
+                    // Elevation gain for this split
+                    val splitElevGain = totalElevationGain - lastSplitElevationGain
+                    lastSplitElevationGain = totalElevationGain
+
+                    // Accumulate split record
+                    accumulatedSplits.add(
+                        ActivitySplit(
+                            kilometer = currentKm,
+                            timeSeconds = splitSeconds,
+                            paceSecondsPerKm = splitSeconds, // 1 km per split so time == pace
+                            elevationGain = splitElevGain
+                        )
+                    )
+
                     lastKmBoundary = currentKm
                     lastKmBoundaryElapsed = elapsed
                     _uiState.update { it.copy(
@@ -408,6 +454,7 @@ class LiveWorkoutViewModel @Inject constructor(
         timerJob?.cancel()
         autoSaveJob?.cancel()
         routeTracker.stopTracking()
+        sensorManager.unregisterListener(stepSensorListener)
         WorkoutNotificationService.stop(context)
 
         // Workout completed normally — clear persisted recovery state
@@ -446,6 +493,7 @@ class LiveWorkoutViewModel @Inject constructor(
         autoSaveJob?.cancel()
         routeTracker.stopTracking()
         routeTracker.reset()
+        sensorManager.unregisterListener(stepSensorListener)
         WorkoutNotificationService.stop(context)
 
         // Discard — clear persisted recovery state
@@ -459,6 +507,9 @@ class LiveWorkoutViewModel @Inject constructor(
         workoutAlreadySaved = false
         lastKmBoundary = 0
         lastKmBoundaryElapsed = 0
+        accumulatedSplits.clear()
+        lastSplitElevationGain = 0.0
+        stepCounterBaseline = -1
         _uiState.value = LiveWorkoutUiState()
     }
 
@@ -526,6 +577,7 @@ class LiveWorkoutViewModel @Inject constructor(
             avgPaceSecondsPerKm = paceSecondsPerKm,
             caloriesBurned = finalCalories,
             routeCoordinates = routeCoords,
+            splits = accumulatedSplits.toList(),
             synced = false
         )
 
@@ -565,6 +617,12 @@ class LiveWorkoutViewModel @Inject constructor(
         val state = _uiState.value
         if (state.hasLocationPermission && state.workoutType.usesGps) {
             routeTracker.startTracking()
+        }
+
+        // Register step counter for cadence tracking
+        stepCounterBaseline = -1
+        stepSensor?.let { sensor ->
+            sensorManager.registerListener(stepSensorListener, sensor, SensorManager.SENSOR_DELAY_UI)
         }
 
         WorkoutNotificationService.start(context)
@@ -644,6 +702,7 @@ class LiveWorkoutViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         routeTracker.stopTracking()
+        sensorManager.unregisterListener(stepSensorListener)
         timerJob?.cancel()
         autoSaveJob?.cancel()
     }
