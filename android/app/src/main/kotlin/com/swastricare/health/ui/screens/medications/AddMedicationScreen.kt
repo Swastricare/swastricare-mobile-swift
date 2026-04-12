@@ -1,5 +1,6 @@
 package com.swastricare.health.ui.screens.medications
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -28,8 +29,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +50,19 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
+
+// ─────────────────────────────────────
+// MARK: - Add Medication Steps
+// ─────────────────────────────────────
+
+private enum class AddMedicationStep {
+    NAME,           // Step 1: Search/enter medication name
+    DOSAGE,         // Step 2: Enter dosage and unit
+    TYPE,           // Step 3: Select medication type
+    SCHEDULE,       // Step 4: Select frequency and times
+    DURATION,       // Step 5: Set duration
+    REVIEW          // Step 6: Review and save
+}
 
 // ─────────────────────────────────────
 // MARK: - Duration Presets
@@ -115,6 +131,9 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
     val drugDetails = vm.drugDetails.collectAsState().value
     val isSearching by vm.isSearching.collectAsState()
 
+    // Step state
+    var currentStep by remember { mutableStateOf(AddMedicationStep.NAME) }
+
     // Form state
     var name by remember { mutableStateOf("") }
     var dosage by remember { mutableStateOf("") }
@@ -125,6 +144,8 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
     var endDate by remember { mutableStateOf(LocalDate.now().plusMonths(1)) }
     var notes by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+
+    val view = LocalView.current
 
     // Observe save result — dismiss only on success, reset loading on failure
     val addResult by vm.addMedicationSuccess.collectAsState()
@@ -188,7 +209,6 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
     }
 
     val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
-    val canSave = name.isNotBlank()
 
     // Derive isOngoing and effective endDate for save
     val isOngoing = durationMode == DurationMode.ONGOING
@@ -197,555 +217,319 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
         else -> endDate
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Step validation
+    val canProceed = when (currentStep) {
+        AddMedicationStep.NAME -> name.isNotBlank()
+        AddMedicationStep.DOSAGE -> true // Optional fields
+        AddMedicationStep.TYPE -> true // Always has default
+        AddMedicationStep.SCHEDULE -> scheduleTimes.isNotEmpty()
+        AddMedicationStep.DURATION -> true // Always valid
+        AddMedicationStep.REVIEW -> true
+    }
 
+    val steps = AddMedicationStep.entries.toList()
+    val currentStepIndex = steps.indexOf(currentStep)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.surface)
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ── Top Bar ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // ── Top Bar with Progress ──
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                IconButton(onClick = {
-                    vm.clearDrugSearch()
-                    onDismiss()
-                }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back",
-                        tint = AppColors.onSurface)
-                }
-                Text(
-                    "Add Medication",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp)
-                )
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        if (currentStep == AddMedicationStep.NAME) {
+                            vm.clearDrugSearch()
+                            onDismiss()
+                        } else {
+                            // Go back to previous step
+                            val prevIndex = (currentStepIndex - 1).coerceAtLeast(0)
+                            currentStep = steps[prevIndex]
+                        }
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = AppColors.onSurface
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 4.dp)
+                    ) {
+                        Text(
+                            "Add Medication",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.onSurface
+                        )
+                        Text(
+                            "Step ${currentStepIndex + 1} of ${steps.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AppColors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                // Progress indicator
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    steps.forEachIndexed { index, _ ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(
+                                    if (index <= currentStepIndex) MedBrandBlue
+                                    else AppColors.onSurface.copy(alpha = 0.1f)
+                                )
+                        )
+                    }
+                }
             }
 
-            // ── Scrollable Form ──
-            Column(
+            // ── Step Content ──
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .fillMaxWidth()
             ) {
-                // ── Section 1: Name & Dosage (with Drug Search) ──
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glass(cornerRadius = 16.dp)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    SectionLabel("Medication Details")
-
-                    // Name field with search
-                    Column {
-                        MedTextField(
-                            value = name,
-                            onValueChange = {
-                                name = it
-                                if (suppressSearch) {
-                                    suppressSearch = false
-                                } else {
-                                    vm.searchDrug(it)
-                                }
-                            },
-                            placeholder = "Search or type medication name",
-                            leadingIcon = Icons.Default.Search,
-                            trailingContent = if (isSearching) {
-                                {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MedBrandBlue
-                                    )
-                                }
-                            } else if (name.isNotBlank()) {
-                                {
-                                    Icon(
-                                        Icons.Default.Close, "Clear",
-                                        tint = AppColors.onSurface.copy(alpha = 0.4f),
-                                        modifier = Modifier
-                                            .size(18.dp)
-                                            .clickable {
-                                                name = ""
-                                                vm.clearDrugSearch()
-                                            }
-                                    )
-                                }
-                            } else null
-                        )
-
-                        // Drug suggestions dropdown
-                        AnimatedVisibility(
-                            visible = drugSuggestions.isNotEmpty(),
-                            enter = fadeIn() + expandVertically(),
-                            exit = fadeOut() + shrinkVertically()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(AppColors.surface)
-                                    .border(
-                                        1.dp,
-                                        AppColors.onSurface.copy(alpha = 0.1f),
-                                        RoundedCornerShape(12.dp)
-                                    )
-                            ) {
-                                drugSuggestions.forEachIndexed { index, drug ->
-                                    DrugSuggestionItem(
-                                        drug = drug,
-                                        onClick = {
-                                            suppressSearch = true
-                                            vm.clearDrugSearch()
-                                            name = drug.displayName
-                                            dosage = drug.dosage ?: ""
-                                            dosageUnit = drug.dosageUnit ?: ""
-                                            vm.selectDrug(drug)
-                                        }
-                                    )
-                                    if (index < drugSuggestions.lastIndex) {
-                                        HorizontalDivider(
-                                            color = AppColors.onSurface.copy(alpha = 0.06f)
-                                        )
-                                    }
-                                }
-                            }
+                when (currentStep) {
+                    AddMedicationStep.NAME -> StepMedicationName(
+                        name = name,
+                        onNameChange = { name = it },
+                        drugSuggestions = drugSuggestions,
+                        isSearching = isSearching,
+                        onDrugSelected = { drug ->
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            suppressSearch = true
+                            vm.clearDrugSearch()
+                            name = drug.displayName
+                            dosage = drug.dosage ?: ""
+                            dosageUnit = drug.dosageUnit ?: ""
+                            vm.selectDrug(drug)
+                        },
+                        onClearName = {
+                            name = ""
+                            vm.clearDrugSearch()
+                        },
+                        onSearchDrug = { query ->
+                            if (!suppressSearch) vm.searchDrug(query)
+                            else suppressSearch = false
                         }
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        MedTextField(
-                            value = dosage,
-                            onValueChange = { dosage = it },
-                            placeholder = "Dosage",
-                            leadingIcon = Icons.Default.Science,
-                            modifier = Modifier.weight(1f)
-                        )
-                        MedTextField(
-                            value = dosageUnit,
-                            onValueChange = { dosageUnit = it },
-                            placeholder = "Unit (mg, ml)",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                // ── Drug Info Card (from FDA) ──
-                AnimatedVisibility(
-                    visible = drugDetails != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    drugDetails?.let { details ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .glass(cornerRadius = 16.dp)
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            SectionLabel("Drug Information (FDA)")
-
-                            details.description?.let { desc ->
-                                DrugInfoRow(
-                                    icon = Icons.Default.Info,
-                                    label = "Indications",
-                                    text = desc,
-                                    color = MedBrandBlue
-                                )
-                            }
-                            details.warnings?.let { warn ->
-                                DrugInfoRow(
-                                    icon = Icons.Default.Warning,
-                                    label = "Warnings",
-                                    text = warn,
-                                    color = Color(0xFFEF4444)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // ── Section 2: Medication Type ──
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glass(cornerRadius = 16.dp)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SectionLabel("Type")
-
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(MedicationType.entries.toList()) { type ->
-                            TypeChip(
-                                type = type,
-                                isSelected = selectedType == type,
-                                onClick = { selectedType = type }
-                            )
-                        }
-                    }
-                }
-
-                // ── Section 3: Schedule & Time Customization ──
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glass(cornerRadius = 16.dp)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SectionLabel("Schedule")
-
-                    // Frequency chips
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        FrequencyChip("1x", "Once", selectedSchedule == ScheduleType.ONCE_DAILY,
-                            Modifier.weight(1f)) { selectedSchedule = ScheduleType.ONCE_DAILY }
-                        FrequencyChip("2x", "Twice", selectedSchedule == ScheduleType.TWICE_DAILY,
-                            Modifier.weight(1f)) { selectedSchedule = ScheduleType.TWICE_DAILY }
-                        FrequencyChip("3x", "Thrice", selectedSchedule == ScheduleType.THRICE_DAILY,
-                            Modifier.weight(1f)) { selectedSchedule = ScheduleType.THRICE_DAILY }
-                        FrequencyChip("⚙", "Custom", selectedSchedule == ScheduleType.CUSTOM,
-                            Modifier.weight(1f)) { selectedSchedule = ScheduleType.CUSTOM }
-                    }
-
-                    // Editable time slots
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        scheduleTimes.forEachIndexed { index, (label, time) ->
-                            EditableTimeRow(
-                                label = label,
-                                time = time,
-                                onClick = { showTimePickerForIndex = index },
-                                onRemove = if (selectedSchedule == ScheduleType.CUSTOM && scheduleTimes.size > 1) {
-                                    { scheduleTimes = scheduleTimes.toMutableList().apply { removeAt(index) } }
-                                } else null
-                            )
-                        }
-                    }
-
-                    // Add time slot button (custom only)
-                    if (selectedSchedule == ScheduleType.CUSTOM) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .border(
-                                    1.dp,
-                                    MedBrandBlue.copy(alpha = 0.2f),
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    val nextIndex = scheduleTimes.size
-                                    val nextTime = LocalTime.of(
-                                        ((scheduleTimes.lastOrNull()?.second?.hour ?: 7) + 4).coerceAtMost(23),
-                                        0
-                                    )
-                                    scheduleTimes = scheduleTimes + (labelForIndex(nextIndex) to nextTime)
-                                }
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Add, null,
-                                tint = MedBrandBlue,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Add Time Slot",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MedBrandBlue
-                            )
-                        }
-                    }
-                }
-
-                // ── Section 4: Duration (Full Customization) ──
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glass(cornerRadius = 16.dp)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SectionLabel("Duration")
-
-                    // Start date (always visible)
-                    DateRow(
-                        label = "Start Date",
-                        dateText = startDate.format(dateFormatter),
-                        onClick = { showStartDatePicker = true }
                     )
 
-                    // Duration mode selector — 2x2 grid
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            DurationModeChip(
-                                label = "Ongoing",
-                                icon = Icons.Default.AllInclusive,
-                                isSelected = durationMode == DurationMode.ONGOING,
-                                modifier = Modifier.weight(1f),
-                                onClick = { durationMode = DurationMode.ONGOING }
-                            )
-                            DurationModeChip(
-                                label = "Preset",
-                                icon = Icons.Default.Timer,
-                                isSelected = durationMode == DurationMode.PRESET,
-                                modifier = Modifier.weight(1f),
-                                onClick = { durationMode = DurationMode.PRESET }
-                            )
+                    AddMedicationStep.DOSAGE -> StepDosage(
+                        dosage = dosage,
+                        dosageUnit = dosageUnit,
+                        onDosageChange = { dosage = it },
+                        onUnitChange = { dosageUnit = it }
+                    )
+
+                    AddMedicationStep.TYPE -> StepMedicationType(
+                        selectedType = selectedType,
+                        onTypeSelected = { type ->
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            selectedType = type
                         }
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            DurationModeChip(
-                                label = "End Date",
-                                icon = Icons.Default.CalendarToday,
-                                isSelected = durationMode == DurationMode.MANUAL,
-                                modifier = Modifier.weight(1f),
-                                onClick = { durationMode = DurationMode.MANUAL }
-                            )
-                            DurationModeChip(
-                                label = "Quantity",
-                                icon = Icons.Default.Calculate,
-                                isSelected = durationMode == DurationMode.QUANTITY,
-                                modifier = Modifier.weight(1f),
-                                onClick = { durationMode = DurationMode.QUANTITY }
-                            )
-                        }
-                    }
+                    )
 
-                    // ── Preset Durations ──
-                    AnimatedVisibility(
-                        visible = durationMode == DurationMode.PRESET,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(durationPresets) { preset ->
-                                    PresetChip(
-                                        preset = preset,
-                                        isSelected = selectedPreset == preset,
-                                        onClick = { selectedPreset = preset }
-                                    )
-                                }
-                            }
-
-                            // Show computed end date
-                            selectedPreset?.let { preset ->
-                                val presetEndDate = startDate.plusDays(preset.days)
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MedTealGreen.copy(alpha = 0.08f))
-                                        .border(
-                                            1.dp,
-                                            MedTealGreen.copy(alpha = 0.15f),
-                                            RoundedCornerShape(12.dp)
-                                        )
-                                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.EventAvailable, null,
-                                        tint = MedTealGreen,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        "Ends ${presetEndDate.format(dateFormatter)}",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MedTealGreen
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // ── Manual End Date ──
-                    AnimatedVisibility(
-                        visible = durationMode == DurationMode.MANUAL,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        DateRow(
-                            label = "End Date",
-                            dateText = endDate.format(dateFormatter),
-                            onClick = { showEndDatePicker = true }
-                        )
-                    }
-
-                    // ── Quantity Calculation ──
-                    AnimatedVisibility(
-                        visible = durationMode == DurationMode.QUANTITY,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                MedTextField(
-                                    value = totalQuantity,
-                                    onValueChange = { totalQuantity = it.filter { c -> c.isDigit() } },
-                                    placeholder = "Total tablets",
-                                    leadingIcon = Icons.Default.Inventory2,
-                                    modifier = Modifier.weight(1f),
-                                    keyboardType = KeyboardType.Number
-                                )
-                                MedTextField(
-                                    value = dosagePerIntake,
-                                    onValueChange = { dosagePerIntake = it.filter { c -> c.isDigit() } },
-                                    placeholder = "Per dose",
-                                    leadingIcon = Icons.Default.Medication,
-                                    modifier = Modifier.weight(1f),
-                                    keyboardType = KeyboardType.Number
-                                )
-                            }
-
-                            if (calculatedDays != null && calculatedEndDate != null) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MedTealGreen.copy(alpha = 0.08f))
-                                        .border(
-                                            1.dp,
-                                            MedTealGreen.copy(alpha = 0.15f),
-                                            RoundedCornerShape(12.dp)
-                                        )
-                                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.AutoAwesome, null,
-                                        tint = MedTealGreen,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            "$totalTablets tablets  x  $perIntake per dose  x  ${dosesPerDay}x/day",
-                                            fontSize = 12.sp,
-                                            color = AppColors.onSurface.copy(alpha = 0.6f)
-                                        )
-                                        Text(
-                                            "$calculatedDays days — ends ${calculatedEndDate.format(dateFormatter)}",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MedTealGreen
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Section 5: Notes ──
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glass(cornerRadius = 16.dp)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    SectionLabel("Notes (Optional)")
-
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        placeholder = {
-                            Text("Special instructions, take with food...",
-                                color = AppColors.onSurface.copy(alpha = 0.35f),
-                                fontSize = 14.sp)
+                    AddMedicationStep.SCHEDULE -> StepSchedule(
+                        selectedSchedule = selectedSchedule,
+                        scheduleTimes = scheduleTimes,
+                        onScheduleChange = { schedule ->
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            selectedSchedule = schedule
                         },
-                        minLines = 3,
-                        maxLines = 5,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MedBrandBlue,
-                            unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedTextColor = AppColors.onSurface,
-                            unfocusedTextColor = AppColors.onSurface
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        onTimeClick = { index -> showTimePickerForIndex = index },
+                        onRemoveTime = { index ->
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            scheduleTimes = scheduleTimes.toMutableList().apply { removeAt(index) }
+                        },
+                        onAddTime = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            val nextIndex = scheduleTimes.size
+                            val nextTime = LocalTime.of(
+                                ((scheduleTimes.lastOrNull()?.second?.hour ?: 7) + 4).coerceAtMost(23),
+                                0
+                            )
+                            scheduleTimes = scheduleTimes + (labelForIndex(nextIndex) to nextTime)
+                        }
+                    )
+
+                    AddMedicationStep.DURATION -> StepDuration(
+                        durationMode = durationMode,
+                        startDate = startDate,
+                        endDate = endDate,
+                        selectedPreset = selectedPreset,
+                        totalQuantity = totalQuantity,
+                        dosagePerIntake = dosagePerIntake,
+                        calculatedDays = calculatedDays,
+                        calculatedEndDate = calculatedEndDate,
+                        dosesPerDay = dosesPerDay,
+                        dateFormatter = dateFormatter,
+                        onModeChange = { mode ->
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            durationMode = mode
+                        },
+                        onStartDateClick = { showStartDatePicker = true },
+                        onEndDateClick = { showEndDatePicker = true },
+                        onPresetSelected = { preset ->
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            selectedPreset = preset
+                        },
+                        onQuantityChange = { totalQuantity = it },
+                        onDosagePerIntakeChange = { dosagePerIntake = it }
+                    )
+
+                    AddMedicationStep.REVIEW -> StepReview(
+                        name = name,
+                        dosage = dosage,
+                        dosageUnit = dosageUnit,
+                        selectedType = selectedType,
+                        selectedSchedule = selectedSchedule,
+                        scheduleTimes = scheduleTimes,
+                        startDate = startDate,
+                        endDate = effectiveEndDate,
+                        isOngoing = isOngoing,
+                        notes = notes,
+                        dateFormatter = dateFormatter,
+                        onNotesChange = { notes = it }
                     )
                 }
             }
 
-            // ── Save Button (sticky bottom) ──
+            // ── Navigation Buttons ──
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 8.dp,
-                color = AppColors.surface
+                color = AppColors.surface,
+                shadowElevation = if (currentStep != AddMedicationStep.NAME) 8.dp else 0.dp
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (canSave) MedBrandBlue else Color.Gray.copy(alpha = 0.3f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            enabled = canSave && !isLoading
-                        ) {
-                            isLoading = true
-                            vm.addMedication(
-                                name = name,
-                                dosage = dosage,
-                                dosageUnit = dosageUnit,
-                                type = selectedType,
-                                scheduleType = selectedSchedule,
-                                scheduleTimes = scheduleTimes.map { (_, time) -> timeToDbString(time) },
-                                startDate = startDate,
-                                endDate = effectiveEndDate,
-                                isOngoing = isOngoing,
-                                notes = notes.ifBlank { null }
-                            )
-                            // Dismiss is handled by the LaunchedEffect observing addMedicationSuccess
-                        }
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 24.dp, vertical = 24.dp)
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(22.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                            "Save Medication",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (canSave) Color.White
-                                    else AppColors.onSurface.copy(alpha = 0.4f)
-                        )
+                    when (currentStep) {
+                        AddMedicationStep.REVIEW -> {
+                            // Save button on review step
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (canProceed && !isLoading) MedBrandBlue
+                                        else AppColors.onSurface.copy(alpha = 0.2f)
+                                    )
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        enabled = canProceed && !isLoading
+                                    ) {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                        isLoading = true
+                                        vm.addMedication(
+                                            name = name,
+                                            dosage = dosage,
+                                            dosageUnit = dosageUnit,
+                                            type = selectedType,
+                                            scheduleType = selectedSchedule,
+                                            scheduleTimes = scheduleTimes.map { (_, time) -> timeToDbString(time) },
+                                            startDate = startDate,
+                                            endDate = effectiveEndDate,
+                                            isOngoing = isOngoing,
+                                            notes = notes.ifBlank { null }
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 3.dp
+                                    )
+                                } else {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        Text(
+                                            "Save Medication",
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        else -> {
+                            // Next button for all other steps
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (canProceed) MedBrandBlue
+                                        else AppColors.onSurface.copy(alpha = 0.2f)
+                                    )
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        enabled = canProceed
+                                    ) {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        val nextIndex = (currentStepIndex + 1).coerceAtMost(steps.size - 1)
+                                        currentStep = steps[nextIndex]
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        "Next",
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (canProceed) Color.White
+                                               else AppColors.onSurface.copy(alpha = 0.4f)
+                                    )
+                                    Icon(
+                                        Icons.Default.ArrowForward,
+                                        contentDescription = null,
+                                        tint = if (canProceed) Color.White
+                                              else AppColors.onSurface.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1294,5 +1078,1307 @@ private fun DateRow(
             fontWeight = FontWeight.SemiBold,
             color = AppColors.onSurface
         )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Step Composables
+// ─────────────────────────────────────
+
+// ── Step 1: Medication Name ──
+@Composable
+private fun StepMedicationName(
+    name: String,
+    onNameChange: (String) -> Unit,
+    drugSuggestions: List<DrugSearchResult>,
+    isSearching: Boolean,
+    onDrugSelected: (DrugSearchResult) -> Unit,
+    onClearName: () -> Unit,
+    onSearchDrug: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text(
+            "What medication are you taking?",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface,
+            lineHeight = 36.sp
+        )
+
+        Text(
+            "Search for your medication or type the name manually",
+            fontSize = 16.sp,
+            color = AppColors.onSurface.copy(alpha = 0.6f),
+            lineHeight = 24.sp
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = {
+                onNameChange(it)
+                onSearchDrug(it)
+            },
+            placeholder = {
+                Text(
+                    "Search medication name...",
+                    color = AppColors.onSurface.copy(alpha = 0.4f),
+                    fontSize = 16.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MedBrandBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            trailingIcon = if (isSearching) {
+                {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MedBrandBlue
+                    )
+                }
+            } else if (name.isNotBlank()) {
+                {
+                    IconButton(onClick = onClearName, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = AppColors.onSurface.copy(alpha = 0.4f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            } else null,
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                focusedTextColor = AppColors.onSurface,
+                unfocusedTextColor = AppColors.onSurface
+            ),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp)
+        )
+
+        AnimatedVisibility(
+            visible = drugSuggestions.isNotEmpty(),
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(AppColors.onSurface.copy(alpha = 0.04f)),
+                verticalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                drugSuggestions.forEach { drug ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onDrugSelected(drug) }
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MedBrandBlue.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Medication,
+                                contentDescription = null,
+                                tint = MedBrandBlue,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                drug.displayName,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = AppColors.onSurface
+                            )
+                            drug.genericName?.let { generic ->
+                                Text(
+                                    generic,
+                                    fontSize = 14.sp,
+                                    color = AppColors.onSurface.copy(alpha = 0.6f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.Default.ArrowForward,
+                            contentDescription = null,
+                            tint = AppColors.onSurface.copy(alpha = 0.3f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Step 2: Dosage ──
+@Composable
+private fun StepDosage(
+    dosage: String,
+    dosageUnit: String,
+    onDosageChange: (String) -> Unit,
+    onUnitChange: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text(
+            "What's the dosage?",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface,
+            lineHeight = 36.sp
+        )
+
+        Text(
+            "Enter the amount and unit (optional)",
+            fontSize = 16.sp,
+            color = AppColors.onSurface.copy(alpha = 0.6f)
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = dosage,
+            onValueChange = onDosageChange,
+            placeholder = {
+                Text(
+                    "e.g., 500",
+                    color = AppColors.onSurface.copy(alpha = 0.4f),
+                    fontSize = 16.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Science,
+                    contentDescription = null,
+                    tint = MedBrandBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                focusedTextColor = AppColors.onSurface,
+                unfocusedTextColor = AppColors.onSurface
+            ),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        )
+
+        OutlinedTextField(
+            value = dosageUnit,
+            onValueChange = onUnitChange,
+            placeholder = {
+                Text(
+                    "e.g., mg, ml, tablets",
+                    color = AppColors.onSurface.copy(alpha = 0.4f),
+                    fontSize = 16.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Label,
+                    contentDescription = null,
+                    tint = MedBrandBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                focusedTextColor = AppColors.onSurface,
+                unfocusedTextColor = AppColors.onSurface
+            ),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        )
+
+        Text(
+            "Common units:",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = AppColors.onSurface.copy(alpha = 0.5f)
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(listOf("mg", "ml", "tablets", "capsules", "drops")) { unit ->
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(AppColors.onSurface.copy(alpha = 0.05f))
+                        .clickable { onUnitChange(unit) }
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        unit,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = AppColors.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Step 3: Medication Type ──
+@Composable
+private fun StepMedicationType(
+    selectedType: MedicationType,
+    onTypeSelected: (MedicationType) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text(
+            "What type of medication?",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface,
+            lineHeight = 36.sp
+        )
+
+        Text(
+            "Select the form of your medication",
+            fontSize = 16.sp,
+            color = AppColors.onSurface.copy(alpha = 0.6f)
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            MedicationType.entries.toList().chunked(2).forEach { rowTypes ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    rowTypes.forEach { type ->
+                        TypeCardClean(
+                            type = type,
+                            isSelected = selectedType == type,
+                            onClick = { onTypeSelected(type) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (rowTypes.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypeCardClean(
+    type: MedicationType,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val view = LocalView.current
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                if (isSelected) MedBrandBlue
+                else AppColors.onSurface.copy(alpha = 0.04f)
+            )
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                onClick()
+            }
+            .padding(20.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = type.toIcon(),
+                contentDescription = null,
+                tint = if (isSelected) Color.White else MedBrandBlue,
+                modifier = Modifier.size(36.dp)
+            )
+            Text(
+                text = type.displayName,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isSelected) Color.White else AppColors.onSurface,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+// Steps 4, 5, 6 will be in next part due to length...
+
+// ── Step 4: Schedule ──
+@Composable
+private fun StepSchedule(
+    selectedSchedule: ScheduleType,
+    scheduleTimes: List<Pair<String, LocalTime>>,
+    onScheduleChange: (ScheduleType) -> Unit,
+    onTimeClick: (Int) -> Unit,
+    onRemoveTime: (Int) -> Unit,
+    onAddTime: () -> Unit
+) {
+    val view = LocalView.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text(
+            "How often do you take it?",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface,
+            lineHeight = 36.sp
+        )
+
+        Text(
+            "Select frequency and set times",
+            fontSize = 16.sp,
+            color = AppColors.onSurface.copy(alpha = 0.6f)
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        // Frequency options
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ScheduleType.entries.filter { it != ScheduleType.CUSTOM }.forEach { schedule ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (selectedSchedule == schedule) MedBrandBlue
+                            else AppColors.onSurface.copy(alpha = 0.04f)
+                        )
+                        .clickable {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            onScheduleChange(schedule)
+                        }
+                        .padding(20.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (selectedSchedule == schedule) Color.White.copy(alpha = 0.2f)
+                                    else MedBrandBlue.copy(alpha = 0.1f)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "${schedule.dosesPerDay}x",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedSchedule == schedule) Color.White else MedBrandBlue
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                schedule.displayName,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (selectedSchedule == schedule) Color.White else AppColors.onSurface
+                            )
+                            Text(
+                                "${schedule.dosesPerDay} ${if (schedule.dosesPerDay == 1) "dose" else "doses"} per day",
+                                fontSize = 14.sp,
+                                color = if (selectedSchedule == schedule) Color.White.copy(alpha = 0.8f)
+                                       else AppColors.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                        if (selectedSchedule == schedule) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Custom option
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (selectedSchedule == ScheduleType.CUSTOM) MedBrandBlue
+                        else AppColors.onSurface.copy(alpha = 0.04f)
+                    )
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        onScheduleChange(ScheduleType.CUSTOM)
+                    }
+                    .padding(20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (selectedSchedule == ScheduleType.CUSTOM) Color.White.copy(alpha = 0.2f)
+                                else MedBrandBlue.copy(alpha = 0.1f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = if (selectedSchedule == ScheduleType.CUSTOM) Color.White else MedBrandBlue,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Custom",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selectedSchedule == ScheduleType.CUSTOM) Color.White else AppColors.onSurface
+                        )
+                        Text(
+                            "Set your own schedule",
+                            fontSize = 14.sp,
+                            color = if (selectedSchedule == ScheduleType.CUSTOM) Color.White.copy(alpha = 0.8f)
+                                   else AppColors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    if (selectedSchedule == ScheduleType.CUSTOM) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Time slots
+        Text(
+            "Set times",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            scheduleTimes.forEachIndexed { index, (label, time) ->
+                TimeSlotCard(
+                    label = label,
+                    time = time,
+                    onClick = { onTimeClick(index) },
+                    onRemove = if (selectedSchedule == ScheduleType.CUSTOM && scheduleTimes.size > 1) {
+                        { onRemoveTime(index) }
+                    } else null
+                )
+            }
+
+            if (selectedSchedule == ScheduleType.CUSTOM) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MedBrandBlue.copy(alpha = 0.08f))
+                        .clickable {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            onAddTime()
+                        }
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            tint = MedBrandBlue,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "Add time slot",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MedBrandBlue
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeSlotCard(
+    label: String,
+    time: LocalTime,
+    onClick: () -> Unit,
+    onRemove: (() -> Unit)?
+) {
+    val view = LocalView.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(AppColors.onSurface.copy(alpha = 0.04f))
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                onClick()
+            }
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                Icons.Default.Schedule,
+                contentDescription = null,
+                tint = MedBrandBlue,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                label,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = AppColors.onSurface.copy(alpha = 0.7f)
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                formatTime12h(time),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.onSurface
+            )
+            onRemove?.let {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Remove",
+                    tint = Color(0xFFEF4444),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            it()
+                        }
+                )
+            }
+        }
+    }
+}
+
+// ── Step 5: Duration ──
+@Composable
+private fun StepDuration(
+    durationMode: DurationMode,
+    startDate: LocalDate,
+    endDate: LocalDate,
+    selectedPreset: DurationPreset?,
+    totalQuantity: String,
+    dosagePerIntake: String,
+    calculatedDays: Int?,
+    calculatedEndDate: LocalDate?,
+    dosesPerDay: Int,
+    dateFormatter: DateTimeFormatter,
+    onModeChange: (DurationMode) -> Unit,
+    onStartDateClick: () -> Unit,
+    onEndDateClick: () -> Unit,
+    onPresetSelected: (DurationPreset) -> Unit,
+    onQuantityChange: (String) -> Unit,
+    onDosagePerIntakeChange: (String) -> Unit
+) {
+    val view = LocalView.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text(
+            "How long will you take it?",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface,
+            lineHeight = 36.sp
+        )
+
+        Text(
+            "Set the treatment duration",
+            fontSize = 16.sp,
+            color = AppColors.onSurface.copy(alpha = 0.6f)
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        // Start date
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(AppColors.onSurface.copy(alpha = 0.04f))
+                .clickable {
+                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    onStartDateClick()
+                }
+                .padding(18.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = MedBrandBlue,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        "Start Date",
+                        fontSize = 15.sp,
+                        color = AppColors.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+                Text(
+                    startDate.format(dateFormatter),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onSurface
+                )
+            }
+        }
+
+        // Duration modes
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Ongoing
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (durationMode == DurationMode.ONGOING) MedBrandBlue
+                        else AppColors.onSurface.copy(alpha = 0.04f)
+                    )
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        onModeChange(DurationMode.ONGOING)
+                    }
+                    .padding(20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        Icons.Default.AllInclusive,
+                        contentDescription = null,
+                        tint = if (durationMode == DurationMode.ONGOING) Color.White else MedBrandBlue,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Ongoing",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (durationMode == DurationMode.ONGOING) Color.White else AppColors.onSurface
+                        )
+                        Text(
+                            "No end date",
+                            fontSize = 14.sp,
+                            color = if (durationMode == DurationMode.ONGOING) Color.White.copy(alpha = 0.8f)
+                                   else AppColors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    if (durationMode == DurationMode.ONGOING) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            // Preset durations
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (durationMode == DurationMode.PRESET) MedBrandBlue
+                        else AppColors.onSurface.copy(alpha = 0.04f)
+                    )
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        onModeChange(DurationMode.PRESET)
+                    }
+                    .padding(20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Timer,
+                        contentDescription = null,
+                        tint = if (durationMode == DurationMode.PRESET) Color.White else MedBrandBlue,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Preset Duration",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (durationMode == DurationMode.PRESET) Color.White else AppColors.onSurface
+                        )
+                        Text(
+                            "7, 14, 30 days, etc.",
+                            fontSize = 14.sp,
+                            color = if (durationMode == DurationMode.PRESET) Color.White.copy(alpha = 0.8f)
+                                   else AppColors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    if (durationMode == DurationMode.PRESET) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            // Manual end date
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (durationMode == DurationMode.MANUAL) MedBrandBlue
+                        else AppColors.onSurface.copy(alpha = 0.04f)
+                    )
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        onModeChange(DurationMode.MANUAL)
+                    }
+                    .padding(20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = if (durationMode == DurationMode.MANUAL) Color.White else MedBrandBlue,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Set End Date",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (durationMode == DurationMode.MANUAL) Color.White else AppColors.onSurface
+                        )
+                        Text(
+                            "Choose specific date",
+                            fontSize = 14.sp,
+                            color = if (durationMode == DurationMode.MANUAL) Color.White.copy(alpha = 0.8f)
+                                   else AppColors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    if (durationMode == DurationMode.MANUAL) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            // Quantity-based
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (durationMode == DurationMode.QUANTITY) MedBrandBlue
+                        else AppColors.onSurface.copy(alpha = 0.04f)
+                    )
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        onModeChange(DurationMode.QUANTITY)
+                    }
+                    .padding(20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Calculate,
+                        contentDescription = null,
+                        tint = if (durationMode == DurationMode.QUANTITY) Color.White else MedBrandBlue,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Based on Quantity",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (durationMode == DurationMode.QUANTITY) Color.White else AppColors.onSurface
+                        )
+                        Text(
+                            "Total tablets/doses",
+                            fontSize = 14.sp,
+                            color = if (durationMode == DurationMode.QUANTITY) Color.White.copy(alpha = 0.8f)
+                                   else AppColors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    if (durationMode == DurationMode.QUANTITY) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Mode-specific content
+        AnimatedVisibility(
+            visible = durationMode == DurationMode.PRESET,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(durationPresets) { preset ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    if (selectedPreset == preset) MedBrandBlue
+                                    else AppColors.onSurface.copy(alpha = 0.05f)
+                                )
+                                .clickable {
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    onPresetSelected(preset)
+                                }
+                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                preset.label,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (selectedPreset == preset) Color.White else AppColors.onSurface
+                            )
+                        }
+                    }
+                }
+                selectedPreset?.let {
+                    val presetEndDate = startDate.plusDays(it.days)
+                    Text(
+                        "Ends ${presetEndDate.format(dateFormatter)}",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MedTealGreen,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = durationMode == DurationMode.MANUAL,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(AppColors.onSurface.copy(alpha = 0.04f))
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        onEndDateClick()
+                    }
+                    .padding(18.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Event,
+                            contentDescription = null,
+                            tint = MedBrandBlue,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Text(
+                            "End Date",
+                            fontSize = 15.sp,
+                            color = AppColors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    Text(
+                        endDate.format(dateFormatter),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppColors.onSurface
+                    )
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = durationMode == DurationMode.QUANTITY,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = totalQuantity,
+                    onValueChange = { onQuantityChange(it.filter { c -> c.isDigit() }) },
+                    placeholder = {
+                        Text(
+                            "Total tablets",
+                            color = AppColors.onSurface.copy(alpha = 0.4f),
+                            fontSize = 16.sp
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Inventory2,
+                            contentDescription = null,
+                            tint = MedBrandBlue,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                        unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                        focusedTextColor = AppColors.onSurface,
+                        unfocusedTextColor = AppColors.onSurface
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                )
+
+                OutlinedTextField(
+                    value = dosagePerIntake,
+                    onValueChange = { onDosagePerIntakeChange(it.filter { c -> c.isDigit() }) },
+                    placeholder = {
+                        Text(
+                            "Per dose",
+                            color = AppColors.onSurface.copy(alpha = 0.4f),
+                            fontSize = 16.sp
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Medication,
+                            contentDescription = null,
+                            tint = MedBrandBlue,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                        unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                        focusedTextColor = AppColors.onSurface,
+                        unfocusedTextColor = AppColors.onSurface
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                )
+
+                if (calculatedDays != null && calculatedEndDate != null) {
+                    Text(
+                        "$calculatedDays days — ends ${calculatedEndDate.format(dateFormatter)}",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MedTealGreen,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Step 6: Review ──
+@Composable
+private fun StepReview(
+    name: String,
+    dosage: String,
+    dosageUnit: String,
+    selectedType: MedicationType,
+    selectedSchedule: ScheduleType,
+    scheduleTimes: List<Pair<String, LocalTime>>,
+    startDate: LocalDate,
+    endDate: LocalDate?,
+    isOngoing: Boolean,
+    notes: String,
+    dateFormatter: DateTimeFormatter,
+    onNotesChange: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text(
+            "Review & Save",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface,
+            lineHeight = 36.sp
+        )
+
+        Text(
+            "Review your medication details",
+            fontSize = 16.sp,
+            color = AppColors.onSurface.copy(alpha = 0.6f)
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        // Summary card
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(AppColors.onSurface.copy(alpha = 0.04f))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ReviewItem("Medication", name, Icons.Default.Medication)
+            if (dosage.isNotBlank() || dosageUnit.isNotBlank()) {
+                ReviewItem(
+                    "Dosage",
+                    buildString {
+                        if (dosage.isNotBlank()) append(dosage)
+                        if (dosageUnit.isNotBlank()) {
+                            if (dosage.isNotBlank()) append(" ")
+                            append(dosageUnit)
+                        }
+                    },
+                    Icons.Default.Science
+                )
+            }
+            ReviewItem("Type", selectedType.displayName, selectedType.toIcon())
+            ReviewItem(
+                "Schedule",
+                "${selectedSchedule.displayName} (${scheduleTimes.size}x daily)",
+                Icons.Default.Schedule
+            )
+            ReviewItem("Start Date", startDate.format(dateFormatter), Icons.Default.CalendarToday)
+            if (isOngoing) {
+                ReviewItem("Duration", "Ongoing", Icons.Default.AllInclusive)
+            } else if (endDate != null) {
+                ReviewItem("End Date", endDate.format(dateFormatter), Icons.Default.Event)
+            }
+        }
+
+        // Time slots
+        Text(
+            "Times",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            scheduleTimes.forEach { (label, time) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(AppColors.onSurface.copy(alpha = 0.04f))
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        label,
+                        fontSize = 15.sp,
+                        color = AppColors.onSurface.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        formatTime12h(time),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppColors.onSurface
+                    )
+                }
+            }
+        }
+
+        // Notes
+        Text(
+            "Notes (Optional)",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onSurface
+        )
+        OutlinedTextField(
+            value = notes,
+            onValueChange = onNotesChange,
+            placeholder = {
+                Text(
+                    "Special instructions, take with food...",
+                    color = AppColors.onSurface.copy(alpha = 0.4f),
+                    fontSize = 15.sp
+                )
+            },
+            minLines = 3,
+            maxLines = 5,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                unfocusedContainerColor = AppColors.onSurface.copy(alpha = 0.05f),
+                focusedTextColor = AppColors.onSurface,
+                unfocusedTextColor = AppColors.onSurface
+            ),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun ReviewItem(
+    label: String,
+    value: String,
+    icon: ImageVector
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MedBrandBlue,
+            modifier = Modifier.size(20.dp)
+        )
+        Column {
+            Text(
+                label,
+                fontSize = 13.sp,
+                color = AppColors.onSurface.copy(alpha = 0.6f)
+            )
+            Text(
+                value,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppColors.onSurface
+            )
+        }
     }
 }

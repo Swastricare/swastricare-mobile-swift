@@ -4,6 +4,7 @@ import android.app.Activity
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +13,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +56,7 @@ import java.util.Locale
 // MARK: - Timeline Slot Model
 // ─────────────────────────────────────
 
+@Stable
 private data class TimelineSlot(
     val key: String,                 // "HH:mm" sort key
     val doses: List<MedicationDose>
@@ -84,7 +88,7 @@ private data class MedGradient(val top: Color, val bottom: Color)
 private val adherenceGradients = mapOf(
     "excellent" to MedGradient(Color(0xFF11998E), Color(0xFF0D7377)),  // teal — high adherence
     "good"      to MedGradient(Color(0xFF2E3192), Color(0xFF1B1464)),  // brand blue — moderate
-    "low"       to MedGradient(Color(0xFFE65100), Color(0xFFBF360C)),  // warm orange — needs attention
+    "low"       to MedGradient(Color(0xFF2E3192), Color(0xFF1B1464)),  // brand blue — low adherence
     "none"      to MedGradient(Color(0xFF2E3192), Color(0xFF1B1464))   // default brand blue
 )
 
@@ -116,25 +120,33 @@ fun MedicationsScreen(
     var deleteMedicationName by remember { mutableStateOf("") }
 
     val slotFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
-    val timelineSlots = remember(uiState.allDosesToday) {
-        uiState.allDosesToday
+    val timelineSlots = remember(uiState.selectedDate, uiState.medicationsWithDoses) {
+        val allDoses = uiState.medicationsWithDoses
+            .flatMap { it.todayDoses }
+            .sortedBy { it.scheduledTime }
+
+        allDoses
             .groupBy { it.scheduledTime.format(slotFormatter) }
             .entries
             .sortedBy { it.key }
             .map { (key, doses) -> TimelineSlot(key, doses) }
     }
 
-    // Gradient based on adherence
-    val level = adherenceLevel(uiState.statistics.adherenceRate)
-    val palette = adherenceGradients[level] ?: adherenceGradients["none"]!!
+    // Gradient based on adherence (memoized to prevent recalculation)
+    val level = remember(uiState.statistics.adherenceRate) {
+        adherenceLevel(uiState.statistics.adherenceRate)
+    }
+    val palette = remember(level) {
+        adherenceGradients[level] ?: adherenceGradients["none"]!!
+    }
     val gradientTop by animateColorAsState(
         targetValue = palette.top,
-        animationSpec = tween(durationMillis = 600),
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "gradientTop"
     )
     val gradientBottom by animateColorAsState(
         targetValue = palette.bottom,
-        animationSpec = tween(durationMillis = 600),
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "gradientBottom"
     )
     val sheetColor = if (isDark) Color(0xFF0A0A0A) else Color.White
@@ -198,7 +210,7 @@ fun MedicationsScreen(
                     onNavigateToAddMedication = onNavigateToAddMedication
                 )
             },
-            sheetPeekHeight = 280.dp,
+            sheetPeekHeight = 360.dp,
             sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             sheetContainerColor = sheetColor,
             sheetShadowElevation = 8.dp,
@@ -267,7 +279,7 @@ fun MedicationsScreen(
                                 )
                                 MedGradientStatPill(
                                     icon = Icons.Default.Schedule,
-                                    iconColor = Color(0xFFFF9500),
+                                    iconColor = Color(0xFFFFC107),
                                     value = "${uiState.statistics.pendingDoses}",
                                     label = "remaining",
                                     modifier = Modifier.weight(1f)
@@ -421,16 +433,20 @@ private fun MedGradientCalendarStrip(
             .collect { page ->
                 if (page <= todayPageIndex) {
                     val newDate = baseDate.plusDays(page.toLong())
-                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                    onDateSelected(newDate)
+                    // Only update if date actually changed to prevent infinite loops
+                    if (newDate != selectedDate) {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        onDateSelected(newDate)
+                    }
                 }
             }
     }
 
     // When selected date changes externally, animate pager
     LaunchedEffect(selectedDate) {
-        if (pagerState.settledPage != selectedPageIndex) {
-            pagerState.animateScrollToPage(selectedPageIndex)
+        val targetPage = selectedPageIndex.coerceIn(0, todayPageIndex)
+        if (pagerState.settledPage != targetPage && pagerState.currentPage != targetPage) {
+            pagerState.animateScrollToPage(targetPage)
         }
     }
 
@@ -606,21 +622,18 @@ private fun MedSheetContent(
 
         // Timeline or empty state
         if (timelineSlots.isNotEmpty()) {
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    timelineSlots.forEachIndexed { index, slot ->
-                        TimelineSlotRow(
-                            slot = slot,
-                            isLast = index == timelineSlots.lastIndex,
-                            onTaken = { dose -> onTaken(dose) },
-                            onSkip  = { dose -> onSkip(dose) },
-                            onTap   = { dose -> onTap(dose) },
-                            onDelete = { dose -> onDelete(dose) }
-                        )
-                    }
-                }
+            itemsIndexed(
+                items = timelineSlots,
+                key = { _, slot -> slot.key }
+            ) { index, slot ->
+                TimelineSlotRow(
+                    slot = slot,
+                    isLast = index == timelineSlots.lastIndex,
+                    onTaken = { dose -> onTaken(dose) },
+                    onSkip  = { dose -> onSkip(dose) },
+                    onTap   = { dose -> onTap(dose) },
+                    onDelete = { dose -> onDelete(dose) }
+                )
             }
 
         } else {
@@ -726,48 +739,50 @@ private fun TimelineSlotRow(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             slot.doses.forEach { dose ->
-                val dismissState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart) {
-                            onDelete(dose)
-                            false // Don't auto-dismiss; let the dialog handle it
-                        } else false
-                    }
-                )
-                SwipeToDismissBox(
-                    state = dismissState,
-                    enableDismissFromStartToEnd = false,
-                    backgroundContent = {
-                        val color by animateColorAsState(
-                            when (dismissState.targetValue) {
-                                SwipeToDismissBoxValue.EndToStart -> Color(0xFFFF3B30)
-                                else -> Color.Transparent
-                            },
-                            label = "swipeDeleteBg"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(color)
-                                .padding(horizontal = 20.dp),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
+                key("${dose.medicationId}-${dose.scheduleId}-${dose.scheduledTime}") {
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                onDelete(dose)
+                                false // Don't auto-dismiss; let the dialog handle it
+                            } else false
                         }
-                    }
-                ) {
-                    TimelineMedicationCard(
-                        dose = dose,
-                        onTaken = { onTaken(dose) },
-                        onTap = { onTap(dose) },
-                        modifier = Modifier.fillMaxWidth()
                     )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            val color by animateColorAsState(
+                                when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.EndToStart -> Color(0xFFFF3B30)
+                                    else -> Color.Transparent
+                                },
+                                label = "swipeDeleteBg_${dose.medicationId}_${dose.scheduleId}"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(color)
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    ) {
+                        TimelineMedicationCard(
+                            dose = dose,
+                            onTaken = { onTaken(dose) },
+                            onTap = { onTap(dose) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
@@ -872,7 +887,7 @@ private fun SkipReasonDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(reason.ifBlank { null }) }) {
-                Text("Skip", color = Color(0xFFFF9500))
+                Text("Skip", color = MedBrandBlue)
             }
         },
         dismissButton = {

@@ -5,6 +5,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -112,8 +114,9 @@ fun SettingsScreen(
                     item {
                         SettingsSectionCard {
                             SettingsCleanRow("Edit Profile", Icons.Outlined.Person, onClick = onNavigateToEditProfile)
-                            SettingsCleanDivider()
-                            SettingsCleanRow("Family", Icons.Outlined.People, onClick = onNavigateToFamily)
+                            // Temporarily removed family section
+                            // SettingsCleanDivider()
+                            // SettingsCleanRow("Family", Icons.Outlined.People, onClick = onNavigateToFamily)
                         }
                     }
 
@@ -896,9 +899,11 @@ private fun SettingsDeleteAccountButton(
 
 // MARK: - Footer Links
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsFooterLinks(version: String) {
-    val uriHandler = LocalUriHandler.current
+    var showTermsSheet by remember { mutableStateOf(false) }
+    var showPrivacySheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -921,9 +926,7 @@ private fun SettingsFooterLinks(version: String) {
                 text = "Terms of Service",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF22C55E),
-                modifier = Modifier.clickable {
-                    // Open terms URL or navigate to terms screen
-                }
+                modifier = Modifier.clickable { showTermsSheet = true }
             )
             Text(
                 text = "\u2022",
@@ -934,13 +937,132 @@ private fun SettingsFooterLinks(version: String) {
                 text = "Privacy Policy",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF22C55E),
-                modifier = Modifier.clickable {
-                    // Open privacy URL or navigate to privacy screen
-                }
+                modifier = Modifier.clickable { showPrivacySheet = true }
+            )
+        }
+    }
+
+    if (showTermsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showTermsSheet = false },
+            containerColor = AppColors.surface
+        ) {
+            SettingsLegalContent(
+                title = "Terms of Service",
+                content = TERMS_TEXT,
+                onDismiss = { showTermsSheet = false }
+            )
+        }
+    }
+
+    if (showPrivacySheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showPrivacySheet = false },
+            containerColor = AppColors.surface
+        ) {
+            SettingsLegalContent(
+                title = "Privacy Policy",
+                content = PRIVACY_TEXT,
+                onDismiss = { showPrivacySheet = false }
             )
         }
     }
 }
+
+@Composable
+private fun SettingsLegalContent(title: String, content: String, onDismiss: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        Text(
+            title,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .heightIn(max = 400.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(
+                content,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = AppColors.onSurface.copy(alpha = 0.8f)
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        Button(
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5))
+        ) {
+            Text("Close")
+        }
+    }
+}
+
+private const val TERMS_TEXT = """SwastriCare Terms of Service
+
+Last updated: March 2026
+
+1. ACCEPTANCE OF TERMS
+By downloading, installing, or using SwastriCare, you agree to these Terms of Service.
+
+2. USE OF SERVICE
+SwastriCare is a personal health tracking app. You must be at least 13 years old to use this app. You are responsible for maintaining the confidentiality of your account.
+
+3. HEALTH DISCLAIMER
+SwastriCare provides general health information and tracking tools only. It is NOT a medical device and should NOT be used for medical diagnosis or treatment. Always consult a qualified healthcare professional for medical advice.
+
+4. AI FEATURES
+Swastri AI provides health insights using AI models. These are for informational purposes only and may not always be accurate. Never make medical decisions based solely on AI suggestions.
+
+5. USER DATA
+You retain ownership of all health data you enter. We process your data as described in our Privacy Policy.
+
+6. TERMINATION
+We may suspend or terminate your account for violation of these terms. You may delete your account at any time from Profile settings."""
+
+private const val PRIVACY_TEXT = """SwastriCare Privacy Policy
+
+Last updated: March 2026
+
+DATA WE COLLECT
+• Health data: steps, heart rate, calories, medication logs, diet entries, menstrual cycle data
+• Profile data: name, date of birth, gender, height, weight, blood type
+• Documents: medical records you upload to your Vault
+• Usage data: app interactions for improving the experience
+
+HOW WE USE YOUR DATA
+• To display your health dashboard and trends
+• To power Swastri AI health insights (processed by Google Gemini/MedGemma)
+• To sync data across your devices via Supabase
+
+DATA STORAGE
+• All data is stored on Supabase servers (AWS ap-south-1 region, India)
+• We comply with India's Digital Personal Data Protection Act (DPDPA) 2023
+• Data is encrypted in transit and at rest
+
+YOUR RIGHTS
+• Access: View all your data in the app
+• Delete: Delete your account and all data from Profile settings
+• Export: Contact support for a data export
+• Correction: Update your profile data at any time
+
+THIRD PARTIES
+• Google Gemini/MedGemma: processes AI queries (no data stored)
+• Firebase: analytics and crash reporting
+• Health Connect: syncs with Android health data (with your permission)
+
+CONTACT
+For privacy concerns, contact: privacy@swastricare.com"""
 
 // MARK: - Shimmer Row
 

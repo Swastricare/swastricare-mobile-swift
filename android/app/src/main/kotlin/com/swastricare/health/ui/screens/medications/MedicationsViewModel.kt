@@ -89,18 +89,41 @@ class MedicationsViewModel @Inject constructor(
 
     init {
         // Load from cache immediately for instant display
-        val cached = repository.getCachedMedications()
-        if (cached.isNotEmpty()) {
-            _uiState.value = _uiState.value.copy(isLoading = false)
+        viewModelScope.launch {
+            val cached = repository.getCachedMedications()
+            if (cached.isNotEmpty()) {
+                // Populate UI with cached data to prevent empty state flicker
+                try {
+                    val profileId = resolveProfileId()
+                    val schedules = repository.fetchSchedules(profileId)
+                    val logs = repository.fetchTodayLogs(profileId, LocalDate.now())
+                    val withDoses = buildMedicationsWithDoses(cached, schedules, logs, LocalDate.now())
+                    val stats = computeStats(withDoses)
+                    _uiState.value = _uiState.value.copy(
+                        medicationsWithDoses = withDoses,
+                        statistics = stats,
+                        isLoading = false
+                    )
+                } catch (e: Exception) {
+                    // Fallback to showing loading state if cache population fails
+                    Log.w(TAG, "Failed to populate from cache: ${e.message}")
+                }
+            }
+            loadMedications()
         }
-        loadMedications()
     }
 
     fun loadMedications(date: LocalDate = _uiState.value.selectedDate) {
         viewModelScope.launch {
             // Only show loading on first load (when no data yet)
-            val isFirstLoad = _uiState.value.medicationsWithDoses.isEmpty() && _uiState.value.isLoading
-            _uiState.value = _uiState.value.copy(isLoading = isFirstLoad, error = null, selectedDate = date)
+            val isFirstLoad = _uiState.value.medicationsWithDoses.isEmpty()
+            if (isFirstLoad) {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null, selectedDate = date)
+            } else {
+                // Don't show loading spinner if we already have data - just update date
+                _uiState.value = _uiState.value.copy(error = null, selectedDate = date)
+            }
+
             try {
                 val profileId = resolveProfileId()
                 Log.d(TAG, "loadMedications: profileId=$profileId, date=$date")
@@ -115,11 +138,13 @@ class MedicationsViewModel @Inject constructor(
                 val withDoses = buildMedicationsWithDoses(medications, schedules, logs, date)
                 val stats = computeStats(withDoses)
 
+                // Single state update with all data to prevent flicker
                 _uiState.value = _uiState.value.copy(
                     medicationsWithDoses = withDoses,
                     statistics = stats,
                     selectedDate = date,
-                    isLoading = false
+                    isLoading = false,
+                    error = null
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "loadMedications failed", e)
@@ -394,7 +419,25 @@ class MedicationsViewModel @Inject constructor(
         logs: List<MedicationLogDto>,
         date: LocalDate
     ): List<MedicationWithDoses> {
-        return medications.map { med ->
+        return medications.mapNotNull { med ->
+            // Parse start and end dates
+            val startDate = med.startDate?.let { LocalDate.parse(it) }
+            val endDate = med.endDate?.let { LocalDate.parse(it) }
+
+            // Check if medication is active on the selected date
+            val isActiveOnDate = when {
+                // If start date exists and selected date is before it, exclude
+                startDate != null && date.isBefore(startDate) -> false
+                // If end date exists and selected date is after it, exclude (only if not ongoing)
+                !med.isOngoing && endDate != null && date.isAfter(endDate) -> false
+                // Otherwise, include
+                else -> true
+            }
+
+            if (!isActiveOnDate) {
+                return@mapNotNull null
+            }
+
             val medSchedules = schedules.filter { it.medicationId == med.id }
             val medLogs = logs.filter { it.medicationId == med.id }
             val doses = medSchedules.flatMap { schedule ->
@@ -448,19 +491,26 @@ class MedicationsViewModel @Inject constructor(
     /** Optimistic in-memory dose status update */
     private fun updateDoseStatus(dose: MedicationDose, newStatus: AdherenceStatus) {
         val current = _uiState.value
+        var changed = false
         val updated = current.medicationsWithDoses.map { mwd ->
             if (mwd.medication.id != dose.medicationId) return@map mwd
             val updatedDoses = mwd.todayDoses.map { d ->
                 if (d.scheduleId == dose.scheduleId &&
                     d.scheduledTime == dose.scheduledTime
-                ) d.copy(status = newStatus) else d
+                ) {
+                    changed = true
+                    d.copy(status = newStatus)
+                } else d
             }
             mwd.copy(todayDoses = updatedDoses)
         }
-        _uiState.value = current.copy(
-            medicationsWithDoses = updated,
-            statistics = computeStats(updated)
-        )
+        // Only update state if something actually changed to prevent unnecessary recompositions
+        if (changed) {
+            _uiState.value = current.copy(
+                medicationsWithDoses = updated,
+                statistics = computeStats(updated)
+            )
+        }
     }
 
     private fun updateDoseLogId(dose: MedicationDose, logId: String) {

@@ -93,9 +93,10 @@ struct SettingsView: View {
                     
                     // Health Profile Section
                     healthProfileSection
-                    
+
                     // Family Section
-                    familySection
+                    // Temporarily removed
+                    // familySection
 
                     // Goals Section
                     goalsSection
@@ -470,6 +471,12 @@ struct SettingsView: View {
                             .foregroundColor(AppColors.accentBlue)
                     }
                 }
+            }
+
+            // Theme Settings
+            NavigationLink(destination: ThemeSettingsView()) {
+                Label("Theme", systemImage: "paintpalette.fill")
+                    .foregroundColor(.primary)
             }
 
             // Biometric toggle - uses custom binding to verify before enabling
