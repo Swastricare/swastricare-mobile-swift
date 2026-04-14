@@ -51,7 +51,7 @@ fun SwastriCareNavBarV2(
 ) {
     val isDark = isSystemInDarkTheme()
 
-    Column {
+    Column(modifier = Modifier.background(AppColors.navBar)) {
         HorizontalDivider(
             thickness = 0.5.dp,
             color = AppColors.divider
@@ -59,7 +59,6 @@ fun SwastriCareNavBarV2(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(AppColors.navBar)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .height(56.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
