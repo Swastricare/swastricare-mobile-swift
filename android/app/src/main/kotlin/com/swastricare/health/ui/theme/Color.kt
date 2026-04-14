@@ -128,7 +128,11 @@ object AppColors {
 
     val cardBorder: Color
         @Composable @ReadOnlyComposable
-        get() = if (isSystemInDarkTheme()) Color.Transparent else Color.Black.copy(alpha = 0.3f)
+        get() = if (isSystemInDarkTheme()) Color.Transparent else DividerLight
+
+    val divider: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFF3C3C3E) else DividerLight
 
     val navBar: Color
         @Composable @ReadOnlyComposable
