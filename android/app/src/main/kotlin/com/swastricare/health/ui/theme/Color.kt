@@ -12,11 +12,12 @@ val SecondaryColor = Color(0xFF22C55E) // Green 500 (iOS accentGreen)
 val AccentColor = Color(0xFFEF4444) // Red 500 (iOS accentRed)
 
 // Background Colors
-val BackgroundLight = Color(0xFFFFFFFF) // Pure white for light theme
+val BackgroundLight = Color(0xFFF6F7F9) // Off-white for light theme
 val BackgroundDark = Color(0xFF000000) // Pitch Black
 
 // Surface Colors
 val SurfaceLight = Color(0xFFFFFFFF)
+val DividerLight = Color(0xFFE6E8EB) // Soft card shadow / divider
 val SurfaceDark = Color(0xFF0A0A0A) // Near Black
 
 // Text Colors
