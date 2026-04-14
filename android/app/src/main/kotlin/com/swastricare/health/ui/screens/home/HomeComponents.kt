@@ -193,8 +193,8 @@ fun PremiumBackground() {
     val isDark = isSystemInDarkTheme()
 
     if (!isDark) {
-        // Light theme: pure white, no tinting
-        Box(modifier = Modifier.fillMaxSize().background(Color.White))
+        // Light theme: off-white background
+        Box(modifier = Modifier.fillMaxSize().background(AppColors.background))
         return
     }
 

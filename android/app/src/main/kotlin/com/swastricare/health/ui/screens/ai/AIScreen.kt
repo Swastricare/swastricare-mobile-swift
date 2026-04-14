@@ -212,7 +212,7 @@ fun AIScreen(
     }
 
     val isDark = isSystemInDarkTheme()
-    val screenBackground = if (isDark) Color.Black else Color.White
+    val screenBackground = if (isDark) Color.Black else AppColors.background
     val view = LocalView.current
     DisposableEffect(isDark) {
         val activity = view.context as? Activity
