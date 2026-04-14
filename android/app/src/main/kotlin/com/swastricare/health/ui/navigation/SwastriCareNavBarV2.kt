@@ -52,10 +52,6 @@ fun SwastriCareNavBarV2(
     val isDark = isSystemInDarkTheme()
 
     Column(modifier = Modifier.background(AppColors.navBar)) {
-        HorizontalDivider(
-            thickness = 0.5.dp,
-            color = AppColors.divider
-        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
