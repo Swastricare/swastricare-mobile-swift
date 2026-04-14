@@ -21,13 +21,17 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -50,6 +54,14 @@ fun SwastriCareNavBarV2(
     currentRoute: String?
 ) {
     val isDark = isSystemInDarkTheme()
+    val navBarColor = if (isDark) Color.Black else Color.White
+    val view = LocalView.current
+
+    SideEffect {
+        val window = (view.context as? android.app.Activity)?.window ?: return@SideEffect
+        window.navigationBarColor = navBarColor.toArgb()
+        WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDark
+    }
 
     Column(modifier = Modifier.background(AppColors.navBar)) {
         Row(
