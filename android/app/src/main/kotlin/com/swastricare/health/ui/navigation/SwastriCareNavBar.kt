@@ -132,7 +132,7 @@ private fun NavBarTabItem(
             imageVector = if (selected) tab.selectedIcon else tab.icon,
             contentDescription = tab.title,
             tint = tint,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.height(3.dp))
         Text(
