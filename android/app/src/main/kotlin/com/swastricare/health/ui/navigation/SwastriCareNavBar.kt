@@ -26,7 +26,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -101,15 +100,14 @@ private fun NavBarTabItem(
     val hapticFeedback = LocalHapticFeedback.current
     val isDark = isSystemInDarkTheme()
 
-    // Pill background: primary in light, white in dark
-    val pillColor = if (isDark) Color.White else PrimaryColor
-    // Icon on pill: white in light, dark in dark
-    val selectedIconTint = if (isDark) Color(0xFF1C1C1E) else Color.White
-    // Unselected tint: muted in both themes
-    val unselectedTint by animateColorAsState(
-        targetValue = AppColors.onSurfaceVariant,
+    // Light: primary blue when selected, muted when not
+    // Dark: white when selected, muted when not
+    val selectedColor = if (isDark) Color.White else PrimaryColor
+
+    val tint by animateColorAsState(
+        targetValue = if (selected) selectedColor else AppColors.onSurfaceVariant,
         animationSpec = tween(durationMillis = 250),
-        label = "unselectedTint"
+        label = "tabTint"
     )
 
     Column(
@@ -126,35 +124,22 @@ private fun NavBarTabItem(
                     onClick()
                 }
             )
-            .padding(vertical = 8.dp),
+            .padding(vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Pill bubble behind selected icon
-        Box(
-            modifier = if (selected) {
-                Modifier
-                    .clip(CapsuleShape)
-                    .background(pillColor)
-                    .padding(horizontal = 16.dp, vertical = 5.dp)
-            } else {
-                Modifier.padding(horizontal = 16.dp, vertical = 5.dp)
-            },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = tab.icon,
-                contentDescription = tab.title,
-                tint = if (selected) selectedIconTint else unselectedTint,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(2.dp))
+        Icon(
+            imageVector = if (selected) tab.selectedIcon else tab.icon,
+            contentDescription = tab.title,
+            tint = tint,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = tab.title,
             fontSize = 10.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) pillColor else unselectedTint,
+            color = tint,
             maxLines = 1
         )
     }
