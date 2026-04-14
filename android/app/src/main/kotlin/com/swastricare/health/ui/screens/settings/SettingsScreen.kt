@@ -64,7 +64,7 @@ fun SettingsScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
 
         Column(modifier = Modifier.fillMaxSize()) {
             if (uiState.isLoading && uiState.user == null) {
@@ -1216,7 +1216,7 @@ fun SettingsSectionCard(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(AppColors.surfaceVariant.copy(alpha = 0.45f))
+            .background(AppColors.surface)
             .padding(horizontal = 16.dp, vertical = 4.dp),
         content = content
     )

@@ -275,7 +275,7 @@ fun ProfileSectionCard(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(AppColors.surfaceVariant.copy(alpha = 0.45f))
+            .background(AppColors.surface)
             .padding(horizontal = 16.dp, vertical = 4.dp),
         content = content
     )

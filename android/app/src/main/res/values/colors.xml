@@ -2,5 +2,5 @@
 <resources>
     <color name="notification_color">#2AB58B</color>
     <!-- Window background — overridden in values-night to black. -->
-    <color name="window_background">#FFFFFF</color>
+    <color name="window_background">#F6F7F9</color>
 </resources>
