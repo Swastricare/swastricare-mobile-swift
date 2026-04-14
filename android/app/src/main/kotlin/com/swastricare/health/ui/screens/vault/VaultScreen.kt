@@ -298,7 +298,13 @@ fun VaultScreen(
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                }
+                                },
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = false,
+                                    borderColor = androidx.compose.ui.graphics.Color.Transparent,
+                                    selectedBorderColor = androidx.compose.ui.graphics.Color.Transparent
+                                )
                             )
                             FilterChip(
                                 selected = uiState.isSelectionMode,
@@ -310,7 +316,13 @@ fun VaultScreen(
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                }
+                                },
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = uiState.isSelectionMode,
+                                    borderColor = androidx.compose.ui.graphics.Color.Transparent,
+                                    selectedBorderColor = androidx.compose.ui.graphics.Color.Transparent
+                                )
                             )
                         }
                     }
@@ -1089,7 +1101,13 @@ private fun BatchUploadItemRow(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                }
+                },
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = true,
+                    borderColor = androidx.compose.ui.graphics.Color.Transparent,
+                    selectedBorderColor = androidx.compose.ui.graphics.Color.Transparent
+                )
             )
             DropdownMenu(
                 expanded = showCategoryDropdown,
