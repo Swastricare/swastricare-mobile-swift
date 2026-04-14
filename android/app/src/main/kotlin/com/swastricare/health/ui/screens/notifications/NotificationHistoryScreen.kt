@@ -202,7 +202,7 @@ fun NotificationHistoryScreen(
     val uiState by vm.uiState.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
 
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar ──
@@ -321,7 +321,7 @@ private fun DateHeader(dateKey: String) {
 
 @Composable
 private fun NotificationCard(record: NotificationRecord) {
-    val sectionBg = if (isSystemInDarkTheme()) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+    val sectionBg = if (isSystemInDarkTheme()) Color(0xFF1C1C1E) else AppColors.surface
     val categoryColor = Color(record.category.colorHex)
 
     Row(
