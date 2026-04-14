@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +26,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
@@ -41,11 +44,6 @@ import com.swastricare.health.ui.theme.PrimaryColor
 
 private val CapsuleShape = RoundedCornerShape(50)
 
-/**
- * Floating capsule bottom navigation bar using Lucide Icons.
- * Renders as a pill-shaped overlay — does not push screen content up.
- * Selection is indicated by a smooth color tint transition only.
- */
 @Composable
 fun SwastriCareNavBar(
     navController: NavController,
@@ -70,8 +68,6 @@ fun SwastriCareNavBar(
                 val selected = currentRoute == tab.route
                 val onClick = remember(tab.route, currentRoute) {
                     {
-                        // Only navigate if this tab is not already selected —
-                        // re-tapping the active tab must NOT pop back to the tab root.
                         if (currentRoute != tab.route) {
                             navController.navigate(tab.route) {
                                 popUpTo(navController.graph.startDestinationId) {
@@ -103,11 +99,17 @@ private fun NavBarTabItem(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val hapticFeedback = LocalHapticFeedback.current
+    val isDark = isSystemInDarkTheme()
 
-    val tint by animateColorAsState(
-        targetValue = if (selected) PrimaryColor else AppColors.onSurfaceVariant,
+    // Pill background: primary in light, white in dark
+    val pillColor = if (isDark) Color.White else PrimaryColor
+    // Icon on pill: white in light, dark in dark
+    val selectedIconTint = if (isDark) Color(0xFF1C1C1E) else Color.White
+    // Unselected tint: muted in both themes
+    val unselectedTint by animateColorAsState(
+        targetValue = AppColors.onSurfaceVariant,
         animationSpec = tween(durationMillis = 250),
-        label = "tabTint"
+        label = "unselectedTint"
     )
 
     Column(
@@ -124,22 +126,35 @@ private fun NavBarTabItem(
                     onClick()
                 }
             )
-            .padding(vertical = 10.dp),
+            .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = if (selected) tab.selectedIcon else tab.icon,
-            contentDescription = tab.title,
-            tint = tint,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.height(3.dp))
+        // Pill bubble behind selected icon
+        Box(
+            modifier = if (selected) {
+                Modifier
+                    .clip(CapsuleShape)
+                    .background(pillColor)
+                    .padding(horizontal = 16.dp, vertical = 5.dp)
+            } else {
+                Modifier.padding(horizontal = 16.dp, vertical = 5.dp)
+            },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = tab.icon,
+                contentDescription = tab.title,
+                tint = if (selected) selectedIconTint else unselectedTint,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = tab.title,
             fontSize = 10.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = tint,
+            color = if (selected) pillColor else unselectedTint,
             maxLines = 1
         )
     }
