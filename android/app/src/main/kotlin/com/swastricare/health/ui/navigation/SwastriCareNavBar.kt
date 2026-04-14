@@ -102,7 +102,7 @@ private fun NavBarTabItem(
 
     // Light: primary blue when selected, muted when not
     // Dark: white when selected, muted when not
-    val selectedColor = if (isDark) Color.White else PrimaryColor
+    val selectedColor = if (isDark) Color.White else Color.Black
 
     val tint by animateColorAsState(
         targetValue = if (selected) selectedColor else AppColors.onSurfaceVariant,
