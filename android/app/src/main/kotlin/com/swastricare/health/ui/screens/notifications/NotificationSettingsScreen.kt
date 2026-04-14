@@ -355,7 +355,7 @@ private fun NotifSectionContainer(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(AppColors.surface)
             .padding(16.dp)
     ) {
