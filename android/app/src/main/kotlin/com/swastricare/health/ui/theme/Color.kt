@@ -17,7 +17,7 @@ val BackgroundDark = Color(0xFF000000) // Pitch Black
 
 // Surface Colors
 val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceDark = Color(0xFF0A0A0A) // Near Black
+val SurfaceDark = Color(0xFF1C1C1E) // iOS system grouped background dark
 
 // Divider / Border Colors
 val DividerLight = Color(0xFFE6E8EB) // Soft card shadow / divider
