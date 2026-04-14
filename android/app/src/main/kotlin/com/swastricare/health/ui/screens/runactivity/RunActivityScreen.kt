@@ -411,7 +411,6 @@ private fun MetricsRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 12.dp)
-            .shadow(4.dp, RoundedCornerShape(16.dp), clip = false)
             .clip(RoundedCornerShape(16.dp))
             .background(AppColors.surface)
             .padding(vertical = 20.dp),
