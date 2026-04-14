@@ -58,7 +58,7 @@ fun SwastriCareNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .shadow(elevation = 38.dp, shape = CapsuleShape)
+                .shadow(elevation = 24.dp, shape = CapsuleShape, ambientColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.25f), spotColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f))
                 .background(AppColors.navBar, shape = CapsuleShape),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
