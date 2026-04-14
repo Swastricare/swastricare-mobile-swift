@@ -23,13 +23,14 @@ val keystoreProperties = Properties().apply {
 android {
     namespace = "com.swastricare.health"
     compileSdk = 35
+    ndkVersion = "27.2.12479018" // NDK r27c — required for 16 KB ELF page alignment
 
     defaultConfig {
         applicationId = "com.swastricare.health"
         minSdk = 26 // Raised from 24 to 26 for Health Connect support
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.2"
+        versionCode = 10
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -180,7 +181,7 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // SceneView for 3D rendering (wraps Filament with Compose support)
-    implementation("io.github.sceneview:sceneview:2.2.1")
+    implementation("io.github.sceneview:sceneview:2.3.0") // 2.3.0+ has 16 KB page size support
 
     // ML Kit Pose Detection (for AR Body Scan)
     implementation("com.google.mlkit:pose-detection:18.0.0-beta5")

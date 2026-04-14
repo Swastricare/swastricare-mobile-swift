@@ -320,7 +320,7 @@ fun HydrationCalendarStrip(
             modifier = Modifier.fillMaxWidth(),
             pageSize = PageSize.Fixed(itemWidth),
             contentPadding = PaddingValues(horizontal = (maxWidth - itemWidth) / 2),
-            beyondBoundsPageCount = 3,
+            beyondViewportPageCount = 3,
             pageSpacing = 0.dp,
             userScrollEnabled = true
         ) { page ->
