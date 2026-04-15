@@ -78,7 +78,7 @@ fun SettingsScreen(
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 88.dp)
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     // ── Avatar Header ──
                     item {

@@ -125,7 +125,7 @@ fun HomeScreen(
                     .fillMaxSize()
                     .verticalScroll(scrollState)
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 76.dp)
+                    .padding(bottom = 16.dp)
             ) {
                 // 2. Header
                 LivingStatusHeader(
@@ -568,7 +568,7 @@ fun HomeSkeletonLoading() {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(bottom = 76.dp)
+            .padding(bottom = 16.dp)
     ) {
         // Header skeleton
         Row(

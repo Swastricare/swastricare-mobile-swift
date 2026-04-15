@@ -155,25 +155,17 @@ fun MenstrualCycleScreen(
     val subtleColor = CycleTheme.subtle
     val cardBg = CycleTheme.cardBg
 
-    val density = LocalDensity.current
-    val statusBarTop = WindowInsets.statusBars.getTop(density)
-    val statusBarDp = with(density) { statusBarTop.toDp() }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            // Shift up by status bar height so background bleeds behind status bar
-            .offset(y = -statusBarDp)
             .background(animatedBg)
-            // Pad content back down so it sits below status bar
-            .padding(top = statusBarDp)
     ) {
         if (uiState.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = CyclePink)
             }
         } else if (uiState.isNotSetUp) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -200,6 +192,7 @@ fun MenstrualCycleScreen(
 
             Column(
                 modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    .windowInsetsPadding(WindowInsets.statusBars)
             ) {
                 // ── Top Bar (matches Hydration style) ──
                 Row(
@@ -235,47 +228,61 @@ fun MenstrualCycleScreen(
 
                 Spacer(Modifier.height(8.dp))
 
-                // ── Large Ring + Blob ──
-                LargeRingWithBlob(uiState = uiState)
-
-                Spacer(Modifier.height(8.dp))
-
-                // ── Legend ──
-                Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    LegendDot(MenstrualColor, "Period phase")
-                    LegendDot(OvulationColor.copy(alpha = 0.6f), "Fertile window")
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                // ── Log Period + View Calendar row ──
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                // ── Ring + Legend + Buttons Card ──
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(CycleTheme.cardBg)
+                        .padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Log Period
+                    // Large Ring + Blob
+                    LargeRingWithBlob(uiState = uiState)
+
+                    // Legend
                     Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp)).background(CyclePink.copy(alpha = 0.10f))
-                            .clickable { onNavigateToLog() }.padding(horizontal = 20.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Icon(Icons.Default.Add, null, tint = CyclePink, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Log Period", style = MaterialTheme.typography.labelLarge,
-                            color = CyclePink, fontWeight = FontWeight.SemiBold)
+                        LegendDot(MenstrualColor, "Period phase")
+                        LegendDot(OvulationColor.copy(alpha = 0.6f), "Fertile window")
                     }
-                    // View Calendar
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // Log Period + View Calendar buttons
                     Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp)).background(CyclePurple.copy(alpha = 0.10f))
-                            .clickable { onNavigateToCalendar() }.padding(horizontal = 20.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Icon(Icons.Default.DateRange, null, tint = CyclePurple, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("View Calendar", style = MaterialTheme.typography.labelLarge,
-                            color = CyclePurple, fontWeight = FontWeight.SemiBold)
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(CyclePink.copy(alpha = 0.10f))
+                                .clickable { onNavigateToLog() }
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Add, null, tint = CyclePink, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Log Period", style = MaterialTheme.typography.labelLarge,
+                                color = CyclePink, fontWeight = FontWeight.SemiBold)
+                        }
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(CyclePurple.copy(alpha = 0.10f))
+                                .clickable { onNavigateToCalendar() }
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.DateRange, null, tint = CyclePurple, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("View Calendar", style = MaterialTheme.typography.labelLarge,
+                                color = CyclePurple, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
 
@@ -305,7 +312,7 @@ fun MenstrualCycleScreen(
                     )
                 }
 
-                Spacer(Modifier.height(120.dp))
+                Spacer(Modifier.height(24.dp))
             }
 
         }
@@ -447,10 +454,10 @@ private fun WeekCalendarStrip(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
+            .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(cardBg)
-            .padding(vertical = 10.dp)
+            .padding(16.dp)
     ) {
         // Month nav row
         Row(
@@ -849,7 +856,7 @@ private fun TipCard(tip: PhaseTip, phase: CyclePhase, delay: Int) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .graphicsLayer { this.alpha = alpha; translationY = offsetY }
-            .clip(RoundedCornerShape(16.dp)).background(CycleTheme.cardBg).padding(14.dp),
+            .clip(RoundedCornerShape(16.dp)).background(CycleTheme.cardBg).padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top
     ) {
         Box(Modifier.size(40.dp).background(phase.color.copy(alpha = 0.10f), RoundedCornerShape(12.dp)),

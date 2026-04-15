@@ -556,11 +556,6 @@ fun QuickAddDrinkChips(
                                     )
                                 )
                         )
-                        .border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = if (isDark) 0.15f else 0.25f),
-                            shape = RoundedCornerShape(20.dp)
-                        )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -603,11 +598,6 @@ fun QuickAddDrinkChips(
                                     (drinkAccentColors[draggedChip] ?: HydrationCyan).copy(alpha = 0.8f)
                                 )
                             )
-                        )
-                        .border(
-                            width = 2.dp,
-                            color = Color.White.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(20.dp)
                         )
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {

@@ -51,22 +51,39 @@ private val AwakeColor = Color(0xFFEF4444)
 @Composable
 fun SleepScreen(
     onNavigateBack: () -> Unit = {},
+    onNavigateToLog: () -> Unit = {},
     viewModel: SleepViewModel = hiltViewModel()
 ) {
     TrackScreen("Sleep")
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Top Bar
-        SleepTopBar(onNavigateBack = onNavigateBack)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            SleepTopBar(onNavigateBack = onNavigateBack)
 
-        when {
-            uiState.isLoading -> SleepSkeletonContent()
-            uiState.todaySession == null && uiState.sleepHistory.isEmpty() -> EmptySleepContent()
-            else -> SleepContent(
-                uiState = uiState,
-                onRangeSelected = { viewModel.selectTimeRange(it) }
-            )
+            when {
+                uiState.isLoading -> SleepSkeletonContent()
+                uiState.todaySession == null && uiState.sleepHistory.isEmpty() ->
+                    EmptySleepContent(onLogSleep = onNavigateToLog)
+                else -> SleepContent(
+                    uiState = uiState,
+                    onRangeSelected = { viewModel.selectTimeRange(it) }
+                )
+            }
+        }
+
+        // FAB — only when today has no Health Connect data
+        if (!uiState.isLoading && uiState.todaySession == null) {
+            FloatingActionButton(
+                onClick = onNavigateToLog,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 24.dp, end = 16.dp),
+                containerColor = SleepColor,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Default.Bedtime, contentDescription = "Log Sleep")
+            }
         }
     }
 }
@@ -101,7 +118,7 @@ private fun SleepContent(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 120.dp)
+        contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         // Today's summary
         uiState.todaySession?.let { session ->
@@ -1083,7 +1100,7 @@ private fun MiniStageBar(
 // ─────────────────────────────────────
 
 @Composable
-private fun EmptySleepContent() {
+private fun EmptySleepContent(onLogSleep: () -> Unit = {}) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -1111,6 +1128,20 @@ private fun EmptySleepContent() {
                 color = AppColors.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onLogSleep,
+                colors = ButtonDefaults.buttonColors(containerColor = SleepColor),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(
+                    Icons.Default.Bedtime,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Log Sleep Manually", fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }

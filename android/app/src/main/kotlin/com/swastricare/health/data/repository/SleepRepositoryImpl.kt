@@ -76,4 +76,19 @@ class SleepRepositoryImpl @Inject constructor(
             ResultWrapper.Error(AppException.UnknownException("Failed to sync sleep data", e))
         }
     }
+
+    override suspend fun saveManualSession(
+        session: SleepSession,
+        profileId: String
+    ): ResultWrapper<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val dto = SleepMapper.toDailyMetricsDto(session, profileId)
+            supabaseClient.from("daily_health_metrics").upsert(dto)
+            logger.i(TAG, "Saved manual sleep for ${session.date}")
+            ResultWrapper.Success(Unit)
+        } catch (e: Exception) {
+            logger.e(TAG, "Failed to save manual sleep", e)
+            ResultWrapper.Error(AppException.UnknownException("Failed to save sleep", e))
+        }
+    }
 }

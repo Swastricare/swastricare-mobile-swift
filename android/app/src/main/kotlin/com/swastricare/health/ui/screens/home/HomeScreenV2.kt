@@ -138,7 +138,7 @@ fun HomeScreenV2(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 76.dp)
+                    .padding(bottom = 16.dp)
             ) {
                 // 1. Greeting Section
                 StaggeredEntrance(visible = sectionVisible[0].value) {

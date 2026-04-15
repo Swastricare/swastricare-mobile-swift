@@ -28,41 +28,50 @@ fun MainScaffold(
     val currentRoute = navBackStackEntry?.destination?.route
     val density = LocalDensity.current
 
-    // ── V1: floating capsule bar (overlay, does not push content) ──
-    Scaffold(modifier = modifier) { innerPadding ->
-        val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding())
-        ) {
-            content(Modifier.fillMaxSize())
+    // ── V2: normal bottom bar (pushes content up) ──
+    Scaffold(
+        modifier = modifier,
+        bottomBar = {
             AnimatedVisibility(
-                visible = showBottomNav && !isKeyboardVisible,
+                visible = showBottomNav && WindowInsets.ime.getBottom(density) == 0,
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it }),
-                modifier = Modifier.align(Alignment.BottomCenter)
             ) {
-                SwastriCareNavBar(navController = navController, currentRoute = currentRoute)
+                SwastriCareNavBarV2(navController = navController, currentRoute = currentRoute)
             }
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            content(Modifier.fillMaxSize())
         }
     }
 
-    // ── V2: normal bottom bar (pushes content up) ──
-    // Scaffold(
-    //     modifier = modifier,
-    //     bottomBar = {
+    // ── V1: floating capsule bar (overlay, does not push content) ──
+    // V1 bottom paddings to restore when switching back:
+    //   HomeScreen scroll/cells:         76.dp
+    //   MedicationsScreen sheet/list:    88.dp / 96.dp
+    //   HydrationScreen:                 88.dp / 96.dp
+    //   DietScreen list/FAB:             120.dp / 96.dp
+    //   RunActivityScreen list/FAB:      100.dp / 96.dp
+    //   VaultScreen list/FAB/folders:    160.dp / 100.dp / 184.dp / 88.dp
+    //   SleepScreen:                     120.dp
+    //   FamilyScreen list/FAB:           120.dp / 96.dp
+    //   ProfileScreen FAB:               96.dp
+    //   SettingsScreen:                  88.dp
+    //   HeartRate/Health/StressAnalytics: 120.dp
+    //
+    // Scaffold(modifier = modifier) { innerPadding ->
+    //     val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
+    //     Box(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding())) {
+    //         content(Modifier.fillMaxSize())
     //         AnimatedVisibility(
-    //             visible = showBottomNav && WindowInsets.ime.getBottom(density) == 0,
+    //             visible = showBottomNav && !isKeyboardVisible,
     //             enter = slideInVertically(initialOffsetY = { it }),
     //             exit = slideOutVertically(targetOffsetY = { it }),
+    //             modifier = Modifier.align(Alignment.BottomCenter)
     //         ) {
-    //             SwastriCareNavBarV2(navController = navController, currentRoute = currentRoute)
+    //             SwastriCareNavBar(navController = navController, currentRoute = currentRoute)
     //         }
-    //     }
-    // ) { innerPadding ->
-    //     Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-    //         content(Modifier.fillMaxSize())
     //     }
     // }
 }

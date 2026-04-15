@@ -235,7 +235,7 @@ fun VaultScreen(
             // Main Vault Content — LazyColumn like Settings
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 160.dp)
+                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
                 // ── Header ──
                 item {
@@ -530,7 +530,7 @@ fun VaultScreen(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(end = 24.dp, bottom = 100.dp)
+                        .padding(end = 24.dp, bottom = 24.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -616,7 +616,7 @@ fun VaultScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 184.dp)
+                .padding(bottom = 24.dp)
         )
 
         // Batch Upload Preview Sheet
@@ -869,7 +869,7 @@ fun FolderDetailView(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 88.dp)
+        contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         // Header
         item {

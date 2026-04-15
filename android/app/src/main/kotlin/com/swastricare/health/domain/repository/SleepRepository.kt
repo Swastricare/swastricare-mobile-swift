@@ -24,4 +24,10 @@ interface SleepRepository {
      * Sync a sleep session to Supabase daily_health_metrics.
      */
     suspend fun syncToCloud(session: SleepSession, profileId: String): ResultWrapper<Unit>
+
+    /**
+     * Save a manually entered sleep session to Supabase.
+     * Overwrites any previous manual entry for the same date.
+     */
+    suspend fun saveManualSession(session: SleepSession, profileId: String): ResultWrapper<Unit>
 }

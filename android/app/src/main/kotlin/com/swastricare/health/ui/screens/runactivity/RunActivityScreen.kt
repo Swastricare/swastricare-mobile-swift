@@ -136,7 +136,7 @@ fun RunActivityScreen(
     Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             // ── Hero ──────────────────────────────────────────────────────
@@ -193,7 +193,7 @@ fun RunActivityScreen(
 
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
         )
     }
 }

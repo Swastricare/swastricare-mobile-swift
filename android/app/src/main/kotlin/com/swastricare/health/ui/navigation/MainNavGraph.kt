@@ -44,6 +44,7 @@ import com.swastricare.health.ui.screens.settings.HealthAppId
 import com.swastricare.health.ui.screens.settings.HealthConnectSettingsScreen
 import com.swastricare.health.ui.screens.settings.HealthDataSyncScreen
 import com.swastricare.health.ui.screens.settings.SettingsScreen
+import com.swastricare.health.ui.screens.sleep.LogSleepScreen
 import com.swastricare.health.ui.screens.sleep.SleepScreen
 import com.swastricare.health.ui.screens.stress.StressAnalyticsScreen
 import com.swastricare.health.ui.screens.stress.StressScreen
@@ -328,6 +329,13 @@ fun MainNavGraph(
         // ─── Sleep ───
         composable("sleep") {
             SleepScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToLog = { navController.navigate("sleep/log") }
+            )
+        }
+
+        composable("sleep/log") {
+            LogSleepScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

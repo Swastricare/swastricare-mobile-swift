@@ -312,7 +312,7 @@ fun MedicationsScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(bottom = 88.dp)
+                .padding(bottom = 16.dp)
         )
     }
 
@@ -577,7 +577,7 @@ private fun MedSheetContent(
             .navigationBarsPadding(),
         contentPadding = PaddingValues(
             start = 20.dp, end = 20.dp,
-            top = 4.dp, bottom = 96.dp
+            top = 4.dp, bottom = 16.dp
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

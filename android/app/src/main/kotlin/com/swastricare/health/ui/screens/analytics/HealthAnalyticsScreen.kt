@@ -68,7 +68,7 @@ fun HealthAnalyticsScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 120.dp)
+                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
                 item {
                     AnalyticsTopBar(onNavigateBack = onNavigateBack)

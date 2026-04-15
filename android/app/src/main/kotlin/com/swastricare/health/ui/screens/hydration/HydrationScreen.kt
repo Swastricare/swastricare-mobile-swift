@@ -199,7 +199,8 @@ fun HydrationScreen(
 
                                 // Quick add drink chips
                                 QuickAddDrinkChips(
-                                    onAddDrink = { drinkType -> vm.addDrink(drinkType, 100) }
+                                    onAddDrink = { drinkType -> vm.addDrink(drinkType, 100) },
+                                    modifier = Modifier.padding(bottom = 16.dp)
                                 )
                             }
                         }
@@ -225,7 +226,7 @@ fun HydrationScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(bottom = 88.dp)
+                .padding(bottom = 16.dp)
         )
 
         // Add drink bottom sheet
@@ -324,7 +325,7 @@ private fun SheetContent(
             .navigationBarsPadding(),
         contentPadding = PaddingValues(
             start = 20.dp, end = 20.dp,
-            top = 4.dp, bottom = 96.dp
+            top = 4.dp, bottom = 16.dp
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

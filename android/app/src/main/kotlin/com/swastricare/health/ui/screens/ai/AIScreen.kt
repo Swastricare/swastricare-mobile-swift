@@ -212,12 +212,11 @@ fun AIScreen(
     }
 
     val isDark = isSystemInDarkTheme()
-    val screenBackground = if (isDark) Color.Black else Color.White
     val view = LocalView.current
     DisposableEffect(isDark) {
         val activity = view.context as? Activity
         activity?.window?.let { window ->
-            window.statusBarColor = screenBackground.toArgb()
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
         }
         onDispose {
@@ -227,14 +226,11 @@ fun AIScreen(
             }
         }
     }
-    Box(modifier = Modifier.fillMaxSize().background(screenBackground)) {
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
-                // .windowInsetsPadding(WindowInsets.statusBars)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = if (!isExpanded) 76.dp else 0.dp)
         ) {
             // Header
             CenterAlignedTopAppBar(
