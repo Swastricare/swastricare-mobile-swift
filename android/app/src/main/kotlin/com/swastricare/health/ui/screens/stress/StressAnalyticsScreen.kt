@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.domain.model.stress.StressCategory
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -65,22 +66,7 @@ fun StressAnalyticsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         // ── Top Bar ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = AppColors.onSurface)
-            }
-            Text(
-                "Stress Analytics",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f).padding(start = 4.dp)
-            )
-        }
+        AppTopBar(title = "Stress Analytics", onBack = onNavigateBack)
 
         when {
             uiState.isLoading -> AnalyticsSkeletonContent()

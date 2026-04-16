@@ -23,6 +23,7 @@ import com.swastricare.health.data.models.AdherenceStatus
 import com.swastricare.health.data.models.MedicationDose
 import com.swastricare.health.data.models.MedicationWithDoses
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
@@ -81,13 +82,9 @@ fun MedicationDetailScreen(
             ) {
                 // ── Top Bar ──
                 item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = {
+                    AppTopBar(
+                        title = if (isEditing) "Edit Medication" else "Medication Details",
+                        onBack = {
                             if (isEditing) {
                                 // Cancel editing — reset form
                                 editName = med.name
@@ -98,45 +95,34 @@ fun MedicationDetailScreen(
                             } else {
                                 onBack()
                             }
-                        }) {
-                            Text(
-                                if (isEditing) "Cancel" else "Close",
-                                fontSize = 16.sp,
-                                color = AppColors.onSurface
-                            )
-                        }
-                        Text(
-                            if (isEditing) "Edit Medication" else "Medication Details",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center
-                        )
-                        TextButton(onClick = {
-                            if (isEditing) {
-                                if (hasChanges) {
-                                    vm.updateMedication(
-                                        medicationId = medicationId,
-                                        name = editName,
-                                        dosage = editDosage,
-                                        notes = editNotes.ifBlank { null },
-                                        isOngoing = editIsOngoing
-                                    )
-                                    isEditing = false
+                        },
+                        actions = {
+                            TextButton(onClick = {
+                                if (isEditing) {
+                                    if (hasChanges) {
+                                        vm.updateMedication(
+                                            medicationId = medicationId,
+                                            name = editName,
+                                            dosage = editDosage,
+                                            notes = editNotes.ifBlank { null },
+                                            isOngoing = editIsOngoing
+                                        )
+                                        isEditing = false
+                                    }
+                                } else {
+                                    isEditing = true
                                 }
-                            } else {
-                                isEditing = true
+                            }) {
+                                Text(
+                                    if (isEditing) "Save" else "Edit",
+                                    fontSize = 16.sp,
+                                    color = if (isEditing && !hasChanges)
+                                        AppColors.onSurface.copy(alpha = 0.4f)
+                                    else MedBrandBlue
+                                )
                             }
-                        }) {
-                            Text(
-                                if (isEditing) "Save" else "Edit",
-                                fontSize = 16.sp,
-                                color = if (isEditing && !hasChanges)
-                                    AppColors.onSurface.copy(alpha = 0.4f)
-                                else MedBrandBlue
-                            )
                         }
-                    }
+                    )
                 }
 
                 // ── Header Card ──

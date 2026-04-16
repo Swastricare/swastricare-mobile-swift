@@ -239,20 +239,16 @@ fun VaultScreen(
             ) {
                 // ── Header ──
                 item {
+                    com.swastricare.health.ui.components.AppTopBar(
+                        title = "Medical Vault"
+                    )
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp)
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                     ) {
-                        // Title and count - centered
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                "Medical Vault",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = AppColors.onBackground
-                            )
                             Text(
                                 "${uiState.documents.size} documents",
                                 style = MaterialTheme.typography.bodyMedium,

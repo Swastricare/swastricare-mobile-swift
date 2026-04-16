@@ -17,10 +17,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swastricare.health.ui.components.AppTopBar
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.ThemeMode
 import com.swastricare.health.ui.theme.ThemePreferenceManager
-import com.swastricare.health.ui.components.TrackScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,20 +34,7 @@ fun ThemeSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Theme", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = AppColors.onBackground,
-                    navigationIconContentColor = AppColors.onBackground
-                ),
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
+            AppTopBar(title = "Theme", onBack = onNavigateBack)
         },
         containerColor = Color.Transparent
     ) { padding ->

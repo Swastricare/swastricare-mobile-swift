@@ -133,21 +133,27 @@ fun RunActivityScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            // ── Hero ──────────────────────────────────────────────────────
-            item {
-                HeroSection(
-                    steps = uiState.todaySteps,
-                    isLoading = uiState.isLoading,
-                    onStartWorkout = onStartWorkoutSafe,
-                    onNavigateToCalendar = onNavigateToCalendar
-                )
-            }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.background)
+    ) {
+        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
+            com.swastricare.health.ui.components.AppTopBar(title = "Activity")
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                // ── Hero ──────────────────────────────────────────────────────
+                item {
+                    HeroSection(
+                        steps = uiState.todaySteps,
+                        isLoading = uiState.isLoading,
+                        onStartWorkout = onStartWorkoutSafe,
+                        onNavigateToCalendar = onNavigateToCalendar
+                    )
+                }
 
             // ── Time Range Selector ───────────────────────────────────────
             item {
@@ -179,14 +185,15 @@ fun RunActivityScreen(
                 )
             }
 
-            if (uiState.activities.isEmpty()) {
-                item { EmptyActivitiesState() }
-            } else {
-                items(uiState.activities, key = { it.id }) { activity ->
-                    ActivityCard(
-                        activity = activity,
-                        onClick = { onNavigateToActivityDetail(activity.id) }
-                    )
+                if (uiState.activities.isEmpty()) {
+                    item { EmptyActivitiesState() }
+                } else {
+                    items(uiState.activities, key = { it.id }) { activity ->
+                        ActivityCard(
+                            activity = activity,
+                            onClick = { onNavigateToActivityDetail(activity.id) }
+                        )
+                    }
                 }
             }
         }

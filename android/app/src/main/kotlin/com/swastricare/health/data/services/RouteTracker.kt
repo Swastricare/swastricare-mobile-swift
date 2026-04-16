@@ -354,6 +354,29 @@ class RouteTracker(private val context: Context) {
         lngKalman.reset()
     }
 
+    /**
+     * Whether GPS updates are actively being requested. Callers can use this
+     * to avoid double-calling [startTracking].
+     */
+    fun isCurrentlyTracking(): Boolean = isTracking
+
+    /**
+     * Reset accumulated route/distance/speed state WITHOUT stopping the GPS
+     * flow. Used when the tracker was pre-warmed (e.g. GPS started while the
+     * workout screen was idle) and the actual workout is now beginning — we
+     * want to keep GPS locked on, but start distance measurement from zero.
+     */
+    fun clearRouteData() {
+        _routePoints.value = emptyList()
+        _totalDistanceMeters.value = 0.0
+        _currentSpeed.value = 0f
+        _isAutopaused.value = false
+        stationaryCount = 0
+        speedBuffer.clear()
+        latKalman.reset()
+        lngKalman.reset()
+    }
+
     // ─────────────────────────────────────
     // MARK: - Battery-Aware GPS
     // ─────────────────────────────────────

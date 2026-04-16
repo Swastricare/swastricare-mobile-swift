@@ -28,6 +28,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -81,49 +82,7 @@ fun HealthMetricDetailScreen(
 
 @Composable
 private fun DetailTopBar(metric: LegacyMetricType, onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .glass(cornerRadius = 20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = AppColors.onSurface,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(metric.color.copy(alpha = 0.15f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = iconForMetric(metric),
-                contentDescription = null,
-                tint = metric.color,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = metric.label,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.onBackground
-        )
-    }
+    AppTopBar(title = metric.label, onBack = onBack)
 }
 
 // ── Chart Card ────────────────────────────────────────────────────────────────

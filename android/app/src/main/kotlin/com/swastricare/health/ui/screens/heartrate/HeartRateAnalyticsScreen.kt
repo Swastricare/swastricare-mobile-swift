@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.swastricare.health.ui.components.AppTopBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,53 +74,37 @@ fun HeartRateAnalyticsScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // ── Top Bar ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.Default.ArrowBack, "Back",
-                        tint = AppColors.onSurface
-                    )
-                }
-                Text(
-                    "Heart Rate Analytics",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-                // Refresh button
-                if (uiState.allReadings.isNotEmpty()) {
-                    IconButton(
-                        onClick = { viewModel.refresh() },
-                        enabled = !uiState.isRefreshing
-                    ) {
-                        if (uiState.isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = AppColors.onSurfaceVariant
-                            )
-                        } else {
+            AppTopBar(
+                title = "Heart Rate Analytics",
+                onBack = onNavigateBack,
+                actions = {
+                    if (uiState.allReadings.isNotEmpty()) {
+                        IconButton(
+                            onClick = { viewModel.refresh() },
+                            enabled = !uiState.isRefreshing
+                        ) {
+                            if (uiState.isRefreshing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = AppColors.onSurfaceVariant
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Refresh, "Refresh",
+                                    tint = AppColors.onSurfaceVariant
+                                )
+                            }
+                        }
+                        IconButton(onClick = { viewModel.showClearConfirmation() }) {
                             Icon(
-                                Icons.Default.Refresh, "Refresh",
+                                Icons.Default.DeleteOutline, "Clear History",
                                 tint = AppColors.onSurfaceVariant
                             )
                         }
                     }
                 }
-                if (uiState.allReadings.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.showClearConfirmation() }) {
-                        Icon(
-                            Icons.Default.DeleteOutline, "Clear History",
-                            tint = AppColors.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+            )
 
             when {
                 uiState.isLoading -> AnalyticsSkeletonContent()

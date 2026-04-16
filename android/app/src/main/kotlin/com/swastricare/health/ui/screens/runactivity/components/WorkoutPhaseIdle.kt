@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.WorkoutTemplate
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.screens.runactivity.LiveWorkoutUiState
 import com.swastricare.health.ui.screens.runactivity.WorkoutType
 import com.swastricare.health.ui.theme.AppColors
@@ -86,26 +87,7 @@ fun WorkoutPhaseIdle(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Top bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = AppColors.onBackground
-                )
-            }
-            Text(
-                "Start Workout",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.onBackground
-            )
-            Spacer(Modifier.size(48.dp))
-        }
+        AppTopBar(title = "Start Workout", onBack = onBack)
 
         Spacer(Modifier.height(16.dp))
 

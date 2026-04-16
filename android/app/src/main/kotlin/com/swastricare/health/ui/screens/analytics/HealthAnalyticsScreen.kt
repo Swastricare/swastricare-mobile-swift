@@ -34,6 +34,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.*
@@ -139,47 +140,7 @@ fun HealthAnalyticsScreen(
 
 @Composable
 private fun AnalyticsTopBar(onNavigateBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .glass(cornerRadius = 20.dp)
-                .clickable { onNavigateBack() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = AppColors.onSurface,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = "Health Analytics",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.onBackground,
-            modifier = Modifier.weight(1f)
-        )
-        val today = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("MMM d")) }
-        Box(
-            modifier = Modifier
-                .glass(cornerRadius = 12.dp)
-                .padding(horizontal = 10.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = "Today, $today",
-                style = MaterialTheme.typography.labelSmall,
-                color = AppColors.onSurfaceVariant
-            )
-        }
-    }
+    AppTopBar(title = "Health Analytics", onBack = onNavigateBack)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

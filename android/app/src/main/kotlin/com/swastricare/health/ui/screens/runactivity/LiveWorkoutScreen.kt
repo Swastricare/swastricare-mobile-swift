@@ -113,7 +113,7 @@ fun LiveWorkoutScreen(
 
     // Helper: check if workout is too short before stopping
     val onStopRequested = {
-        val tooShort = uiState.elapsedSeconds < 60 || uiState.distanceMeters < 50
+        val tooShort = uiState.elapsedSeconds < 20 || uiState.distanceMeters < 30
         if (tooShort) {
             showTooShortDialog = true
         } else {

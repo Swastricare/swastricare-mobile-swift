@@ -232,50 +232,25 @@ fun AIScreen(
                 .fillMaxSize()
                 .imePadding()
         ) {
-            // Header
-            CenterAlignedTopAppBar(
-                title = { Text("Swastri AI", fontWeight = FontWeight.Bold, fontFamily = Poppins) },
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                ),
-                navigationIcon = {
-                    if (isExpanded) {
-                        IconButton(onClick = {
-                            focusManager.clearFocus()
-                            viewModel.clearChat()  // keyboard already dismissed above
-                        }) {
-                            Box(
-                                modifier = Modifier
-                                    .glass(cornerRadius = 20.dp)
-                                    .padding(8.dp)
-                            ) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.size(16.dp))
-                            }
-                        }
+            // Header — uses the shared AppTopBar so the title style matches
+            // every other screen in the app.
+            com.swastricare.health.ui.components.AppTopBar(
+                title = "Swastri AI",
+                onBack = if (isExpanded) {
+                    {
+                        focusManager.clearFocus()
+                        viewModel.clearChat()
                     }
-                },
+                } else null,
                 actions = {
                     IconButton(onClick = { viewModel.openHistorySheet() }) {
-                        Box(
-                            modifier = Modifier
-                                .glass(cornerRadius = 20.dp)
-                                .padding(8.dp)
-                        ) {
-                            Icon(Icons.Default.History, contentDescription = "Chat History", modifier = Modifier.size(16.dp))
-                        }
+                        Icon(Icons.Default.History, contentDescription = "Chat History")
                     }
                     IconButton(onClick = {
                         focusManager.clearFocus()
                         viewModel.clearChat()
                     }) {
-                        Box(
-                            modifier = Modifier
-                                .glass(cornerRadius = 20.dp)
-                                .padding(8.dp)
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear Chat", modifier = Modifier.size(16.dp))
-                        }
+                        Icon(Icons.Default.Close, contentDescription = "Clear Chat")
                     }
                 }
             )

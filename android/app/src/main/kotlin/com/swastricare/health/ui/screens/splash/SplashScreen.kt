@@ -1,43 +1,44 @@
 package com.swastricare.health.ui.screens.splash
 
-import android.net.Uri
-import androidx.annotation.OptIn
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
-import com.swastricare.health.R
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
 // Version checking is handled by AppVersionService in AppNavigation (matches iOS pattern).
-// SplashScreen only handles video playback and onboarding routing.
+// SplashScreen only handles logo animation and onboarding routing.
 
-@OptIn(UnstableApi::class)
 @Composable
 fun SplashScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToOnboarding: () -> Unit
 ) {
-    val context = LocalContext.current
     val splashVm: SplashViewModel = hiltViewModel()
+    val isDark = isSystemInDarkTheme()
+    // Splash background follows the system theme. The fade-out overlay
+    // blends into the same color so the transition into the next screen
+    // stays seamless in both light and dark modes.
+    val splashBackground = if (isDark) Color.Black else Color.White
 
     // Fade-out overlay for cinematic exit (matches iOS)
     var fadeOut by remember { mutableStateOf(false) }
@@ -47,36 +48,37 @@ fun SplashScreen(
         label = "fadeOut"
     )
 
-    // Create ExoPlayer — plays once and holds on last frame
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            val videoUri = Uri.parse("android.resource://${context.packageName}/${R.raw.sw_logo_v1}")
-            setMediaItem(MediaItem.fromUri(videoUri))
-            repeatMode = Player.REPEAT_MODE_OFF
-            playWhenReady = true
-            prepare()
-        }
-    }
+    // Load the Lottie logo animation from assets — plays once and holds on last frame
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.Asset("animations/swasrticare-logo.json")
+    )
+    // Source animation is ~4.95s @ 60fps. Speed it up so it plays through in
+    // exactly 2 seconds: speed = 4.95 / 2.0 ≈ 2.475.
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = 1,
+        isPlaying = true,
+        speed = 2.475f,
+        restartOnPlay = false
+    )
 
-    // Clean up player on dispose
-    DisposableEffect(Unit) {
-        onDispose { exoPlayer.release() }
-    }
-
-    // Navigation logic — decoupled from video length. We show the splash
-    // for a short minimum so the logo doesn't just flash, then navigate as
-    // soon as the preload completes (capped at a max wait so a slow network
-    // can never stall the app). The video keeps playing until splash fades.
+    // Navigation logic — wait for the Lottie animation to play through fully
+    // AND for the home preload to finish (each capped so a slow network or a
+    // missing composition can't stall the app indefinitely).
     LaunchedEffect(Unit) {
         coroutineScope {
-            val preloadJob = async { splashVm.preloadHomeData() }
-            // Minimum on-screen time so the logo reads as intentional.
-            val minDisplay = async { delay(1_000) }
-
-            minDisplay.await()
-            // After the floor has elapsed, give preload at most this long.
-            // Home will pick up the in-flight result if it hasn't finished.
-            withTimeoutOrNull(1_500) { preloadJob.await() }
+            val preloadJob = async {
+                withTimeoutOrNull(2_500) { splashVm.preloadHomeData() }
+            }
+            val animationJob = async {
+                // Watch progress through the Snapshot system; cap to a safe
+                // upper bound in case the composition fails to load.
+                withTimeoutOrNull(3_000) {
+                    snapshotFlow { progress }.first { it >= 0.99f }
+                }
+            }
+            preloadJob.await()
+            animationJob.await()
         }
 
         val isAuthed = splashVm.isAuthenticated()
@@ -95,27 +97,22 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(splashBackground),
+        contentAlignment = Alignment.Center
     ) {
-        // Full-screen video player (no controls)
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    setBackgroundColor(android.graphics.Color.BLACK)
-                }
-            },
-            modifier = Modifier.fillMaxSize()
+        // Centered Lottie logo animation — sized to read as a logo.
+        LottieAnimation(
+            composition = composition,
+            progress = { progress },
+            modifier = Modifier.size(180.dp)
         )
 
-        // Fade-to-black overlay for cinematic exit
+        // Fade overlay for cinematic exit — matches the theme background.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .alpha(screenAlpha)
-                .background(Color.Black)
+                .background(splashBackground)
         )
     }
 }

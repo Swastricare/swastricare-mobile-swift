@@ -36,6 +36,7 @@ import com.swastricare.health.data.model.RoutePoint
 import com.swastricare.health.data.model.SplitData
 import com.swastricare.health.data.model.WorkoutDetail
 import com.swastricare.health.data.models.RunActivity
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.RouteMapView
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
@@ -260,29 +261,10 @@ private fun ActivityDetailTopBar(
     onExportGpx: () -> Unit,
     hasRoute: Boolean
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                tint = AppColors.onBackground
-            )
-        }
-
-        Text(
-            "Activity Detail",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = AppColors.onBackground
-        )
-
-        Row {
+    AppTopBar(
+        title = "Activity Detail",
+        onBack = onBack,
+        actions = {
             if (hasRoute) {
                 IconButton(onClick = onExportGpx) {
                     Icon(
@@ -300,7 +282,7 @@ private fun ActivityDetailTopBar(
                 )
             }
         }
-    }
+    )
 }
 
 // ─────────────────────────────────────

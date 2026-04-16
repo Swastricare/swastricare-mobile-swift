@@ -41,6 +41,7 @@ import com.swastricare.health.data.models.ActivityLevel
 import com.swastricare.health.data.models.HydrationCalculator
 import com.swastricare.health.data.models.HydrationPreferences
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.theme.AppColors
 
@@ -81,23 +82,9 @@ fun HydrationSettingsScreen(
             containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            "Hydration Settings",
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.onBackground
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = AppColors.onBackground
-                            )
-                        }
-                    },
+                AppTopBar(
+                    title = "Hydration Settings",
+                    onBack = onNavigateBack,
                     actions = {
                         TextButton(
                             onClick = {
@@ -118,11 +105,7 @@ fun HydrationSettingsScreen(
                                 color = if (hasChanges) Color(0xFF22C55E) else AppColors.onBackground.copy(alpha = 0.3f)
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
-                    ),
-                    windowInsets = WindowInsets(0, 0, 0, 0)
+                    }
                 )
             }
         ) { padding ->

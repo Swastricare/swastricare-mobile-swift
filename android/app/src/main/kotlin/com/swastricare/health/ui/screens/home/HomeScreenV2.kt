@@ -118,7 +118,6 @@ fun HomeScreenV2(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(bottom = 16.dp)
         ) {
                 // 1. Greeting Section

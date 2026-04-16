@@ -46,10 +46,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swastricare.health.data.model.Gender
-import com.swastricare.health.ui.theme.PremiumColor
-import com.swastricare.health.ui.theme.AppColors
-import java.util.Locale
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
+import com.swastricare.health.ui.theme.AppColors
+import com.swastricare.health.ui.theme.PremiumColor
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,13 +100,9 @@ fun EditProfileScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                title = { Text("Edit Profile", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                },
+            AppTopBar(
+                title = "Edit Profile",
+                onBack = onNavigateBack,
                 actions = {
                     TextButton(
                         onClick = { viewModel.saveEditProfile() },
@@ -121,13 +118,7 @@ fun EditProfileScreen(
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = AppColors.onBackground,
-                    navigationIconContentColor = AppColors.onBackground
-                ),
-                windowInsets = WindowInsets(0, 0, 0, 0)
+                }
             )
         },
         containerColor = Color.Transparent

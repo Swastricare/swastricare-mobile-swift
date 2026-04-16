@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.domain.model.stress.StressCategory
 import com.swastricare.health.domain.model.stress.StressMood
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.theme.AppColors
@@ -58,25 +59,15 @@ fun StressScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = AppColors.onSurface)
+            AppTopBar(
+                title = "Stress",
+                onBack = onNavigateBack,
+                actions = {
+                    IconButton(onClick = onNavigateToAnalytics) {
+                        Icon(Icons.Default.BarChart, "Analytics", tint = AppColors.onSurfaceVariant)
+                    }
                 }
-                Text(
-                    "Stress",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-                IconButton(onClick = onNavigateToAnalytics) {
-                    Icon(Icons.Default.BarChart, "Analytics", tint = AppColors.onSurfaceVariant)
-                }
-            }
+            )
 
             when {
                 uiState.isLoading -> StressSkeletonContent()

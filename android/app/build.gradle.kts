@@ -203,9 +203,12 @@ dependencies {
     // Accompanist permissions helper
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
-    // Media3 ExoPlayer (for video splash screen)
+    // Media3 ExoPlayer (used by AI screen for video playback)
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-ui:1.2.1")
+
+    // Lottie Compose (splash screen logo animation)
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
 
     // DataStore Preferences (used for onboarding/consent state)
     implementation("androidx.datastore:datastore-preferences:1.0.0")

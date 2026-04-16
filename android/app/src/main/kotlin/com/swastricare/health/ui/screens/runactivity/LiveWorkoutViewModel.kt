@@ -379,10 +379,38 @@ class LiveWorkoutViewModel @Inject constructor(
 
     fun setWorkoutType(type: WorkoutType) {
         _uiState.update { it.copy(workoutType = type) }
+
+        // Adjust the pre-warm GPS state to match the new workout type so the
+        // tracker isn't running for a non-GPS workout and is ready early for
+        // a GPS one.
+        val state = _uiState.value
+        if (state.phase == WorkoutPhase.IDLE) {
+            if (!type.usesGps && routeTracker.isCurrentlyTracking()) {
+                routeTracker.stopTracking()
+                routeTracker.reset()
+            } else if (type.usesGps &&
+                state.hasLocationPermission &&
+                !routeTracker.isCurrentlyTracking()
+            ) {
+                routeTracker.startTracking()
+            }
+        }
     }
 
     fun onLocationPermissionResult(granted: Boolean) {
         _uiState.update { it.copy(hasLocationPermission = granted) }
+
+        // Pre-warm GPS as soon as permission is granted and the user is still
+        // on the idle screen. This gives GPS time to acquire a lock before
+        // the countdown ends, so distance recording begins immediately at GO!
+        val state = _uiState.value
+        if (granted &&
+            state.workoutType.usesGps &&
+            state.phase == WorkoutPhase.IDLE &&
+            !routeTracker.isCurrentlyTracking()
+        ) {
+            routeTracker.startTracking()
+        }
     }
 
     fun checkLocationPermission(granted: Boolean, shouldShowRationale: Boolean) {
@@ -613,10 +641,17 @@ class LiveWorkoutViewModel @Inject constructor(
         analyticsService.logWorkoutStart(activityType)
         appAnalyticsService.trackWorkoutStarted(activityType)
 
-        // Start GPS if permission granted and workout uses GPS
+        // Start GPS if permission granted and workout uses GPS.
+        // If GPS was pre-warmed while the screen was idle, just clear the
+        // accumulated route data so distance starts from zero — GPS stays
+        // locked on with no acquisition delay.
         val state = _uiState.value
         if (state.hasLocationPermission && state.workoutType.usesGps) {
-            routeTracker.startTracking()
+            if (routeTracker.isCurrentlyTracking()) {
+                routeTracker.clearRouteData()
+            } else {
+                routeTracker.startTracking()
+            }
         }
 
         // Register step counter for cadence tracking

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.swastricare.health.ui.components.AppTopBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,54 +70,42 @@ fun DietScreen(
                 .fillMaxSize()
         ) {
             // ── Top Bar ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, "Back",
-                        tint = AppColors.onSurface)
-                }
-                Text(
-                    "Diet Chart",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-                IconButton(onClick = onNavigateToAI) {
-                    Icon(Icons.Default.AutoAwesome, "Ask AI", tint = DietGreen)
-                }
-                // Ellipsis menu
-                var showMenu by remember { mutableStateOf(false) }
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, "Menu", tint = DietGreen)
+            var showMenu by remember { mutableStateOf(false) }
+            AppTopBar(
+                title = "Diet Chart",
+                onBack = onNavigateBack,
+                actions = {
+                    IconButton(onClick = onNavigateToAI) {
+                        Icon(Icons.Default.AutoAwesome, "Ask AI", tint = DietGreen)
                     }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Goals & Settings") },
-                            leadingIcon = { Icon(Icons.Default.Settings, null) },
-                            onClick = {
-                                showMenu = false
-                                showSettingsSheet = true
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Add Food") },
-                            leadingIcon = { Icon(Icons.Default.AddCircle, null) },
-                            onClick = {
-                                showMenu = false
-                                onNavigateToAddFood(MealType.BREAKFAST.dbValue)
-                            }
-                        )
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, "Menu", tint = DietGreen)
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Goals & Settings") },
+                                leadingIcon = { Icon(Icons.Default.Settings, null) },
+                                onClick = {
+                                    showMenu = false
+                                    showSettingsSheet = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add Food") },
+                                leadingIcon = { Icon(Icons.Default.AddCircle, null) },
+                                onClick = {
+                                    showMenu = false
+                                    onNavigateToAddFood(MealType.BREAKFAST.dbValue)
+                                }
+                            )
+                        }
                     }
                 }
-            }
+            )
 
             // ── Content ──
             when {

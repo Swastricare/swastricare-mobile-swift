@@ -88,21 +88,27 @@ fun HydrationScreen(
     var showOverview by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Fill status bar AND navigation bar with gradient colors
+    // Edge-to-edge is on globally (MainActivity.enableEdgeToEdge), so the
+    // gradient Box below already draws behind the status and nav bars —
+    // we do NOT need to set window.statusBarColor (deprecated in API 35).
+    //
+    // Only the system icon tint needs adjusting so the clock/battery are
+    // readable on the dark gradient. SideEffect applies this during
+    // composition (before the first frame draws), which kills the
+    // one-frame flash you get with DisposableEffect.
     val view = LocalView.current
     if (!view.isInEditMode) {
-        DisposableEffect(isDark, gradientTop) {
-            val activity = view.context as? Activity ?: return@DisposableEffect onDispose {}
-            val originalStatusBarColor = activity.window.statusBarColor
-            val originalNavBarColor = activity.window.navigationBarColor
-            activity.window.statusBarColor = gradientTop.toArgb()
-            activity.window.navigationBarColor = sheetColor.toArgb()
+        SideEffect {
+            val activity = view.context as? Activity ?: return@SideEffect
             val controller = WindowCompat.getInsetsController(activity.window, view)
-            controller.isAppearanceLightStatusBars = false
+            controller.isAppearanceLightStatusBars = false // light icons on gradient
             controller.isAppearanceLightNavigationBars = !isDark
+        }
+        DisposableEffect(isDark) {
             onDispose {
-                activity.window.statusBarColor = originalStatusBarColor
-                activity.window.navigationBarColor = originalNavBarColor
+                val activity = view.context as? Activity ?: return@onDispose
+                val controller = WindowCompat.getInsetsController(activity.window, view)
+                // Restore theme default when leaving the screen.
                 controller.isAppearanceLightStatusBars = !isDark
                 controller.isAppearanceLightNavigationBars = !isDark
             }
@@ -146,34 +152,28 @@ fun HydrationScreen(
             containerColor = Color.Transparent,
             contentColor = Color.White,
         ) { innerPadding ->
-            // Fixed gradient content — does NOT scroll
+            // Fixed gradient content — does NOT scroll.
+            // Status bar padding keeps the top bar (back button / title) from
+            // sliding under the system clock. The Box above still paints the
+            // gradient all the way to the top edge of the screen.
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
                     .padding(bottom = innerPadding.calculateBottomPadding())
             ) {
                 // ── Top Bar ──
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+                com.swastricare.health.ui.components.AppTopBar(
+                    title = "Hydration",
+                    onBack = onNavigateBack,
+                    titleColor = Color.White,
+                    iconTint = Color.White,
+                    actions = {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(Icons.Default.Settings, "Settings", tint = Color.White.copy(alpha = 0.8f))
+                        }
                     }
-                    Text(
-                        "Hydration",
-                        modifier = Modifier.weight(1f),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        textAlign = TextAlign.Center
-                    )
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, "Settings", tint = Color.White.copy(alpha = 0.8f))
-                    }
-                }
+                )
 
                 when {
                     uiState.isLoading -> HydrationSkeletonContent()

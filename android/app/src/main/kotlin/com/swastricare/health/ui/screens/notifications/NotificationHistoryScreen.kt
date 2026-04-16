@@ -30,6 +30,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
@@ -206,30 +207,20 @@ fun NotificationHistoryScreen(
 
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, "Back", tint = AppColors.onSurface)
-                }
-                Text(
-                    "Notifications",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-                if (uiState.records.isNotEmpty()) {
-                    IconButton(onClick = { showClearDialog = true }) {
-                        Icon(
-                            Icons.Default.DeleteOutline, "Clear",
-                            tint = AppColors.onSurface.copy(alpha = 0.5f)
-                        )
+            AppTopBar(
+                title = "Notifications",
+                onBack = onNavigateBack,
+                actions = {
+                    if (uiState.records.isNotEmpty()) {
+                        IconButton(onClick = { showClearDialog = true }) {
+                            Icon(
+                                Icons.Default.DeleteOutline, "Clear",
+                                tint = AppColors.onSurface.copy(alpha = 0.5f)
+                            )
+                        }
                     }
                 }
-            }
+            )
 
             // ── Content ──
             when {

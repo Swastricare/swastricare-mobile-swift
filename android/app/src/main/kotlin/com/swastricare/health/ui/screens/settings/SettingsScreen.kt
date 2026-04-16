@@ -67,6 +67,7 @@ fun SettingsScreen(
     Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
 
         Column(modifier = Modifier.fillMaxSize()) {
+            com.swastricare.health.ui.components.AppTopBar(title = "Profile")
             if (uiState.isLoading && uiState.user == null) {
                 SettingsLoadingState(modifier = Modifier.fillMaxSize())
             } else {

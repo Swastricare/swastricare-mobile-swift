@@ -40,6 +40,7 @@ import com.swastricare.health.data.models.MedicationType
 import com.swastricare.health.data.models.ScheduleType
 import com.swastricare.health.data.repository.DrugSearchResult
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
@@ -240,46 +241,29 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
+                AppTopBar(
+                    title = "Add Medication",
+                    onBack = {
                         view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                         if (currentStep == AddMedicationStep.NAME) {
                             vm.clearDrugSearch()
                             onDismiss()
                         } else {
-                            // Go back to previous step
                             val prevIndex = (currentStepIndex - 1).coerceAtLeast(0)
                             currentStep = steps[prevIndex]
                         }
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = AppColors.onSurface
-                        )
                     }
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 4.dp)
-                    ) {
-                        Text(
-                            "Add Medication",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.onSurface
-                        )
-                        Text(
-                            "Step ${currentStepIndex + 1} of ${steps.size}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AppColors.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
+                )
+                // Step subtitle
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Step ${currentStepIndex + 1} of ${steps.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppColors.onSurface.copy(alpha = 0.6f)
+                    )
                 }
 
                 // Progress indicator

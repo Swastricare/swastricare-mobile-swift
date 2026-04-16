@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.swastricare.health.ui.components.AppTopBar
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.theme.AppColors
 import java.time.LocalDate
 import java.time.YearMonth
@@ -48,7 +50,6 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
-import com.swastricare.health.ui.components.TrackScreen
 
 // ─────────────────────────────────────
 // MARK: - Color Constants
@@ -166,25 +167,15 @@ fun MenstrualCycleScreen(
             }
         } else if (uiState.isNotSetUp) {
             Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = AppColors.onSurface)
+                AppTopBar(
+                    title = "Cycle Tracker",
+                    onBack = onNavigateBack,
+                    actions = {
+                        IconButton(onClick = { showSettingsSheet = true }) {
+                            Icon(Icons.Default.Settings, "Settings", tint = AppColors.onSurface.copy(alpha = 0.8f))
+                        }
                     }
-                    Text(
-                        "Cycle Tracker",
-                        modifier = Modifier.weight(1f),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppColors.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-                    IconButton(onClick = { showSettingsSheet = true }) {
-                        Icon(Icons.Default.Settings, "Settings", tint = AppColors.onSurface.copy(alpha = 0.8f))
-                    }
-                }
+                )
                 CycleOnboardingContent(onLogPeriod = onNavigateToLog)
             }
         } else {
@@ -194,26 +185,16 @@ fun MenstrualCycleScreen(
                 modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                     .windowInsetsPadding(WindowInsets.statusBars)
             ) {
-                // ── Top Bar (matches Hydration style) ──
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = AppColors.onSurface)
+                // ── Top Bar ──
+                AppTopBar(
+                    title = "Cycle Tracker",
+                    onBack = onNavigateBack,
+                    actions = {
+                        IconButton(onClick = { showSettingsSheet = true }) {
+                            Icon(Icons.Default.Settings, "Settings", tint = AppColors.onSurface.copy(alpha = 0.8f))
+                        }
                     }
-                    Text(
-                        "Cycle Tracker",
-                        modifier = Modifier.weight(1f),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppColors.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-                    IconButton(onClick = { showSettingsSheet = true }) {
-                        Icon(Icons.Default.Settings, "Settings", tint = AppColors.onSurface.copy(alpha = 0.8f))
-                    }
-                }
+                )
 
                 // ── Horizontal Week Strip ──
                 WeekCalendarStrip(
@@ -561,16 +542,7 @@ fun CycleCalendarScreen(
         modifier = Modifier.fillMaxSize().background(screenBg)
     ) {
         // Top bar
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.Default.ArrowBack, "Back", tint = AppColors.onSurface)
-            }
-            Text("Cycle Calendar", style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(start = 4.dp))
-        }
+        AppTopBar(title = "Cycle Calendar", onBack = onNavigateBack)
 
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.swastricare.health.ui.components.AppTopBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,31 +91,15 @@ fun HeartRateScreen(
                 .fillMaxSize()
         ) {
             // Top Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.Default.ArrowBack, "Back",
-                        tint = AppColors.onSurface
-                    )
+            AppTopBar(
+                title = "Heart Rate",
+                onBack = onNavigateBack,
+                actions = {
+                    IconButton(onClick = onNavigateToAnalytics) {
+                        Icon(Icons.Default.BarChart, "Analytics", tint = HeartRateColor)
+                    }
                 }
-                Text(
-                    "Heart Rate",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-                IconButton(onClick = onNavigateToAnalytics) {
-                    Icon(
-                        Icons.Default.BarChart, "Analytics",
-                        tint = HeartRateColor
-                    )
-                }
-            }
+            )
 
             when {
                 uiState.showResult -> HeartRateResultScreen(

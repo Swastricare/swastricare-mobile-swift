@@ -27,10 +27,11 @@ import com.swastricare.health.domain.model.FamilyMember
 import com.swastricare.health.domain.model.FamilyRole
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.presentation.feature.family.FamilyUiState
+import com.swastricare.health.ui.components.AppTopBar
+import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PrimaryColor
-import com.swastricare.health.ui.components.TrackScreen
 
 // -----------------------------------------------
 // MARK: - FamilyScreen
@@ -61,25 +62,7 @@ fun FamilyScreen(
                 .fillMaxSize()
         ) {
             // Top Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.Default.ArrowBack, "Back",
-                        tint = AppColors.onSurface
-                    )
-                }
-                Text(
-                    "Family",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-            }
+            AppTopBar(title = "Family", onBack = onNavigateBack)
 
             when {
                 uiState.isLoading -> {

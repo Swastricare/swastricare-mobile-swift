@@ -23,6 +23,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -398,15 +402,42 @@ private val popExit = slideOutHorizontally(
 ) + fadeOut(animationSpec = tween(durationMillis = 220))
 
 /**
+ * Adds a top-level detail route. By default the screen is wrapped in a
+ * `Box.statusBarsPadding()` so its content doesn't draw under the system
+ * clock — this replaces the `innerPadding` that [MainScaffold]'s inner
+ * Scaffold used to provide before these routes were lifted out of it.
+ *
+ * Screens that intentionally paint under the status bar (e.g. Hydration's
+ * full-bleed gradient, AR body scan, Live Workout) can opt out via
+ * `immersive = true` and handle insets themselves.
+ */
+private fun NavGraphBuilder.detailComposable(
+    route: String,
+    arguments: List<NamedNavArgument> = emptyList(),
+    immersive: Boolean = false,
+    content: @Composable (NavBackStackEntry) -> Unit
+) {
+    composable(route = route, arguments = arguments) { entry ->
+        if (immersive) {
+            content(entry)
+        } else {
+            Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                content(entry)
+            }
+        }
+    }
+}
+
+/**
  * All detail routes opened from the bottom-nav shell. Each lives at the
  * top level of [AppNavigation] so it renders without the nav bar and
  * pops back to "main" via standard back navigation.
  */
-private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
+private fun NavGraphBuilder.addDetailRoutes(
     navController: NavHostController
 ) {
     // ─── Theme Settings ───
-    composable("theme_settings") {
+    detailComposable("theme_settings") {
         val settingsViewModel: SettingsViewModel = hiltViewModel()
         ThemeSettingsScreen(
             themePreferenceManager = settingsViewModel.themePreferenceManager,
@@ -415,7 +446,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Medications ───
-    composable("medications") {
+    detailComposable("medications") {
         MedicationsScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAddMedication = { navController.navigate("add_medication") },
@@ -424,15 +455,15 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable("add_medication") {
+    detailComposable("add_medication") {
         AddMedicationScreen(onDismiss = { navController.popBackStack() })
     }
 
-    composable(
+    detailComposable(
         route = "medication_detail/{${NavArgs.MEDICATION_ID}}",
         arguments = listOf(navArgument(NavArgs.MEDICATION_ID) { type = NavType.StringType })
     ) { backStackEntry ->
-        val id = backStackEntry.arguments?.getString(NavArgs.MEDICATION_ID) ?: return@composable
+        val id = backStackEntry.arguments?.getString(NavArgs.MEDICATION_ID) ?: return@detailComposable
         MedicationDetailScreen(
             medicationId = id,
             onBack = { navController.popBackStack() }
@@ -440,7 +471,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Diet ───
-    composable("diet") {
+    detailComposable("diet") {
         DietScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAddFood = { mt -> navController.navigate("add_food/$mt") },
@@ -450,7 +481,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable(
+    detailComposable(
         route = "add_food/{${NavArgs.MEAL_TYPE}}",
         arguments = listOf(
             navArgument(NavArgs.MEAL_TYPE) {
@@ -468,7 +499,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable(
+    detailComposable(
         route = "food_search/{${NavArgs.MEAL_TYPE}}",
         arguments = listOf(
             navArgument(NavArgs.MEAL_TYPE) {
@@ -485,7 +516,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable(
+    detailComposable(
         route = "food_snap/{${NavArgs.MEAL_TYPE}}",
         arguments = listOf(
             navArgument(NavArgs.MEAL_TYPE) {
@@ -502,8 +533,8 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    // ─── Hydration ───
-    composable("hydration") {
+    // ─── Hydration (immersive: gradient paints under the status bar) ───
+    detailComposable("hydration", immersive = true) {
         HydrationScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAI = { navController.popBackStack("main", inclusive = false) },
@@ -511,7 +542,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable("hydration_settings") {
+    detailComposable("hydration_settings") {
         HydrationSettingsScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToNotifications = { navController.navigate("notification_settings") }
@@ -519,7 +550,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Menstrual Cycle ───
-    composable("cycle_tracker") {
+    detailComposable("cycle_tracker") {
         MenstrualCycleScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToLog = { navController.navigate("cycle_log") },
@@ -527,11 +558,11 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable("cycle_calendar") {
+    detailComposable("cycle_calendar") {
         CycleCalendarScreen(onNavigateBack = { navController.popBackStack() })
     }
 
-    composable("cycle_log") {
+    detailComposable("cycle_log") {
         val viewModel: MenstrualCycleViewModel = hiltViewModel()
         LogPeriodScreen(
             viewModel = viewModel,
@@ -540,7 +571,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Heart Rate ───
-    composable("heart_rate") {
+    detailComposable("heart_rate") {
         HeartRateScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAnalytics = { navController.navigate("heart_rate_analytics") },
@@ -548,48 +579,49 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable("heart_rate_analytics") {
+    detailComposable("heart_rate_analytics") {
         HeartRateAnalyticsScreen(onNavigateBack = { navController.popBackStack() })
     }
 
     // ─── Stress ───
-    composable("stress") {
+    detailComposable("stress") {
         StressScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAnalytics = { navController.navigate("stress_analytics") }
         )
     }
 
-    composable("stress_analytics") {
+    detailComposable("stress_analytics") {
         StressAnalyticsScreen(onNavigateBack = { navController.popBackStack() })
     }
 
     // ─── Sleep ───
-    composable("sleep") {
+    detailComposable("sleep") {
         SleepScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToLog = { navController.navigate("sleep/log") }
         )
     }
 
-    composable("sleep/log") {
+    detailComposable("sleep/log") {
         LogSleepScreen(onNavigateBack = { navController.popBackStack() })
     }
 
-    // ─── AR Body Scan (Full Screen) ───
-    composable("ar_body_scan") {
+    // ─── AR Body Scan (immersive full-screen) ───
+    detailComposable("ar_body_scan", immersive = true) {
         ARBodyScanScreen(onNavigateBack = { navController.popBackStack() })
     }
 
-    // ─── Live Workout ───
-    composable(
+    // ─── Live Workout (immersive full-screen) ───
+    detailComposable(
         route = "live_workout?${NavArgs.WORKOUT_TYPE}={${NavArgs.WORKOUT_TYPE}}",
         arguments = listOf(
             navArgument(NavArgs.WORKOUT_TYPE) {
                 type = NavType.StringType
                 defaultValue = ""
             }
-        )
+        ),
+        immersive = true
     ) { backStackEntry ->
         val workoutTypeArg = backStackEntry.arguments?.getString(NavArgs.WORKOUT_TYPE) ?: ""
         val liveWorkoutViewModel: LiveWorkoutViewModel = hiltViewModel()
@@ -603,7 +635,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Run Calendar ───
-    composable("run_calendar") {
+    detailComposable("run_calendar") {
         RunCalendarScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToActivityDetail = { workoutId ->
@@ -613,7 +645,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Health Analytics ───
-    composable("health_analytics") {
+    detailComposable("health_analytics") {
         HealthAnalyticsScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAI = { navController.popBackStack("main", inclusive = false) },
@@ -623,7 +655,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable(
+    detailComposable(
         route = "metric_detail/{${NavArgs.METRIC_TYPE}}",
         arguments = listOf(navArgument(NavArgs.METRIC_TYPE) { type = NavType.StringType })
     ) { backStackEntry ->
@@ -635,11 +667,11 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Activity Detail ───
-    composable(
+    detailComposable(
         route = "activity_detail/{${NavArgs.WORKOUT_ID}}",
         arguments = listOf(navArgument(NavArgs.WORKOUT_ID) { type = NavType.StringType })
     ) { backStackEntry ->
-        val workoutId = backStackEntry.arguments?.getString(NavArgs.WORKOUT_ID) ?: return@composable
+        val workoutId = backStackEntry.arguments?.getString(NavArgs.WORKOUT_ID) ?: return@detailComposable
         ActivityDetailScreen(
             workoutId = workoutId,
             onNavigateBack = { navController.popBackStack() },
@@ -648,11 +680,11 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Family ───
-    composable("family") {
+    detailComposable("family") {
         FamilyScreen(onNavigateBack = { navController.popBackStack() })
     }
 
-    composable(
+    detailComposable(
         route = "family_join/{${NavArgs.FAMILY_CODE}}",
         arguments = listOf(navArgument(NavArgs.FAMILY_CODE) { type = NavType.StringType })
     ) { backStackEntry ->
@@ -664,15 +696,15 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Settings & Profile ───
-    composable("notification_settings") {
+    detailComposable("notification_settings") {
         NotificationSettingsScreen(onNavigateBack = { navController.popBackStack() })
     }
 
-    composable("notification_history") {
+    detailComposable("notification_history") {
         NotificationHistoryScreen(onNavigateBack = { navController.popBackStack() })
     }
 
-    composable("edit_profile") {
+    detailComposable("edit_profile") {
         // Each top-level entry creates a fresh ProfileViewModel — acceptable
         // since edit_profile is a terminal detail screen.
         val profileViewModel: ProfileViewModel = hiltViewModel()
@@ -683,7 +715,7 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
     }
 
     // ─── Health Data Sync ───
-    composable("health_data_sync") {
+    detailComposable("health_data_sync") {
         HealthDataSyncScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateTo = { appId ->
@@ -695,11 +727,11 @@ private fun androidx.navigation.NavGraphBuilder.addDetailRoutes(
         )
     }
 
-    composable("health_connect_settings") {
+    detailComposable("health_connect_settings") {
         HealthConnectSettingsScreen(onNavigateBack = { navController.popBackStack() })
     }
 
-    composable("google_health_settings") {
+    detailComposable("google_health_settings") {
         GoogleHealthSettingsScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }

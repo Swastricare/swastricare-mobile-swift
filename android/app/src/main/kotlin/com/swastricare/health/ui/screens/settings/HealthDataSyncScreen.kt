@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import com.swastricare.health.data.services.HealthConnectService
+import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.theme.AppColors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -106,20 +107,7 @@ fun HealthDataSyncScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Health Data Sync", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = AppColors.onBackground,
-                    navigationIconContentColor = AppColors.onBackground
-                ),
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
+            AppTopBar(title = "Health Data Sync", onBack = onNavigateBack)
         },
         containerColor = Color.Transparent
     ) { padding ->

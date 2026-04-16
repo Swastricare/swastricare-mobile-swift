@@ -225,33 +225,26 @@ fun MedicationsScreen(
                     .padding(bottom = innerPadding.calculateBottomPadding())
             ) {
                 // ── Top Bar ──
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
+                com.swastricare.health.ui.components.AppTopBar(
+                    title = "Medications",
+                    onBack = onNavigateBack,
+                    titleColor = Color.White,
+                    iconTint = Color.White,
+                    actions = {
+                        IconButton(onClick = onNavigateToAI) {
+                            Icon(Icons.Default.AutoAwesome, "Ask AI", tint = Color.White.copy(alpha = 0.8f))
+                        }
+                        IconButton(onClick = onNavigateToAddMedication) {
+                            Icon(Icons.Default.Add, "Add Medication", tint = Color.White)
+                        }
                     }
-                    Text(
-                        "Medications",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = onNavigateToAI) {
-                        Icon(Icons.Default.AutoAwesome, "Ask AI", tint = Color.White.copy(alpha = 0.8f))
-                    }
-                    IconButton(onClick = onNavigateToAddMedication) {
-                        Icon(Icons.Default.Add, "Add Medication", tint = Color.White)
-                    }
-                }
+                )
 
                 when {
-                    uiState.isLoading -> MedicationsSkeletonContent()
-                    uiState.medicationsWithDoses.isEmpty() -> {
+                    // Only show empty state once the VM has *finished* loading and
+                    // still has nothing — otherwise the "No medications added"
+                    // copy flashes for a frame while data is being fetched.
+                    !uiState.isLoading && uiState.medicationsWithDoses.isEmpty() -> {
                         MedicationsEmptyContent(onAdd = onNavigateToAddMedication)
                     }
                     else -> {
@@ -783,49 +776,6 @@ private fun TimelineSlotRow(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Skeleton Loading
-// ─────────────────────────────────────
-
-@Composable
-private fun MedicationsSkeletonContent() {
-    val shimmer = Color.White.copy(alpha = 0.15f)
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 8.dp)
-    ) {
-        // Progress hero placeholder
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(180.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(shimmer)
-        )
-        Spacer(Modifier.height(16.dp))
-        // Calendar row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            repeat(7) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Box(Modifier.fillMaxWidth(0.7f).height(10.dp).clip(RoundedCornerShape(4.dp)).background(shimmer))
-                    Box(Modifier.size(36.dp).clip(CircleShape).background(shimmer))
                 }
             }
         }
