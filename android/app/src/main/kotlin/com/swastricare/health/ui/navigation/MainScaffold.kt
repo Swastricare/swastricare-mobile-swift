@@ -1,6 +1,9 @@
 package com.swastricare.health.ui.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
@@ -14,13 +17,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
+/** Intrinsic height of [SwastriCareNavBarV2] (excl. system nav-bar inset). */
+private val NAV_BAR_CONTENT_HEIGHT = 56.dp
+
+/**
+ * The chrome around the 5 bottom-nav tabs.
+ *
+ * Because this composable now hosts *only* the 5 tab destinations — nested
+ * routes live at the top-level [AppNavigation] graph and aren't inside
+ * this scaffold at all — the bar is simply always visible here. The only
+ * legitimate reasons to hide it are:
+ *
+ *   • AI chat full-screen — animated slide down / up.
+ *   • IME (keyboard) visible — keep out of the input's way.
+ *
+ * The bar is drawn as an overlay (BottomCenter) rather than in Scaffold's
+ * `bottomBar` slot so that AI/keyboard toggles don't change the content's
+ * measured size.
+ */
 @Composable
 fun MainScaffold(
     navController: NavController,
-    showBottomNav: Boolean,
+    aiFullScreen: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable (Modifier) -> Unit
 ) {
@@ -28,50 +50,36 @@ fun MainScaffold(
     val currentRoute = navBackStackEntry?.destination?.route
     val density = LocalDensity.current
 
-    // ── V2: normal bottom bar (pushes content up) ──
-    Scaffold(
-        modifier = modifier,
-        bottomBar = {
+    val keyboardVisible = WindowInsets.ime.getBottom(density) > 0
+    val barVisible = !aiFullScreen && !keyboardVisible
+
+    Scaffold(modifier = modifier) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            // Content reserves space equal to the bar's height so the bar
+            // never overlaps tab content.
+            content(
+                Modifier
+                    .fillMaxSize()
+                    .padding(bottom = NAV_BAR_CONTENT_HEIGHT)
+            )
+
             AnimatedVisibility(
-                visible = showBottomNav && WindowInsets.ime.getBottom(density) == 0,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it }),
+                visible = barVisible,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = slideInVertically(
+                    animationSpec = tween(durationMillis = 260),
+                    initialOffsetY = { fullHeight -> fullHeight }
+                ) + fadeIn(tween(220)),
+                exit = slideOutVertically(
+                    animationSpec = tween(durationMillis = 260),
+                    targetOffsetY = { fullHeight -> fullHeight }
+                ) + fadeOut(tween(200))
             ) {
-                SwastriCareNavBarV2(navController = navController, currentRoute = currentRoute)
+                SwastriCareNavBarV2(
+                    navController = navController,
+                    currentRoute = currentRoute
+                )
             }
         }
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            content(Modifier.fillMaxSize())
-        }
     }
-
-    // ── V1: floating capsule bar (overlay, does not push content) ──
-    // V1 bottom paddings to restore when switching back:
-    //   HomeScreen scroll/cells:         76.dp
-    //   MedicationsScreen sheet/list:    88.dp / 96.dp
-    //   HydrationScreen:                 88.dp / 96.dp
-    //   DietScreen list/FAB:             120.dp / 96.dp
-    //   RunActivityScreen list/FAB:      100.dp / 96.dp
-    //   VaultScreen list/FAB/folders:    160.dp / 100.dp / 184.dp / 88.dp
-    //   SleepScreen:                     120.dp
-    //   FamilyScreen list/FAB:           120.dp / 96.dp
-    //   ProfileScreen FAB:               96.dp
-    //   SettingsScreen:                  88.dp
-    //   HeartRate/Health/StressAnalytics: 120.dp
-    //
-    // Scaffold(modifier = modifier) { innerPadding ->
-    //     val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
-    //     Box(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding())) {
-    //         content(Modifier.fillMaxSize())
-    //         AnimatedVisibility(
-    //             visible = showBottomNav && !isKeyboardVisible,
-    //             enter = slideInVertically(initialOffsetY = { it }),
-    //             exit = slideOutVertically(targetOffsetY = { it }),
-    //             modifier = Modifier.align(Alignment.BottomCenter)
-    //         ) {
-    //             SwastriCareNavBar(navController = navController, currentRoute = currentRoute)
-    //         }
-    //     }
-    // }
 }

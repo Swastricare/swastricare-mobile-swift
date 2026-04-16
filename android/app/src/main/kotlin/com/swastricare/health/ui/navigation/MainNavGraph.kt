@@ -5,506 +5,101 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import com.swastricare.health.ui.screens.ai.AIScreen
-import com.swastricare.health.ui.screens.analytics.HealthAnalyticsScreen
-import com.swastricare.health.ui.screens.analytics.HealthMetricDetailScreen
-import com.swastricare.health.ui.screens.ar.ARBodyScanScreen
-import com.swastricare.health.ui.screens.diet.AddFoodScreen
-import com.swastricare.health.ui.screens.diet.DietScreen
-import com.swastricare.health.ui.screens.diet.FoodSearchScreen
-import com.swastricare.health.ui.screens.diet.FoodSnapScreen
-import com.swastricare.health.ui.screens.family.FamilyScreen
-import com.swastricare.health.ui.screens.heartrate.HeartRateAnalyticsScreen
-import com.swastricare.health.ui.screens.heartrate.HeartRateScreen
 import com.swastricare.health.ui.screens.home.HomeScreenV2
-import com.swastricare.health.ui.screens.hydration.HydrationScreen
-import com.swastricare.health.ui.screens.hydration.HydrationSettingsScreen
-import com.swastricare.health.ui.screens.medications.AddMedicationScreen
-import com.swastricare.health.ui.screens.medications.MedicationDetailScreen
-import com.swastricare.health.ui.screens.medications.MedicationsScreen
-import com.swastricare.health.ui.screens.menstrualcycle.LogPeriodScreen
-import com.swastricare.health.ui.screens.menstrualcycle.MenstrualCycleScreen
-import com.swastricare.health.ui.screens.notifications.NotificationHistoryScreen
-import com.swastricare.health.ui.screens.notifications.NotificationSettingsScreen
-import com.swastricare.health.ui.screens.profile.EditProfileScreen
-import com.swastricare.health.ui.screens.profile.ProfileViewModel
-import com.swastricare.health.ui.screens.runactivity.ActivityDetailScreen
-import com.swastricare.health.ui.screens.runactivity.LiveWorkoutScreen
 import com.swastricare.health.ui.screens.runactivity.RunActivityScreen
-import com.swastricare.health.ui.screens.runactivity.RunCalendarScreen
 import com.swastricare.health.ui.screens.runactivity.WorkoutType
-import com.swastricare.health.ui.screens.settings.GoogleHealthSettingsScreen
-import com.swastricare.health.ui.screens.settings.HealthAppId
-import com.swastricare.health.ui.screens.settings.HealthConnectSettingsScreen
-import com.swastricare.health.ui.screens.settings.HealthDataSyncScreen
 import com.swastricare.health.ui.screens.settings.SettingsScreen
-import com.swastricare.health.ui.screens.sleep.LogSleepScreen
-import com.swastricare.health.ui.screens.sleep.SleepScreen
-import com.swastricare.health.ui.screens.stress.StressAnalyticsScreen
-import com.swastricare.health.ui.screens.stress.StressScreen
-import com.swastricare.health.ui.screens.runactivity.LiveWorkoutViewModel
+import com.swastricare.health.ui.screens.vault.VaultScreen
 
 /**
- * Navigation graph for the main content area (inside Scaffold).
- * This contains all tab screens and nested screens.
+ * Inner navigation graph for the 5 bottom-nav tabs.
  *
- * Key points:
- * - Screens receive Modifier without needing to apply innerPadding (already applied in MainScaffold)
- * - Nested screens that need back navigation should include a back button in their content
- * - Tab switching uses popUpTo with saveState/restoreState for state preservation
+ * The 5 tabs (Vitals, Vault, AI, Steps, Profile) are the only destinations
+ * in this graph. Any detail or nested screen opened from a tab lives at
+ * the top-level [AppNavigation] graph — so when a nested screen is shown
+ * it is *not* inside [MainScaffold] at all, and the bottom nav bar isn't
+ * part of that screen's layout.
+ *
+ * [onNavigateTo] is the single callback used to leave this graph and open
+ * a top-level route (Medications, Hydration, Diet, etc.). The route
+ * string is passed as-is to the root NavController in [AppNavigation].
  */
 @Composable
 fun MainNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    profileViewModel: ProfileViewModel,
     onSignOut: () -> Unit,
-    onAiFullScreenChange: (Boolean) -> Unit = {}
+    onAiFullScreenChange: (Boolean) -> Unit = {},
+    onNavigateTo: (route: String) -> Unit,
+    onNavigateToLiveWorkout: (WorkoutType?) -> Unit,
+    onNavigateToActivityDetail: (workoutId: String) -> Unit
 ) {
+    // Tab→tab switches fade through — no horizontal slide, since tabs are
+    // peers, not forward/back navigation.
     NavHost(
         navController = navController,
         startDestination = BottomNavTab.Vitals.route,
         modifier = modifier,
-        enterTransition = { fadeIn(animationSpec = tween(250)) },
-        exitTransition = { fadeOut(animationSpec = tween(250)) },
-        popEnterTransition = { fadeIn(animationSpec = tween(250)) },
-        popExitTransition = { fadeOut(animationSpec = tween(250)) }
+        enterTransition = { fadeIn(tween(180)) },
+        exitTransition = { fadeOut(tween(180)) },
+        popEnterTransition = { fadeIn(tween(180)) },
+        popExitTransition = { fadeOut(tween(180)) }
     ) {
-        // ═══════════════════════════════════════════════════════════
-        // TAB SCREENS (Bottom Navigation)
-        // ═══════════════════════════════════════════════════════════
-
-        // Tab: Vitals (Home)
         composable(BottomNavTab.Vitals.route) {
             HomeScreenV2(
-                onNavigateToMedications = { navController.navigate("medications") },
-                onNavigateToDiet = { navController.navigate("diet") },
-                onNavigateToHydration = { navController.navigate("hydration") },
-                onNavigateToCycleTracker = { navController.navigate("cycle_tracker") },
-                onNavigateToHeartRate = { navController.navigate("heart_rate") },
-                onNavigateToStress = { navController.navigate("stress") },
-                onNavigateToSleep = { navController.navigate("sleep") },
-                onNavigateToBodyScan = { navController.navigate("ar_body_scan") },
-                onNavigateToNotifications = { navController.navigate("notification_history") },
-                onNavigateToAnalytics = { navController.navigate("health_analytics") },
-                onNavigateToRoute = { route ->
-                    try { navController.navigate(route) } catch (_: Exception) { }
-                }
+                onNavigateToMedications = { onNavigateTo("medications") },
+                onNavigateToDiet = { onNavigateTo("diet") },
+                onNavigateToHydration = { onNavigateTo("hydration") },
+                onNavigateToCycleTracker = { onNavigateTo("cycle_tracker") },
+                onNavigateToHeartRate = { onNavigateTo("heart_rate") },
+                onNavigateToStress = { onNavigateTo("stress") },
+                onNavigateToSleep = { onNavigateTo("sleep") },
+                onNavigateToBodyScan = { onNavigateTo("ar_body_scan") },
+                onNavigateToNotifications = { onNavigateTo("notification_history") },
+                onNavigateToAnalytics = { onNavigateTo("health_analytics") },
+                onNavigateToRoute = { route -> onNavigateTo(route) }
             )
         }
 
-        // Tab: Vault
         composable(BottomNavTab.Vault.route) {
-            com.swastricare.health.ui.screens.vault.VaultScreen(
+            VaultScreen(
                 onNavigateToAIChat = {
                     navController.navigate(BottomNavTab.AI.route) {
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
+                        restoreState = true
                     }
                 }
             )
         }
 
-        // Tab: AI (expands to full screen when chat is active)
         composable(BottomNavTab.AI.route) {
-            AIScreen(
-                onFullScreenChange = onAiFullScreenChange
-            )
+            AIScreen(onFullScreenChange = onAiFullScreenChange)
         }
 
-        // Tab: Steps
         composable(BottomNavTab.Steps.route) {
             RunActivityScreen(
-                onNavigateToLiveWorkout = { workoutType ->
-                    if (workoutType != null) {
-                        navController.navigate("live_workout?${NavArgs.WORKOUT_TYPE}=${workoutType.name}")
-                    } else {
-                        navController.navigate("live_workout")
-                    }
-                },
-                onNavigateToActivityDetail = { workoutId ->
-                    navController.navigate("activity_detail/$workoutId")
-                },
-                onNavigateToCalendar = { navController.navigate("run_calendar") }
+                onNavigateToLiveWorkout = onNavigateToLiveWorkout,
+                onNavigateToActivityDetail = onNavigateToActivityDetail,
+                onNavigateToCalendar = { onNavigateTo("run_calendar") }
             )
         }
 
-        // Tab: Profile
         composable(BottomNavTab.Profile.route) {
             SettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToEditProfile = { navController.navigate("edit_profile") },
-                onNavigateToFamily = { navController.navigate("family") },
-                onNavigateToNotificationSettings = { navController.navigate("notification_settings") },
-                onNavigateToHydrationSettings = { navController.navigate("hydration_settings") },
-                onNavigateToHealthDataSync = { navController.navigate("health_data_sync") },
-                onNavigateToThemeSettings = { navController.navigate("theme_settings") },
+                onNavigateBack = { /* Profile is a root tab, nothing to pop */ },
+                onNavigateToEditProfile = { onNavigateTo("edit_profile") },
+                onNavigateToFamily = { onNavigateTo("family") },
+                onNavigateToNotificationSettings = { onNavigateTo("notification_settings") },
+                onNavigateToHydrationSettings = { onNavigateTo("hydration_settings") },
+                onNavigateToHealthDataSync = { onNavigateTo("health_data_sync") },
+                onNavigateToThemeSettings = { onNavigateTo("theme_settings") },
                 onSignOut = onSignOut
             )
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // NESTED SCREENS (Full screen, back navigation required)
-        // ═══════════════════════════════════════════════════════════
-
-        // ─── Theme Settings ───
-        composable("theme_settings") {
-            val settingsViewModel: com.swastricare.health.ui.screens.settings.SettingsViewModel =
-                androidx.hilt.navigation.compose.hiltViewModel()
-            com.swastricare.health.ui.screens.settings.ThemeSettingsScreen(
-                themePreferenceManager = settingsViewModel.themePreferenceManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Medications ───
-        composable("medications") {
-            MedicationsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddMedication = { navController.navigate("add_medication") },
-                onNavigateToDetail = { id -> navController.navigate("medication_detail/$id") },
-                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) }
-            )
-        }
-
-        composable("add_medication") {
-            AddMedicationScreen(onDismiss = { navController.popBackStack() })
-        }
-
-        composable(
-            route = "medication_detail/{${NavArgs.MEDICATION_ID}}",
-            arguments = listOf(
-                navArgument(NavArgs.MEDICATION_ID) { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getString(NavArgs.MEDICATION_ID) ?: return@composable
-            MedicationDetailScreen(
-                medicationId = id,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Diet ───
-        composable("diet") {
-            DietScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddFood = { mealTypeDb ->
-                    navController.navigate("add_food/$mealTypeDb")
-                },
-                onNavigateToFoodSearch = { mealTypeDb ->
-                    navController.navigate("food_search/$mealTypeDb")
-                },
-                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) },
-                onNavigateToFoodSnap = { mealTypeDb ->
-                    navController.navigate("food_snap/$mealTypeDb")
-                }
-            )
-        }
-
-        composable(
-            route = "add_food/{${NavArgs.MEAL_TYPE}}",
-            arguments = listOf(
-                navArgument(NavArgs.MEAL_TYPE) {
-                    type = NavType.StringType
-                    defaultValue = "breakfast"
-                }
-            )
-        ) { backStackEntry ->
-            val mealTypeDb = backStackEntry.arguments?.getString(NavArgs.MEAL_TYPE) ?: "breakfast"
-            AddFoodScreen(
-                initialMealTypeDb = mealTypeDb,
-                onDismiss = { navController.popBackStack() },
-                onNavigateToFoodSearch = { mt -> navController.navigate("food_search/$mt") },
-                onNavigateToFoodSnap = { mt -> navController.navigate("food_snap/$mt") }
-            )
-        }
-
-        composable(
-            route = "food_search/{${NavArgs.MEAL_TYPE}}",
-            arguments = listOf(
-                navArgument(NavArgs.MEAL_TYPE) {
-                    type = NavType.StringType
-                    defaultValue = "breakfast"
-                }
-            )
-        ) { backStackEntry ->
-            val mealTypeDb = backStackEntry.arguments?.getString(NavArgs.MEAL_TYPE) ?: "breakfast"
-            FoodSearchScreen(
-                mealTypeDb = mealTypeDb,
-                onFoodSelected = { navController.popBackStack() },
-                onDismiss = { navController.popBackStack() }
-            )
-        }
-
-        composable(
-            route = "food_snap/{${NavArgs.MEAL_TYPE}}",
-            arguments = listOf(
-                navArgument(NavArgs.MEAL_TYPE) {
-                    type = NavType.StringType
-                    defaultValue = "breakfast"
-                }
-            )
-        ) { backStackEntry ->
-            val mealTypeDb = backStackEntry.arguments?.getString(NavArgs.MEAL_TYPE) ?: "breakfast"
-            FoodSnapScreen(
-                mealTypeDb = mealTypeDb,
-                onDismiss = { navController.popBackStack() },
-                onNavigateToAddFood = { mt -> navController.navigate("add_food/$mt") }
-            )
-        }
-
-        // ─── Hydration ───
-        composable("hydration") {
-            HydrationScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) },
-                onNavigateToSettings = { navController.navigate("hydration_settings") }
-            )
-        }
-
-        composable("hydration_settings") {
-            HydrationSettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToNotifications = { navController.navigate("notification_settings") }
-            )
-        }
-
-        // ─── Menstrual Cycle ───
-        composable("cycle_tracker") {
-            MenstrualCycleScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToLog = { navController.navigate("cycle_log") },
-                onNavigateToCalendar = { navController.navigate("cycle_calendar") }
-            )
-        }
-
-        composable("cycle_calendar") {
-            com.swastricare.health.ui.screens.menstrualcycle.CycleCalendarScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable("cycle_log") {
-            val viewModel: com.swastricare.health.ui.screens.menstrualcycle.MenstrualCycleViewModel = hiltViewModel()
-            LogPeriodScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Heart Rate ───
-        composable("heart_rate") {
-            HeartRateScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAnalytics = { navController.navigate("heart_rate_analytics") },
-                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) }
-            )
-        }
-
-        composable("heart_rate_analytics") {
-            HeartRateAnalyticsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Stress ───
-        composable("stress") {
-            StressScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAnalytics = { navController.navigate("stress_analytics") }
-            )
-        }
-
-        composable("stress_analytics") {
-            StressAnalyticsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Sleep ───
-        composable("sleep") {
-            SleepScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToLog = { navController.navigate("sleep/log") }
-            )
-        }
-
-        composable("sleep/log") {
-            LogSleepScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── AR Body Scan (Full Screen) ───
-        composable("ar_body_scan") {
-            ARBodyScanScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Live Workout (Full Screen) ───
-        // Route supports an optional ?type=RUN query param so it can be launched
-        // both bare ("live_workout") and with a pre-selected activity type
-        // ("live_workout?type=RUN").  The notification deep link also routes here
-        // via swastricare://activeworkout → DeepLinkRoute.StartRun("run") →
-        // "live_workout?type=run".
-        composable(
-            route = "live_workout?${NavArgs.WORKOUT_TYPE}={${NavArgs.WORKOUT_TYPE}}",
-            arguments = listOf(
-                navArgument(NavArgs.WORKOUT_TYPE) {
-                    type = NavType.StringType
-                    defaultValue = ""
-                }
-            )
-        ) { backStackEntry ->
-            val workoutTypeArg = backStackEntry.arguments?.getString(NavArgs.WORKOUT_TYPE) ?: ""
-            val liveWorkoutViewModel: LiveWorkoutViewModel = hiltViewModel()
-            if (workoutTypeArg.isNotEmpty()) {
-                val wType = try {
-                    WorkoutType.valueOf(workoutTypeArg.uppercase())
-                } catch (_: IllegalArgumentException) { null }
-                if (wType != null) {
-                    liveWorkoutViewModel.setWorkoutType(wType)
-                }
-            }
-            LiveWorkoutScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Run Calendar ───
-        composable("run_calendar") {
-            RunCalendarScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToActivityDetail = { workoutId ->
-                    navController.navigate("activity_detail/$workoutId")
-                }
-            )
-        }
-
-        // ─── Health Analytics ───
-        composable("health_analytics") {
-            HealthAnalyticsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAI = { navigateToTab(navController, BottomNavTab.AI.route) },
-                onNavigateToMetricDetail = { metric ->
-                    navController.navigate("metric_detail/${metric.name}")
-                }
-            )
-        }
-
-        // ─── Metric Detail ───
-        composable(
-            route = "metric_detail/{${NavArgs.METRIC_TYPE}}",
-            arguments = listOf(
-                navArgument(NavArgs.METRIC_TYPE) { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val metricName = backStackEntry.arguments?.getString(NavArgs.METRIC_TYPE) ?: "Steps"
-            HealthMetricDetailScreen(
-                metricTypeName = metricName,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Activity Detail ───
-        composable(
-            route = "activity_detail/{${NavArgs.WORKOUT_ID}}",
-            arguments = listOf(
-                navArgument(NavArgs.WORKOUT_ID) { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val workoutId = backStackEntry.arguments?.getString(NavArgs.WORKOUT_ID) ?: return@composable
-            ActivityDetailScreen(
-                workoutId = workoutId,
-                onNavigateBack = { navController.popBackStack() },
-                onDelete = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Family ───
-        composable("family") {
-            FamilyScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(
-            route = "family_join/{${NavArgs.FAMILY_CODE}}",
-            arguments = listOf(
-                navArgument(NavArgs.FAMILY_CODE) { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val code = backStackEntry.arguments?.getString(NavArgs.FAMILY_CODE) ?: ""
-            FamilyScreen(
-                onNavigateBack = { navController.popBackStack() },
-                initialJoinCode = code
-            )
-        }
-
-        // ─── Settings & Profile ───
-        composable("notification_settings") {
-            NotificationSettingsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable("notification_history") {
-            NotificationHistoryScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable("edit_profile") {
-            EditProfileScreen(
-                viewModel = profileViewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Health Data Sync (list) ───
-        composable("health_data_sync") {
-            HealthDataSyncScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateTo = { appId ->
-                    when (appId) {
-                        HealthAppId.HEALTH_CONNECT -> navController.navigate("health_connect_settings")
-                        else -> { /* Removed apps */ }
-                    }
-                }
-            )
-        }
-
-        // ─── Individual health app screens ───
-        composable("health_connect_settings") {
-            HealthConnectSettingsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable("google_health_settings") {
-            GoogleHealthSettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }
-            )
-        }
-    }
-}
-
-/**
- * Navigate to a bottom tab, properly popping back stack and restoring state.
- */
-private fun navigateToTab(navController: NavHostController, tabRoute: String) {
-    navController.navigate(tabRoute) {
-        popUpTo(navController.graph.startDestinationId) {
-            saveState = true
-        }
-        launchSingleTop = true
-        restoreState = true
     }
 }

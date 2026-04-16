@@ -1,28 +1,14 @@
 package com.swastricare.health.ui.screens.home
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.swastricare.health.data.models.AdherenceStatus
-import com.swastricare.health.data.models.CyclePhase
+import com.swastricare.health.data.models.HydrationEntry
 import com.swastricare.health.data.models.MedicationDose
 import com.swastricare.health.data.services.HealthConnectService
-import com.swastricare.health.data.models.HydrationCalculator
-import com.swastricare.health.data.models.HydrationEntry
-import com.swastricare.health.data.models.HydrationPreferences
-import com.swastricare.health.data.models.MenstrualSettings
-import com.swastricare.health.data.repository.DietRepository
-import com.swastricare.health.data.repository.HydrationRepository
-import com.swastricare.health.data.repository.MenstrualCycleRepository
-import com.swastricare.health.data.repository.NudgeRepository
-import com.swastricare.health.data.repository.ProfileRepository
+import com.swastricare.health.data.repository.HomeDataPreloader
 import com.swastricare.health.data.repository.SupabaseAuthRepository
-import com.swastricare.health.data.repository.SupabaseDietRepository
 import com.swastricare.health.data.repository.SupabaseHydrationRepository
-import com.swastricare.health.data.repository.SupabaseMenstrualCycleRepository
-import com.swastricare.health.data.repository.SupabaseMedicationRepository
 import com.swastricare.health.data.repository.SupabaseNudgeRepository
-import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.ui.components.DailyMetric
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -105,15 +91,15 @@ data class HomeState(
 class HomeViewModel @Inject constructor(
     private val healthConnectService: HealthConnectService,
     private val hydrationRepository: SupabaseHydrationRepository,
-    private val dietRepository: SupabaseDietRepository,
-    private val medicationRepository: SupabaseMedicationRepository,
-    private val profileRepository: SupabaseProfileRepository,
-    private val menstrualCycleRepository: SupabaseMenstrualCycleRepository,
     private val authRepository: SupabaseAuthRepository,
-    private val nudgeRepository: SupabaseNudgeRepository
+    private val nudgeRepository: SupabaseNudgeRepository,
+    private val preloader: HomeDataPreloader
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeState())
+    // Start with a non-loading empty state — the splash screen preloads the
+    // real data before we get here. On rare cache-miss paths (e.g. user
+    // navigating here via an unusual route), loadData() will fill it in.
+    private val _uiState = MutableStateFlow(HomeState(isLoading = false))
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
 
     private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
@@ -122,171 +108,21 @@ class HomeViewModel @Inject constructor(
         loadData()
     }
 
-    /** Re-read local data sources (hydration, diet, etc.) to refresh the home cards. */
+    /** Re-read data sources (hydration, diet, etc.) to refresh the home cards. */
     fun refresh() {
+        preloader.invalidate()
         loadData()
     }
 
     private fun loadData() {
         viewModelScope.launch {
-            try {
-                val hour = LocalDateTime.now().hour
-                val greeting = when (hour) {
-                    in 5..11 -> "Good Morning,"
-                    in 12..16 -> "Good Afternoon,"
-                    in 17..20 -> "Good Evening,"
-                    else -> "Good Night,"
-                }
-
-                // Resolve user name and avatar
-                val currentUser = authRepository.currentUser
-                val userName = currentUser?.fullName
-                    ?: currentUser?.email?.substringBefore("@")
-                    ?: ""
-                val userAvatarUrl = currentUser?.avatarUrl
-
-                // Check Health Connect READ permissions (for logging and UI state)
-                val hasPermissions = healthConnectService.hasReadPermissions()
-                Log.d("HomeViewModel", "HC available=${healthConnectService.isAvailable}, hasReadPermissions=$hasPermissions")
-
-                // Load real data from Health Connect — use try/catch to handle
-                // permissions being revoked between the check and the read
-                val summary = try {
-                    healthConnectService.getTodaySummary()
-                } catch (e: SecurityException) {
-                    Log.w("HomeViewModel", "HC SecurityException reading summary: ${e.message}")
-                    HealthConnectService.DailyHealthSummary()
-                }
-                val weeklyStepEntries = try {
-                    healthConnectService.getWeeklySteps()
-                } catch (e: SecurityException) {
-                    Log.w("HomeViewModel", "HC SecurityException reading weekly steps: ${e.message}")
-                    emptyList()
-                }
-
-                // Resolve user IDs early so cloud-restore can use healthProfileId
-                val userId = authRepository.currentUser?.id
-                val healthProfileId = if (userId != null) {
-                    try { profileRepository.getHealthProfile(userId)?.id } catch (_: Exception) { null }
-                } else null
-
-                val todayStr = LocalDate.now().toString()
-
-                // Load hydration data — pull from cloud when local cache is empty
-                // (e.g. after a reinstall). Cloud entries are saved locally so subsequent
-                // loads hit the cache (Bug 9 fix).
-                var hydrationEntries = try { hydrationRepository.loadLocalEntries() } catch (_: Exception) { emptyList() }
-                if (hydrationEntries.isEmpty() && healthProfileId != null) {
-                    val cloudResult = try { hydrationRepository.fetchFromCloud(healthProfileId) } catch (_: Exception) { null }
-                    cloudResult?.getOrNull()?.let { cloudEntries ->
-                        if (cloudEntries.isNotEmpty()) {
-                            hydrationRepository.saveLocalEntries(cloudEntries)
-                            hydrationEntries = cloudEntries
-                            Log.d("HomeViewModel", "Restored ${cloudEntries.size} hydration entries from cloud")
-                        }
-                    }
-                }
-                val todayHydration = hydrationEntries
-                    .filter { it.consumedAt.startsWith(todayStr) }
-                    .sumOf { it.effectiveMl }
-                val hydrationPrefs = try { hydrationRepository.loadPreferences() } catch (_: Exception) { HydrationPreferences() }
-                val hydrationGoalMl = HydrationCalculator.calculateGoal(hydrationPrefs).dailyGoalMl
-
-                // Load diet logs — pull from cloud when local cache is empty (Bug 9 fix).
-                var dietEntries = try { dietRepository.loadLocalLogs() } catch (_: Exception) { emptyList() }
-                if (dietEntries.isEmpty() && healthProfileId != null) {
-                    val cloudResult = try { dietRepository.fetchLogsFromCloud(healthProfileId) } catch (_: Exception) { null }
-                    cloudResult?.getOrNull()?.let { cloudLogs ->
-                        if (cloudLogs.isNotEmpty()) {
-                            // Persist cloud logs to local storage so future reads are instant
-                            cloudLogs.forEach { dietRepository.addLocalLog(it) }
-                            dietEntries = cloudLogs
-                            Log.d("HomeViewModel", "Restored ${cloudLogs.size} diet logs from cloud")
-                        }
-                    }
-                }
-                val todayCalories = dietEntries
-                    .filter { it.loggedAt.startsWith(todayStr) }
-                    .sumOf { it.calories }
-                val dietGoals = try { dietRepository.loadGoals() } catch (_: Exception) { null }
-
-                // Load medication counts using the healthProfileId resolved above
-                val medicationsTotal: Int
-                val medicationsTaken: Int
-                if (healthProfileId != null) {
-                    val medications = try { medicationRepository.fetchMedications(healthProfileId) } catch (_: Exception) { medicationRepository.getCachedMedications() }
-                    val todayLogs = try { medicationRepository.fetchTodayLogs(healthProfileId) } catch (_: Exception) { emptyList() }
-                    medicationsTotal = medications.size
-                    medicationsTaken = todayLogs.count { it.status == "taken" }
-                } else {
-                    medicationsTotal = medicationRepository.getCachedMedications().size
-                    medicationsTaken = 0
-                }
-
-                // Load cycle phase from local cycles (scoped to the authenticated user so we
-                // never surface another account's cycle data on a shared device).
-                // Prefer healthProfileId (matches cloud sync key) and fall back to userId.
-                val cycleUserId = healthProfileId ?: userId ?: ""
-                val cycles = try {
-                    if (cycleUserId.isNotEmpty()) menstrualCycleRepository.loadLocalCycles(cycleUserId)
-                    else emptyList()
-                } catch (_: Exception) { emptyList() }
-                val settings = try {
-                    if (cycleUserId.isNotEmpty()) menstrualCycleRepository.loadSettings(cycleUserId)
-                    else MenstrualSettings()
-                } catch (_: Exception) { MenstrualSettings() }
-                val phase = menstrualCycleRepository.detectCurrentPhase(cycles, settings)
-                val cyclePhaseLabel = when (phase) {
-                    CyclePhase.MENSTRUAL -> "Menstrual"
-                    CyclePhase.FOLLICULAR -> "Follicular"
-                    CyclePhase.OVULATION -> "Ovulation"
-                    CyclePhase.LUTEAL -> "Luteal"
-                    else -> "Cycle Tracker"
-                }
-
-                // Convert weekly steps to DailyMetric
-                val weekDates = generateWeekDates()
-                val weeklySteps = weeklyStepEntries.map { entry ->
-                    DailyMetric(
-                        date = java.util.Date.from(
-                            entry.date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
-                        ),
-                        steps = entry.steps,
-                        dayName = entry.dayName
-                    )
-                }
-
-                _uiState.value = HomeState(
-                    userName = userName,
-                    userAvatarUrl = userAvatarUrl,
-                    greeting = greeting,
-                    stepCount = summary.steps,
-                    calories = summary.activeCalories,
-                    activeMinutes = summary.exerciseMinutes,
-                    standHours = summary.standHours,
-                    heartRate = summary.heartRate,
-                    sleepHours = summary.sleepFormatted,
-                    distance = summary.distanceKm,
-                    hydrationCurrent = todayHydration,
-                    hydrationGoal = hydrationGoalMl,
-                    medicationsTaken = medicationsTaken,
-                    medicationsTotal = medicationsTotal,
-                    isLoading = false,
-                    isDemoMode = false,
-                    isAuthorized = hasPermissions,
-                    hasNoHealthData = hasPermissions && summary.steps == 0 && summary.heartRate == 0 && summary.activeCalories == 0,
-                    weekDates = weekDates,
-                    selectedDate = Date(),
-                    weeklySteps = weeklySteps,
-                    calorieCurrent = todayCalories.toInt(),
-                    calorieGoal = dietGoals?.dailyCalories ?: 2000,
-                    cyclePhase = cyclePhaseLabel
-                )
-                loadNudges()
-            } catch (e: Exception) {
-                Log.w("HomeViewModel", "Error loading home data: ${e.message}")
-                _uiState.value = _uiState.value.copy(isLoading = false)
+            val cached = preloader.consumeCache()
+            if (cached != null) {
+                _uiState.value = cached
+            } else {
+                _uiState.value = preloader.fetchHomeState()
             }
+            loadNudges()
         }
     }
 
@@ -390,27 +226,19 @@ class HomeViewModel @Inject constructor(
      */
     fun onHealthPermissionsResult(grantedPermissions: Set<String>) {
         healthConnectService.invalidateCache()
+        preloader.invalidate()
         loadData()
     }
 
     /** @deprecated Prefer [onHealthPermissionsResult]. Kept for source compatibility. */
     fun requestHealthPermissions() {
         healthConnectService.invalidateCache()
+        preloader.invalidate()
         loadData()
     }
 
     fun syncToCloud() {
         // Sync handled by individual repositories
-    }
-
-    private fun generateWeekDates(): List<Date> {
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-        return (0..6).map {
-            val date = calendar.time
-            calendar.add(Calendar.DAY_OF_MONTH, 1)
-            date
-        }
     }
 
     private fun isSameDay(date1: Date, date2: Date): Boolean {

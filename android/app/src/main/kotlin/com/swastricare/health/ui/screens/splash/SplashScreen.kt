@@ -21,6 +21,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.swastricare.health.R
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -61,26 +63,32 @@ fun SplashScreen(
         onDispose { exoPlayer.release() }
     }
 
-    // Navigation logic — wait for video to finish, then route
+    // Navigation logic — decoupled from video length. We show the splash
+    // for a short minimum so the logo doesn't just flash, then navigate as
+    // soon as the preload completes (capped at a max wait so a slow network
+    // can never stall the app). The video keeps playing until splash fades.
     LaunchedEffect(Unit) {
-        // Wait for the video to finish (poll every 100ms), with a 10s safety timeout
-        withTimeoutOrNull(10_000) {
-            while (exoPlayer.currentPosition < exoPlayer.duration - 100 || exoPlayer.duration <= 0) {
-                delay(100)
-            }
-        }
-        // Hold on last frame briefly
-        delay(500)
+        coroutineScope {
+            val preloadJob = async { splashVm.preloadHomeData() }
+            // Minimum on-screen time so the logo reads as intentional.
+            val minDisplay = async { delay(1_000) }
 
+            minDisplay.await()
+            // After the floor has elapsed, give preload at most this long.
+            // Home will pick up the in-flight result if it hasn't finished.
+            withTimeoutOrNull(1_500) { preloadJob.await() }
+        }
+
+        val isAuthed = splashVm.isAuthenticated()
         val onboardingDone = splashVm.isOnboardingComplete()
 
         fadeOut = true
-        delay(400)
+        delay(250)
 
-        if (onboardingDone) {
-            onNavigateToLogin()
-        } else {
-            onNavigateToOnboarding()
+        when {
+            isAuthed -> onNavigateToHome()
+            onboardingDone -> onNavigateToLogin()
+            else -> onNavigateToOnboarding()
         }
     }
 

@@ -1,7 +1,6 @@
 package com.swastricare.health.ui.screens.main
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -10,91 +9,49 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.swastricare.health.navigation.DeepLinkHandler
-import com.swastricare.health.navigation.DeepLinkRoute
-import com.swastricare.health.ui.navigation.BottomNavConfig
+import com.swastricare.health.ui.components.OfflineBanner
 import com.swastricare.health.ui.navigation.BottomNavTab
 import com.swastricare.health.ui.navigation.MainNavGraph
 import com.swastricare.health.ui.navigation.MainScaffold
-import com.swastricare.health.ui.components.OfflineBanner
-import com.swastricare.health.ui.screens.profile.ProfileViewModel
+import com.swastricare.health.ui.screens.runactivity.WorkoutType
 
 /**
- * Main screen with bottom navigation.
+ * The bottom-nav shell for the authenticated app.
  *
- * Architecture:
- * - Scaffold with NavigationBar (hidden on full-screen routes)
- * - NavHost containing all tab screens and nested screens
- * - Deep linking support for both tabs and nested routes
+ * Only the 5 tab screens (Vitals, Vault, AI, Steps, Profile) live inside
+ * this shell. Any detail/nested screen (Medications, Hydration, etc.) is
+ * a top-level destination owned by [AppNavigation] and isn't part of the
+ * bottom-nav layout at all — opening one leaves MainScreen.
  *
- * The key to proper padding:
- * - MainScaffold applies innerPadding from Scaffold to the content Box
- * - NavHost modifier is set to fillMaxSize() so all screens naturally fill the available space
- * - Individual screens use fillMaxSize() without extra padding - they occupy exactly what's left
+ * Navigation to those top-level routes is bubbled up via [onNavigateTo].
  */
 @Composable
 fun MainScreen(
     onSignOut: () -> Unit = {},
-    deepLinkRoute: DeepLinkRoute? = null,
-    onDeepLinkConsumed: () -> Unit = {}
+    onNavigateTo: (route: String) -> Unit
 ) {
     val navController = rememberNavController()
     val mainScreenViewModel: MainScreenViewModel = hiltViewModel()
 
-    // Shared ProfileViewModel scoped to MainScreen so Profile and EditProfile share state
-    val profileViewModel: ProfileViewModel = hiltViewModel()
-
-    // Track current route for analytics and bottom nav visibility
+    // Track current route for analytics
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // AI full-screen mode (hides nav bar when chat is active)
+    // AI full-screen mode — only reason (besides the keyboard) the bar hides.
     var aiFullScreen by remember { mutableStateOf(false) }
 
-    // Reset AI full-screen when navigating away from AI tab
+    // Reset AI full-screen when navigating away from the AI tab.
     LaunchedEffect(currentRoute) {
         if (currentRoute != BottomNavTab.AI.route) {
             aiFullScreen = false
         }
     }
 
-    // Determine if bottom nav should be visible
-    val showBottomNav = remember(currentRoute, aiFullScreen) {
-        if (aiFullScreen) false
-        else BottomNavConfig.shouldShowBottomNav(currentRoute)
-    }
-
-    // Tab items for deep link handling
     val tabItems = remember { BottomNavTab.items }
 
-    // Handle deep link navigation
-    LaunchedEffect(deepLinkRoute) {
-        if (deepLinkRoute != null) {
-            val navRoute = DeepLinkHandler.toNavRoute(deepLinkRoute)
-
-            // Check if it's a tab route or a nested screen route
-            val isTabRoute = tabItems.any { it.route == navRoute }
-            if (isTabRoute) {
-                navController.navigate(navRoute) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            } else {
-                navController.navigate(navRoute) {
-                    launchSingleTop = true
-                }
-            }
-            onDeepLinkConsumed()
-        }
-    }
-
-    // Track screen views when route changes
+    // Analytics: track screen view when route changes.
     LaunchedEffect(currentRoute) {
         if (currentRoute != null) {
             val screenName = tabItems.firstOrNull { it.route == currentRoute }?.title ?: currentRoute
@@ -102,19 +59,29 @@ fun MainScreen(
         }
     }
 
-    // Main scaffold with bottom navigation
     MainScaffold(
         navController = navController,
-        showBottomNav = showBottomNav
+        aiFullScreen = aiFullScreen
     ) { modifier ->
         Column(modifier = modifier) {
             OfflineBanner(networkMonitor = mainScreenViewModel.networkMonitor)
             MainNavGraph(
                 navController = navController,
                 modifier = Modifier.weight(1f),
-                profileViewModel = profileViewModel,
                 onSignOut = onSignOut,
-                onAiFullScreenChange = { aiFullScreen = it }
+                onAiFullScreenChange = { aiFullScreen = it },
+                onNavigateTo = onNavigateTo,
+                onNavigateToLiveWorkout = { workoutType ->
+                    val route = if (workoutType != null) {
+                        "live_workout?type=${workoutType.name}"
+                    } else {
+                        "live_workout"
+                    }
+                    onNavigateTo(route)
+                },
+                onNavigateToActivityDetail = { workoutId ->
+                    onNavigateTo("activity_detail/$workoutId")
+                }
             )
         }
     }

@@ -1,7 +1,5 @@
 package com.swastricare.health.ui.navigation
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -111,12 +108,7 @@ private fun NavBarV2TabItem(
     val hapticFeedback = LocalHapticFeedback.current
 
     val selectedColor = if (isDark) Color.White else Color.Black
-
-    val tint by animateColorAsState(
-        targetValue = if (selected) selectedColor else AppColors.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 250),
-        label = "tabTintV2"
-    )
+    val tint = if (selected) selectedColor else AppColors.onSurfaceVariant
 
     Column(
         modifier = modifier

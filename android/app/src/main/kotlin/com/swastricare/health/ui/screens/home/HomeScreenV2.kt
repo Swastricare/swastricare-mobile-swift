@@ -104,21 +104,6 @@ fun HomeScreenV2(
         }
     }
 
-    // Staggered animation
-    val sectionCount = 8
-    val alreadyLoaded = !uiState.isLoading
-    val sectionVisible = remember { List(sectionCount) { mutableStateOf(alreadyLoaded) } }
-    LaunchedEffect(uiState.isLoading) {
-        if (!uiState.isLoading) {
-            sectionVisible.forEachIndexed { index, state ->
-                if (!state.value) {
-                    kotlinx.coroutines.delay(index * 80L)
-                    state.value = true
-                }
-            }
-        }
-    }
-
     // Compute medication counts from MedicationsViewModel (same as HomeScreen.kt)
     val allDoses = medicationsState.allDosesToday
     val medicationsTaken = allDoses.count {
@@ -129,26 +114,20 @@ fun HomeScreenV2(
     val medicationsTotal = allDoses.size
 
     Box(modifier = Modifier.fillMaxSize()) {
-
-        if (uiState.isLoading) {
-            HomeSkeletonLoading()
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 16.dp)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 16.dp)
+        ) {
                 // 1. Greeting Section
-                StaggeredEntrance(visible = sectionVisible[0].value) {
-                    GreetingSectionV2(
-                        userName = uiState.userName,
-                        greeting = uiState.greeting,
-                        avatarUrl = uiState.userAvatarUrl,
-                        onNavigateToAnalytics = onNavigateToAnalytics
-                    )
-                }
+                GreetingSectionV2(
+                    userName = uiState.userName,
+                    greeting = uiState.greeting,
+                    avatarUrl = uiState.userAvatarUrl,
+                    onNavigateToAnalytics = onNavigateToAnalytics
+                )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -224,57 +203,48 @@ fun HomeScreenV2(
 
                 // Server Nudges
                 if (uiState.serverNudges.isNotEmpty()) {
-                    StaggeredEntrance(visible = sectionVisible[1].value) {
-                        NudgesCardStrip(
-                            nudges = uiState.serverNudges,
-                            onDismiss = { id -> viewModel.dismissNudge(id) }
-                        )
-                    }
+                    NudgesCardStrip(
+                        nudges = uiState.serverNudges,
+                        onDismiss = { id -> viewModel.dismissNudge(id) }
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 // 2. Daily Activity Section
-                StaggeredEntrance(visible = sectionVisible[2].value) {
-                    DailyActivitySectionV2(
-                        stepCount = uiState.stepCount,
-                        calories = uiState.calories,
-                        activeMinutes = uiState.activeMinutes,
-                        distance = uiState.distance
-                    )
-                }
+                DailyActivitySectionV2(
+                    stepCount = uiState.stepCount,
+                    calories = uiState.calories,
+                    activeMinutes = uiState.activeMinutes,
+                    distance = uiState.distance
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // 3. Quick Action Section (horizontal scroll)
-                StaggeredEntrance(visible = sectionVisible[3].value) {
-                    QuickActionSectionV2(
-                        hydrationCurrent = uiState.hydrationCurrent,
-                        hydrationGoal = uiState.hydrationGoal,
-                        medicationsTaken = medicationsTaken,
-                        medicationsTotal = medicationsTotal,
-                        onNavigateToHydration = onNavigateToHydration,
-                        onNavigateToMedications = onNavigateToMedications,
-                        onNavigateToDiet = onNavigateToDiet,
-                        onNavigateToCycleTracker = onNavigateToCycleTracker
-                    )
-                }
+                QuickActionSectionV2(
+                    hydrationCurrent = uiState.hydrationCurrent,
+                    hydrationGoal = uiState.hydrationGoal,
+                    medicationsTaken = medicationsTaken,
+                    medicationsTotal = medicationsTotal,
+                    onNavigateToHydration = onNavigateToHydration,
+                    onNavigateToMedications = onNavigateToMedications,
+                    onNavigateToDiet = onNavigateToDiet,
+                    onNavigateToCycleTracker = onNavigateToCycleTracker
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // 4. Health Vitals Section
-                StaggeredEntrance(visible = sectionVisible[4].value) {
-                    HealthVitalsSectionV2(
-                        sleepHours = uiState.sleepHours,
-                        heartRate = uiState.heartRate,
-                        activeMinutes = uiState.activeMinutes,
-                        onNavigateToHeartRate = onNavigateToHeartRate,
-                        onNavigateToStress = onNavigateToStress,
-                        onNavigateToSleep = onNavigateToSleep
-                    )
-                }
+                HealthVitalsSectionV2(
+                    sleepHours = uiState.sleepHours,
+                    heartRate = uiState.heartRate,
+                    activeMinutes = uiState.activeMinutes,
+                    onNavigateToHeartRate = onNavigateToHeartRate,
+                    onNavigateToStress = onNavigateToStress,
+                    onNavigateToSleep = onNavigateToSleep
+                )
 
-                Spacer(modifier = Modifier.height(24.dp))
-            }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -288,31 +258,10 @@ private fun GreetingSectionV2(
     avatarUrl: String?,
     onNavigateToAnalytics: () -> Unit
 ) {
-    var hasAppeared by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(100)
-        hasAppeared = true
-    }
-
-    val alpha by animateFloatAsState(
-        targetValue = if (hasAppeared) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
-        label = "greetingAlpha"
-    )
-    val offsetY by animateFloatAsState(
-        targetValue = if (hasAppeared) 0f else -20f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
-        label = "greetingOffset"
-    )
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .graphicsLayer {
-                this.alpha = alpha
-                translationY = offsetY
-            }
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
