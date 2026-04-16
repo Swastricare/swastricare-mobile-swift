@@ -69,7 +69,33 @@ class RunActivityViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             try {
-                val allActivities = repository.loadLocalActivities()
+                // Local cache first — instant render after a successful sync.
+                var allActivities = repository.loadLocalActivities()
+
+                // Cloud restore: if the local cache is empty (e.g. right
+                // after a reinstall) pull the user's activities from
+                // Supabase so they don't appear to have been lost.
+                if (allActivities.isEmpty()) {
+                    val userId = supabaseClient.auth.currentUserOrNull()?.id
+                    val healthProfileId = if (userId != null) {
+                        runCatching { profileRepository.getHealthProfile(userId)?.id }
+                            .getOrNull()
+                    } else null
+                    if (healthProfileId != null) {
+                        val cloud = runCatching {
+                            repository.fetchActivitiesFromCloud(healthProfileId)
+                        }.getOrNull()
+                        cloud?.getOrNull()?.takeIf { it.isNotEmpty() }?.let { fromCloud ->
+                            repository.saveLocalActivities(fromCloud)
+                            allActivities = fromCloud
+                            android.util.Log.d(
+                                "RunActivityVM",
+                                "Restored ${fromCloud.size} activities from cloud"
+                            )
+                        }
+                    }
+                }
+
                 val filter = _uiState.value.timeRangeFilter
                 val filtered = filterActivities(allActivities, filter)
                 val stats = repository.calculateStatistics(allActivities, filter)

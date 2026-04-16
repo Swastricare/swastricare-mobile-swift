@@ -265,34 +265,38 @@ private fun HeroSection(
                     color = Color.White.copy(alpha = 0.55f),
                     fontWeight = FontWeight.Medium
                 )
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .width(160.dp)
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.12f))
+                // Smooth count-up animation: the number tweens from 0 to
+                // the current steps value on first render, and then tweens
+                // to any subsequent updates. No skeleton — the digits are
+                // visible immediately, they just animate into place.
+                var target by remember { mutableIntStateOf(0) }
+                LaunchedEffect(steps) { target = steps }
+                val animatedSteps by animateIntAsState(
+                    targetValue = target,
+                    animationSpec = tween(
+                        durationMillis = 1200,
+                        easing = FastOutSlowInEasing
+                    ),
+                    label = "stepsCount"
+                )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "%,d".format(animatedSteps),
+                        style = MaterialTheme.typography.displayLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 52.sp
                     )
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = if (steps > 0) "%,d".format(steps) else "0",
-                            style = MaterialTheme.typography.displayLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 52.sp
-                        )
-                        Text(
-                            text = "steps",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White.copy(alpha = 0.60f),
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(bottom = 10.dp)
-                        )
-                    }
+                    Text(
+                        text = "steps",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White.copy(alpha = 0.60f),
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
                 }
             }
 

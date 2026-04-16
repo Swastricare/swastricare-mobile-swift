@@ -143,89 +143,71 @@ fun WorkoutPhaseTracking(
         )
 
         // ═══════════════════════════════════════
-        // Layer 3: Top bar
+        // Layer 3: Top bar — shared AppTopBar, with auto-pause / GPS
+        // status indicators as trailing actions and the workout status
+        // (AUTO-PAUSED / PAUSED) shown directly underneath.
         // ═══════════════════════════════════════
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { onStop() }) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Stop",
-                    tint = textColor
-                )
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    uiState.workoutType.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
-                if (uiState.isAutopaused) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            com.swastricare.health.ui.components.AppTopBar(
+                title = uiState.workoutType.displayName,
+                onBack = onStop,
+                titleColor = textColor,
+                iconTint = textColor,
+                actions = {
+                    val apColor = if (uiState.autoPauseEnabled) Color(0xFF38EF7D) else Color.Gray
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(apColor.copy(alpha = 0.2f))
+                            .clickable { onToggleAutoPause() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.PauseCircle,
+                            contentDescription = if (uiState.autoPauseEnabled) "Auto-pause on" else "Auto-pause off",
+                            tint = apColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(Modifier.size(6.dp))
+                    val gpsColor = when (uiState.gpsStatus) {
+                        com.swastricare.health.data.services.RouteTracker.GpsStatus.OFF -> Color.Gray
+                        com.swastricare.health.data.services.RouteTracker.GpsStatus.SEARCHING -> Color(0xFFFFA500)
+                        com.swastricare.health.data.services.RouteTracker.GpsStatus.POOR -> Color(0xFFFF6B6B)
+                        com.swastricare.health.data.services.RouteTracker.GpsStatus.FAIR -> Color(0xFFFFD60A)
+                        com.swastricare.health.data.services.RouteTracker.GpsStatus.GOOD -> Color(0xFF38EF7D)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(gpsColor.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.GpsFixed,
+                            contentDescription = "GPS status",
+                            tint = gpsColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(Modifier.size(4.dp))
+                }
+            )
+            // Status banner under the title bar (AUTO-PAUSED / PAUSED)
+            if (uiState.isAutopaused || isPaused) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
                     Text(
-                        "AUTO-PAUSED",
+                        if (uiState.isAutopaused) "AUTO-PAUSED" else "PAUSED",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFA500).copy(alpha = pulseAlpha),
+                        color = (if (uiState.isAutopaused) Color(0xFFFFA500) else Color(0xFFFFD60A))
+                            .copy(alpha = pulseAlpha),
                         letterSpacing = 2.sp
-                    )
-                } else if (isPaused) {
-                    Text(
-                        "PAUSED",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFD60A).copy(alpha = pulseAlpha),
-                        letterSpacing = 2.sp
-                    )
-                }
-            }
-            // GPS status + auto-pause toggle (icons only)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                // Auto-pause toggle icon
-                val apColor = if (uiState.autoPauseEnabled) Color(0xFF38EF7D) else Color.Gray
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(apColor.copy(alpha = 0.2f))
-                        .clickable { onToggleAutoPause() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.PauseCircle,
-                        contentDescription = if (uiState.autoPauseEnabled) "Auto-pause on" else "Auto-pause off",
-                        tint = apColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                // GPS status icon
-                val gpsColor = when (uiState.gpsStatus) {
-                    com.swastricare.health.data.services.RouteTracker.GpsStatus.OFF -> Color.Gray
-                    com.swastricare.health.data.services.RouteTracker.GpsStatus.SEARCHING -> Color(0xFFFFA500)
-                    com.swastricare.health.data.services.RouteTracker.GpsStatus.POOR -> Color(0xFFFF6B6B)
-                    com.swastricare.health.data.services.RouteTracker.GpsStatus.FAIR -> Color(0xFFFFD60A)
-                    com.swastricare.health.data.services.RouteTracker.GpsStatus.GOOD -> Color(0xFF38EF7D)
-                }
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(gpsColor.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.GpsFixed,
-                        contentDescription = "GPS status",
-                        tint = gpsColor,
-                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
