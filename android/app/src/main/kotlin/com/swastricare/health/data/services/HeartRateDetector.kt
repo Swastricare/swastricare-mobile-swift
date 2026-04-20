@@ -218,10 +218,14 @@ class HeartRateDetector(private val context: Context) {
             _waveformData.value = waveform
 
             if (elapsed > CALIBRATING_END_MS) {
-                processor.calculateBPM()?.let { bpm ->
-                    val bpmInt = bpm.toInt()
-                    _currentBPM.value = bpmInt
-                    bpmReadings.add(bpmInt)
+                if (processor.isFingerPresent()) {
+                    processor.calculateBPM()?.let { bpm ->
+                        val bpmInt = bpm.toInt()
+                        _currentBPM.value = bpmInt
+                        bpmReadings.add(bpmInt)
+                    }
+                } else {
+                    _currentBPM.value = 0
                 }
             }
 

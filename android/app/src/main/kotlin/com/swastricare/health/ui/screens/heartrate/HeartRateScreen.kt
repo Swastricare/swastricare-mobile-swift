@@ -1,5 +1,9 @@
 package com.swastricare.health.ui.screens.heartrate
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -32,6 +36,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swastricare.health.data.services.MeasurementPhase
 import com.swastricare.health.data.services.SignalQuality
@@ -77,6 +82,27 @@ fun HeartRateScreen(
         PreviewView(context)
     }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.startMeasurement(previewView, lifecycleOwner)
+        } else {
+            viewModel.setError("Camera permission is required to measure heart rate. Please enable it in Settings.")
+        }
+    }
+
+    val launchMeasurement: () -> Unit = {
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            viewModel.startMeasurement(previewView, lifecycleOwner)
+        } else {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
     // Stop measurement when navigating away to prevent camera/resource leaks
     DisposableEffect(Unit) {
         onDispose {
@@ -108,7 +134,7 @@ fun HeartRateScreen(
                     source = uiState.source,
                     onNavigateToAnalytics = onNavigateToAnalytics,
                     onNavigateToAI = onNavigateToAI,
-                    onMeasureAgain = { viewModel.startMeasurement(previewView, lifecycleOwner) },
+                    onMeasureAgain = launchMeasurement,
                     onDismiss = onNavigateBack
                 )
                 uiState.isMeasuring -> HeartRateMeasuringView(
@@ -123,7 +149,7 @@ fun HeartRateScreen(
                 else -> HeartRateIdleView(
                     lastBpm = uiState.lastBpm,
                     error = uiState.error,
-                    onStartMeasurement = { viewModel.startMeasurement(previewView, lifecycleOwner) }
+                    onStartMeasurement = launchMeasurement
                 )
             }
         }

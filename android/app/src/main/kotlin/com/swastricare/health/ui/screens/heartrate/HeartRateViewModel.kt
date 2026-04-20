@@ -199,6 +199,10 @@ class HeartRateViewModel @Inject constructor(
         }
     }
 
+    fun setError(message: String) {
+        _uiState.update { it.copy(error = message) }
+    }
+
     // ── Result Handling ──
 
     private fun handleMeasurementResult() {
@@ -245,8 +249,13 @@ class HeartRateViewModel @Inject constructor(
             }
         } else {
             Log.w(TAG, "Measurement completed but no result available")
+            detector.stopMeasurement()
             _uiState.update {
-                it.copy(error = "Could not determine heart rate. Please try again with your finger firmly on the camera.")
+                it.copy(
+                    measurementProgress = 0f,
+                    currentBpm = 0,
+                    error = "No finger detected. Place your fingertip firmly over the camera and flashlight, then try again."
+                )
             }
         }
     }

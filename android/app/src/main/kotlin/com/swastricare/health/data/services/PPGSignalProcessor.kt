@@ -25,6 +25,12 @@ class PPGSignalProcessor {
 
         // Peak detection
         const val MIN_PEAK_DISTANCE_SAMPLES = 8 // ~0.27s at 30fps (max ~220 BPM)
+
+        // Finger-presence detection on raw Y-plane luminance (0-255).
+        // A finger pressed to a lit lens produces a bright, stable frame.
+        const val FINGER_MIN_BRIGHTNESS = 100.0
+        const val FINGER_MAX_STABLE_STDDEV = 25.0
+        const val FINGER_DETECTION_MIN_SAMPLES = 15 // ~0.5s at 30fps
     }
 
     private val rawBuffer = mutableListOf<Double>()
@@ -121,10 +127,26 @@ class PPGSignalProcessor {
     }
 
     /**
+     * Returns true when the recent raw frames look like a fingertip held
+     * steady over a lit lens: consistently bright and low variance.
+     */
+    fun isFingerPresent(): Boolean {
+        if (rawBuffer.size < FINGER_DETECTION_MIN_SAMPLES) return false
+
+        val recent = rawBuffer.takeLast(FINGER_DETECTION_MIN_SAMPLES)
+        val mean = recent.average()
+        if (mean < FINGER_MIN_BRIGHTNESS) return false
+
+        val variance = recent.map { (it - mean) * (it - mean) }.average()
+        return sqrt(variance) < FINGER_MAX_STABLE_STDDEV
+    }
+
+    /**
      * Assess signal quality based on variance and consistency.
      * Returns quality from 0.0 (poor) to 1.0 (excellent).
      */
     fun assessSignalQuality(): SignalQuality {
+        if (!isFingerPresent()) return SignalQuality.POOR
         if (filteredBuffer.size < 30) return SignalQuality.POOR
 
         val recent = filteredBuffer.takeLast(30)

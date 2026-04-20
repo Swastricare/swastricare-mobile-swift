@@ -34,7 +34,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -118,6 +121,20 @@ fun MedicationsScreen(
     var skipDialogDose by remember { mutableStateOf<MedicationDose?>(null) }
     var deleteMedicationId by remember { mutableStateOf<String?>(null) }
     var deleteMedicationName by remember { mutableStateOf("") }
+
+    // Reload medications when returning from AddMedicationScreen or MedicationDetailScreen
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                vm.loadMedications()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val slotFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val timelineSlots = remember(uiState.selectedDate, uiState.medicationsWithDoses) {
