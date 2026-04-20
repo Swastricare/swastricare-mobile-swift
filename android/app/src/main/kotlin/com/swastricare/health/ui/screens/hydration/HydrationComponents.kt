@@ -563,7 +563,7 @@ fun QuickAddDrinkChips(
                             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onAddDrink(drinkType)
                         }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     DrinkChipContent(drinkType = drinkType, isDark = isDark)
                 }
@@ -599,7 +599,7 @@ fun QuickAddDrinkChips(
                                 )
                             )
                         )
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     DrinkChipContent(drinkType = draggedChip!!, isDark = isDark)
                 }
@@ -623,18 +623,23 @@ private fun DrinkChipContent(drinkType: DrinkType, isDark: Boolean) {
         ) {
             DrinkIcon(drinkType = drinkType, size = 20.dp)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 drinkType.displayName,
                 fontSize = 13.sp,
+                lineHeight = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 "+100ml",
                 fontSize = 10.sp,
+                lineHeight = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.75f)
+                color = Color.White.copy(alpha = 0.75f),
+                maxLines = 1
             )
         }
     }

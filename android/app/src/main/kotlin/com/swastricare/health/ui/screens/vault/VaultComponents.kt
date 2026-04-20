@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.model.MedicalDocument
 import com.swastricare.health.data.model.VaultCategory
 import com.swastricare.health.ui.theme.AppColors
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 // ═══════════════════════════════════════════════════════
 // Section building blocks (matching Settings screen design)
@@ -112,6 +114,9 @@ fun DocumentRow(
     onEditClick: (MedicalDocument) -> Unit,
     onDeleteClick: (MedicalDocument) -> Unit
 ) {
+    val categoryColor = getCategoryColor(document.category)
+    var showMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -129,13 +134,21 @@ fun DocumentRow(
             Spacer(modifier = Modifier.width(12.dp))
         }
 
-        // File type icon
-        Icon(
-            imageVector = getFileIcon(document.fileType),
-            contentDescription = null,
-            tint = getCategoryColor(document.category),
-            modifier = Modifier.size(20.dp)
-        )
+        // Colored category tile with file type icon
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(categoryColor.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = getFileIcon(document.fileType),
+                contentDescription = null,
+                tint = categoryColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
         Spacer(modifier = Modifier.width(12.dp))
 
         // Title + metadata
@@ -143,38 +156,34 @@ fun DocumentRow(
             Text(
                 text = document.title,
                 fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
                 color = AppColors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = document.category,
                     fontSize = 11.sp,
-                    color = getCategoryColor(document.category)
+                    fontWeight = FontWeight.Medium,
+                    color = categoryColor
                 )
-                if (document.documentDate != null) {
+                val date = formatDocumentDate(document.documentDate)
+                if (date.isNotEmpty()) {
+                    MetadataDot()
                     Text(
-                        text = " \u2022 ",
+                        text = date,
                         fontSize = 11.sp,
-                        color = AppColors.onBackground.copy(alpha = 0.3f)
-                    )
-                    Text(
-                        text = document.documentDate.substringBefore("T"),
-                        fontSize = 11.sp,
-                        color = AppColors.onBackground.copy(alpha = 0.4f)
+                        color = AppColors.onBackground.copy(alpha = 0.5f)
                     )
                 }
-                if (document.doctorName != null) {
-                    Text(
-                        text = " \u2022 ",
-                        fontSize = 11.sp,
-                        color = AppColors.onBackground.copy(alpha = 0.3f)
-                    )
+                if (!document.doctorName.isNullOrBlank()) {
+                    MetadataDot()
                     Text(
                         text = document.doctorName,
                         fontSize = 11.sp,
-                        color = AppColors.onBackground.copy(alpha = 0.4f),
+                        color = AppColors.onBackground.copy(alpha = 0.5f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -183,16 +192,18 @@ fun DocumentRow(
         }
 
         if (!isSelectionMode) {
-            var showMenu by remember { mutableStateOf(false) }
             Box {
-                Icon(
-                    Icons.Outlined.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clickable { showMenu = true },
-                    tint = AppColors.onBackground.copy(alpha = 0.25f)
-                )
+                IconButton(
+                    onClick = { showMenu = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        modifier = Modifier.size(18.dp),
+                        tint = AppColors.onBackground.copy(alpha = 0.45f)
+                    )
+                }
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
@@ -219,25 +230,12 @@ fun DocumentRow(
     }
 }
 
-// Keep the old DocumentCard as an alias for backward compat in FolderDetailView
 @Composable
-fun DocumentCard(
-    document: MedicalDocument,
-    isSelectionMode: Boolean,
-    isSelected: Boolean,
-    onTap: () -> Unit,
-    onViewClick: (MedicalDocument) -> Unit,
-    onEditClick: (MedicalDocument) -> Unit,
-    onDeleteClick: (MedicalDocument) -> Unit
-) {
-    DocumentRow(
-        document = document,
-        isSelectionMode = isSelectionMode,
-        isSelected = isSelected,
-        onTap = onTap,
-        onViewClick = onViewClick,
-        onEditClick = onEditClick,
-        onDeleteClick = onDeleteClick
+private fun MetadataDot() {
+    Text(
+        text = " \u2022 ",
+        fontSize = 11.sp,
+        color = AppColors.onBackground.copy(alpha = 0.3f)
     )
 }
 
@@ -282,17 +280,6 @@ fun FolderRow(
     }
 }
 
-// Keep the old FolderCard for backward compat
-@Composable
-fun FolderCard(
-    folderName: String,
-    count: Int,
-    color: Color,
-    onClick: () -> Unit
-) {
-    FolderRow(folderName = folderName, count = count, onClick = onClick)
-}
-
 // ═══════════════════════════════════════════════════════
 // Utility functions
 // ═══════════════════════════════════════════════════════
@@ -305,7 +292,42 @@ fun getCategoryColor(categoryName: String): Color {
 fun getFileIcon(fileType: String): ImageVector {
     return when (fileType.lowercase()) {
         "pdf" -> Icons.Default.Description
-        "jpg", "jpeg", "png" -> Icons.Default.Image
+        "jpg", "jpeg", "png", "webp" -> Icons.Default.Image
         else -> Icons.Default.InsertDriveFile
+    }
+}
+
+/** "Today", "Yesterday", "8 Apr" (this year) or "8 Apr 2025" (other years). */
+fun formatDocumentDate(iso: String?): String {
+    if (iso.isNullOrBlank()) return ""
+    return try {
+        val date = LocalDate.parse(iso.substringBefore("T"))
+        val today = LocalDate.now()
+        when (date) {
+            today -> "Today"
+            today.minusDays(1) -> "Yesterday"
+            else -> {
+                val pattern = if (date.year == today.year) "d MMM" else "d MMM yyyy"
+                date.format(DateTimeFormatter.ofPattern(pattern))
+            }
+        }
+    } catch (_: Exception) {
+        iso.substringBefore("T")
+    }
+}
+
+/** Timeline group headers: "Today", "Yesterday", full "8 April 2026" otherwise. */
+fun formatTimelineDate(iso: String): String {
+    if (iso == "Unknown Date") return iso
+    return try {
+        val date = LocalDate.parse(iso)
+        val today = LocalDate.now()
+        when (date) {
+            today -> "Today"
+            today.minusDays(1) -> "Yesterday"
+            else -> date.format(DateTimeFormatter.ofPattern("d MMMM yyyy"))
+        }
+    } catch (_: Exception) {
+        iso
     }
 }

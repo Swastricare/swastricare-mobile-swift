@@ -37,6 +37,7 @@ data class VaultUiState(
     val selectedDocumentDetail: MedicalDocument? = null,
     val showBatchUploadPreview: Boolean = false,
     val batchUploadItems: List<BatchUploadItem> = emptyList(),
+    val batchFolderName: String = "",
     val openFolderName: String? = null,
     val aiAnalysisResult: String? = null,
     val isAnalyzingAI: Boolean = false,
@@ -343,7 +344,17 @@ class VaultViewModel @Inject constructor(
     }
 
     fun setBatchUploadItems(items: List<BatchUploadItem>) {
-        _uiState.update { it.copy(batchUploadItems = items, showBatchUploadPreview = items.isNotEmpty()) }
+        _uiState.update {
+            it.copy(
+                batchUploadItems = items,
+                batchFolderName = "",
+                showBatchUploadPreview = items.isNotEmpty()
+            )
+        }
+    }
+
+    fun setBatchFolderName(name: String) {
+        _uiState.update { it.copy(batchFolderName = name) }
     }
 
     fun updateBatchItemCategory(index: Int, category: VaultCategory) {
@@ -376,12 +387,16 @@ class VaultViewModel @Inject constructor(
         viewModelScope.launch {
             val items = _uiState.value.batchUploadItems
             if (items.isEmpty()) return@launch
+            val folderName = _uiState.value.batchFolderName.trim().takeIf { it.isNotEmpty() }
 
             _uiState.update { it.copy(isUploading = true, uploadProgress = 0f) }
             try {
                 items.forEachIndexed { index, item ->
                     _uiState.update { it.copy(uploadProgress = (index.toFloat() + 0.5f) / items.size) }
-                    val metadata = DocumentMetadata(name = item.fileName.substringBeforeLast('.'))
+                    val metadata = DocumentMetadata(
+                        name = item.fileName.substringBeforeLast('.'),
+                        folderName = folderName
+                    )
                     repository.uploadDocument(
                         fileData = item.fileData,
                         fileName = item.fileName,
@@ -396,7 +411,8 @@ class VaultViewModel @Inject constructor(
                     it.copy(
                         isUploading = false,
                         showBatchUploadPreview = false,
-                        batchUploadItems = emptyList()
+                        batchUploadItems = emptyList(),
+                        batchFolderName = ""
                     )
                 }
             } catch (e: Exception) {
@@ -411,7 +427,13 @@ class VaultViewModel @Inject constructor(
     }
 
     fun dismissBatchUpload() {
-        _uiState.update { it.copy(showBatchUploadPreview = false, batchUploadItems = emptyList()) }
+        _uiState.update {
+            it.copy(
+                showBatchUploadPreview = false,
+                batchUploadItems = emptyList(),
+                batchFolderName = ""
+            )
+        }
     }
 
     fun openFolder(folderName: String) {
