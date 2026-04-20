@@ -21,6 +21,17 @@ interface SleepRepository {
     suspend fun getSleepSessions(startDate: LocalDate, endDate: LocalDate): ResultWrapper<List<SleepSession>>
 
     /**
+     * Read the user's manually-logged sleep sessions from Supabase
+     * `daily_health_metrics` for a date range. Returns sessions without stage data.
+     * Used to fill gaps on days that Health Connect doesn't have data for.
+     */
+    suspend fun getSupabaseSleepSessions(
+        profileId: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): ResultWrapper<List<SleepSession>>
+
+    /**
      * Sync a sleep session to Supabase daily_health_metrics.
      */
     suspend fun syncToCloud(session: SleepSession, profileId: String): ResultWrapper<Unit>

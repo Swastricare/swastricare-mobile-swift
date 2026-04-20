@@ -33,6 +33,7 @@ data class SleepUiState(
     val todaySession: SleepSession? = null,
     val sleepHistory: List<SleepSession> = emptyList(),
     val selectedRange: SleepTimeRange = SleepTimeRange.WEEK,
+    val selectedDate: LocalDate = LocalDate.now(),
     val stats: SleepStats = SleepStats(),
     val error: String? = null
 ) {
@@ -40,6 +41,13 @@ data class SleepUiState(
         get() {
             val cutoff = LocalDate.now().minusDays(selectedRange.days.toLong())
             return sleepHistory.filter { it.date.isAfter(cutoff) || it.date == cutoff }
+        }
+
+    val selectedSession: SleepSession?
+        get() = if (selectedDate == LocalDate.now()) {
+            todaySession ?: sleepHistory.firstOrNull { it.date == selectedDate }
+        } else {
+            sleepHistory.firstOrNull { it.date == selectedDate }
         }
 }
 
@@ -68,33 +76,40 @@ class SleepViewModel @Inject constructor(
         recalculateStats()
     }
 
-    private fun loadSleepData() {
+    fun selectDate(date: LocalDate) {
+        _uiState.update { it.copy(selectedDate = date) }
+    }
+
+    /** Re-fetch sleep data — called when the screen becomes visible after a manual log. */
+    fun refresh() {
+        loadSleepData(showSpinner = false)
+    }
+
+    private fun loadSleepData(showSpinner: Boolean = true) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            if (showSpinner) {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+            } else {
+                _uiState.update { it.copy(error = null) }
+            }
 
-            // Load today's session
+            val profileId = resolveProfileId()
+
+            // Load today's session from Health Connect
+            var hcToday: SleepSession? = null
             when (val todayResult = sleepRepository.getTodaySleepSession()) {
-                is ResultWrapper.Success -> {
-                    _uiState.update { it.copy(todaySession = todayResult.data) }
-
-                    // Background cloud sync
-                    todayResult.data?.let { session ->
-                        syncToCloud(session)
-                    }
-                }
-                is ResultWrapper.Error -> {
+                is ResultWrapper.Success -> hcToday = todayResult.data
+                is ResultWrapper.Error ->
                     Log.w(TAG, "Failed to load today's sleep: ${todayResult.exception}")
-                }
                 is ResultWrapper.Loading -> { /* no-op */ }
             }
 
-            // Load 30-day history
+            // Load 30-day history from Health Connect
             val endDate = LocalDate.now()
             val startDate = endDate.minusDays(30)
+            var hcHistory: List<SleepSession> = emptyList()
             when (val historyResult = sleepRepository.getSleepSessions(startDate, endDate)) {
-                is ResultWrapper.Success -> {
-                    _uiState.update { it.copy(sleepHistory = historyResult.data) }
-                }
+                is ResultWrapper.Success -> hcHistory = historyResult.data
                 is ResultWrapper.Error -> {
                     Log.w(TAG, "Failed to load sleep history: ${historyResult.exception}")
                     _uiState.update { it.copy(error = "Unable to load sleep history") }
@@ -102,9 +117,85 @@ class SleepViewModel @Inject constructor(
                 is ResultWrapper.Loading -> { /* no-op */ }
             }
 
-            _uiState.update { it.copy(isLoading = false) }
+            // Fetch cloud (Supabase) sessions for the same window
+            val supabaseSessions = if (profileId != null) {
+                fetchSupabaseSessions(profileId, startDate, endDate)
+            } else emptyList()
+
+            // Push every available Health Connect session to Supabase so the cloud
+            // mirror stays current (including historical nights, not just today).
+            if (profileId != null) {
+                pushHealthConnectToCloud(profileId, hcToday, hcHistory)
+            }
+
+            // Display: HC wins per-date (has stage data), Supabase fills gaps.
+            val mergedHistory = mergeSessions(hcHistory, supabaseSessions)
+            val mergedToday = hcToday ?: supabaseSessions.firstOrNull { it.date == endDate }
+
+            _uiState.update {
+                it.copy(
+                    todaySession = mergedToday,
+                    sleepHistory = mergedHistory,
+                    isLoading = false
+                )
+            }
             recalculateStats()
         }
+    }
+
+    private suspend fun resolveProfileId(): String? {
+        return try {
+            val userId = authRepository.getCurrentUser()?.id ?: return null
+            profileRepository.getHealthProfile(userId)?.id
+        } catch (e: Exception) {
+            Log.w(TAG, "Profile lookup failed: ${e.message}")
+            null
+        }
+    }
+
+    private suspend fun fetchSupabaseSessions(
+        profileId: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<SleepSession> {
+        return when (val r = sleepRepository.getSupabaseSleepSessions(profileId, startDate, endDate)) {
+            is ResultWrapper.Success -> r.data
+            is ResultWrapper.Error -> {
+                Log.w(TAG, "Failed to load Supabase sleep: ${r.exception}")
+                emptyList()
+            }
+            else -> emptyList()
+        }
+    }
+
+    private fun pushHealthConnectToCloud(
+        profileId: String,
+        today: SleepSession?,
+        history: List<SleepSession>
+    ) {
+        val sessions = (history + listOfNotNull(today))
+            .distinctBy { it.date }
+            .filter { it.totalMinutes > 0 }
+        if (sessions.isEmpty()) return
+
+        viewModelScope.launch {
+            sessions.forEach { session ->
+                when (val r = sleepRepository.syncToCloud(session, profileId)) {
+                    is ResultWrapper.Error ->
+                        Log.w(TAG, "HC → cloud sync failed for ${session.date}: ${r.exception}")
+                    else -> { /* ok */ }
+                }
+            }
+        }
+    }
+
+    private fun mergeSessions(
+        hc: List<SleepSession>,
+        supabase: List<SleepSession>
+    ): List<SleepSession> {
+        val byDate = hc.associateBy { it.date }.toMutableMap()
+        supabase.forEach { s -> byDate.putIfAbsent(s.date, s) }
+        return byDate.values.sortedBy { it.date }
     }
 
     private fun recalculateStats() {
@@ -166,16 +257,4 @@ class SleepViewModel @Inject constructor(
         return LocalTime.ofSecondOfDay(avgSeconds.toLong())
     }
 
-    private fun syncToCloud(session: SleepSession) {
-        viewModelScope.launch {
-            try {
-                val userId = authRepository.getCurrentUser()?.id ?: return@launch
-                val healthProfile = profileRepository.getHealthProfile(userId) ?: return@launch
-                val profileId = healthProfile.id ?: return@launch
-                sleepRepository.syncToCloud(session, profileId)
-            } catch (e: Exception) {
-                Log.w(TAG, "Cloud sync failed: ${e.message}")
-            }
-        }
-    }
 }

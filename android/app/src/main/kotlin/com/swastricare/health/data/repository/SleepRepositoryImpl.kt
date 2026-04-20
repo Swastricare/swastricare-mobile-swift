@@ -62,6 +62,28 @@ class SleepRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getSupabaseSleepSessions(
+        profileId: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): ResultWrapper<List<SleepSession>> = withContext(Dispatchers.IO) {
+        try {
+            val rows = supabaseClient.from("daily_health_metrics").select {
+                filter {
+                    eq("health_profile_id", profileId)
+                    gte("metric_date", startDate.toString())
+                    lte("metric_date", endDate.toString())
+                }
+            }.decodeList<DailyMetricsSleepDto>()
+
+            val sessions = rows.mapNotNull { SleepMapper.fromDailyMetrics(it) }
+            ResultWrapper.Success(sessions)
+        } catch (e: Exception) {
+            logger.e(TAG, "Failed to fetch Supabase sleep sessions", e)
+            ResultWrapper.Error(AppException.UnknownException("Failed to load manual sleep entries", e))
+        }
+    }
+
     override suspend fun syncToCloud(
         session: SleepSession,
         profileId: String

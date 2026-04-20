@@ -15,7 +15,7 @@ data class DailyMetricsSleepDto(
     val metricDate: String, // YYYY-MM-DD
 
     @SerialName("sleep_hours")
-    val sleepHours: Double,
+    val sleepHours: Double? = null,
 
     @SerialName("sleep_quality")
     val sleepQuality: Int? = null, // 0-100
