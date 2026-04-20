@@ -79,7 +79,13 @@ data class AIUiState(
     val historyConversations: List<com.swastricare.health.data.repository.AIConversation> = emptyList(),
     val isHistoryLoading: Boolean = false,
     val showMealTypeSheet: Boolean = false,
-    val pendingFoodResult: com.swastricare.health.data.models.SnapFoodResult? = null
+    val pendingFoodResult: com.swastricare.health.data.models.SnapFoodResult? = null,
+    // Intro metrics strip (today's Health Connect summary)
+    val todaySteps: Int = 0,
+    val todayHeartRate: Int = 0,
+    val todayActiveCalories: Int = 0,
+    // AI personality selection (General mode only)
+    val selectedPersonality: AIPersonality = AIPersonality.Assistant
 )
 
 sealed class AnalysisState {
@@ -120,6 +126,32 @@ class AIViewModel @Inject constructor(
             loadLastConversation()
         }
         loadUserName()
+        loadTodayHealthSummary()
+    }
+
+    /** Populate today's steps/HR/calories for the intro vitals strip. */
+    private fun loadTodayHealthSummary() {
+        viewModelScope.launch {
+            try {
+                val summary = healthConnectService.getTodaySummary()
+                _uiState.value = _uiState.value.copy(
+                    todaySteps = summary.steps,
+                    todayHeartRate = summary.heartRate,
+                    todayActiveCalories = summary.activeCalories
+                )
+            } catch (e: Exception) {
+                Log.w("AIViewModel", "loadTodayHealthSummary failed: ${e.message}")
+            }
+        }
+    }
+
+    fun selectPersonality(personality: AIPersonality) {
+        _uiState.value = _uiState.value.copy(selectedPersonality = personality)
+    }
+
+    fun sendPromptFromMetric(prompt: String) {
+        _uiState.value = _uiState.value.copy(inputText = prompt)
+        sendMessage()
     }
 
     private fun loadUserName() {

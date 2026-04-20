@@ -1,6 +1,7 @@
 package com.swastricare.health.ui.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -60,6 +61,24 @@ fun MainScaffold(
     val barVisible = !aiFullScreen && !keyboardVisible
     val systemNavInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
+    // Bottom reservation for the tab content. Three cases:
+    //   • Bar visible   → leave room for the bar + the system-nav gesture inset.
+    //   • Keyboard up   → 0; the child's `imePadding()` already keeps content
+    //                     above the IME (which subsumes the gesture inset).
+    //   • Bar hidden,
+    //     keyboard down → only the gesture inset, so the content (e.g. AI
+    //                     input bar) doesn't sit under the gesture handle.
+    val targetReservation = when {
+        barVisible -> NAV_BAR_CONTENT_HEIGHT + systemNavInset
+        keyboardVisible -> 0.dp
+        else -> systemNavInset
+    }
+    val bottomReservation by animateDpAsState(
+        targetValue = targetReservation,
+        animationSpec = tween(durationMillis = 260),
+        label = "navBarReservation"
+    )
+
     // Horizontal system insets only — the bottom nav bar's background
     // extends down into the gesture area (so there's no dead space below
     // it), while the bar's own `windowInsetsPadding` keeps the icons
@@ -76,7 +95,7 @@ fun MainScaffold(
                 Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
-                    .padding(bottom = NAV_BAR_CONTENT_HEIGHT + systemNavInset)
+                    .padding(bottom = bottomReservation)
             )
 
             AnimatedVisibility(

@@ -236,16 +236,12 @@ fun AIScreen(
             // every other screen in the app.
             com.swastricare.health.ui.components.AppTopBar(
                 title = "Swastri AI",
-                onBack = if (isExpanded) {
-                    {
-                        focusManager.clearFocus()
-                        viewModel.clearChat()
-                    }
-                } else null,
-                actions = {
+                navigationIcon = {
                     IconButton(onClick = { viewModel.openHistorySheet() }) {
                         Icon(Icons.Default.History, contentDescription = "Chat History")
                     }
+                },
+                actions = {
                     IconButton(onClick = {
                         focusManager.clearFocus()
                         viewModel.clearChat()
@@ -257,19 +253,55 @@ fun AIScreen(
 
             Box(modifier = Modifier.weight(1f)) {
                 if (uiState.messages.isEmpty() && uiState.showEmptyState) {
+                    val orbState = when {
+                        uiState.isRecording -> OrbState.Listening
+                        uiState.isLoading -> OrbState.Thinking
+                        else -> OrbState.Idle
+                    }
+                    // iOS-style intro: orb + greeting + vitals strip + roster + quick grid + deep dive CTA.
+                    // Scrollable so it adapts to small screens.
                     Column(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Top
                     ) {
-                        AIOrbVideo(
+                        ParticleOrbView(
+                            state = orbState,
+                            isMedicalMode = uiState.currentMode == AIMode.Medical,
+                            isDark = isDark,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(260.dp)
+                                .size(160.dp)
+                                .padding(top = 16.dp)
                         )
-                        IntroView(
-                            userName = uiState.userName
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AIGreetingBlock(userName = uiState.userName)
+                        Spacer(modifier = Modifier.height(20.dp))
+                        if (uiState.currentMode == AIMode.General) {
+                            AIRosterPicker(
+                                selected = uiState.selectedPersonality,
+                                onSelect = { viewModel.selectPersonality(it) }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                        HealthVitalsStrip(
+                            steps = uiState.todaySteps,
+                            heartRate = uiState.todayHeartRate,
+                            calories = uiState.todayActiveCalories,
+                            onAskAbout = { prompt -> viewModel.sendPromptFromMetric(prompt) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        AIQuickActionGrid(
+                            actions = QuickAction.suggestions,
+                            onAction = { action ->
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.sendQuickAction(action)
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 } else {
                     ChatMessageList(
@@ -296,16 +328,6 @@ fun AIScreen(
                         }
                     )
                 }
-            }
-
-            // Horizontally scrollable quick action chips above input
-            if (uiState.messages.isEmpty() && uiState.showEmptyState) {
-                QuickActionChips(
-                    onQuickActionClick = { action ->
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        viewModel.sendQuickAction(action)
-                    }
-                )
             }
 
             ChatInputBar(
@@ -516,102 +538,9 @@ private fun ChatMessageList(
     }
 }
 
-@Composable
-fun IntroView(
-    userName: String? = null,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 24.dp, vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(28.dp)
-    ) {
-        // Welcome text
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = if (userName != null) "Hey $userName" else "Hey",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                fontFamily = Poppins,
-                color = AppColors.onBackground
-            )
-            Text(
-                text = "How can I help you today?",
-                style = MaterialTheme.typography.bodyLarge,
-                fontFamily = Poppins,
-                color = AppColors.onBackground.copy(alpha = 0.6f)
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Medical disclaimer
-        MedicalDisclaimerBanner()
-    }
-}
-
-@Composable
-private fun MedicalDisclaimerBanner(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .background(
-                color = AppColors.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp)
-            )
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Info,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = AppColors.onSurfaceVariant
-        )
-        Text(
-            text = "For informational purposes only. Not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional.",
-            style = MaterialTheme.typography.labelSmall,
-            color = AppColors.onSurfaceVariant,
-            lineHeight = 16.sp
-        )
-    }
-}
-
-@Composable
-private fun QuickActionChips(
-    onQuickActionClick: (QuickAction) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val actions = QuickAction.suggestions
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.padding(bottom = 8.dp)
-    ) {
-        items(actions) { action ->
-            Box(
-                modifier = Modifier
-                    .glass(cornerRadius = 20.dp)
-                    .clickable { onQuickActionClick(action) }
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = action.title,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = Poppins,
-                    color = AppColors.onBackground,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
+// Intro composables (greeting, vitals strip, roster, quick action grid, deep-dive CTA)
+// live in AIIntroComponents.kt. The legacy IntroView / MedicalDisclaimerBanner /
+// QuickActionChips that previously lived here were replaced by that module.
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
