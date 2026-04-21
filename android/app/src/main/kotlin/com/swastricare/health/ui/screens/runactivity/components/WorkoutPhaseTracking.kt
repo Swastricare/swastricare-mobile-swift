@@ -146,8 +146,18 @@ fun WorkoutPhaseTracking(
         // Layer 3: Top bar — shared AppTopBar, with auto-pause / GPS
         // status indicators as trailing actions and the workout status
         // (AUTO-PAUSED / PAUSED) shown directly underneath.
+        //
+        // Live Workout is registered as an `immersive` detail route, so
+        // the navigation wrapper does not supply status-bar padding —
+        // the map beneath intentionally paints edge-to-edge. This Column
+        // inserts the inset only for the top bar so the back button and
+        // title don't collide with the system clock / battery icons.
         // ═══════════════════════════════════════
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+        ) {
             com.swastricare.health.ui.components.AppTopBar(
                 title = uiState.workoutType.displayName,
                 onBack = onStop,

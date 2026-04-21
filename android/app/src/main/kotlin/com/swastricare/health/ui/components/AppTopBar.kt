@@ -47,6 +47,7 @@ fun AppTopBar(
     onBack: (() -> Unit)? = null,
     titleColor: Color = AppColors.onSurface,
     iconTint: Color = titleColor,
+    navigationIcon: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
@@ -61,14 +62,15 @@ fun AppTopBar(
             modifier = Modifier.defaultMinSize(minWidth = 48.dp),
             contentAlignment = Alignment.Center
         ) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
+            when {
+                onBack != null -> IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = iconTint
                     )
                 }
+                navigationIcon != null -> navigationIcon()
             }
         }
 

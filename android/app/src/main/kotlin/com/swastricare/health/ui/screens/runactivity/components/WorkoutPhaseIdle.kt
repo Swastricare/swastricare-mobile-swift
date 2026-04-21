@@ -82,14 +82,23 @@ fun WorkoutPhaseIdle(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .statusBarsPadding()
     ) {
-        // Top bar
+        // Top bar — edge-to-edge so the back button sits flush to the
+        // screen edge and the title centers against the full width.
+        // Live Workout is an `immersive` detail route, so the nav
+        // wrapper doesn't supply status-bar padding — we add it here
+        // so the top bar doesn't sit under the system clock.
         AppTopBar(title = "Start Workout", onBack = onBack)
 
-        Spacer(Modifier.height(16.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(16.dp))
 
         // Section header
         Text(
@@ -234,5 +243,6 @@ fun WorkoutPhaseIdle(
         }
 
         Spacer(Modifier.height(40.dp))
+        }
     }
 }
