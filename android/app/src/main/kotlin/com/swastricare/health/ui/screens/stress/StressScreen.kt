@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.swastricare.health.domain.model.stress.StressCategory
 import com.swastricare.health.domain.model.stress.StressMood
 import com.swastricare.health.ui.components.AppTopBar
@@ -400,7 +401,11 @@ private fun MoodChip(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = mood.emoji, fontSize = 20.sp)
+            AsyncImage(
+                model = "file:///android_asset/${mood.blobAsset}",
+                contentDescription = mood.displayName,
+                modifier = Modifier.size(32.dp)
+            )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = mood.displayName,

@@ -23,13 +23,13 @@ enum class StressSource(val displayName: String) {
     DEVICE("Device")
 }
 
-enum class StressMood(val emoji: String, val displayName: String) {
-    CALM("\uD83D\uDE0C", "Calm"),
-    HAPPY("\uD83D\uDE0A", "Happy"),
-    NEUTRAL("\uD83D\uDE10", "Neutral"),
-    ANXIOUS("\uD83D\uDE1F", "Anxious"),
-    STRESSED("\uD83D\uDE23", "Stressed"),
-    OVERWHELMED("\uD83E\uDD2F", "Overwhelmed")
+enum class StressMood(val emoji: String, val displayName: String, val blobAsset: String) {
+    CALM("\uD83D\uDE0C", "Calm", "illustrations/blob_calm.png"),
+    HAPPY("\uD83D\uDE0A", "Happy", "illustrations/blob_happy.png"),
+    NEUTRAL("\uD83D\uDE10", "Neutral", "illustrations/blob_neutral.png"),
+    ANXIOUS("\uD83D\uDE1F", "Anxious", "illustrations/blob_anxious.png"),
+    STRESSED("\uD83D\uDE23", "Stressed", "illustrations/blob_tired.png"),
+    OVERWHELMED("\uD83E\uDD2F", "Overwhelmed", "illustrations/blob_irritable.png")
 }
 
 enum class StressCategory(
