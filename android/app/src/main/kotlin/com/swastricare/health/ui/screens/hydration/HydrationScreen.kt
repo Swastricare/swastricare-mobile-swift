@@ -183,7 +183,9 @@ fun HydrationScreen(
 
                         HydrationHeroPager(
                             uiState = uiState,
-                            onDragAddMl = { ml -> vm.addDrink(DrinkType.WATER, ml) },
+                            onDragAddMl = if (uiState.isShowingToday) {
+                                { ml -> vm.addDrink(DrinkType.WATER, ml) }
+                            } else null,
                             onTapAnalytics = { showOverview = true }
                         )
 
@@ -198,11 +200,13 @@ fun HydrationScreen(
                                 )
                                 Spacer(Modifier.height(16.dp))
 
-                                // Quick add drink chips
-                                QuickAddDrinkChips(
-                                    onAddDrink = { drinkType -> vm.addDrink(drinkType, 100) },
-                                    modifier = Modifier.padding(bottom = 16.dp)
-                                )
+                                // Quick add drink chips (today only)
+                                if (uiState.isShowingToday) {
+                                    QuickAddDrinkChips(
+                                        onAddDrink = { drinkType -> vm.addDrink(drinkType, 100) },
+                                        modifier = Modifier.padding(bottom = 16.dp)
+                                    )
+                                }
                             }
                         }
                         Spacer(Modifier.height(12.dp))
