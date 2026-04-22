@@ -20,29 +20,41 @@ class CycleNotificationScheduler @javax.inject.Inject constructor(
 
     fun scheduleFromPredictions(
         predictedPeriodStart: LocalDate?,
-        predictedOvulation: LocalDate?
+        predictedOvulation: LocalDate?,
+        reminderDaysBefore: Int = 2,
+        ovulationReminderEnabled: Boolean = true
     ) {
         if (!notificationService.cycleEnabled) return
 
+        val days = reminderDaysBefore.coerceIn(1, 7)
+
         predictedPeriodStart?.let { date ->
-            val reminderDate = date.minusDays(2)
+            val reminderDate = date.minusDays(days.toLong())
             if (!reminderDate.isBefore(LocalDate.now())) {
-                scheduleCycleAlarm("period", reminderDate, 9,
-                    "Period Coming Soon", "Your period is expected in 2 days. Be prepared!")
+                val label = if (days == 1) "day" else "days"
+                scheduleCycleAlarm(
+                    "period", reminderDate, 9,
+                    "Period Coming Soon",
+                    "Your period is expected in $days $label. Be prepared!"
+                )
             }
         }
 
-        predictedOvulation?.let { date ->
-            if (!date.isBefore(LocalDate.now())) {
-                scheduleCycleAlarm("ovulation", date, 9,
-                    "Ovulation Day", "Today is your predicted ovulation day. Log your symptoms!")
+        if (ovulationReminderEnabled) {
+            predictedOvulation?.let { date ->
+                if (!date.isBefore(LocalDate.now())) {
+                    scheduleCycleAlarm(
+                        "ovulation", date, 9,
+                        "Ovulation Day",
+                        "Today is your predicted ovulation day. Log your symptoms!"
+                    )
+                }
             }
         }
 
-        // Enqueue daily AI-generated phase tip
         CycleAINudgeWorker.enqueue(context)
 
-        Log.d(TAG, "Cycle notifications scheduled")
+        Log.d(TAG, "Cycle notifications scheduled (reminderDaysBefore=$days, ovulation=$ovulationReminderEnabled)")
     }
 
     private fun scheduleCycleAlarm(

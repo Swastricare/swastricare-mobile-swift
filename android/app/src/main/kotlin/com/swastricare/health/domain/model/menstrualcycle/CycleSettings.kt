@@ -7,27 +7,30 @@ data class CycleSettings(
     val averageCycleLength: Int = 28,
     val averagePeriodLength: Int = 5,
     val reminderEnabled: Boolean = true,
-    val reminderTime: String = "09:00"
+    val reminderTime: String = "09:00",
+    val reminderDaysBefore: Int = 2,
+    val fertileReminderEnabled: Boolean = false,
+    val pmsReminderEnabled: Boolean = false,
+    val ovulationReminderEnabled: Boolean = false,
+    val lutealPhaseLength: Int = 14
 ) {
-    /**
-     * Returns a validated cycle length constrained to medical normal range (21-45 days).
-     * Use this for predictions to prevent invalid calculations.
-     */
     val validatedCycleLength: Int
         get() = averageCycleLength.coerceIn(21, 45)
 
-    /**
-     * Returns a validated period length constrained to normal range (2-10 days).
-     */
     val validatedPeriodLength: Int
         get() = averagePeriodLength.coerceIn(2, 10)
 
-    /**
-     * Validates if the settings are within acceptable ranges.
-     */
+    val validatedReminderDaysBefore: Int
+        get() = reminderDaysBefore.coerceIn(1, 7)
+
+    val validatedLutealPhaseLength: Int
+        get() = lutealPhaseLength.coerceIn(10, 16)
+
     fun isValid(): Boolean {
         return averageCycleLength in 21..45 &&
                 averagePeriodLength in 2..10 &&
+                reminderDaysBefore in 1..7 &&
+                lutealPhaseLength in 10..16 &&
                 reminderTime.matches(Regex("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"))
     }
 }

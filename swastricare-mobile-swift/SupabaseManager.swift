@@ -1738,12 +1738,9 @@ extension SupabaseManager {
     
     /// Sync a menstrual cycle to Supabase
     func syncMenstrualCycle(_ cycle: MenstrualCycle) async throws -> MenstrualCycleRecord {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
-        let record = MenstrualCycleRecord(from: cycle, userId: userId)
-        
+        let profileId = try await getHealthProfileId()
+        let record = MenstrualCycleRecord(from: cycle, healthProfileId: profileId)
+
         let inserted: MenstrualCycleRecord = try await client
             .from("menstrual_cycles")
             .upsert(record, onConflict: "id")
@@ -1751,131 +1748,109 @@ extension SupabaseManager {
             .single()
             .execute()
             .value
-        
+
         print("🩸 SupabaseManager: Synced menstrual cycle")
         return inserted
     }
-    
+
     /// Sync multiple menstrual cycles
     func syncMenstrualCycles(_ cycles: [MenstrualCycle]) async throws {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
-        let records = cycles.map { MenstrualCycleRecord(from: $0, userId: userId) }
-        
+        let profileId = try await getHealthProfileId()
+        let records = cycles.map { MenstrualCycleRecord(from: $0, healthProfileId: profileId) }
+
         try await client
             .from("menstrual_cycles")
             .upsert(records, onConflict: "id")
             .execute()
-        
+
         print("🩸 SupabaseManager: Synced \(cycles.count) menstrual cycles")
     }
-    
+
     /// Fetch user's menstrual cycles from Supabase
     func fetchMenstrualCycles(limit: Int = 24) async throws -> [MenstrualCycle] {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
+        let profileId = try await getHealthProfileId()
+
         let records: [MenstrualCycleRecord] = try await client
             .from("menstrual_cycles")
             .select()
-            .eq("user_id", value: userId.uuidString)
-            .order("start_date", ascending: false)
+            .eq("health_profile_id", value: profileId.uuidString)
+            .order("period_start", ascending: false)
             .limit(limit)
             .execute()
             .value
-        
+
         print("🩸 SupabaseManager: Fetched \(records.count) menstrual cycles")
         return records.map { $0.toMenstrualCycle() }
     }
-    
+
     /// Delete a menstrual cycle from Supabase
     func deleteMenstrualCycle(id: UUID) async throws {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
+        let profileId = try await getHealthProfileId()
+
         try await client
             .from("menstrual_cycles")
             .delete()
             .eq("id", value: id.uuidString)
-            .eq("user_id", value: userId.uuidString)
+            .eq("health_profile_id", value: profileId.uuidString)
             .execute()
-        
+
         print("🩸 SupabaseManager: Deleted menstrual cycle")
     }
     
     // MARK: - Daily Logs
     
-    /// Sync a menstrual daily log to Supabase
+    /// Sync a menstrual daily log to Supabase.
+    /// `log.cycleId` must be set; daily logs are FK-bound to a cycle row.
     func syncMenstrualDailyLog(_ log: MenstrualDailyLog) async throws -> MenstrualDailyLogRecord {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
-        let record = MenstrualDailyLogRecord(from: log, userId: userId)
-        
+        let profileId = try await getHealthProfileId()
+        let record = MenstrualDailyLogRecord(from: log, healthProfileId: profileId)
+
         let inserted: MenstrualDailyLogRecord = try await client
             .from("menstrual_daily_logs")
-            .upsert(record, onConflict: "user_id,log_date")
+            .upsert(record, onConflict: "health_profile_id,date")
             .select()
             .single()
             .execute()
             .value
-        
-        // Sync symptoms if present
-        if !log.symptoms.isEmpty {
-            let symptomRecords = log.symptoms.map { MenstrualSymptomRecord(from: $0, dailyLogId: inserted.id) }
-            try await client
-                .from("menstrual_symptoms")
-                .upsert(symptomRecords, onConflict: "id")
-                .execute()
-        }
-        
+
         print("🩸 SupabaseManager: Synced menstrual daily log")
         return inserted
     }
-    
+
     /// Fetch menstrual daily logs for a date range
     func fetchMenstrualDailyLogs(from startDate: Date, to endDate: Date) async throws -> [MenstrualDailyLog] {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
+        let profileId = try await getHealthProfileId()
+
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let fromString = dateFormatter.string(from: startDate)
         let toString = dateFormatter.string(from: endDate)
-        
+
         let records: [MenstrualDailyLogRecord] = try await client
             .from("menstrual_daily_logs")
             .select()
-            .eq("user_id", value: userId.uuidString)
-            .gte("log_date", value: fromString)
-            .lte("log_date", value: toString)
-            .order("log_date", ascending: false)
+            .eq("health_profile_id", value: profileId.uuidString)
+            .gte("date", value: fromString)
+            .lte("date", value: toString)
+            .order("date", ascending: false)
             .execute()
             .value
-        
+
         print("🩸 SupabaseManager: Fetched \(records.count) daily logs")
         return records.map { $0.toMenstrualDailyLog() }
     }
-    
+
     /// Delete a menstrual daily log from Supabase
     func deleteMenstrualDailyLog(id: UUID) async throws {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
+        let profileId = try await getHealthProfileId()
+
         try await client
             .from("menstrual_daily_logs")
             .delete()
             .eq("id", value: id.uuidString)
-            .eq("user_id", value: userId.uuidString)
+            .eq("health_profile_id", value: profileId.uuidString)
             .execute()
-        
+
         print("🩸 SupabaseManager: Deleted menstrual daily log")
     }
     
@@ -1883,38 +1858,33 @@ extension SupabaseManager {
     
     /// Save menstrual settings to Supabase
     func saveMenstrualSettings(_ settings: MenstrualSettings) async throws -> MenstrualSettingsRecord {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
-        let record = MenstrualSettingsRecord(from: settings, userId: userId)
-        
+        let profileId = try await getHealthProfileId()
+        let record = MenstrualSettingsRecord(from: settings, healthProfileId: profileId)
+
         let inserted: MenstrualSettingsRecord = try await client
             .from("menstrual_settings")
-            .upsert(record, onConflict: "user_id")
+            .upsert(record, onConflict: "health_profile_id")
             .select()
             .single()
             .execute()
             .value
-        
+
         print("🩸 SupabaseManager: Saved menstrual settings")
         return inserted
     }
-    
+
     /// Fetch menstrual settings from Supabase
     func fetchMenstrualSettings() async throws -> MenstrualSettings? {
-        guard let userId = try? await client.auth.session.user.id else {
-            throw SupabaseError.notAuthenticated
-        }
-        
+        let profileId = try await getHealthProfileId()
+
         let records: [MenstrualSettingsRecord] = try await client
             .from("menstrual_settings")
             .select()
-            .eq("user_id", value: userId.uuidString)
+            .eq("health_profile_id", value: profileId.uuidString)
             .limit(1)
             .execute()
             .value
-        
+
         return records.first?.toMenstrualSettings()
     }
 
@@ -2174,70 +2144,64 @@ extension SupabaseManager {
 
 struct MenstrualCycleRecord: Codable {
     let id: UUID
-    let userId: UUID
-    let startDate: String
-    let endDate: String?
+    let healthProfileId: UUID
+    let periodStart: String
+    let periodEnd: String?
     let cycleLength: Int?
     let periodLength: Int?
-    let flowIntensity: String?
     let isPredicted: Bool
     let notes: String?
     let createdAt: Date?
     let updatedAt: Date?
-    let syncedAt: Date?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
-        case userId = "user_id"
-        case startDate = "start_date"
-        case endDate = "end_date"
+        case healthProfileId = "health_profile_id"
+        case periodStart = "period_start"
+        case periodEnd = "period_end"
         case cycleLength = "cycle_length"
         case periodLength = "period_length"
-        case flowIntensity = "flow_intensity"
         case isPredicted = "is_predicted"
         case notes
         case createdAt = "created_at"
         case updatedAt = "updated_at"
-        case syncedAt = "synced_at"
     }
-    
-    init(from cycle: MenstrualCycle, userId: UUID) {
+
+    init(from cycle: MenstrualCycle, healthProfileId: UUID) {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        
+
         self.id = cycle.id
-        self.userId = userId
-        self.startDate = dateFormatter.string(from: cycle.startDate)
-        self.endDate = cycle.endDate.map { dateFormatter.string(from: $0) }
+        self.healthProfileId = healthProfileId
+        self.periodStart = dateFormatter.string(from: cycle.startDate)
+        self.periodEnd = cycle.endDate.map { dateFormatter.string(from: $0) }
         self.cycleLength = cycle.cycleLength
         self.periodLength = cycle.periodLength
-        self.flowIntensity = cycle.flowIntensity?.rawValue
         self.isPredicted = cycle.isPredicted
         self.notes = cycle.notes
         self.createdAt = cycle.createdAt
         self.updatedAt = cycle.updatedAt
-        self.syncedAt = Date()
     }
-    
+
     func toMenstrualCycle() -> MenstrualCycle {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        
+
         return MenstrualCycle(
             id: id,
-            userId: userId,
-            startDate: dateFormatter.date(from: startDate) ?? Date(),
-            endDate: endDate.flatMap { dateFormatter.date(from: $0) },
+            userId: healthProfileId,
+            startDate: dateFormatter.date(from: periodStart) ?? Date(),
+            endDate: periodEnd.flatMap { dateFormatter.date(from: $0) },
             cycleLength: cycleLength,
             periodLength: periodLength,
-            flowIntensity: flowIntensity.flatMap { FlowIntensity(rawValue: $0) },
+            flowIntensity: nil,
             isPredicted: isPredicted,
             notes: notes,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            syncedAt: syncedAt
+            syncedAt: Date()
         )
     }
 }
@@ -2246,12 +2210,13 @@ struct MenstrualCycleRecord: Codable {
 
 struct MenstrualDailyLogRecord: Codable {
     let id: UUID
-    let userId: UUID
-    let logDate: String
-    let cycleId: UUID?
-    let flowLevel: String?
-    let painLevel: Int?
+    let healthProfileId: UUID
+    let date: String
+    let cycleId: UUID
+    let flowLevel: String
+    let symptoms: String
     let mood: String?
+    let painLevel: Int
     let energyLevel: Int?
     let sleepQuality: String?
     let temperature: Double?
@@ -2262,15 +2227,16 @@ struct MenstrualDailyLogRecord: Codable {
     let notes: String?
     let createdAt: Date?
     let updatedAt: Date?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
-        case userId = "user_id"
-        case logDate = "log_date"
+        case healthProfileId = "health_profile_id"
+        case date
         case cycleId = "cycle_id"
         case flowLevel = "flow_level"
-        case painLevel = "pain_level"
+        case symptoms
         case mood
+        case painLevel = "pain_level"
         case energyLevel = "energy_level"
         case sleepQuality = "sleep_quality"
         case temperature
@@ -2282,19 +2248,23 @@ struct MenstrualDailyLogRecord: Codable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
-    
-    init(from log: MenstrualDailyLog, userId: UUID) {
+
+    init(from log: MenstrualDailyLog, healthProfileId: UUID, cycleId: UUID? = nil) {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        
+
         self.id = log.id
-        self.userId = userId
-        self.logDate = dateFormatter.string(from: log.logDate)
-        self.cycleId = log.cycleId
-        self.flowLevel = log.flowLevel?.rawValue
-        self.painLevel = log.painLevel
+        self.healthProfileId = healthProfileId
+        self.date = dateFormatter.string(from: log.logDate)
+        // cycleId is required by the DB FK. Prefer the explicit arg,
+        // fall back to the log's own cycleId, and as last resort generate
+        // a placeholder (upstream logic is expected to have attached one).
+        self.cycleId = cycleId ?? log.cycleId ?? UUID()
+        self.flowLevel = log.flowLevel?.rawValue ?? "none"
+        self.symptoms = log.symptoms.map { $0.symptomType.rawValue }.joined(separator: ",")
         self.mood = log.mood?.rawValue
+        self.painLevel = log.painLevel ?? 0
         self.energyLevel = log.energyLevel
         self.sleepQuality = log.sleepQuality?.rawValue
         self.temperature = log.temperature
@@ -2306,18 +2276,18 @@ struct MenstrualDailyLogRecord: Codable {
         self.createdAt = log.createdAt
         self.updatedAt = log.updatedAt
     }
-    
+
     func toMenstrualDailyLog() -> MenstrualDailyLog {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        
+
         return MenstrualDailyLog(
             id: id,
-            userId: userId,
-            logDate: dateFormatter.date(from: logDate) ?? Date(),
+            userId: healthProfileId,
+            logDate: dateFormatter.date(from: date) ?? Date(),
             cycleId: cycleId,
-            flowLevel: flowLevel.flatMap { FlowLevel(rawValue: $0) },
+            flowLevel: FlowLevel(rawValue: flowLevel),
             painLevel: painLevel,
             mood: mood.flatMap { CycleMood(rawValue: $0) },
             energyLevel: energyLevel,
@@ -2328,7 +2298,13 @@ struct MenstrualDailyLogRecord: Codable {
             sexualActivity: sexualActivity,
             protectedSex: protectedSex,
             notes: notes,
-            symptoms: []
+            symptoms: symptoms
+                .split(separator: ",")
+                .compactMap { raw in
+                    let trimmed = raw.trimmingCharacters(in: .whitespaces)
+                    guard !trimmed.isEmpty, let type = SymptomType(rawValue: trimmed) else { return nil }
+                    return MenstrualSymptom(id: UUID(), dailyLogId: id, symptomType: type, severity: 3)
+                }
         )
     }
 }
@@ -2373,59 +2349,62 @@ struct MenstrualSymptomRecord: Codable {
 
 struct MenstrualSettingsRecord: Codable {
     let id: UUID
-    let userId: UUID
+    let healthProfileId: UUID
     let averageCycleLength: Int
     let averagePeriodLength: Int
     let reminderEnabled: Bool
+    let reminderTime: String
     let reminderDaysBefore: Int
-    let fertileWindowTracking: Bool
-    let pmsTracking: Bool
-    let ovulationTracking: Bool
+    let fertileReminderEnabled: Bool
+    let pmsReminderEnabled: Bool
+    let ovulationReminderEnabled: Bool
     let lutealPhaseLength: Int
-    let lastUpdated: Date?
     let createdAt: Date?
-    
+    let updatedAt: Date?
+
     enum CodingKeys: String, CodingKey {
         case id
-        case userId = "user_id"
+        case healthProfileId = "health_profile_id"
         case averageCycleLength = "average_cycle_length"
         case averagePeriodLength = "average_period_length"
         case reminderEnabled = "reminder_enabled"
+        case reminderTime = "reminder_time"
         case reminderDaysBefore = "reminder_days_before"
-        case fertileWindowTracking = "fertile_window_tracking"
-        case pmsTracking = "pms_tracking"
-        case ovulationTracking = "ovulation_tracking"
+        case fertileReminderEnabled = "fertile_reminder_enabled"
+        case pmsReminderEnabled = "pms_reminder_enabled"
+        case ovulationReminderEnabled = "ovulation_reminder_enabled"
         case lutealPhaseLength = "luteal_phase_length"
-        case lastUpdated = "last_updated"
         case createdAt = "created_at"
+        case updatedAt = "updated_at"
     }
-    
-    init(from settings: MenstrualSettings, userId: UUID) {
+
+    init(from settings: MenstrualSettings, healthProfileId: UUID) {
         self.id = settings.id ?? UUID()
-        self.userId = userId
+        self.healthProfileId = healthProfileId
         self.averageCycleLength = settings.averageCycleLength
         self.averagePeriodLength = settings.averagePeriodLength
         self.reminderEnabled = settings.reminderEnabled
+        self.reminderTime = "09:00:00"
         self.reminderDaysBefore = settings.reminderDaysBefore
-        self.fertileWindowTracking = settings.fertileWindowTracking
-        self.pmsTracking = settings.pmsTracking
-        self.ovulationTracking = settings.ovulationTracking
+        self.fertileReminderEnabled = settings.fertileWindowTracking
+        self.pmsReminderEnabled = settings.pmsTracking
+        self.ovulationReminderEnabled = settings.ovulationTracking
         self.lutealPhaseLength = settings.lutealPhaseLength
-        self.lastUpdated = Date()
         self.createdAt = settings.createdAt
+        self.updatedAt = Date()
     }
-    
+
     func toMenstrualSettings() -> MenstrualSettings {
         MenstrualSettings(
             id: id,
-            userId: userId,
+            userId: healthProfileId,
             averageCycleLength: averageCycleLength,
             averagePeriodLength: averagePeriodLength,
             reminderEnabled: reminderEnabled,
             reminderDaysBefore: reminderDaysBefore,
-            fertileWindowTracking: fertileWindowTracking,
-            pmsTracking: pmsTracking,
-            ovulationTracking: ovulationTracking,
+            fertileWindowTracking: fertileReminderEnabled,
+            pmsTracking: pmsReminderEnabled,
+            ovulationTracking: ovulationReminderEnabled,
             lutealPhaseLength: lutealPhaseLength
         )
     }

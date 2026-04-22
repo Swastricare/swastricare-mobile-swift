@@ -52,21 +52,31 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     private val profileIdMutex = Mutex()
     private var cachedProfileId: String? = null
 
+    /**
+     * Resolves the health_profile_id for the current user. Throws on
+     * failure so callers can surface a real error instead of masquerading
+     * as "not set up". Local helpers that should stay silent (e.g.
+     * loadLocal*) catch the throw themselves.
+     */
     private suspend fun getProfileId(): String {
         cachedProfileId?.let { return it }
         return profileIdMutex.withLock {
             cachedProfileId?.let { return@withLock it }
-            try {
-                val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return@withLock ""
-                val id = supabaseClient.from("health_profiles")
-                    .select { filter { eq("user_id", userId) } }
-                    .decodeSingleOrNull<HealthProfileIdRow>()?.id ?: ""
-                if (id.isNotEmpty()) cachedProfileId = id
-                id
-            } catch (_: Exception) {
-                ""
-            }
+            val userId = supabaseClient.auth.currentUserOrNull()?.id
+                ?: throw AppException.ApiException.Unauthorized()
+            val id = supabaseClient.from("health_profiles")
+                .select { filter { eq("user_id", userId) } }
+                .decodeSingleOrNull<HealthProfileIdRow>()?.id
+                ?: throw AppException.DatabaseException.NotFound("health_profile")
+            cachedProfileId = id
+            id
         }
+    }
+
+    private suspend fun getProfileIdOrEmpty(): String = try {
+        getProfileId()
+    } catch (_: Exception) {
+        ""
     }
 
     fun clearProfileIdCache() { cachedProfileId = null }
@@ -76,11 +86,7 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     override suspend fun getCycles(): ResultWrapper<List<CycleRecord>> = withContext(Dispatchers.IO) {
         try {
             val profileId = getProfileId()
-            if (profileId.isEmpty()) {
-                return@withContext ResultWrapper.Success(loadLocalCycles())
-            }
 
-            // Try to fetch from cloud
             val dtos = supabaseClient.from("menstrual_cycles")
                 .select {
                     filter { eq("health_profile_id", profileId) }
@@ -90,9 +96,14 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
             val cycles = dtos.map { it.toDomain() }
             saveLocalCycles(cycles)
             ResultWrapper.Success(cycles)
-        } catch (e: Exception) {
-            // Fallback to local data
+        } catch (e: java.io.IOException) {
+            // Network failure — fall back to local cache silently.
             ResultWrapper.Success(loadLocalCycles())
+        } catch (e: Exception) {
+            android.util.Log.e("CycleRepo", "getCycles failed", e)
+            ResultWrapper.Error(
+                if (e is AppException) e else AppException.UnknownException(cause = e)
+            )
         }
     }
 
@@ -114,18 +125,16 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
                 notes = notes
             )
 
-            // Save to cloud if profile exists
-            if (profileId.isNotEmpty()) {
-                val dto = cycle.toDto(profileId)
-                supabaseClient.from("menstrual_cycles").insert(dto)
-            }
+            val dto = cycle.toDto(profileId)
+            supabaseClient.from("menstrual_cycles").upsert(dto)
 
-            // Save locally
             val cycles = loadLocalCycles().toMutableList()
             cycles.add(cycle)
             saveLocalCycles(cycles)
 
             ResultWrapper.Success(cycle)
+        } catch (e: AppException) {
+            ResultWrapper.Error(e)
         } catch (e: Exception) {
             ResultWrapper.Error(AppException.UnknownException(cause = e))
         }
@@ -157,18 +166,14 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
             val updatedCycle = cycle.copy(endDate = endDate)
             cycles[cycleIndex] = updatedCycle
 
-            // Update in cloud
             val profileId = getProfileId()
-            if (profileId.isNotEmpty()) {
-                val dto = updatedCycle.toDto(profileId)
-                supabaseClient.from("menstrual_cycles")
-                    .update(dto) {
-                        filter { eq("id", cycleId) }
-                    }
-            }
+            val dto = updatedCycle.toDto(profileId)
+            supabaseClient.from("menstrual_cycles").upsert(dto)
 
             saveLocalCycles(cycles)
             ResultWrapper.Success(updatedCycle)
+        } catch (e: AppException) {
+            ResultWrapper.Error(e)
         } catch (e: Exception) {
             ResultWrapper.Error(AppException.UnknownException(cause = e))
         }
@@ -180,16 +185,18 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
             cycles.removeIf { it.id == cycleId }
             saveLocalCycles(cycles)
 
-            // Delete from cloud
-            val profileId = getProfileId()
-            if (profileId.isNotEmpty()) {
-                supabaseClient.from("menstrual_cycles")
-                    .delete {
-                        filter { eq("id", cycleId) }
-                    }
-            }
+            // getProfileId() here ensures we surface auth/profile errors;
+            // the delete itself does not filter on profile_id because RLS
+            // already scopes deletes to the current user.
+            getProfileId()
+            supabaseClient.from("menstrual_cycles")
+                .delete {
+                    filter { eq("id", cycleId) }
+                }
 
             ResultWrapper.Success(Unit)
+        } catch (e: AppException) {
+            ResultWrapper.Error(e)
         } catch (e: Exception) {
             ResultWrapper.Error(AppException.UnknownException(cause = e))
         }
@@ -203,11 +210,6 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     ): ResultWrapper<List<DailyLog>> = withContext(Dispatchers.IO) {
         try {
             val profileId = getProfileId()
-            if (profileId.isEmpty()) {
-                return@withContext ResultWrapper.Success(
-                    loadLocalLogs().filter { it.date in startDate..endDate }
-                )
-            }
 
             val dtos = supabaseClient.from("menstrual_daily_logs")
                 .select {
@@ -221,9 +223,12 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
 
             val logs = dtos.map { it.toDomain() }
             ResultWrapper.Success(logs)
+        } catch (e: java.io.IOException) {
+            ResultWrapper.Success(loadLocalLogs().filter { it.date in startDate..endDate })
         } catch (e: Exception) {
-            ResultWrapper.Success(
-                loadLocalLogs().filter { it.date in startDate..endDate }
+            android.util.Log.e("CycleRepo", "getDailyLogs failed", e)
+            ResultWrapper.Error(
+                if (e is AppException) e else AppException.UnknownException(cause = e)
             )
         }
     }
@@ -238,7 +243,6 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     ): ResultWrapper<DailyLog> = withContext(Dispatchers.IO) {
         try {
             val profileId = getProfileId()
-            val logId = UUID.randomUUID().toString()
 
             // Determine cycle ID (find active cycle or create one)
             val cycles = loadLocalCycles().toMutableList()
@@ -247,7 +251,6 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
             if (activeCycle != null) {
                 cycleId = activeCycle.id
             } else {
-                // Auto-create a cycle for this date so the log isn't orphaned
                 cycleId = UUID.randomUUID().toString()
                 val newCycle = CycleRecord(
                     id = cycleId,
@@ -261,15 +264,16 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
                 cycles.add(newCycle)
                 saveLocalCycles(cycles)
 
-                // Save to cloud
-                if (profileId.isNotEmpty()) {
-                    val cycleDto = newCycle.toDto(profileId)
-                    supabaseClient.from("menstrual_cycles").insert(cycleDto)
-                }
+                val cycleDto = newCycle.toDto(profileId)
+                supabaseClient.from("menstrual_cycles").upsert(cycleDto)
             }
 
+            // Upsert on (health_profile_id, date) so re-logging the same day
+            // updates in place. We look up an existing local log first to
+            // preserve its id (unique constraint is on profile+date, PK on id).
+            val existing = loadLocalLogs().firstOrNull { it.date == date }
             val log = DailyLog(
-                id = logId,
+                id = existing?.id ?: UUID.randomUUID().toString(),
                 cycleId = cycleId,
                 date = date,
                 flowLevel = flowLevel,
@@ -279,18 +283,17 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
                 painLevel = painLevel
             )
 
-            // Save to cloud
-            if (profileId.isNotEmpty()) {
-                val dto = log.toDto(profileId)
-                supabaseClient.from("menstrual_daily_logs").insert(dto)
-            }
+            val dto = log.toDto(profileId)
+            supabaseClient.from("menstrual_daily_logs").upsert(dto)
 
-            // Save locally
             val logs = loadLocalLogs().toMutableList()
-            logs.add(log)
+            val idx = logs.indexOfFirst { it.date == date }
+            if (idx >= 0) logs[idx] = log else logs.add(log)
             saveLocalLogs(logs)
 
             ResultWrapper.Success(log)
+        } catch (e: AppException) {
+            ResultWrapper.Error(e)
         } catch (e: Exception) {
             ResultWrapper.Error(AppException.UnknownException(cause = e))
         }
@@ -306,17 +309,13 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
                 saveLocalLogs(logs)
             }
 
-            // Update in cloud
             val profileId = getProfileId()
-            if (profileId.isNotEmpty()) {
-                val dto = log.toDto(profileId)
-                supabaseClient.from("menstrual_daily_logs")
-                    .update(dto) {
-                        filter { eq("id", log.id) }
-                    }
-            }
+            val dto = log.toDto(profileId)
+            supabaseClient.from("menstrual_daily_logs").upsert(dto)
 
             ResultWrapper.Success(log)
+        } catch (e: AppException) {
+            ResultWrapper.Error(e)
         } catch (e: Exception) {
             ResultWrapper.Error(AppException.UnknownException(cause = e))
         }
@@ -328,16 +327,15 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
             logs.removeIf { it.id == logId }
             saveLocalLogs(logs)
 
-            // Delete from cloud
-            val profileId = getProfileId()
-            if (profileId.isNotEmpty()) {
-                supabaseClient.from("menstrual_daily_logs")
-                    .delete {
-                        filter { eq("id", logId) }
-                    }
-            }
+            getProfileId()
+            supabaseClient.from("menstrual_daily_logs")
+                .delete {
+                    filter { eq("id", logId) }
+                }
 
             ResultWrapper.Success(Unit)
+        } catch (e: AppException) {
+            ResultWrapper.Error(e)
         } catch (e: Exception) {
             ResultWrapper.Error(AppException.UnknownException(cause = e))
         }
@@ -348,9 +346,6 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     override suspend fun getSettings(): ResultWrapper<CycleSettings> = withContext(Dispatchers.IO) {
         try {
             val profileId = getProfileId()
-            if (profileId.isEmpty()) {
-                return@withContext ResultWrapper.Success(loadLocalSettings())
-            }
 
             val dto = supabaseClient.from("menstrual_settings")
                 .select {
@@ -362,8 +357,13 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
             val settings = dto?.toDomain() ?: CycleSettings()
             saveLocalSettings(settings)
             ResultWrapper.Success(settings)
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             ResultWrapper.Success(loadLocalSettings())
+        } catch (e: Exception) {
+            android.util.Log.e("CycleRepo", "getSettings failed", e)
+            ResultWrapper.Error(
+                if (e is AppException) e else AppException.UnknownException(cause = e)
+            )
         }
     }
 
@@ -372,12 +372,12 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
             saveLocalSettings(settings)
 
             val profileId = getProfileId()
-            if (profileId.isNotEmpty()) {
-                val dto = settings.toDto(profileId)
-                supabaseClient.from("menstrual_settings").upsert(dto)
-            }
+            val dto = settings.toDto(profileId)
+            supabaseClient.from("menstrual_settings").upsert(dto)
 
             ResultWrapper.Success(settings)
+        } catch (e: AppException) {
+            ResultWrapper.Error(e)
         } catch (e: Exception) {
             ResultWrapper.Error(AppException.UnknownException(cause = e))
         }
@@ -558,32 +558,26 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     override suspend fun syncData(): ResultWrapper<Unit> = withContext(Dispatchers.IO) {
         try {
             val profileId = getProfileId()
-            if (profileId.isEmpty()) {
-                return@withContext ResultWrapper.Error(
-                    AppException.ValidationException.Custom("No profile ID available for sync")
-                )
-            }
 
-            // Sync cycles
             val cycles = loadLocalCycles()
             cycles.forEach { cycle ->
                 val dto = cycle.toDto(profileId)
                 supabaseClient.from("menstrual_cycles").upsert(dto)
             }
 
-            // Sync logs
             val logs = loadLocalLogs()
             logs.forEach { log ->
                 val dto = log.toDto(profileId)
                 supabaseClient.from("menstrual_daily_logs").upsert(dto)
             }
 
-            // Sync settings
             val settings = loadLocalSettings()
             val settingsDto = settings.toDto(profileId)
             supabaseClient.from("menstrual_settings").upsert(settingsDto)
 
             ResultWrapper.Success(Unit)
+        } catch (e: AppException) {
+            ResultWrapper.Error(e)
         } catch (e: Exception) {
             ResultWrapper.Error(AppException.UnknownException(cause = e))
         }
@@ -592,7 +586,7 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     // ── Local Storage Helpers ──
 
     private suspend fun loadLocalCycles(): List<CycleRecord> {
-        val profileId = getProfileId()
+        val profileId = getProfileIdOrEmpty()
         if (profileId.isEmpty()) return emptyList()
         return try {
             val raw = prefs.getString(cyclesKey(profileId), null) ?: return emptyList()
@@ -603,14 +597,14 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     }
 
     private suspend fun saveLocalCycles(cycles: List<CycleRecord>) {
-        val profileId = getProfileId()
+        val profileId = getProfileIdOrEmpty()
         if (profileId.isEmpty()) return
         val dtos = cycles.map { it.toDto(profileId) }
         prefs.edit().putString(cyclesKey(profileId), json.encodeToString(dtos)).apply()
     }
 
     private suspend fun loadLocalLogs(): List<DailyLog> {
-        val profileId = getProfileId()
+        val profileId = getProfileIdOrEmpty()
         if (profileId.isEmpty()) return emptyList()
         return try {
             val raw = prefs.getString(logsKey(profileId), null) ?: return emptyList()
@@ -621,14 +615,14 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     }
 
     private suspend fun saveLocalLogs(logs: List<DailyLog>) {
-        val profileId = getProfileId()
+        val profileId = getProfileIdOrEmpty()
         if (profileId.isEmpty()) return
         val dtos = logs.map { it.toDto(profileId) }
         prefs.edit().putString(logsKey(profileId), json.encodeToString(dtos)).apply()
     }
 
     private suspend fun loadLocalSettings(): CycleSettings {
-        val profileId = getProfileId()
+        val profileId = getProfileIdOrEmpty()
         if (profileId.isEmpty()) return CycleSettings()
         return try {
             val raw = prefs.getString(settingsKey(profileId), null) ?: return CycleSettings()
@@ -639,7 +633,7 @@ class MenstrualCycleRepositoryImpl @Inject constructor(
     }
 
     private suspend fun saveLocalSettings(settings: CycleSettings) {
-        val profileId = getProfileId()
+        val profileId = getProfileIdOrEmpty()
         if (profileId.isEmpty()) return
         val dto = settings.toDto(profileId)
         prefs.edit().putString(settingsKey(profileId), json.encodeToString(dto)).apply()

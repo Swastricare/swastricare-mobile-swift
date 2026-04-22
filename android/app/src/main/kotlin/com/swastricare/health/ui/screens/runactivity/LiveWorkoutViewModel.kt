@@ -604,6 +604,7 @@ class LiveWorkoutViewModel @Inject constructor(
             durationSeconds = state.elapsedSeconds,
             avgPaceSecondsPerKm = paceSecondsPerKm,
             caloriesBurned = finalCalories,
+            steps = state.totalSteps,
             routeCoordinates = routeCoords,
             splits = accumulatedSplits.toList(),
             synced = false

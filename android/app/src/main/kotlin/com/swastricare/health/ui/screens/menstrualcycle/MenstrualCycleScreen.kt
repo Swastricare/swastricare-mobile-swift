@@ -313,8 +313,12 @@ fun MenstrualCycleScreen(
         CycleSettingsSheet(
             settings = uiState.settings,
             onDismiss = { showSettingsSheet = false },
-            onSave = { cycleLen, periodLen -> viewModel.updateCycleSettings(cycleLen, periodLen) },
-            onUpdateNotifications = { period, fertile, pms -> viewModel.updateNotificationSettings(period, fertile, pms) }
+            onSave = { cycleLen, periodLen, reminderDaysBefore ->
+                viewModel.updateCycleSettings(cycleLen, periodLen, reminderDaysBefore)
+            },
+            onUpdateNotifications = { period, fertile, pms, ovulation ->
+                viewModel.updateNotificationSettings(period, fertile, pms, ovulation)
+            }
         )
     }
     if (showStatisticsSheet) {

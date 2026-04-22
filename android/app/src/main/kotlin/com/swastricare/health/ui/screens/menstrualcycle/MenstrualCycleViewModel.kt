@@ -183,7 +183,10 @@ data class CycleSettings(
     val averagePeriodLength: Int = 5,
     val periodReminderEnabled: Boolean = true,
     val fertileWindowReminderEnabled: Boolean = false,
-    val pmsReminderEnabled: Boolean = false
+    val pmsReminderEnabled: Boolean = false,
+    val ovulationReminderEnabled: Boolean = false,
+    val reminderDaysBefore: Int = 2,
+    val lutealPhaseLength: Int = 14
 )
 
 // ─────────────────────────────────────
@@ -487,24 +490,20 @@ class MenstrualCycleViewModel @Inject constructor(
         _uiState.value = current.copy(selectedMonth = newMonth)
     }
 
-    fun updateCycleSettings(cycleLength: Int, periodLength: Int) {
+    fun updateCycleSettings(
+        cycleLength: Int,
+        periodLength: Int,
+        reminderDaysBefore: Int? = null
+    ) {
         val current = _uiState.value
         val newSettings = current.settings.copy(
             averageCycleLength = cycleLength,
-            averagePeriodLength = periodLength
+            averagePeriodLength = periodLength,
+            reminderDaysBefore = reminderDaysBefore ?: current.settings.reminderDaysBefore
         )
         _uiState.value = current.copy(settings = newSettings)
-
-        // Persist to repository
         viewModelScope.launch {
-            val domainSettings = DomainCycleSettings(
-                averageCycleLength = cycleLength,
-                averagePeriodLength = periodLength,
-                reminderEnabled = newSettings.periodReminderEnabled,
-                reminderTime = "09:00"
-            )
-            cycleRepository.updateSettings(domainSettings)
-            // Recalculate with new settings
+            cycleRepository.updateSettings(newSettings.toDomain())
             recalculate()
         }
     }
@@ -512,15 +511,22 @@ class MenstrualCycleViewModel @Inject constructor(
     fun updateNotificationSettings(
         periodReminder: Boolean? = null,
         fertileReminder: Boolean? = null,
-        pmsReminder: Boolean? = null
+        pmsReminder: Boolean? = null,
+        ovulationReminder: Boolean? = null,
+        reminderDaysBefore: Int? = null
     ) {
         val current = _uiState.value
         val newSettings = current.settings.copy(
             periodReminderEnabled = periodReminder ?: current.settings.periodReminderEnabled,
             fertileWindowReminderEnabled = fertileReminder ?: current.settings.fertileWindowReminderEnabled,
-            pmsReminderEnabled = pmsReminder ?: current.settings.pmsReminderEnabled
+            pmsReminderEnabled = pmsReminder ?: current.settings.pmsReminderEnabled,
+            ovulationReminderEnabled = ovulationReminder ?: current.settings.ovulationReminderEnabled,
+            reminderDaysBefore = reminderDaysBefore ?: current.settings.reminderDaysBefore
         )
         _uiState.value = current.copy(settings = newSettings)
+        viewModelScope.launch {
+            cycleRepository.updateSettings(newSettings.toDomain())
+        }
     }
 
     fun loadStatistics() {
@@ -661,10 +667,25 @@ class MenstrualCycleViewModel @Inject constructor(
 // MARK: - Domain → UI Conversion
 // ─────────────────────────────────────
 
+private fun CycleSettings.toDomain() = DomainCycleSettings(
+    averageCycleLength = averageCycleLength,
+    averagePeriodLength = averagePeriodLength,
+    reminderEnabled = periodReminderEnabled,
+    reminderTime = "09:00",
+    reminderDaysBefore = reminderDaysBefore,
+    fertileReminderEnabled = fertileWindowReminderEnabled,
+    pmsReminderEnabled = pmsReminderEnabled,
+    ovulationReminderEnabled = ovulationReminderEnabled,
+    lutealPhaseLength = lutealPhaseLength
+)
+
 private fun DomainCycleSettings.toUiSettings() = CycleSettings(
     averageCycleLength = averageCycleLength,
     averagePeriodLength = averagePeriodLength,
     periodReminderEnabled = reminderEnabled,
-    fertileWindowReminderEnabled = false,
-    pmsReminderEnabled = false
+    fertileWindowReminderEnabled = fertileReminderEnabled,
+    pmsReminderEnabled = pmsReminderEnabled,
+    ovulationReminderEnabled = ovulationReminderEnabled,
+    reminderDaysBefore = reminderDaysBefore,
+    lutealPhaseLength = lutealPhaseLength
 )

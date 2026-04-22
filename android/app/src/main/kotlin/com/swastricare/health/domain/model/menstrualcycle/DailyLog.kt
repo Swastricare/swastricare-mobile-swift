@@ -4,7 +4,9 @@ import java.time.LocalDate
 
 /**
  * Domain model for daily menstrual cycle logging.
- * Captures flow level, symptoms, mood, and pain for a specific day.
+ * Captures flow level, symptoms, mood, pain, and optional extended
+ * wellness signals (energy, sleep, temperature, weight, cervical
+ * mucus, sexual activity) for a specific day.
  */
 data class DailyLog(
     val id: String,
@@ -14,16 +16,17 @@ data class DailyLog(
     val symptoms: List<Symptom>,
     val mood: Mood?,
     val notes: String?,
-    val painLevel: Int // 0-10 scale
+    val painLevel: Int, // 0-10 scale
+    val energyLevel: Int? = null,
+    val sleepQuality: String? = null,
+    val temperature: Double? = null,
+    val weight: Double? = null,
+    val cervicalMucus: String? = null,
+    val sexualActivity: Boolean? = null,
+    val protectedSex: Boolean? = null
 ) {
-    /**
-     * Validates that pain level is within acceptable range.
-     */
     fun isValidPainLevel(): Boolean = painLevel in 0..10
 
-    /**
-     * Returns true if this is a menstruation day (has flow).
-     */
     val isMenstruationDay: Boolean
         get() = flowLevel != FlowLevel.NONE
 }

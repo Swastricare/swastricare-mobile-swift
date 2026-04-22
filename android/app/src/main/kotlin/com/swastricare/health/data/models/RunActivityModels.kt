@@ -63,6 +63,7 @@ data class RunActivity(
     val avgPaceSecondsPerKm: Long = 0,
     val caloriesBurned: Int = 0,
     val avgHeartRate: Int? = null,
+    val steps: Int = 0,
     val routeCoordinates: List<RouteCoordinate> = emptyList(),
     val splits: List<ActivitySplit> = emptyList(),
     val synced: Boolean = false
@@ -223,7 +224,7 @@ fun RunActivity.toDto(profileId: String): RunActivityDto {
         avgHeartRate = avgHeartRate,
         routeCoordinates = routeCoordsJson,
         splits = splitsJson,
-        steps = 0 // TODO: Add step counting from Health Connect if available
+        steps = steps
     )
 }
 
@@ -275,6 +276,7 @@ fun RunActivityDto.toDomain(): RunActivity {
         avgPaceSecondsPerKm = avgPaceSecondsPerKm,
         caloriesBurned = caloriesBurned,
         avgHeartRate = avgHeartRate,
+        steps = steps,
         routeCoordinates = coords,
         splits = decodedSplits,
         synced = true

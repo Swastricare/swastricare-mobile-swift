@@ -2,6 +2,7 @@ package com.swastricare.health.data.services
 
 import android.util.Log
 import com.swastricare.health.data.repository.*
+import com.swastricare.health.domain.repository.MenstrualCycleRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import java.time.LocalDate
@@ -207,26 +208,26 @@ class HealthContextProvider @javax.inject.Inject constructor(
     }
 
     private suspend fun buildCycleSection(): String? = tryOrNull {
-        // Resolve the current user ID so we never read another account's local cycle data.
-        val currentUserId = supabaseClient.auth.currentUserOrNull()?.id ?: return@tryOrNull null
+        if (supabaseClient.auth.currentUserOrNull()?.id == null) return@tryOrNull null
 
-        val cycles = menstrualCycleRepository.loadLocalCycles(currentUserId)
+        val cycles = (menstrualCycleRepository.getCycles()
+            as? com.swastricare.health.core.result.ResultWrapper.Success)
+            ?.data ?: return@tryOrNull null
         if (cycles.isEmpty()) return@tryOrNull null
 
-        val settings = menstrualCycleRepository.loadSettings(currentUserId)
-        val phase = menstrualCycleRepository.detectCurrentPhase(cycles, settings)
+        val phase = (menstrualCycleRepository.getCurrentPhase()
+            as? com.swastricare.health.core.result.ResultWrapper.Success)
+            ?.data ?: com.swastricare.health.domain.model.menstrualcycle.CyclePhase.UNKNOWN
 
         val parts = mutableListOf<String>()
         parts.add("Phase: ${phase.name}")
 
-        // Current cycle day
         val activeCycle = cycles.find { it.isActive } ?: cycles.maxByOrNull { it.startDate }
         activeCycle?.let {
             val dayOfCycle = Period.between(it.startDate, LocalDate.now()).days + 1
             parts.add("Day $dayOfCycle")
         }
 
-        // Last completed period
         val lastCompleted = cycles.filter { !it.isActive && it.endDate != null }
             .maxByOrNull { it.startDate }
         lastCompleted?.let { cycle ->
@@ -235,10 +236,11 @@ class HealthContextProvider @javax.inject.Inject constructor(
             parts.add("Last period: $start-$end")
         }
 
-        // Recent symptoms
-        val dailyLogs = menstrualCycleRepository.loadLocalDailyLogs(currentUserId)
-        val recentLogs = dailyLogs.filter { !it.date.isBefore(LocalDate.now().minusDays(3)) }
-        val symptoms = recentLogs.flatMap { it.symptoms }.distinct()
+        val today = LocalDate.now()
+        val dailyLogs = (menstrualCycleRepository.getDailyLogs(today.minusDays(3), today)
+            as? com.swastricare.health.core.result.ResultWrapper.Success)
+            ?.data.orEmpty()
+        val symptoms = dailyLogs.flatMap { it.symptoms }.distinct()
         if (symptoms.isNotEmpty()) {
             parts.add("Recent symptoms: ${symptoms.joinToString(", ") { it.name.lowercase() }}")
         }

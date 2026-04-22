@@ -52,16 +52,23 @@ import java.util.Locale
 internal fun CycleSettingsSheet(
     settings: CycleSettings,
     onDismiss: () -> Unit,
-    onSave: (cycleLength: Int, periodLength: Int) -> Unit,
-    onUpdateNotifications: (period: Boolean?, fertile: Boolean?, pms: Boolean?) -> Unit
+    onSave: (cycleLength: Int, periodLength: Int, reminderDaysBefore: Int) -> Unit,
+    onUpdateNotifications: (
+        period: Boolean?,
+        fertile: Boolean?,
+        pms: Boolean?,
+        ovulation: Boolean?
+    ) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var cycleLength by remember { mutableFloatStateOf(settings.averageCycleLength.toFloat()) }
     var periodLength by remember { mutableFloatStateOf(settings.averagePeriodLength.toFloat()) }
+    var reminderDaysBefore by remember { mutableFloatStateOf(settings.reminderDaysBefore.toFloat()) }
     var periodReminder by remember { mutableStateOf(settings.periodReminderEnabled) }
     var fertileReminder by remember { mutableStateOf(settings.fertileWindowReminderEnabled) }
     var pmsReminder by remember { mutableStateOf(settings.pmsReminderEnabled) }
+    var ovulationReminder by remember { mutableStateOf(settings.ovulationReminderEnabled) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -224,11 +231,59 @@ internal fun CycleSettingsSheet(
                 )
             }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Ovulation Reminder", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Notify me on my predicted ovulation day",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AppColors.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = ovulationReminder,
+                    onCheckedChange = { ovulationReminder = it },
+                    colors = SwitchDefaults.colors(checkedTrackColor = OvulationColor)
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Remind me this many days before period",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "${reminderDaysBefore.toInt()} ${if (reminderDaysBefore.toInt() == 1) "day" else "days"}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = CyclePink
+                    )
+                }
+                Slider(
+                    value = reminderDaysBefore,
+                    onValueChange = { reminderDaysBefore = it },
+                    valueRange = 1f..7f,
+                    steps = 5,
+                    colors = SliderDefaults.colors(
+                        thumbColor = CyclePink,
+                        activeTrackColor = CyclePink
+                    )
+                )
+            }
+
             // Save Button
             Button(
                 onClick = {
-                    onSave(cycleLength.toInt(), periodLength.toInt())
-                    onUpdateNotifications(periodReminder, fertileReminder, pmsReminder)
+                    onSave(cycleLength.toInt(), periodLength.toInt(), reminderDaysBefore.toInt())
+                    onUpdateNotifications(periodReminder, fertileReminder, pmsReminder, ovulationReminder)
                     onDismiss()
                 },
                 modifier = Modifier

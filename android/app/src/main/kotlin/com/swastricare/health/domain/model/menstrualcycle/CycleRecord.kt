@@ -14,7 +14,8 @@ data class CycleRecord(
     val endDate: LocalDate? = null,
     val cycleLength: Int? = null,
     val periodLength: Int? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val isPredicted: Boolean = false
 ) {
     /**
      * Indicates if this cycle is currently active (no end date yet).

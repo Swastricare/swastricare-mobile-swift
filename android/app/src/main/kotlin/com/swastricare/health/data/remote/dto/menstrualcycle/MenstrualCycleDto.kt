@@ -20,6 +20,8 @@ data class MenstrualCycleDto(
     val cycleLength: Int? = null,
     @SerialName("period_length")
     val periodLength: Int? = null,
+    @SerialName("is_predicted")
+    val isPredicted: Boolean = false,
     val notes: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null,
@@ -46,6 +48,18 @@ data class MenstrualDailyLogDto(
     val notes: String? = null,
     @SerialName("pain_level")
     val painLevel: Int = 0,
+    @SerialName("energy_level")
+    val energyLevel: Int? = null,
+    @SerialName("sleep_quality")
+    val sleepQuality: String? = null,
+    val temperature: Double? = null,
+    val weight: Double? = null,
+    @SerialName("cervical_mucus")
+    val cervicalMucus: String? = null,
+    @SerialName("sexual_activity")
+    val sexualActivity: Boolean? = null,
+    @SerialName("protected_sex")
+    val protectedSex: Boolean? = null,
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")
@@ -69,6 +83,16 @@ data class MenstrualSettingsDto(
     val reminderEnabled: Boolean = true,
     @SerialName("reminder_time")
     val reminderTime: String = "09:00:00",
+    @SerialName("reminder_days_before")
+    val reminderDaysBefore: Int = 2,
+    @SerialName("fertile_reminder_enabled")
+    val fertileReminderEnabled: Boolean = false,
+    @SerialName("pms_reminder_enabled")
+    val pmsReminderEnabled: Boolean = false,
+    @SerialName("ovulation_reminder_enabled")
+    val ovulationReminderEnabled: Boolean = false,
+    @SerialName("luteal_phase_length")
+    val lutealPhaseLength: Int = 14,
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")
