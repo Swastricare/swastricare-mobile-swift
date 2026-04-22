@@ -747,6 +747,7 @@ fun QuickAddButton(
 fun HydrationEntryCard(
     entry: HydrationEntry,
     onDelete: () -> Unit,
+    showDelete: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
@@ -785,16 +786,18 @@ fun HydrationEntryCard(
         }
 
         // Delete button
-        IconButton(onClick = {
-            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-            onDelete()
-        }, modifier = Modifier.size(32.dp)) {
-            Icon(
-                Icons.Default.RemoveCircleOutline,
-                contentDescription = "Delete",
-                tint = Color(0xFFFF3B30).copy(alpha = 0.6f),
-                modifier = Modifier.size(20.dp)
-            )
+        if (showDelete) {
+            IconButton(onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onDelete()
+            }, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Default.RemoveCircleOutline,
+                    contentDescription = "Delete",
+                    tint = Color(0xFFFF3B30).copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
