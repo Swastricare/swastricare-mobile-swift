@@ -198,10 +198,8 @@ fun HydrationScreen(
                                     selectedDate = uiState.selectedDate,
                                     onDateSelected = { vm.selectDate(it) }
                                 )
-                                Spacer(Modifier.height(16.dp))
-
-                                // Quick add drink chips (today only)
                                 if (uiState.isShowingToday) {
+                                    Spacer(Modifier.height(16.dp))
                                     QuickAddDrinkChips(
                                         onAddDrink = { drinkType -> vm.addDrink(drinkType, 100) },
                                         modifier = Modifier.padding(bottom = 16.dp)
