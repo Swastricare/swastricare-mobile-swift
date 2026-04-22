@@ -141,7 +141,8 @@ fun HydrationScreen(
                     uiState = uiState,
                     onDeleteEntry = { vm.deleteDrink(it) },
                     onNavigateToAI = onNavigateToAI,
-                    onShowAddDrink = { showAddDrinkSheet = true }
+                    onShowAddDrink = { showAddDrinkSheet = true },
+                    isToday = uiState.isShowingToday
                 )
             },
             sheetPeekHeight = 250.dp,
@@ -302,7 +303,8 @@ private fun SheetContent(
     uiState: HydrationUiState,
     onDeleteEntry: (String) -> Unit,
     onNavigateToAI: () -> Unit,
-    onShowAddDrink: () -> Unit
+    onShowAddDrink: () -> Unit,
+    isToday: Boolean = true,
 ) {
     val isDark = isSystemInDarkTheme()
     val view = LocalView.current
@@ -350,19 +352,21 @@ private fun SheetContent(
                         color = subtitleColor
                     )
                 }
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        onShowAddDrink()
-                    },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Add drink",
-                        modifier = Modifier.size(24.dp),
-                        tint = titleColor
-                    )
+                if (isToday) {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            onShowAddDrink()
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add drink",
+                            modifier = Modifier.size(24.dp),
+                            tint = titleColor
+                        )
+                    }
                 }
             }
             HorizontalDivider(
@@ -377,58 +381,72 @@ private fun SheetContent(
                 items = uiState.todaysEntries,
                 key = { it.id }
             ) { entry ->
-                var isVisible by remember { mutableStateOf(true) }
-                val dismissState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart) {
-                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            isVisible = false
-                            true
-                        } else false
-                    }
-                )
-                AnimatedVisibility(
-                    visible = isVisible,
-                    exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
-                ) {
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        backgroundContent = {
+                if (isToday) {
+                    var isVisible by remember { mutableStateOf(true) }
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                isVisible = false
+                                true
+                            } else false
+                        }
+                    )
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                    ) {
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Transparent)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color(0xFFFF3B30)
+                                    )
+                                }
+                            },
+                            enableDismissFromStartToEnd = false
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Transparent)
-                                    .padding(horizontal = 20.dp),
-                                contentAlignment = Alignment.CenterEnd
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(entryBgColor)
                             ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = Color(0xFFFF3B30)
+                                HydrationEntryCard(
+                                    entry = entry,
+                                    onDelete = { onDeleteEntry(entry.id) },
+                                    showDelete = true
                                 )
                             }
-                        },
-                        enableDismissFromStartToEnd = false
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(entryBgColor)
-                        ) {
-                            HydrationEntryCard(
-                                entry = entry,
-                                onDelete = { onDeleteEntry(entry.id) }
-                            )
                         }
                     }
-                }
-
-                // Delete after animation completes
-                if (!isVisible) {
-                    LaunchedEffect(Unit) {
-                        kotlinx.coroutines.delay(300)
-                        onDeleteEntry(entry.id)
+                    if (!isVisible) {
+                        LaunchedEffect(Unit) {
+                            kotlinx.coroutines.delay(300)
+                            onDeleteEntry(entry.id)
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(entryBgColor)
+                    ) {
+                        HydrationEntryCard(
+                            entry = entry,
+                            onDelete = {},
+                            showDelete = false
+                        )
                     }
                 }
             }

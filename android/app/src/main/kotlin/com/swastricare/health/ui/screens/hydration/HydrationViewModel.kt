@@ -73,6 +73,8 @@ data class HydrationUiState(
 
     val isWeatherAdjusted: Boolean get() = weatherAdjustmentFactor > 1.0
 
+    val isShowingToday: Boolean get() = selectedDate == LocalDate.now()
+
     val caffeineEntries: Int get() = todaysEntries.count {
         DrinkType.fromDb(it.drinkType).containsCaffeine
     }
