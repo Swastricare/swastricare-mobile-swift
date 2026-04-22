@@ -381,21 +381,27 @@ private fun SheetContent(
                 items = uiState.todaysEntries,
                 key = { it.id }
             ) { entry ->
-                if (isToday) {
-                    var isVisible by remember { mutableStateOf(true) }
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        confirmValueChange = { value ->
-                            if (value == SwipeToDismissBoxValue.EndToStart) {
-                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                isVisible = false
-                                true
-                            } else false
-                        }
-                    )
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
-                    ) {
+                var isVisible by remember { mutableStateOf(true) }
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (isToday && value == SwipeToDismissBoxValue.EndToStart) {
+                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            isVisible = false
+                            true
+                        } else false
+                    }
+                )
+                LaunchedEffect(isVisible) {
+                    if (!isVisible) {
+                        kotlinx.coroutines.delay(300)
+                        onDeleteEntry(entry.id)
+                    }
+                }
+                AnimatedVisibility(
+                    visible = isVisible,
+                    exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                ) {
+                    if (isToday) {
                         SwipeToDismissBox(
                             state = dismissState,
                             backgroundContent = {
@@ -428,25 +434,19 @@ private fun SheetContent(
                                 )
                             }
                         }
-                    }
-                    if (!isVisible) {
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(300)
-                            onDeleteEntry(entry.id)
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(entryBgColor)
+                        ) {
+                            HydrationEntryCard(
+                                entry = entry,
+                                onDelete = {},
+                                showDelete = false
+                            )
                         }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(entryBgColor)
-                    ) {
-                        HydrationEntryCard(
-                            entry = entry,
-                            onDelete = {},
-                            showDelete = false
-                        )
                     }
                 }
             }
@@ -465,13 +465,13 @@ private fun SheetContent(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text(
-                            "No drinks yet",
+                            if (isToday) "No drinks yet today" else "No drinks logged",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
                             color = subtitleColor
                         )
                         Text(
-                            "Tap + to log your first drink",
+                            if (isToday) "Tap + to log your first drink" else "Nothing was logged on this day",
                             fontSize = 13.sp,
                             color = AppColors.onSurfaceVariant,
                             textAlign = TextAlign.Center
