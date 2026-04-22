@@ -455,6 +455,7 @@ fun HydrationStatPill(
 @Composable
 fun QuickAddDrinkChips(
     onAddDrink: (DrinkType) -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
@@ -477,6 +478,7 @@ fun QuickAddDrinkChips(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else 0.4f }
             .onGloballyPositioned { coordinates ->
                 // Track parent Box position
                 parentBoxPosition = Offset(
@@ -505,39 +507,39 @@ fun QuickAddDrinkChips(
                         .graphicsLayer {
                             alpha = if (isDragging) 0.3f else 1f
                         }
-                        .pointerInput(drinkType) {
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = { offset ->
-                                    draggedChip = drinkType
-                                    // Convert chip position to parent Box coordinate space
-                                    val chipRootPos = chipPositions[drinkType] ?: Offset.Zero
-                                    val chipLocalPos = chipRootPos - parentBoxPosition
-                                    dragStartPosition = chipLocalPos + offset
-                                    dragOffset = Offset.Zero
-                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    dragOffset += dragAmount
-                                },
-                                onDragEnd = {
-                                    if (draggedChip != null) {
-                                        // If dragged significantly upward, add the drink
-                                        if (dragOffset.y < -100f) {
-                                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                            onAddDrink(drinkType)
+                        .pointerInput(drinkType, enabled) {
+                            if (enabled) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = { offset ->
+                                        draggedChip = drinkType
+                                        val chipRootPos = chipPositions[drinkType] ?: Offset.Zero
+                                        val chipLocalPos = chipRootPos - parentBoxPosition
+                                        dragStartPosition = chipLocalPos + offset
+                                        dragOffset = Offset.Zero
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffset += dragAmount
+                                    },
+                                    onDragEnd = {
+                                        if (draggedChip != null) {
+                                            if (dragOffset.y < -100f) {
+                                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                                onAddDrink(drinkType)
+                                            }
+                                            draggedChip = null
                                         }
+                                        dragOffset = Offset.Zero
+                                        dragStartPosition = Offset.Zero
+                                    },
+                                    onDragCancel = {
                                         draggedChip = null
+                                        dragOffset = Offset.Zero
+                                        dragStartPosition = Offset.Zero
                                     }
-                                    dragOffset = Offset.Zero
-                                    dragStartPosition = Offset.Zero
-                                },
-                                onDragCancel = {
-                                    draggedChip = null
-                                    dragOffset = Offset.Zero
-                                    dragStartPosition = Offset.Zero
-                                }
-                            )
+                                )
+                            }
                         }
                         .clip(RoundedCornerShape(20.dp))
                         .background(
@@ -558,7 +560,8 @@ fun QuickAddDrinkChips(
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null
+                            indication = null,
+                            enabled = enabled
                         ) {
                             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onAddDrink(drinkType)

@@ -198,13 +198,12 @@ fun HydrationScreen(
                                     selectedDate = uiState.selectedDate,
                                     onDateSelected = { vm.selectDate(it) }
                                 )
-                                if (uiState.isShowingToday) {
-                                    Spacer(Modifier.height(16.dp))
-                                    QuickAddDrinkChips(
-                                        onAddDrink = { drinkType -> vm.addDrink(drinkType, 100) },
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    )
-                                }
+                                Spacer(Modifier.height(16.dp))
+                                QuickAddDrinkChips(
+                                    onAddDrink = { drinkType -> vm.addDrink(drinkType, 100) },
+                                    enabled = uiState.isShowingToday,
+                                    modifier = Modifier.padding(bottom = 16.dp)
+                                )
                             }
                         }
                         Spacer(Modifier.height(12.dp))
