@@ -349,7 +349,8 @@ private fun SheetContent(
                     )
                     Text(
                         if (drinkCount > 0) "$drinkCount drink${if (drinkCount > 1) "s" else ""} · ${totalMl}ml"
-                        else "No drinks yet today",
+                        else if (isToday) "No drinks yet today"
+                        else "No drinks logged",
                         fontSize = 13.sp,
                         color = subtitleColor
                     )

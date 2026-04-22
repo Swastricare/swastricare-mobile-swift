@@ -186,6 +186,7 @@ class HydrationViewModel @Inject constructor(
     }
 
     fun addDrink(drinkType: DrinkType, amountMl: Int, notes: String? = null) {
+        if (!_uiState.value.isShowingToday) return
         viewModelScope.launch {
             analyticsService.logHydrationLogged(amountMl, drinkType.dbValue)
             val effectiveMl = (amountMl * drinkType.hydrationMultiplier).toInt()
