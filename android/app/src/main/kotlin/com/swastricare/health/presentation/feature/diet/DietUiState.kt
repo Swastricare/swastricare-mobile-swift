@@ -27,7 +27,11 @@ data class DietUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val snapState: SnapAnalysisState = SnapAnalysisState.Idle,
-    val snapImageUri: String? = null
+    val snapImageUri: String? = null,
+    /** Entry just deleted; non-null while undo is still possible. */
+    val recentlyDeletedEntry: FoodEntry? = null,
+    /** One-shot trigger for the undo snackbar — changes whenever a new delete occurs so UI re-presents. */
+    val undoSnackbarTriggerId: String? = null
 ) {
     /**
      * Food entries for the selected date, sorted by time (newest first).
@@ -174,6 +178,8 @@ sealed class DietUiEvent {
         val fatG: Double
     ) : DietUiEvent()
     data class DeleteEntry(val entry: FoodEntry) : DietUiEvent()
+    /** Restore the most recently deleted entry (only valid for ~5s after delete). */
+    data object UndoDelete : DietUiEvent()
     data class UpdateGoals(val goals: DietGoal) : DietUiEvent()
     data class ToggleFavorite(val foodId: String) : DietUiEvent()
     data class SearchFood(val query: String) : DietUiEvent()

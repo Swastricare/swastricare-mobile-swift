@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -110,6 +112,16 @@ fun DietScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
+                        // Sync status banner — surfaces silent failures (mirrors iOS DietView)
+                        item {
+                            DietSyncStatusBanner(
+                                isSyncing = uiState.isSyncing,
+                                pendingCount = uiState.pendingSyncCount,
+                                error = uiState.lastSyncError,
+                                onRetry = { vm.retrySync() }
+                            )
+                        }
+
                         // Calendar Strip
                         item {
                             Spacer(Modifier.height(4.dp))
@@ -294,7 +306,7 @@ fun DietScreen(
             Icon(Icons.Default.CameraAlt, contentDescription = "Snap Food")
         }
 
-        // Error snackbar
+        // Error + Undo snackbars share one host
         val snackbarHostState = remember { SnackbarHostState() }
         LaunchedEffect(uiState.error) {
             uiState.error?.let { msg ->
@@ -302,17 +314,33 @@ fun DietScreen(
                 vm.clearError()
             }
         }
+        // Undo-on-delete: re-present the snackbar each time triggerId changes
+        LaunchedEffect(uiState.undoSnackbarTriggerId) {
+            val deleted = uiState.recentlyDeletedEntry
+            if (deleted != null && uiState.undoSnackbarTriggerId != null) {
+                val result = snackbarHostState.showSnackbar(
+                    message = "Deleted \"${deleted.foodName}\"",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Short,
+                    withDismissAction = true
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    vm.undoDelete()
+                }
+            }
+        }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp)
         )
 
-        // Settings bottom sheet
+        // Settings bottom sheet — Mifflin-St Jeor calc threaded in from vm.getSuggestedGoals.
         if (showSettingsSheet) {
             DietSettingsSheet(
                 currentGoals = uiState.dietGoals,
                 onSave = { goals -> vm.updateGoals(goals) },
-                onDismiss = { showSettingsSheet = false }
+                onDismiss = { showSettingsSheet = false },
+                onCalculateFromProfile = { activity, goal -> vm.getSuggestedGoals(activity, goal) }
             )
         }
     }
@@ -439,3 +467,103 @@ private fun DietSkeletonContent() {
         }
     }
 }
+
+// ─────────────────────────────────────
+// MARK: - Sync Status Banner
+// ─────────────────────────────────────
+
+/**
+ * Surfaces sync state to the user. Mirrors iOS DietView.syncStatusBanner.
+ * Renders nothing when sync is healthy. Banner priority: error > syncing > pending.
+ */
+@Composable
+private fun DietSyncStatusBanner(
+    isSyncing: Boolean,
+    pendingCount: Int,
+    error: String?,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val (color, icon, title, detail, actionLabel) = when {
+        error != null -> BannerSpec(
+            color = Color(0xFFEF4444),  // accentRed
+            icon = Icons.Default.ErrorOutline,
+            title = "Sync failed",
+            detail = error,
+            actionLabel = "Retry"
+        )
+        isSyncing -> BannerSpec(
+            color = Color(0xFF4F46E5),  // accentBlue
+            icon = Icons.Default.Sync,
+            title = if (pendingCount > 0) "Syncing $pendingCount meal${if (pendingCount == 1) "" else "s"}…" else "Syncing…",
+            detail = null,
+            actionLabel = null
+        )
+        pendingCount > 0 -> BannerSpec(
+            color = Color(0xFFF59E0B),  // accentOrange
+            icon = Icons.Default.CloudOff,
+            title = if (pendingCount == 1) "1 meal pending sync" else "$pendingCount meals pending sync",
+            detail = "We'll retry when you're online.",
+            actionLabel = "Retry now"
+        )
+        else -> return  // healthy → render nothing
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.1f))
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .semantics { contentDescription = "$title. ${detail.orEmpty()}" }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onSurface
+                )
+                if (detail != null) {
+                    Text(
+                        detail,
+                        fontSize = 12.sp,
+                        color = AppColors.onSurface.copy(alpha = 0.7f),
+                        maxLines = 2
+                    )
+                }
+            }
+            if (actionLabel != null) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    actionLabel,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(color)
+                        .clickable { onRetry() }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+        }
+    }
+}
+
+private data class BannerSpec(
+    val color: Color,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val title: String,
+    val detail: String?,
+    val actionLabel: String?
+)

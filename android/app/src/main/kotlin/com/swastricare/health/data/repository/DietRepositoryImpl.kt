@@ -9,6 +9,7 @@ import com.swastricare.health.data.mapper.DietMapper.toLocalDto
 import com.swastricare.health.data.mapper.DietMapper.toRemoteDto
 import com.swastricare.health.data.remote.dto.diet.AnalyzedFoodDto
 import com.swastricare.health.data.remote.dto.diet.DietGoalsDto
+import android.util.Log
 import com.swastricare.health.data.remote.dto.diet.DietLogDto
 import com.swastricare.health.data.remote.dto.diet.FoodItemDto
 import com.swastricare.health.data.remote.dto.diet.LocalFoodEntryDto
@@ -42,6 +43,7 @@ class DietRepositoryImpl @Inject constructor(
 ) : DietRepository {
 
     companion object {
+        private const val TAG = "DietRepository"
         private const val KEY_FOOD_CACHE = "diet_food_cache"
         private const val KEY_DIET_LOGS = "diet_logs"
         private const val KEY_DIET_GOALS = "diet_goals"
@@ -149,8 +151,9 @@ class DietRepositoryImpl @Inject constructor(
                 )
             }
             prefs.edit().putString(KEY_FOOD_CACHE, json.encodeToString(dtos)).apply()
-        } catch (_: Exception) {
-            // Silent fail for caching
+        } catch (e: Exception) {
+            // Cache write is best-effort; the next fetch will repopulate.
+            Log.w(TAG, "Failed to cache food items locally", e)
         }
     }
 
@@ -210,13 +213,14 @@ class DietRepositoryImpl @Inject constructor(
                 val current = loadLocalEntries().filter { it.id != entryId }
                 saveLocalEntries(current)
 
-                // Delete from cloud
+                // Delete from cloud — log failures so they don't go silent.
+                // Local delete is the user-visible success; cloud retry happens on next sync.
                 try {
                     supabaseClient.from("diet_logs").delete {
                         filter { eq("id", entryId) }
                     }
-                } catch (_: Exception) {
-                    // Silent fail for cloud deletion - entry already removed locally
+                } catch (e: Exception) {
+                    Log.e(TAG, "Cloud delete failed for entry $entryId — will retry on next sync", e)
                 }
 
                 ResultWrapper.Success(Unit)

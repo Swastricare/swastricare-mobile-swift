@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -473,18 +475,43 @@ fun MealSectionCard(
             )
         }
 
-        // Food entries
-        if (expanded && entries.isNotEmpty()) {
+        // Food entries — or per-meal empty state when expanded with no entries.
+        if (expanded) {
             Divider(color = AppColors.onSurface.copy(alpha = 0.06f))
-            entries.forEachIndexed { index, entry ->
-                FoodEntryRow(
-                    entry = entry,
-                    onDelete = { onDelete(entry) }
-                )
-                if (index < entries.lastIndex) {
-                    Divider(
-                        color = AppColors.onSurface.copy(alpha = 0.04f),
-                        modifier = Modifier.padding(start = 60.dp)
+            if (entries.isNotEmpty()) {
+                entries.forEachIndexed { index, entry ->
+                    FoodEntryRow(
+                        entry = entry,
+                        onDelete = { onDelete(entry) }
+                    )
+                    if (index < entries.lastIndex) {
+                        Divider(
+                            color = AppColors.onSurface.copy(alpha = 0.04f),
+                            modifier = Modifier.padding(start = 60.dp)
+                        )
+                    }
+                }
+            } else {
+                // Empty state row — invites action without scolding the user.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onAddFood() }
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .semantics { contentDescription = "No ${mealType.displayName.lowercase()} logged. Tap to add food." },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddCircleOutline,
+                        contentDescription = null,
+                        tint = accent.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Add food to ${mealType.displayName.lowercase()}",
+                        fontSize = 13.sp,
+                        color = AppColors.onSurface.copy(alpha = 0.55f)
                     )
                 }
             }

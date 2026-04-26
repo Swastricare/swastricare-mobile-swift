@@ -27,6 +27,7 @@ import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.theme.AppColors
+import kotlinx.coroutines.delay
 
 // ─────────────────────────────────────
 // MARK: - FoodSearchScreen
@@ -47,8 +48,18 @@ fun FoodSearchScreen(
     var selectedFoodForQuantity by remember { mutableStateOf<FoodItem?>(null) }
     val mealType = remember { MealType.fromDb(mealTypeDb) }
 
-    val filteredFoods = remember(searchText, selectedCategory, uiState.foodItemsCache) {
-        var foods = if (searchText.isNotBlank()) vm.searchFoods(searchText) else uiState.foodItemsCache
+    // Debounce: wait 250ms after the last keystroke before re-running the
+    // (potentially expensive) fuzzy-scoring search across the food cache.
+    // The TextField stays responsive because `searchText` updates immediately;
+    // only `debouncedQuery` (which the search reads) lags.
+    var debouncedQuery by remember { mutableStateOf("") }
+    LaunchedEffect(searchText) {
+        delay(250)
+        debouncedQuery = searchText
+    }
+
+    val filteredFoods = remember(debouncedQuery, selectedCategory, uiState.foodItemsCache) {
+        var foods = if (debouncedQuery.isNotBlank()) vm.searchFoods(debouncedQuery) else uiState.foodItemsCache
         selectedCategory?.let { cat -> foods = foods.filter { it.category == cat.dbValue } }
         foods
     }

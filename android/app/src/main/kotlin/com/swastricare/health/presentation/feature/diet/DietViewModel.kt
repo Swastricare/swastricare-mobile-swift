@@ -20,10 +20,13 @@ import com.swastricare.health.domain.usecase.diet.SearchFoodUseCase
 import com.swastricare.health.domain.usecase.diet.UpdateDietGoalsUseCase
 import com.swastricare.health.domain.repository.DietRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -47,6 +50,9 @@ class DietViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(DietUiState(isLoading = true))
     val uiState: StateFlow<DietUiState> = _uiState.asStateFlow()
+
+    /** Pending finalize-delete job; cancellation = the user undid before 5s expired. */
+    private var undoJob: Job? = null
 
     init {
         loadData()
@@ -75,6 +81,7 @@ class DietViewModel @Inject constructor(
                 event.fatG
             )
             is DietUiEvent.DeleteEntry -> deleteEntry(event.entry)
+            is DietUiEvent.UndoDelete -> undoDelete()
             is DietUiEvent.UpdateGoals -> updateGoals(event.goals)
             is DietUiEvent.ToggleFavorite -> toggleFavorite(event.foodId)
             is DietUiEvent.SearchFood -> searchFood(event.query)
@@ -229,21 +236,101 @@ class DietViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Optimistic delete with 5-second undo window (matches iOS DietViewModel.deleteLog).
+     *
+     * Flow:
+     *   1. If a different entry is already in its undo window, finalize it first
+     *      (cancel its timer and commit the cloud delete) so we never have two
+     *      entries pending undo simultaneously.
+     *   2. Stash the entry, remove from the visible list, and refresh nutrition.
+     *      The user sees an immediate change.
+     *   3. Start a 5s timer that finalizes the cloud delete on expiry.
+     *   4. If `undoDelete()` runs before the timer fires, the entry is restored
+     *      via repository.addFoodEntry() (preserves original UUID + loggedAt).
+     */
     private fun deleteEntry(entry: com.swastricare.health.domain.model.FoodEntry) {
-        viewModelScope.launch {
-            val result = deleteFoodEntryUseCase(
-                DeleteFoodEntryUseCase.Params(entry.id)
-            )
+        // (1) If there's an active undo for a *different* entry, finalize it now.
+        val active = _uiState.value.recentlyDeletedEntry
+        if (active != null && active.id != entry.id) {
+            finalizePreviousDelete(active.id)
+        }
 
+        // Cancel any leftover timer for the same entry (rapid re-delete).
+        undoJob?.cancel()
+
+        // (2) Optimistic UI update: remove from list, stash for undo.
+        val remaining = _uiState.value.foodEntries.filter { it.id != entry.id }
+        _uiState.value = _uiState.value.copy(
+            foodEntries = remaining,
+            recentlyDeletedEntry = entry,
+            // Trigger ID changes per delete so the UI re-presents the snackbar
+            undoSnackbarTriggerId = UUID.randomUUID().toString()
+        )
+
+        viewModelScope.launch {
+            refreshNutritionSummary()
+        }
+
+        // (3) Schedule cloud finalize after 5s.
+        undoJob = viewModelScope.launch {
+            delay(5_000)
+            // Only finalize if THIS entry is still the active undo.
+            if (_uiState.value.recentlyDeletedEntry?.id == entry.id) {
+                val result = deleteFoodEntryUseCase(DeleteFoodEntryUseCase.Params(entry.id))
+                when (result) {
+                    is ResultWrapper.Success -> {
+                        // Clear stash; UI already reflects the deletion.
+                        _uiState.value = _uiState.value.copy(
+                            recentlyDeletedEntry = null
+                        )
+                    }
+                    is ResultWrapper.Error -> {
+                        // Surface the failure but keep the entry stashed so user can still undo.
+                        _uiState.value = _uiState.value.copy(
+                            error = result.exception.getUserMessage()
+                        )
+                    }
+                    is ResultWrapper.Loading -> { /* No-op */ }
+                }
+            }
+        }
+    }
+
+    /** Restore the most recently deleted entry. Public so the snackbar action can call it. */
+    fun undoDelete() {
+        val entry = _uiState.value.recentlyDeletedEntry ?: return
+
+        // Cancel the pending finalize.
+        undoJob?.cancel()
+        undoJob = null
+
+        viewModelScope.launch {
+            val result = repository.addFoodEntry(entry)
             when (result) {
-                is ResultWrapper.Success -> refreshLocalData()
+                is ResultWrapper.Success -> {
+                    refreshLocalData()
+                    _uiState.value = _uiState.value.copy(recentlyDeletedEntry = null)
+                }
                 is ResultWrapper.Error -> {
                     _uiState.value = _uiState.value.copy(
-                        error = result.exception.getUserMessage()
+                        error = result.exception.getUserMessage(),
+                        recentlyDeletedEntry = null
                     )
                 }
                 is ResultWrapper.Loading -> { /* No-op */ }
             }
+        }
+    }
+
+    /** Force-commit a stale delete (e.g. when a new delete arrives before the previous timer expired). */
+    private fun finalizePreviousDelete(entryId: String) {
+        undoJob?.cancel()
+        undoJob = null
+        viewModelScope.launch {
+            // Best-effort cloud delete; if it fails, the silent-error logging in
+            // DietRepositoryImpl picks it up and the next syncEntries() will retry.
+            deleteFoodEntryUseCase(DeleteFoodEntryUseCase.Params(entryId))
         }
     }
 

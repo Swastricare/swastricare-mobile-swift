@@ -35,6 +35,9 @@ struct DietView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
+                        // Sync status banner — surfaces silent failures
+                        syncStatusBanner
+
                         // Calendar Strip
                         calendarStrip
                             .opacity(calendarAppeared ? 1 : 0)
@@ -326,6 +329,117 @@ struct DietView: View {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.75).delay(0.55)) {
             aiButtonAppeared = true
         }
+    }
+
+    // MARK: - Sync Status Banner
+
+    @ViewBuilder
+    private var syncStatusBanner: some View {
+        switch viewModel.syncStatus {
+        case .synced:
+            // Show errorMessage if present and sync is "synced" (e.g. fetch failed but cached works)
+            if let message = viewModel.errorMessage {
+                bannerRow(
+                    icon: "exclamationmark.triangle.fill",
+                    color: AppColors.accentRed,
+                    title: "Couldn't update",
+                    detail: message,
+                    actionLabel: "Retry"
+                ) {
+                    Task { await viewModel.retrySync() }
+                }
+            } else {
+                EmptyView()
+            }
+
+        case .syncing:
+            bannerRow(
+                icon: "arrow.triangle.2.circlepath",
+                color: AppColors.accentBlue,
+                title: "Syncing your meals…",
+                detail: nil,
+                actionLabel: nil,
+                action: nil,
+                spinning: true
+            )
+
+        case .pending(let count):
+            bannerRow(
+                icon: "icloud.slash",
+                color: AppColors.accentOrange,
+                title: count == 1 ? "1 meal pending sync" : "\(count) meals pending sync",
+                detail: "We'll retry when you're online.",
+                actionLabel: "Retry now"
+            ) {
+                Task { await viewModel.retrySync() }
+            }
+
+        case .error(let message):
+            bannerRow(
+                icon: "exclamationmark.triangle.fill",
+                color: AppColors.accentRed,
+                title: "Sync failed",
+                detail: message,
+                actionLabel: "Retry"
+            ) {
+                Task { await viewModel.retrySync() }
+            }
+        }
+    }
+
+    private func bannerRow(
+        icon: String,
+        color: Color,
+        title: String,
+        detail: String?,
+        actionLabel: String?,
+        action: (() -> Void)? = nil,
+        spinning: Bool = false
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(color)
+                .rotationEffect(spinning ? .degrees(360) : .zero)
+                .animation(spinning ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: spinning)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
+                if let detail = detail {
+                    Text(detail)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let actionLabel = actionLabel, let action = action {
+                Button(action: action) {
+                    Text(actionLabel)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(color)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(color.opacity(0.1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.25), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title). \(detail ?? "")")
     }
 
     // MARK: - Calendar Strip

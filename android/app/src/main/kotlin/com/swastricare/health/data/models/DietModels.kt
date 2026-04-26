@@ -278,3 +278,95 @@ data class SnapFoodResult(
         category = category
     )
 }
+
+// ─────────────────────────────────────
+// MARK: - Goal Type
+// ─────────────────────────────────────
+
+enum class GoalType(val dbValue: String, val displayName: String) {
+    WEIGHT_LOSS("weight_loss", "Lose weight"),
+    MAINTENANCE("maintenance", "Maintain weight"),
+    WEIGHT_GAIN("weight_gain", "Gain weight"),
+    MUSCLE_BUILDING("muscle_building", "Build muscle");
+
+    companion object {
+        fun fromDb(value: String): GoalType =
+            entries.firstOrNull { it.dbValue == value } ?: MAINTENANCE
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Calorie Calculator
+// ─────────────────────────────────────
+
+/**
+ * Mifflin-St Jeor BMR + TDEE + macro calculator.
+ * Ports iOS DietModels.swift:782-857 — same equations, same multipliers.
+ */
+object CalorieCalculator {
+
+    /** Mifflin-St Jeor BMR. Gender accepts "male"/"female"; anything else falls to female (more conservative). */
+    fun calculateBMR(weightKg: Double, heightCm: Int, age: Int, gender: String): Int {
+        val weight = 10 * weightKg
+        val height = 6.25 * heightCm
+        val ageCalc = 5 * age
+        val bmr = if (gender.lowercase() == "male") {
+            weight + height - ageCalc + 5
+        } else {
+            weight + height - ageCalc - 161
+        }
+        return bmr.toInt()
+    }
+
+    /** TDEE = BMR × activity multiplier (uses ActivityLevel.multiplier from HydrationModels). */
+    fun calculateTDEE(bmr: Int, activityLevel: ActivityLevel): Int =
+        (bmr * activityLevel.multiplier).toInt()
+
+    /** Goal-adjusted daily calorie target (deficit/surplus per goal). */
+    fun calculateCalorieGoal(tdee: Int, goalType: GoalType): Int = when (goalType) {
+        GoalType.WEIGHT_LOSS -> tdee - 500       // ~0.5 kg/wk loss
+        GoalType.WEIGHT_GAIN -> tdee + 500       // ~0.5 kg/wk gain
+        GoalType.MAINTENANCE -> tdee
+        GoalType.MUSCLE_BUILDING -> tdee + 300   // small surplus
+    }
+
+    /** Macro target percentages (P/C/F) per goal. Returns Triple(proteinPct, carbsPct, fatPct). */
+    fun macroPercentsFor(goalType: GoalType): Triple<Int, Int, Int> = when (goalType) {
+        GoalType.WEIGHT_LOSS -> Triple(30, 40, 30)
+        GoalType.WEIGHT_GAIN -> Triple(25, 50, 25)
+        GoalType.MAINTENANCE -> Triple(25, 50, 25)
+        GoalType.MUSCLE_BUILDING -> Triple(35, 45, 20)
+    }
+
+    /** Convenience: full pipeline weight/height/age/gender/activity/goal → DietGoals. */
+    fun computeGoals(
+        weightKg: Double,
+        heightCm: Int,
+        age: Int,
+        gender: String,
+        activityLevel: ActivityLevel,
+        goalType: GoalType
+    ): DietGoals {
+        val bmr = calculateBMR(weightKg, heightCm, age, gender)
+        val tdee = calculateTDEE(bmr, activityLevel)
+        val cal = calculateCalorieGoal(tdee, goalType)
+        val (p, c, f) = macroPercentsFor(goalType)
+        return DietGoals(
+            dailyCalories = cal,
+            proteinPercent = p,
+            carbsPercent = c,
+            fatPercent = f
+        )
+    }
+
+    /** Compute age in years from a YYYY-MM-DD birth-date string. Returns null if unparseable. */
+    fun ageFromDateOfBirth(dob: String?): Int? {
+        if (dob.isNullOrBlank()) return null
+        return try {
+            val birth = java.time.LocalDate.parse(dob.take(10))
+            java.time.Period.between(birth, java.time.LocalDate.now()).years
+        } catch (_: Exception) {
+            null
+        }
+    }
+}

@@ -256,10 +256,18 @@ final class DietService: DietServiceProtocol {
 
     // MARK: - Search (Fuzzy + Ranked + Frequency Boost)
 
+    /// Normalize a string for fuzzy search: Devanagari → Latin, strip diacritics, lowercase.
+    /// Lets "panīr" match "paneer", "पनीर" match "Paneer", "ḍāl" match "Dal".
+    private func normalizeForSearch(_ s: String) -> String {
+        let latin = s.applyingTransform(.toLatin, reverse: false) ?? s
+        let stripped = latin.applyingTransform(.stripDiacritics, reverse: false) ?? latin
+        return stripped.lowercased()
+    }
+
     func searchFoods(query: String, in foodItems: [FoodItem]) -> [FoodItem] {
         guard !query.isEmpty else { return foodItems }
 
-        let lowercasedQuery = query.lowercased()
+        let lowercasedQuery = normalizeForSearch(query)
         let queryTokens = lowercasedQuery.split(separator: " ").map(String.init)
 
         // Get frequency data for boosting (done once per search)
@@ -269,9 +277,9 @@ final class DietService: DietServiceProtocol {
         var scored: [(food: FoodItem, score: Int)] = []
 
         for food in foodItems {
-            let name = food.name.lowercased()
-            let brand = food.brand?.lowercased() ?? ""
-            let category = food.category.displayName.lowercased()
+            let name = normalizeForSearch(food.name)
+            let brand = food.brand.map(normalizeForSearch) ?? ""
+            let category = normalizeForSearch(food.category.displayName)
             var score = 0
 
             // Exact name match (highest priority)
