@@ -123,6 +123,30 @@ object AppColors {
         get() = if (isSystemInDarkTheme()) Color.Black else Color.White
 }
 
+// Login / Auth Brand Palette — mirrors iOS DesignSystem.swift loginXxx tokens
+object LoginColor {
+    // Primary teal — wordmark "Care", active links, focus borders
+    val Teal = Color(0xFF22A699)
+    // Dark teal — bottom stop of Sign-In button gradient
+    val TealDark = Color(0xFF1A857A)
+    // Deep teal — outer shadow tint and pressed state
+    val TealDeep = Color(0xFF0F5A52)
+    // Bright teal — top stop of Sign-In button gradient
+    val TealBright = Color(0xFF2EBFAE)
+    // Mint wash light — top of background gradient
+    val MintLight = Color(0xFFE8F6F2)
+    // Mint wash — bottom of background gradient
+    val Mint = Color(0xFFD9F0EB)
+    // Slate — primary text (near-black ink)
+    val Slate = Color(0xFF0F172A)
+    // Slate muted — body / secondary text
+    val SlateMuted = Color(0xFF64748B)
+    // Slate light — placeholders, idle icons
+    val SlateLight = Color(0xFF94A3B8)
+    // Field border — 1.5dp stroke around idle inputs
+    val Border = Color(0xFFE2E8F0)
+}
+
 // Premium Colors (Ported from iOS)
 object PremiumColor {
     val RoyalBlueStart = Color(0xFF2E3192)

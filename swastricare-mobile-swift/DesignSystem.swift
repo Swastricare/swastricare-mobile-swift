@@ -47,7 +47,29 @@ struct AppColors {
     
     /// Cadence/activity purple - used for cadence, cycle tracker
     static let accentPurple = Color.purple
-    
+
+    // MARK: - Login / Auth Brand Palette
+    /// Primary teal — wordmark "Care" + active links + focus borders on auth screens
+    static let loginTeal = Color(hex: "22A699")
+    /// Dark teal — bottom stop of Sign-In button gradient
+    static let loginTealDark = Color(hex: "1A857A")
+    /// Deep teal — outer shadow tint and pressed state
+    static let loginTealDeep = Color(hex: "0F5A52")
+    /// Bright teal — top stop of Sign-In button gradient
+    static let loginTealBright = Color(hex: "2EBFAE")
+    /// Mint wash light — top of background gradient
+    static let loginMintLight = Color(hex: "E8F6F2")
+    /// Mint wash — bottom of background gradient
+    static let loginMint = Color(hex: "D9F0EB")
+    /// Auth slate — primary text (near-black ink)
+    static let loginSlate = Color(hex: "0F172A")
+    /// Auth slate muted — body / secondary text
+    static let loginSlateMuted = Color(hex: "64748B")
+    /// Auth slate light — placeholders, idle icons
+    static let loginSlateLight = Color(hex: "94A3B8")
+    /// Auth field border — 1.5px stroke around idle inputs
+    static let loginBorder = Color(hex: "E2E8F0")
+
     // MARK: - Semantic Colors (by feature)
     static let steps = Color.green
     static let distance = accentBlue

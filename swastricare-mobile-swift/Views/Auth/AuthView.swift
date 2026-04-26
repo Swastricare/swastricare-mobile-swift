@@ -11,190 +11,26 @@ struct LoginView: View {
     @StateObject private var viewModel = DependencyContainer.shared.authViewModel
     @State private var showSignUp = false
     @State private var showResetPassword = false
-    @State private var logoScale: CGFloat = 0.6
-    @State private var logoOpacity: Double = 0
-    @State private var headerOpacity: Double = 0
-    @State private var headerOffset: CGFloat = 20
-    @State private var formOpacity: Double = 0
-    @State private var formOffset: CGFloat = 25
-    @State private var footerOpacity: Double = 0
-    @State private var glowBreathing: Bool = false
-    @Environment(\.colorScheme) var colorScheme
     @FocusState private var focusedField: Field?
 
-    enum Field {
-        case email, password
-    }
+    enum Field { case email, password }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Rich layered background
-                AuthGradientBackground()
+                LinearGradient(
+                    colors: [AppColors.loginMintLight, AppColors.loginMint],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
-                GeometryReader { geo in
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
-
-                            // MARK: — Logo hero
-                            ZStack {
-                                // Breathing glow behind logo
-                                Circle()
-                                    .fill(
-                                        RadialGradient(
-                                            colors: [
-                                                Color(hex: "11998e").opacity(0.35),
-                                                Color(hex: "11998e").opacity(0.0)
-                                            ],
-                                            center: .center,
-                                            startRadius: 20,
-                                            endRadius: 80
-                                        )
-                                    )
-                                    .frame(width: 160, height: 160)
-                                    .scaleEffect(glowBreathing ? 1.15 : 0.85)
-
-                                Image("AppLogo")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 88, height: 88)
-                                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                                    .shadow(color: Color(hex: "11998e").opacity(0.4), radius: 20, y: 8)
-                            }
-                            .scaleEffect(logoScale)
-                            .opacity(logoOpacity)
-                            .padding(.top, 44)
-
-                            // MARK: — Header text
-                            VStack(spacing: 6) {
-                                Text("SwasthiCare")
-                                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-
-                                Text("Your family's health companion")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.secondary)
-                            }
-                            .opacity(headerOpacity)
-                            .offset(y: headerOffset)
-                            .padding(.top, 16)
-                            .padding(.bottom, 40)
-
-                            // MARK: — Form card
-                            VStack(spacing: 18) {
-                                // Input fields
-                                VStack(spacing: 14) {
-                                    AuthTextField(
-                                        title: "Email",
-                                        icon: "envelope.fill",
-                                        text: $viewModel.formState.email,
-                                        keyboardType: .emailAddress
-                                    )
-                                    .focused($focusedField, equals: .email)
-                                    .submitLabel(.next)
-                                    .onSubmit { focusedField = .password }
-
-                                    AuthSecureField(
-                                        title: "Password",
-                                        icon: "lock.fill",
-                                        text: $viewModel.formState.password
-                                    )
-                                    .focused($focusedField, equals: .password)
-                                    .submitLabel(.go)
-                                    .onSubmit {
-                                        if viewModel.formState.isValidForLogin {
-                                            Task { await viewModel.signIn() }
-                                        }
-                                    }
-                                }
-
-                                // Forgot password
-                                HStack {
-                                    Spacer()
-                                    Button(action: { showResetPassword = true }) {
-                                        Text("Forgot Password?")
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundColor(Color(hex: "11998e"))
-                                    }
-                                }
-
-                                // Error
-                                if let error = viewModel.errorMessage {
-                                    AuthAlertBanner(message: error, isSuccess: false)
-                                }
-
-                                // Sign In button
-                                Button(action: {
-                                    Task { await viewModel.signIn() }
-                                }) {
-                                    if viewModel.isLoading {
-                                        ProgressView()
-                                            .tint(.white)
-                                    } else {
-                                        Text("Sign In")
-                                    }
-                                }
-                                .buttonStyle(AuthPrimaryButtonStyle(isEnabled: viewModel.formState.isValidForLogin))
-                                .disabled(viewModel.isLoading || !viewModel.formState.isValidForLogin)
-
-                                // Divider
-                                HStack(spacing: 16) {
-                                    VStack { Divider() }
-                                    Text("or")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    VStack { Divider() }
-                                }
-                                .padding(.vertical, 2)
-
-                                // Social row
-                                HStack(spacing: 12) {
-                                    AuthSocialButton(icon: "g.circle.fill", title: "Google") {
-                                        Task { await viewModel.signInWithGoogle() }
-                                    }
-                                    AuthSocialButton(icon: "apple.logo", title: "Apple") {
-                                        Task { await viewModel.signInWithApple() }
-                                    }
-                                }
-                            }
-                            .padding(20)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25), lineWidth: 0.5)
-                            )
-                            .padding(.horizontal, 20)
-                            .opacity(formOpacity)
-                            .offset(y: formOffset)
-
-                            Spacer(minLength: 40)
-
-                            // MARK: — Footer
-                            Button(action: { showSignUp = true }) {
-                                HStack(spacing: 4) {
-                                    Text("New here?")
-                                        .foregroundColor(.secondary)
-                                    Text("Create Account")
-                                        .fontWeight(.bold)
-                                        .foregroundColor(Color(hex: "11998e"))
-                                }
-                                .font(.system(size: 14))
-                            }
-                            .opacity(footerOpacity)
-                            .padding(.bottom, 28)
-                        }
-                        .frame(minHeight: geo.size.height)
-                    }
+                VStack(spacing: 0) {
+                    heroImage
+                    formCard
+                    trustStrip
                 }
             }
-            .onAppear { runEntranceAnimation() }
             .navigationDestination(isPresented: $showSignUp) {
                 SignUpView()
             }
@@ -204,29 +40,437 @@ struct LoginView: View {
         }
     }
 
-    private func runEntranceAnimation() {
-        // 1. Logo pops in
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.65).delay(0.1)) {
-            logoScale = 1.0
-            logoOpacity = 1
+    private var heroImage: some View {
+        // hero.png includes wordmark + 3D family/illustrations baked in.
+        // Bleeds slightly past the phone width (108%) and fades into the form card.
+        ZStack(alignment: .bottom) {
+            Image("LoginHero")
+                .resizable()
+                .scaledToFit()
+                .scaleEffect(1.08)
+                .padding(.top, 16)
+
+            LinearGradient(
+                colors: [
+                    AppColors.loginMintLight.opacity(0),
+                    AppColors.loginMint,
+                    Color(UIColor.systemBackground)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 70)
         }
-        // 2. Glow breathes
-        withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true).delay(0.5)) {
-            glowBreathing = true
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, -28)
+        .clipped()
+    }
+
+    private var formCard: some View {
+        VStack(spacing: 12) {
+            VStack(spacing: 3) {
+                Text("Welcome back")
+                    .font(.system(size: 24, weight: .heavy))
+                    .tracking(-0.5)
+                    .foregroundColor(AppColors.loginSlate)
+                Text("Sign in to manage your family health")
+                    .font(.system(size: 13))
+                    .foregroundColor(AppColors.loginSlateMuted)
+            }
+            .padding(.top, 4)
+
+            LoginField(
+                title: "Email Address",
+                icon: "envelope",
+                placeholder: "Enter your email",
+                text: $viewModel.formState.email,
+                keyboardType: .emailAddress
+            )
+            .focused($focusedField, equals: .email)
+            .submitLabel(.next)
+            .onSubmit { focusedField = .password }
+
+            LoginSecureField(
+                title: "Password",
+                placeholder: "Enter your password",
+                text: $viewModel.formState.password
+            )
+            .focused($focusedField, equals: .password)
+            .submitLabel(.go)
+            .onSubmit {
+                if viewModel.formState.isValidForLogin {
+                    Task { await viewModel.signIn() }
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button { showResetPassword = true } label: {
+                    Text("Forgot password?")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppColors.loginTeal)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, -4)
+
+            if let error = viewModel.errorMessage {
+                AuthAlertBanner(message: error, isSuccess: false)
+            }
+
+            LoginPrimaryButton(
+                title: "Sign In",
+                isLoading: viewModel.isLoading,
+                isEnabled: viewModel.formState.isValidForLogin
+            ) {
+                Task { await viewModel.signIn() }
+            }
+            .padding(.top, 2)
+
+            HStack(spacing: 12) {
+                Rectangle().fill(AppColors.loginBorder).frame(height: 1)
+                Text("or continue with")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(AppColors.loginSlateMuted)
+                    .fixedSize()
+                Rectangle().fill(AppColors.loginBorder).frame(height: 1)
+            }
+            .padding(.vertical, 2)
+
+            HStack(spacing: 10) {
+                LoginSocialButton(provider: .google) {
+                    Task { await viewModel.signInWithGoogle() }
+                }
+                LoginSocialButton(provider: .apple) {
+                    Task { await viewModel.signInWithApple() }
+                }
+            }
+
+            Button { showSignUp = true } label: {
+                HStack(spacing: 4) {
+                    Text("Don't have an account?")
+                        .foregroundColor(AppColors.loginSlateMuted)
+                    Text("Create Account")
+                        .fontWeight(.bold)
+                        .foregroundColor(AppColors.loginTeal)
+                }
+                .font(.system(size: 13))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
         }
-        // 3. Header slides up
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3)) {
-            headerOpacity = 1
-            headerOffset = 0
+        .padding(EdgeInsets(top: 22, leading: 24, bottom: 16, trailing: 24))
+        .frame(maxWidth: .infinity)
+        .background(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 28,
+                topTrailingRadius: 28,
+                style: .continuous
+            )
+            .fill(Color(UIColor.systemBackground))
+            .shadow(color: AppColors.loginSlate.opacity(0.06), radius: 32, y: -12)
+        )
+    }
+
+    private var trustStrip: some View {
+        HStack(spacing: 0) {
+            trustItem(icon: "checkmark.shield.fill", title: "ABDM Ready", color: AppColors.loginTeal)
+            Spacer()
+            trustDot
+            Spacer()
+            trustItem(icon: "lock.fill", title: "Secure Records", color: AppColors.loginSlate)
+            Spacer()
+            trustDot
+            Spacer()
+            trustItem(icon: "person.2.fill", title: "Family Care", color: AppColors.loginTeal)
         }
-        // 4. Form card slides up
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.5)) {
-            formOpacity = 1
-            formOffset = 0
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 22)
+        .frame(maxWidth: .infinity)
+        .background(Color(UIColor.systemBackground))
+    }
+
+    private func trustItem(icon: String, title: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(color)
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(AppColors.loginSlate)
+                .fixedSize()
         }
-        // 5. Footer fades
-        withAnimation(.easeOut(duration: 0.4).delay(0.8)) {
-            footerOpacity = 1
+    }
+
+    private var trustDot: some View {
+        Circle()
+            .fill(AppColors.loginSlateLight)
+            .frame(width: 3, height: 3)
+    }
+}
+
+// MARK: - Login Field
+
+private struct LoginField: View {
+    let title: String
+    let icon: String
+    let placeholder: String
+    @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundColor(AppColors.loginSlate)
+
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .foregroundColor(isFocused ? AppColors.loginTeal : AppColors.loginSlateLight)
+                    .font(.system(size: 16))
+
+                TextField(placeholder, text: $text)
+                    .font(.system(size: 14))
+                    .foregroundColor(AppColors.loginSlate)
+                    .keyboardType(keyboardType)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($isFocused)
+                    .tint(AppColors.loginTeal)
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 46)
+            .background(Color(UIColor.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .stroke(
+                        isFocused ? AppColors.loginTeal : AppColors.loginBorder,
+                        lineWidth: 1.5
+                    )
+            )
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(AppColors.loginTeal.opacity(isFocused ? 0.12 : 0))
+                    .blur(radius: isFocused ? 4 : 0)
+            )
+            .animation(.easeOut(duration: 0.18), value: isFocused)
+        }
+    }
+}
+
+private struct LoginSecureField: View {
+    let title: String
+    let placeholder: String
+    @Binding var text: String
+    @State private var isSecure = true
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundColor(AppColors.loginSlate)
+
+            HStack(spacing: 10) {
+                Image(systemName: "lock")
+                    .foregroundColor(isFocused ? AppColors.loginTeal : AppColors.loginSlateLight)
+                    .font(.system(size: 16))
+
+                Group {
+                    if isSecure {
+                        SecureField(placeholder, text: $text)
+                    } else {
+                        TextField(placeholder, text: $text)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                }
+                .font(.system(size: 14))
+                .foregroundColor(AppColors.loginSlate)
+                .focused($isFocused)
+                .tint(AppColors.loginTeal)
+
+                Button { isSecure.toggle() } label: {
+                    Image(systemName: isSecure ? "eye" : "eye.slash")
+                        .foregroundColor(AppColors.loginSlateLight)
+                        .font(.system(size: 16))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 46)
+            .background(Color(UIColor.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .stroke(
+                        isFocused ? AppColors.loginTeal : AppColors.loginBorder,
+                        lineWidth: 1.5
+                    )
+            )
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(AppColors.loginTeal.opacity(isFocused ? 0.12 : 0))
+                    .blur(radius: isFocused ? 4 : 0)
+            )
+            .animation(.easeOut(duration: 0.18), value: isFocused)
+        }
+    }
+}
+
+// MARK: - Login Primary Button (vertical 3-stop gradient + arrow medallion)
+
+private struct LoginPrimaryButton: View {
+    let title: String
+    let isLoading: Bool
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                if isLoading {
+                    ProgressView().tint(.white)
+                } else {
+                    Text(title)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                }
+
+                HStack {
+                    Spacer()
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.18))
+                            .frame(width: 28, height: 28)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.trailing, 18)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                LinearGradient(
+                    stops: [
+                        .init(color: AppColors.loginTealBright, location: 0.0),
+                        .init(color: AppColors.loginTeal, location: 0.5),
+                        .init(color: AppColors.loginTealDark, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                    .blendMode(.plusLighter)
+                    .mask(
+                        VStack(spacing: 0) {
+                            Rectangle().frame(height: 1)
+                            Spacer()
+                        }
+                    )
+            )
+            .shadow(color: AppColors.loginTeal.opacity(0.33), radius: 12, x: 0, y: 10)
+            .opacity(isEnabled ? 1 : 0.55)
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .disabled(!isEnabled || isLoading)
+    }
+}
+
+// MARK: - Login Social Button (with multi-color Google G)
+
+private struct LoginSocialButton: View {
+    enum Provider {
+        case google, apple
+        var label: String {
+            switch self {
+            case .google: return "Google"
+            case .apple: return "Apple"
+            }
+        }
+    }
+
+    let provider: Provider
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                providerIcon
+                Text(provider.label)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.loginSlate)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 46)
+            .background(Color(UIColor.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(AppColors.loginBorder, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+
+    @ViewBuilder
+    private var providerIcon: some View {
+        switch provider {
+        case .google:
+            GoogleGMark()
+                .frame(width: 18, height: 18)
+        case .apple:
+            Image(systemName: "applelogo")
+                .font(.system(size: 18))
+                .foregroundColor(AppColors.loginSlate)
+        }
+    }
+}
+
+/// Multi-color Google "G" mark — 4 colored arcs around a transparent center.
+/// Approximation of the official Google logo using SwiftUI shapes (no asset required).
+private struct GoogleGMark: View {
+    var body: some View {
+        Canvas { ctx, size in
+            let w = size.width, h = size.height
+            let cx = w / 2, cy = h / 2
+            let outer = min(w, h) / 2
+            let inner = outer * 0.55
+
+            func arc(start: Double, end: Double, color: Color) {
+                var path = Path()
+                path.addArc(center: CGPoint(x: cx, y: cy),
+                           radius: outer,
+                           startAngle: .degrees(start),
+                           endAngle: .degrees(end),
+                           clockwise: false)
+                path.addArc(center: CGPoint(x: cx, y: cy),
+                           radius: inner,
+                           startAngle: .degrees(end),
+                           endAngle: .degrees(start),
+                           clockwise: true)
+                path.closeSubpath()
+                ctx.fill(path, with: .color(color))
+            }
+
+            // Blue (top right), Green (bottom right), Yellow (bottom left), Red (top left)
+            arc(start: -50, end: 40, color: Color(hex: "4285F4"))
+            arc(start: 40, end: 130, color: Color(hex: "34A853"))
+            arc(start: 130, end: 220, color: Color(hex: "FBBC05"))
+            arc(start: 220, end: 310, color: Color(hex: "EA4335"))
+
+            // Horizontal bar of the G (blue extension)
+            let barRect = CGRect(x: cx, y: cy - 1.5, width: outer + 1, height: 3)
+            ctx.fill(Path(barRect), with: .color(Color(hex: "4285F4")))
         }
     }
 }
