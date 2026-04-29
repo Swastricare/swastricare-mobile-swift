@@ -26,8 +26,11 @@ data class AuthFormState(
     val email: String = "",
     val password: String = "",
     val fullName: String = "",
+    val firstName: String = "",
+    val lastName: String = "",
     val phone: String = "",
     val confirmPassword: String = "",
+    val agreedToTerms: Boolean = false,
 ) {
     val isValidEmail: Boolean
         get() = EMAIL_REGEX.matches(email)
@@ -58,7 +61,7 @@ data class AuthFormState(
         get() = isValidEmail && password.isNotEmpty()
 
     val isValidForSignUp: Boolean
-        get() = isValidEmail && isValidPassword && passwordsMatch && fullName.isNotEmpty()
+        get() = isValidEmail && isValidPassword && passwordsMatch && fullName.isNotEmpty() && agreedToTerms
 
     companion object {
         private val EMAIL_REGEX = Regex(

@@ -440,6 +440,22 @@ class AuthViewModel @Inject constructor(
         _formState.value = _formState.value.copy(confirmPassword = confirmPassword)
     }
 
+    fun updateFirstName(firstName: String) {
+        val current = _formState.value
+        val combined = listOf(firstName, current.lastName).filter { it.isNotBlank() }.joinToString(" ")
+        _formState.value = current.copy(firstName = firstName, fullName = combined)
+    }
+
+    fun updateLastName(lastName: String) {
+        val current = _formState.value
+        val combined = listOf(current.firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
+        _formState.value = current.copy(lastName = lastName, fullName = combined)
+    }
+
+    fun updateAgreedToTerms(agreed: Boolean) {
+        _formState.value = _formState.value.copy(agreedToTerms = agreed)
+    }
+
     fun clearError() {
         _errorMessage.value = null
     }

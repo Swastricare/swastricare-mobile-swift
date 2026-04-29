@@ -43,10 +43,10 @@ import com.swastricare.health.ui.theme.AppColors
  * Premium color palette matching iOS auth screens
  */
 object PremiumColors {
-    // Primary teal accent (matches iOS #11998e)
-    val Teal = Color(0xFF11998E)
-    // Secondary green accent (matches iOS #38ef7d)
-    val NeonGreen = Color(0xFF38EF7D)
+    // Primary teal accent (brand: SwasthiCare #0DBD9C)
+    val Teal = Color(0xFF0DBD9C)
+    // Secondary green accent
+    val NeonGreen = Color(0xFF00CDB5)
     // Purple orb accent
     val Purple = Color(0xFF7C3AED)
     // Pink accent
@@ -263,16 +263,14 @@ fun PremiumTextField(
     val borderColor = when {
         isError -> Color(0xFFEF4444)
         isFocused -> PremiumColors.Teal.copy(alpha = 0.6f)
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     }
-    val borderWidth = if (isFocused || isError) 1.5.dp else 0.5.dp
+    val borderWidth = if (isFocused || isError) 1.dp else 0.5.dp
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        AuthInputLabel(title = placeholder, isFocused = isFocused)
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -299,7 +297,13 @@ fun PremiumTextField(
             TextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text("") },
+                placeholder = {
+                    Text(
+                        placeholder,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -349,16 +353,14 @@ fun PremiumSecureField(
     val borderColor = when {
         isError -> Color(0xFFEF4444)
         isFocused -> PremiumColors.Teal.copy(alpha = 0.6f)
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     }
-    val borderWidth = if (isFocused || isError) 1.5.dp else 0.5.dp
+    val borderWidth = if (isFocused || isError) 1.dp else 0.5.dp
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        AuthInputLabel(title = placeholder, isFocused = isFocused)
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -385,7 +387,13 @@ fun PremiumSecureField(
             TextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text("") },
+                placeholder = {
+                    Text(
+                        placeholder,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,

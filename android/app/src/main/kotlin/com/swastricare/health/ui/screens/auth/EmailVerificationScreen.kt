@@ -3,36 +3,33 @@ package com.swastricare.health.ui.screens.auth
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.ui.components.TrackScreen
-import com.swastricare.health.ui.screens.auth.components.AuthGradientBackground
 import com.swastricare.health.ui.screens.auth.components.PremiumButton
 import com.swastricare.health.ui.screens.auth.components.PremiumButtonStyle
 import com.swastricare.health.ui.screens.auth.components.PremiumColors
@@ -56,9 +53,9 @@ fun EmailVerificationScreen(
     var showSuccess by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val isDark = isSystemInDarkTheme()
 
-    // Resend cooldown timer
+    BackHandler { onNavigateBack() }
+
     LaunchedEffect(resendCooldown) {
         if (resendCooldown > 0) {
             delay(1000)
@@ -66,7 +63,6 @@ fun EmailVerificationScreen(
         }
     }
 
-    // Handle success
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.Success) {
             showSuccess = true
@@ -75,113 +71,113 @@ fun EmailVerificationScreen(
         }
     }
 
-    // Show messages
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
-            snackbarHostState.showSnackbar(
-                message = it,
-                duration = SnackbarDuration.Short
-            )
+            snackbarHostState.showSnackbar(message = it, duration = SnackbarDuration.Short)
             viewModel.clearError()
         }
     }
 
+    val pageBg = Color.White
+
+    val brandLogoBitmap = remember {
+        runCatching {
+            val s = context.assets.open("icons/swastricare icon.png")
+            android.graphics.BitmapFactory.decodeStream(s)
+        }.getOrNull()
+    }
+    val illustrationBitmap = remember {
+        runCatching {
+            val s = context.assets.open("images/verify email.png")
+            android.graphics.BitmapFactory.decodeStream(s)
+        }.getOrNull()
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.Transparent
+        containerColor = pageBg
     ) { paddingValues ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            AuthGradientBackground()
-
+        Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Email icon with teal styling
-                Box(
-                    modifier = Modifier.size(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .blur(40.dp)
-                            .background(PremiumColors.Teal.copy(alpha = 0.25f))
-                    )
+                Spacer(modifier = Modifier.height(56.dp))
 
-                    Box(
-                        modifier = Modifier
-                            .size(88.dp)
-                            .shadow(
-                                elevation = 16.dp,
-                                shape = CircleShape,
-                                spotColor = PremiumColors.Teal.copy(alpha = 0.3f)
-                            )
-                            .background(
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        PremiumColors.Teal.copy(alpha = 0.12f),
-                                        PremiumColors.NeonGreen.copy(alpha = 0.08f)
-                                    )
-                                ),
-                                shape = CircleShape
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = PremiumColors.Teal.copy(alpha = 0.15f),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (showSuccess) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = Color(0xFF22C55E),
-                                modifier = Modifier.size(44.dp)
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.Email,
-                                contentDescription = null,
-                                tint = PremiumColors.Teal,
-                                modifier = Modifier.size(40.dp)
-                            )
-                        }
+                // Brand logo + wordmark + tagline
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (brandLogoBitmap != null) {
+                        Image(
+                            bitmap = brandLogoBitmap.asImageBitmap(),
+                            contentDescription = "SwasthiCare logo",
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(color = PremiumColors.Teal, fontWeight = FontWeight.Bold)) {
+                                append("Swasthi")
+                            }
+                            withStyle(SpanStyle(color = Color(0xFF0A8F7A), fontWeight = FontWeight.Bold)) {
+                                append("Care")
+                            }
+                        },
+                        fontSize = 22.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    "Your Family, Our Care",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF6B7280)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Illustration
+                if (illustrationBitmap != null) {
+                    Image(
+                        bitmap = illustrationBitmap.asImageBitmap(),
+                        contentDescription = "Verify email illustration",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .size(200.dp)
+                            .padding(8.dp)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(200.dp))
                 }
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
+                // Title
                 Text(
                     if (showSuccess) "Email Verified!" else "Check Your Email",
-                    fontSize = 28.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = Color(0xFF0F172A),
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 if (showSuccess) {
                     Text(
                         "Redirecting you to the app...",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color(0xFF6B7280),
                         textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.height(24.dp))
                 } else {
                     Text(
                         "We've sent a verification link to",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color(0xFF6B7280),
                         textAlign = TextAlign.Center
                     )
 
@@ -189,9 +185,7 @@ fun EmailVerificationScreen(
 
                     Text(
                         verificationEmail,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = PremiumColors.Teal,
                         textAlign = TextAlign.Center
                     )
@@ -199,71 +193,86 @@ fun EmailVerificationScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        "Tap the link in the email to verify\nyour account and continue.",
+                        "Tap the link in the email to verify your account and continue.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color(0xFF6B7280),
                         textAlign = TextAlign.Center,
-                        lineHeight = 20.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(36.dp))
-
-                    // Open Email App button
-                    PremiumButton(
-                        text = "Open Email App",
-                        onClick = {
-                            val emailIntent = Intent(Intent.ACTION_MAIN).apply {
-                                addCategory(Intent.CATEGORY_APP_EMAIL)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            val resolveInfo = context.packageManager.queryIntentActivities(
-                                emailIntent,
-                                PackageManager.MATCH_DEFAULT_ONLY
-                            )
-                            if (resolveInfo.isNotEmpty()) {
-                                context.startActivity(emailIntent)
-                            } else {
-                                try {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com"))
-                                    )
-                                } catch (_: Exception) { }
-                            }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Resend button
-                    PremiumButton(
-                        text = if (resendCooldown > 0) "Resend in ${resendCooldown}s" else "Resend Verification Email",
-                        onClick = {
-                            viewModel.resendVerificationEmail()
-                            resendCooldown = 60
-                        },
-                        style = PremiumButtonStyle.SECONDARY,
-                        enabled = resendCooldown == 0 && !isLoading,
-                        isLoading = isLoading
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(horizontal = 32.dp)
                     )
 
                     Spacer(modifier = Modifier.height(28.dp))
 
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        PremiumButton(
+                            text = "Open Email App",
+                            onClick = {
+                                val emailIntent = Intent(Intent.ACTION_MAIN).apply {
+                                    addCategory(Intent.CATEGORY_APP_EMAIL)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                val resolveInfo = context.packageManager.queryIntentActivities(
+                                    emailIntent,
+                                    PackageManager.MATCH_DEFAULT_ONLY
+                                )
+                                if (resolveInfo.isNotEmpty()) {
+                                    context.startActivity(emailIntent)
+                                } else {
+                                    try {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com"))
+                                        )
+                                    } catch (_: Exception) { }
+                                }
+                            }
+                        )
+
+                        PremiumButton(
+                            text = if (resendCooldown > 0) "Resend in ${resendCooldown}s" else "Resend Verification Email",
+                            onClick = {
+                                viewModel.resendVerificationEmail()
+                                resendCooldown = 60
+                            },
+                            style = PremiumButtonStyle.SECONDARY,
+                            enabled = resendCooldown == 0 && !isLoading,
+                            isLoading = isLoading
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     Text(
                         "Check your spam folder if you don't see the email",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        color = Color(0xFF6B7280).copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    Text(
-                        "Use a different email",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PremiumColors.Teal,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { onNavigateBack() }
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "Wrong email? ",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF6B7280)
+                        )
+                        Text(
+                            "Use a different email",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = PremiumColors.Teal,
+                            modifier = Modifier.clickable { onNavigateBack() }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
 
@@ -277,19 +286,18 @@ fun EmailVerificationScreen(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(
-                            color = if (isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.035f),
+                            color = Color.Black.copy(alpha = 0.04f),
                             shape = CircleShape
                         )
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        tint = Color(0xFF0F172A),
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
         }
-        }
     }
-
+}
