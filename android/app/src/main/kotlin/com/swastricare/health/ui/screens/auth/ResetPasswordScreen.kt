@@ -128,13 +128,11 @@ fun ResetPasswordScreen(
                         modifier = Modifier.onFocusChanged { emailFocused = it.isFocused }
                     )
 
-                    if (errorMessage != null) {
-                        val isSuccess = errorMessage?.contains("sent", ignoreCase = true) == true
-                        AuthAlertBanner(
-                            message = errorMessage ?: "",
-                            isSuccess = isSuccess
-                        )
-                    }
+                    val isSuccess = errorMessage?.contains("sent", ignoreCase = true) == true
+                    AnimatedAuthAlertBanner(
+                        message = errorMessage,
+                        isSuccess = isSuccess
+                    )
 
                     PremiumButton(
                         "Send Reset Link",

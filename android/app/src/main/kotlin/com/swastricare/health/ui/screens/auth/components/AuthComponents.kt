@@ -1,6 +1,7 @@
 package com.swastricare.health.ui.screens.auth.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -223,6 +224,47 @@ fun AuthAlertBanner(
             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
             color = color
         )
+    }
+}
+
+/**
+ * Animated alert banner that slides in/out and crossfades between messages.
+ * Pass a nullable message — null hides the banner.
+ */
+@Composable
+fun AnimatedAuthAlertBanner(
+    message: String?,
+    isSuccess: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    var lastMessage by remember { mutableStateOf(message ?: "") }
+    androidx.compose.runtime.LaunchedEffect(message) {
+        if (!message.isNullOrBlank()) lastMessage = message
+    }
+
+    androidx.compose.animation.AnimatedVisibility(
+        visible = !message.isNullOrBlank(),
+        enter = androidx.compose.animation.fadeIn(tween(220)) +
+            androidx.compose.animation.expandVertically(tween(220)) +
+            androidx.compose.animation.slideInVertically(tween(260)) { -it / 2 },
+        exit = androidx.compose.animation.fadeOut(tween(160)) +
+            androidx.compose.animation.shrinkVertically(tween(200)),
+        modifier = modifier
+    ) {
+        androidx.compose.animation.AnimatedContent(
+            targetState = lastMessage,
+            transitionSpec = {
+                (androidx.compose.animation.fadeIn(tween(180)) +
+                    androidx.compose.animation.slideInVertically(tween(220)) { it / 4 })
+                    .togetherWith(
+                        androidx.compose.animation.fadeOut(tween(140)) +
+                            androidx.compose.animation.slideOutVertically(tween(180)) { -it / 4 }
+                    )
+            },
+            label = "auth-alert-content"
+        ) { current ->
+            AuthAlertBanner(message = current, isSuccess = isSuccess)
+        }
     }
 }
 

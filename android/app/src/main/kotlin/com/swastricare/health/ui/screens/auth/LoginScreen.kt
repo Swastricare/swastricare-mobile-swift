@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.auth.components.*
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
@@ -65,13 +66,23 @@ fun LoginScreen(
         )
     )
 
-    Scaffold(containerColor = Color.Transparent) { paddingValues ->
-        Box(modifier = modifier.fillMaxSize().padding(paddingValues).background(gradient)) {
+    val isKeyboardOpen = WindowInsets.isImeVisible
+    val scrollState = rememberScrollState()
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0)
+    ) { _ ->
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(gradient)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .imePadding()
-                    .verticalScroll(rememberScrollState()),
+                    .let { if (isKeyboardOpen) it.verticalScroll(scrollState) else it },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 BrandAuthHeader()
@@ -142,9 +153,7 @@ fun LoginScreen(
                             )
                         }
 
-                        if (errorMessage != null) {
-                            AuthAlertBanner(message = errorMessage ?: "", isSuccess = false)
-                        }
+                        AnimatedAuthAlertBanner(message = errorMessage, isSuccess = false)
 
                         PremiumButton(
                             "Login",

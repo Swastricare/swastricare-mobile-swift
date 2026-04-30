@@ -1,6 +1,14 @@
 package com.swastricare.health.ui.screens.auth
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,8 +28,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -32,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.auth.components.*
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SignUpScreen(
     viewModel: AuthViewModel,
@@ -53,26 +63,22 @@ fun SignUpScreen(
 
     var firstNameFocused by remember { mutableStateOf(false) }
     var lastNameFocused by remember { mutableStateOf(false) }
-    var phoneFocused by remember { mutableStateOf(false) }
     var emailFocused by remember { mutableStateOf(false) }
     var passwordFocused by remember { mutableStateOf(false) }
     var confirmPasswordFocused by remember { mutableStateOf(false) }
 
     val lastNameFocusRequester = remember { FocusRequester() }
-    val phoneFocusRequester = remember { FocusRequester() }
     val emailFocusRequester = remember { FocusRequester() }
     val confirmPasswordFocusRequester = remember { FocusRequester() }
 
     val isStep1Valid = formState.firstName.isNotBlank() &&
         formState.lastName.isNotBlank() &&
-        formState.isValidPhone &&
         formState.isValidEmail
 
     val step1ErrorMessage: String? = when {
         !hasAttemptedStep1 -> null
         formState.firstName.isBlank() -> "Please enter your first name"
         formState.lastName.isBlank() -> "Please enter your last name"
-        !formState.isValidPhone -> "Enter a valid 10-digit phone number"
         !formState.isValidEmail -> "Enter a valid email address"
         else -> null
     }
@@ -102,27 +108,61 @@ fun SignUpScreen(
         }
     }
 
-    val pageBg = Color(0xFFF6FAFC)
-    val gradient = Brush.verticalGradient(
-        colorStops = arrayOf(
-            0f to pageBg,
-            0.35f to pageBg,
-            0.55f to Color.White,
-            1f to Color.White
-        )
-    )
+    val pageBg = Color.White
 
-    Scaffold(containerColor = Color.Transparent) { paddingValues ->
-        Box(modifier = modifier.fillMaxSize().padding(paddingValues).background(gradient)) {
+    val illustrationBitmap = remember {
+        runCatching {
+            val s = context.assets.open("images/sign in screen icon.png")
+            android.graphics.BitmapFactory.decodeStream(s)
+        }.getOrNull()
+    }
+
+    val isKeyboardOpen = WindowInsets.isImeVisible
+    val scrollState = rememberScrollState()
+
+    Scaffold(
+        containerColor = pageBg,
+        contentWindowInsets = WindowInsets(0)
+    ) { _ ->
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .imePadding()
-                    .verticalScroll(rememberScrollState()),
+                    .let { if (isKeyboardOpen) it.verticalScroll(scrollState) else it },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                BrandAuthHeader()
+                Spacer(modifier = Modifier.height(32.dp))
 
+                if (illustrationBitmap != null) {
+                    Image(
+                        bitmap = illustrationBitmap.asImageBitmap(),
+                        contentDescription = "Sign up illustration",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .size(200.dp)
+                            .padding(8.dp)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(200.dp))
+                }
+
+                AnimatedContent(
+                    targetState = currentStep,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInHorizontally(tween(280)) { it } + fadeIn(tween(220)))
+                                .togetherWith(slideOutHorizontally(tween(260)) { -it / 3 } + fadeOut(tween(180)))
+                        } else {
+                            (slideInHorizontally(tween(280)) { -it } + fadeIn(tween(220)))
+                                .togetherWith(slideOutHorizontally(tween(260)) { it / 3 } + fadeOut(tween(180)))
+                        }
+                    },
+                    label = "signup-step"
+                ) { step ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -130,7 +170,7 @@ fun SignUpScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        if (currentStep == 1) "Create your account" else "Create a password",
+                        if (step == 1) "Create your account" else "Create a password",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F172A),
@@ -138,7 +178,7 @@ fun SignUpScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        if (currentStep == 1) "Tell us a bit about you" else "Almost done — set a strong password",
+                        if (step == 1) "Tell us a bit about you" else "Almost done — set a strong password",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF6B7280),
                         textAlign = TextAlign.Center,
@@ -147,21 +187,18 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    if (currentStep == 1) {
+                    if (step == 1) {
                         Step1Fields(
                             formState = formState,
                             viewModel = viewModel,
                             hasAttempted = hasAttemptedStep1,
                             firstNameFocused = firstNameFocused,
                             lastNameFocused = lastNameFocused,
-                            phoneFocused = phoneFocused,
                             emailFocused = emailFocused,
                             onFirstNameFocusChange = { firstNameFocused = it },
                             onLastNameFocusChange = { lastNameFocused = it },
-                            onPhoneFocusChange = { phoneFocused = it },
                             onEmailFocusChange = { emailFocused = it },
                             lastNameFocusRequester = lastNameFocusRequester,
-                            phoneFocusRequester = phoneFocusRequester,
                             emailFocusRequester = emailFocusRequester,
                             onNext = {
                                 hasAttemptedStep1 = true
@@ -173,9 +210,7 @@ fun SignUpScreen(
                         )
 
                         val displayedStep1Error = errorMessage ?: step1ErrorMessage
-                        if (displayedStep1Error != null) {
-                            AuthAlertBanner(message = displayedStep1Error, isSuccess = false)
-                        }
+                        AnimatedAuthAlertBanner(message = displayedStep1Error, isSuccess = false)
 
                         PremiumButton(
                             "Next",
@@ -236,9 +271,7 @@ fun SignUpScreen(
                         )
 
                         val displayedStep2Error = errorMessage ?: step2ErrorMessage
-                        if (displayedStep2Error != null) {
-                            AuthAlertBanner(message = displayedStep2Error, isSuccess = false)
-                        }
+                        AnimatedAuthAlertBanner(message = displayedStep2Error, isSuccess = false)
 
                         PremiumButton(
                             "Sign Up",
@@ -254,6 +287,13 @@ fun SignUpScreen(
                         )
                     }
                 }
+                }
+
+                if (!isKeyboardOpen) {
+                    Spacer(modifier = Modifier.weight(1f))
+                } else {
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
             }
 
             IconButton(
@@ -266,7 +306,7 @@ fun SignUpScreen(
                     .align(Alignment.TopStart)
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.7f), CircleShape)
+                    .background(Color.Black.copy(alpha = 0.04f), CircleShape)
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -286,65 +326,40 @@ private fun Step1Fields(
     hasAttempted: Boolean,
     firstNameFocused: Boolean,
     lastNameFocused: Boolean,
-    phoneFocused: Boolean,
     emailFocused: Boolean,
     onFirstNameFocusChange: (Boolean) -> Unit,
     onLastNameFocusChange: (Boolean) -> Unit,
-    onPhoneFocusChange: (Boolean) -> Unit,
     onEmailFocusChange: (Boolean) -> Unit,
     lastNameFocusRequester: FocusRequester,
-    phoneFocusRequester: FocusRequester,
     emailFocusRequester: FocusRequester,
     onNext: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        PremiumTextField(
-            value = formState.firstName,
-            onValueChange = { viewModel.updateFirstName(it) },
-            placeholder = "First Name",
-            icon = Icons.Default.Person,
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-            keyboardActions = KeyboardActions(onNext = { lastNameFocusRequester.requestFocus() }),
-            isFocused = firstNameFocused,
-            modifier = Modifier
-                .weight(1f)
-                .onFocusChanged { onFirstNameFocusChange(it.isFocused) },
-            isError = hasAttempted && formState.firstName.isBlank()
-        )
-        PremiumTextField(
-            value = formState.lastName,
-            onValueChange = { viewModel.updateLastName(it) },
-            placeholder = "Last Name",
-            icon = Icons.Default.Person,
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-            keyboardActions = KeyboardActions(onNext = { phoneFocusRequester.requestFocus() }),
-            isFocused = lastNameFocused,
-            modifier = Modifier
-                .weight(1f)
-                .focusRequester(lastNameFocusRequester)
-                .onFocusChanged { onLastNameFocusChange(it.isFocused) },
-            isError = hasAttempted && formState.lastName.isBlank()
-        )
-    }
+    PremiumTextField(
+        value = formState.firstName,
+        onValueChange = { viewModel.updateFirstName(it) },
+        placeholder = "First Name",
+        icon = Icons.Default.Person,
+        keyboardType = KeyboardType.Text,
+        imeAction = ImeAction.Next,
+        keyboardActions = KeyboardActions(onNext = { lastNameFocusRequester.requestFocus() }),
+        isFocused = firstNameFocused,
+        modifier = Modifier.onFocusChanged { onFirstNameFocusChange(it.isFocused) },
+        isError = hasAttempted && formState.firstName.isBlank()
+    )
 
     PremiumTextField(
-        value = formState.phone,
-        onValueChange = { if (it.length <= 10 && it.all { c -> c.isDigit() }) viewModel.updatePhone(it) },
-        placeholder = "Phone Number",
-        icon = Icons.Default.Phone,
-        keyboardType = KeyboardType.Phone,
+        value = formState.lastName,
+        onValueChange = { viewModel.updateLastName(it) },
+        placeholder = "Last Name",
+        icon = Icons.Default.Person,
+        keyboardType = KeyboardType.Text,
         imeAction = ImeAction.Next,
         keyboardActions = KeyboardActions(onNext = { emailFocusRequester.requestFocus() }),
-        isFocused = phoneFocused,
+        isFocused = lastNameFocused,
         modifier = Modifier
-            .focusRequester(phoneFocusRequester)
-            .onFocusChanged { onPhoneFocusChange(it.isFocused) },
-        isError = hasAttempted && !formState.isValidPhone
+            .focusRequester(lastNameFocusRequester)
+            .onFocusChanged { onLastNameFocusChange(it.isFocused) },
+        isError = hasAttempted && formState.lastName.isBlank()
     )
 
     PremiumTextField(

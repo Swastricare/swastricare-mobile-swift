@@ -237,7 +237,11 @@ fun AppNavigation(
         composable("onboarding") {
             OnboardingScreen(
                 onFinished = {
-                    navController.navigate("consent") {
+                    navController.navigate("consent")
+                },
+                onSignIn = {
+                    scope.launch { navVm.markOnboardingComplete() }
+                    navController.navigate("login") {
                         popUpTo("onboarding") { inclusive = true }
                     }
                 }
@@ -250,6 +254,13 @@ fun AppNavigation(
                     scope.launch { navVm.markOnboardingComplete() }
                     navController.navigate("login") {
                         popUpTo("consent") { inclusive = true }
+                    }
+                },
+                onBack = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate("onboarding") {
+                            popUpTo("consent") { inclusive = true }
+                        }
                     }
                 }
             )
