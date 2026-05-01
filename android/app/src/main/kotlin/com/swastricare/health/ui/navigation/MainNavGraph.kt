@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.swastricare.health.ui.screens.ai.AIScreen
 import com.swastricare.health.ui.screens.home.HomeScreenV2
+import com.swastricare.health.ui.screens.home.HomeScreenV3
 import com.swastricare.health.ui.screens.runactivity.RunActivityScreen
 import com.swastricare.health.ui.screens.runactivity.WorkoutType
 import com.swastricare.health.ui.screens.settings.SettingsScreen
@@ -50,7 +51,7 @@ fun MainNavGraph(
         popExitTransition = { fadeOut(tween(180)) }
     ) {
         composable(BottomNavTab.Vitals.route) {
-            HomeScreenV2(
+            HomeScreenV3(
                 onNavigateToMedications = { onNavigateTo("medications") },
                 onNavigateToDiet = { onNavigateTo("diet") },
                 onNavigateToHydration = { onNavigateTo("hydration") },
@@ -61,6 +62,13 @@ fun MainNavGraph(
                 onNavigateToBodyScan = { onNavigateTo("ar_body_scan") },
                 onNavigateToNotifications = { onNavigateTo("notification_history") },
                 onNavigateToAnalytics = { onNavigateTo("health_analytics") },
+                onNavigateToAIChat = {
+                    navController.navigate(BottomNavTab.AI.route) {
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onNavigateToRoute = { route -> onNavigateTo(route) }
             )
         }
