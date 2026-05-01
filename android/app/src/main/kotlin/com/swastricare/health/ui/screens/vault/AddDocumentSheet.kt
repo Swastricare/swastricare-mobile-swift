@@ -1,11 +1,13 @@
 package com.swastricare.health.ui.screens.vault
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
@@ -88,231 +90,281 @@ fun AddDocumentSheet(
         ) { DatePicker(state = appointmentDateState) }
     }
 
+    val teal = com.swastricare.health.ui.screens.auth.components.PremiumColors.Teal
+    val darkText = Color(0xFF0F172A)
+    val mutedText = Color(0xFF6B7280)
+    val borderSoft = Color.Black.copy(alpha = 0.07f)
+
+    var categoryMenuExpanded by remember { mutableStateOf(false) }
+    var notes by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(Color.White)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
-            .padding(top = 4.dp, bottom = 28.dp)
+            .padding(top = 12.dp, bottom = 24.dp)
     ) {
-        // ---- Header ----
-        Text(
-            text = "Add Document",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.onSurface
-        )
-        Text(
-            text = "Save to your medical vault",
-            style = MaterialTheme.typography.bodySmall,
-            color = AppColors.onSurfaceVariant
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        // ---- File info ----
+        // ── Header (icon badge + title) ──
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(AppColors.surfaceVariant)
-                .padding(14.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = getFileIcon(fileName.substringAfterLast('.', "")),
-                contentDescription = null,
-                tint = AppColors.onSurface,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = fileName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = AppColors.onSurface
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(teal.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Description,
+                    contentDescription = null,
+                    tint = teal,
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(Modifier.height(2.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
                 Text(
-                    text = formatFileSize(fileSize),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AppColors.onSurfaceVariant
+                    "Add File",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = darkText
+                )
+                Text(
+                    "Store your health document securely",
+                    fontSize = 12.sp,
+                    color = mutedText
                 )
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(20.dp))
 
-        // ---- Section: Document info ----
-        SectionHeader("Document Info")
-        Spacer(Modifier.height(12.dp))
-
-        FlatTextField(
+        // ── Document Name ──
+        FieldLabel(text = "Document Name", required = true)
+        Spacer(Modifier.height(6.dp))
+        ModernTextField(
             value = title,
             onValueChange = { title = it },
-            label = "Document Title",
-            leadingIcon = Icons.Default.Title
+            placeholder = "Enter document name",
+            leadingIcon = Icons.Default.Description,
+            border = borderSoft
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "E.g., Blood Test Report, X-Ray, Prescription",
+            fontSize = 11.sp,
+            color = mutedText,
+            modifier = Modifier.padding(start = 4.dp)
         )
 
         Spacer(Modifier.height(16.dp))
 
-        Text(
-            text = "Category",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = AppColors.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp)
-        )
-        Spacer(Modifier.height(8.dp))
+        // ── Category ──
+        FieldLabel(text = "Category", required = true)
+        Spacer(Modifier.height(6.dp))
+        Box {
+            ModernTextField(
+                value = selectedCategory.title,
+                onValueChange = { },
+                placeholder = "Select category",
+                leadingIcon = Icons.Default.Folder,
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = mutedText,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                readOnly = true,
+                border = borderSoft,
+                onClick = { categoryMenuExpanded = true }
+            )
+            DropdownMenu(
+                expanded = categoryMenuExpanded,
+                onDismissRequest = { categoryMenuExpanded = false }
+            ) {
+                VaultCategory.entries.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.title) },
+                        onClick = {
+                            selectedCategory = category
+                            categoryMenuExpanded = false
+                        }
+                    )
+                }
+            }
+        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            VaultCategory.entries.forEach { category ->
-                CategoryChip(
-                    category = category,
-                    selected = category == selectedCategory,
-                    onClick = { selectedCategory = category }
+        Spacer(Modifier.height(16.dp))
+
+        // ── Date row ──
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                FieldLabel(text = "Date of Document", required = true)
+                Spacer(Modifier.height(6.dp))
+                ModernTextField(
+                    value = documentDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
+                    onValueChange = {},
+                    placeholder = "Select date",
+                    leadingIcon = null,
+                    trailingIcon = {
+                        Icon(Icons.Default.CalendarToday, null, tint = mutedText, modifier = Modifier.size(18.dp))
+                    },
+                    readOnly = true,
+                    border = borderSoft,
+                    onClick = { showDatePicker = true }
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                FieldLabel(text = "Appointment Date", optional = true)
+                Spacer(Modifier.height(6.dp))
+                ModernTextField(
+                    value = appointmentDate?.format(DateTimeFormatter.ofPattern("dd MMM yyyy")) ?: "",
+                    onValueChange = {},
+                    placeholder = "Select date",
+                    leadingIcon = null,
+                    trailingIcon = {
+                        Icon(Icons.Default.CalendarToday, null, tint = mutedText, modifier = Modifier.size(18.dp))
+                    },
+                    readOnly = true,
+                    border = borderSoft,
+                    onClick = { showAppointmentDatePicker = true }
                 )
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // ---- Section: Dates ----
-        SectionHeader("Dates")
-        Spacer(Modifier.height(12.dp))
-
-        FlatTextField(
-            value = documentDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
-            onValueChange = {},
-            label = "Document Date",
-            leadingIcon = Icons.Default.Event,
-            readOnly = true,
-            trailingIcon = {
-                IconButton(onClick = { showDatePicker = true }) {
-                    Icon(
-                        Icons.Default.CalendarToday,
-                        contentDescription = "Select Date",
-                        tint = AppColors.onSurface
-                    )
-                }
-            }
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        FlatTextField(
-            value = appointmentDate?.format(DateTimeFormatter.ISO_LOCAL_DATE) ?: "",
-            onValueChange = {},
-            label = "Appointment Date (Optional)",
-            leadingIcon = Icons.Default.NotificationsActive,
-            placeholder = "Set reminder for follow-up",
-            readOnly = true,
-            trailingIcon = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (appointmentDate != null) {
-                        IconButton(onClick = { appointmentDate = null }) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = AppColors.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                    IconButton(onClick = { showAppointmentDatePicker = true }) {
-                        Icon(
-                            Icons.Default.CalendarToday,
-                            contentDescription = "Set Appointment",
-                            tint = AppColors.onSurface
-                        )
-                    }
-                }
-            }
-        )
-
-        Spacer(Modifier.height(24.dp))
-
-        // ---- Section: Doctor & Location ----
-        SectionHeader("Doctor & Location")
-        Spacer(Modifier.height(12.dp))
-
-        FlatTextField(
+        // ── Doctor ──
+        FieldLabel(text = "Doctor Name")
+        Spacer(Modifier.height(6.dp))
+        ModernTextField(
             value = doctorName,
             onValueChange = { doctorName = it },
-            label = "Doctor Name",
-            leadingIcon = Icons.Default.Person
+            placeholder = "Enter doctor name",
+            leadingIcon = Icons.Default.Person,
+            border = borderSoft
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
-        FlatTextField(
+        // ── Hospital / Clinic ──
+        FieldLabel(text = "Hospital / Clinic")
+        Spacer(Modifier.height(6.dp))
+        ModernTextField(
             value = location,
             onValueChange = { location = it },
-            label = "Location",
-            leadingIcon = Icons.Default.LocationOn
+            placeholder = "Enter hospital or clinic name",
+            leadingIcon = Icons.Default.LocalHospital,
+            border = borderSoft
         )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // ---- Section: Additional ----
-        SectionHeader("Additional Details")
-        Spacer(Modifier.height(12.dp))
+        // ── Additional info ──
+        FieldLabel(text = "Additional Information", optional = true)
+        Spacer(Modifier.height(6.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .border(1.dp, borderSoft, RoundedCornerShape(12.dp))
+                .padding(12.dp)
+        ) {
+            BasicInfoArea(
+                value = notes,
+                onValueChange = { if (it.length <= 500) notes = it },
+                placeholder = "Add any additional notes or information..."
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "${notes.length}/500",
+                fontSize = 11.sp,
+                color = mutedText,
+                modifier = Modifier.align(Alignment.End)
+            )
+        }
 
-        FlatTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = "Description (Optional)",
-            leadingIcon = Icons.AutoMirrored.Filled.Notes,
-            singleLine = false,
-            minLines = 3
-        )
+        Spacer(Modifier.height(16.dp))
 
-        Spacer(Modifier.height(12.dp))
+        // ── Upload Document area (shows picked file) ──
+        FieldLabel(text = "Upload Document", required = true)
+        Spacer(Modifier.height(6.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(teal.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
+                .border(
+                    1.dp,
+                    teal.copy(alpha = 0.4f),
+                    RoundedCornerShape(14.dp)
+                )
+                .padding(vertical = 18.dp, horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Default.CloudUpload,
+                contentDescription = null,
+                tint = teal,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(Modifier.height(6.dp))
+            if (fileName.isNotBlank()) {
+                Text(
+                    fileName,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = darkText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    formatFileSize(fileSize),
+                    fontSize = 11.sp,
+                    color = mutedText
+                )
+            } else {
+                Text(
+                    "Tap to upload or drag and drop",
+                    fontSize = 12.sp,
+                    color = darkText
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "PDF, JPG, PNG (Max 20MB)",
+                    fontSize = 11.sp,
+                    color = mutedText
+                )
+            }
+        }
 
-        FlatTextField(
-            value = folderName,
-            onValueChange = { folderName = it },
-            label = "Folder Name (Optional)",
-            leadingIcon = Icons.Default.Folder,
-            placeholder = "e.g. Annual Checkup"
-        )
+        Spacer(Modifier.height(22.dp))
 
-        Spacer(Modifier.height(12.dp))
-
-        FlatTextField(
-            value = tags,
-            onValueChange = { tags = it },
-            label = "Tags (comma separated)",
-            leadingIcon = Icons.Default.LocalOffer,
-            placeholder = "e.g. diabetes, followup"
-        )
-
-        Spacer(Modifier.height(28.dp))
-
-        // ---- Upload CTA ----
+        // ── Save Document button ──
         val titleTrimmed = title.trim()
         val canUpload = titleTrimmed.isNotEmpty()
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .height(50.dp)
+                .clip(RoundedCornerShape(14.dp))
                 .background(
-                    if (canUpload) AppColors.primary
-                    else AppColors.surfaceVariant
+                    if (canUpload) teal else teal.copy(alpha = 0.45f),
+                    RoundedCornerShape(14.dp)
                 )
                 .clickable(enabled = canUpload) {
                     val metadata = DocumentMetadata(
                         name = titleTrimmed,
-                        description = description.takeIf { it.isNotBlank() },
+                        description = notes.takeIf { it.isNotBlank() }
+                            ?: description.takeIf { it.isNotBlank() },
                         folderName = folderName.takeIf { it.isNotBlank() },
                         documentDate = documentDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
                         appointmentDate = appointmentDate?.format(DateTimeFormatter.ISO_LOCAL_DATE),
@@ -324,11 +376,159 @@ fun AddDocumentSheet(
                 },
             contentAlignment = Alignment.Center
         ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Save,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Save Document",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // ── Cancel ──
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .border(1.dp, borderSoft, RoundedCornerShape(14.dp))
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = "Upload Document",
-                color = if (canUpload) Color.White else AppColors.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
+                "Cancel",
+                color = darkText,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun FieldLabel(
+    text: String,
+    required: Boolean = false,
+    optional: Boolean = false
+) {
+    Row {
+        Text(
+            text,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF0F172A)
+        )
+        if (required) {
+            Spacer(Modifier.width(2.dp))
+            Text("*", color = Color(0xFFEF4444), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+        if (optional) {
+            Spacer(Modifier.width(4.dp))
+            Text(
+                "(Optional)",
+                fontSize = 11.sp,
+                color = com.swastricare.health.ui.screens.auth.components.PremiumColors.Teal,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(top = 1.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    leadingIcon: ImageVector? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
+    readOnly: Boolean = false,
+    border: Color = Color.Black.copy(alpha = 0.07f),
+    onClick: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White, RoundedCornerShape(12.dp))
+            .border(1.dp, border, RoundedCornerShape(12.dp))
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (leadingIcon != null) {
+            Icon(
+                leadingIcon,
+                contentDescription = null,
+                tint = Color(0xFF6B7280),
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+        }
+        Box(modifier = Modifier.weight(1f).padding(vertical = 14.dp)) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                readOnly = readOnly,
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = Color(0xFF0F172A),
+                    fontSize = 14.sp
+                ),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(
+                    com.swastricare.health.ui.screens.auth.components.PremiumColors.Teal
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (value.isEmpty()) {
+                Text(
+                    placeholder,
+                    fontSize = 14.sp,
+                    color = Color(0xFF9CA3AF)
+                )
+            }
+        }
+        if (trailingIcon != null) {
+            Spacer(Modifier.width(8.dp))
+            trailingIcon()
+        }
+    }
+}
+
+@Composable
+private fun BasicInfoArea(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    Box(modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                color = Color(0xFF0F172A),
+                fontSize = 14.sp
+            ),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(
+                com.swastricare.health.ui.screens.auth.components.PremiumColors.Teal
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (value.isEmpty()) {
+            Text(
+                placeholder,
+                fontSize = 14.sp,
+                color = Color(0xFF9CA3AF)
             )
         }
     }

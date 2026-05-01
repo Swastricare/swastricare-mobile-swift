@@ -40,8 +40,14 @@ import kotlinx.coroutines.launch
 import com.swastricare.health.data.model.MedicalDocument
 import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.VaultCategory
+import com.swastricare.health.ui.screens.auth.components.PremiumColors
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.components.TrackScreen
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -219,7 +225,7 @@ fun VaultScreen(
 
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(AppColors.background)) {
+        .background(Color.White)) {
 
         // Folder Detail Overlay
         if (uiState.openFolderName != null) {
@@ -242,127 +248,195 @@ fun VaultScreen(
                     com.swastricare.health.ui.components.AppTopBar(
                         title = "Medical Vault",
                         actions = {
-                            IconButton(onClick = {
-                                val newMode = when (uiState.viewMode) {
-                                    VaultViewMode.List -> VaultViewMode.Folders
-                                    VaultViewMode.Folders -> VaultViewMode.Timeline
-                                    VaultViewMode.Timeline -> VaultViewMode.List
-                                }
-                                viewModel.setViewMode(newMode)
-                            }) {
-                                Icon(
-                                    imageVector = when (uiState.viewMode) {
-                                        VaultViewMode.List -> Icons.AutoMirrored.Outlined.List
-                                        VaultViewMode.Folders -> Icons.Outlined.Folder
-                                        VaultViewMode.Timeline -> Icons.Outlined.CalendarToday
-                                    },
-                                    contentDescription = "View mode",
-                                    tint = AppColors.onSurface.copy(alpha = 0.8f)
-                                )
-                            }
-                            IconButton(onClick = viewModel::toggleSelectionMode) {
-                                Icon(
-                                    imageVector = if (uiState.isSelectionMode) Icons.Default.Close else Icons.Outlined.CheckCircle,
-                                    contentDescription = "Select",
-                                    tint = if (uiState.isSelectionMode) AppColors.primary else AppColors.onSurface.copy(alpha = 0.8f)
-                                )
-                            }
-                            if (!uiState.isSelectionMode) {
-                                IconButton(
-                                    onClick = { batchFilePickerLauncher.launch(allowedMimeTypes) }
-                                ) {
-                                    Icon(
-                                        Icons.Default.Add,
-                                        contentDescription = "Add document",
-                                        tint = AppColors.onSurface
+                            var menuExpanded by remember { mutableStateOf(false) }
+                            Box {
+                                MaterialTheme(
+                                    colorScheme = MaterialTheme.colorScheme,
+                                    typography = MaterialTheme.typography,
+                                    shapes = MaterialTheme.shapes.copy(
+                                        extraSmall = RoundedCornerShape(18.dp)
                                     )
+                                ) {
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false },
+                                    offset = androidx.compose.ui.unit.DpOffset(x = (-8).dp, y = 4.dp),
+                                    modifier = Modifier
+                                        .widthIn(min = 220.dp)
+                                        .background(AppColors.surface, RoundedCornerShape(18.dp))
+                                ) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Add document",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = AppColors.primary
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(AppColors.primary.copy(alpha = 0.12f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Add,
+                                                    contentDescription = null,
+                                                    tint = AppColors.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            batchFilePickerLauncher.launch(allowedMimeTypes)
+                                        }
+                                    )
+
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                        color = AppColors.onSurface.copy(alpha = 0.08f)
+                                    )
+
+                                    Text(
+                                        text = "View as",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = AppColors.onSurface.copy(alpha = 0.5f),
+                                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp)
+                                    )
+
+                                    val viewOptions = listOf(
+                                        Triple(VaultViewMode.List, "List", Icons.AutoMirrored.Outlined.List),
+                                        Triple(VaultViewMode.Folders, "Folders", Icons.Outlined.Folder),
+                                        Triple(VaultViewMode.Timeline, "Timeline", Icons.Outlined.CalendarToday)
+                                    )
+                                    for ((mode, label, icon) in viewOptions) {
+                                        val selected = uiState.viewMode == mode
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    label,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                                    color = if (selected) AppColors.primary else AppColors.onSurface
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    icon,
+                                                    contentDescription = null,
+                                                    tint = if (selected) AppColors.primary else AppColors.onSurface.copy(alpha = 0.7f),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            },
+                                            trailingIcon = if (selected) {
+                                                {
+                                                    Icon(
+                                                        Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = AppColors.primary,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            } else null,
+                                            onClick = {
+                                                menuExpanded = false
+                                                viewModel.setViewMode(mode)
+                                            }
+                                        )
+                                    }
+                                }
                                 }
                             }
                         }
                     )
                 }
 
-                // ── Search (compact, no label) ──
-                item {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        color = AppColors.surfaceVariant,
-                        tonalElevation = 0.dp
-                    ) {
-                        TextField(
-                            value = uiState.searchQuery,
-                            onValueChange = viewModel::setSearchQuery,
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Search documents", fontSize = 14.sp) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            },
-                            trailingIcon = {
-                                if (uiState.searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Clear",
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(
-                                onSearch = { focusManager.clearFocus() }
-                            ),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent,
-                                focusedTextColor = AppColors.onSurface,
-                                unfocusedTextColor = AppColors.onSurface,
-                                focusedLeadingIconColor = AppColors.onSurfaceVariant,
-                                unfocusedLeadingIconColor = AppColors.onSurfaceVariant,
-                                focusedPlaceholderColor = AppColors.onSurfaceVariant,
-                                unfocusedPlaceholderColor = AppColors.onSurfaceVariant
-                            )
+                // Search and category chips removed — vault uses two distinct
+                // states (empty / with files) without filtering UI.
+
+                // ── Storage card + category tiles (only when there are files) ──
+                if (uiState.documents.isNotEmpty()) {
+                    item {
+                        Spacer(Modifier.height(4.dp))
+                        StorageCard(
+                            usedBytes = uiState.documents.sumOf { it.fileSize },
+                            totalBytes = 1L * 1024 * 1024 * 1024,
+                            onAddFiles = { filePickerLauncher.launch(arrayOf("*/*")) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
-                }
-
-                // ── Categories (transparent, no label) ──
-                item {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(0.dp)
-                    ) {
-                        item {
-                            FilterPill(
-                                title = "All",
-                                count = uiState.documents.size,
-                                isSelected = uiState.selectedCategory == null,
-                                colorHex = 0xFF2E3192,
-                                onClick = { viewModel.setCategory(null) }
+                    item {
+                        Spacer(Modifier.height(12.dp))
+                        VaultCategoryTilesRow(
+                            allCount = uiState.documents.size,
+                            reportsCount = uiState.documents.count {
+                                it.category.equals(VaultCategory.LAB_REPORTS.title, ignoreCase = true)
+                            },
+                            prescriptionsCount = uiState.documents.count {
+                                it.category.equals(VaultCategory.PRESCRIPTIONS.title, ignoreCase = true)
+                            },
+                            scansCount = uiState.documents.count {
+                                it.category.equals(VaultCategory.IMAGING.title, ignoreCase = true)
+                            },
+                            selected = uiState.selectedCategory,
+                            onSelectAll = { viewModel.setCategory(null) },
+                            onSelectReports = { viewModel.setCategory(VaultCategory.LAB_REPORTS) },
+                            onSelectPrescriptions = { viewModel.setCategory(VaultCategory.PRESCRIPTIONS) },
+                            onSelectScans = { viewModel.setCategory(VaultCategory.IMAGING) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+                    item {
+                        Spacer(Modifier.height(18.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                when (uiState.selectedCategory) {
+                                    null -> "All Files"
+                                    VaultCategory.LAB_REPORTS -> "Reports"
+                                    VaultCategory.PRESCRIPTIONS -> "Prescriptions"
+                                    VaultCategory.IMAGING -> "Scans"
+                                    else -> uiState.selectedCategory!!.title
+                                },
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AppColors.onSurface
                             )
-                        }
-                        items(VaultCategory.values()) { category ->
-                            val count = uiState.documents.count { it.category.equals(category.title, ignoreCase = true) }
-                            FilterPill(
-                                title = category.title,
-                                count = count,
-                                isSelected = uiState.selectedCategory == category,
-                                colorHex = category.colorHex,
-                                onClick = { viewModel.setCategory(category) }
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    "Sort by: Newest",
+                                    fontSize = 12.sp,
+                                    color = AppColors.onSurface.copy(alpha = 0.6f)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(PremiumColors.Teal.copy(alpha = 0.12f), RoundedCornerShape(14.dp))
+                                        .clickable { filePickerLauncher.launch(arrayOf("*/*")) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = "Add Files",
+                                        tint = PremiumColors.Teal,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -407,9 +481,16 @@ fun VaultScreen(
                             ShimmerDocumentList()
                         }
                     }
+                } else if (viewModel.filteredDocuments.isEmpty() && uiState.documents.isEmpty()) {
+                    // Vault is completely empty — handled by EmptyState overlay outside the LazyColumn
                 } else if (viewModel.filteredDocuments.isEmpty()) {
+                    // Has documents but none match the selected category
                     item {
-                        EmptyState()
+                        CategoryEmptyState(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 24.dp)
+                        )
                     }
                 } else {
                     // Count / context caption
@@ -510,6 +591,21 @@ fun VaultScreen(
                     }
                 }
             }
+
+            // Empty state — full-screen only when the vault is completely empty
+            if (!uiState.isLoading && uiState.documents.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 88.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    EmptyState(
+                        onAddFiles = { filePickerLauncher.launch(arrayOf("*/*")) }
+                    )
+                }
+            }
+
 
         }
 
@@ -622,7 +718,11 @@ private fun AddDocumentBottomSheet(
     if (!show) return
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Color.White,
+        contentColor = Color(0xFF0F172A),
+        tonalElevation = 0.dp,
+        dragHandle = {}
     ) {
         AddDocumentSheet(
             fileName = fileName,
@@ -1078,32 +1178,423 @@ private fun BatchUploadItemRow(
 }
 
 @Composable
-fun EmptyState() {
+private fun CategoryEmptyState(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val bitmap = remember {
+        runCatching {
+            context.assets.open("icons/file empty illustretion.png").use {
+                android.graphics.BitmapFactory.decodeStream(it)
+            }
+        }.getOrNull()
+    }
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
-        verticalArrangement = Arrangement.Center,
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(150.dp)
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "No files yet",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0F172A)
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Add your health documents to\nkeep them safe and organized.",
+            fontSize = 12.sp,
+            color = Color(0xFF6B7280),
+            textAlign = TextAlign.Center,
+            lineHeight = 16.sp
+        )
+    }
+}
+
+@Composable
+private fun StorageCard(
+    usedBytes: Long,
+    totalBytes: Long,
+    onAddFiles: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val vaultBitmap = remember {
+        runCatching {
+            context.assets.open("icons/vault empty illustration.png").use {
+                android.graphics.BitmapFactory.decodeStream(it)
+            }
+        }.getOrNull()
+    }
+    val percent = if (totalBytes > 0) (usedBytes.toFloat() / totalBytes).coerceIn(0f, 1f) else 0f
+    val percentLabel = (percent * 100).toInt()
+    val usedLabel = when {
+        usedBytes >= 1_073_741_824L -> String.format("%.1f GB", usedBytes / 1_073_741_824.0)
+        usedBytes >= 1_048_576L -> String.format("%.1f MB", usedBytes / 1_048_576.0)
+        usedBytes > 0 -> String.format("%d KB", (usedBytes / 1024).coerceAtLeast(1))
+        else -> "0 MB"
+    }
+    val totalLabel = when {
+        totalBytes >= 1_073_741_824L -> "${(totalBytes / 1_073_741_824L).toInt()} GB"
+        else -> "${(totalBytes / 1_048_576L).toInt()} MB"
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFFEFFAF6), RoundedCornerShape(18.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Storage Used",
+                fontSize = 12.sp,
+                color = Color(0xFF6B7280),
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    usedLabel,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "/ $totalLabel",
+                    fontSize = 13.sp,
+                    color = Color(0xFF6B7280),
+                    modifier = Modifier.padding(bottom = 3.dp)
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Color(0xFFD9EFE7))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(percent)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(PremiumColors.Teal)
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "$percentLabel% used",
+                fontSize = 11.sp,
+                color = PremiumColors.Teal,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (vaultBitmap != null) {
+                Image(
+                    bitmap = vaultBitmap.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(64.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VaultCategoryTilesRow(
+    allCount: Int,
+    reportsCount: Int,
+    prescriptionsCount: Int,
+    scansCount: Int,
+    selected: VaultCategory?,
+    onSelectAll: () -> Unit,
+    onSelectReports: () -> Unit,
+    onSelectPrescriptions: () -> Unit,
+    onSelectScans: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        VaultCategoryTile(
+            icon = Icons.Default.Folder,
+            label = "All Files",
+            count = allCount,
+            tint = Color(0xFF38BDF8),
+            background = Color(0xFFEFF8FE),
+            selected = selected == null,
+            modifier = Modifier.weight(1f),
+            onClick = onSelectAll
+        )
+        VaultCategoryTile(
+            icon = Icons.Default.Description,
+            label = "Reports",
+            count = reportsCount,
+            tint = Color(0xFFF59E0B),
+            background = Color(0xFFFEF8E1),
+            selected = selected == VaultCategory.LAB_REPORTS,
+            modifier = Modifier.weight(1f),
+            onClick = onSelectReports
+        )
+        VaultCategoryTile(
+            icon = Icons.Default.MedicalServices,
+            label = "Prescriptions",
+            count = prescriptionsCount,
+            tint = Color(0xFFA855F7),
+            background = Color(0xFFF3E8FF),
+            selected = selected == VaultCategory.PRESCRIPTIONS,
+            modifier = Modifier.weight(1f),
+            onClick = onSelectPrescriptions
+        )
+        VaultCategoryTile(
+            icon = Icons.Default.Image,
+            label = "Scans",
+            count = scansCount,
+            tint = PremiumColors.Teal,
+            background = Color(0xFFE6F8F3),
+            selected = selected == VaultCategory.IMAGING,
+            modifier = Modifier.weight(1f),
+            onClick = onSelectScans
+        )
+    }
+}
+
+@Composable
+private fun VaultCategoryTile(
+    icon: ImageVector,
+    label: String,
+    count: Int,
+    tint: Color,
+    background: Color,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(background, RoundedCornerShape(14.dp))
+            .border(
+                width = if (selected) 1.5.dp else 0.dp,
+                color = if (selected) tint else Color.Transparent,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF0F172A),
+            maxLines = 1,
+            softWrap = false
+        )
+        Text(
+            count.toString(),
+            fontSize = 11.sp,
+            color = Color(0xFF6B7280)
+        )
+    }
+}
+
+@Composable
+fun EmptyState(
+    onAddFiles: () -> Unit = {},
+    onLearnMore: (() -> Unit)? = null
+) {
+    val context = LocalContext.current
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    val handleLearnMore: () -> Unit = onLearnMore ?: {
+        runCatching { uriHandler.openUri("https://swastricare.com/health-locker") }
+    }
+    val vaultBitmap = remember {
+        runCatching {
+            context.assets.open("icons/vault icon.png").use {
+                android.graphics.BitmapFactory.decodeStream(it)
+            }
+        }.getOrNull()
+    }
+
+    val mutedText = Color(0xFF6B7280)
+    val darkText = Color(0xFF0F172A)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
-            painter = rememberAsyncImagePainter("file:///android_asset/images/hand-drawn-no-data-concept.png"),
-            contentDescription = null,
-            modifier = Modifier.size(width = 160.dp, height = 140.dp),
-            contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
-            alignment = Alignment.TopCenter
-        )
+        if (vaultBitmap != null) {
+            Image(
+                bitmap = vaultBitmap.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(180.dp)
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
         Text(
-            text = "Your vault is empty for now!",
-            style = MaterialTheme.typography.titleLarge,
+            "Your vault is empty",
+            fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
+            color = darkText,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(4.dp))
+
+        Spacer(Modifier.height(6.dp))
+
         Text(
-            text = "Upload your medical records, prescriptions and lab reports to keep them organized.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.onSurfaceVariant,
+            "Store your important health documents, reports and prescriptions securely.",
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            color = mutedText,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp)
+            modifier = Modifier.padding(horizontal = 8.dp)
         )
+
+        Spacer(Modifier.height(20.dp))
+
+        VaultFeatureRow(
+            icon = Icons.Default.Lock,
+            title = "Secure Storage",
+            description = "Your files are encrypted and protected"
+        )
+        Spacer(Modifier.height(14.dp))
+        VaultFeatureRow(
+            icon = Icons.Default.Description,
+            title = "Private Access",
+            description = "Only you can access your files"
+        )
+        Spacer(Modifier.height(14.dp))
+        VaultFeatureRow(
+            icon = Icons.Default.Share,
+            title = "Easy Sharing",
+            description = "Share files with doctors when needed"
+        )
+
+        Spacer(Modifier.height(22.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(PremiumColors.Teal)
+                .clickable(onClick = onAddFiles),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Add Files",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .border(1.dp, PremiumColors.Teal.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                .clickable(onClick = handleLearnMore),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = PremiumColors.Teal,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Learn more about Vault",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PremiumColors.Teal
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun VaultFeatureRow(
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(PremiumColors.Teal.copy(alpha = 0.12f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = PremiumColors.Teal,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF0F172A)
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                description,
+                fontSize = 12.sp,
+                color = Color(0xFF6B7280)
+            )
+        }
     }
 }
