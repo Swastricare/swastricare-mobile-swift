@@ -181,7 +181,7 @@ fun HomeScreenV3(
             Spacer(Modifier.height(sectionGap))
             Spacer(Modifier.weight(1f, fill = true))
 
-            SwasthiAICard(
+            SwastriAICard(
                 onChat = onNavigateToAIChat,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -485,15 +485,7 @@ private fun MiniStatRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(accent.copy(alpha = 0.14f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            AssetIcon(asset = iconAsset, size = 18.dp)
-        }
+        AssetIcon(asset = iconAsset, size = 26.dp)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -541,7 +533,7 @@ private fun ProgressBarThin(progress: Float, accent: Color) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(3.dp)
+            .height(4.dp)
             .clip(RoundedCornerShape(2.dp))
             .background(RingTrack)
     ) {
@@ -749,10 +741,10 @@ private fun VitalCell(
     }
 }
 
-// ───────────────────── Swasthi AI card ─────────────────────
+// ───────────────────── Swastri AI card ─────────────────────
 
 @Composable
-private fun SwasthiAICard(
+private fun SwastriAICard(
     onChat: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -768,7 +760,6 @@ private fun SwasthiAICard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 130.dp)
             .lightCardShadow(RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
             .background(
@@ -778,31 +769,35 @@ private fun SwasthiAICard(
                 RoundedCornerShape(20.dp)
             )
             .clickable(onClick = onChat)
-            .padding(horizontal = 18.dp, vertical = 18.dp),
+            .padding(start = 18.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
-                "Swasthi AI",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = PremiumColors.NeonGreen
+                "Swastri AI",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = PremiumColors.NeonGreen,
+                letterSpacing = 0.5.sp
             )
             Text(
                 "Your health companion",
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
+                lineHeight = 20.sp
             )
             Text(
                 "Ask anything, get personalized insights and guidance.",
-                fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.7f),
-                lineHeight = 16.sp
+                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.65f),
+                lineHeight = 15.sp
             )
         }
         if (mascot != null) {
@@ -810,7 +805,7 @@ private fun SwasthiAICard(
                 bitmap = mascot.asImageBitmap(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier.size(110.dp)
             )
         }
     }
