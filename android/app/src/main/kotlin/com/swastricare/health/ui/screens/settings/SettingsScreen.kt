@@ -148,12 +148,7 @@ fun SettingsScreen(
                     }
 
                     // ── Appearance ──
-                    item { SettingsSectionHeader("Appearance") }
-                    item {
-                        SettingsSectionCard {
-                            SettingsCleanRow("Theme", Icons.Outlined.Palette, value = viewModel.themeDisplayName, onClick = onNavigateToThemeSettings)
-                        }
-                    }
+                    // Theme switching temporarily disabled — light theme only.
 
                     // ── Security ──
                     item { SettingsSectionHeader("Security") }

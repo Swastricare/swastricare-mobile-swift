@@ -3,7 +3,6 @@ package com.swastricare.health.ui.theme
 import android.app.Activity
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +11,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -56,12 +54,8 @@ fun SwastriCareTheme(
     themePreferenceManager: ThemePreferenceManager? = null,
     content: @Composable () -> Unit
 ) {
-    val darkTheme = if (themePreferenceManager != null) {
-        val themeMode by themePreferenceManager.themeMode.collectAsState()
-        themePreferenceManager.isDarkTheme(isSystemInDarkTheme())
-    } else {
-        isSystemInDarkTheme()
-    }
+    // Theme switching is temporarily disabled — force light theme app-wide.
+    val darkTheme = false
 
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val view = LocalView.current

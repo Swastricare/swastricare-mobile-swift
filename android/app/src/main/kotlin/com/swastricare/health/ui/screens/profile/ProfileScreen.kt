@@ -167,8 +167,7 @@ fun ProfileScreenContent(
             item { ProfileSectionHeader("Preferences") }
             item {
                 ProfileSectionCard {
-                    ProfileNavRow("Theme", Icons.Outlined.Palette, value = currentTheme.displayName, onClick = { showThemeDialog = true })
-                    ProfileDivider()
+                    // Theme switching temporarily disabled — light theme only.
                     ProfileNavRow("Notifications", Icons.Outlined.Notifications, onClick = onNotificationToggle)
                     ProfileDivider()
                     ProfileToggleRow("Biometric Lock", Icons.Outlined.Fingerprint, checked = uiState.biometricEnabled, onToggle = onBiometricToggle)
