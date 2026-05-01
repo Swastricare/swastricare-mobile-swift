@@ -1,5 +1,11 @@
 package com.swastricare.health.ui.screens.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -423,7 +429,15 @@ private fun DailyActivityCard(
 
 @Composable
 private fun StepsRing(steps: Int, goal: Int, ringSize: Dp) {
-    val progress = if (goal > 0) (steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    val target = if (goal > 0) (steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    var triggered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { triggered = true }
+    val progress by animateFloatAsState(
+        targetValue = if (triggered) target else 0f,
+        animationSpec = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+        label = "stepsRingProgress"
+    )
+
     Box(
         modifier = Modifier.size(ringSize),
         contentAlignment = Alignment.Center
@@ -530,6 +544,13 @@ private fun buildSpan(primary: String, secondary: String): AnnotatedString {
 
 @Composable
 private fun ProgressBarThin(progress: Float, accent: Color) {
+    var triggered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { triggered = true }
+    val animated by animateFloatAsState(
+        targetValue = if (triggered) progress else 0f,
+        animationSpec = tween(durationMillis = 1000, delayMillis = 200, easing = FastOutSlowInEasing),
+        label = "miniProgress"
+    )
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -540,7 +561,7 @@ private fun ProgressBarThin(progress: Float, accent: Color) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .fillMaxWidth(progress)
+                .fillMaxWidth(animated)
                 .clip(RoundedCornerShape(2.dp))
                 .background(accent)
         )
@@ -859,6 +880,24 @@ private fun AssetIcon(asset: String, size: Dp) {
 
 private fun formatNumber(value: Int): String =
     if (value >= 1000) String.format("%,d", value) else value.toString()
+
+@Composable
+private fun EnterFromBottom(
+    visible: Boolean,
+    delayMillis: Int,
+    content: @Composable () -> Unit
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(durationMillis = 360, delayMillis = delayMillis)) +
+            slideInVertically(
+                animationSpec = tween(durationMillis = 420, delayMillis = delayMillis, easing = FastOutSlowInEasing),
+                initialOffsetY = { it / 4 }
+            )
+    ) {
+        content()
+    }
+}
 
 // Standardized soft shadow used across every card
 private fun Modifier.lightCardShadow(shape: androidx.compose.ui.graphics.Shape): Modifier =
