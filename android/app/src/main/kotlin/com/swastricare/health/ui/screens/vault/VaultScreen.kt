@@ -1310,7 +1310,7 @@ private fun StorageCard(
                     bitmap = vaultBitmap.asImageBitmap(),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(96.dp)
                 )
             }
         }
