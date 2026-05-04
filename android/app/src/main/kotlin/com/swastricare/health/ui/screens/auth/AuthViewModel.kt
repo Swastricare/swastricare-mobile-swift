@@ -315,13 +315,17 @@ class AuthViewModel @Inject constructor(
      * Sign out current user
      */
     fun signOut() {
+        // Reset auth state synchronously so the UI navigates to login immediately.
+        // Otherwise LoginScreen sees a stale Success state and bounces back to home
+        // before the coroutine below can flip it to Idle.
+        _uiState.value = AuthUiState.Idle
+        clearForm()
+
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 authRepository.signOut()
                 analyticsService.logEvent("sign_out")
-                _uiState.value = AuthUiState.Idle
-                clearForm()
             } catch (e: Exception) {
                 _errorMessage.value = "Unable to sign out. Please try again"
             } finally {
