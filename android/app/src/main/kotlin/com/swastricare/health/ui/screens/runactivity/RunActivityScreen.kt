@@ -502,13 +502,16 @@ private fun IdeaCardsRow(onIdeaClick: (WorkoutType) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Max)
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Ideas.forEach { idea ->
             IdeaCard(
                 idea = idea,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
                 onClick = { onIdeaClick(idea.type) }
             )
         }
@@ -544,27 +547,25 @@ private fun IdeaCard(
                 modifier = Modifier.size(20.dp)
             )
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
             text = idea.title,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             color = TextPrimary,
             textAlign = TextAlign.Center,
-            minLines = 2,
             maxLines = 2,
-            lineHeight = 16.sp
+            lineHeight = 15.sp
         )
-        Spacer(Modifier.height(4.dp))
         Text(
             text = idea.subtitle,
             fontSize = 11.sp,
             color = TextSecondary,
             textAlign = TextAlign.Center,
-            minLines = 1,
             maxLines = 2,
-            lineHeight = 14.sp
+            lineHeight = 13.sp
         )
+        Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(10.dp))
         Box(
             modifier = Modifier
