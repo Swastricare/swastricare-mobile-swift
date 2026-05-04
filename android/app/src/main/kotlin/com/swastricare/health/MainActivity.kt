@@ -1,6 +1,8 @@
 package com.swastricare.health
 
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -60,6 +62,23 @@ class MainActivity : FragmentActivity() {
                 notificationService.scheduleAllNotifications()
             }
         }
+    }
+
+    // Force the activity's configuration into night-mode-NO. This is what
+    // isSystemInDarkTheme() reads, so every Composable that branches on it
+    // sees light, regardless of the OS dark setting. Temporary until theme
+    // switching is reintroduced.
+    override fun attachBaseContext(newBase: Context) {
+        val config = Configuration(newBase.resources.configuration)
+        config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+            Configuration.UI_MODE_NIGHT_NO
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        newConfig.uiMode = (newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+            Configuration.UI_MODE_NIGHT_NO
+        super.onConfigurationChanged(newConfig)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

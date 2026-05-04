@@ -2,10 +2,9 @@ package com.swastricare.health.ui.screens.runactivity
 
 import android.Manifest
 import android.os.Build
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -14,21 +13,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import android.location.LocationManager
@@ -42,11 +45,20 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.*
 import com.swastricare.health.data.models.ActivityType
-import com.swastricare.health.data.models.RouteCoordinate
 import com.swastricare.health.data.models.RunActivity
-import com.swastricare.health.data.models.TimeRangeFilter
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.theme.*
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+private val ScreenBackground = Color.White
+private val CardSurface = Color.White
+private val SoftBorder = Color(0xFFE5EAF0)
+private val MintTint = Color(0xFFE6F7F2)
+private val MintTintDeep = Color(0xFFD3F0E6)
+private val TextPrimary = Color(0xFF0F172A)
+private val TextSecondary = Color(0xFF64748B)
+private val DividerSoft = Color(0xFFE5EAF0)
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -78,7 +90,6 @@ fun RunActivityScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showLocationServicesDialog by remember { mutableStateOf(false) }
 
-    // ── Permission dialog ─────────────────────────────────────────────────────
     if (showPermissionDialog) {
         WorkoutPermissionDialog(
             onAllow = {
@@ -114,12 +125,11 @@ fun RunActivityScreen(
         }
     }
 
-    // Closure used by HeroSection — checks permissions AND location services before navigating
-    val onStartWorkoutSafe: () -> Unit = {
+    // Gated workout launch — checks permissions + GPS before navigating.
+    val launchWorkout: (WorkoutType?) -> Unit = { type ->
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
         val isGpsOn = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-
         when {
             !permissionsState.allPermissionsGranted -> {
                 if (permissionsState.shouldShowRationale) {
@@ -129,72 +139,48 @@ fun RunActivityScreen(
                 }
             }
             !isGpsOn -> showLocationServicesDialog = true
-            else -> onNavigateToLiveWorkout(null)
+            else -> onNavigateToLiveWorkout(type)
         }
+    }
+
+    val today = LocalDate.now()
+    val todayActivities = remember(uiState.activities, today) {
+        uiState.activities.filter { it.startTime?.toLocalDate() == today }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.background)
+            .background(ScreenBackground)
     ) {
-        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
-            com.swastricare.health.ui.components.AppTopBar(title = "Activity")
+        Column(modifier = Modifier.fillMaxSize()) {
+            ActivityHeader(
+                onBack = onNavigateBack,
+                onCalendar = onNavigateToCalendar
+            )
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
+                contentPadding = PaddingValues(top = 4.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // ── Hero ──────────────────────────────────────────────────────
-                item {
-                    HeroSection(
-                        steps = uiState.todaySteps,
-                        isLoading = uiState.isLoading,
-                        onStartWorkout = onStartWorkoutSafe,
-                        onNavigateToCalendar = onNavigateToCalendar
-                    )
-                }
+                item { DateSelectorPill(today = today, onClick = onNavigateToCalendar) }
 
-            // ── Time Range Selector ───────────────────────────────────────
-            item {
-                TimeRangeSelector(
-                    selected = uiState.timeRangeFilter,
-                    onSelect = { viewModel.setTimeRange(it) }
-                )
-            }
-
-            // ── Metrics Row ───────────────────────────────────────────────
-            item {
-                MetricsRow(
-                    distanceKm = uiState.statistics.totalDistanceKm,
-                    calories = uiState.statistics.totalCalories,
-                    workouts = uiState.statistics.totalActivities
-                )
-            }
-
-            // ── Fitness Insights (compact chips) ─────────────────────────
-            if (uiState.vo2Max != null) {
-                item { FitnessChips(vo2Max = uiState.vo2Max) }
-            }
-
-            // ── Recent Activities ────────────────────────────────────────
-            item {
-                RecentActivitiesHeader(
-                    count = uiState.activities.size,
-                    onSeeAll = onNavigateToCalendar
-                )
-            }
-
-                if (uiState.activities.isEmpty()) {
-                    item { EmptyActivitiesState() }
+                if (todayActivities.isEmpty()) {
+                    item { EmptyTodayHero(onStartWorkout = { launchWorkout(null) }) }
                 } else {
-                    items(uiState.activities, key = { it.id }) { activity ->
-                        ActivityCard(
+                    items(todayActivities, key = { it.id }) { activity ->
+                        TodayActivityCard(
                             activity = activity,
                             onClick = { onNavigateToActivityDetail(activity.id) }
                         )
                     }
+                    item { StartAnotherButton(onClick = { launchWorkout(null) }) }
                 }
+
+                item { IdeasSectionHeader() }
+                item { IdeaCardsRow(onIdeaClick = launchWorkout) }
+                item { TipCard() }
             }
         }
 
@@ -205,544 +191,447 @@ fun RunActivityScreen(
     }
 }
 
-// ─── Hero Section ─────────────────────────────────────────────────────────────
+// ─── Header ──────────────────────────────────────────────────────────────────
 
 @Composable
-private fun HeroSection(
-    steps: Int,
-    isLoading: Boolean,
-    onStartWorkout: () -> Unit,
-    onNavigateToCalendar: () -> Unit
+private fun ActivityHeader(
+    onBack: (() -> Unit)?,
+    onCalendar: () -> Unit
 ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (onBack != null) {
+            IconButton(onClick = onBack, modifier = Modifier.size(44.dp)) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = TextPrimary
+                )
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Activity",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                lineHeight = 22.sp
+            )
+            Text(
+                text = "Track your daily movement and progress",
+                fontSize = 12.sp,
+                color = TextSecondary,
+                lineHeight = 14.sp
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(CardSurface)
+                .border(1.dp, SoftBorder, CircleShape)
+                .clickable { onCalendar() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.CalendarMonth,
+                contentDescription = "Calendar",
+                tint = AITeal,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+// ─── Date Selector ───────────────────────────────────────────────────────────
+
+@Composable
+private fun DateSelectorPill(today: LocalDate, onClick: () -> Unit) {
+    val label = remember(today) {
+        "Today, " + today.format(DateTimeFormatter.ofPattern("d MMM"))
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(CardSurface)
+                .border(1.dp, SoftBorder, CircleShape)
+                .clickable { onClick() }
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ChevronLeft,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
+            )
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+// ─── Empty State Hero ────────────────────────────────────────────────────────
+
+@Composable
+private fun EmptyTodayHero(onStartWorkout: () -> Unit) {
+    val context = LocalContext.current
+    val bitmap = remember {
+        runCatching {
+            context.assets.open("icons/no activity illustration 1.png").use {
+                android.graphics.BitmapFactory.decodeStream(it)
+            }
+        }.getOrNull()
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(220.dp)
+                    .height(170.dp)
+            )
+        }
+
+        Text(
+            text = "No activity yet today",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+
+        Text(
+            text = "You haven't logged any workout or movement.\nLet's get moving!",
+            fontSize = 13.sp,
+            color = TextSecondary,
+            textAlign = TextAlign.Center,
+            lineHeight = 18.sp
+        )
+
+        Button(
+            onClick = onStartWorkout,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+                .height(54.dp),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(containerColor = AITeal),
+            elevation = ButtonDefaults.buttonElevation(0.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "Start a Workout",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+private fun StartAnotherButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-            .shadow(16.dp, RoundedCornerShape(24.dp), clip = false)
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF0F172A), Color(0xFF134E2E)),
-                    start = Offset(0f, 0f),
-                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-                )
-            )
+            .padding(horizontal = 20.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Header row: title + calendar icon
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Activity",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
-                )
-                IconButton(
-                    onClick = onNavigateToCalendar,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = "Calendar",
-                        tint = Color.White.copy(alpha = 0.75f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-
-            // Step count
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Today",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
-                    fontWeight = FontWeight.Medium
-                )
-                // Smooth count-up animation: the number tweens from 0 to
-                // the current steps value on first render, and then tweens
-                // to any subsequent updates. No skeleton — the digits are
-                // visible immediately, they just animate into place.
-                var target by remember { mutableIntStateOf(0) }
-                LaunchedEffect(steps) { target = steps }
-                val animatedSteps by animateIntAsState(
-                    targetValue = target,
-                    animationSpec = tween(
-                        durationMillis = 1200,
-                        easing = FastOutSlowInEasing
-                    ),
-                    label = "stepsCount"
-                )
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "%,d".format(animatedSteps),
-                        style = MaterialTheme.typography.displayLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 52.sp
-                    )
-                    Text(
-                        text = "steps",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White.copy(alpha = 0.60f),
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 10.dp)
-                    )
-                }
-            }
-
-            // Start Workout button — green circle play + text + chevron
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White.copy(alpha = 0.10f))
-                    .clickable { onStartWorkout() }
-                    .padding(14.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(SecondaryColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Start Workout",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Track GPS, distance, and route",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.60f)
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = SecondaryColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ─── Time Range Selector ──────────────────────────────────────────────────────
-
-private fun TimeRangeFilter.shortLabel(): String = when (this) {
-    TimeRangeFilter.TWO_WEEKS -> "2W"
-    TimeRangeFilter.ONE_MONTH -> "1M"
-    TimeRangeFilter.THREE_MONTHS -> "3M"
-}
-
-@Composable
-private fun TimeRangeSelector(
-    selected: TimeRangeFilter,
-    onSelect: (TimeRangeFilter) -> Unit
-) {
-    val haptic = LocalHapticFeedback.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp)
-            .clip(CircleShape)
-            .background(AppColors.surfaceVariant)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
-        TimeRangeFilter.values().forEach { filter ->
-            val isSelected = filter == selected
-            val bgColor by animateColorAsState(
-                targetValue = if (isSelected) AppColors.onBackground else Color.Transparent,
-                animationSpec = tween(200),
-                label = "tabBg"
-            )
-            val textColor by animateColorAsState(
-                targetValue = if (isSelected) AppColors.background else AppColors.onSurfaceVariant,
-                animationSpec = tween(200),
-                label = "tabText"
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(CircleShape)
-                    .background(bgColor)
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSelect(filter)
-                    }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = filter.shortLabel(),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = textColor
-                )
-            }
-        }
-    }
-}
-
-// ─── Metrics Row ──────────────────────────────────────────────────────────────
-
-@Composable
-private fun MetricsRow(
-    distanceKm: Double,
-    calories: Int,
-    workouts: Int
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(AppColors.surface)
-            .padding(vertical = 20.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        MetricItem(
-            value = "%.2f".format(distanceKm),
-            unit = "km",
-            label = "Distance"
-        )
-        Box(
+        Button(
+            onClick = onClick,
             modifier = Modifier
-                .width(1.dp)
-                .height(44.dp)
-                .background(AppColors.outlineVariant)
-        )
-        MetricItem(
-            value = "$calories",
-            unit = "kcal",
-            label = "Calories"
-        )
-        Box(
-            modifier = Modifier
-                .width(1.dp)
-                .height(44.dp)
-                .background(AppColors.outlineVariant)
-        )
-        MetricItem(
-            value = "$workouts",
-            unit = "",
-            label = "Workouts"
-        )
-    }
-}
-
-@Composable
-private fun MetricItem(value: String, unit: String, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = AppColors.onSurfaceVariant
-        )
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                .fillMaxWidth()
+                .height(54.dp),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(containerColor = AITeal),
+            elevation = ButtonDefaults.buttonElevation(0.dp)
         ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.onSurface,
-                fontSize = 26.sp
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
             )
-            if (unit.isNotEmpty()) {
-                Text(
-                    text = unit,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AppColors.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 3.dp)
-                )
-            }
-        }
-    }
-}
-
-// ─── Fitness Chips ────────────────────────────────────────────────────────────
-
-@Composable
-private fun FitnessChips(vo2Max: Double?) {
-    if (vo2Max == null) return
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        FitnessChip(icon = Icons.Default.Favorite, value = "%.1f VO₂".format(vo2Max))
-    }
-}
-
-@Composable
-private fun FitnessChip(icon: ImageVector, value: String) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50.dp))
-            .background(AppColors.surfaceVariant)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = AppColors.onSurfaceVariant,
-            modifier = Modifier.size(12.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelSmall,
-            color = AppColors.onSurface
-        )
-    }
-}
-
-// ─── Recent Activities ────────────────────────────────────────────────────────
-
-@Composable
-private fun RecentActivitiesHeader(count: Int, onSeeAll: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = "Recent Activities",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.onBackground
-        )
-        if (count > 5) {
-            TextButton(onClick = onSeeAll, contentPadding = PaddingValues(0.dp)) {
-                Text("See All", style = MaterialTheme.typography.labelMedium, color = PrimaryColor)
-                Icon(
-                    Icons.Default.ArrowForward,
-                    contentDescription = null,
-                    tint = PrimaryColor,
-                    modifier = Modifier.size(14.dp)
-                )
-            }
-        } else if (count > 0) {
+            Spacer(Modifier.width(8.dp))
             Text(
-                "$count activities",
-                style = MaterialTheme.typography.labelSmall,
-                color = AppColors.onSurfaceVariant
+                text = "Start another workout",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
             )
         }
     }
 }
 
+// ─── Today Activity Card (compact) ───────────────────────────────────────────
+
 @Composable
-private fun ActivityCard(activity: RunActivity, onClick: () -> Unit) {
+private fun TodayActivityCard(activity: RunActivity, onClick: () -> Unit) {
     val typeIcon: ImageVector = when (activity.activityType) {
         ActivityType.RUNNING -> Icons.Default.DirectionsRun
         ActivityType.WALKING -> Icons.Default.DirectionsWalk
-        ActivityType.CYCLING -> Icons.Default.DirectionsBike
+        ActivityType.CYCLING -> Icons.Default.DirectionsRun
         ActivityType.HIKING -> Icons.Default.Terrain
     }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 5.dp)
-            .shadow(3.dp, RoundedCornerShape(16.dp), clip = false)
-            .clip(RoundedCornerShape(16.dp))
-            .background(AppColors.surface)
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(CardSurface)
+            .border(1.dp, SoftBorder, RoundedCornerShape(20.dp))
             .clickable { onClick() }
-            .padding(12.dp),
+            .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Map thumbnail (or icon fallback when no GPS route recorded)
         Box(
             modifier = Modifier
-                .size(72.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1A1A2E)),
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(MintTint),
             contentAlignment = Alignment.Center
         ) {
-            if (activity.routeCoordinates.size >= 2) {
-                ActivityRouteThumbnail(coordinates = activity.routeCoordinates)
-            } else {
-                Icon(
-                    imageVector = typeIcon,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.4f),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+            Icon(typeIcon, null, tint = AITeal, modifier = Modifier.size(22.dp))
         }
-
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(typeIcon, null, tint = AppColors.onSurfaceVariant, modifier = Modifier.size(11.dp))
-                Text(
-                    text = activity.formattedDate,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AppColors.onSurfaceVariant
-                )
-            }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = activity.activityType.displayName,
-                style = MaterialTheme.typography.titleSmall,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = AppColors.onSurface
+                color = TextPrimary
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (activity.caloriesBurned > 0) {
-                    Text(
-                        text = "${activity.caloriesBurned} kcal",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AppColors.onSurfaceVariant
-                    )
-                    Text(
-                        "·",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AppColors.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = activity.formattedDistance + " km",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AppColors.onSurfaceVariant
-                )
-            }
+            Text(
+                text = "${activity.formattedDistance} km · ${activity.caloriesBurned} kcal",
+                fontSize = 12.sp,
+                color = TextSecondary
+            )
         }
-
         Icon(
-            Icons.Default.ChevronRight,
+            imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = AppColors.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(18.dp)
+            tint = TextSecondary,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
 
+// ─── Ideas Section ───────────────────────────────────────────────────────────
+
 @Composable
-private fun EmptyActivitiesState() {
-    Column(
+private fun IdeasSectionHeader() {
+    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+        Text(
+            text = "Ideas to get moving",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+    }
+}
+
+private data class WorkoutIdea(
+    val title: String,
+    val subtitle: String,
+    val durationLabel: String,
+    val icon: ImageVector,
+    val type: WorkoutType
+)
+
+private val Ideas = listOf(
+    WorkoutIdea(
+        title = "Go for a Walk",
+        subtitle = "Fresh air and steps",
+        durationLabel = "20 min",
+        icon = Icons.Default.DirectionsWalk,
+        type = WorkoutType.WALK
+    ),
+    WorkoutIdea(
+        title = "Quick Run",
+        subtitle = "Cardio boost",
+        durationLabel = "15 min",
+        icon = Icons.Default.DirectionsRun,
+        type = WorkoutType.RUN
+    ),
+    WorkoutIdea(
+        title = "Outdoor Hike",
+        subtitle = "Explore the trail",
+        durationLabel = "30 min",
+        icon = Icons.Default.Terrain,
+        type = WorkoutType.HIKE
+    )
+)
+
+@Composable
+private fun IdeaCardsRow(onIdeaClick: (WorkoutType) -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(AppColors.surface)
-            .padding(40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Icon(
-            imageVector = Icons.Default.DirectionsWalk,
-            contentDescription = null,
-            tint = AppColors.onSurfaceVariant.copy(alpha = 0.3f),
-            modifier = Modifier.size(48.dp)
-        )
-        Text(
-            text = "No activities yet",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = AppColors.onSurfaceVariant
-        )
-        Text(
-            text = "Start a workout to track your activities",
-            style = MaterialTheme.typography.bodySmall,
-            color = AppColors.onSurfaceVariant.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center
-        )
+        Ideas.forEach { idea ->
+            IdeaCard(
+                idea = idea,
+                modifier = Modifier.weight(1f),
+                onClick = { onIdeaClick(idea.type) }
+            )
+        }
     }
 }
-
-// ─── Activity Route Canvas Thumbnail ─────────────────────────────────────────
-// Lightweight, non-interactive canvas — safe to use inside LazyColumn items.
 
 @Composable
-private fun ActivityRouteThumbnail(coordinates: List<RouteCoordinate>) {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val padding = 8f
-        val drawW = size.width - padding * 2
-        val drawH = size.height - padding * 2
-
-        val minLat = coordinates.minOf { it.latitude }
-        val maxLat = coordinates.maxOf { it.latitude }
-        val minLng = coordinates.minOf { it.longitude }
-        val maxLng = coordinates.maxOf { it.longitude }
-
-        val latRange = (maxLat - minLat).coerceAtLeast(0.0001)
-        val lngRange = (maxLng - minLng).coerceAtLeast(0.0001)
-        val scale = minOf(drawW / lngRange, drawH / latRange)
-
-        val offX = padding + (drawW - lngRange * scale).toFloat() / 2f
-        val offY = padding + (drawH - latRange * scale).toFloat() / 2f
-
-        fun project(c: RouteCoordinate) = Offset(
-            x = ((c.longitude - minLng) * scale).toFloat() + offX,
-            y = ((maxLat - c.latitude) * scale).toFloat() + offY
+private fun IdeaCard(
+    idea: WorkoutIdea,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(CardSurface)
+            .border(1.dp, SoftBorder, RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MintTint),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = idea.icon,
+                contentDescription = null,
+                tint = AITeal,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = idea.title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextPrimary,
+            textAlign = TextAlign.Center,
+            minLines = 2,
+            maxLines = 2,
+            lineHeight = 16.sp
         )
-
-        val pts = coordinates.map { project(it) }
-        val startColor = Color(0xFF00E5FF)
-        val endColor = Color(0xFF38EF7D)
-        val n = (pts.size - 1).coerceAtLeast(1)
-
-        // Glow pass
-        for (i in 0 until pts.size - 1) {
-            val f = i.toFloat() / n
-            val c = lerpColor(startColor, endColor, f)
-            drawLine(c.copy(alpha = 0.25f), pts[i], pts[i + 1], 6.dp.toPx(), StrokeCap.Round)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = idea.subtitle,
+            fontSize = 11.sp,
+            color = TextSecondary,
+            textAlign = TextAlign.Center,
+            minLines = 1,
+            maxLines = 2,
+            lineHeight = 14.sp
+        )
+        Spacer(Modifier.height(10.dp))
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(MintTintDeep)
+                .padding(horizontal = 12.dp, vertical = 5.dp)
+        ) {
+            Text(
+                text = idea.durationLabel,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = AITealDark,
+                lineHeight = 13.sp
+            )
         }
-        // Route pass
-        for (i in 0 until pts.size - 1) {
-            val f = i.toFloat() / n
-            drawLine(lerpColor(startColor, endColor, f), pts[i], pts[i + 1], 2.5.dp.toPx(), StrokeCap.Round)
-        }
-
-        drawCircle(endColor, 4f, pts.first())
-        drawCircle(Color(0xFFFF4757), 4f, pts.last())
     }
 }
 
-private fun lerpColor(a: Color, b: Color, f: Float): Color {
-    val t = f.coerceIn(0f, 1f)
-    return Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t,
-        a.blue + (b.blue - a.blue) * t, 1f)
+// ─── Tip Card ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun TipCard() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(MintTint)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.FavoriteBorder,
+                contentDescription = null,
+                tint = AITeal,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "Stay active, stay healthy",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
+            )
+            Text(
+                text = "Just 30 minutes of activity can boost your mood and energy.",
+                fontSize = 11.sp,
+                color = TextSecondary,
+                lineHeight = 14.sp
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(20.dp)
+        )
+    }
 }
 
 // ─── Permission Dialogs (Samsung-style bottom sheet) ─────────────────────────
@@ -858,7 +747,6 @@ private fun PermissionBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Deny
                     Button(
                         onClick = onDeny,
                         modifier = Modifier.weight(1f).height(52.dp),
@@ -871,12 +759,11 @@ private fun PermissionBottomSheet(
                     ) {
                         Text(denyLabel, fontWeight = FontWeight.SemiBold)
                     }
-                    // Allow
                     Button(
                         onClick = onAllow,
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SecondaryColor),
+                        colors = ButtonDefaults.buttonColors(containerColor = AITeal),
                         elevation = ButtonDefaults.buttonElevation(0.dp)
                     ) {
                         Text(allowLabel, fontWeight = FontWeight.SemiBold, color = Color.White)

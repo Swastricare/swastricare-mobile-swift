@@ -614,6 +614,7 @@ fun VaultScreen(
             show = uiState.showAddSheet && pendingFileData != null,
             fileName = pendingFileName,
             fileSize = pendingFileSize,
+            isUploading = uiState.isUploading,
             onUpload = { name, category, metadata ->
                 pendingFileData?.let { data ->
                     viewModel.uploadDocument(
@@ -712,12 +713,13 @@ private fun AddDocumentBottomSheet(
     show: Boolean,
     fileName: String,
     fileSize: Long,
+    isUploading: Boolean,
     onUpload: (String, VaultCategory, DocumentMetadata) -> Unit,
     onDismiss: () -> Unit
 ) {
     if (!show) return
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isUploading) onDismiss() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Color.White,
         contentColor = Color(0xFF0F172A),
@@ -728,7 +730,8 @@ private fun AddDocumentBottomSheet(
             fileName = fileName,
             fileSize = fileSize,
             onUpload = onUpload,
-            onDismiss = onDismiss
+            onDismiss = onDismiss,
+            isUploading = isUploading
         )
     }
 }

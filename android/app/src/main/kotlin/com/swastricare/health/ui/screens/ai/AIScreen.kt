@@ -38,6 +38,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -226,82 +227,75 @@ fun AIScreen(
             }
         }
     }
-    Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    // Sync drawer ↔ viewModel showHistorySheet flag (kept for VM-driven open).
+    LaunchedEffect(uiState.showHistorySheet) {
+        if (uiState.showHistorySheet && drawerState.isClosed) drawerState.open()
+    }
+    LaunchedEffect(drawerState.currentValue) {
+        if (drawerState.currentValue == DrawerValue.Closed && uiState.showHistorySheet) {
+            viewModel.closeHistorySheet()
+        }
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = drawerState.isOpen,
+        drawerContent = {
+            ChatHistoryDrawerContent(
+                conversations = uiState.historyConversations,
+                isLoading = uiState.isHistoryLoading,
+                onConversationClick = {
+                    viewModel.loadConversation(it)
+                    scope.launch { drawerState.close() }
+                },
+                onDeleteClick = { viewModel.deleteConversationFromHistory(it.id) },
+                onNewChat = {
+                    viewModel.clearChat()
+                    scope.launch { drawerState.close() }
+                },
+                onClose = { scope.launch { drawerState.close() } }
+            )
+        }
+    ) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
         ) {
-            // Header — uses the shared AppTopBar so the title style matches
-            // every other screen in the app.
-            com.swastricare.health.ui.components.AppTopBar(
-                title = "Swastri AI",
-                navigationIcon = {
-                    IconButton(onClick = { viewModel.openHistorySheet() }) {
-                        Icon(Icons.Default.History, contentDescription = "Chat History")
-                    }
+            // Custom AI header — hamburger menu (opens history drawer) +
+            // avatar + title + subtitle + overflow with Clear/Delete chat.
+            AIHeader(
+                onMenuClick = {
+                    viewModel.openHistorySheet()
+                    scope.launch { drawerState.open() }
                 },
-                actions = {
-                    IconButton(onClick = {
-                        focusManager.clearFocus()
-                        viewModel.clearChat()
-                    }) {
-                        Icon(Icons.Default.Close, contentDescription = "Clear Chat")
-                    }
+                onClearChat = {
+                    focusManager.clearFocus()
+                    viewModel.clearChat()
+                },
+                onDeleteChat = {
+                    focusManager.clearFocus()
+                    viewModel.deleteCurrentChat()
                 }
             )
 
             Box(modifier = Modifier.weight(1f)) {
                 if (uiState.messages.isEmpty() && uiState.showEmptyState) {
-                    val orbState = when {
-                        uiState.isRecording -> OrbState.Listening
-                        uiState.isLoading -> OrbState.Thinking
-                        else -> OrbState.Idle
-                    }
-                    // iOS-style intro: orb + greeting + vitals strip + roster + quick grid + deep dive CTA.
-                    // Scrollable so it adapts to small screens.
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Top
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        ParticleOrbView(
-                            state = orbState,
-                            isMedicalMode = uiState.currentMode == AIMode.Medical,
-                            isDark = isDark,
-                            modifier = Modifier
-                                .size(160.dp)
-                                .padding(top = 16.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        AIGreetingBlock(userName = uiState.userName)
-                        Spacer(modifier = Modifier.height(20.dp))
-                        if (uiState.currentMode == AIMode.General) {
-                            AIRosterPicker(
-                                selected = uiState.selectedPersonality,
-                                onSelect = { viewModel.selectPersonality(it) }
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-                        HealthVitalsStrip(
-                            steps = uiState.todaySteps,
-                            heartRate = uiState.todayHeartRate,
-                            calories = uiState.todayActiveCalories,
-                            onAskAbout = { prompt -> viewModel.sendPromptFromMetric(prompt) },
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        AIQuickActionGrid(
-                            actions = QuickAction.suggestions,
-                            onAction = { action ->
+                        AIEmptyIntro(
+                            onPromptClick = { prompt ->
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                viewModel.sendQuickAction(action)
-                            },
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                                viewModel.sendPromptFromMetric(prompt)
+                            }
                         )
-                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 } else {
                     ChatMessageList(
@@ -394,16 +388,7 @@ fun AIScreen(
             )
         }
 
-        // Chat History Sheet
-        if (uiState.showHistorySheet) {
-            ChatHistorySheet(
-                conversations = uiState.historyConversations,
-                isLoading = uiState.isHistoryLoading,
-                onConversationClick = { viewModel.loadConversation(it) },
-                onDeleteClick = { viewModel.deleteConversationFromHistory(it.id) },
-                onDismiss = { viewModel.closeHistorySheet() }
-            )
-        }
+        // (Chat history is now presented via ModalNavigationDrawer above.)
 
         // Meal Type Selector Sheet
         if (uiState.showMealTypeSheet && uiState.pendingFoodResult != null) {
@@ -447,6 +432,7 @@ fun AIScreen(
             }
         }
     }
+    } // end ModalNavigationDrawer content
 }
 
 // ─────────────────────────────────────
@@ -620,7 +606,13 @@ fun ChatBubble(
         ) + fadeIn(animationSpec = tween(300))
     ) {
         if (isUser) {
-            // --- User bubble: glassmorphic with accent border ---
+            // --- User bubble: solid teal, white text, tail on bottom-right ---
+            val userBubbleShape = RoundedCornerShape(
+                topStart = 18.dp,
+                topEnd = 18.dp,
+                bottomStart = 18.dp,
+                bottomEnd = 4.dp
+            )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -630,12 +622,13 @@ fun ChatBubble(
                 Box(
                     modifier = Modifier
                         .widthIn(max = 300.dp)
-                        .glass(cornerRadius = 16.dp, accentColor = PrimaryColor)
+                        .clip(userBubbleShape)
+                        .background(com.swastricare.health.ui.theme.AITeal)
                         .combinedClickable(
                             onClick = {},
                             onLongClick = { if (!message.isLoading) showMenu = true }
                         )
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
                     if (!message.imageUri.isNullOrEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -657,13 +650,13 @@ fun ChatBubble(
                             if (typeLabel.isNotBlank()) {
                                 Box(
                                     modifier = Modifier
-                                        .background(PrimaryColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                        .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         typeLabel,
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = PrimaryColor,
+                                        color = Color.White,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
@@ -674,7 +667,7 @@ fun ChatBubble(
                             if (!hasTypeLabel && rawContent.isNotBlank()) {
                                 Text(
                                     text = parseMarkdown(rawContent),
-                                    color = AppColors.onBackground,
+                                    color = Color.White,
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontFamily = Poppins
                                 )
@@ -683,7 +676,7 @@ fun ChatBubble(
                     } else {
                         Text(
                             text = parseMarkdown(message.content),
-                            color = AppColors.onBackground,
+                            color = Color.White,
                             style = MaterialTheme.typography.bodyLarge,
                             fontFamily = Poppins
                         )
@@ -718,42 +711,34 @@ fun ChatBubble(
                 }
             }
         } else {
-            // --- AI bubble: borderless, text floats on the gradient ---
-            Column(
+            // --- AI bubble: small avatar on the left + soft surface bubble ---
+            val aiBubbleShape = RoundedCornerShape(
+                topStart = 4.dp,
+                topEnd = 18.dp,
+                bottomEnd = 18.dp,
+                bottomStart = 18.dp
+            )
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(end = 48.dp),
-                horizontalAlignment = Alignment.Start
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        Icons.Rounded.AutoAwesome,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = PrimaryColor
-                    )
-                    Text("Swastri", style = MaterialTheme.typography.labelSmall, fontFamily = Poppins, color = PrimaryColor)
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Box(
-                    modifier = Modifier
-                        .combinedClickable(
-                            onClick = {},
-                            onLongClick = { if (!message.isLoading) showMenu = true }
-                        )
-                ) {
+                AIAvatar(size = 28.dp, modifier = Modifier.padding(top = 2.dp))
+                Column(horizontalAlignment = Alignment.Start) {
+                    Box(
+                        modifier = Modifier
+                            .clip(aiBubbleShape)
+                            .background(Color(0xFFF1F4F6))
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClick = { if (!message.isLoading) showMenu = true }
+                            )
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
                     if (message.isLoading) {
-                        Box(
-                            modifier = Modifier
-                                .glass(cornerRadius = 14.dp)
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                        ) {
-                            TypingIndicator()
-                        }
+                        TypingIndicator()
                     } else if (message.foodResult != null) {
                         // Food result — show only the card, skip raw text
                         FoodAnalysisCard(
@@ -809,13 +794,14 @@ fun ChatBubble(
                     }
                 }
 
-                // Health metric badges extracted from AI response (skip for food analysis cards)
-                if (!message.isLoading && message.content.isNotBlank() && message.foodResult == null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    InlineHealthMetricsRow(
-                        content = message.content,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
+                    // Health metric badges extracted from AI response (skip for food analysis cards)
+                    if (!message.isLoading && message.content.isNotBlank() && message.foodResult == null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        InlineHealthMetricsRow(
+                            content = message.content,
+                            modifier = Modifier.padding(start = 2.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1013,10 +999,11 @@ fun TypingIndicator() {
     val a1 = TypingDot(transition, 0)
     val a2 = TypingDot(transition, DOT_STAGGER_MS)
     val a3 = TypingDot(transition, DOT_STAGGER_MS * 2)
+    val dotColor = AppColors.onBackground.copy(alpha = 0.4f)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(modifier = Modifier.size(8.dp).background(PrimaryColor.copy(alpha = a1), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(PrimaryColor.copy(alpha = a2), CircleShape))
-        Box(modifier = Modifier.size(8.dp).background(PrimaryColor.copy(alpha = a3), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(dotColor.copy(alpha = a1), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(dotColor.copy(alpha = a2), CircleShape))
+        Box(modifier = Modifier.size(8.dp).background(dotColor.copy(alpha = a3), CircleShape))
     }
 }
 
@@ -1033,8 +1020,9 @@ fun ChatInputBar(
     onFocusChanged: (Boolean) -> Unit = {}
 ) {
     val sendEnabled = inputText.isNotEmpty() && !isLoading
+    val aiTeal = com.swastricare.health.ui.theme.AITeal
 
-    // Mic pulse animation
+    // Mic pulse animation (used while recording)
     val micPulse = rememberInfiniteTransition(label = "micPulse")
     val micRingScale by micPulse.animateFloat(
         initialValue = 1f,
@@ -1046,80 +1034,30 @@ fun ChatInputBar(
         label = "micRing"
     )
 
-    // Animated neon border
-    val neonTransition = rememberInfiniteTransition(label = "neon")
-    val neonAngle by neonTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "neonAngle"
-    )
-    val neonColors = listOf(
-        Color(0xFF1E3A5F),
-        Color(0xFF1D4ED8),
-        Color(0xFF2563EB),
-        Color(0xFF1E3A5F)
-    )
-    val borderShape = RoundedCornerShape(28.dp)
-
     var showAttachMenu by remember { mutableStateOf(false) }
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Pill-shaped text container holding +, text field, and mic
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .weight(1f)
+                .clip(RoundedCornerShape(28.dp))
+                .background(Color.White)
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFFE5E8EB),
+                    shape = RoundedCornerShape(28.dp)
+                )
+                .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Text field with neon border
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                .drawBehind {
-                    // if (!isLoading) return@drawBehind
-                    val strokeWidth = 1.5.dp.toPx()
-                    val radiusPx = 28.dp.toPx()
-
-                    val outerPath = Path().apply {
-                        addRoundRect(RoundRect(
-                            rect = Rect(Offset.Zero, size),
-                            cornerRadius = CornerRadius(radiusPx)
-                        ))
-                    }
-                    val innerPath = Path().apply {
-                        addRoundRect(RoundRect(
-                            rect = Rect(
-                                offset = Offset(strokeWidth, strokeWidth),
-                                size = Size(size.width - strokeWidth * 2, size.height - strokeWidth * 2)
-                            ),
-                            cornerRadius = CornerRadius(radiusPx - strokeWidth)
-                        ))
-                    }
-
-                    clipPath(outerPath) {
-                        clipPath(innerPath, clipOp = ClipOp.Difference) {
-                            rotate(neonAngle) {
-                                drawCircle(
-                                    brush = Brush.sweepGradient(neonColors),
-                                    radius = maxOf(size.width, size.height),
-                                    center = center
-                                )
-                            }
-                        }
-                    }
-                }
-                .glass(cornerRadius = 28.dp)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Plus button (inside text field, left side)
+            // Plus / attach
             Box {
                 IconButton(
                     onClick = { showAttachMenu = !showAttachMenu },
@@ -1128,7 +1066,7 @@ fun ChatInputBar(
                     Icon(
                         Icons.Default.Add,
                         contentDescription = "Attach",
-                        tint = AppColors.onBackground.copy(alpha = 0.5f),
+                        tint = AppColors.onBackground.copy(alpha = 0.6f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -1163,7 +1101,7 @@ fun ChatInputBar(
                 onValueChange = onTextChanged,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 12.dp)
+                    .padding(horizontal = 8.dp)
                     .heightIn(min = 36.dp)
                     .onFocusChanged { onFocusChanged(it.isFocused) },
                 maxLines = 4,
@@ -1174,7 +1112,7 @@ fun ChatInputBar(
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onSendClick() }),
-                cursorBrush = SolidColor(PrimaryColor),
+                cursorBrush = SolidColor(aiTeal),
                 decorationBox = { innerTextField ->
                     Box(
                         modifier = Modifier.padding(vertical = 8.dp),
@@ -1182,7 +1120,7 @@ fun ChatInputBar(
                     ) {
                         if (inputText.isEmpty()) {
                             Text(
-                                "Ask anything...",
+                                "Type your message...",
                                 fontSize = 14.sp,
                                 fontFamily = Poppins,
                                 color = AppColors.onBackground.copy(alpha = 0.4f)
@@ -1193,52 +1131,50 @@ fun ChatInputBar(
                 }
             )
 
-            // Send or Mic button inside text field
-            if (inputText.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(PrimaryColor, CircleShape)
-                        .clip(CircleShape)
-                        .clickable { onSendClick() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.ArrowUpward,
-                        contentDescription = "Send",
-                        tint = Color.White,
-                        modifier = Modifier.size(14.dp)
+            // Mic button (inside the pill)
+            Box(contentAlignment = Alignment.Center) {
+                if (isRecording) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .scale(micRingScale)
+                            .background(AppColors.error.copy(alpha = 0.2f), CircleShape)
                     )
                 }
-            } else {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isRecording) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .scale(micRingScale)
-                                .background(AppColors.error.copy(alpha = 0.2f), CircleShape)
+                IconButton(
+                    onClick = onMicClick,
+                    modifier = Modifier
+                        .background(
+                            if (isRecording) AppColors.error else Color.Transparent,
+                            CircleShape
                         )
-                    }
-                    IconButton(
-                        onClick = onMicClick,
-                        modifier = Modifier
-                            .background(
-                                if (isRecording) AppColors.error else Color.Transparent,
-                                CircleShape
-                            )
-                            .size(32.dp)
-                    ) {
-                        Icon(
-                            if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                            contentDescription = "Mic",
-                            tint = if (isRecording) Color.White else AppColors.onBackground.copy(alpha = 0.5f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                        .size(36.dp)
+                ) {
+                    Icon(
+                        if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = "Mic",
+                        tint = if (isRecording) Color.White else aiTeal,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
+
+        // Teal circular send button (separate, right of the pill)
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(if (sendEnabled) aiTeal else aiTeal.copy(alpha = 0.4f))
+                .clickable(enabled = sendEnabled) { onSendClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Send,
+                contentDescription = "Send",
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
@@ -1257,16 +1193,23 @@ fun FollowUpChips(suggestions: List<String>, onChipClick: (String) -> Unit) {
             modifier = Modifier.padding(top = 8.dp)
         ) {
             items(suggestions) { suggestion ->
+                val aiTeal = com.swastricare.health.ui.theme.AITeal
                 Box(
                     modifier = Modifier
-                        .glass(cornerRadius = 20.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White)
+                        .border(
+                            width = 1.dp,
+                            color = aiTeal.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(20.dp)
+                        )
                         .clickable { onChipClick(suggestion) }
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = suggestion,
                         style = MaterialTheme.typography.bodySmall,
-                        color = PrimaryColor,
+                        color = aiTeal,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1528,6 +1471,202 @@ private fun HealthInsightCard(metrics: HealthMetrics) {
                     Box(modifier = Modifier.width(60.dp))
                 }
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - ChatHistoryDrawerContent — left side drawer (ChatGPT-style)
+// ─────────────────────────────────────
+
+@Composable
+fun ChatHistoryDrawerContent(
+    conversations: List<AIConversation>,
+    isLoading: Boolean,
+    onConversationClick: (AIConversation) -> Unit,
+    onDeleteClick: (AIConversation) -> Unit,
+    onNewChat: () -> Unit,
+    onClose: () -> Unit
+) {
+    val aiTeal = com.swastricare.health.ui.theme.AITeal
+    ModalDrawerSheet(
+        drawerContainerColor = Color.White,
+        drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth(0.82f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .padding(top = 16.dp, bottom = 16.dp)
+        ) {
+            // Header row: title + close
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AIAvatar(size = 32.dp)
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Chat history",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = Poppins,
+                    color = AppColors.onBackground,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onClose) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = AppColors.onBackground
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // New chat button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(aiTeal)
+                    .clickable { onNewChat() }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "New chat",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = Poppins,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Recent",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = Poppins,
+                color = AppColors.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = aiTeal)
+                    }
+                }
+                conversations.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.History,
+                                contentDescription = null,
+                                tint = AppColors.onBackground.copy(alpha = 0.3f),
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Text(
+                                "No previous chats",
+                                fontSize = 13.sp,
+                                fontFamily = Poppins,
+                                color = AppColors.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(conversations, key = { it.id }) { conversation ->
+                            DrawerHistoryItem(
+                                conversation = conversation,
+                                onClick = { onConversationClick(conversation) },
+                                onDelete = { onDeleteClick(conversation) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DrawerHistoryItem(
+    conversation: AIConversation,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val formattedDate = remember(conversation.updated_at) {
+        try {
+            val instant = java.time.Instant.parse(conversation.updated_at)
+            val zdt = instant.atZone(java.time.ZoneId.systemDefault())
+            java.time.format.DateTimeFormatter.ofPattern("MMM d").format(zdt)
+        } catch (_: Exception) { "" }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = conversation.title,
+                fontSize = 14.sp,
+                fontFamily = Poppins,
+                color = AppColors.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (formattedDate.isNotEmpty()) {
+                Text(
+                    text = formattedDate,
+                    fontSize = 11.sp,
+                    fontFamily = Poppins,
+                    color = AppColors.onSurfaceVariant
+                )
+            }
+        }
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Delete",
+                tint = AppColors.onBackground.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }

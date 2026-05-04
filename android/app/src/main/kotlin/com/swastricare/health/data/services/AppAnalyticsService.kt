@@ -9,6 +9,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.*
 import kotlinx.serialization.SerialName
@@ -190,7 +191,7 @@ class AppAnalyticsService(
             eventType = eventType,
             properties = properties,
             sessionId = sessionId,
-            userId = currentUserId
+            userId = resolveUserId()
         )
 
         // Overflow: drop oldest if exceeding max size
@@ -208,6 +209,21 @@ class AppAnalyticsService(
 
     fun setUserId(userId: String) {
         currentUserId = userId
+    }
+
+    /**
+     * Resolve the user id for tagging events. Prefers an explicitly-set id (via setUserId),
+     * falling back to the live Supabase auth session so events still get tagged when
+     * setUserId hasn't been wired to a particular login flow.
+     */
+    private fun resolveUserId(): String? {
+        currentUserId?.let { return it }
+        return try {
+            supabaseClient.auth.currentUserOrNull()?.id
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to resolve user id from auth: ${e.message}")
+            null
+        }
     }
 
     // ─────────────────────────────────────
@@ -384,10 +400,11 @@ class AppAnalyticsService(
 
         if (batch.isEmpty()) return
 
-        // Tag events with userId if not already set
+        // Tag events with userId if not already set (e.g. queued before login completed)
+        val resolvedUserId = resolveUserId()
         val taggedBatch = batch.map { event ->
-            if (event.userId == null && currentUserId != null) {
-                event.copy(userId = currentUserId)
+            if (event.userId == null && resolvedUserId != null) {
+                event.copy(userId = resolvedUserId)
             } else event
         }
 

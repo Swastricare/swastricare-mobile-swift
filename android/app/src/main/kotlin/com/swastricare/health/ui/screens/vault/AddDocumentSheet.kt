@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,7 +36,8 @@ fun AddDocumentSheet(
     fileName: String,
     fileSize: Long,
     onUpload: (String, VaultCategory, DocumentMetadata) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    isUploading: Boolean = false
 ) {
     var title by remember { mutableStateOf(fileName.substringBeforeLast('.')) }
     var selectedCategory by remember { mutableStateOf(VaultCategory.LAB_REPORTS) }
@@ -350,7 +352,7 @@ fun AddDocumentSheet(
 
         // ── Save Document button ──
         val titleTrimmed = title.trim()
-        val canUpload = titleTrimmed.isNotEmpty()
+        val canUpload = titleTrimmed.isNotEmpty() && !isUploading
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -377,19 +379,34 @@ fun AddDocumentSheet(
             contentAlignment = Alignment.Center
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Save,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "Save Document",
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                )
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "Saving…",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Save,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Save Document",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    )
+                }
             }
         }
 
@@ -402,7 +419,8 @@ fun AddDocumentSheet(
                 .height(50.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .border(1.dp, borderSoft, RoundedCornerShape(14.dp))
-                .clickable { onDismiss() },
+                .clickable(enabled = !isUploading) { onDismiss() }
+                .alpha(if (isUploading) 0.5f else 1f),
             contentAlignment = Alignment.Center
         ) {
             Text(

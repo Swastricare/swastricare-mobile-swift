@@ -11,6 +11,10 @@ val PrimaryColor = Color(0xFF4F46E5) // Indigo 600 (iOS accentBlue)
 val SecondaryColor = Color(0xFF22C55E) // Green 500 (iOS accentGreen)
 val AccentColor = Color(0xFFEF4444) // Red 500 (iOS accentRed)
 
+// Swastri AI accent — matches the teal used in the AI mascot illustration
+val AITeal = Color(0xFF22C5A6)
+val AITealDark = Color(0xFF0E8C75)
+
 // Background Colors
 val BackgroundLight = Color(0xFFF6F7F9) // Off-white for light theme
 val BackgroundDark = Color(0xFF000000) // Pitch Black

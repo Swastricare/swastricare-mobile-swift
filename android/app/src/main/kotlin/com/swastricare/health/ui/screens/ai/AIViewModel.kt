@@ -366,6 +366,23 @@ class AIViewModel @Inject constructor(
         )
     }
 
+    /** Permanently delete the current conversation (vs. archive). Falls back to clearChat() if not yet saved. */
+    fun deleteCurrentChat() {
+        val id = currentConversationId
+        if (id == null) {
+            clearChat()
+            return
+        }
+        currentConversationId = null
+        _uiState.value = AIUiState(
+            showEmptyState = true,
+            currentMode = _uiState.value.currentMode
+        )
+        viewModelScope.launch {
+            try { conversationRepo.deleteConversation(id) } catch (_: Exception) {}
+        }
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

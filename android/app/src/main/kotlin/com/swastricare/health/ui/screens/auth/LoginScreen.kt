@@ -83,7 +83,8 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .let { if (isKeyboardOpen) it.verticalScroll(scrollState) else it },
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 BrandAuthHeader()
 
