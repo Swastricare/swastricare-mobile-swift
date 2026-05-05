@@ -454,11 +454,12 @@ private fun FullScreenTrackingMap(uiState: LiveWorkoutUiState, isDark: Boolean) 
                 width = 12f
             )
             // Start marker
+            val startDotBitmap = remember { createDotMarkerBitmap(MarkerColorStart) }
             Marker(
                 state = MarkerState(position = latLngs.first()),
                 title = "Start",
-                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
-                    .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_GREEN)
+                icon = BitmapDescriptorFactory.fromBitmap(startDotBitmap),
+                anchor = Offset(0.5f, 0.5f)
             )
             // Live position — navigation arrow pointing in direction of travel
             val bearing = if (latLngs.size >= 2) {

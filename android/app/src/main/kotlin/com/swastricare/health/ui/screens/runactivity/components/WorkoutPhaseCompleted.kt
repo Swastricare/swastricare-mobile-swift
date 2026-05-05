@@ -361,18 +361,20 @@ private fun CompletedRouteMap(uiState: LiveWorkoutUiState, isDark: Boolean) {
                 width = 10f
             )
             // Start marker
+            val startDotBitmap = remember { createDotMarkerBitmap(MarkerColorStart) }
+            val endDotBitmap = remember { createDotMarkerBitmap(MarkerColorEnd) }
             Marker(
                 state = MarkerState(position = latLngs.first()),
                 title = "Start",
-                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
-                    .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_GREEN)
+                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(startDotBitmap),
+                anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)
             )
             // End marker
             Marker(
                 state = MarkerState(position = latLngs.last()),
                 title = "Finish",
-                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
-                    .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_RED)
+                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(endDotBitmap),
+                anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)
             )
         } else if (uiState.currentLocation != null) {
             Circle(

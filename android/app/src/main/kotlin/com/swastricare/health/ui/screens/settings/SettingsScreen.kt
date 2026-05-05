@@ -129,6 +129,7 @@ fun SettingsScreen(
                             icon = Icons.Outlined.PersonOutline,
                             label = "Personal Information",
                             subtitle = "Update your personal details",
+                            iconTint = SettingsIconColor.Brand,
                             onClick = onNavigateToEditProfile
                         )
                         NewRowDivider()
@@ -136,6 +137,7 @@ fun SettingsScreen(
                             icon = Icons.Outlined.People,
                             label = "Family",
                             subtitle = "Manage your family group",
+                            iconTint = SettingsIconColor.Brand,
                             onClick = onNavigateToFamily
                         )
                         NewRowDivider()
@@ -143,6 +145,7 @@ fun SettingsScreen(
                             icon = Icons.Outlined.FavoriteBorder,
                             label = "Health Data Sync",
                             subtitle = "Health Connect, Samsung Health & more",
+                            iconTint = SettingsIconColor.Brand,
                             onClick = onNavigateToHealthDataSync
                         )
                     }
@@ -156,6 +159,7 @@ fun SettingsScreen(
                             icon = Icons.Outlined.Notifications,
                             label = "Notifications",
                             subtitle = "Customize your notification settings",
+                            iconTint = SettingsIconColor.Brand,
                             onClick = onNavigateToNotificationSettings
                         )
                         NewRowDivider()
@@ -164,6 +168,7 @@ fun SettingsScreen(
                             label = "Dark Mode",
                             checked = false,
                             enabled = false,
+                            iconTint = SettingsIconColor.Brand,
                             onToggle = { /* theme switching temporarily disabled */ }
                         )
                         NewRowDivider()
@@ -171,6 +176,7 @@ fun SettingsScreen(
                             icon = Icons.Outlined.Fingerprint,
                             label = "Biometric Lock",
                             checked = uiState.biometricEnabled,
+                            iconTint = SettingsIconColor.Brand,
                             onToggle = viewModel::toggleBiometric
                         )
                         NewRowDivider()
@@ -178,6 +184,7 @@ fun SettingsScreen(
                             icon = Icons.Outlined.Straighten,
                             label = "Units",
                             valueText = "Metric (km, kg)",
+                            iconTint = SettingsIconColor.Brand,
                             onClick = {
                                 scope.launch { snackbarHostState.showSnackbar("Units — coming soon") }
                             }
@@ -188,6 +195,7 @@ fun SettingsScreen(
                             icon = Icons.AutoMirrored.Outlined.VolumeUp,
                             label = "Sounds",
                             checked = soundsOn,
+                            iconTint = SettingsIconColor.Brand,
                             onToggle = { soundsOn = it }
                         )
                     }
@@ -201,6 +209,7 @@ fun SettingsScreen(
                             icon = Icons.AutoMirrored.Outlined.HelpOutline,
                             label = "Help & FAQs",
                             subtitle = "Find answers to common questions",
+                            iconTint = SettingsIconColor.Brand,
                             onClick = {
                                 scope.launch { snackbarHostState.showSnackbar("Help & FAQs — coming soon") }
                             }
@@ -210,6 +219,7 @@ fun SettingsScreen(
                             icon = Icons.AutoMirrored.Outlined.ContactSupport,
                             label = "Contact Us",
                             subtitle = "Get in touch with our support team",
+                            iconTint = SettingsIconColor.Brand,
                             onClick = {
                                 scope.launch { snackbarHostState.showSnackbar("Contact Us — coming soon") }
                             }
@@ -219,6 +229,7 @@ fun SettingsScreen(
                             icon = Icons.Outlined.Info,
                             label = "About",
                             subtitle = "Version ${viewModel.appVersion}",
+                            iconTint = SettingsIconColor.Brand,
                             onClick = {
                                 scope.launch { snackbarHostState.showSnackbar("About — coming soon") }
                             }
@@ -596,6 +607,10 @@ private fun SettingsErrorDialog(
 // Redesigned Settings building blocks (private)
 // ═══════════════════════════════════════════════════════
 
+private object SettingsIconColor {
+    val Brand = Color(0xFF22C5A6) // AITeal
+}
+
 @Composable
 private fun ProfileBannerCard(
     user: AppUser?,
@@ -819,6 +834,7 @@ private fun NewSettingsRow(
     label: String,
     subtitle: String? = null,
     valueText: String? = null,
+    iconTint: Color? = null,
     onClick: () -> Unit
 ) {
     Row(
@@ -828,7 +844,11 @@ private fun NewSettingsRow(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        NewIconBadge(icon = icon)
+        if (iconTint != null) {
+            NewIconBadge(icon = icon, background = Color.Transparent, tint = iconTint)
+        } else {
+            NewIconBadge(icon = icon)
+        }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(label, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = AppColors.onBackground)
@@ -856,13 +876,18 @@ private fun NewSettingsToggleRow(
     label: String,
     checked: Boolean,
     enabled: Boolean = true,
+    iconTint: Color? = null,
     onToggle: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        NewIconBadge(icon = icon)
+        if (iconTint != null) {
+            NewIconBadge(icon = icon, background = Color.Transparent, tint = iconTint)
+        } else {
+            NewIconBadge(icon = icon)
+        }
         Spacer(Modifier.width(12.dp))
         Text(
             label,

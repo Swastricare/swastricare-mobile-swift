@@ -1,15 +1,15 @@
 package com.swastricare.health.ui.screens.runactivity
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.*
@@ -18,60 +18,54 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Hiking
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
-import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.screens.ai.Poppins
+import com.swastricare.health.ui.theme.AITeal
 import com.swastricare.health.ui.theme.AppColors
-import com.swastricare.health.ui.theme.PremiumColor
-import kotlinx.coroutines.delay
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
 
 // ─────────────────────────────────────
 // MARK: - Activity Type Colors & Icons
 // ─────────────────────────────────────
 
 private val RunningGreen = Color(0xFF34C759)
-private val WalkingBlue = Color(0xFF007AFF)
-private val CyclingOrange = Color(0xFFFF9500)
-private val AccentIndigo = Color(0xFF4F46E5)
+private val WalkingTeal = Color(0xFF22C5A6)   // matches AI teal accent
+private val CyclingPurple = Color(0xFF8B5CF6)
+private val HikingOrange = Color(0xFFF97316)
+private val DividerGray = Color(0xFFE5E8EB)
 
 private fun workoutTypeColor(type: String): Color = when (type) {
     "running" -> RunningGreen
-    "walking" -> WalkingBlue
-    "cycling" -> CyclingOrange
+    "walking" -> WalkingTeal
+    "cycling" -> CyclingPurple
+    "hiking" -> HikingOrange
     else -> Color.Gray
 }
 
@@ -79,6 +73,7 @@ private fun workoutTypeIcon(type: String): ImageVector = when (type) {
     "running" -> Icons.Default.DirectionsRun
     "walking" -> Icons.Default.DirectionsWalk
     "cycling" -> Icons.Default.DirectionsBike
+    "hiking" -> Icons.Default.Hiking
     else -> Icons.Default.DirectionsRun
 }
 
@@ -86,6 +81,7 @@ private fun workoutTypeLabel(type: String): String = when (type) {
     "running" -> "Run"
     "walking" -> "Walk"
     "cycling" -> "Cycle"
+    "hiking" -> "Hike"
     else -> type.replaceFirstChar { it.uppercase() }
 }
 
@@ -103,35 +99,26 @@ fun RunCalendarScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Premium Animated Background
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            // 2. Top Bar
-            TopBar(onNavigateBack = onNavigateBack)
+    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            CalendarHeader(onBack = onNavigateBack)
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // 3. Month Navigation
                 MonthNavigationHeader(
                     selectedMonth = uiState.selectedMonth,
-                    activeDays = uiState.monthlyStats.activeDays,
                     canGoForward = !uiState.selectedMonth.equals(YearMonth.now()),
                     onPrevious = { viewModel.changeMonth(-1) },
                     onNext = { viewModel.changeMonth(1) }
                 )
 
-                // 4. Calendar Grid
                 CalendarGrid(
                     selectedMonth = uiState.selectedMonth,
                     workoutsByDate = uiState.workoutsByDate,
@@ -139,7 +126,8 @@ fun RunCalendarScreen(
                     onDateSelected = { viewModel.selectDate(it) }
                 )
 
-                // 5. Selected Date Detail
+                ActivityTypeLegend(stats = uiState.monthlyStats)
+
                 AnimatedVisibility(
                     visible = uiState.selectedDate != null,
                     enter = expandVertically(animationSpec = spring(dampingRatio = 0.8f)) + fadeIn(),
@@ -154,10 +142,8 @@ fun RunCalendarScreen(
                     }
                 }
 
-                // 6. Monthly Summary
-                MonthlySummarySection(stats = uiState.monthlyStats)
+                StatsOverviewSection(stats = uiState.monthlyStats)
 
-                // Extra bottom space for scrolling past bottom nav
                 Spacer(modifier = Modifier.height(120.dp))
             }
         }
@@ -165,97 +151,116 @@ fun RunCalendarScreen(
 }
 
 // ─────────────────────────────────────
-// MARK: - Top Bar
+// MARK: - Header
 // ─────────────────────────────────────
 
 @Composable
-private fun TopBar(onNavigateBack: () -> Unit) {
-    AppTopBar(title = "Activity Calendar", onBack = onNavigateBack)
+private fun CalendarHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = AppColors.onBackground
+            )
+        }
+        Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+            Text(
+                text = "Activity Calendar",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = Poppins,
+                color = AppColors.onBackground
+            )
+            Text(
+                text = "Track your activities and stay consistent",
+                fontSize = 11.sp,
+                fontFamily = Poppins,
+                color = AppColors.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = { /* filter — placeholder */ }) {
+            Icon(
+                Icons.Default.FilterList,
+                contentDescription = "Filter",
+                tint = AITeal
+            )
+        }
+        IconButton(onClick = { /* jump-to-today — placeholder */ }) {
+            Icon(
+                Icons.Default.CalendarToday,
+                contentDescription = "Today",
+                tint = AITeal
+            )
+        }
+    }
 }
 
 // ─────────────────────────────────────
-// MARK: - Month Navigation Header
+// MARK: - Month Nav (left-aligned compact)
 // ─────────────────────────────────────
 
 @Composable
 private fun MonthNavigationHeader(
     selectedMonth: YearMonth,
-    activeDays: Int,
     canGoForward: Boolean,
     onPrevious: () -> Unit,
     onNext: () -> Unit
 ) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { isVisible = true }
-
-    val alpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
-        label = "headerAlpha"
-    )
-    val offsetY by animateFloatAsState(
-        targetValue = if (isVisible) 0f else 10f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "headerOffset"
-    )
+    val haptic = LocalHapticFeedback.current
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer { this.alpha = alpha; translationY = offsetY },
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.Center
     ) {
-        val haptic = LocalHapticFeedback.current
-
-        // Previous month button
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(AccentIndigo.copy(alpha = 0.1f))
-                .clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onPrevious() },
-            contentAlignment = Alignment.Center
+        IconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onPrevious()
+            },
+            modifier = Modifier.size(32.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.ChevronLeft,
                 contentDescription = "Previous month",
-                tint = AccentIndigo,
-                modifier = Modifier.size(20.dp)
+                tint = AppColors.onBackground,
+                modifier = Modifier.size(22.dp)
             )
         }
 
-        // Month / Year label
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = selectedMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.onBackground
-            )
-            Text(
-                text = "$activeDays active days",
-                style = MaterialTheme.typography.labelSmall,
-                color = AppColors.onSurfaceVariant
-            )
-        }
+        Spacer(modifier = Modifier.width(12.dp))
 
-        // Next month button
-        val nextEnabled = canGoForward
-        val nextTint = if (nextEnabled) AccentIndigo else Color.Gray
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(nextTint.copy(alpha = 0.1f))
-                .then(if (nextEnabled) Modifier.clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onNext() } else Modifier),
-            contentAlignment = Alignment.Center
+        Text(
+            text = selectedMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = Poppins,
+            color = AppColors.onBackground
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        IconButton(
+            onClick = {
+                if (canGoForward) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onNext()
+                }
+            },
+            enabled = canGoForward,
+            modifier = Modifier.size(32.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Next month",
-                tint = nextTint,
-                modifier = Modifier.size(20.dp)
+                tint = if (canGoForward) AppColors.onBackground else AppColors.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.size(22.dp)
             )
         }
     }
@@ -272,50 +277,29 @@ private fun CalendarGrid(
     selectedDate: LocalDate?,
     onDateSelected: (LocalDate) -> Unit
 ) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(100)
-        isVisible = true
-    }
-
-    val alpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
-        label = "gridAlpha"
-    )
-    val offsetY by animateFloatAsState(
-        targetValue = if (isVisible) 0f else 15f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "gridOffset"
-    )
-
     val today = LocalDate.now()
-    val daysOfWeek = listOf("S", "M", "T", "W", "T", "F", "S")
+    val daysOfWeek = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
-    // Build the grid: leading blanks + days of month
     val firstDayOfMonth = selectedMonth.atDay(1)
-    // Sunday = 7 in DayOfWeek, but we want Sunday = 0 for our grid
-    val firstDayIndex = (firstDayOfMonth.dayOfWeek.value % 7) // Monday=1..Sunday=7 -> Sun=0,Mon=1..Sat=6
+    // DayOfWeek: Mon=1..Sun=7. We want grid columns Sun=0..Sat=6.
+    val firstDayIndex = (firstDayOfMonth.dayOfWeek.value % 7)
     val daysInMonth = selectedMonth.lengthOfMonth()
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer { this.alpha = alpha; translationY = offsetY }
-            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         // Day-of-week headers
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             daysOfWeek.forEach { day ->
                 Text(
                     text = day,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Poppins,
                     color = AppColors.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
@@ -325,14 +309,13 @@ private fun CalendarGrid(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Calendar rows
         val totalCells = firstDayIndex + daysInMonth
         val rows = (totalCells + 6) / 7
 
         for (row in 0 until rows) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 for (col in 0..6) {
                     val cellIndex = row * 7 + col
@@ -354,7 +337,6 @@ private fun CalendarGrid(
                             modifier = Modifier.weight(1f)
                         )
                     } else {
-                        // Empty cell
                         Spacer(modifier = Modifier.weight(1f).height(48.dp))
                     }
                 }
@@ -362,10 +344,6 @@ private fun CalendarGrid(
         }
     }
 }
-
-// ─────────────────────────────────────
-// MARK: - Calendar Day Cell
-// ─────────────────────────────────────
 
 @Composable
 private fun CalendarDayCell(
@@ -378,27 +356,17 @@ private fun CalendarDayCell(
     modifier: Modifier = Modifier
 ) {
     val hasWorkouts = !workouts.isNullOrEmpty()
-    val isDark = isSystemInDarkTheme()
     val haptic = LocalHapticFeedback.current
 
     val textColor = when {
         isSelected -> Color.White
         isFuture -> AppColors.onSurfaceVariant.copy(alpha = 0.3f)
-        isToday -> AccentIndigo
-        else -> AppColors.onSurface
-    }
-
-    val backgroundColor = when {
-        isSelected -> AccentIndigo
-        isToday -> AccentIndigo.copy(alpha = 0.12f)
-        else -> Color.Transparent
+        else -> AppColors.onBackground
     }
 
     Column(
         modifier = modifier
-            .height(48.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(backgroundColor)
+            .height(54.dp)
             .clickable(enabled = !isFuture) {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick()
@@ -406,37 +374,120 @@ private fun CalendarDayCell(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "$dayNumber",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
-            color = textColor,
-            textAlign = TextAlign.Center
-        )
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .then(
+                    when {
+                        isSelected -> Modifier.background(AITeal)
+                        isToday -> Modifier.border(1.5.dp, AITeal, CircleShape)
+                        else -> Modifier
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "$dayNumber",
+                fontSize = 13.sp,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium,
+                fontFamily = Poppins,
+                color = if (isToday && !isSelected) AITeal else textColor,
+                textAlign = TextAlign.Center
+            )
+        }
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(3.dp))
 
-        // Activity dots
         if (hasWorkouts) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Show up to 3 dots based on workout types
                 val uniqueTypes = workouts!!.map { it.type }.distinct().take(3)
                 uniqueTypes.forEach { type ->
-                    Canvas(modifier = Modifier.size(6.dp)) {
+                    Canvas(modifier = Modifier.size(5.dp)) {
                         drawCircle(
-                            color = if (isSelected) Color.White.copy(alpha = 0.9f) else workoutTypeColor(type),
+                            color = if (isSelected) Color.White else workoutTypeColor(type),
                             radius = size.minDimension / 2f
                         )
                     }
                 }
             }
         } else {
-            // Invisible placeholder so layout doesn't shift
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(5.dp))
         }
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Activity Type Legend
+// ─────────────────────────────────────
+
+@Composable
+private fun ActivityTypeLegend(stats: MonthlyStats) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        LegendItem(
+            icon = Icons.Default.DirectionsRun,
+            color = RunningGreen,
+            count = stats.runsCount,
+            label = "Runs"
+        )
+        LegendItem(
+            icon = Icons.Default.DirectionsWalk,
+            color = WalkingTeal,
+            count = stats.walksCount,
+            label = "Walks"
+        )
+        LegendItem(
+            icon = Icons.Default.DirectionsBike,
+            color = CyclingPurple,
+            count = stats.cyclesCount,
+            label = "Cycling"
+        )
+        LegendItem(
+            icon = Icons.Default.Hiking,
+            color = HikingOrange,
+            count = stats.hikesCount,
+            label = "Hike"
+        )
+    }
+}
+
+@Composable
+private fun LegendItem(
+    icon: ImageVector,
+    color: Color,
+    count: Int,
+    label: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = "$count",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = Poppins,
+            color = AppColors.onBackground
+        )
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontFamily = Poppins,
+            color = AppColors.onSurfaceVariant
+        )
     }
 }
 
@@ -450,11 +501,9 @@ private fun SelectedDaySection(
     workouts: List<WorkoutSummary>,
     onWorkoutClick: (String) -> Unit
 ) {
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("EEEE, d MMMM") }
-    val totalDistance = workouts.sumOf { it.distanceKm }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -462,27 +511,25 @@ private fun SelectedDaySection(
         ) {
             Text(
                 text = date.format(dateFormatter),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = Poppins,
                 color = AppColors.onBackground
             )
             if (workouts.isNotEmpty()) {
                 Text(
-                    text = String.format("%.1f km", totalDistance),
-                    style = MaterialTheme.typography.titleSmall,
+                    text = "${workouts.size} ${if (workouts.size == 1) "Activity" else "Activities"}",
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = AccentIndigo
+                    fontFamily = Poppins,
+                    color = AITeal
                 )
             }
         }
 
         if (workouts.isNotEmpty()) {
-            workouts.forEachIndexed { index, workout ->
-                WorkoutCard(
-                    workout = workout,
-                    delay = index * 80,
-                    onClick = { onWorkoutClick(workout.id) }
-                )
+            workouts.forEach { workout ->
+                WorkoutCard(workout = workout, onClick = { onWorkoutClick(workout.id) })
             }
         } else {
             EmptyDayCard()
@@ -490,63 +537,30 @@ private fun SelectedDaySection(
     }
 }
 
-// ─────────────────────────────────────
-// MARK: - Workout Card
-// ─────────────────────────────────────
-
 @Composable
-private fun WorkoutCard(
-    workout: WorkoutSummary,
-    delay: Int = 0,
-    onClick: () -> Unit
-) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(delay.toLong())
-        isVisible = true
-    }
-
-    val alpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
-        label = "cardAlpha"
-    )
-    val scale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.95f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "cardScale"
-    )
-    val offsetY by animateFloatAsState(
-        targetValue = if (isVisible) 0f else 12f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "cardOffset"
-    )
-
+private fun WorkoutCard(workout: WorkoutSummary, onClick: () -> Unit) {
     val typeColor = workoutTypeColor(workout.type)
     val haptic = LocalHapticFeedback.current
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("h:mm a") }
+    val timeText = workout.startTime?.format(timeFormatter) ?: ""
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                this.alpha = alpha
-                scaleX = scale
-                scaleY = scale
-                translationY = offsetY
-            }
-            .glass(cornerRadius = 16.dp, strokeWidth = 0.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, DividerGray, RoundedCornerShape(14.dp))
             .clickable {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             }
-            .padding(14.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Type icon
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(40.dp)
                 .background(typeColor.copy(alpha = 0.15f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
@@ -554,80 +568,73 @@ private fun WorkoutCard(
                 imageVector = workoutTypeIcon(workout.type),
                 contentDescription = null,
                 tint = typeColor,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
 
-        // Middle info
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = workoutTypeLabel(workout.type),
-                style = MaterialTheme.typography.titleSmall,
+                text = workoutTitle(workout),
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = AppColors.onSurface
+                fontFamily = Poppins,
+                color = AppColors.onBackground
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = formatDuration(workout.durationMinutes),
-                style = MaterialTheme.typography.labelSmall,
+                text = "${String.format("%.2f km", workout.distanceKm)}  ·  ${formatDuration(workout.durationMinutes)}",
+                fontSize = 11.sp,
+                fontFamily = Poppins,
                 color = AppColors.onSurfaceVariant
             )
         }
 
-        // Stats column
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = String.format("%.2f km", workout.distanceKm),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = AccentIndigo
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Pace (if available)
-                workout.avgPaceMinPerKm?.let { pace ->
-                    Text(
-                        text = formatPace(pace),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AppColors.onSurfaceVariant
-                    )
-                }
-                // Calories
+        Column(horizontalAlignment = Alignment.End) {
+            if (timeText.isNotBlank()) {
                 Text(
-                    text = "${workout.caloriesBurned} cal",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = timeText,
+                    fontSize = 12.sp,
+                    fontFamily = Poppins,
                     color = AppColors.onSurfaceVariant
                 )
             }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "View",
+                tint = AppColors.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(16.dp)
+            )
         }
-
-        // Chevron
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = "View detail",
-            tint = AppColors.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(16.dp)
-        )
     }
 }
 
-// ─────────────────────────────────────
-// MARK: - Empty Day Card
-// ─────────────────────────────────────
+private fun workoutTitle(workout: WorkoutSummary): String {
+    val timeOfDay = workout.startTime?.toLocalTime()?.hour
+    val period = when (timeOfDay) {
+        in 5..11 -> "Morning"
+        in 12..16 -> "Afternoon"
+        in 17..20 -> "Evening"
+        in 21..23, in 0..4 -> "Night"
+        else -> ""
+    }
+    val activityName = when (workout.type) {
+        "running" -> "Run"
+        "walking" -> "Walk"
+        "cycling" -> "Cycle"
+        "hiking" -> "Hike"
+        else -> workoutTypeLabel(workout.type)
+    }
+    return if (period.isNotEmpty()) "$period $activityName" else activityName
+}
 
 @Composable
 private fun EmptyDayCard() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 16.dp, strokeWidth = 0.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, DividerGray, RoundedCornerShape(14.dp))
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -638,17 +645,18 @@ private fun EmptyDayCard() {
             tint = AppColors.onSurfaceVariant.copy(alpha = 0.4f),
             modifier = Modifier.size(28.dp)
         )
-
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = "No activities",
-                style = MaterialTheme.typography.titleSmall,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
+                fontFamily = Poppins,
                 color = AppColors.onSurfaceVariant
             )
             Text(
                 text = "Rest day or no tracked workouts",
-                style = MaterialTheme.typography.labelSmall,
+                fontSize = 11.sp,
+                fontFamily = Poppins,
                 color = AppColors.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
@@ -656,169 +664,111 @@ private fun EmptyDayCard() {
 }
 
 // ─────────────────────────────────────
-// MARK: - Monthly Summary Section
+// MARK: - Stats Overview (2×2 grid)
 // ─────────────────────────────────────
 
 @Composable
-private fun MonthlySummarySection(stats: MonthlyStats) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(200)
-        isVisible = true
-    }
-
-    val alpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
-        label = "summaryAlpha"
-    )
-    val offsetY by animateFloatAsState(
-        targetValue = if (isVisible) 0f else 20f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "summaryOffset"
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer { this.alpha = alpha; translationY = offsetY },
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = "Monthly Summary",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.onBackground
-        )
-
+private fun StatsOverviewSection(stats: MonthlyStats) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            SummaryStatCard(
-                icon = Icons.Default.Map,
-                value = String.format("%.1f km", stats.totalDistanceKm),
-                label = "Total Distance",
-                color = AccentIndigo,
-                modifier = Modifier.weight(1f),
-                delay = 250
+            Text(
+                text = "Stats Overview",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = Poppins,
+                color = AppColors.onBackground
             )
-            SummaryStatCard(
-                icon = Icons.Default.DirectionsRun,
-                value = "${stats.totalWorkouts}",
-                label = "Workouts",
-                color = RunningGreen,
-                modifier = Modifier.weight(1f),
-                delay = 350
-            )
-            SummaryStatCard(
-                icon = Icons.Default.CalendarMonth,
-                value = "${stats.activeDays}",
-                label = "Active Days",
-                color = CyclingOrange,
-                modifier = Modifier.weight(1f),
-                delay = 450
+            Text(
+                text = "This Month",
+                fontSize = 12.sp,
+                fontFamily = Poppins,
+                color = AppColors.onSurfaceVariant
             )
         }
 
-        // Second row with calories and duration
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SummaryStatCard(
-                icon = Icons.Default.LocalFireDepartment,
-                value = "${stats.totalCalories}",
-                label = "Calories",
-                color = Color(0xFFFF2D55),
-                modifier = Modifier.weight(1f),
-                delay = 550
+            OverviewStatCard(
+                icon = Icons.Default.DirectionsRun,
+                tint = WalkingTeal,
+                value = String.format("%.2f", stats.totalDistanceKm),
+                label = "Total km",
+                modifier = Modifier.weight(1f)
             )
-            SummaryStatCard(
+            OverviewStatCard(
                 icon = Icons.Default.Schedule,
-                value = formatDuration(stats.totalDurationMinutes),
+                tint = WalkingTeal,
+                value = formatDurationHms(stats.totalDurationMinutes),
                 label = "Total Time",
-                color = PremiumColor.DeepPurpleStart,
-                modifier = Modifier.weight(1f),
-                delay = 650
+                modifier = Modifier.weight(1f)
             )
-            // Empty spacer for 3-column alignment
-            Spacer(modifier = Modifier.weight(1f))
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OverviewStatCard(
+                icon = Icons.Default.LocalFireDepartment,
+                tint = HikingOrange,
+                value = "${stats.totalCalories}",
+                label = "Total kcal",
+                modifier = Modifier.weight(1f)
+            )
+            OverviewStatCard(
+                icon = Icons.Default.CalendarToday,
+                tint = WalkingTeal,
+                value = "${stats.totalWorkouts}",
+                label = "Total Activities",
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
-// ─────────────────────────────────────
-// MARK: - Summary Stat Card
-// ─────────────────────────────────────
-
 @Composable
-private fun SummaryStatCard(
+private fun OverviewStatCard(
     icon: ImageVector,
+    tint: Color,
     value: String,
     label: String,
-    color: Color,
-    modifier: Modifier = Modifier,
-    delay: Int = 0
+    modifier: Modifier = Modifier
 ) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(delay.toLong())
-        isVisible = true
-    }
-
-    val alpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(400, easing = FastOutSlowInEasing),
-        label = "statAlpha"
-    )
-    val scale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.85f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "statScale"
-    )
-
-    Column(
+    Row(
         modifier = modifier
-            .graphicsLayer {
-                this.alpha = alpha
-                scaleX = scale
-                scaleY = scale
-            }
-            .glass(cornerRadius = 16.dp, strokeWidth = 0.dp)
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, DividerGray, RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(color.copy(alpha = 0.15f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(16.dp)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp)
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = value,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = Poppins,
+                color = AppColors.onBackground
+            )
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontFamily = Poppins,
+                color = AppColors.onSurfaceVariant
             )
         }
-
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.onSurface,
-            textAlign = TextAlign.Center
-        )
-
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = AppColors.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            maxLines = 1
-        )
     }
 }
 
@@ -832,8 +782,9 @@ private fun formatDuration(totalMinutes: Int): String {
     return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
 }
 
-private fun formatPace(paceMinPerKm: Double): String {
-    val wholeMinutes = paceMinPerKm.toInt()
-    val seconds = ((paceMinPerKm - wholeMinutes) * 60).toInt()
-    return "${wholeMinutes}'${String.format("%02d", seconds)}\"/km"
+/** HH:MM:SS — used by the Stats Overview "Total Time" tile. */
+private fun formatDurationHms(totalMinutes: Int): String {
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return String.format("%02d:%02d:00", hours, minutes)
 }

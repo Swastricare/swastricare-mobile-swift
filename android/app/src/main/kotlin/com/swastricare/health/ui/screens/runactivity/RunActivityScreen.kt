@@ -2,6 +2,12 @@ package com.swastricare.health.ui.screens.runactivity
 
 import android.Manifest
 import android.os.Build
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +18,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size as GeoSize
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -144,8 +154,10 @@ fun RunActivityScreen(
     }
 
     val today = LocalDate.now()
-    val todayActivities = remember(uiState.activities, today) {
-        uiState.activities.filter { it.startTime?.toLocalDate() == today }
+    var selectedDate by remember { mutableStateOf(today) }
+    val isToday = selectedDate == today
+    val selectedDateActivities = remember(uiState.activities, selectedDate) {
+        uiState.activities.filter { it.startTime?.toLocalDate() == selectedDate }
     }
 
     Box(
@@ -159,28 +171,67 @@ fun RunActivityScreen(
                 onCalendar = onNavigateToCalendar
             )
 
+            val hasWorkoutData = uiState.activities.isNotEmpty()
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = 4.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                item { DateSelectorPill(today = today, onClick = onNavigateToCalendar) }
+                item {
+                    DateSelectorPill(
+                        selectedDate = selectedDate,
+                        today = today,
+                        onPrev = { selectedDate = selectedDate.minusDays(1) },
+                        onNext = { if (selectedDate < today) selectedDate = selectedDate.plusDays(1) },
+                        onLabelClick = onNavigateToCalendar
+                    )
+                }
 
-                if (todayActivities.isEmpty()) {
-                    item { EmptyTodayHero(onStartWorkout = { launchWorkout(null) }) }
-                } else {
-                    items(todayActivities, key = { it.id }) { activity ->
-                        TodayActivityCard(
-                            activity = activity,
-                            onClick = { onNavigateToActivityDetail(activity.id) }
+                if (hasWorkoutData) {
+                    item {
+                        ActivityRingsCard(
+                            steps = if (isToday) uiState.todaySteps else 0,
+                            stepsGoal = 10000,
+                            calories = maxOf(
+                                if (isToday) uiState.todayCalories else 0,
+                                selectedDateActivities.sumOf { it.caloriesBurned }
+                            ),
+                            caloriesGoal = 600,
+                            activeMinutes = (selectedDateActivities.sumOf { it.durationSeconds } / 60).toInt(),
+                            activeMinutesGoal = 90
+                        )
+                    }
+                    item {
+                        WorkoutSummaryCard(
+                            sessions = uiState.activities.size,
+                            totalDurationFormatted = uiState.statistics.formattedTotalDuration,
+                            totalCalories = uiState.statistics.totalCalories,
+                            avgHeartRate = uiState.activities.mapNotNull { it.avgHeartRate }
+                                .takeIf { it.isNotEmpty() }?.average()?.toInt() ?: 0,
+                            onViewAll = onNavigateToCalendar
+                        )
+                    }
+                    item {
+                        RecentWorkoutsCard(
+                            activities = uiState.activities.take(3),
+                            onItemClick = onNavigateToActivityDetail,
+                            onViewAll = onNavigateToCalendar
+                        )
+                    }
+                    item {
+                        DailyStepsCard(
+                            steps = if (isToday) uiState.todaySteps else 0,
+                            goal = 10000
                         )
                     }
                     item { StartAnotherButton(onClick = { launchWorkout(null) }) }
+                } else {
+                    item { EmptyTodayHero(onStartWorkout = { launchWorkout(null) }) }
+                    item { IdeasSectionHeader() }
+                    item { IdeaCardsRow(onIdeaClick = launchWorkout) }
+                    item { TipCard() }
                 }
-
-                item { IdeasSectionHeader() }
-                item { IdeaCardsRow(onIdeaClick = launchWorkout) }
-                item { TipCard() }
             }
         }
 
@@ -250,10 +301,21 @@ private fun ActivityHeader(
 // ─── Date Selector ───────────────────────────────────────────────────────────
 
 @Composable
-private fun DateSelectorPill(today: LocalDate, onClick: () -> Unit) {
-    val label = remember(today) {
-        "Today, " + today.format(DateTimeFormatter.ofPattern("d MMM"))
+private fun DateSelectorPill(
+    selectedDate: LocalDate,
+    today: LocalDate,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onLabelClick: () -> Unit
+) {
+    val label = remember(selectedDate, today) {
+        when (selectedDate) {
+            today -> "Today, " + selectedDate.format(DateTimeFormatter.ofPattern("d MMM"))
+            today.minusDays(1) -> "Yesterday, " + selectedDate.format(DateTimeFormatter.ofPattern("d MMM"))
+            else -> selectedDate.format(DateTimeFormatter.ofPattern("EEE, d MMM"))
+        }
     }
+    val canGoNext = selectedDate < today
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -266,29 +328,48 @@ private fun DateSelectorPill(today: LocalDate, onClick: () -> Unit) {
                 .clip(CircleShape)
                 .background(CardSurface)
                 .border(1.dp, SoftBorder, CircleShape)
-                .clickable { onClick() }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.ChevronLeft,
-                contentDescription = null,
-                tint = TextSecondary,
-                modifier = Modifier.size(18.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { onPrev() }
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronLeft,
+                    contentDescription = "Previous day",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
             Text(
                 text = label,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
+                color = TextPrimary,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { onLabelClick() }
+                    .padding(horizontal = 6.dp, vertical = 8.dp)
             )
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = TextSecondary,
-                modifier = Modifier.size(18.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(enabled = canGoNext) { onNext() }
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "Next day",
+                    tint = if (canGoNext) TextSecondary else TextSecondary.copy(alpha = 0.3f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
@@ -468,7 +549,6 @@ private fun IdeasSectionHeader() {
 private data class WorkoutIdea(
     val title: String,
     val subtitle: String,
-    val durationLabel: String,
     val icon: ImageVector,
     val type: WorkoutType
 )
@@ -477,21 +557,18 @@ private val Ideas = listOf(
     WorkoutIdea(
         title = "Go for a Walk",
         subtitle = "Fresh air and steps",
-        durationLabel = "20 min",
         icon = Icons.Default.DirectionsWalk,
         type = WorkoutType.WALK
     ),
     WorkoutIdea(
         title = "Quick Run",
         subtitle = "Cardio boost",
-        durationLabel = "15 min",
         icon = Icons.Default.DirectionsRun,
         type = WorkoutType.RUN
     ),
     WorkoutIdea(
         title = "Outdoor Hike",
         subtitle = "Explore the trail",
-        durationLabel = "30 min",
         icon = Icons.Default.Terrain,
         type = WorkoutType.HIKE
     )
@@ -530,7 +607,7 @@ private fun IdeaCard(
             .background(CardSurface)
             .border(1.dp, SoftBorder, RoundedCornerShape(20.dp))
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 14.dp),
+            .padding(horizontal = 6.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
@@ -565,22 +642,6 @@ private fun IdeaCard(
             maxLines = 2,
             lineHeight = 13.sp
         )
-        Spacer(Modifier.weight(1f))
-        Spacer(Modifier.height(10.dp))
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(MintTintDeep)
-                .padding(horizontal = 12.dp, vertical = 5.dp)
-        ) {
-            Text(
-                text = idea.durationLabel,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = AITealDark,
-                lineHeight = 13.sp
-            )
-        }
     }
 }
 
@@ -775,4 +836,469 @@ private fun PermissionBottomSheet(
             }
         }
     }
+}
+
+// ─── Dashboard (when workout data is available) ──────────────────────────────
+
+private val MoveColor = Color(0xFF22C55E)
+private val StepsColor = Color(0xFF14B8A6)
+private val ActiveColor = Color(0xFF8B5CF6)
+private val HeartColor = Color(0xFFEF4444)
+
+@Composable
+private fun DashboardCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(CardSurface)
+            .border(1.dp, SoftBorder, RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun SectionTitleRow(title: String, onViewAll: (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        if (onViewAll != null) {
+            Row(
+                modifier = Modifier.clickable { onViewAll() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("View all", fontSize = 12.sp, color = AITeal, fontWeight = FontWeight.Medium)
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = AITeal,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+// ── Activity Rings Card ──────────────────────────────────────────────────────
+
+@Composable
+private fun ActivityRingsCard(
+    steps: Int,
+    stepsGoal: Int,
+    calories: Int,
+    caloriesGoal: Int,
+    activeMinutes: Int,
+    activeMinutesGoal: Int
+) {
+    DashboardCard {
+        SectionTitleRow(title = "Activity Rings")
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val moveTarget = (calories.toFloat() / caloriesGoal.coerceAtLeast(1)).coerceIn(0f, 1f)
+            val stepsTarget = (steps.toFloat() / stepsGoal.coerceAtLeast(1)).coerceIn(0f, 1f)
+            val activeTarget = (activeMinutes.toFloat() / activeMinutesGoal.coerceAtLeast(1)).coerceIn(0f, 1f)
+
+            val animSpec: AnimationSpec<Float> = tween(durationMillis = 600, easing = FastOutSlowInEasing)
+            val moveProgress by animateFloatAsState(moveTarget, animSpec, label = "moveRing")
+            val stepsProgress by animateFloatAsState(stepsTarget, animSpec, label = "stepsRing")
+            val activeProgress by animateFloatAsState(activeTarget, animSpec, label = "activeRing")
+
+            val animatedCalories by animateIntAsState(
+                calories, tween(600, easing = FastOutSlowInEasing), label = "cal"
+            )
+            val animatedSteps by animateIntAsState(
+                steps, tween(600, easing = FastOutSlowInEasing), label = "steps"
+            )
+            val animatedActive by animateIntAsState(
+                activeMinutes, tween(600, easing = FastOutSlowInEasing), label = "active"
+            )
+            val avgPercent = ((moveProgress + stepsProgress + activeProgress) / 3f * 100f).toInt()
+
+            Box(
+                modifier = Modifier.size(120.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                ActivityRings(
+                    moveProgress = moveProgress,
+                    stepsProgress = stepsProgress,
+                    activeProgress = activeProgress
+                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "$avgPercent%",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Text("Goal met", fontSize = 10.sp, color = TextSecondary)
+                }
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                RingMetricRow(
+                    label = "Move",
+                    value = "$animatedCalories",
+                    goal = "/$caloriesGoal kcal",
+                    color = MoveColor
+                )
+                RingMetricRow(
+                    label = "Steps",
+                    value = formatThousands(animatedSteps),
+                    goal = "/${formatThousands(stepsGoal)}",
+                    color = StepsColor
+                )
+                RingMetricRow(
+                    label = "Active Time",
+                    value = "$animatedActive",
+                    goal = "/$activeMinutesGoal min",
+                    color = ActiveColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivityRings(
+    moveProgress: Float,
+    stepsProgress: Float,
+    activeProgress: Float
+) {
+    Canvas(modifier = Modifier.size(120.dp)) {
+        val strokeWidth = 10f
+        val gap = 6f
+        val outer = androidx.compose.ui.geometry.Size(size.width - strokeWidth, size.height - strokeWidth)
+        val outerTopLeft = Offset(strokeWidth / 2f, strokeWidth / 2f)
+
+        fun ringAt(inset: Float, color: Color, progress: Float) {
+            val s = androidx.compose.ui.geometry.Size(outer.width - inset * 2, outer.height - inset * 2)
+            val tl = Offset(outerTopLeft.x + inset, outerTopLeft.y + inset)
+            // Track
+            drawArc(
+                color = color.copy(alpha = 0.15f),
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = tl,
+                size = s,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+            // Progress
+            drawArc(
+                color = color,
+                startAngle = -90f,
+                sweepAngle = 360f * progress,
+                useCenter = false,
+                topLeft = tl,
+                size = s,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+        }
+
+        ringAt(0f, MoveColor, moveProgress)
+        ringAt(strokeWidth + gap, StepsColor, stepsProgress)
+        ringAt((strokeWidth + gap) * 2, ActiveColor, activeProgress)
+    }
+}
+
+@Composable
+private fun RingMetricRow(label: String, value: String, goal: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(color)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, fontSize = 11.sp, color = TextSecondary)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    value,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary
+                )
+                Text(
+                    goal,
+                    fontSize = 11.sp,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(start = 2.dp, bottom = 1.dp)
+                )
+            }
+        }
+    }
+}
+
+// ── Workout Summary Card ─────────────────────────────────────────────────────
+
+@Composable
+private fun WorkoutSummaryCard(
+    sessions: Int,
+    totalDurationFormatted: String,
+    totalCalories: Int,
+    avgHeartRate: Int,
+    onViewAll: () -> Unit
+) {
+    DashboardCard {
+        SectionTitleRow(title = "Workout Summary", onViewAll = onViewAll)
+        Spacer(Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            SummaryStat(
+                icon = Icons.Default.DirectionsRun,
+                tint = MoveColor,
+                value = "$sessions",
+                label = "Sessions",
+                title = "Workouts",
+                modifier = Modifier.weight(1f)
+            )
+            SummaryStat(
+                icon = Icons.Default.PlayArrow,
+                tint = StepsColor,
+                value = totalDurationFormatted.ifBlank { "0m" },
+                label = "Total",
+                title = "Duration",
+                modifier = Modifier.weight(1f)
+            )
+            SummaryStat(
+                icon = Icons.Default.Terrain,
+                tint = ActiveColor,
+                value = "$totalCalories",
+                label = "Total",
+                title = "Calories",
+                modifier = Modifier.weight(1f)
+            )
+            SummaryStat(
+                icon = Icons.Default.FavoriteBorder,
+                tint = HeartColor,
+                value = if (avgHeartRate > 0) "$avgHeartRate" else "—",
+                label = "bpm",
+                title = "Avg. HR",
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryStat(
+    icon: ImageVector,
+    tint: Color,
+    value: String,
+    label: String,
+    title: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(title, fontSize = 11.sp, color = TextSecondary, textAlign = TextAlign.Center)
+        Text(
+            value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextPrimary,
+            textAlign = TextAlign.Center
+        )
+        Text(label, fontSize = 10.sp, color = TextSecondary, textAlign = TextAlign.Center)
+    }
+}
+
+// ── Recent Workouts Card ─────────────────────────────────────────────────────
+
+@Composable
+private fun RecentWorkoutsCard(
+    activities: List<RunActivity>,
+    onItemClick: (String) -> Unit,
+    onViewAll: () -> Unit
+) {
+    DashboardCard {
+        SectionTitleRow(title = "Recent Workouts", onViewAll = onViewAll)
+        Spacer(Modifier.height(8.dp))
+        activities.forEachIndexed { index, activity ->
+            RecentWorkoutRow(activity = activity, onClick = { onItemClick(activity.id) })
+            if (index < activities.lastIndex) {
+                HorizontalDivider(
+                    color = DividerSoft,
+                    thickness = 0.5.dp,
+                    modifier = Modifier.padding(start = 52.dp, top = 4.dp, bottom = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentWorkoutRow(activity: RunActivity, onClick: () -> Unit) {
+    val (icon, color) = when (activity.activityType) {
+        ActivityType.WALKING -> Icons.Default.DirectionsWalk to MoveColor
+        ActivityType.RUNNING -> Icons.Default.DirectionsRun to HeartColor
+        ActivityType.CYCLING -> Icons.Default.DirectionsRun to StepsColor
+        ActivityType.HIKING -> Icons.Default.Terrain to ActiveColor
+    }
+    val timeText = activity.startTime?.let { st ->
+        val today = LocalDate.now()
+        when (st.toLocalDate()) {
+            today -> st.format(DateTimeFormatter.ofPattern("h:mm a"))
+            today.minusDays(1) -> "Yesterday"
+            else -> st.format(DateTimeFormatter.ofPattern("MMM d"))
+        }
+    } ?: ""
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                activity.activityType.displayName,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
+            )
+            val durationMin = (activity.durationSeconds / 60).toInt()
+            val subtitleParts = buildList {
+                if (durationMin > 0) add("${durationMin} min")
+                if (activity.caloriesBurned > 0) add("${activity.caloriesBurned} kcal")
+            }
+            Text(
+                subtitleParts.joinToString(" · ").ifBlank { "—" },
+                fontSize = 12.sp,
+                color = TextSecondary
+            )
+        }
+        Text(timeText, fontSize = 12.sp, color = TextSecondary)
+    }
+}
+
+// ── Daily Steps Card ─────────────────────────────────────────────────────────
+
+@Composable
+private fun DailyStepsCard(steps: Int, goal: Int) {
+    val animatedSteps by animateIntAsState(
+        steps, tween(600, easing = FastOutSlowInEasing), label = "dailySteps"
+    )
+    val targetProgress = (steps.toFloat() / goal.coerceAtLeast(1)).coerceIn(0f, 1f)
+    val animatedProgress by animateFloatAsState(
+        targetProgress, tween(600, easing = FastOutSlowInEasing), label = "dailyStepsProgress"
+    )
+    DashboardCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Daily Steps",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                "${formatThousands(animatedSteps)} / ${formatThousands(goal)}",
+                fontSize = 12.sp,
+                color = TextSecondary
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "${formatThousands(animatedSteps)} steps today",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = AITeal
+        )
+        Spacer(Modifier.height(12.dp))
+        StepsBarChart(progress = animatedProgress)
+    }
+}
+
+@Composable
+private fun StepsBarChart(progress: Float) {
+    val barHeights = remember {
+        // Stylized hourly distribution — realistic shape, not real data
+        listOf(
+            0.05f, 0.04f, 0.03f, 0.02f, 0.02f, 0.05f,
+            0.20f, 0.40f, 0.55f, 0.45f, 0.35f, 0.40f,
+            0.50f, 0.45f, 0.38f, 0.55f, 0.62f, 0.78f,
+            0.85f, 0.65f, 0.45f, 0.30f, 0.18f, 0.10f
+        )
+    }
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+    ) {
+        val barWidth = size.width / (barHeights.size * 1.6f)
+        val gap = barWidth * 0.6f
+        barHeights.forEachIndexed { i, frac ->
+            val h = size.height * frac * (0.6f + 0.4f * progress)
+            val x = i * (barWidth + gap)
+            val y = size.height - h
+            drawRoundRect(
+                color = AITeal.copy(alpha = 0.85f),
+                topLeft = Offset(x, y),
+                size = androidx.compose.ui.geometry.Size(barWidth, h),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f, barWidth / 2f)
+            )
+        }
+    }
+}
+
+private fun formatThousands(value: Int): String {
+    if (value < 1000) return value.toString()
+    return "%,d".format(value)
 }

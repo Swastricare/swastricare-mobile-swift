@@ -86,13 +86,27 @@ class VaultViewModel @Inject constructor(
 
     fun loadDocuments() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            // Seed with cached documents so offline launches show files immediately.
+            val cached = repository.getCachedDocuments()
+            _uiState.update {
+                it.copy(
+                    documents = if (it.documents.isEmpty()) cached else it.documents,
+                    isLoading = it.documents.isEmpty() && cached.isEmpty(),
+                    errorMessage = null
+                )
+            }
             try {
                 val documents = repository.getDocuments()
-                _uiState.update { it.copy(documents = documents, isLoading = false) }
+                _uiState.update { it.copy(documents = documents, isLoading = false, errorMessage = null) }
                 rescheduleAppointmentReminders(documents)
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = UserFriendlyError.from(e)) }
+                // Network/server failed: keep cached documents and surface the error.
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = UserFriendlyError.from(e)
+                    )
+                }
             }
         }
     }

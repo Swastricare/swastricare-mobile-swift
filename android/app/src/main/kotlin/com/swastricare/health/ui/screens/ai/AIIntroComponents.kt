@@ -133,8 +133,7 @@ fun AIHeader(
                 tint = AppColors.onBackground
             )
         }
-        AIAvatar(size = 36.dp)
-        Spacer(modifier = Modifier.size(10.dp))
+        Spacer(modifier = Modifier.size(4.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

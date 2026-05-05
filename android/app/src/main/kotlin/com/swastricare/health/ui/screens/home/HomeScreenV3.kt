@@ -12,8 +12,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.MonitorWeight
@@ -123,6 +125,7 @@ fun HomeScreenV3(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
         ) {
             HeaderSection(
                 userName = uiState.userName.ifBlank { "there" },
@@ -185,12 +188,13 @@ fun HomeScreenV3(
             )
 
             Spacer(Modifier.height(sectionGap))
-            Spacer(Modifier.weight(1f, fill = true))
 
             SwastriAICard(
                 onChat = onNavigateToAIChat,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

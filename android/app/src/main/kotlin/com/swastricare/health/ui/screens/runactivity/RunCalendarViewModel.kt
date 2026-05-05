@@ -2,14 +2,15 @@ package com.swastricare.health.ui.screens.runactivity
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.swastricare.health.domain.model.WorkoutSession
-import com.swastricare.health.domain.repository.RunActivityRepository
+import com.swastricare.health.data.models.RunActivity
+import com.swastricare.health.data.repository.RunActivityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 import javax.inject.Inject
 
@@ -19,8 +20,9 @@ import javax.inject.Inject
 
 data class WorkoutSummary(
     val id: String,
-    val type: String, // "running", "walking", "cycling", "hike"
+    val type: String, // "running", "walking", "cycling", "hiking"
     val date: LocalDate,
+    val startTime: LocalDateTime?,
     val distanceKm: Double,
     val durationMinutes: Int,
     val caloriesBurned: Int,
@@ -32,7 +34,11 @@ data class MonthlyStats(
     val totalWorkouts: Int = 0,
     val activeDays: Int = 0,
     val totalCalories: Int = 0,
-    val totalDurationMinutes: Int = 0
+    val totalDurationMinutes: Int = 0,
+    val runsCount: Int = 0,
+    val walksCount: Int = 0,
+    val cyclesCount: Int = 0,
+    val hikesCount: Int = 0
 )
 
 data class RunCalendarUiState(
@@ -90,17 +96,18 @@ class RunCalendarViewModel @Inject constructor(
     private fun loadAllWorkouts() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            allWorkouts = repository.loadLocalActivities().mapNotNull { session: WorkoutSession ->
-                val date = session.startTime?.toLocalDate() ?: return@mapNotNull null
+            allWorkouts = repository.loadLocalActivities().mapNotNull { activity: RunActivity ->
+                val date = activity.startTime?.toLocalDate() ?: return@mapNotNull null
                 WorkoutSummary(
-                    id = session.id,
-                    type = session.activityType.dbValue,
+                    id = activity.id,
+                    type = activity.activityType.dbValue,
                     date = date,
-                    distanceKm = session.distanceMeters / 1000.0,
-                    durationMinutes = (session.durationSeconds / 60).toInt(),
-                    caloriesBurned = session.caloriesBurned,
-                    avgPaceMinPerKm = if (session.avgPaceSecondsPerKm > 0)
-                        session.avgPaceSecondsPerKm / 60.0 else null
+                    startTime = activity.startTime,
+                    distanceKm = activity.distanceMeters / 1000.0,
+                    durationMinutes = (activity.durationSeconds / 60).toInt(),
+                    caloriesBurned = activity.caloriesBurned,
+                    avgPaceMinPerKm = if (activity.avgPaceSecondsPerKm > 0)
+                        activity.avgPaceSecondsPerKm / 60.0 else null
                 )
             }.sortedByDescending { it.date }
 
@@ -117,7 +124,11 @@ class RunCalendarViewModel @Inject constructor(
             totalWorkouts = monthWorkouts.size,
             activeDays = byDate.keys.size,
             totalCalories = monthWorkouts.sumOf { it.caloriesBurned },
-            totalDurationMinutes = monthWorkouts.sumOf { it.durationMinutes }
+            totalDurationMinutes = monthWorkouts.sumOf { it.durationMinutes },
+            runsCount = monthWorkouts.count { it.type == "running" },
+            walksCount = monthWorkouts.count { it.type == "walking" },
+            cyclesCount = monthWorkouts.count { it.type == "cycling" },
+            hikesCount = monthWorkouts.count { it.type == "hiking" }
         )
 
         _uiState.value = RunCalendarUiState(

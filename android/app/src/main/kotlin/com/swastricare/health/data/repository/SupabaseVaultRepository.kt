@@ -1,5 +1,6 @@
 package com.swastricare.health.data.repository
 
+import android.content.SharedPreferences
 import android.util.Log
 import com.swastricare.health.data.model.DocumentMetadata
 import com.swastricare.health.data.model.MedicalDocument
@@ -12,6 +13,8 @@ import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -25,7 +28,9 @@ import kotlin.time.Duration.Companion.hours
  */
 @Singleton
 class SupabaseVaultRepository @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val prefs: SharedPreferences,
+    private val json: Json
 ) : VaultRepository {
 
     private val bucketName = "medical-vault"
@@ -36,17 +41,40 @@ class SupabaseVaultRepository @Inject constructor(
             ?: throw IllegalStateException("User not authenticated")
     }
 
+    private fun cacheKey(userId: String) = "$PREF_KEY_DOCUMENTS_PREFIX$userId"
+
+    fun getCachedDocuments(): List<MedicalDocument> {
+        val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return emptyList()
+        return try {
+            val raw = prefs.getString(cacheKey(userId), null) ?: return emptyList()
+            json.decodeFromString<List<MedicalDocument>>(raw)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to read cached documents: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun cacheDocuments(userId: String, documents: List<MedicalDocument>) {
+        try {
+            prefs.edit().putString(cacheKey(userId), json.encodeToString(documents)).apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to cache documents: ${e.message}")
+        }
+    }
+
     // ── Fetch Documents ──
 
     override suspend fun getDocuments(): List<MedicalDocument> = withContext(Dispatchers.IO) {
         val userId = requireUserId()
         try {
-            supabaseClient.from(tableName).select {
+            val fresh = supabaseClient.from(tableName).select {
                 filter {
                     eq("user_id", userId)
                 }
                 order("uploaded_at", Order.DESCENDING)
             }.decodeList<MedicalDocument>()
+            cacheDocuments(userId, fresh)
+            fresh
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch documents: ${e.message}")
             throw e
@@ -254,5 +282,6 @@ class SupabaseVaultRepository @Inject constructor(
 
     companion object {
         private const val TAG = "VaultRepository"
+        private const val PREF_KEY_DOCUMENTS_PREFIX = "cached_vault_documents_"
     }
 }

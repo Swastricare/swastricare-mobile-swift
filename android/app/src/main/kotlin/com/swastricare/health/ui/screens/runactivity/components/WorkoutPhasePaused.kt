@@ -331,17 +331,19 @@ private fun PausedFullScreenMap(uiState: LiveWorkoutUiState, isDark: Boolean) {
                 color = Color(0xFF00E5FF),
                 width = 12f
             )
+            val startDotBitmap = remember { createDotMarkerBitmap(MarkerColorStart) }
+            val currentDotBitmap = remember { createDotMarkerBitmap(MarkerColorCurrent) }
             Marker(
                 state = MarkerState(position = latLngs.first()),
                 title = "Start",
-                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
-                    .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_GREEN)
+                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(startDotBitmap),
+                anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)
             )
             Marker(
                 state = MarkerState(position = latLngs.last()),
                 title = "Current",
-                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
-                    .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_CYAN)
+                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(currentDotBitmap),
+                anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)
             )
         }
     }

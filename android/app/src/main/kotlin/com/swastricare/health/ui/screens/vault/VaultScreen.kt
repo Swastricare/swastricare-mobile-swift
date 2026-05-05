@@ -462,14 +462,14 @@ fun VaultScreen(
                     }
                 }
 
-                // ── Error Message ──
+                // ── Error / Offline Banner ──
                 uiState.errorMessage?.let { error ->
                     item {
-                        Text(
-                            text = error,
-                            color = AppColors.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                        Spacer(Modifier.height(12.dp))
+                        VaultErrorCard(
+                            message = error,
+                            onRetry = { viewModel.loadDocuments() },
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
                 }
@@ -484,14 +484,7 @@ fun VaultScreen(
                 } else if (viewModel.filteredDocuments.isEmpty() && uiState.documents.isEmpty()) {
                     // Vault is completely empty — handled by EmptyState overlay outside the LazyColumn
                 } else if (viewModel.filteredDocuments.isEmpty()) {
-                    // Has documents but none match the selected category
-                    item {
-                        CategoryEmptyState(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 24.dp)
-                        )
-                    }
+                    // Has documents but none match the selected category — handled by overlay below
                 } else {
                     // Count / context caption
                     item {
@@ -600,9 +593,31 @@ fun VaultScreen(
                         .padding(top = 88.dp),
                     contentAlignment = Alignment.TopCenter
                 ) {
-                    EmptyState(
-                        onAddFiles = { filePickerLauncher.launch(arrayOf("*/*")) }
-                    )
+                    if (uiState.errorMessage != null) {
+                        VaultOfflineState(
+                            message = uiState.errorMessage!!,
+                            onRetry = { viewModel.loadDocuments() }
+                        )
+                    } else {
+                        EmptyState(
+                            onAddFiles = { filePickerLauncher.launch(arrayOf("*/*")) }
+                        )
+                    }
+                }
+            }
+
+            // Category empty — centered in the lower half of the screen
+            if (!uiState.isLoading && uiState.documents.isNotEmpty() && viewModel.filteredDocuments.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.5f)
+                            .align(Alignment.BottomCenter),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CategoryEmptyState()
+                    }
                 }
             }
 
@@ -1181,29 +1196,154 @@ private fun BatchUploadItemRow(
 }
 
 @Composable
-private fun CategoryEmptyState(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val bitmap = remember {
-        runCatching {
-            context.assets.open("icons/file empty illustretion.png").use {
-                android.graphics.BitmapFactory.decodeStream(it)
-            }
-        }.getOrNull()
+private fun VaultErrorCard(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val accent = Color(0xFFD97706) // amber-600 — matches the global offline banner tone
+    val bg = Color(0xFFFFF7ED)
+    val border = Color(0xFFFCD9A0)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(bg, RoundedCornerShape(14.dp))
+            .border(1.dp, border, RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = 0.14f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.WifiOff,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "You're offline",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF0F172A)
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                message,
+                fontSize = 12.sp,
+                color = Color(0xFF6B7280),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(accent, RoundedCornerShape(20.dp))
+                .clickable(onClick = onRetry)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Retry",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
     }
+}
+
+@Composable
+private fun VaultOfflineState(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val accent = PremiumColors.Teal
+    val mutedText = Color(0xFF6B7280)
+    val darkText = Color(0xFF0F172A)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(108.dp)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = 0.10f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.WifiOff,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(48.dp)
+            )
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(
+            "You're offline",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = darkText,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            message,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            color = mutedText,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        )
+        Spacer(Modifier.height(22.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(accent)
+                .clickable(onClick = onRetry),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Try Again",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryEmptyState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(150.dp)
-            )
-        }
-        Spacer(Modifier.height(8.dp))
         Text(
             "No files yet",
             fontSize = 16.sp,

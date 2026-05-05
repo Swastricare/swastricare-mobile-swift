@@ -1,9 +1,9 @@
 package com.swastricare.health.ui.screens.runactivity
 
 import android.content.Intent
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,22 +11,45 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.Terrain
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Landscape
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.*
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,45 +59,31 @@ import com.swastricare.health.data.model.RoutePoint
 import com.swastricare.health.data.model.SplitData
 import com.swastricare.health.data.model.WorkoutDetail
 import com.swastricare.health.data.models.RunActivity
-import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.RouteMapView
 import com.swastricare.health.ui.components.TrackScreen
-import com.swastricare.health.ui.screens.home.glass
+import com.swastricare.health.ui.theme.AITeal
 import com.swastricare.health.ui.theme.AppColors
-import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 // ─────────────────────────────────────
-// MARK: - Design Constants
+// Design tokens (light, clean theme)
 // ─────────────────────────────────────
 
-private val CyanAccent = Color(0xFF00E5FF)
-private val GreenAccent = Color(0xFF38EF7D)
-private val RedAccent = Color(0xFFFF4757)
-private val OrangeAccent = Color(0xFFFF9F0A)
-private val PurpleAccent = Color(0xFFBF5AF2)
-private val ChartBackground = Color(0xFF1A1A2E)
+private val CardBorderColor = Color(0xFFE6E8EB)
+private val CardSubtleBg = Color(0xFFF8FAFB)
+private val SubtleText = Color(0xFF6B7280)
+private val FaintText = Color(0xFF9CA3AF)
+private val DangerColor = Color(0xFFEF4444)
 
-// Heart rate zone colors
-private val HrZoneBlue = Color(0xFF64B5F6)
-private val HrZoneGreen = Color(0xFF66BB6A)
-private val HrZoneYellow = Color(0xFFFFCA28)
-private val HrZoneRed = Color(0xFFEF5350)
-
-// ─────────────────────────────────────
-// MARK: - Tab Enum
-// ─────────────────────────────────────
-
-private enum class DetailTab(val label: String) {
-    OVERVIEW("Overview"),
-    SPLITS("Splits"),
-    PACE("Pace"),
-    ELEVATION("Elevation"),
-    HEART_RATE("Heart Rate")
-}
+// HR zone colors (light theme)
+private val ZoneRest = Color(0xFF60A5FA)
+private val ZoneLight = Color(0xFF34D399)
+private val ZoneModerate = Color(0xFFFBBF24)
+private val ZoneIntense = Color(0xFFEF4444)
+private val ElevationColor = Color(0xFFF59E0B)
 
 // ─────────────────────────────────────
-// MARK: - ActivityDetailScreen
+// Activity Detail Screen
 // ─────────────────────────────────────
 
 @Composable
@@ -86,9 +95,9 @@ fun ActivityDetailScreen(
     TrackScreen("ActivityDetail")
     val context = LocalContext.current
     val viewModel: ActivityDetailViewModel = hiltViewModel()
-    var selectedTab by remember { mutableStateOf(DetailTab.OVERVIEW) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isMapExpanded by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
     val workout = uiState.workout
@@ -98,42 +107,51 @@ fun ActivityDetailScreen(
         viewModel.loadActivity(workoutId)
     }
 
-    when {
-        isLoading -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        when {
+            isLoading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = AITeal)
+                }
             }
-        }
-        workout == null -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            workout == null -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Icon(
                         Icons.Default.SearchOff,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = AppColors.onSurfaceVariant
+                        tint = FaintText
                     )
-                    Spacer(Modifier.height(16.dp))
-                    Text("Workout not found", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Workout not found",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = AppColors.onBackground
+                    )
                 }
             }
-        }
-        else -> {
-            Box(modifier = Modifier.fillMaxSize()) {
-
+            else -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // ── Top Bar ──
-                    ActivityDetailTopBar(
+                    DetailTopBar(
+                        workout = workout,
+                        menuExpanded = menuExpanded,
+                        onMenuToggle = { menuExpanded = it },
                         onBack = onNavigateBack,
                         onShare = {
-                            val distanceKm = workout!!.distanceMeters / 1000.0
-                            val duration = formatDuration(workout!!.durationSeconds)
-                            val typeLabel = workout!!.type.replaceFirstChar { it.uppercase() }
-                            val shareText = "Completed a ${"%.2f".format(distanceKm)}km $typeLabel in $duration \u2014 SwastriCare"
+                            menuExpanded = false
+                            val distanceKm = workout.distanceMeters / 1000.0
+                            val duration = formatDuration(workout.durationSeconds)
+                            val typeLabel = workout.type.replaceFirstChar { it.uppercase() }
+                            val shareText = "Completed a ${"%.2f".format(distanceKm)}km $typeLabel in $duration — SwastriCare"
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 this.type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, shareText)
@@ -141,1151 +159,1103 @@ fun ActivityDetailScreen(
                             context.startActivity(Intent.createChooser(intent, "Share Workout"))
                         },
                         onExportGpx = {
+                            menuExpanded = false
                             val file = GpxExporter.exportToGpx(
                                 context = context,
-                                routePoints = workout!!.routePoints,
-                                activityType = workout!!.type
+                                routePoints = workout.routePoints,
+                                activityType = workout.type
                             )
                             file?.let { GpxExporter.shareGpxFile(context, it) }
                         },
-                        hasRoute = workout!!.routePoints.size >= 2
+                        onDeleteRequest = {
+                            menuExpanded = false
+                            showDeleteDialog = true
+                        },
+                        hasRoute = workout.routePoints.size >= 2
                     )
 
-                    // ── Route Map ──
-                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        RouteMapView(
-                            routePoints = workout!!.routePoints,
-                            isLive = false,
-                            height = if (isMapExpanded) 350 else 200,
-                            onExpand = { isMapExpanded = !isMapExpanded }
+                    Spacer(Modifier.height(8.dp))
+
+                    if (workout.routePoints.isNotEmpty()) {
+                        MapCard(
+                            workout = workout,
+                            isExpanded = isMapExpanded,
+                            onToggleExpand = { isMapExpanded = !isMapExpanded }
                         )
+                        Spacer(Modifier.height(16.dp))
                     }
 
+                    StatsCard(workout = workout)
                     Spacer(Modifier.height(16.dp))
 
-                    // ── Activity Header Card ──
-                    ActivityHeaderCard(
-                        workout = workout!!,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // ── Tab Selector ──
-                    DetailTabRow(
-                        selectedTab = selectedTab,
-                        onTabSelected = { selectedTab = it },
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // ── Tab Content ──
-                    when (selectedTab) {
-                        DetailTab.OVERVIEW -> OverviewTab(
-                            workout = workout!!,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        DetailTab.SPLITS -> SplitsTab(
-                            splits = workout!!.splits,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        DetailTab.PACE -> PaceTab(
-                            splits = workout!!.splits,
-                            avgPace = workout!!.avgPace,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        DetailTab.ELEVATION -> ElevationTab(
-                            routePoints = workout!!.routePoints,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        DetailTab.HEART_RATE -> HeartRateTab(
-                            heartRateData = workout!!.heartRateData,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
+                    if (workout.splits.size >= 2) {
+                        PaceChartCard(splits = workout.splits, avgPace = workout.avgPace)
+                        Spacer(Modifier.height(16.dp))
                     }
 
-                    Spacer(Modifier.height(24.dp))
+                    if (workout.splits.isNotEmpty()) {
+                        SplitsCard(splits = workout.splits)
+                        Spacer(Modifier.height(16.dp))
+                    }
 
-                    // ── Delete Button ──
-                    DeleteWorkoutButton(
-                        onClick = { showDeleteDialog = true },
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                    if (workout.heartRateData.size >= 2) {
+                        HeartRateChartCard(data = workout.heartRateData)
+                        Spacer(Modifier.height(16.dp))
+                        HeartRateZonesCard(data = workout.heartRateData)
+                        Spacer(Modifier.height(16.dp))
+                    }
 
-                    // Bottom spacer for navigation bar
-                    Spacer(Modifier.height(120.dp))
+                    if (hasElevationVariation(workout.routePoints)) {
+                        ElevationChartCard(routePoints = workout.routePoints)
+                        Spacer(Modifier.height(16.dp))
+                    }
+
+                    ActivityDetailsCard(workout = workout)
+                    Spacer(Modifier.height(16.dp))
+
+                    NotesCard()
+                    Spacer(Modifier.height(40.dp))
                 }
             }
+        }
 
-            // ── Delete Confirmation Dialog ──
-            if (showDeleteDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteDialog = false },
-                    title = { Text("Delete Workout") },
-                    text = { Text("Are you sure you want to delete this workout? This action cannot be undone.") },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showDeleteDialog = false
-                                viewModel.deleteActivity(workout!!.id)
-                                onNavigateBack()
-                            },
-                            colors = ButtonDefaults.textButtonColors(contentColor = RedAccent)
-                        ) {
-                            Text("Delete")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Cancel")
-                        }
-                    },
-                    containerColor = AppColors.surface,
-                    titleContentColor = AppColors.onSurface,
-                    textContentColor = AppColors.onSurfaceVariant
-                )
-            }
+        if (showDeleteDialog && workout != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Workout") },
+                text = { Text("Are you sure you want to delete this workout? This action cannot be undone.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog = false
+                            viewModel.deleteActivity(workout.id)
+                            onDelete(workout.id)
+                            onNavigateBack()
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = DangerColor)
+                    ) { Text("Delete") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                },
+                containerColor = Color.White
+            )
         }
     }
 }
 
 // ─────────────────────────────────────
-// MARK: - Top Bar
+// Top Bar
 // ─────────────────────────────────────
 
 @Composable
-private fun ActivityDetailTopBar(
+private fun DetailTopBar(
+    workout: WorkoutDetail,
+    menuExpanded: Boolean,
+    onMenuToggle: (Boolean) -> Unit,
     onBack: () -> Unit,
     onShare: () -> Unit,
     onExportGpx: () -> Unit,
+    onDeleteRequest: () -> Unit,
     hasRoute: Boolean
 ) {
-    AppTopBar(
-        title = "Activity Detail",
-        onBack = onBack,
-        actions = {
-            if (hasRoute) {
-                IconButton(onClick = onExportGpx) {
-                    Icon(
-                        Icons.Default.FileDownload,
-                        contentDescription = "Export GPX",
-                        tint = AppColors.onBackground
-                    )
-                }
-            }
-            IconButton(onClick = onShare) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
                 Icon(
-                    Icons.Default.Share,
-                    contentDescription = "Share",
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
                     tint = AppColors.onBackground
                 )
             }
-        }
-    )
-}
-
-// ─────────────────────────────────────
-// MARK: - Activity Header Card
-// ─────────────────────────────────────
-
-@Composable
-private fun ActivityHeaderCard(
-    workout: WorkoutDetail,
-    modifier: Modifier = Modifier
-) {
-    val typeIcon = when (workout.type) {
-        "run" -> Icons.Default.DirectionsRun
-        "walk" -> Icons.Default.DirectionsWalk
-        "cycle" -> Icons.Default.DirectionsBike
-        "hike" -> Icons.Default.Terrain
-        else -> Icons.Default.DirectionsRun
-    }
-
-    val typeColor = when (workout.type) {
-        "run" -> CyanAccent
-        "walk" -> GreenAccent
-        "cycle" -> Color(0xFFFFD60A)
-        "hike" -> PurpleAccent
-        else -> CyanAccent
-    }
-
-    val typeLabel = workout.type.replaceFirstChar { it.uppercase() }
-    val distanceKm = workout.distanceMeters / 1000.0
-    val duration = formatDuration(workout.durationSeconds)
-    val avgPaceFormatted = formatPace(workout.avgPace)
-
-    // Staggered entry
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { isVisible = true }
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(600, easing = FastOutSlowInEasing),
-        label = "headerAlpha"
-    )
-    val animatedOffset by animateFloatAsState(
-        targetValue = if (isVisible) 0f else 30f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "headerOffset"
-    )
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                alpha = animatedAlpha
-                translationY = animatedOffset
-            }
-            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(typeColor.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = typeIcon,
-                    contentDescription = typeLabel,
-                    tint = typeColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = typeLabel,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = AppColors.onSurface
-                )
-                Text(
-                    text = formatDateTime(workout.startTime),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AppColors.onSurfaceVariant
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            HeaderStat(
-                value = "${"%.2f".format(distanceKm)}",
-                unit = "km",
-                label = "Distance"
-            )
-            HeaderStat(
-                value = duration,
-                unit = "",
-                label = "Duration"
-            )
-            HeaderStat(
-                value = avgPaceFormatted,
-                unit = "/km",
-                label = "Avg Pace"
-            )
-            HeaderStat(
-                value = "${workout.calories}",
-                unit = "kcal",
-                label = "Calories"
-            )
-        }
-    }
-}
-
-@Composable
-private fun HeaderStat(
-    value: String,
-    unit: String,
-    label: String
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.onSurface
-            )
-            if (unit.isNotEmpty()) {
-                Text(
-                    text = unit,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AppColors.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 2.dp, start = 2.dp)
-                )
-            }
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = AppColors.onSurfaceVariant
-        )
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Tab Selector
-// ─────────────────────────────────────
-
-@Composable
-private fun DetailTabRow(
-    selectedTab: DetailTab,
-    onTabSelected: (DetailTab) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    TabRow(
-        selectedTabIndex = selectedTab.ordinal,
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .glass(cornerRadius = 16.dp, opacity = 0.15f, strokeWidth = 0.dp),
-        containerColor = Color.Transparent,
-        contentColor = AppColors.onSurface,
-        indicator = { tabPositions ->
-            TabRowDefaults.SecondaryIndicator(
-                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab.ordinal]),
-                height = 3.dp,
-                color = AppColors.primary
-            )
-        },
-        divider = {}
-    ) {
-        DetailTab.entries.forEach { tab ->
-            val isSelected = tab == selectedTab
-            Tab(
-                selected = isSelected,
-                onClick = { onTabSelected(tab) },
-                text = {
-                    Text(
-                        text = tab.label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isSelected)
-                            AppColors.primary
-                        else
-                            AppColors.onSurfaceVariant
+            Spacer(Modifier.weight(1f))
+            Box {
+                IconButton(onClick = { onMenuToggle(true) }) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        tint = AppColors.onBackground
                     )
                 }
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Overview Tab
-// ─────────────────────────────────────
-
-@Composable
-private fun OverviewTab(
-    workout: WorkoutDetail,
-    modifier: Modifier = Modifier
-) {
-    val distanceKm = workout.distanceMeters / 1000.0
-
-    val stats = listOf(
-        OverviewStatData(Icons.Default.Straighten, "${"%.2f".format(distanceKm)}", "km", "Distance", CyanAccent),
-        OverviewStatData(Icons.Default.Timer, formatDuration(workout.durationSeconds), "", "Duration", GreenAccent),
-        OverviewStatData(Icons.Default.Speed, formatPace(workout.avgPace), "/km", "Avg Pace", OrangeAccent),
-        OverviewStatData(Icons.Default.TrendingUp, "${"%.1f".format(workout.avgSpeed)}", "km/h", "Avg Speed", PurpleAccent),
-        OverviewStatData(Icons.Default.LocalFireDepartment, "${workout.calories}", "kcal", "Calories", RedAccent),
-        OverviewStatData(Icons.Default.Terrain, "${"%.0f".format(workout.elevationGain)}", "m", "Elevation", Color(0xFFFFD60A))
-    )
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // 2x3 grid
-        for (rowIndex in 0..2) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                for (colIndex in 0..1) {
-                    val index = rowIndex * 2 + colIndex
-                    if (index < stats.size) {
-                        val s = stats[index]
-                        StatCardContent(
-                            icon = s.icon,
-                            value = s.value,
-                            unit = s.unit,
-                            label = s.label,
-                            color = s.color,
-                            delay = index * 80,
-                            modifier = Modifier.weight(1f)
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { onMenuToggle(false) }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Share") },
+                        onClick = onShare,
+                        leadingIcon = { Icon(Icons.Outlined.Share, null, tint = AppColors.onBackground) }
+                    )
+                    if (hasRoute) {
+                        DropdownMenuItem(
+                            text = { Text("Export GPX") },
+                            onClick = onExportGpx,
+                            leadingIcon = { Icon(Icons.Outlined.FileDownload, null, tint = AppColors.onBackground) }
                         )
                     }
+                    DropdownMenuItem(
+                        text = { Text("Delete", color = DangerColor) },
+                        onClick = onDeleteRequest,
+                        leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = DangerColor) }
+                    )
                 }
             }
         }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = activityIcon(workout.type),
+                contentDescription = null,
+                tint = AITeal,
+                modifier = Modifier.size(28.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        workoutTitle(workout),
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.onBackground
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Rename",
+                        tint = FaintText,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Text(
+                    formatDateTime(workout.startTime),
+                    fontSize = 13.sp,
+                    color = SubtleText
+                )
+            }
+        }
     }
 }
 
-private data class OverviewStatData(
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val value: String,
-    val unit: String,
-    val label: String,
-    val color: Color
-)
+private fun activityIcon(type: String): ImageVector = when (type) {
+    "run" -> Icons.Default.DirectionsRun
+    "walk" -> Icons.Default.DirectionsWalk
+    "cycle" -> Icons.Default.DirectionsBike
+    "hike" -> Icons.Default.Terrain
+    else -> Icons.Default.DirectionsRun
+}
+
+private fun workoutTitle(workout: WorkoutDetail): String {
+    val typeLabel = workout.type.replaceFirstChar { it.uppercase() }
+    val hour = parseHourOfDay(workout.startTime) ?: return typeLabel
+    val timeOfDay = when (hour) {
+        in 5..11 -> "Morning"
+        in 12..16 -> "Afternoon"
+        in 17..20 -> "Evening"
+        else -> "Night"
+    }
+    return "$timeOfDay $typeLabel"
+}
+
+private fun parseHourOfDay(isoString: String): Int? {
+    return try {
+        val parts = isoString.split("T")
+        if (parts.size != 2) return null
+        parts[1].take(2).toIntOrNull()
+    } catch (_: Exception) {
+        null
+    }
+}
+
+// ─────────────────────────────────────
+// Map Card
+// ─────────────────────────────────────
 
 @Composable
-private fun StatCardContent(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    value: String,
-    unit: String,
-    label: String,
-    color: Color,
-    delay: Int,
-    modifier: Modifier = Modifier
+private fun MapCard(
+    workout: WorkoutDetail,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit
 ) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(delay.toLong())
-        isVisible = true
-    }
-
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
-        label = "statAlpha"
-    )
-    val animatedScale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.9f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-        label = "statScale"
-    )
-
-    Column(
-        modifier = modifier
-            .graphicsLayer {
-                alpha = animatedAlpha
-                scaleX = animatedScale
-                scaleY = animatedScale
-            }
-            .glass(cornerRadius = 16.dp, strokeWidth = 0.dp)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .border(1.dp, CardBorderColor, RoundedCornerShape(20.dp))
     ) {
+        RouteMapView(
+            routePoints = workout.routePoints,
+            isLive = false,
+            height = if (isExpanded) 360 else 200,
+            onExpand = onToggleExpand
+        )
+
         Box(
             modifier = Modifier
-                .size(32.dp)
-                .background(color.copy(alpha = 0.15f), CircleShape),
+                .align(Alignment.BottomEnd)
+                .padding(10.dp)
+                .size(34.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White)
+                .clickable { onToggleExpand() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
+                Icons.Default.OpenInFull,
+                contentDescription = "Expand map",
+                tint = AppColors.onBackground,
                 modifier = Modifier.size(16.dp)
             )
         }
-
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = AppColors.onSurfaceVariant
-            )
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = AppColors.onSurface
-                )
-                if (unit.isNotEmpty()) {
-                    Text(
-                        text = unit,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AppColors.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 3.dp, start = 2.dp)
-                    )
-                }
-            }
-        }
     }
 }
 
 // ─────────────────────────────────────
-// MARK: - Splits Tab
+// Stats Card (4 columns)
 // ─────────────────────────────────────
 
 @Composable
-private fun SplitsTab(
-    splits: List<SplitData>,
+private fun StatsCard(workout: WorkoutDetail) {
+    val distanceKm = workout.distanceMeters / 1000.0
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .border(1.dp, CardBorderColor, RoundedCornerShape(16.dp))
+            .padding(vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        StatColumn(
+            icon = Icons.Default.Straighten,
+            value = "%.2f".format(distanceKm),
+            unit = "km",
+            label = "Distance",
+            modifier = Modifier.weight(1f)
+        )
+        StatDivider()
+        StatColumn(
+            icon = Icons.Default.Timer,
+            value = formatDuration(workout.durationSeconds),
+            unit = "min",
+            label = "Duration",
+            modifier = Modifier.weight(1f)
+        )
+        StatDivider()
+        StatColumn(
+            icon = Icons.Default.Speed,
+            value = formatPace(workout.avgPace),
+            unit = "min/km",
+            label = "Avg. Pace",
+            modifier = Modifier.weight(1f)
+        )
+        StatDivider()
+        StatColumn(
+            icon = Icons.Default.LocalFireDepartment,
+            value = "${workout.calories}",
+            unit = "kcal",
+            label = "Calories",
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StatColumn(
+    icon: ImageVector,
+    value: String,
+    unit: String,
+    label: String,
     modifier: Modifier = Modifier
 ) {
-    if (splits.isEmpty()) {
-        EmptyTabPlaceholder(
-            icon = Icons.Default.TableChart,
-            message = "No split data available",
-            modifier = modifier
-        )
-        return
-    }
-
-    val fastestPace = splits.minOf { it.paceSecondsPerKm }
-    val slowestPace = splits.maxOf { it.paceSecondsPerKm }
-
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Header row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppColors.surface.copy(alpha = 0.3f))
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            SplitHeaderCell("KM", Modifier.weight(0.8f))
-            SplitHeaderCell("Split", Modifier.weight(1f))
-            SplitHeaderCell("Pace", Modifier.weight(1f))
-            SplitHeaderCell("Total", Modifier.weight(1f))
-        }
-
-        HorizontalDivider(
-            color = AppColors.onSurface.copy(alpha = 0.1f),
-            thickness = 1.dp
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = AITeal,
+            modifier = Modifier.size(18.dp)
         )
-
-        // Data rows
-        splits.forEachIndexed { index, split ->
-            val isFastest = split.paceSecondsPerKm == fastestPace
-            val isSlowest = split.paceSecondsPerKm == slowestPace
-            val backgroundColor = when {
-                isFastest -> GreenAccent.copy(alpha = 0.1f)
-                isSlowest -> RedAccent.copy(alpha = 0.1f)
-                index % 2 == 0 -> Color.Transparent
-                else -> AppColors.surface.copy(alpha = 0.1f)
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(backgroundColor)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // KM number
-                Text(
-                    text = "${split.kilometer}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.onSurface,
-                    modifier = Modifier.weight(0.8f)
-                )
-
-                // Split time
-                Text(
-                    text = formatDuration(split.timeSeconds),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Pace with color indicator
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    if (isFastest) {
-                        Icon(
-                            Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Fastest",
-                            tint = GreenAccent,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    } else if (isSlowest) {
-                        Icon(
-                            Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Slowest",
-                            tint = RedAccent,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                    Text(
-                        text = formatPace(split.paceSecondsPerKm.toDouble()),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (isFastest || isSlowest) FontWeight.Bold else FontWeight.Normal,
-                        color = when {
-                            isFastest -> GreenAccent
-                            isSlowest -> RedAccent
-                            else -> AppColors.onSurface
-                        }
-                    )
-                }
-
-                // Cumulative time
-                Text(
-                    text = formatDuration(split.cumulativeSeconds),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            if (index < splits.size - 1) {
-                HorizontalDivider(
-                    color = AppColors.onSurface.copy(alpha = 0.05f),
-                    thickness = 0.5.dp,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-        }
+        Text(
+            value,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.onBackground
+        )
+        Text(unit, fontSize = 11.sp, color = SubtleText)
+        Text(label, fontSize = 11.sp, color = FaintText)
     }
 }
 
 @Composable
-private fun SplitHeaderCell(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = AppColors.onSurfaceVariant,
-        modifier = modifier
+private fun StatDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(48.dp)
+            .background(CardBorderColor)
     )
 }
 
 // ─────────────────────────────────────
-// MARK: - Pace Tab (Canvas Line Chart)
+// Pace Chart Card
 // ─────────────────────────────────────
 
 @Composable
-private fun PaceTab(
-    splits: List<SplitData>,
-    avgPace: Double,
-    modifier: Modifier = Modifier
-) {
-    if (splits.isEmpty()) {
-        EmptyTabPlaceholder(
-            icon = Icons.Default.ShowChart,
-            message = "No pace data available",
-            modifier = modifier
-        )
-        return
-    }
-
+private fun PaceChartCard(splits: List<SplitData>, avgPace: Double) {
     val textMeasurer = rememberTextMeasurer()
+    val paceValues = splits.map { it.paceSecondsPerKm.toFloat() }
+    val fastest = paceValues.min()
+    val slowest = paceValues.max()
+    val displayMin = (fastest - 30f).coerceAtLeast(0f)
+    val displayMax = slowest + 30f
+    val range = (displayMax - displayMin).coerceAtLeast(60f)
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    AnalyticsCard(
+        title = "Pace",
+        subtitle = "${formatPace(fastest.toDouble())} – ${formatPace(slowest.toDouble())} min/km",
+        icon = Icons.Default.Speed
     ) {
-        Text(
-            text = "Pace (min/km)",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = AppColors.onSurface
-        )
-
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(180.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(ChartBackground)
+                .background(CardSubtleBg)
         ) {
-            val padding = 50f
-            val chartWidth = size.width - padding * 2
-            val chartHeight = size.height - padding * 2
+            val padLeft = 56f
+            val padRight = 16f
+            val padTop = 16f
+            val padBottom = 28f
+            val chartW = size.width - padLeft - padRight
+            val chartH = size.height - padTop - padBottom
 
-            val paceValues = splits.map { it.paceSecondsPerKm.toFloat() }
-            val minPace = paceValues.min() - 30f
-            val maxPace = paceValues.max() + 30f
-            val paceRange = (maxPace - minPace).coerceAtLeast(60f)
+            fun paceToY(p: Float) = padTop + (p - displayMin) / range * chartH
+            fun kmToX(idx: Int) = padLeft + idx.toFloat() / (splits.size - 1).coerceAtLeast(1) * chartW
 
-            // Y-axis: pace is inverted (lower pace = faster = higher on chart)
-            fun paceToY(pace: Float): Float {
-                return padding + (pace - minPace) / paceRange * chartHeight
+            val gridColor = CardBorderColor
+            val labelStyle = TextStyle(color = FaintText, fontSize = 9.sp)
+            for (i in 0..3) {
+                val p = displayMin + range * i / 3
+                val y = paceToY(p)
+                drawLine(gridColor, Offset(padLeft, y), Offset(size.width - padRight, y), 0.5f)
+                val text = textMeasurer.measure(AnnotatedString(formatPace(p.toDouble())), labelStyle)
+                drawText(text, topLeft = Offset(4f, y - text.size.height / 2f))
             }
 
-            fun kmToX(km: Int): Float {
-                return padding + (km - 1).toFloat() / (splits.size - 1).coerceAtLeast(1) * chartWidth
+            splits.forEachIndexed { i, split ->
+                if (i == 0 || i == splits.size - 1 || splits.size <= 8 || i % 2 == 0) {
+                    val x = kmToX(i)
+                    val text = textMeasurer.measure(
+                        AnnotatedString("${split.kilometer}"),
+                        labelStyle
+                    )
+                    drawText(text, topLeft = Offset(x - text.size.width / 2f, size.height - padBottom + 6f))
+                }
             }
 
-            // Grid lines
-            val gridColor = Color.White.copy(alpha = 0.08f)
-            val gridLabelColor = Color.White.copy(alpha = 0.4f)
-            val gridSteps = 4
-            for (i in 0..gridSteps) {
-                val pace = minPace + paceRange * i / gridSteps
-                val y = paceToY(pace)
-                drawLine(
-                    color = gridColor,
-                    start = Offset(padding, y),
-                    end = Offset(size.width - padding, y),
-                    strokeWidth = 0.5f
-                )
-                // Y-axis label
-                val labelText = formatPace(pace.toDouble())
-                val textResult = textMeasurer.measure(
-                    text = AnnotatedString(labelText),
-                    style = TextStyle(color = gridLabelColor, fontSize = 9.sp)
-                )
-                drawText(
-                    textLayoutResult = textResult,
-                    topLeft = Offset(4f, y - textResult.size.height / 2f)
-                )
+            // Avg dotted line
+            val avgY = paceToY(avgPace.toFloat())
+            var dx = padLeft
+            while (dx < size.width - padRight) {
+                val end = (dx + 6f).coerceAtMost(size.width - padRight)
+                drawLine(SubtleText.copy(alpha = 0.5f), Offset(dx, avgY), Offset(end, avgY), 1f)
+                dx += 10f
             }
 
-            // X-axis labels
-            splits.forEach { split ->
-                val x = kmToX(split.kilometer)
-                val labelText = "${split.kilometer}"
-                val textResult = textMeasurer.measure(
-                    text = AnnotatedString(labelText),
-                    style = TextStyle(color = gridLabelColor, fontSize = 9.sp)
-                )
-                drawText(
-                    textLayoutResult = textResult,
-                    topLeft = Offset(x - textResult.size.width / 2f, size.height - padding + 8f)
-                )
-            }
-
-            // Average pace dotted line
-            val avgPaceY = paceToY(avgPace.toFloat())
-            val dashLength = 8f
-            val gapLength = 6f
-            var dashX = padding
-            while (dashX < size.width - padding) {
-                val endX = (dashX + dashLength).coerceAtMost(size.width - padding)
-                drawLine(
-                    color = Color.White.copy(alpha = 0.5f),
-                    start = Offset(dashX, avgPaceY),
-                    end = Offset(endX, avgPaceY),
-                    strokeWidth = 1.5f
-                )
-                dashX += dashLength + gapLength
-            }
-            // "Avg" label
-            val avgLabel = textMeasurer.measure(
-                text = AnnotatedString("Avg"),
-                style = TextStyle(color = Color.White.copy(alpha = 0.5f), fontSize = 8.sp)
-            )
-            drawText(
-                textLayoutResult = avgLabel,
-                topLeft = Offset(size.width - padding + 4f, avgPaceY - avgLabel.size.height / 2f)
-            )
-
-            // Build path for line and fill
             if (splits.size >= 2) {
                 val linePath = Path()
                 val fillPath = Path()
-
-                val firstX = kmToX(splits.first().kilometer)
-                val firstY = paceToY(paceValues.first())
+                val firstX = kmToX(0)
+                val firstY = paceToY(paceValues[0])
                 linePath.moveTo(firstX, firstY)
-                fillPath.moveTo(firstX, paceToY(maxPace)) // bottom
+                fillPath.moveTo(firstX, padTop + chartH)
                 fillPath.lineTo(firstX, firstY)
 
                 for (i in 1 until splits.size) {
-                    val x = kmToX(splits[i].kilometer)
+                    val x = kmToX(i)
                     val y = paceToY(paceValues[i])
                     linePath.lineTo(x, y)
                     fillPath.lineTo(x, y)
                 }
-
-                val lastX = kmToX(splits.last().kilometer)
-                fillPath.lineTo(lastX, paceToY(maxPace)) // bottom
+                fillPath.lineTo(kmToX(splits.size - 1), padTop + chartH)
                 fillPath.close()
 
-                // Fill gradient under line
                 drawPath(
                     path = fillPath,
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            CyanAccent.copy(alpha = 0.3f),
-                            CyanAccent.copy(alpha = 0.02f)
-                        ),
-                        startY = padding,
-                        endY = padding + chartHeight
+                        colors = listOf(AITeal.copy(alpha = 0.25f), AITeal.copy(alpha = 0.02f)),
+                        startY = padTop,
+                        endY = padTop + chartH
                     )
                 )
-
-                // Line
                 drawPath(
                     path = linePath,
-                    color = CyanAccent,
-                    style = Stroke(
-                        width = 2.5f,
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
-                    )
+                    color = AITeal,
+                    style = Stroke(width = 2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
 
-                // Data points
-                splits.forEachIndexed { i, split ->
-                    val x = kmToX(split.kilometer)
-                    val y = paceToY(paceValues[i])
-                    drawCircle(
-                        color = Color.White,
-                        radius = 4f,
-                        center = Offset(x, y)
-                    )
-                    drawCircle(
-                        color = CyanAccent,
-                        radius = 2.5f,
-                        center = Offset(x, y)
-                    )
+                splits.forEachIndexed { i, _ ->
+                    val cx = kmToX(i)
+                    val cy = paceToY(paceValues[i])
+                    drawCircle(Color.White, 4f, Offset(cx, cy))
+                    drawCircle(AITeal, 2.5f, Offset(cx, cy))
                 }
             }
         }
-
-        // Legend
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Canvas(modifier = Modifier.size(12.dp, 2.dp)) {
-                drawLine(
-                    color = CyanAccent,
-                    start = Offset(0f, size.height / 2),
-                    end = Offset(size.width, size.height / 2),
-                    strokeWidth = 2f
-                )
-            }
-            Spacer(Modifier.width(6.dp))
-            Text(
-                "Pace",
-                style = MaterialTheme.typography.labelSmall,
-                color = AppColors.onSurfaceVariant
-            )
-            Spacer(Modifier.width(16.dp))
-            Canvas(modifier = Modifier.size(12.dp, 2.dp)) {
-                // Dotted line
-                drawLine(
-                    color = Color.White.copy(alpha = 0.5f),
-                    start = Offset(0f, size.height / 2),
-                    end = Offset(4f, size.height / 2),
-                    strokeWidth = 1.5f
-                )
-                drawLine(
-                    color = Color.White.copy(alpha = 0.5f),
-                    start = Offset(8f, size.height / 2),
-                    end = Offset(12f, size.height / 2),
-                    strokeWidth = 1.5f
-                )
-            }
-            Spacer(Modifier.width(6.dp))
-            Text(
-                "Average",
-                style = MaterialTheme.typography.labelSmall,
-                color = AppColors.onSurfaceVariant
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Heart Rate Tab (Canvas Area Chart)
-// ─────────────────────────────────────
-
-@Composable
-private fun HeartRateTab(
-    heartRateData: List<HeartRatePoint>,
-    modifier: Modifier = Modifier
-) {
-    if (heartRateData.isEmpty()) {
-        EmptyTabPlaceholder(
-            icon = Icons.Default.MonitorHeart,
-            message = "No heart rate data recorded for this workout",
-            modifier = modifier
-        )
-        return
-    }
-
-    val textMeasurer = rememberTextMeasurer()
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = "Heart Rate (bpm)",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = AppColors.onSurface
-        )
-
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(ChartBackground)
-        ) {
-            val padding = 50f
-            val chartWidth = size.width - padding * 2
-            val chartHeight = size.height - padding * 2
-
-            val bpmValues = heartRateData.map { it.bpm.toFloat() }
-            val minBpm = (bpmValues.min() - 10f).coerceAtLeast(40f)
-            val maxBpm = bpmValues.max() + 10f
-            val bpmRange = (maxBpm - minBpm).coerceAtLeast(20f)
-
-            val minTime = heartRateData.first().timestamp.toFloat()
-            val maxTime = heartRateData.last().timestamp.toFloat()
-            val timeRange = (maxTime - minTime).coerceAtLeast(1f)
-
-            fun bpmToY(bpm: Float): Float {
-                return padding + chartHeight - (bpm - minBpm) / bpmRange * chartHeight
-            }
-
-            fun timeToX(timestamp: Float): Float {
-                return padding + (timestamp - minTime) / timeRange * chartWidth
-            }
-
-            // Zone backgrounds
-            val zones = listOf(
-                Triple(40f, 60f, HrZoneBlue),
-                Triple(60f, 100f, HrZoneGreen),
-                Triple(100f, 140f, HrZoneYellow),
-                Triple(140f, 220f, HrZoneRed)
-            )
-
-            zones.forEach { (zoneMin, zoneMax, zoneColor) ->
-                val clampedMin = zoneMin.coerceIn(minBpm, maxBpm)
-                val clampedMax = zoneMax.coerceIn(minBpm, maxBpm)
-                if (clampedMax > clampedMin) {
-                    val yTop = bpmToY(clampedMax)
-                    val yBottom = bpmToY(clampedMin)
-                    drawRect(
-                        color = zoneColor.copy(alpha = 0.08f),
-                        topLeft = Offset(padding, yTop),
-                        size = Size(chartWidth, yBottom - yTop)
-                    )
-                }
-            }
-
-            // Grid lines
-            val gridColor = Color.White.copy(alpha = 0.08f)
-            val gridLabelColor = Color.White.copy(alpha = 0.4f)
-            val bpmSteps = listOf(60f, 80f, 100f, 120f, 140f, 160f, 180f)
-            bpmSteps.forEach { bpm ->
-                if (bpm in minBpm..maxBpm) {
-                    val y = bpmToY(bpm)
-                    drawLine(
-                        color = gridColor,
-                        start = Offset(padding, y),
-                        end = Offset(size.width - padding, y),
-                        strokeWidth = 0.5f
-                    )
-                    val textResult = textMeasurer.measure(
-                        text = AnnotatedString("${bpm.toInt()}"),
-                        style = TextStyle(color = gridLabelColor, fontSize = 9.sp)
-                    )
-                    drawText(
-                        textLayoutResult = textResult,
-                        topLeft = Offset(4f, y - textResult.size.height / 2f)
-                    )
-                }
-            }
-
-            // Build the area chart path
-            if (heartRateData.size >= 2) {
-                // For each segment, draw a filled area colored by HR zone
-                for (i in 0 until heartRateData.size - 1) {
-                    val p1 = heartRateData[i]
-                    val p2 = heartRateData[i + 1]
-                    val x1 = timeToX(p1.timestamp.toFloat())
-                    val x2 = timeToX(p2.timestamp.toFloat())
-                    val y1 = bpmToY(p1.bpm.toFloat())
-                    val y2 = bpmToY(p2.bpm.toFloat())
-                    val bottomY = bpmToY(minBpm)
-
-                    val avgBpm = (p1.bpm + p2.bpm) / 2f
-                    val segmentColor = hrZoneColor(avgBpm)
-
-                    val segmentPath = Path().apply {
-                        moveTo(x1, bottomY)
-                        lineTo(x1, y1)
-                        lineTo(x2, y2)
-                        lineTo(x2, bottomY)
-                        close()
-                    }
-
-                    drawPath(
-                        path = segmentPath,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                segmentColor.copy(alpha = 0.5f),
-                                segmentColor.copy(alpha = 0.05f)
-                            ),
-                            startY = y1.coerceAtMost(y2),
-                            endY = bottomY
-                        )
-                    )
-                }
-
-                // Draw the line on top
-                val linePath = Path().apply {
-                    moveTo(
-                        timeToX(heartRateData.first().timestamp.toFloat()),
-                        bpmToY(heartRateData.first().bpm.toFloat())
-                    )
-                    for (i in 1 until heartRateData.size) {
-                        lineTo(
-                            timeToX(heartRateData[i].timestamp.toFloat()),
-                            bpmToY(heartRateData[i].bpm.toFloat())
-                        )
-                    }
-                }
-
-                drawPath(
-                    path = linePath,
-                    color = Color.White.copy(alpha = 0.8f),
-                    style = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                )
-            }
-        }
-
-        // Zone Legend
+        Spacer(Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            HrZoneLegendItem(color = HrZoneBlue, label = "<60", zone = "Rest")
-            HrZoneLegendItem(color = HrZoneGreen, label = "60-100", zone = "Light")
-            HrZoneLegendItem(color = HrZoneYellow, label = "100-140", zone = "Moderate")
-            HrZoneLegendItem(color = HrZoneRed, label = ">140", zone = "Intense")
+            ChartLegend(label = "Best", value = formatPace(fastest.toDouble()), color = AITeal)
+            ChartLegend(label = "Avg", value = formatPace(avgPace), color = SubtleText)
+            ChartLegend(label = "Slowest", value = formatPace(slowest.toDouble()), color = SubtleText)
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// Splits Card
+// ─────────────────────────────────────
+
+@Composable
+private fun SplitsCard(splits: List<SplitData>) {
+    var showAll by remember { mutableStateOf(splits.size <= 6) }
+    val visibleSplits = if (showAll) splits else splits.take(6)
+    val fastestPace = splits.minOf { it.paceSecondsPerKm }
+    val slowestPace = splits.maxOf { it.paceSecondsPerKm }
+    val paceRange = (slowestPace - fastestPace).coerceAtLeast(1L)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .border(1.dp, CardBorderColor, RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Splits",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppColors.onBackground,
+                modifier = Modifier.weight(1f)
+            )
+            if (splits.size > 6) {
+                Text(
+                    if (showAll) "Show less" else "View all",
+                    fontSize = 13.sp,
+                    color = AITeal,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable { showAll = !showAll }
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+            Text("#", fontSize = 11.sp, color = FaintText, modifier = Modifier.width(28.dp))
+            Text("PACE", fontSize = 11.sp, color = FaintText, modifier = Modifier.width(72.dp))
+            Spacer(Modifier.weight(1f))
+            Text("TIME", fontSize = 11.sp, color = FaintText)
+        }
+
+        visibleSplits.forEach { split ->
+            val barFraction = 1f - (split.paceSecondsPerKm - fastestPace).toFloat() / paceRange
+            val finalFraction = (0.25f + 0.75f * barFraction).coerceIn(0.2f, 1f)
+            val isFastest = split.paceSecondsPerKm == fastestPace
+            SplitRow(
+                index = split.kilometer,
+                pace = formatPace(split.paceSecondsPerKm.toDouble()),
+                time = formatDuration(split.cumulativeSeconds),
+                barFraction = finalFraction,
+                highlight = isFastest
+            )
         }
     }
 }
 
 @Composable
-private fun HrZoneLegendItem(
-    color: Color,
-    label: String,
-    zone: String
+private fun SplitRow(
+    index: Int,
+    pace: String,
+    time: String,
+    barFraction: Float,
+    highlight: Boolean
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        Text(
+            "$index",
+            fontSize = 13.sp,
+            color = AppColors.onBackground,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.width(28.dp)
+        )
+        Text(
+            "$pace min/km",
+            fontSize = 12.sp,
+            color = if (highlight) AITeal else SubtleText,
+            fontWeight = if (highlight) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.width(72.dp)
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp)
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFFEEF2F4))
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(barFraction)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(AITeal)
+            )
+        }
+        Text(
+            time,
+            fontSize = 12.sp,
+            color = AppColors.onBackground,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// Heart Rate Chart Card
+// ─────────────────────────────────────
+
+@Composable
+private fun HeartRateChartCard(data: List<HeartRatePoint>) {
+    val textMeasurer = rememberTextMeasurer()
+    val bpms = data.map { it.bpm.toFloat() }
+    val minBpm = (bpms.min() - 5f).coerceAtLeast(40f)
+    val maxBpm = bpms.max() + 5f
+    val range = (maxBpm - minBpm).coerceAtLeast(20f)
+    val avgBpm = (bpms.sum() / bpms.size).roundToInt()
+    val peakBpm = bpms.max().roundToInt()
+    val minBpmInt = bpms.min().roundToInt()
+    val minTime = data.first().timestamp.toFloat()
+    val maxTime = data.last().timestamp.toFloat()
+    val timeRange = (maxTime - minTime).coerceAtLeast(1f)
+
+    AnalyticsCard(
+        title = "Heart Rate",
+        subtitle = "$avgBpm bpm avg · peak $peakBpm bpm",
+        icon = Icons.Outlined.FavoriteBorder
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardSubtleBg)
+        ) {
+            val padLeft = 40f
+            val padRight = 16f
+            val padTop = 12f
+            val padBottom = 22f
+            val chartW = size.width - padLeft - padRight
+            val chartH = size.height - padTop - padBottom
+
+            fun bpmToY(b: Float) = padTop + chartH - (b - minBpm) / range * chartH
+            fun timeToX(t: Float) = padLeft + (t - minTime) / timeRange * chartW
+
+            // Zone bands
+            val zones = listOf(
+                Triple(40f, 60f, ZoneRest),
+                Triple(60f, 100f, ZoneLight),
+                Triple(100f, 140f, ZoneModerate),
+                Triple(140f, 220f, ZoneIntense)
+            )
+            zones.forEach { (zMin, zMax, color) ->
+                val cMin = zMin.coerceIn(minBpm, maxBpm)
+                val cMax = zMax.coerceIn(minBpm, maxBpm)
+                if (cMax > cMin) {
+                    val yTop = bpmToY(cMax)
+                    val yBot = bpmToY(cMin)
+                    drawRect(
+                        color = color.copy(alpha = 0.10f),
+                        topLeft = Offset(padLeft, yTop),
+                        size = Size(chartW, yBot - yTop)
+                    )
+                }
+            }
+
+            val gridColor = CardBorderColor
+            val labelStyle = TextStyle(color = FaintText, fontSize = 9.sp)
+            listOf(60, 100, 140, 180).forEach { bpm ->
+                if (bpm.toFloat() in minBpm..maxBpm) {
+                    val y = bpmToY(bpm.toFloat())
+                    drawLine(gridColor, Offset(padLeft, y), Offset(size.width - padRight, y), 0.5f)
+                    val text = textMeasurer.measure(AnnotatedString("$bpm"), labelStyle)
+                    drawText(text, topLeft = Offset(4f, y - text.size.height / 2f))
+                }
+            }
+
+            if (data.size >= 2) {
+                val linePath = Path()
+                val fillPath = Path()
+                val first = data.first()
+                val firstX = timeToX(first.timestamp.toFloat())
+                val firstY = bpmToY(first.bpm.toFloat())
+                linePath.moveTo(firstX, firstY)
+                fillPath.moveTo(firstX, padTop + chartH)
+                fillPath.lineTo(firstX, firstY)
+
+                for (i in 1 until data.size) {
+                    val x = timeToX(data[i].timestamp.toFloat())
+                    val y = bpmToY(data[i].bpm.toFloat())
+                    linePath.lineTo(x, y)
+                    fillPath.lineTo(x, y)
+                }
+                val lastX = timeToX(data.last().timestamp.toFloat())
+                fillPath.lineTo(lastX, padTop + chartH)
+                fillPath.close()
+
+                drawPath(
+                    path = fillPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(DangerColor.copy(alpha = 0.25f), DangerColor.copy(alpha = 0.02f)),
+                        startY = padTop,
+                        endY = padTop + chartH
+                    )
+                )
+                drawPath(
+                    path = linePath,
+                    color = DangerColor,
+                    style = Stroke(width = 2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ChartLegend("Min", "$minBpmInt bpm", SubtleText)
+            ChartLegend("Avg", "$avgBpm bpm", DangerColor)
+            ChartLegend("Peak", "$peakBpm bpm", DangerColor)
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// Heart Rate Zones Card
+// ─────────────────────────────────────
+
+@Composable
+private fun HeartRateZonesCard(data: List<HeartRatePoint>) {
+    val zoneSeconds = computeZoneTime(data)
+    val total = zoneSeconds.values.sum().coerceAtLeast(1L)
+
+    AnalyticsCard(
+        title = "Heart Rate Zones",
+        subtitle = "Time spent in each zone",
+        icon = Icons.Outlined.FavoriteBorder
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ZoneBar("Intense", ">140 bpm", zoneSeconds["intense"] ?: 0L, total, ZoneIntense)
+            ZoneBar("Moderate", "100–140", zoneSeconds["moderate"] ?: 0L, total, ZoneModerate)
+            ZoneBar("Light", "60–100", zoneSeconds["light"] ?: 0L, total, ZoneLight)
+            ZoneBar("Rest", "<60", zoneSeconds["rest"] ?: 0L, total, ZoneRest)
+        }
+    }
+}
+
+@Composable
+private fun ZoneBar(
+    label: String,
+    range: String,
+    seconds: Long,
+    total: Long,
+    color: Color
+) {
+    val frac = (seconds.toFloat() / total).coerceIn(0f, 1f)
+    val percent = (frac * 100).roundToInt()
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(8.dp)
                     .background(color, CircleShape)
             )
+            Spacer(Modifier.width(8.dp))
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = AppColors.onSurfaceVariant,
-                fontSize = 9.sp
+                label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = AppColors.onBackground,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                "$percent% · ${formatDuration(seconds)}",
+                fontSize = 12.sp,
+                color = SubtleText
             )
         }
-        Text(
-            text = zone,
-            style = MaterialTheme.typography.labelSmall,
-            color = AppColors.onSurfaceVariant.copy(alpha = 0.7f),
-            fontSize = 8.sp
-        )
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .padding(start = 16.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFFEEF2F4))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(frac)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(color)
+            )
+        }
     }
 }
 
-private fun hrZoneColor(bpm: Float): Color {
-    return when {
-        bpm < 60 -> HrZoneBlue
-        bpm < 100 -> HrZoneGreen
-        bpm < 140 -> HrZoneYellow
-        else -> HrZoneRed
+private fun computeZoneTime(data: List<HeartRatePoint>): Map<String, Long> {
+    if (data.size < 2) return emptyMap()
+    val totals = mutableMapOf("rest" to 0L, "light" to 0L, "moderate" to 0L, "intense" to 0L)
+    for (i in 0 until data.size - 1) {
+        val a = data[i]
+        val b = data[i + 1]
+        val deltaSeconds = ((b.timestamp - a.timestamp) / 1000L).coerceAtLeast(0L)
+        val avgBpm = (a.bpm + b.bpm) / 2
+        val zone = when {
+            avgBpm < 60 -> "rest"
+            avgBpm < 100 -> "light"
+            avgBpm < 140 -> "moderate"
+            else -> "intense"
+        }
+        totals[zone] = (totals[zone] ?: 0L) + deltaSeconds
     }
+    return totals
 }
 
 // ─────────────────────────────────────
-// MARK: - Delete Button
+// Elevation Chart Card
 // ─────────────────────────────────────
+
+private fun hasElevationVariation(routePoints: List<RoutePoint>): Boolean {
+    if (routePoints.size < 2) return false
+    val altitudes = routePoints.map { it.altitude }
+    return (altitudes.max() - altitudes.min()) > 1.0
+}
 
 @Composable
-private fun DeleteWorkoutButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = RedAccent
-        ),
-        border = ButtonDefaults.outlinedButtonBorder.copy(
-            brush = SolidColor(RedAccent.copy(alpha = 0.5f))
-        )
+private fun ElevationChartCard(routePoints: List<RoutePoint>) {
+    val textMeasurer = rememberTextMeasurer()
+    val altitudes = routePoints.map { it.altitude.toFloat() }
+    val minAlt = altitudes.min()
+    val maxAlt = altitudes.max()
+    val range = (maxAlt - minAlt).coerceAtLeast(1f)
+    val gain = routePoints.zipWithNext { a, b -> (b.altitude - a.altitude).coerceAtLeast(0.0) }.sum()
+    val loss = routePoints.zipWithNext { a, b -> (a.altitude - b.altitude).coerceAtLeast(0.0) }.sum()
+
+    AnalyticsCard(
+        title = "Elevation",
+        subtitle = "+${gain.roundToInt()} m / −${loss.roundToInt()} m",
+        icon = Icons.Outlined.Landscape
     ) {
-        Icon(
-            Icons.Outlined.Delete,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            "Delete Workout",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(160.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardSubtleBg)
+        ) {
+            val padLeft = 44f
+            val padRight = 12f
+            val padTop = 12f
+            val padBottom = 16f
+            val chartW = size.width - padLeft - padRight
+            val chartH = size.height - padTop - padBottom
+
+            fun altToY(a: Float) = padTop + chartH - (a - minAlt) / range * chartH
+            fun idxToX(i: Int) = padLeft + i.toFloat() / (altitudes.size - 1).coerceAtLeast(1) * chartW
+
+            val gridColor = CardBorderColor
+            val labelStyle = TextStyle(color = FaintText, fontSize = 9.sp)
+            for (i in 0..2) {
+                val a = minAlt + range * i / 2
+                val y = altToY(a)
+                drawLine(gridColor, Offset(padLeft, y), Offset(size.width - padRight, y), 0.5f)
+                val text = textMeasurer.measure(AnnotatedString("${a.roundToInt()}m"), labelStyle)
+                drawText(text, topLeft = Offset(4f, y - text.size.height / 2f))
+            }
+
+            if (altitudes.size >= 2) {
+                val linePath = Path()
+                val fillPath = Path()
+                linePath.moveTo(idxToX(0), altToY(altitudes[0]))
+                fillPath.moveTo(idxToX(0), padTop + chartH)
+                fillPath.lineTo(idxToX(0), altToY(altitudes[0]))
+                for (i in 1 until altitudes.size) {
+                    val x = idxToX(i)
+                    val y = altToY(altitudes[i])
+                    linePath.lineTo(x, y)
+                    fillPath.lineTo(x, y)
+                }
+                fillPath.lineTo(idxToX(altitudes.size - 1), padTop + chartH)
+                fillPath.close()
+
+                drawPath(
+                    path = fillPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(ElevationColor.copy(alpha = 0.30f), ElevationColor.copy(alpha = 0.02f)),
+                        startY = padTop,
+                        endY = padTop + chartH
+                    )
+                )
+                drawPath(
+                    path = linePath,
+                    color = ElevationColor,
+                    style = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ChartLegend("Min", "${minAlt.roundToInt()} m", SubtleText)
+            ChartLegend("Max", "${maxAlt.roundToInt()} m", SubtleText)
+            ChartLegend("Gain", "${gain.roundToInt()} m", ElevationColor)
+        }
     }
 }
 
 // ─────────────────────────────────────
-// MARK: - Empty Tab Placeholder
+// Activity Details Card
 // ─────────────────────────────────────
 
 @Composable
-private fun EmptyTabPlaceholder(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    message: String,
-    modifier: Modifier = Modifier
-) {
+private fun ActivityDetailsCard(workout: WorkoutDetail) {
+    val typeLabel = workout.type.replaceFirstChar { it.uppercase() }
+    val avgSpeedText = if (workout.avgSpeed > 0) "%.1f km/h".format(workout.avgSpeed) else "—"
+    val elevationText = if (workout.elevationGain > 0) "${workout.elevationGain.roundToInt()} m" else "—"
+    val terrain = terrainLabel(workout.elevationGain, workout.distanceMeters)
+    val startedText = formatTimeOnly(workout.startTime)
+
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .glass(cornerRadius = 20.dp, strokeWidth = 0.dp)
-            .padding(40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .border(1.dp, CardBorderColor, RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        Text(
+            "Activity Details",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onBackground
+        )
+        Spacer(Modifier.height(8.dp))
+        DetailRow(icon = activityIcon(workout.type), label = "Activity Type", value = typeLabel)
+        DetailRow(icon = Icons.Default.Speed, label = "Avg. Speed", value = avgSpeedText)
+        DetailRow(icon = Icons.Outlined.Landscape, label = "Terrain", value = terrain)
+        DetailRow(icon = Icons.Outlined.AccessTime, label = "Started", value = startedText)
+        DetailRow(
+            icon = Icons.Default.Terrain,
+            label = "Elevation Gain",
+            value = elevationText,
+            isLast = true
+        )
+    }
+}
+
+@Composable
+private fun DetailRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    isLast: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = AppColors.onSurfaceVariant.copy(alpha = 0.4f),
-            modifier = Modifier.size(40.dp)
+            tint = AITeal,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            label,
+            fontSize = 14.sp,
+            color = AppColors.onBackground,
+            modifier = Modifier.weight(1f)
         )
         Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.onSurfaceVariant.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center
+            value,
+            fontSize = 14.sp,
+            color = SubtleText,
+            fontWeight = FontWeight.Medium
+        )
+    }
+    if (!isLast) {
+        HorizontalDivider(
+            color = CardBorderColor.copy(alpha = 0.6f),
+            thickness = 0.5.dp,
+            modifier = Modifier.padding(start = 32.dp)
         )
     }
 }
 
+private fun terrainLabel(elevationGain: Double, distanceMeters: Double): String {
+    if (distanceMeters <= 0) return "—"
+    val gainPerKm = elevationGain / (distanceMeters / 1000.0)
+    return when {
+        gainPerKm < 5 -> "Mostly Flat"
+        gainPerKm < 15 -> "Rolling"
+        gainPerKm < 30 -> "Hilly"
+        else -> "Mountainous"
+    }
+}
+
+private fun formatTimeOnly(isoString: String): String {
+    return try {
+        val parts = isoString.split("T")
+        if (parts.size != 2) return "—"
+        val time = parts[1].take(5)
+        val (hourStr, minuteStr) = time.split(":")
+        val hour = hourStr.toIntOrNull() ?: return time
+        val minute = minuteStr.toIntOrNull() ?: return time
+        val suffix = if (hour < 12) "AM" else "PM"
+        val display = when {
+            hour == 0 -> 12
+            hour > 12 -> hour - 12
+            else -> hour
+        }
+        "%d:%02d %s".format(display, minute, suffix)
+    } catch (_: Exception) {
+        "—"
+    }
+}
+
 // ─────────────────────────────────────
-// MARK: - Formatting Helpers
+// Notes Card
+// ─────────────────────────────────────
+
+@Composable
+private fun NotesCard() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .border(1.dp, CardBorderColor, RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        Text(
+            "Notes",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onBackground
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "How did it go?",
+                fontSize = 13.sp,
+                color = FaintText,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = null,
+                tint = FaintText,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────
+// Shared Building Blocks
+// ─────────────────────────────────────
+
+@Composable
+private fun AnalyticsCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .border(1.dp, CardBorderColor, RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = AITeal, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onBackground
+                )
+                Text(subtitle, fontSize = 12.sp, color = SubtleText)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        content()
+    }
+}
+
+@Composable
+private fun ChartLegend(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 10.sp, color = FaintText)
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = color)
+    }
+}
+
+// ─────────────────────────────────────
+// Formatting Helpers
 // ─────────────────────────────────────
 
 private fun formatDuration(seconds: Long): String {
@@ -1307,35 +1277,37 @@ private fun formatPace(secondsPerKm: Double): String {
 }
 
 private fun formatDateTime(isoString: String): String {
-    // Simplified formatter: extract date/time from ISO string
     return try {
         val parts = isoString.split("T")
-        if (parts.size == 2) {
-            val datePart = parts[0] // e.g. "2026-03-03"
-            val timePart = parts[1].take(5) // e.g. "07:30"
-            val dateParts = datePart.split("-")
-            if (dateParts.size == 3) {
-                val months = listOf(
-                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-                )
-                val monthIndex = (dateParts[1].toIntOrNull() ?: 1) - 1
-                val month = months.getOrElse(monthIndex) { "Jan" }
-                val day = dateParts[2].toIntOrNull() ?: 1
-                "$month $day, ${dateParts[0]} at $timePart"
-            } else {
-                isoString
-            }
-        } else {
-            isoString
+        if (parts.size != 2) return isoString
+        val datePart = parts[0]
+        val timePart = parts[1].take(5)
+        val dateParts = datePart.split("-")
+        if (dateParts.size != 3) return isoString
+        val months = listOf(
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        )
+        val monthIndex = (dateParts[1].toIntOrNull() ?: 1) - 1
+        val month = months.getOrElse(monthIndex) { "Jan" }
+        val day = dateParts[2].toIntOrNull() ?: 1
+        val (hourStr, minuteStr) = timePart.split(":")
+        val hour = hourStr.toIntOrNull() ?: 0
+        val minute = minuteStr.toIntOrNull() ?: 0
+        val suffix = if (hour < 12) "AM" else "PM"
+        val display = when {
+            hour == 0 -> 12
+            hour > 12 -> hour - 12
+            else -> hour
         }
+        "$month $day, ${dateParts[0]} at %d:%02d %s".format(display, minute, suffix)
     } catch (_: Exception) {
         isoString
     }
 }
 
 // ─────────────────────────────────────
-// MARK: - RunActivity → WorkoutDetail Conversion
+// RunActivity → WorkoutDetail Conversion
 // ─────────────────────────────────────
 
 private fun RunActivity.toWorkoutDetail(): WorkoutDetail {
