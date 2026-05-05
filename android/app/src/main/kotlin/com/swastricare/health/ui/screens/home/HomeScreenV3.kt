@@ -102,6 +102,7 @@ fun HomeScreenV3(
     val medicationsState by medicationsViewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) { medicationsViewModel.loadMedications() }
+    LaunchedEffect(Unit) { viewModel.refreshActivityGoals() }
 
     val takenCount = medicationsState.allDosesToday.count {
         it.status == AdherenceStatus.TAKEN ||
@@ -138,13 +139,13 @@ fun HomeScreenV3(
 
             DailyActivityCard(
                 steps = uiState.stepCount,
-                stepGoal = 10000,
+                stepGoal = uiState.activityGoals.dailyStepsGoal,
                 calories = uiState.calories,
-                calorieGoal = 500,
+                calorieGoal = uiState.activityGoals.dailyCaloriesGoal,
                 distance = uiState.distance,
-                distanceGoal = 8.0,
+                distanceGoal = uiState.activityGoals.dailyDistanceKm,
                 activeMinutes = uiState.activeMinutes,
-                activeMinutesGoal = 60,
+                activeMinutesGoal = uiState.activityGoals.dailyActiveMinutes,
                 ringSize = ringSize,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )

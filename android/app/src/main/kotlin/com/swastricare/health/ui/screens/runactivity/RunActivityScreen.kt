@@ -237,6 +237,19 @@ fun RunActivityScreen(
             }
 
             item {
+                WeekDayStrip(
+                    selectedDate = selectedDate,
+                    today = today,
+                    onDateSelected = { date ->
+                        if (date <= today) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            selectedDate = date
+                        }
+                    }
+                )
+            }
+
+            item {
                 MoveGoalCard(
                     selectedDate = selectedDate,
                     today = today,
@@ -424,6 +437,105 @@ private fun ActivityHeroHeader(
     }
 }
 
+// ─── Week-Day Strip ──────────────────────────────────────────────────────────
+
+@Composable
+private fun WeekDayStrip(
+    selectedDate: LocalDate,
+    today: LocalDate,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    // Show 7 days centered around the selected date when possible.
+    // For the common "today and back" case, show a full week ending at today.
+    val days = remember(today) {
+        (6 downTo 0).map { offset -> today.minusDays(offset.toLong()) }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        days.forEach { date ->
+            WeekDayCell(
+                date = date,
+                isSelected = date == selectedDate,
+                isToday = date == today,
+                isFuture = date.isAfter(today),
+                onClick = { onDateSelected(date) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeekDayCell(
+    date: LocalDate,
+    isSelected: Boolean,
+    isToday: Boolean,
+    isFuture: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bg = when {
+        isSelected -> AITeal
+        else -> Color.White
+    }
+    val borderColor = when {
+        isSelected -> Color.Transparent
+        isToday -> AITeal.copy(alpha = 0.6f)
+        else -> SoftBorder
+    }
+    val labelColor = if (isSelected) Color.White.copy(alpha = 0.85f) else TextSecondary
+    val numberColor = when {
+        isSelected -> Color.White
+        isFuture -> TextSecondary.copy(alpha = 0.4f)
+        else -> TextPrimary
+    }
+
+    Column(
+        modifier = modifier
+            .shadow(
+                elevation = 5.dp,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = Color(0xFF0F172A).copy(alpha = 0.40f),
+                spotColor = Color(0xFF0F172A).copy(alpha = 0.40f)
+            )
+            .clip(RoundedCornerShape(14.dp))
+            .background(bg)
+            .clickable(enabled = !isFuture) { onClick() }
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = date.dayOfWeek
+                .getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
+                .take(3),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = labelColor
+        )
+        Text(
+            text = date.dayOfMonth.toString(),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = numberColor,
+            lineHeight = 18.sp
+        )
+        // Reserve the dot slot on every cell so heights stay aligned.
+        Box(
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .size(4.dp)
+                .clip(CircleShape)
+                .background(if (isToday && !isSelected) AITeal else Color.Transparent)
+        )
+    }
+}
+
 // ─── Move Goal Card (swipeable) ──────────────────────────────────────────────
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -511,9 +623,14 @@ private fun MoveGoalCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(20.dp),
+                        ambientColor = Color(0xFF0F172A).copy(alpha = 0.55f),
+                        spotColor = Color(0xFF0F172A).copy(alpha = 0.55f)
+                    )
                     .clip(RoundedCornerShape(20.dp))
                     .background(CardSurface)
-                    .border(1.dp, SoftBorder, RoundedCornerShape(20.dp))
                     .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
                 Row(
@@ -640,7 +757,7 @@ private fun MoveGoalContent(
 @Composable
 private fun MoveRing(progress: Float) {
     Canvas(modifier = Modifier.size(130.dp)) {
-        val strokeWidth = 14f
+        val strokeWidth = 22f
         val tl = Offset(strokeWidth / 2f, strokeWidth / 2f)
         val s = androidx.compose.ui.geometry.Size(size.width - strokeWidth, size.height - strokeWidth)
         // Track
@@ -907,9 +1024,14 @@ private fun HighlightTile(
 ) {
     Row(
         modifier = modifier
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = Color(0xFF0F172A).copy(alpha = 0.45f),
+                spotColor = Color(0xFF0F172A).copy(alpha = 0.45f)
+            )
             .clip(RoundedCornerShape(18.dp))
             .background(CardSurface)
-            .border(1.dp, SoftBorder, RoundedCornerShape(18.dp))
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1030,9 +1152,14 @@ private fun ActivityRow(activity: RunActivity, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = Color(0xFF0F172A).copy(alpha = 0.45f),
+                spotColor = Color(0xFF0F172A).copy(alpha = 0.45f)
+            )
             .clip(RoundedCornerShape(18.dp))
             .background(CardSurface)
-            .border(1.dp, SoftBorder, RoundedCornerShape(18.dp))
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically

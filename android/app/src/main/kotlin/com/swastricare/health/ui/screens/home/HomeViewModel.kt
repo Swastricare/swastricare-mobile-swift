@@ -52,6 +52,8 @@ sealed class HomeAIState {
 }
 
 data class HomeState(
+    val activityGoals: com.swastricare.health.data.models.ActivityGoals =
+        com.swastricare.health.data.models.ActivityGoals(),
     val userName: String = "",
     val userAvatarUrl: String? = null,
     val greeting: String = "Good Morning,",
@@ -70,6 +72,8 @@ data class HomeState(
     val isLoading: Boolean = true,
     val isDemoMode: Boolean = false,
     val isAuthorized: Boolean = false,
+    val needsHealthPermissions: Boolean = false,
+    val healthConnectAvailable: Boolean = true,
     // Tracker state
     val weekDates: List<Date> = emptyList(),
     val selectedDate: Date = Date(),
@@ -93,6 +97,7 @@ class HomeViewModel @Inject constructor(
     private val hydrationRepository: SupabaseHydrationRepository,
     private val authRepository: SupabaseAuthRepository,
     private val nudgeRepository: SupabaseNudgeRepository,
+    private val activityGoalsRepository: com.swastricare.health.data.repository.ActivityGoalsRepository,
     private val preloader: HomeDataPreloader
 ) : ViewModel() {
 
@@ -114,16 +119,32 @@ class HomeViewModel @Inject constructor(
         loadData()
     }
 
+    /** Cheap refresh — reload only the locally cached activity goals. */
+    fun refreshActivityGoals() {
+        _uiState.value = _uiState.value.copy(
+            activityGoals = activityGoalsRepository.loadLocalGoals()
+        )
+    }
+
     private fun loadData() {
         viewModelScope.launch {
             val cached = preloader.consumeCache()
-            if (cached != null) {
-                _uiState.value = cached
-            } else {
-                _uiState.value = preloader.fetchHomeState()
-            }
+            val baseState = if (cached != null) cached else preloader.fetchHomeState()
+            val hcAvailable = healthConnectService.isAvailable
+            val needsPerms = hcAvailable && !healthConnectService.hasAllPermissions()
+            _uiState.value = baseState.copy(
+                activityGoals = activityGoalsRepository.loadLocalGoals(),
+                healthConnectAvailable = hcAvailable,
+                needsHealthPermissions = needsPerms
+            )
             loadNudges()
         }
+    }
+
+    /** Called by the screen after the auto-prompt has been launched so the
+     *  flag doesn't trigger a second time during the same session. */
+    fun markHealthPermissionsPrompted() {
+        _uiState.value = _uiState.value.copy(needsHealthPermissions = false)
     }
 
     fun loadNudges() {
