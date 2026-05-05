@@ -19,6 +19,7 @@ data class WorkoutSession(
     val avgPaceSecondsPerKm: Long = 0,
     val caloriesBurned: Int = 0,
     val avgHeartRate: Int? = null,
+    val steps: Int = 0,
     val routePoints: List<RoutePoint> = emptyList(),
     val splits: List<WorkoutSplit> = emptyList(),
     val synced: Boolean = false

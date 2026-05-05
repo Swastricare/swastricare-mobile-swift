@@ -15,6 +15,7 @@ data class WorkoutDetail(
     val avgPace: Double = 0.0, // seconds per km
     val avgSpeed: Double = 0.0, // km/h
     val maxSpeed: Double = 0.0,
+    val totalSteps: Int = 0,
     val routePoints: List<RoutePoint> = emptyList(),
     val splits: List<SplitData> = emptyList(),
     val heartRateData: List<HeartRatePoint> = emptyList()

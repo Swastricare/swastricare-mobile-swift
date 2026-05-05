@@ -87,6 +87,7 @@ class ActivityDetailViewModel @Inject constructor(
             avgPace = avgPaceSecondsPerKm.toDouble(),
             avgSpeed = if (durationSeconds > 0) (distanceMeters / 1000.0) / (durationSeconds / 3600.0) else 0.0,
             maxSpeed = 0.0,
+            totalSteps = steps,
             routePoints = routePoints.map { point ->
                 RoutePoint(
                     latitude = point.latitude,

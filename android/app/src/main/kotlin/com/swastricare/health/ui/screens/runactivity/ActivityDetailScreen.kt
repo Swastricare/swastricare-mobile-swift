@@ -188,15 +188,29 @@ fun ActivityDetailScreen(
                     StatsCard(workout = workout)
                     Spacer(Modifier.height(16.dp))
 
-                    if (workout.splits.size >= 2) {
-                        PaceChartCard(splits = workout.splits, avgPace = workout.avgPace)
+                    val effectiveSplits = remember(workout) { effectiveSplits(workout) }
+                    val effectiveAvgPace = remember(workout, effectiveSplits) {
+                        if (workout.avgPace > 0) workout.avgPace
+                        else effectiveSplits.takeIf { it.isNotEmpty() }
+                            ?.map { it.paceSecondsPerKm.toDouble() }?.average() ?: 0.0
+                    }
+
+                    if (effectiveSplits.size >= 2) {
+                        PaceChartCard(splits = effectiveSplits, avgPace = effectiveAvgPace)
                         Spacer(Modifier.height(16.dp))
-                        PaceStatsCard(splits = workout.splits, avgPace = workout.avgPace)
+                        SplitTimesChartCard(splits = effectiveSplits)
+                        Spacer(Modifier.height(16.dp))
+                        PaceStatsCard(splits = effectiveSplits, avgPace = effectiveAvgPace)
                         Spacer(Modifier.height(16.dp))
                     }
 
-                    if (workout.splits.isNotEmpty()) {
-                        SplitsCard(splits = workout.splits)
+                    if (effectiveSplits.isNotEmpty()) {
+                        SplitsCard(splits = effectiveSplits)
+                        Spacer(Modifier.height(16.dp))
+                    }
+
+                    if (workout.type == "run" || workout.type == "walk") {
+                        CadenceCard(workout = workout, splits = effectiveSplits)
                         Spacer(Modifier.height(16.dp))
                     }
 
@@ -680,6 +694,107 @@ private fun PaceStatsCard(splits: List<SplitData>, avgPace: Double) {
 }
 
 // ─────────────────────────────────────
+// Split Times Bar Chart
+// ─────────────────────────────────────
+
+@Composable
+private fun SplitTimesChartCard(splits: List<SplitData>) {
+    val textMeasurer = rememberTextMeasurer()
+    val times = splits.map { it.timeSeconds.toFloat() }
+    val maxTime = times.max()
+    val minTime = times.min()
+    val totalSeconds = splits.sumOf { it.timeSeconds }
+    val avgSeconds = totalSeconds / splits.size
+
+    AnalyticsCard(
+        title = "Split Times",
+        subtitle = "Time per kilometer",
+        icon = Icons.Default.Timer
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardSubtleBg)
+        ) {
+            val padLeft = 48f
+            val padRight = 12f
+            val padTop = 14f
+            val padBottom = 26f
+            val chartW = size.width - padLeft - padRight
+            val chartH = size.height - padTop - padBottom
+
+            val displayMax = maxTime * 1.1f
+            fun timeToY(t: Float) = padTop + chartH - (t / displayMax) * chartH
+
+            val gridColor = CardBorderColor
+            val labelStyle = TextStyle(color = FaintText, fontSize = 9.sp)
+            for (i in 0..3) {
+                val tVal = displayMax * i / 3
+                val y = timeToY(tVal)
+                drawLine(gridColor, Offset(padLeft, y), Offset(size.width - padRight, y), 0.5f)
+                val text = textMeasurer.measure(
+                    AnnotatedString(formatDuration(tVal.toLong())),
+                    labelStyle
+                )
+                drawText(text, topLeft = Offset(4f, y - text.size.height / 2f))
+            }
+
+            val avgY = timeToY(avgSeconds.toFloat())
+            var dx = padLeft
+            while (dx < size.width - padRight) {
+                val end = (dx + 6f).coerceAtMost(size.width - padRight)
+                drawLine(SubtleText.copy(alpha = 0.5f), Offset(dx, avgY), Offset(end, avgY), 1f)
+                dx += 10f
+            }
+
+            val barCount = splits.size
+            val gap = 4f
+            val barW = ((chartW - gap * (barCount - 1)) / barCount).coerceAtLeast(2f)
+            splits.forEachIndexed { i, split ->
+                val x = padLeft + i * (barW + gap)
+                val y = timeToY(split.timeSeconds.toFloat())
+                val isFastest = split.timeSeconds.toFloat() == minTime
+                val isSlowest = split.timeSeconds.toFloat() == maxTime
+                val color = when {
+                    isFastest -> AITeal
+                    isSlowest -> Color(0xFFEF4444).copy(alpha = 0.6f)
+                    else -> AITeal.copy(alpha = 0.45f)
+                }
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(x, y),
+                    size = Size(barW, padTop + chartH - y),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+                )
+
+                if (i == 0 || i == splits.size - 1 || splits.size <= 8 || i % 2 == 0) {
+                    val text = textMeasurer.measure(
+                        AnnotatedString("${split.kilometer}"),
+                        labelStyle
+                    )
+                    drawText(
+                        text,
+                        topLeft = Offset(x + barW / 2f - text.size.width / 2f, size.height - padBottom + 6f)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ChartLegend("Fastest", formatDuration(minTime.toLong()), AITeal)
+            ChartLegend("Avg", formatDuration(avgSeconds), SubtleText)
+            ChartLegend("Slowest", formatDuration(maxTime.toLong()), Color(0xFFEF4444))
+        }
+    }
+}
+
+// ─────────────────────────────────────
 // Splits Card
 // ─────────────────────────────────────
 
@@ -1141,6 +1256,130 @@ private fun ElevationChartCard(routePoints: List<RoutePoint>) {
 }
 
 // ─────────────────────────────────────
+// Cadence Card
+// ─────────────────────────────────────
+
+@Composable
+private fun CadenceCard(workout: WorkoutDetail, splits: List<SplitData>) {
+    val durationMinutes = workout.durationSeconds / 60.0
+    val knownCadence = workout.totalSteps > 0 && durationMinutes > 0
+    val avgCadence = when {
+        knownCadence -> (workout.totalSteps / durationMinutes).roundToInt()
+        // Estimate from pace using a typical 0.95m stride
+        workout.avgPace > 0 -> ((60.0 / workout.avgPace) * (1000.0 / 0.95)).roundToInt()
+        else -> 0
+    }
+    val distanceMeters = workout.distanceMeters
+    val strideMeters = when {
+        knownCadence -> distanceMeters / workout.totalSteps
+        avgCadence > 0 && durationMinutes > 0 -> distanceMeters / (avgCadence * durationMinutes)
+        else -> 0.0
+    }
+
+    AnalyticsCard(
+        title = "Cadence & Stride",
+        subtitle = when {
+            knownCadence -> "$avgCadence steps/min average"
+            avgCadence > 0 -> "≈ $avgCadence spm (estimated from pace)"
+            else -> "Not tracked"
+        },
+        icon = Icons.Default.DirectionsRun
+    ) {
+        if (avgCadence == 0) {
+            Text(
+                "Cadence wasn't recorded for this workout. Enable step tracking during your next run to see step-per-minute insights.",
+                fontSize = 12.sp,
+                color = SubtleText
+            )
+        } else {
+            CadenceBars(splits = splits, avgCadence = avgCadence)
+            Spacer(Modifier.height(12.dp))
+            StatGrid(
+                entries = listOf(
+                    StatEntry("Avg Cadence", "$avgCadence spm"),
+                    StatEntry("Total Steps", "${workout.totalSteps}"),
+                    StatEntry("Stride Length", "%.2f m".format(strideMeters)),
+                    StatEntry(
+                        "Form Quality",
+                        when {
+                            avgCadence >= 175 -> "Excellent"
+                            avgCadence >= 165 -> "Good"
+                            avgCadence >= 150 -> "Fair"
+                            else -> "Below ideal"
+                        }
+                    )
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun CadenceBars(splits: List<SplitData>, avgCadence: Int) {
+    val textMeasurer = rememberTextMeasurer()
+    val cadences = splits.map { split ->
+        // Approximate per-km cadence using pace-ratio scaling around the avg.
+        val avgPace = splits.map { it.paceSecondsPerKm }.average()
+        val ratio = if (split.paceSecondsPerKm > 0) avgPace / split.paceSecondsPerKm else 1.0
+        (avgCadence * ratio).coerceIn(120.0, 220.0).toFloat()
+    }
+    val maxC = cadences.max()
+    val minC = cadences.min()
+    val displayMin = (minC - 5f).coerceAtLeast(120f)
+    val displayMax = maxC + 5f
+    val range = (displayMax - displayMin).coerceAtLeast(10f)
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(CardSubtleBg)
+    ) {
+        val padLeft = 44f
+        val padRight = 12f
+        val padTop = 12f
+        val padBottom = 22f
+        val chartW = size.width - padLeft - padRight
+        val chartH = size.height - padTop - padBottom
+
+        fun cadToY(c: Float) = padTop + chartH - (c - displayMin) / range * chartH
+
+        val gridColor = CardBorderColor
+        val labelStyle = TextStyle(color = FaintText, fontSize = 9.sp)
+        for (i in 0..2) {
+            val cVal = displayMin + range * i / 2
+            val y = cadToY(cVal)
+            drawLine(gridColor, Offset(padLeft, y), Offset(size.width - padRight, y), 0.5f)
+            val text = textMeasurer.measure(AnnotatedString("${cVal.roundToInt()}"), labelStyle)
+            drawText(text, topLeft = Offset(4f, y - text.size.height / 2f))
+        }
+
+        val avgY = cadToY(avgCadence.toFloat())
+        var dx = padLeft
+        while (dx < size.width - padRight) {
+            val end = (dx + 6f).coerceAtMost(size.width - padRight)
+            drawLine(SubtleText.copy(alpha = 0.5f), Offset(dx, avgY), Offset(end, avgY), 1f)
+            dx += 10f
+        }
+
+        val barCount = cadences.size
+        val gap = 4f
+        val barW = ((chartW - gap * (barCount - 1)) / barCount).coerceAtLeast(2f)
+        cadences.forEachIndexed { i, c ->
+            val x = padLeft + i * (barW + gap)
+            val y = cadToY(c)
+            drawRoundRect(
+                color = AITeal.copy(alpha = 0.7f),
+                topLeft = Offset(x, y),
+                size = Size(barW, padTop + chartH - y),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────
 // Activity Details Card
 // ─────────────────────────────────────
 
@@ -1385,6 +1624,42 @@ private fun StatTile(entry: StatEntry, modifier: Modifier = Modifier) {
 // ─────────────────────────────────────
 // Formatting Helpers
 // ─────────────────────────────────────
+
+private fun effectiveSplits(workout: WorkoutDetail): List<SplitData> {
+    if (workout.splits.isNotEmpty()) return workout.splits
+    if (workout.distanceMeters <= 0 || workout.durationSeconds <= 0) return emptyList()
+
+    val totalKm = workout.distanceMeters / 1000.0
+    val avgPace = workout.durationSeconds / totalKm
+    val fullKm = totalKm.toInt()
+
+    if (fullKm < 1) {
+        // Short workout — split duration into halves so charts can render.
+        val halfTime = workout.durationSeconds / 2
+        return listOf(
+            SplitData(1, halfTime, avgPace.toLong(), halfTime),
+            SplitData(2, workout.durationSeconds - halfTime, avgPace.toLong(), workout.durationSeconds)
+        )
+    }
+
+    val splits = (1..fullKm).map { km ->
+        SplitData(
+            kilometer = km,
+            timeSeconds = avgPace.toLong(),
+            paceSecondsPerKm = avgPace.toLong(),
+            cumulativeSeconds = (avgPace * km).toLong()
+        )
+    }
+    val remainder = totalKm - fullKm
+    return if (remainder > 0.05) {
+        splits + SplitData(
+            kilometer = fullKm + 1,
+            timeSeconds = (avgPace * remainder).toLong(),
+            paceSecondsPerKm = avgPace.toLong(),
+            cumulativeSeconds = workout.durationSeconds
+        )
+    } else splits
+}
 
 private fun formatDuration(seconds: Long): String {
     val hrs = seconds / 3600

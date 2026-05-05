@@ -31,19 +31,16 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.*
-import com.swastricare.health.R
 import com.swastricare.health.data.model.RoutePoint
 import com.swastricare.health.data.services.RouteTracker
-import com.swastricare.health.ui.screens.home.glass
 import kotlin.math.*
 
 // ─────────────────────────────────────
 // MARK: - Design Constants
 // ─────────────────────────────────────
 
-private val MapBackground = Color(0xFF1A1A2E)
+private val MapBackground = Color(0xFFF1F4F7)
 private val GridLineColor = Color(0xFF2A2A4E)
 private val RouteStartColor = Color(0xFF00E5FF) // Cyan
 private val RouteEndColor = Color(0xFF38EF7D)   // Green
@@ -241,19 +238,10 @@ private fun GoogleMapsRouteView(
         }
     }
 
-    val darkStyle = remember {
-        try {
-            MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style_dark)
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    val mapProperties = remember(darkStyle) {
+    val mapProperties = remember {
         MapProperties(
             mapType = MapType.NORMAL,
-            isMyLocationEnabled = false,
-            mapStyleOptions = darkStyle
+            isMyLocationEnabled = false
         )
     }
 
@@ -363,19 +351,10 @@ private fun GoogleMapsCurrentLocationView(
         )
     }
 
-    val darkStyle = remember {
-        try {
-            MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style_dark)
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    val mapProperties = remember(darkStyle) {
+    val mapProperties = remember {
         MapProperties(
             mapType = MapType.NORMAL,
-            isMyLocationEnabled = false,
-            mapStyleOptions = darkStyle
+            isMyLocationEnabled = false
         )
     }
 
