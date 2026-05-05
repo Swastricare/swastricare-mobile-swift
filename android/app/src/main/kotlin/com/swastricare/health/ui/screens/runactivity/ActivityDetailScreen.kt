@@ -191,6 +191,8 @@ fun ActivityDetailScreen(
                     if (workout.splits.size >= 2) {
                         PaceChartCard(splits = workout.splits, avgPace = workout.avgPace)
                         Spacer(Modifier.height(16.dp))
+                        PaceStatsCard(splits = workout.splits, avgPace = workout.avgPace)
+                        Spacer(Modifier.height(16.dp))
                     }
 
                     if (workout.splits.isNotEmpty()) {
@@ -201,11 +203,13 @@ fun ActivityDetailScreen(
                     if (workout.heartRateData.size >= 2) {
                         HeartRateChartCard(data = workout.heartRateData)
                         Spacer(Modifier.height(16.dp))
+                        HeartRateStatsCard(data = workout.heartRateData)
+                        Spacer(Modifier.height(16.dp))
                         HeartRateZonesCard(data = workout.heartRateData)
                         Spacer(Modifier.height(16.dp))
                     }
 
-                    if (hasElevationVariation(workout.routePoints)) {
+                    if (workout.type == "hike" && hasElevationVariation(workout.routePoints)) {
                         ElevationChartCard(routePoints = workout.routePoints)
                         Spacer(Modifier.height(16.dp))
                     }
