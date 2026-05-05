@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -76,6 +78,7 @@ fun SettingsScreen(
     val signOutEvent by viewModel.signOutEvent.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(signOutEvent) {
         if (signOutEvent) {
@@ -139,16 +142,11 @@ fun SettingsScreen(
                             icon = Icons.Outlined.People,
                             label = "Family",
                             subtitle = "Manage your family group",
+                            valueText = "Coming soon",
                             iconTint = SettingsIconColor.Brand,
-                            onClick = onNavigateToFamily
-                        )
-                        NewRowDivider()
-                        NewSettingsRow(
-                            icon = Icons.Outlined.FavoriteBorder,
-                            label = "Health Data Sync",
-                            subtitle = "Health Connect, Samsung Health & more",
-                            iconTint = SettingsIconColor.Brand,
-                            onClick = onNavigateToHealthDataSync
+                            onClick = {
+                                scope.launch { snackbarHostState.showSnackbar("Family — coming soon") }
+                            }
                         )
                     }
                 }
@@ -174,39 +172,11 @@ fun SettingsScreen(
                         )
                         NewRowDivider()
                         NewSettingsToggleRow(
-                            icon = Icons.Outlined.DarkMode,
-                            label = "Dark Mode",
-                            checked = false,
-                            enabled = false,
-                            iconTint = SettingsIconColor.Brand,
-                            onToggle = { /* theme switching temporarily disabled */ }
-                        )
-                        NewRowDivider()
-                        NewSettingsToggleRow(
                             icon = Icons.Outlined.Fingerprint,
                             label = "Biometric Lock",
                             checked = uiState.biometricEnabled,
                             iconTint = SettingsIconColor.Brand,
                             onToggle = viewModel::toggleBiometric
-                        )
-                        NewRowDivider()
-                        NewSettingsRow(
-                            icon = Icons.Outlined.Straighten,
-                            label = "Units",
-                            valueText = "Metric (km, kg)",
-                            iconTint = SettingsIconColor.Brand,
-                            onClick = {
-                                scope.launch { snackbarHostState.showSnackbar("Units — coming soon") }
-                            }
-                        )
-                        NewRowDivider()
-                        var soundsOn by remember { mutableStateOf(true) }
-                        NewSettingsToggleRow(
-                            icon = Icons.AutoMirrored.Outlined.VolumeUp,
-                            label = "Sounds",
-                            checked = soundsOn,
-                            iconTint = SettingsIconColor.Brand,
-                            onToggle = { soundsOn = it }
                         )
                     }
                 }
@@ -216,22 +186,21 @@ fun SettingsScreen(
                 item {
                     NewSettingsCard {
                         NewSettingsRow(
-                            icon = Icons.AutoMirrored.Outlined.HelpOutline,
-                            label = "Help & FAQs",
-                            subtitle = "Find answers to common questions",
-                            iconTint = SettingsIconColor.Brand,
-                            onClick = {
-                                scope.launch { snackbarHostState.showSnackbar("Help & FAQs — coming soon") }
-                            }
-                        )
-                        NewRowDivider()
-                        NewSettingsRow(
                             icon = Icons.AutoMirrored.Outlined.ContactSupport,
                             label = "Contact Us",
                             subtitle = "Get in touch with our support team",
                             iconTint = SettingsIconColor.Brand,
                             onClick = {
-                                scope.launch { snackbarHostState.showSnackbar("Contact Us — coming soon") }
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://swastricare.com"))
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                }.onFailure {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Couldn't open swastricare.com")
+                                    }
+                                }
                             }
                         )
                         NewRowDivider()

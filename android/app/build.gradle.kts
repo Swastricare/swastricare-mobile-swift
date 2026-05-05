@@ -29,8 +29,8 @@ android {
         applicationId = "com.swastricare.health"
         minSdk = 26 // Raised from 24 to 26 for Health Connect support
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.0.3"
+        versionCode = 11
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
