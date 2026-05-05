@@ -1340,6 +1340,48 @@ private fun ChartLegend(label: String, value: String, color: Color) {
     }
 }
 
+private data class StatEntry(val label: String, val value: String)
+
+@Composable
+private fun StatGrid(entries: List<StatEntry>) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        entries.chunked(2).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                row.forEach { entry ->
+                    StatTile(entry = entry, modifier = Modifier.weight(1f))
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatTile(entry: StatEntry, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(CardSubtleBg)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            entry.label,
+            fontSize = 11.sp,
+            color = FaintText
+        )
+        Text(
+            entry.value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onBackground
+        )
+    }
+}
+
 // ─────────────────────────────────────
 // Formatting Helpers
 // ─────────────────────────────────────
