@@ -245,6 +245,7 @@ fun RunActivityScreen(
                     todayCalories = uiState.todayCalories,
                     todayDistanceKm = uiState.todayDistance,
                     daySummaries = uiState.daySummaries,
+                    goals = uiState.goals,
                     showSwipeHint = !swipeHintPlayed,
                     onSwipeHintComplete = { swipeHintPlayed = true },
                     onPrevDay = {
@@ -435,6 +436,7 @@ private fun MoveGoalCard(
     todayCalories: Int,
     todayDistanceKm: Double,
     daySummaries: Map<LocalDate, com.swastricare.health.data.services.HealthConnectService.DailyHealthSummary>,
+    goals: com.swastricare.health.data.models.ActivityGoals,
     showSwipeHint: Boolean,
     onSwipeHintComplete: () -> Unit,
     onPrevDay: () -> Unit,
@@ -535,13 +537,13 @@ private fun MoveGoalCard(
                 Spacer(Modifier.height(12.dp))
                 MoveGoalContent(
                     calories = calories,
-                    caloriesGoal = 600,
+                    caloriesGoal = goals.dailyCaloriesGoal,
                     steps = steps,
-                    stepsGoal = 10_000,
+                    stepsGoal = goals.dailyStepsGoal,
                     activeMinutes = activeMinutes,
-                    activeMinutesGoal = 90,
+                    activeMinutesGoal = goals.dailyActiveMinutes,
                     distanceKm = distanceKm,
-                    distanceGoalKm = 12.0
+                    distanceGoalKm = goals.dailyDistanceKm
                 )
             }
         }

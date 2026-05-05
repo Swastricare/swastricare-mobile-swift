@@ -63,9 +63,7 @@ class SupabaseActivityGoalsRepository @javax.inject.Inject constructor(
                     dailyCaloriesGoal = goals.dailyCaloriesGoal,
                     dailyActiveMinutes = goals.dailyActiveMinutes
                 )
-                supabaseClient.from("activity_goals").upsert(dto) {
-                    onConflict = "health_profile_id"
-                }
+                supabaseClient.from("activity_goals").upsert(dto)
                 saveLocalGoals(goals)
             }
         }
