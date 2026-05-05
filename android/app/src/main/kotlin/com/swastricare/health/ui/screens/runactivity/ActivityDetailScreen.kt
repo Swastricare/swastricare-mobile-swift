@@ -635,6 +635,51 @@ private fun PaceChartCard(splits: List<SplitData>, avgPace: Double) {
 }
 
 // ─────────────────────────────────────
+// Pace Stats Card
+// ─────────────────────────────────────
+
+@Composable
+private fun PaceStatsCard(splits: List<SplitData>, avgPace: Double) {
+    val pacesSec = splits.map { it.paceSecondsPerKm.toDouble() }
+    val fastest = pacesSec.min()
+    val slowest = pacesSec.max()
+    val fastestKm = splits.first { it.paceSecondsPerKm.toDouble() == fastest }.kilometer
+    val slowestKm = splits.first { it.paceSecondsPerKm.toDouble() == slowest }.kilometer
+    val mean = pacesSec.average()
+    val variance = pacesSec.map { (it - mean) * (it - mean) }.average()
+    val stdDev = kotlin.math.sqrt(variance)
+    val range = slowest - fastest
+
+    val firstHalf = splits.take(splits.size / 2)
+    val secondHalf = splits.drop(splits.size / 2)
+    val firstAvg = firstHalf.map { it.paceSecondsPerKm.toDouble() }.average()
+    val secondAvg = if (secondHalf.isNotEmpty())
+        secondHalf.map { it.paceSecondsPerKm.toDouble() }.average() else firstAvg
+    val splitType = when {
+        secondAvg < firstAvg - 5 -> "Negative split"
+        secondAvg > firstAvg + 5 -> "Positive split"
+        else -> "Even split"
+    }
+
+    AnalyticsCard(
+        title = "Pace Analysis",
+        subtitle = "Per-kilometer breakdown",
+        icon = Icons.Default.Speed
+    ) {
+        StatGrid(
+            entries = listOf(
+                StatEntry("Best Km", "Km $fastestKm · ${formatPace(fastest)}"),
+                StatEntry("Slowest Km", "Km $slowestKm · ${formatPace(slowest)}"),
+                StatEntry("Average", "${formatPace(avgPace)} min/km"),
+                StatEntry("Range", "${formatPace(range)} min/km"),
+                StatEntry("Consistency", "±${formatPace(stdDev)}"),
+                StatEntry("Pacing", splitType)
+            )
+        )
+    }
+}
+
+// ─────────────────────────────────────
 // Splits Card
 // ─────────────────────────────────────
 
@@ -868,6 +913,43 @@ private fun HeartRateChartCard(data: List<HeartRatePoint>) {
             ChartLegend("Avg", "$avgBpm bpm", DangerColor)
             ChartLegend("Peak", "$peakBpm bpm", DangerColor)
         }
+    }
+}
+
+// ─────────────────────────────────────
+// Heart Rate Stats Card
+// ─────────────────────────────────────
+
+@Composable
+private fun HeartRateStatsCard(data: List<HeartRatePoint>) {
+    val bpms = data.map { it.bpm }
+    val avg = bpms.average().roundToInt()
+    val peak = bpms.max()
+    val low = bpms.min()
+    val mean = bpms.average()
+    val variance = bpms.map { (it - mean) * (it - mean) }.average()
+    val stdDev = kotlin.math.sqrt(variance).roundToInt()
+
+    val zoneSeconds = computeZoneTime(data)
+    val total = zoneSeconds.values.sum().coerceAtLeast(1L)
+    val moderateOrHigher = (zoneSeconds["moderate"] ?: 0L) + (zoneSeconds["intense"] ?: 0L)
+    val activePct = (moderateOrHigher.toFloat() / total * 100).roundToInt()
+
+    AnalyticsCard(
+        title = "Heart Rate Stats",
+        subtitle = "Effort and intensity",
+        icon = Icons.Outlined.FavoriteBorder
+    ) {
+        StatGrid(
+            entries = listOf(
+                StatEntry("Average", "$avg bpm"),
+                StatEntry("Peak", "$peak bpm"),
+                StatEntry("Lowest", "$low bpm"),
+                StatEntry("Variability", "±$stdDev bpm"),
+                StatEntry("Active Time", "$activePct%"),
+                StatEntry("Samples", "${data.size}")
+            )
+        )
     }
 }
 
