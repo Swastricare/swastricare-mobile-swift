@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Hiking
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
@@ -182,20 +181,6 @@ private fun CalendarHeader(onBack: () -> Unit) {
                 fontSize = 11.sp,
                 fontFamily = Poppins,
                 color = AppColors.onSurfaceVariant
-            )
-        }
-        IconButton(onClick = { /* filter — placeholder */ }) {
-            Icon(
-                Icons.Default.FilterList,
-                contentDescription = "Filter",
-                tint = AITeal
-            )
-        }
-        IconButton(onClick = { /* jump-to-today — placeholder */ }) {
-            Icon(
-                Icons.Default.CalendarToday,
-                contentDescription = "Today",
-                tint = AITeal
             )
         }
     }

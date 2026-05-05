@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.PersonOutline
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.Sync
@@ -66,6 +67,7 @@ fun SettingsScreen(
     onNavigateToHydrationSettings: () -> Unit = {},
     onNavigateToHealthDataSync: () -> Unit = {},
     onNavigateToThemeSettings: () -> Unit = {},
+    onNavigateToActivityGoals: () -> Unit = {},
     onSignOut: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -161,6 +163,14 @@ fun SettingsScreen(
                             subtitle = "Customize your notification settings",
                             iconTint = SettingsIconColor.Brand,
                             onClick = onNavigateToNotificationSettings
+                        )
+                        NewRowDivider()
+                        NewSettingsRow(
+                            icon = Icons.Outlined.Flag,
+                            label = "Activity Goals",
+                            subtitle = "Set daily steps, distance & calorie goals",
+                            iconTint = SettingsIconColor.Brand,
+                            onClick = onNavigateToActivityGoals
                         )
                         NewRowDivider()
                         NewSettingsToggleRow(

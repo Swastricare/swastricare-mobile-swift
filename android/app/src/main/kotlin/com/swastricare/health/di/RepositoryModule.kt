@@ -1,5 +1,7 @@
 package com.swastricare.health.di
 
+import com.swastricare.health.data.repository.ActivityGoalsRepository
+import com.swastricare.health.data.repository.SupabaseActivityGoalsRepository
 import com.swastricare.health.data.repository.AIRepositoryImpl
 import com.swastricare.health.data.repository.AnalyticsRepositoryImpl
 import com.swastricare.health.data.repository.AuthRepositoryImpl
@@ -93,4 +95,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindStressRepository(impl: StressRepositoryImpl): StressRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindActivityGoalsRepository(
+        impl: SupabaseActivityGoalsRepository
+    ): ActivityGoalsRepository
 }

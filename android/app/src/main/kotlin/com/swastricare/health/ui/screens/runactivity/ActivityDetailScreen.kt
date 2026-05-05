@@ -174,8 +174,6 @@ fun ActivityDetailScreen(
                         hasRoute = workout.routePoints.size >= 2
                     )
 
-                    Spacer(Modifier.height(8.dp))
-
                     if (workout.routePoints.isNotEmpty()) {
                         MapCard(
                             workout = workout,
@@ -277,87 +275,69 @@ private fun DetailTopBar(
     onDeleteRequest: () -> Unit,
     hasRoute: Boolean
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = AppColors.onBackground
+            )
+        }
+        Icon(
+            imageVector = activityIcon(workout.type),
+            contentDescription = null,
+            tint = AITeal,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                workoutTitle(workout),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppColors.onBackground,
+                maxLines = 1
+            )
+            Text(
+                formatDateTime(bestKnownTime(workout)),
+                fontSize = 11.sp,
+                color = AppColors.onBackground,
+                maxLines = 1
+            )
+        }
+        Box {
+            IconButton(onClick = { onMenuToggle(true) }) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    Icons.Default.MoreVert,
+                    contentDescription = "More",
                     tint = AppColors.onBackground
                 )
             }
-            Spacer(Modifier.weight(1f))
-            Box {
-                IconButton(onClick = { onMenuToggle(true) }) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = "More",
-                        tint = AppColors.onBackground
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { onMenuToggle(false) }
-                ) {
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { onMenuToggle(false) }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Share") },
+                    onClick = onShare,
+                    leadingIcon = { Icon(Icons.Outlined.Share, null, tint = AppColors.onBackground) }
+                )
+                if (hasRoute) {
                     DropdownMenuItem(
-                        text = { Text("Share") },
-                        onClick = onShare,
-                        leadingIcon = { Icon(Icons.Outlined.Share, null, tint = AppColors.onBackground) }
-                    )
-                    if (hasRoute) {
-                        DropdownMenuItem(
-                            text = { Text("Export GPX") },
-                            onClick = onExportGpx,
-                            leadingIcon = { Icon(Icons.Outlined.FileDownload, null, tint = AppColors.onBackground) }
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Delete", color = DangerColor) },
-                        onClick = onDeleteRequest,
-                        leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = DangerColor) }
+                        text = { Text("Export GPX") },
+                        onClick = onExportGpx,
+                        leadingIcon = { Icon(Icons.Outlined.FileDownload, null, tint = AppColors.onBackground) }
                     )
                 }
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Icon(
-                imageVector = activityIcon(workout.type),
-                contentDescription = null,
-                tint = AITeal,
-                modifier = Modifier.size(28.dp)
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        workoutTitle(workout),
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.onBackground
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Rename",
-                        tint = FaintText,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                Text(
-                    formatDateTime(workout.startTime),
-                    fontSize = 13.sp,
-                    color = SubtleText
+                DropdownMenuItem(
+                    text = { Text("Delete", color = DangerColor) },
+                    onClick = onDeleteRequest,
+                    leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = DangerColor) }
                 )
             }
         }
@@ -374,7 +354,7 @@ private fun activityIcon(type: String): ImageVector = when (type) {
 
 private fun workoutTitle(workout: WorkoutDetail): String {
     val typeLabel = workout.type.replaceFirstChar { it.uppercase() }
-    val hour = parseHourOfDay(workout.startTime) ?: return typeLabel
+    val hour = parseHourOfDay(bestKnownTime(workout)) ?: return typeLabel
     val timeOfDay = when (hour) {
         in 5..11 -> "Morning"
         in 12..16 -> "Afternoon"
@@ -1389,7 +1369,7 @@ private fun ActivityDetailsCard(workout: WorkoutDetail) {
     val avgSpeedText = if (workout.avgSpeed > 0) "%.1f km/h".format(workout.avgSpeed) else "—"
     val elevationText = if (workout.elevationGain > 0) "${workout.elevationGain.roundToInt()} m" else "—"
     val terrain = terrainLabel(workout.elevationGain, workout.distanceMeters)
-    val startedText = formatTimeOnly(workout.startTime)
+    val startedText = formatTimeOnly(bestKnownTime(workout))
 
     Column(
         modifier = Modifier
@@ -1679,7 +1659,14 @@ private fun formatPace(secondsPerKm: Double): String {
     return "%d:%02d".format(mins, secs)
 }
 
+private fun bestKnownTime(workout: WorkoutDetail): String {
+    if (workout.startTime.isNotBlank()) return workout.startTime
+    if (workout.endTime.isNotBlank()) return workout.endTime
+    return ""
+}
+
 private fun formatDateTime(isoString: String): String {
+    if (isoString.isBlank()) return ""
     return try {
         val parts = isoString.split("T")
         if (parts.size != 2) return isoString

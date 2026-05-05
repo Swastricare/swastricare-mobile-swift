@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swastricare.health.data.models.*
 import java.time.LocalDate
+import com.swastricare.health.data.repository.ActivityGoalsRepository
 import com.swastricare.health.data.repository.RunActivityRepository
 import com.swastricare.health.data.repository.ProfileRepository
 import com.swastricare.health.data.services.FitnessAnalyticsService
@@ -32,6 +33,10 @@ data class RunActivityUiState(
     val todaySteps: Int = 0,
     val todayDistance: Double = 0.0,
     val todayCalories: Int = 0,
+    // User-defined goals (loaded from Supabase, defaults applied locally)
+    val goals: ActivityGoals = ActivityGoals(),
+    // Per-day Health Connect summaries (lazily fetched on swipe)
+    val daySummaries: Map<LocalDate, HealthConnectService.DailyHealthSummary> = emptyMap(),
     // Fitness analytics
     val vo2Max: Double? = null,
     val vo2MaxSource: String = "",
@@ -49,6 +54,7 @@ class RunActivityViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val healthConnectService: HealthConnectService,
     private val fitnessAnalyticsService: FitnessAnalyticsService,
+    private val activityGoalsRepository: ActivityGoalsRepository,
     private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
@@ -66,7 +72,10 @@ class RunActivityViewModel @Inject constructor(
 
     fun loadData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                goals = activityGoalsRepository.loadLocalGoals()
+            )
 
             try {
                 // Local cache first — instant render after a successful sync.
@@ -113,6 +122,19 @@ class RunActivityViewModel @Inject constructor(
                     todayCalories = summary.activeCalories
                 )
 
+                // Refresh goals from cloud in the background
+                runCatching {
+                    val userId = supabaseClient.auth.currentUserOrNull()?.id
+                    val healthProfileId = if (userId != null) {
+                        runCatching { profileRepository.getHealthProfile(userId)?.id }.getOrNull()
+                    } else null
+                    if (healthProfileId != null) {
+                        activityGoalsRepository.fetchFromCloud(healthProfileId).getOrNull()?.let { fresh ->
+                            _uiState.value = _uiState.value.copy(goals = fresh)
+                        }
+                    }
+                }
+
                 syncInBackground()
 
                 // Load fitness analytics
@@ -127,6 +149,21 @@ class RunActivityViewModel @Inject constructor(
                 } catch (_: Exception) { }
             } catch (_: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun loadDaySummary(date: LocalDate) {
+        if (date == LocalDate.now()) return
+        if (_uiState.value.daySummaries.containsKey(date)) return
+        viewModelScope.launch {
+            try {
+                val summary = healthConnectService.fetchDaySummary(date)
+                _uiState.value = _uiState.value.copy(
+                    daySummaries = _uiState.value.daySummaries + (date to summary)
+                )
+            } catch (e: Exception) {
+                android.util.Log.w("RunActivityVM", "Day summary fetch failed for $date: ${e.message}")
             }
         }
     }

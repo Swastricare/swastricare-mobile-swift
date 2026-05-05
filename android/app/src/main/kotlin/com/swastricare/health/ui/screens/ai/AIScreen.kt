@@ -1491,15 +1491,18 @@ fun ChatHistoryDrawerContent(
     val aiTeal = com.swastricare.health.ui.theme.AITeal
     ModalDrawerSheet(
         drawerContainerColor = Color.White,
+        drawerContentColor = AppColors.onBackground,
         drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         modifier = Modifier
             .fillMaxWidth(0.82f)
+            .background(Color.White)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(top = 16.dp, bottom = 16.dp)
+                .padding(top = 16.dp)
         ) {
             // Header row: title + close
             Row(

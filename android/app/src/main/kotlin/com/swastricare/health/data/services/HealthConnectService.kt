@@ -43,6 +43,9 @@ class HealthConnectService(
 
     companion object {
         private const val TAG = "HealthConnectService"
+        // Average adult basal metabolic rate per minute (~1500 kcal/day).
+        // Used to back out active calories when only Total is reported.
+        private const val BMR_KCAL_PER_MINUTE = 1.04
 
         // Core permissions needed for home screen - used for permission checks
         val CORE_READ_PERMISSIONS = setOf(
@@ -315,9 +318,19 @@ class HealthConnectService(
             val standHours = standDeferred.await()
             val weightKg = weightDeferred.await()
 
-            // Google Fit only writes TotalCaloriesBurnedRecord (not ActiveCaloriesBurnedRecord).
-            // Fall back to totalCal when activeCal is unavailable so the home screen shows a value.
-            val displayCalories = if (activeCal > 0) activeCal else totalCal
+            // Google Fit only writes TotalCaloriesBurnedRecord (not Active).
+            // Active = Total − BMR-so-far, so the user sees calories burned
+            // by activity, not the inflated total (BMR baseline ~1500/day).
+            val displayCalories = when {
+                activeCal > 0 -> activeCal
+                totalCal > 0 -> {
+                    val minutesSoFar = ChronoUnit.MINUTES.between(startOfDay, now)
+                        .coerceAtLeast(1L)
+                    val bmrSoFar = (minutesSoFar * BMR_KCAL_PER_MINUTE).toInt()
+                    (totalCal - bmrSoFar).coerceAtLeast(0)
+                }
+                else -> 0
+            }
 
             DailyHealthSummary(
                 steps = steps,
@@ -397,7 +410,16 @@ class HealthConnectService(
 
             val activeCal = activeCalDeferred.await()
             val totalCal = totalCalDeferred.await()
-            val displayCalories = if (activeCal > 0) activeCal else totalCal
+            val displayCalories = when {
+                activeCal > 0 -> activeCal
+                totalCal > 0 -> {
+                    val minutesElapsed = ChronoUnit.MINUTES.between(startOfDay, effectiveEnd)
+                        .coerceAtLeast(1L)
+                    val bmrSoFar = (minutesElapsed * BMR_KCAL_PER_MINUTE).toInt()
+                    (totalCal - bmrSoFar).coerceAtLeast(0)
+                }
+                else -> 0
+            }
 
             DailyHealthSummary(
                 steps = stepsDeferred.await(),

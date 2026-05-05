@@ -106,6 +106,7 @@ fun MainNavGraph(
                 onNavigateToHydrationSettings = { onNavigateTo("hydration_settings") },
                 onNavigateToHealthDataSync = { onNavigateTo("health_data_sync") },
                 onNavigateToThemeSettings = { onNavigateTo("theme_settings") },
+                onNavigateToActivityGoals = { onNavigateTo("activity_goals") },
                 onSignOut = onSignOut
             )
         }

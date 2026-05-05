@@ -72,11 +72,24 @@ class ActivityDetailViewModel @Inject constructor(
 
     private fun WorkoutSession.toWorkoutDetail(): WorkoutDetail {
         val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+
+        // Derive a usable start/end time when the persisted record is missing one.
+        val derivedFromRoute = routePoints.firstOrNull()?.timestamp?.let {
+            java.time.LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(it),
+                java.time.ZoneId.systemDefault()
+            )
+        }
+        val derivedFromEnd = endTime?.minusSeconds(durationSeconds.coerceAtLeast(0L))
+        val effectiveStart = startTime ?: derivedFromRoute ?: derivedFromEnd
+        val effectiveEnd = endTime
+            ?: effectiveStart?.plusSeconds(durationSeconds.coerceAtLeast(0L))
+
         return WorkoutDetail(
             id = id,
             type = activityType.dbValue,
-            startTime = startTime?.format(formatter) ?: "",
-            endTime = endTime?.format(formatter) ?: "",
+            startTime = effectiveStart?.format(formatter) ?: "",
+            endTime = effectiveEnd?.format(formatter) ?: "",
             durationSeconds = durationSeconds,
             distanceMeters = distanceMeters,
             calories = caloriesBurned,

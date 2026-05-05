@@ -10,6 +10,9 @@ import com.swastricare.health.domain.model.WorkoutSession
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 /**
@@ -87,20 +90,8 @@ object RunActivityMapper {
             id = dto.id,
             userId = dto.healthProfileId,
             activityType = ActivityType.fromDb(dto.activityType),
-            startTime = dto.startTime?.let {
-                try {
-                    LocalDateTime.parse(it, isoFormatter)
-                } catch (e: Exception) {
-                    null
-                }
-            },
-            endTime = dto.endTime?.let {
-                try {
-                    LocalDateTime.parse(it, isoFormatter)
-                } catch (e: Exception) {
-                    null
-                }
-            },
+            startTime = dto.startTime?.let { parseFlexibleDateTime(it) },
+            endTime = dto.endTime?.let { parseFlexibleDateTime(it) },
             distanceMeters = dto.distanceMeters,
             durationSeconds = dto.durationSeconds,
             avgPaceSecondsPerKm = dto.avgPaceSecondsPerKm,
@@ -140,5 +131,26 @@ object RunActivityMapper {
             caloriesBurned = dto.caloriesBurned,
             isActive = dto.isActive
         )
+    }
+
+    /**
+     * Tolerant parser that accepts both zoned ("2026-05-05T10:30+05:30")
+     * and local ("2026-05-05T10:30:00") ISO date-time strings, returning
+     * a [LocalDateTime] in the system zone.
+     */
+    private fun parseFlexibleDateTime(value: String): LocalDateTime? {
+        return try {
+            ZonedDateTime.parse(value).withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+        } catch (_: Exception) {
+            try {
+                OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+            } catch (_: Exception) {
+                try {
+                    LocalDateTime.parse(value, isoFormatter)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        }
     }
 }

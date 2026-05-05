@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,6 +84,17 @@ fun HomeScreenV2(
         contract = PermissionController.createRequestPermissionResultContract()
     ) { grantedPermissions ->
         viewModel.onHealthPermissionsResult(grantedPermissions)
+    }
+
+    // Auto-prompt Health Connect permissions once per app session when the
+    // user lands on Home (covers post-login + first launch). Subsequent
+    // re-entries don't re-prompt; the banner is the manual fallback.
+    var hasAutoPromptedHealth by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(uiState.isAuthorized, uiState.isLoading) {
+        if (!uiState.isLoading && !uiState.isAuthorized && !hasAutoPromptedHealth) {
+            hasAutoPromptedHealth = true
+            healthPermissionLauncher.launch(HealthConnectService.ALL_PERMISSIONS)
+        }
     }
 
     // Load medications on mount

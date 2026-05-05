@@ -77,6 +77,7 @@ import com.swastricare.health.ui.screens.runactivity.LiveWorkoutScreen
 import com.swastricare.health.ui.screens.runactivity.LiveWorkoutViewModel
 import com.swastricare.health.ui.screens.runactivity.RunCalendarScreen
 import com.swastricare.health.ui.screens.runactivity.WorkoutType
+import com.swastricare.health.ui.screens.settings.ActivityGoalsScreen
 import com.swastricare.health.ui.screens.settings.GoogleHealthSettingsScreen
 import com.swastricare.health.ui.screens.settings.HealthAppId
 import com.swastricare.health.ui.screens.settings.HealthConnectSettingsScreen
@@ -447,6 +448,13 @@ private fun NavGraphBuilder.detailComposable(
 private fun NavGraphBuilder.addDetailRoutes(
     navController: NavHostController
 ) {
+    // ─── Activity Goals ───
+    detailComposable("activity_goals") {
+        ActivityGoalsScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
     // ─── Theme Settings ───
     detailComposable("theme_settings") {
         val settingsViewModel: SettingsViewModel = hiltViewModel()

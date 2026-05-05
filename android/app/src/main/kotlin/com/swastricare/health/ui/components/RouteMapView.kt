@@ -34,6 +34,9 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.*
 import com.swastricare.health.data.model.RoutePoint
 import com.swastricare.health.data.services.RouteTracker
+import com.swastricare.health.ui.screens.runactivity.components.MarkerColorEnd
+import com.swastricare.health.ui.screens.runactivity.components.MarkerColorStart
+import com.swastricare.health.ui.screens.runactivity.components.createPinMarkerBitmap
 import kotlin.math.*
 
 // ─────────────────────────────────────
@@ -280,12 +283,21 @@ private fun GoogleMapsRouteView(
                 width = 12f
             )
 
-            // Start marker
+            val startPinDescriptor = remember {
+                com.google.android.gms.maps.model.BitmapDescriptorFactory
+                    .fromBitmap(createPinMarkerBitmap(MarkerColorStart))
+            }
+            val endPinDescriptor = remember {
+                com.google.android.gms.maps.model.BitmapDescriptorFactory
+                    .fromBitmap(createPinMarkerBitmap(MarkerColorEnd))
+            }
+
+            // Start marker — small green pin
             Marker(
                 state = MarkerState(position = latLngs.first()),
                 title = "Start",
-                icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
-                    .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_GREEN)
+                icon = startPinDescriptor,
+                anchor = androidx.compose.ui.geometry.Offset(0.5f, 1f)
             )
 
             // End / current position marker
@@ -293,34 +305,33 @@ private fun GoogleMapsRouteView(
                 Marker(
                     state = MarkerState(position = latLngs.last()),
                     title = "Finish",
-                    icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
-                        .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_RED)
+                    icon = endPinDescriptor,
+                    anchor = androidx.compose.ui.geometry.Offset(0.5f, 1f)
                 )
             } else {
                 // Live blue marker for current position
                 Circle(
                     center = latLngs.last(),
-                    radius = 8.0,
+                    radius = 6.0,
                     fillColor = androidx.compose.ui.graphics.Color(0xFF00B4D8),
                     strokeColor = androidx.compose.ui.graphics.Color.White,
                     strokeWidth = 3f
                 )
             }
 
-            // Distance markers every 1km
+            // Distance markers every 1km — small cyan dots
             var accumulatedDistance = 0.0
             var nextMarkerKm = 1.0
             for (i in 1 until routePoints.size) {
                 val dist = RouteTracker.distanceBetween(routePoints[i - 1], routePoints[i])
                 accumulatedDistance += dist
                 if (accumulatedDistance / 1000.0 >= nextMarkerKm) {
-                    Marker(
-                        state = MarkerState(
-                            position = LatLng(routePoints[i].latitude, routePoints[i].longitude)
-                        ),
-                        title = "${nextMarkerKm.toInt()} km",
-                        icon = com.google.android.gms.maps.model.BitmapDescriptorFactory
-                            .defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_CYAN)
+                    Circle(
+                        center = LatLng(routePoints[i].latitude, routePoints[i].longitude),
+                        radius = 4.0,
+                        fillColor = androidx.compose.ui.graphics.Color(0xFF00E5FF),
+                        strokeColor = androidx.compose.ui.graphics.Color.White,
+                        strokeWidth = 2f
                     )
                     nextMarkerKm += 1.0
                 }
