@@ -3,13 +3,9 @@ package com.swastricare.health.ui.screens.diet
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,31 +18,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.swastricare.health.data.models.FoodCategory
 import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.ServingUnit
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.ui.components.TrackScreen
-import com.swastricare.health.ui.screens.home.lightBorder
 import com.swastricare.health.ui.theme.AppColors
 
 // ─────────────────────────────────────
 // MARK: - AddFoodScreen
 // ─────────────────────────────────────
 
+/**
+ * Unified browse + search screen.
+ * - Search bar + category chips always visible.
+ * - When idle (no search, "All" category): shows quick actions (Snap / Custom),
+ *   then recent + favorites pills, then all foods.
+ * - When filtering: shows the filtered food list directly.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFoodScreen(
     initialMealTypeDb: String,
     onDismiss: () -> Unit,
-    onNavigateToFoodSearch: (String) -> Unit,  // mealType.dbValue
     onNavigateToFoodSnap: (String) -> Unit = {}
 ) {
     TrackScreen("AddFood")
@@ -54,12 +56,23 @@ fun AddFoodScreen(
     val uiState by vm.uiState.collectAsState()
 
     var searchText by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf<FoodCategory?>(null) }
     var currentMealType by remember { mutableStateOf(MealType.fromDb(initialMealTypeDb)) }
     var selectedFoodForQuantity by remember { mutableStateOf<FoodItem?>(null) }
 
-    val searchResults = remember(searchText, uiState.foodItemsCache) {
-        if (searchText.isBlank()) emptyList()
-        else vm.searchFoods(searchText)
+    val filteredFoods = remember(searchText, selectedCategory, uiState.foodItemsCache) {
+        var foods = if (searchText.isNotBlank()) vm.searchFoods(searchText)
+                    else uiState.foodItemsCache
+        selectedCategory?.let { cat -> foods = foods.filter { it.category == cat.dbValue } }
+        foods
+    }
+
+    val isFiltering = searchText.isNotBlank() || selectedCategory != null
+
+    LaunchedEffect(searchText, filteredFoods.size) {
+        if (searchText.isNotBlank()) {
+            vm.trackFoodSearched(searchText.length, filteredFoods.size)
+        }
     }
 
     Scaffold(
@@ -70,7 +83,9 @@ fun AddFoodScreen(
                     TextField(
                         value = searchText,
                         onValueChange = { searchText = it },
-                        placeholder = { Text("Search foods...", color = AppColors.onSurface.copy(alpha = 0.4f)) },
+                        placeholder = {
+                            Text("Search foods...", color = AppColors.onSurface.copy(alpha = 0.4f))
+                        },
                         singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -87,7 +102,6 @@ fun AddFoodScreen(
                     }
                 },
                 actions = {
-                    // Meal type pill
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -117,28 +131,110 @@ fun AddFoodScreen(
                 windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
-        containerColor = AppColors.surface
+        containerColor = Color.White
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 40.dp)
-        ) {
-            if (searchText.isNotEmpty()) {
-                // Search results
-                if (searchResults.isEmpty()) {
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            // Category chips — always visible
+            CategoryFilterRow(
+                selectedCategory = selectedCategory,
+                onCategorySelected = { selectedCategory = it }
+            )
+
+            Divider(color = AppColors.onSurface.copy(alpha = 0.06f))
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 40.dp)
+            ) {
+                if (!isFiltering) {
+                    // Quick actions
                     item {
-                        SearchEmptyState()
+                        QuickActionsRow(
+                            onSnap = { onNavigateToFoodSnap(currentMealType.dbValue) },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                        )
+                    }
+
+                    // Recent
+                    val recent = vm.recentFoods
+                    if (recent.isNotEmpty()) {
+                        item {
+                            HorizontalFoodChips(
+                                title = "Recent",
+                                titleIcon = Icons.Default.History,
+                                titleIconTint = AppColors.onSurface.copy(alpha = 0.5f),
+                                chipBg = DietAccent.copy(alpha = 0.08f),
+                                accentBadge = null,
+                                foods = recent,
+                                onSelect = { selectedFoodForQuantity = it }
+                            )
+                        }
+                    }
+
+                    // Favorites
+                    val favorites = vm.favoriteFoods
+                    if (favorites.isNotEmpty()) {
+                        item {
+                            HorizontalFoodChips(
+                                title = "Favorites",
+                                titleIcon = Icons.Default.Favorite,
+                                titleIconTint = Color(0xFFFF2D55),
+                                chipBg = Color(0xFFFFE5EC),
+                                accentBadge = Icons.Default.Favorite to Color(0xFFFF2D55),
+                                foods = favorites,
+                                onSelect = { selectedFoodForQuantity = it }
+                            )
+                        }
+                    }
+
+                    // Custom food
+                    item {
+                        CustomFoodButton(
+                            mealType = currentMealType,
+                            onLogCustom = { name, qty, unit, cal, p, c, f ->
+                                vm.logCustomFood(
+                                    name = name,
+                                    mealType = currentMealType,
+                                    quantity = qty,
+                                    servingUnit = unit,
+                                    calories = cal,
+                                    proteinG = p,
+                                    carbsG = c,
+                                    fatG = f
+                                )
+                                onDismiss()
+                            }
+                        )
+                    }
+
+                    // All foods header
+                    item {
+                        Text(
+                            "All Foods",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.onSurface.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
+                        )
                     }
                 } else {
                     item {
                         Text(
-                            "${searchResults.size} results",
+                            "${filteredFoods.size} result${if (filteredFoods.size == 1) "" else "s"}",
                             fontSize = 13.sp,
                             color = AppColors.onSurface.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
-                    items(searchResults) { food ->
+                }
+
+                // Food list
+                if (filteredFoods.isEmpty()) {
+                    item {
+                        FoodSearchEmptyState(hasSearch = searchText.isNotBlank())
+                    }
+                } else {
+                    items(filteredFoods) { food ->
                         FoodItemRow(
                             food = food,
                             onSelect = { selectedFoodForQuantity = food },
@@ -151,74 +247,10 @@ fun AddFoodScreen(
                         )
                     }
                 }
-            } else {
-                // Recent Foods
-                val recent = vm.recentFoods
-                if (recent.isNotEmpty()) {
-                    item {
-                        RecentFoodsSection(
-                            foods = recent,
-                            onSelect = { selectedFoodForQuantity = it }
-                        )
-                    }
-                }
-
-                // Favorites
-                val favorites = vm.favoriteFoods
-                if (favorites.isNotEmpty()) {
-                    item {
-                        FavoriteFoodsSection(
-                            foods = favorites,
-                            onSelect = { selectedFoodForQuantity = it }
-                        )
-                    }
-                }
-
-                // Snap Food Photo Button
-                item {
-                    OutlinedButton(
-                        onClick = { onNavigateToFoodSnap(currentMealType.dbValue) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Snap Food Photo")
-                    }
-                }
-
-                // Category Grid
-                item {
-                    CategoryGridSection(
-                        onCategorySelect = { onNavigateToFoodSearch(currentMealType.dbValue) }
-                    )
-                }
-
-                // Custom Food Button
-                item {
-                    CustomFoodButton(
-                        mealType = currentMealType,
-                        onLogCustom = { name, qty, unit, cal, p, c, f ->
-                            vm.logCustomFood(
-                                name = name,
-                                mealType = currentMealType,
-                                quantity = qty,
-                                servingUnit = unit,
-                                calories = cal,
-                                proteinG = p,
-                                carbsG = c,
-                                fatG = f
-                            )
-                            onDismiss()
-                        }
-                    )
-                }
             }
         }
     }
 
-    // Food Quantity Sheet
     selectedFoodForQuantity?.let { food ->
         FoodQuantitySheet(
             food = food,
@@ -236,25 +268,171 @@ fun AddFoodScreen(
 }
 
 // ─────────────────────────────────────
-// MARK: - Recent Foods
+// MARK: - Category Filter Row
 // ─────────────────────────────────────
 
 @Composable
-private fun RecentFoodsSection(foods: List<FoodItem>, onSelect: (FoodItem) -> Unit) {
-    val isDark = isSystemInDarkTheme()
-    val chipBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+private fun CategoryFilterRow(
+    selectedCategory: FoodCategory?,
+    onCategorySelected: (FoodCategory?) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            FilterChipItem(
+                label = "All",
+                icon = null,
+                isSelected = selectedCategory == null,
+                onClick = { onCategorySelected(null) }
+            )
+        }
+        items(FoodCategory.values()) { category ->
+            FilterChipItem(
+                label = category.displayName,
+                icon = category.icon,
+                isSelected = selectedCategory == category,
+                onClick = {
+                    onCategorySelected(if (selectedCategory == category) null else category)
+                }
+            )
+        }
+    }
+}
 
+@Composable
+private fun FilterChipItem(
+    label: String,
+    icon: String?,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val bg = if (isSelected) DietAccent.copy(alpha = 0.15f) else Color(0xFFF6F7F9)
+    val textColor = if (isSelected) DietAccent else AppColors.onSurface
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        if (icon != null) {
+            Text(icon, fontSize = 12.sp)
+        }
+        Text(
+            label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = textColor
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Quick Actions
+// ─────────────────────────────────────
+
+@Composable
+private fun QuickActionsRow(
+    onSnap: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        QuickActionCard(
+            icon = Icons.Default.CameraAlt,
+            label = "Snap Food",
+            subtitle = "AI photo",
+            onClick = onSnap,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun QuickActionCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .dietCardShadow(radius = 14.dp, elevation = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(DietAccent.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = DietAccent, modifier = Modifier.size(20.dp))
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AppColors.onSurface)
+            Text(subtitle, fontSize = 11.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
+        }
+        Icon(
+            Icons.Default.ChevronRight,
+            null,
+            tint = AppColors.onSurface.copy(alpha = 0.3f)
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Horizontal Food Chips
+// ─────────────────────────────────────
+
+@Composable
+private fun HorizontalFoodChips(
+    title: String,
+    titleIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    titleIconTint: Color,
+    chipBg: Color,
+    accentBadge: Pair<androidx.compose.ui.graphics.vector.ImageVector, Color>?,
+    foods: List<FoodItem>,
+    onSelect: (FoodItem) -> Unit
+) {
     Column(
-        modifier = Modifier.padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.padding(top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(Icons.Default.History, null, tint = AppColors.onSurface.copy(alpha = 0.5f), modifier = Modifier.size(15.dp))
-            Text("Recent", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AppColors.onSurface.copy(alpha = 0.5f))
+            Icon(titleIcon, null, tint = titleIconTint, modifier = Modifier.size(15.dp))
+            Text(
+                title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppColors.onSurface.copy(alpha = 0.5f)
+            )
         }
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -265,109 +443,19 @@ private fun RecentFoodsSection(foods: List<FoodItem>, onSelect: (FoodItem) -> Un
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .background(chipBg)
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(food) }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onSelect(food) }
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(food.categoryEnum.icon, fontSize = 14.sp)
                     Text(food.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                }
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Favorites
-// ─────────────────────────────────────
-
-@Composable
-private fun FavoriteFoodsSection(foods: List<FoodItem>, onSelect: (FoodItem) -> Unit) {
-    Column(
-        modifier = Modifier.padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(Icons.Default.Favorite, null, tint = Color(0xFFFF2D55), modifier = Modifier.size(14.dp))
-            Text("Favorites", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AppColors.onSurface.copy(alpha = 0.5f))
-        }
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
-        ) {
-            items(foods) { food ->
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFFFF2D55).copy(alpha = 0.08f))
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(food) }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(food.categoryEnum.icon, fontSize = 14.sp)
-                    Text(food.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                    Icon(Icons.Default.Favorite, null, tint = Color(0xFFFF2D55), modifier = Modifier.size(10.dp))
-                }
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Category Grid
-// ─────────────────────────────────────
-
-@Composable
-private fun CategoryGridSection(onCategorySelect: (FoodCategory) -> Unit) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
-
-    Column(
-        modifier = Modifier.padding(top = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            "Browse by Category",
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = AppColors.onSurface.copy(alpha = 0.5f),
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .heightIn(max = 400.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            userScrollEnabled = false
-        ) {
-            items(FoodCategory.values()) { category ->
-                Column(
-                    modifier = Modifier
-                        .lightBorder(12.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(cardBg)
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onCategorySelect(category) }
-                        .padding(vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(category.icon, fontSize = 32.sp)
-                    Text(
-                        category.displayName,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = AppColors.onSurface,
-                        textAlign = TextAlign.Center
-                    )
+                    accentBadge?.let { (icon, tint) ->
+                        Icon(icon, null, tint = tint, modifier = Modifier.size(10.dp))
+                    }
                 }
             }
         }
@@ -384,24 +472,35 @@ private fun CustomFoodButton(
     onLogCustom: (name: String, qty: Double, unit: ServingUnit, cal: Double, p: Double, c: Double, f: Double) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-            .lightBorder(12.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .dietCardShadow(radius = 12.dp, elevation = 4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(cardBg)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { showDialog = true }
+            .background(Color.White)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { showDialog = true }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(Icons.Default.AddCircle, null, tint = DietGreen, modifier = Modifier.size(22.dp))
+        Icon(Icons.Default.AddCircle, null, tint = DietAccent, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))
-        Text("Add Custom Food", fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-        Icon(Icons.Default.ChevronRight, null, tint = AppColors.onSurface.copy(alpha = 0.3f), modifier = Modifier.size(18.dp))
+        Text(
+            "Add Custom Food",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            Icons.Default.ChevronRight,
+            null,
+            tint = AppColors.onSurface.copy(alpha = 0.3f),
+            modifier = Modifier.size(18.dp)
+        )
     }
 
     if (showDialog) {
@@ -435,26 +534,62 @@ private fun CustomFoodDialog(
         title = { Text("Custom Food") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Food name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = name, onValueChange = { name = it },
+                    label = { Text("Food name") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = quantity, onValueChange = { quantity = it }, label = { Text("Qty") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
+                    OutlinedTextField(
+                        value = quantity, onValueChange = { quantity = it },
+                        label = { Text("Qty") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
                     var showUnitPicker by remember { mutableStateOf(false) }
                     Box {
-                        OutlinedButton(onClick = { showUnitPicker = true }, modifier = Modifier.height(56.dp)) {
-                            Text(selectedUnit.displayName)
-                        }
-                        DropdownMenu(expanded = showUnitPicker, onDismissRequest = { showUnitPicker = false }) {
+                        OutlinedButton(
+                            onClick = { showUnitPicker = true },
+                            modifier = Modifier.height(56.dp)
+                        ) { Text(selectedUnit.displayName) }
+                        DropdownMenu(
+                            expanded = showUnitPicker,
+                            onDismissRequest = { showUnitPicker = false }
+                        ) {
                             ServingUnit.values().forEach { unit ->
-                                DropdownMenuItem(text = { Text(unit.displayName) }, onClick = { selectedUnit = unit; showUnitPicker = false })
+                                DropdownMenuItem(
+                                    text = { Text(unit.displayName) },
+                                    onClick = { selectedUnit = unit; showUnitPicker = false }
+                                )
                             }
                         }
                     }
                 }
-                OutlinedTextField(value = calories, onValueChange = { calories = it }, label = { Text("Calories") }, suffix = { Text("cal") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = calories, onValueChange = { calories = it },
+                    label = { Text("Calories") }, suffix = { Text("cal") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("Protein") }, suffix = { Text("g") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("Carbs") }, suffix = { Text("g") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("Fat") }, suffix = { Text("g") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
+                    OutlinedTextField(
+                        value = protein, onValueChange = { protein = it },
+                        label = { Text("Protein") }, suffix = { Text("g") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = carbs, onValueChange = { carbs = it },
+                        label = { Text("Carbs") }, suffix = { Text("g") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = fat, onValueChange = { fat = it },
+                        label = { Text("Fat") }, suffix = { Text("g") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         },
@@ -472,26 +607,47 @@ private fun CustomFoodDialog(
                     )
                 },
                 enabled = isValid
-            ) { Text("Save", color = if (isValid) DietGreen else Color.Gray) }
+            ) { Text("Save", color = if (isValid) DietAccent else Color.Gray) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
 // ─────────────────────────────────────
-// MARK: - Search Empty State
+// MARK: - Empty State
 // ─────────────────────────────────────
 
 @Composable
-private fun SearchEmptyState() {
+private fun FoodSearchEmptyState(hasSearch: Boolean) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 80.dp, bottom = 40.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 40.dp, vertical = 60.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Default.Search, null, tint = AppColors.onSurface.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
-        Text("No foods found", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = AppColors.onSurface.copy(alpha = 0.5f))
-        Text("Try a different search term", fontSize = 14.sp, color = AppColors.onSurface.copy(alpha = 0.4f))
+        AsyncImage(
+            model = "file:///android_asset/illustrations/food - ice cream.png",
+            contentDescription = null,
+            modifier = Modifier.size(140.dp),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "No foods found",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = AppColors.onSurface.copy(alpha = 0.5f)
+        )
+        if (hasSearch) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Try a different search term",
+                fontSize = 13.sp,
+                color = AppColors.onSurface.copy(alpha = 0.4f),
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
@@ -520,7 +676,7 @@ fun FoodQuantitySheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = AppColors.surface
+        containerColor = Color.White
     ) {
         Column(
             modifier = Modifier
@@ -529,7 +685,6 @@ fun FoodQuantitySheet(
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Title
             Text(
                 "Adjust Quantity",
                 style = MaterialTheme.typography.titleMedium,
@@ -538,20 +693,29 @@ fun FoodQuantitySheet(
                 textAlign = TextAlign.Center
             )
 
-            // Food header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Box(
-                    modifier = Modifier.size(60.dp).clip(RoundedCornerShape(14.dp)).background(DietGreen.copy(alpha = 0.1f)),
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DietAccent.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(food.categoryEnum.icon, fontSize = 36.sp)
                 }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(food.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
-                    Text("${food.displayServingSize} per serving", fontSize = 14.sp, color = AppColors.onSurface.copy(alpha = 0.5f))
+                    Text(
+                        "${food.displayServingSize} per serving",
+                        fontSize = 14.sp,
+                        color = AppColors.onSurface.copy(alpha = 0.5f)
+                    )
                 }
                 IconButton(onClick = onToggleFavorite) {
                     Icon(
@@ -563,15 +727,22 @@ fun FoodQuantitySheet(
                 }
             }
 
-            // Quantity Stepper
             Column(
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(
-                    if (isSystemInDarkTheme()) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
-                ).padding(vertical = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .dietCardShadow(radius = 16.dp, elevation = 4.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .padding(vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Servings", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = AppColors.onSurface.copy(alpha = 0.5f))
+                Text(
+                    "Servings",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = AppColors.onSurface.copy(alpha = 0.5f)
+                )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(24.dp)
@@ -582,7 +753,7 @@ fun FoodQuantitySheet(
                     ) {
                         Icon(
                             Icons.Default.RemoveCircle, "Decrease",
-                            tint = if (quantity > 0.5) DietGreen else AppColors.onSurface.copy(alpha = 0.3f),
+                            tint = if (quantity > 0.5) DietAccent else AppColors.onSurface.copy(alpha = 0.3f),
                             modifier = Modifier.size(40.dp)
                         )
                     }
@@ -599,14 +770,13 @@ fun FoodQuantitySheet(
                     ) {
                         Icon(
                             Icons.Default.AddCircle, "Increase",
-                            tint = if (quantity < 10.0) DietGreen else AppColors.onSurface.copy(alpha = 0.3f),
+                            tint = if (quantity < 10.0) DietAccent else AppColors.onSurface.copy(alpha = 0.3f),
                             modifier = Modifier.size(40.dp)
                         )
                     }
                 }
             }
 
-            // Nutrition Preview
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -617,14 +787,13 @@ fun FoodQuantitySheet(
                 NutritionPill("Fat", "${adjustedFat}g", Color(0xFFFFD93D), Modifier.weight(1f))
             }
 
-            // Log Button
             Button(
                 onClick = {
                     isLogging = true
                     onLog(quantity)
                 },
                 modifier = Modifier.fillMaxWidth().height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DietGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = DietAccent),
                 shape = RoundedCornerShape(14.dp),
                 enabled = !isLogging
             ) {
@@ -643,7 +812,10 @@ fun FoodQuantitySheet(
 @Composable
 private fun NutritionPill(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.1f)).padding(vertical = 10.dp),
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.1f))
+            .padding(vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {

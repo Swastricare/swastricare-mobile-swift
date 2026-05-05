@@ -49,7 +49,6 @@ import com.swastricare.health.ui.screens.auth.ResetPasswordScreen
 import com.swastricare.health.ui.screens.auth.SignUpScreen
 import com.swastricare.health.ui.screens.diet.AddFoodScreen
 import com.swastricare.health.ui.screens.diet.DietScreen
-import com.swastricare.health.ui.screens.diet.FoodSearchScreen
 import com.swastricare.health.ui.screens.diet.FoodSnapScreen
 import com.swastricare.health.ui.screens.family.FamilyScreen
 import com.swastricare.health.ui.screens.heartrate.HeartRateAnalyticsScreen
@@ -494,7 +493,7 @@ private fun NavGraphBuilder.addDetailRoutes(
         DietScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAddFood = { mt -> navController.navigate("add_food/$mt") },
-            onNavigateToFoodSearch = { mt -> navController.navigate("food_search/$mt") },
+            onNavigateToFoodSearch = { mt -> navController.navigate("add_food/$mt") },
             onNavigateToAI = { navController.popBackStack("main", inclusive = false) },
             onNavigateToFoodSnap = { mt -> navController.navigate("food_snap/$mt") }
         )
@@ -513,25 +512,7 @@ private fun NavGraphBuilder.addDetailRoutes(
         AddFoodScreen(
             initialMealTypeDb = mealTypeDb,
             onDismiss = { navController.popBackStack() },
-            onNavigateToFoodSearch = { mt -> navController.navigate("food_search/$mt") },
             onNavigateToFoodSnap = { mt -> navController.navigate("food_snap/$mt") }
-        )
-    }
-
-    detailComposable(
-        route = "food_search/{${NavArgs.MEAL_TYPE}}",
-        arguments = listOf(
-            navArgument(NavArgs.MEAL_TYPE) {
-                type = NavType.StringType
-                defaultValue = "breakfast"
-            }
-        )
-    ) { backStackEntry ->
-        val mealTypeDb = backStackEntry.arguments?.getString(NavArgs.MEAL_TYPE) ?: "breakfast"
-        FoodSearchScreen(
-            mealTypeDb = mealTypeDb,
-            onFoodSelected = { navController.popBackStack() },
-            onDismiss = { navController.popBackStack() }
         )
     }
 

@@ -1,30 +1,39 @@
 package com.swastricare.health.ui.screens.diet
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.*
+import android.graphics.BitmapFactory
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -32,35 +41,49 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swastricare.health.data.models.DietGoals
 import com.swastricare.health.data.models.DietLogEntry
-import com.swastricare.health.data.models.FoodCategory
 import com.swastricare.health.data.models.FoodItem
 import com.swastricare.health.data.models.MealType
 import com.swastricare.health.data.models.NutritionSummary
-import com.swastricare.health.ui.screens.home.lightBorder
-import com.swastricare.health.ui.theme.NutritionProtein
+import com.swastricare.health.ui.theme.AITeal
+import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.NutritionCarbs
 import com.swastricare.health.ui.theme.NutritionFat
-import com.swastricare.health.ui.theme.AppColors
-import java.time.LocalDate
-import java.time.format.TextStyle
-import java.util.Locale
+import com.swastricare.health.ui.theme.NutritionProtein
 
 // ─────────────────────────────────────
 // MARK: - Brand Colors
 // ─────────────────────────────────────
 
-val DietGreen = Color(0xFF34C759)        // iOS .green
-val DietOrange = Color(0xFFFF9500)       // iOS .orange
-val DietBlue = Color(0xFF007AFF)         // iOS .blue
-val DietPurple = Color(0xFF9B59B6)       // iOS .purple
-val DietBrandBlue = Color(0xFF2E3192)    // Shared brand blue
+val DietGreen = Color(0xFF34C759)
+val DietOrange = Color(0xFFFF9500)
+val DietBlue = Color(0xFF007AFF)
+val DietPurple = Color(0xFF9B59B6)
+val DietBrandBlue = Color(0xFF2E3192)
+
+// Accent colors for the redesigned screen.
+val DietAccent = AITeal                  // primary teal (#22C5A6)
+val DietAccentSoft = Color(0xFFE6FAF5)   // pale mint card backgrounds
+val DietHeroSurface = Color(0xFFEEFBF7)  // hero banner backdrop
+
+private val CardShadowColor = Color(0xFF0F172A).copy(alpha = 0.40f)
+
+/** Shadow style matching the Activity screen cards. */
+fun Modifier.dietCardShadow(
+    radius: androidx.compose.ui.unit.Dp = 18.dp,
+    elevation: androidx.compose.ui.unit.Dp = 6.dp
+): Modifier = this.shadow(
+    elevation = elevation,
+    shape = RoundedCornerShape(radius),
+    ambientColor = CardShadowColor,
+    spotColor = CardShadowColor
+)
 
 fun MealType.accentColor(): Color = when (this) {
-    MealType.BREAKFAST -> Color(0xFFFF9500)
+    MealType.BREAKFAST -> Color(0xFFFFB020)
     MealType.MORNING_SNACK -> Color(0xFF8B6914)
-    MealType.LUNCH -> Color(0xFFFFCC00)
-    MealType.EVENING_SNACK -> DietGreen
-    MealType.DINNER -> Color(0xFF007AFF)
+    MealType.LUNCH -> Color(0xFFFFA000)
+    MealType.EVENING_SNACK -> DietAccent
+    MealType.DINNER -> Color(0xFF6C7BFF)
     MealType.LATE_NIGHT -> Color(0xFF9B59B6)
 }
 
@@ -73,152 +96,182 @@ fun MealType.iconVector(): ImageVector = when (this) {
     MealType.LATE_NIGHT -> Icons.Default.NightlightRound
 }
 
+private fun MealType.shortTime(): String = when (this) {
+    MealType.BREAKFAST -> "8:30 AM"
+    MealType.MORNING_SNACK -> "10:30 AM"
+    MealType.LUNCH -> "1:00 PM"
+    MealType.EVENING_SNACK -> "4:30 PM"
+    MealType.DINNER -> "7:30 PM"
+    MealType.LATE_NIGHT -> "10:30 PM"
+}
+
 // ─────────────────────────────────────
-// MARK: - DietCalendarStrip
+// MARK: - Asset image cache
 // ─────────────────────────────────────
 
-/**
- * 7-day strip centered on today (iOS: index - 3 offset).
- * Selected circle uses DietGreen.
- */
 @Composable
-fun DietCalendarStrip(
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val today = LocalDate.now()
-    // Center on today: -3 days to +3 days
-    val dates = (-3..3).map { today.plusDays(it.toLong()) }
-
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 20.dp)
-    ) {
-        items(dates) { date ->
-            val isToday = date == today
-            val isSelected = date == selectedDate
-            DietCalendarDay(
-                date = date,
-                isToday = isToday,
-                isSelected = isSelected,
-                onClick = { onDateSelected(date) }
-            )
-        }
+private fun rememberAssetBitmap(path: String): ImageBitmap? {
+    val context = LocalContext.current
+    return remember(path) {
+        runCatching {
+            context.assets.open(path).use { BitmapFactory.decodeStream(it) }.asImageBitmap()
+        }.getOrNull()
     }
 }
 
-@Composable
-private fun DietCalendarDay(
-    date: LocalDate,
-    isToday: Boolean,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val isDark = isSystemInDarkTheme()
-    val dayAbbr = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(3)
-    val todayBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+// ─────────────────────────────────────
+// MARK: - DietHeroBanner
+// ─────────────────────────────────────
 
-    Box(
-        modifier = Modifier
-            .width(50.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { onClick() }
-            .background(
-                if (isToday && !isSelected) todayBg else Color.Transparent,
-                RoundedCornerShape(12.dp)
+@Composable
+fun DietHeroBanner(modifier: Modifier = Modifier) {
+    val bitmap = rememberAssetBitmap("images/diet screen hero illustration.png")
+    Box(modifier = modifier.fillMaxWidth()) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = null,
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.FillWidth
             )
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center
+        } else {
+            Spacer(Modifier.fillMaxWidth().height(180.dp))
+        }
+        // Top + bottom blend so the illustration fades into the white screen
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0.00f to Color.White,
+                            0.18f to Color.Transparent,
+                            0.82f to Color.Transparent,
+                            1.00f to Color.White
+                        )
+                    )
+                )
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - Today's Progress Card
+// ─────────────────────────────────────
+
+/**
+ * Donut + macro list. Donut shows calorie progress;
+ * the right column lists Calories / Protein / Carbs / Fats with mini bars.
+ */
+@Composable
+fun TodaysProgressCard(
+    summary: NutritionSummary,
+    goals: DietGoals,
+    calorieProgress: Float,
+    proteinProgress: Float,
+    carbsProgress: Float,
+    fatProgress: Float,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .dietCardShadow(radius = 20.dp, elevation = 6.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Text(
+            "Today's Progress",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.onSurface
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = dayAbbr,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (isSelected) Color.White else AppColors.onSurface.copy(alpha = 0.5f)
+            CalorieDonut(
+                current = summary.totalCalories.toInt(),
+                goal = goals.dailyCalories,
+                progress = calorieProgress,
+                modifier = Modifier.size(132.dp)
             )
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(
-                        if (isSelected) DietGreen else Color.Transparent,
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = date.dayOfMonth.toString(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) Color.White else AppColors.onSurface
+                ProgressLine(
+                    color = DietAccent,
+                    label = "Calories",
+                    value = "${summary.totalCalories.toInt()} / ${goals.dailyCalories}",
+                    progress = calorieProgress
+                )
+                ProgressLine(
+                    color = NutritionProtein,
+                    label = "Protein",
+                    value = "${summary.totalProteinG.toInt()} / ${goals.proteinGrams}",
+                    progress = proteinProgress
+                )
+                ProgressLine(
+                    color = NutritionCarbs,
+                    label = "Carbs",
+                    value = "${summary.totalCarbsG.toInt()} / ${goals.carbsGrams}",
+                    progress = carbsProgress
+                )
+                ProgressLine(
+                    color = NutritionFat,
+                    label = "Fats",
+                    value = "${summary.totalFatG.toInt()} / ${goals.fatGrams}",
+                    progress = fatProgress
                 )
             }
         }
     }
 }
 
-// ─────────────────────────────────────
-// MARK: - CalorieProgressRing
-// ─────────────────────────────────────
-
-/**
- * Circular progress ring showing calorie progress.
- * Matches iOS CalorieProgressRing hero component.
- */
 @Composable
-fun CalorieProgressRing(
+private fun CalorieDonut(
     current: Int,
     goal: Int,
     progress: Float,
     modifier: Modifier = Modifier
 ) {
-    val animatedProgress by animateFloatAsState(
+    val animated by animateFloatAsState(
         targetValue = progress,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 200f),
-        label = "calorieRing"
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 180f),
+        label = "calorieDonut"
     )
-    val ringColor = when {
-        progress >= 1f -> DietOrange   // Over goal
-        progress >= 0.7f -> DietGreen  // Nearly there
-        else -> DietGreen
-    }
+    val pct = ((if (goal > 0) current.toFloat() / goal else 0f) * 100).toInt()
 
-    Box(
-        modifier = modifier.size(140.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 16.dp.toPx()
-            val diameter = size.minDimension - strokeWidth
+            val stroke = 14.dp.toPx()
+            val diameter = size.minDimension - stroke
             val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
             val arcSize = Size(diameter, diameter)
 
-            // Background track
             drawArc(
-                color = Color.Gray.copy(alpha = 0.15f),
+                color = DietAccent.copy(alpha = 0.12f),
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
                 topLeft = topLeft,
                 size = arcSize,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
-            // Progress arc
             drawArc(
-                color = ringColor,
+                color = DietAccent,
                 startAngle = -90f,
-                sweepAngle = 360f * animatedProgress,
+                sweepAngle = 360f * animated,
                 useCenter = false,
                 topLeft = topLeft,
                 size = arcSize,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
         }
 
@@ -227,267 +280,305 @@ fun CalorieProgressRing(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
-                text = "$current",
-                fontSize = 28.sp,
+                "$current",
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.onSurface
             )
             Text(
-                text = "of $goal cal",
-                fontSize = 12.sp,
+                "/ $goal kcal",
+                fontSize = 11.sp,
                 color = AppColors.onSurface.copy(alpha = 0.5f)
             )
+            Spacer(Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DietAccent.copy(alpha = 0.12f))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    "$pct%",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DietAccent
+                )
+            }
         }
     }
 }
 
+@Composable
+private fun ProgressLine(
+    color: Color,
+    label: String,
+    value: String,
+    progress: Float
+) {
+    val animated by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(600),
+        label = "macroLine_$label"
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                )
+                Text(
+                    label,
+                    fontSize = 12.sp,
+                    color = AppColors.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            Text(
+                value,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = AppColors.onSurface
+            )
+        }
+        LinearProgressIndicator(
+            progress = { animated },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(RoundedCornerShape(4.dp)),
+            color = color,
+            trackColor = color.copy(alpha = 0.12f)
+        )
+    }
+}
+
 // ─────────────────────────────────────
-// MARK: - DietStatPill
+// MARK: - Macro Chip Row
 // ─────────────────────────────────────
 
 /**
- * Icon + value + label. Matches iOS dietStatPill.
+ * 4-up chip strip showing macro current/target.
  */
 @Composable
-fun DietStatPill(
-    icon: ImageVector,
-    iconColor: Color,
-    value: String,
+fun MacroChipRow(
+    summary: NutritionSummary,
+    goals: DietGoals,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        MacroChip(
+            label = "Protein",
+            value = "${summary.totalProteinG.toInt()}g",
+            target = "Target ${goals.proteinGrams}g",
+            color = NutritionProtein,
+            modifier = Modifier.weight(1f)
+        )
+        MacroChip(
+            label = "Carbs",
+            value = "${summary.totalCarbsG.toInt()}g",
+            target = "Target ${goals.carbsGrams}g",
+            color = NutritionCarbs,
+            modifier = Modifier.weight(1f)
+        )
+        MacroChip(
+            label = "Fats",
+            value = "${summary.totalFatG.toInt()}g",
+            target = "Target ${goals.fatGrams}g",
+            color = NutritionFat,
+            modifier = Modifier.weight(1f)
+        )
+        MacroChip(
+            label = "Fiber",
+            value = "${summary.totalFiberG.toInt()}g",
+            target = "Target 30g",
+            color = DietAccent,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun MacroChip(
     label: String,
+    value: String,
+    target: String,
+    color: Color,
     modifier: Modifier = Modifier
 ) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(iconColor.copy(alpha = 0.08f))
-            .padding(vertical = 10.dp, horizontal = 8.dp)
+            .dietCardShadow(radius = 14.dp, elevation = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(14.sp.value.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(color)
+            )
+            Text(
+                label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = color
+            )
+        }
         Text(
-            text = value,
-            fontSize = 16.sp,
+            value,
+            fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = AppColors.onSurface
         )
         Text(
-            text = label,
-            fontSize = 11.sp,
-            color = AppColors.onSurface.copy(alpha = 0.5f),
-            maxLines = 1,
-            textAlign = TextAlign.Center
+            target,
+            fontSize = 10.sp,
+            color = AppColors.onSurface.copy(alpha = 0.45f),
+            maxLines = 1
         )
     }
 }
 
 // ─────────────────────────────────────
-// MARK: - MacroBreakdownCard
+// MARK: - Compact Meal Row
 // ─────────────────────────────────────
 
 /**
- * Protein / Carbs / Fat progress bars. Matches iOS MacroBreakdownCard.
+ * Single horizontal meal row. Tappable to add food.
+ * Long-press first entry to delete (handled separately).
  */
 @Composable
-fun MacroBreakdownCard(
-    summary: NutritionSummary,
-    goals: DietGoals,
-    proteinProgress: Float,
-    carbsProgress: Float,
-    fatProgress: Float,
-    modifier: Modifier = Modifier
-) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .lightBorder(16.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(cardBg)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            "Macro Breakdown",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            color = AppColors.onSurface.copy(alpha = 0.5f)
-        )
-        MacroRow(
-            label = "Protein",
-            current = summary.totalProteinG.toInt(),
-            goal = goals.proteinGrams,
-            progress = proteinProgress,
-            color = NutritionProtein
-        )
-        MacroRow(
-            label = "Carbs",
-            current = summary.totalCarbsG.toInt(),
-            goal = goals.carbsGrams,
-            progress = carbsProgress,
-            color = NutritionCarbs
-        )
-        MacroRow(
-            label = "Fat",
-            current = summary.totalFatG.toInt(),
-            goal = goals.fatGrams,
-            progress = fatProgress,
-            color = NutritionFat
-        )
-    }
-}
-
-@Composable
-private fun MacroRow(
-    label: String,
-    current: Int,
-    goal: Int,
-    progress: Float,
-    color: Color
-) {
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(600),
-        label = "macro_$label"
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = AppColors.onSurface)
-            Text(
-                "${current}g / ${goal}g",
-                fontSize = 13.sp,
-                color = AppColors.onSurface.copy(alpha = 0.5f)
-            )
-        }
-        LinearProgressIndicator(
-            progress = { animatedProgress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(6.dp)),
-            color = color,
-            trackColor = color.copy(alpha = 0.15f)
-        )
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - MealSectionCard
-// ─────────────────────────────────────
-
-/**
- * Collapsible meal section with food log entries.
- * Matches iOS MealSectionCard.
- */
-@Composable
-fun MealSectionCard(
+fun CompactMealRow(
     mealType: MealType,
     entries: List<DietLogEntry>,
-    onDelete: (DietLogEntry) -> Unit,
     onAddFood: () -> Unit,
+    onDelete: (DietLogEntry) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-    var expanded by remember { mutableStateOf(true) }
-    val mealCalories = entries.sumOf { it.calories }.toInt()
     val accent = mealType.accentColor()
+    val totalCal = entries.sumOf { it.calories }.toInt()
+    val totalProtein = entries.sumOf { it.proteinG }.toInt()
+    val totalCarbs = entries.sumOf { it.carbsG }.toInt()
+    val totalFat = entries.sumOf { it.fatG }.toInt()
+    val hasEntries = entries.isNotEmpty()
 
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .lightBorder(16.dp)
+            .dietCardShadow(radius = 16.dp, elevation = 5.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(cardBg)
+            .background(Color.White)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onAddFood() }
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header row
-        Row(
+        // Leading icon
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { expanded = !expanded }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center
         ) {
-            // Meal icon
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(accent.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = mealType.iconVector(),
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    mealType.displayName,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.onSurface
-                )
-                if (entries.isNotEmpty()) {
-                    Text(
-                        "$mealCalories cal · ${entries.size} item${if (entries.size == 1) "" else "s"}",
-                        fontSize = 12.sp,
-                        color = AppColors.onSurface.copy(alpha = 0.5f)
-                    )
-                } else {
-                    Text(
-                        mealType.typicalTime,
-                        fontSize = 12.sp,
-                        color = AppColors.onSurface.copy(alpha = 0.4f)
-                    )
-                }
-            }
-            // Add button
-            IconButton(onClick = onAddFood, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    Icons.Default.AddCircle,
-                    contentDescription = "Add food",
-                    tint = accent,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            // Expand/collapse
             Icon(
-                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                imageVector = mealType.iconVector(),
                 contentDescription = null,
-                tint = AppColors.onSurface.copy(alpha = 0.3f),
+                tint = accent,
                 modifier = Modifier.size(20.dp)
             )
         }
 
-        // Food entries
-        if (expanded && entries.isNotEmpty()) {
-            Divider(color = AppColors.onSurface.copy(alpha = 0.06f))
-            entries.forEachIndexed { index, entry ->
-                FoodEntryRow(
-                    entry = entry,
-                    onDelete = { onDelete(entry) }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                mealType.displayName,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppColors.onSurface
+            )
+            Text(
+                if (hasEntries) entries.first().foodName else mealType.shortTime(),
+                fontSize = 12.sp,
+                color = AppColors.onSurface.copy(alpha = 0.5f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (hasEntries) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MacroLetter("P", "${totalProtein}g", NutritionProtein)
+                    MacroLetter("C", "${totalCarbs}g", NutritionCarbs)
+                    MacroLetter("F", "${totalFat}g", NutritionFat)
+                }
+            }
+        }
+
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (hasEntries) {
+                Text(
+                    "$totalCal kcal",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DietOrange
                 )
-                if (index < entries.lastIndex) {
-                    Divider(
-                        color = AppColors.onSurface.copy(alpha = 0.04f),
-                        modifier = Modifier.padding(start = 60.dp)
+                if (entries.size > 1) {
+                    Text(
+                        "${entries.size} items",
+                        fontSize = 10.sp,
+                        color = AppColors.onSurface.copy(alpha = 0.4f)
+                    )
+                } else {
+                    IconButton(
+                        onClick = { onDelete(entries.first()) },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.RemoveCircleOutline,
+                            contentDescription = "Remove",
+                            tint = Color(0xFFFF3B30).copy(alpha = 0.55f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add",
+                        tint = accent,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -495,8 +586,110 @@ fun MealSectionCard(
     }
 }
 
+@Composable
+private fun MacroLetter(letter: String, value: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "$letter ",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            value,
+            fontSize = 11.sp,
+            color = AppColors.onSurface.copy(alpha = 0.55f)
+        )
+    }
+}
+
 // ─────────────────────────────────────
-// MARK: - FoodEntryRow
+// MARK: - Water Intake Card (decorative link)
+// ─────────────────────────────────────
+
+@Composable
+fun WaterIntakeCard(
+    consumedGlasses: Int,
+    goalGlasses: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .dietCardShadow(radius = 16.dp, elevation = 5.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(DietBlue.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.WaterDrop,
+                contentDescription = null,
+                tint = DietBlue,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Water Intake",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.onSurface
+                )
+                Text(
+                    "$consumedGlasses / $goalGlasses",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = AppColors.onSurface.copy(alpha = 0.55f)
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                repeat(goalGlasses.coerceAtMost(8)) { idx ->
+                    val filled = idx < consumedGlasses
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(20.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                if (filled) DietBlue.copy(alpha = 0.85f)
+                                else DietBlue.copy(alpha = 0.12f)
+                            )
+                    )
+                }
+            }
+        }
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = AppColors.onSurface.copy(alpha = 0.3f)
+        )
+    }
+}
+
+// ─────────────────────────────────────
+// MARK: - FoodEntryRow (kept for reuse)
 // ─────────────────────────────────────
 
 @Composable
@@ -512,17 +705,15 @@ fun FoodEntryRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Generic food icon
         Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(DietGreen.copy(alpha = 0.1f)),
+                .background(DietAccent.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
         ) {
             Text(text = "🍽️", fontSize = 22.sp)
         }
-        // Name + quantity
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
                 text = entry.foodName,
@@ -538,7 +729,6 @@ fun FoodEntryRow(
                 color = AppColors.onSurface.copy(alpha = 0.5f)
             )
         }
-        // Delete button
         IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Icon(
                 Icons.Default.RemoveCircleOutline,
@@ -551,12 +741,9 @@ fun FoodEntryRow(
 }
 
 // ─────────────────────────────────────
-// MARK: - FoodItemRow
+// MARK: - FoodItemRow (used by AddFood / Search screens)
 // ─────────────────────────────────────
 
-/**
- * Food search result row. Matches iOS FoodItemRow.
- */
 @Composable
 fun FoodItemRow(
     food: FoodItem,
@@ -576,18 +763,16 @@ fun FoodItemRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Category icon
         Box(
             modifier = Modifier
                 .size(50.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(DietGreen.copy(alpha = 0.1f)),
+                .background(DietAccent.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
         ) {
             Text(food.categoryEnum.icon, fontSize = 28.sp)
         }
 
-        // Food details
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -621,7 +806,7 @@ fun FoodItemRow(
                     text = food.caloriesPerServing,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = DietGreen
+                    color = DietAccent
                 )
             }
             Text(
@@ -631,7 +816,6 @@ fun FoodItemRow(
             )
         }
 
-        // Favorite toggle
         if (onToggleFavorite != null) {
             IconButton(onClick = onToggleFavorite, modifier = Modifier.size(36.dp)) {
                 Icon(
@@ -643,11 +827,10 @@ fun FoodItemRow(
             }
         }
 
-        // Add button
         Icon(
             Icons.Default.AddCircle,
             contentDescription = "Add",
-            tint = DietGreen,
+            tint = DietAccent,
             modifier = Modifier.size(26.dp)
         )
     }

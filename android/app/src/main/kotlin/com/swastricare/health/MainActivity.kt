@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -82,7 +83,12 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // Force a pure-white status/nav bar with dark icons across the app.
+        val whiteScrim = android.graphics.Color.WHITE
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(whiteScrim, whiteScrim),
+            navigationBarStyle = SystemBarStyle.light(whiteScrim, whiteScrim)
+        )
         super.onCreate(savedInstanceState)
 
         // Request POST_NOTIFICATIONS permission on Android 13+
@@ -104,7 +110,7 @@ class MainActivity : FragmentActivity() {
             SwastriCareTheme(themePreferenceManager = themePreferenceManager) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = AppColors.background
+                    color = androidx.compose.ui.graphics.Color.White
                 ) {
                     val lockViewModel: LockScreenViewModel = hiltViewModel()
                     val isLocked by lockViewModel.isLocked.collectAsState()

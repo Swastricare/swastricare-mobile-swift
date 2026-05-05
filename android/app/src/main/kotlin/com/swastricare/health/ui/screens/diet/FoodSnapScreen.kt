@@ -51,7 +51,6 @@ import java.io.File
 // MARK: - Helpers
 // ─────────────────────────────────────
 
-private val SnapGreen = Color(0xFF4CAF50)
 
 private fun saveBitmapToCache(context: Context, bitmap: Bitmap): Uri {
     val file = File(context.cacheDir, "snap_food_${System.currentTimeMillis()}.jpg")
@@ -135,7 +134,7 @@ fun FoodSnapScreen(
         when (snapState) {
             is SnapAnalysisState.Idle -> {
                 // Show back/cancel top bar while idle (picker sheet is shown below)
-                Column(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -214,7 +213,7 @@ fun FoodSnapScreen(
                 onDismiss()
             },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = AppColors.surface
+            containerColor = Color.White
         ) {
             PickerSheetContent(
                 onTakePhoto = {
@@ -270,7 +269,7 @@ private fun PickerSheetContent(
         Button(
             onClick = onTakePhoto,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = SnapGreen),
+            colors = ButtonDefaults.buttonColors(containerColor = DietAccent),
             shape = RoundedCornerShape(14.dp)
         ) {
             Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -283,8 +282,8 @@ private fun PickerSheetContent(
             onClick = onChooseFromGallery,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = SnapGreen),
-            border = BorderStroke(1.5.dp, SnapGreen)
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = DietAccent),
+            border = BorderStroke(1.5.dp, DietAccent)
         ) {
             Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
@@ -452,7 +451,7 @@ private fun CalorieSummarySection(
                     textAlign = TextAlign.End
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                cursorBrush = SolidColor(SnapGreen),
+                cursorBrush = SolidColor(DietAccent),
                 singleLine = true,
                 modifier = Modifier.widthIn(min = 60.dp, max = 160.dp)
             )
@@ -474,7 +473,7 @@ private fun CalorieSummarySection(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp)),
-                color = SnapGreen,
+                color = DietAccent,
                 trackColor = AppColors.onSurface.copy(alpha = 0.1f)
             )
             Text(
@@ -504,8 +503,7 @@ private fun MacroPillsRow(
     fatG: String,
     onFatChange: (String) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+    val cardBg = Color.White
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -548,7 +546,7 @@ private fun MacroPill(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.dietCardShadow(radius = 14.dp, elevation = 4.dp),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -618,8 +616,7 @@ private fun ServingRow(
     onUnitChange: (ServingUnit) -> Unit
 ) {
     var showUnitDropdown by remember { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
-    val chipBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+    val chipBg = DietAccent.copy(alpha = 0.08f)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -761,7 +758,7 @@ private fun MealTypeChips(
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = SnapGreen,
+                        selectedContainerColor = DietAccent,
                         selectedLabelColor = Color.White,
                         selectedLeadingIconColor = Color.White,
                         iconColor = mealType.accentColor()
@@ -784,12 +781,10 @@ private fun MealTypeChips(
 
 @Composable
 private fun AnalyzingContent(imageUri: String?) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -799,9 +794,9 @@ private fun AnalyzingContent(imageUri: String?) {
             Box(
                 modifier = Modifier
                     .size(180.dp)
-                    .lightBorder(16.dp)
+                    .dietCardShadow(radius = 16.dp, elevation = 6.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(cardBg)
+                    .background(Color.White)
             ) {
                 AsyncImage(
                     model = imageUri,
@@ -814,7 +809,7 @@ private fun AnalyzingContent(imageUri: String?) {
         }
 
         CircularProgressIndicator(
-            color = SnapGreen,
+            color = DietAccent,
             modifier = Modifier.size(48.dp),
             strokeWidth = 4.dp
         )
@@ -845,20 +840,20 @@ private fun ErrorContent(
     onTryAgain: () -> Unit,
     onEnterManually: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .dietCardShadow(radius = 16.dp, elevation = 6.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = cardBg)
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -889,7 +884,7 @@ private fun ErrorContent(
                 Button(
                     onClick = onTryAgain,
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SnapGreen),
+                    colors = ButtonDefaults.buttonColors(containerColor = DietAccent),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -964,7 +959,7 @@ private fun ReviewForm(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        color = MaterialTheme.colorScheme.surface,
+                        color = Color.White,
                         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                     )
                     .verticalScroll(rememberScrollState())
@@ -1022,7 +1017,7 @@ private fun ReviewForm(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SnapGreen),
+                    colors = ButtonDefaults.buttonColors(containerColor = DietAccent),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     if (isLogging) {
