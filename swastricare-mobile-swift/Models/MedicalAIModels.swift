@@ -39,7 +39,7 @@ enum AIMode: String, CaseIterable, Identifiable {
     
     var accentColor: String {
         switch self {
-        case .general: return "2E3192"  // App primary blue
+        case .general: return "22C5A6"  // App primary blue
         case .medical: return "00A86B"  // Medical green
         }
     }
@@ -89,7 +89,7 @@ enum AIPersonality: String, CaseIterable, Identifiable {
 
     var color: String {
         switch self {
-        case .assistant: return "2E3192"
+        case .assistant: return "22C5A6"
         case .coach: return "EF4444"
         case .nutritionist: return "22C55E"
         case .therapist: return "8B5CF6"

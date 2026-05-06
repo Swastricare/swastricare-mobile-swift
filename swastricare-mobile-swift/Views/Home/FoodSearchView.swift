@@ -85,7 +85,7 @@ struct FoodSearchView: View {
                                         ProgressView()
                                             .tint(AppColors.accentBlue)
                                         Text("Searching online...")
-                                            .font(.system(size: 14, weight: .medium))
+                                            .font(.poppins(.medium, size: 14))
                                             .foregroundColor(.secondary)
                                     }
                                     .frame(maxWidth: .infinity)
@@ -97,10 +97,10 @@ struct FoodSearchView: View {
                                     VStack(alignment: .leading, spacing: 8) {
                                         HStack(spacing: 6) {
                                             Image(systemName: "globe")
-                                                .font(.system(size: 12, weight: .semibold))
+                                                .font(.poppins(.semiBold, size: 12))
                                                 .foregroundColor(AppColors.accentBlue)
                                             Text("From Database")
-                                                .font(.system(size: 13, weight: .semibold))
+                                                .font(.poppins(.semiBold, size: 13))
                                                 .foregroundColor(.secondary)
                                         }
                                         .padding(.top, 8)
@@ -157,7 +157,7 @@ struct FoodSearchView: View {
                     }
                 }) {
                     Text("All")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.poppins(.medium, size: 14))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(
@@ -190,7 +190,7 @@ struct FoodSearchView: View {
                     HStack(spacing: 5) {
                         VegIndicator(isVegetarian: true)
                         Text("Veg Only")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.poppins(.medium, size: 14))
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -223,10 +223,10 @@ struct FoodSearchView: View {
                     }) {
                         HStack(spacing: 4) {
                             Text(category.icon)
-                                .font(.system(size: 12))
+                                .font(.poppins(.regular, size: 12))
 
                             Text(category.displayName)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.poppins(.medium, size: 14))
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
@@ -267,22 +267,22 @@ struct FoodSearchView: View {
                     .frame(width: 100, height: 100)
 
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 44, weight: .light))
+                    .font(.poppins(.light, size: 44))
                     .foregroundColor(AppColors.accentGreen)
             }
 
             VStack(spacing: 8) {
                 Text("No foods found")
-                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .font(.poppins(.semiBold, size: 20))
                     .foregroundColor(.primary)
 
                 if !searchText.isEmpty {
                     Text("Try a different search term")
-                        .font(.system(size: 15, design: .rounded))
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                 } else {
                     Text("Search above to discover foods")
-                        .font(.system(size: 15, design: .rounded))
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                 }
             }
@@ -312,7 +312,7 @@ struct FoodItemRow: View {
                         )
 
                     Text(food.category.icon)
-                        .font(.system(size: 28))
+                        .font(.poppins(.regular, size: 28))
                 }
 
                 // Food details
@@ -320,31 +320,31 @@ struct FoodItemRow: View {
                     HStack(spacing: 6) {
                         VegIndicator(isVegetarian: food.isVegetarian)
                         Text(food.name)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 16))
                             .foregroundColor(.primary)
                     }
 
                     if let brand = food.brand {
                         Text(brand)
-                            .font(.system(size: 13))
+                            .font(.poppins(.regular, size: 13))
                             .foregroundColor(.secondary)
                     }
 
                     HStack(spacing: 8) {
                         Text(food.displayServingSize)
-                            .font(.system(size: 13))
+                            .font(.poppins(.regular, size: 13))
                             .foregroundColor(.secondary)
 
                         Text("\u{2022}")
                             .foregroundColor(.secondary)
 
                         Text(food.caloriesPerServing)
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.poppins(.bold, size: 13))
                             .foregroundColor(AppColors.accentGreen)
                     }
 
                     Text(food.macroSummary)
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
 
@@ -355,7 +355,7 @@ struct FoodItemRow: View {
                     if let onToggleFavorite {
                         Button(action: onToggleFavorite) {
                             Image(systemName: isFavorite ? "heart.fill" : "heart")
-                                .font(.system(size: 18))
+                                .font(.poppins(.regular, size: 18))
                                 .foregroundColor(isFavorite ? AppColors.accentRed : .secondary)
                         }
                         .buttonStyle(.plain)
@@ -368,7 +368,7 @@ struct FoodItemRow: View {
                             .frame(width: 30, height: 30)
 
                         Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.poppins(.bold, size: 14))
                             .foregroundColor(.white)
                     }
                 }

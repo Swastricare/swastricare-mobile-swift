@@ -243,7 +243,7 @@ struct AddMedicationView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                        .font(.system(size: 15))
+                        .font(.poppins(.regular, size: 15))
                     TextField("Search or type medication name", text: $name)
                         .autocapitalization(.words)
                         .onChange(of: name) { newValue in
@@ -263,7 +263,7 @@ struct AddMedicationView: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(.secondary)
-                                .font(.system(size: 16))
+                                .font(.poppins(.regular, size: 16))
                         }
                     }
                 }
@@ -287,14 +287,14 @@ struct AddMedicationView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "pills.fill")
                                         .foregroundColor(medAccent)
-                                        .font(.system(size: 14))
+                                        .font(.poppins(.regular, size: 14))
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(drug.displayName)
-                                            .font(.system(size: 14, weight: .medium))
+                                            .font(.poppins(.medium, size: 14))
                                             .foregroundColor(.primary)
                                         if let generic = drug.genericName {
                                             Text(generic)
-                                                .font(.system(size: 12))
+                                                .font(.poppins(.regular, size: 12))
                                                 .foregroundColor(.secondary)
                                                 .lineLimit(1)
                                         }
@@ -302,7 +302,7 @@ struct AddMedicationView: View {
                                     Spacer()
                                     Image(systemName: "arrow.up.left")
                                         .foregroundColor(.secondary.opacity(0.5))
-                                        .font(.system(size: 11))
+                                        .font(.poppins(.regular, size: 11))
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
@@ -320,7 +320,7 @@ struct AddMedicationView: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Dosage")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.poppins(.medium, size: 13))
                         .foregroundColor(.secondary)
                     TextField("e.g., 500", text: $dosage)
                         .textFieldStyle(PremiumTextFieldStyle())
@@ -328,7 +328,7 @@ struct AddMedicationView: View {
                 }
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Unit")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.poppins(.medium, size: 13))
                         .foregroundColor(.secondary)
                     TextField("mg, ml", text: $dosageUnit)
                         .textFieldStyle(PremiumTextFieldStyle())
@@ -424,9 +424,9 @@ struct AddMedicationView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 14))
                         Text("Add Time Slot")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 14))
                     }
                     .foregroundColor(medAccent)
                     .frame(maxWidth: .infinity)
@@ -492,7 +492,7 @@ struct AddMedicationView: View {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Total tablets")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.poppins(.medium, size: 13))
                             .foregroundColor(.secondary)
                         TextField("e.g., 30", text: $totalQuantity)
                             .textFieldStyle(PremiumTextFieldStyle())
@@ -500,7 +500,7 @@ struct AddMedicationView: View {
                     }
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Per dose")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.poppins(.medium, size: 13))
                             .foregroundColor(.secondary)
                         TextField("1", text: $dosagePerIntake)
                             .textFieldStyle(PremiumTextFieldStyle())
@@ -511,7 +511,7 @@ struct AddMedicationView: View {
                 if let days = calculatedDays, let calcEnd = calculatedEndDate {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(totalQuantity) tablets  x  \(dosagePerIntake) per dose  x  \(dosesPerDay)x/day")
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                         calculatedDateBanner(text: "\(days) days — ends \(formatDate(calcEnd))")
                     }
@@ -553,7 +553,7 @@ struct AddMedicationView: View {
                         ProgressView().tint(.white)
                     } else {
                         Text("Save Medication")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 16))
                     }
                 }
                 .foregroundColor(canSave ? .white : .secondary)
@@ -576,7 +576,7 @@ struct AddMedicationView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 13, weight: .semibold))
+            .font(.poppins(.semiBold, size: 13))
             .foregroundColor(.secondary)
             .tracking(0.5)
     }
@@ -585,9 +585,9 @@ struct AddMedicationView: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(.poppins(.regular, size: 16))
                 Text(label)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
             }
             .foregroundColor(isSelected ? .white : .primary)
             .padding(.horizontal, 16)
@@ -607,9 +607,9 @@ struct AddMedicationView: View {
         } label: {
             VStack(spacing: 2) {
                 Text(option.frequency)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.poppins(.bold, size: 18))
                 Text(option.label)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.poppins(.medium, size: 12))
             }
             .foregroundColor(isSelected ? .white : medAccent)
             .frame(maxWidth: .infinity)
@@ -625,15 +625,15 @@ struct AddMedicationView: View {
             HStack(spacing: 8) {
                 Image(systemName: "clock")
                     .foregroundColor(.secondary)
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                 Text(scheduleTimes[index].label)
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(.secondary)
             }
             Spacer()
             HStack(spacing: 8) {
                 Text(formatTime(scheduleTimes[index].time))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(medAccent)
 
                 if scheduleOption == .custom && scheduleTimes.count > 1 {
@@ -642,7 +642,7 @@ struct AddMedicationView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.red.opacity(0.6))
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                     }
                 }
             }
@@ -665,9 +665,9 @@ struct AddMedicationView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: mode.icon)
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                 Text(mode.label)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
             }
             .foregroundColor(isSelected ? .white : .primary)
             .frame(maxWidth: .infinity)
@@ -684,7 +684,7 @@ struct AddMedicationView: View {
             selectedPreset = preset
         } label: {
             Text(preset.label)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.poppins(.semiBold, size: 13))
                 .foregroundColor(isSelected ? .white : .primary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
@@ -699,9 +699,9 @@ struct AddMedicationView: View {
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
                     .foregroundColor(medAccent)
-                    .font(.system(size: 16))
+                    .font(.poppins(.regular, size: 16))
                 Text(label)
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(.secondary)
             }
             Spacer()
@@ -729,9 +729,9 @@ struct AddMedicationView: View {
         HStack(spacing: 10) {
             Image(systemName: "checkmark.seal.fill")
                 .foregroundColor(tealGreen)
-                .font(.system(size: 14))
+                .font(.poppins(.regular, size: 14))
             Text(text)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.poppins(.semiBold, size: 14))
                 .foregroundColor(tealGreen)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -850,21 +850,21 @@ private struct ExpandableInfoRow: View {
                 HStack(spacing: 8) {
                     Image(systemName: icon)
                         .foregroundColor(color)
-                        .font(.system(size: 14))
+                        .font(.poppins(.regular, size: 14))
                     Text(label)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 13))
                         .foregroundColor(color)
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(color.opacity(0.5))
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                 }
             }
             .buttonStyle(.plain)
 
             if isExpanded {
                 Text(text)
-                    .font(.system(size: 13))
+                    .font(.poppins(.regular, size: 13))
                     .foregroundColor(.primary.opacity(0.7))
                     .lineSpacing(4)
                     .padding(.top, 8)
@@ -925,7 +925,7 @@ extension Int: @retroactive Identifiable {
 struct PremiumTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
-            .font(.system(size: 16))
+            .font(.poppins(.regular, size: 16))
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(Color(UIColor.tertiarySystemFill))

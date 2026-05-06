@@ -16,11 +16,11 @@ struct ScreenTitleView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 34, weight: .bold))
+                .font(.poppins(.bold, size: 34))
                 .foregroundColor(.primary)
 
             Text(subtitle)
-                .font(.system(size: 17))
+                .font(.poppins(.regular, size: 17))
                 .foregroundColor(.secondary)
         }
     }
@@ -48,18 +48,18 @@ struct OptionButton<Content: View>: View {
                 Spacer()
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(Color(hex: "2E3192"))
-                        .font(.system(size: 22))
+                        .foregroundColor(AppColors.aiTeal)
+                        .font(.poppins(.regular, size: 22))
                 }
             }
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color(hex: "2E3192").opacity(0.1) : Color.primary.opacity(0.05))
+                    .fill(isSelected ? AppColors.aiTeal.opacity(0.1) : Color.primary.opacity(0.05))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color(hex: "2E3192") : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? AppColors.aiTeal : Color.clear, lineWidth: 2)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -77,7 +77,7 @@ struct MultiSelectOption: View {
     var body: some View {
         OptionButton(isSelected: isSelected, action: action) {
             Text(title)
-                .font(.system(size: 17, weight: .medium))
+                .font(.poppins(.medium, size: 17))
                 .foregroundColor(.primary)
         }
     }
@@ -93,7 +93,7 @@ struct SingleSelectOption: View {
     var body: some View {
         OptionButton(isSelected: isSelected, action: action) {
             Text(title)
-                .font(.system(size: 17, weight: .medium))
+                .font(.poppins(.medium, size: 17))
                 .foregroundColor(.primary)
         }
     }

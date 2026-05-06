@@ -2,552 +2,1213 @@
 //  AuthView.swift
 //  swastricare-mobile-swift
 //
+//  Ported from Android auth screens (LoginScreen, SignUpScreen, ResetPasswordScreen,
+//  EmailVerificationScreen, NewPasswordScreen) — pixel-matching Android design.
+//  All screens live here behind a single `AuthPhase` enum so the app navigation
+//  contract (just mount `LoginView()`) stays intact.
+//
 
 import SwiftUI
+import UIKit
+import Combine
 
-// MARK: - Login View
+// MARK: - Auth Phase
+
+private enum AuthPhase: Equatable {
+    case login
+    case signUp
+    case signUpPassword       // step 2 of signup
+    case resetPassword
+    case emailVerification
+    case newPassword
+}
+
+// MARK: - Shared Design Tokens
+
+private let aiTeal       = AppColors.aiTeal           // #22C5A6
+private let aiTealDark   = AppColors.aiTealDark        // #0E8C75
+private let errorRed     = Color(hex: "EF4444")
+private let textDark     = Color(hex: "0F172A")
+private let textGray     = Color(hex: "6B7280")
+private let fieldBg      = Color.black.opacity(0.035)
+
+// MARK: - Haptics
+
+private func lightHaptic()  { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+private func mediumHaptic() { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+private func errorHaptic()  { UINotificationFeedbackGenerator().notificationOccurred(.error) }
+
+// MARK: - LoginView (public — app nav contract)
 
 struct LoginView: View {
-    @StateObject private var viewModel = DependencyContainer.shared.authViewModel
-    @State private var showSignUp = false
-    @State private var showResetPassword = false
-    @State private var logoScale: CGFloat = 0.6
-    @State private var logoOpacity: Double = 0
-    @State private var headerOpacity: Double = 0
-    @State private var headerOffset: CGFloat = 20
-    @State private var formOpacity: Double = 0
-    @State private var formOffset: CGFloat = 25
-    @State private var footerOpacity: Double = 0
-    @State private var glowBreathing: Bool = false
-    @Environment(\.colorScheme) var colorScheme
-    @FocusState private var focusedField: Field?
-
-    enum Field {
-        case email, password
-    }
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                // Rich layered background
-                AuthGradientBackground()
-
-                GeometryReader { geo in
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
-
-                            // MARK: — Logo hero
-                            ZStack {
-                                // Breathing glow behind logo
-                                Circle()
-                                    .fill(
-                                        RadialGradient(
-                                            colors: [
-                                                Color(hex: "11998e").opacity(0.35),
-                                                Color(hex: "11998e").opacity(0.0)
-                                            ],
-                                            center: .center,
-                                            startRadius: 20,
-                                            endRadius: 80
-                                        )
-                                    )
-                                    .frame(width: 160, height: 160)
-                                    .scaleEffect(glowBreathing ? 1.15 : 0.85)
-
-                                Image("AppLogo")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 88, height: 88)
-                                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                                    .shadow(color: Color(hex: "11998e").opacity(0.4), radius: 20, y: 8)
-                            }
-                            .scaleEffect(logoScale)
-                            .opacity(logoOpacity)
-                            .padding(.top, 44)
-
-                            // MARK: — Header text
-                            VStack(spacing: 6) {
-                                Text("SwasthiCare")
-                                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-
-                                Text("Your family's health companion")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.secondary)
-                            }
-                            .opacity(headerOpacity)
-                            .offset(y: headerOffset)
-                            .padding(.top, 16)
-                            .padding(.bottom, 40)
-
-                            // MARK: — Form card
-                            VStack(spacing: 18) {
-                                // Input fields
-                                VStack(spacing: 14) {
-                                    AuthTextField(
-                                        title: "Email",
-                                        icon: "envelope.fill",
-                                        text: $viewModel.formState.email,
-                                        keyboardType: .emailAddress
-                                    )
-                                    .focused($focusedField, equals: .email)
-                                    .submitLabel(.next)
-                                    .onSubmit { focusedField = .password }
-
-                                    AuthSecureField(
-                                        title: "Password",
-                                        icon: "lock.fill",
-                                        text: $viewModel.formState.password
-                                    )
-                                    .focused($focusedField, equals: .password)
-                                    .submitLabel(.go)
-                                    .onSubmit {
-                                        if viewModel.formState.isValidForLogin {
-                                            Task { await viewModel.signIn() }
-                                        }
-                                    }
-                                }
-
-                                // Forgot password
-                                HStack {
-                                    Spacer()
-                                    Button(action: { showResetPassword = true }) {
-                                        Text("Forgot Password?")
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundColor(Color(hex: "11998e"))
-                                    }
-                                }
-
-                                // Error
-                                if let error = viewModel.errorMessage {
-                                    AuthAlertBanner(message: error, isSuccess: false)
-                                }
-
-                                // Sign In button
-                                Button(action: {
-                                    Task { await viewModel.signIn() }
-                                }) {
-                                    if viewModel.isLoading {
-                                        ProgressView()
-                                            .tint(.white)
-                                    } else {
-                                        Text("Sign In")
-                                    }
-                                }
-                                .buttonStyle(AuthPrimaryButtonStyle(isEnabled: viewModel.formState.isValidForLogin))
-                                .disabled(viewModel.isLoading || !viewModel.formState.isValidForLogin)
-
-                                // Divider
-                                HStack(spacing: 16) {
-                                    VStack { Divider() }
-                                    Text("or")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    VStack { Divider() }
-                                }
-                                .padding(.vertical, 2)
-
-                                // Social row
-                                HStack(spacing: 12) {
-                                    AuthSocialButton(icon: "g.circle.fill", title: "Google") {
-                                        Task { await viewModel.signInWithGoogle() }
-                                    }
-                                    AuthSocialButton(icon: "apple.logo", title: "Apple") {
-                                        Task { await viewModel.signInWithApple() }
-                                    }
-                                }
-                            }
-                            .padding(20)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25), lineWidth: 0.5)
-                            )
-                            .padding(.horizontal, 20)
-                            .opacity(formOpacity)
-                            .offset(y: formOffset)
-
-                            Spacer(minLength: 40)
-
-                            // MARK: — Footer
-                            Button(action: { showSignUp = true }) {
-                                HStack(spacing: 4) {
-                                    Text("New here?")
-                                        .foregroundColor(.secondary)
-                                    Text("Create Account")
-                                        .fontWeight(.bold)
-                                        .foregroundColor(Color(hex: "11998e"))
-                                }
-                                .font(.system(size: 14))
-                            }
-                            .opacity(footerOpacity)
-                            .padding(.bottom, 28)
-                        }
-                        .frame(minHeight: geo.size.height)
-                    }
-                }
-            }
-            .onAppear { runEntranceAnimation() }
-            .navigationDestination(isPresented: $showSignUp) {
-                SignUpView()
-            }
-            .sheet(isPresented: $showResetPassword) {
-                ResetPasswordView()
-            }
-        }
-        .trackScreen("Auth")
-    }
-
-    private func runEntranceAnimation() {
-        // 1. Logo pops in
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.65).delay(0.1)) {
-            logoScale = 1.0
-            logoOpacity = 1
-        }
-        // 2. Glow breathes
-        withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true).delay(0.5)) {
-            glowBreathing = true
-        }
-        // 3. Header slides up
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3)) {
-            headerOpacity = 1
-            headerOffset = 0
-        }
-        // 4. Form card slides up
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.5)) {
-            formOpacity = 1
-            formOffset = 0
-        }
-        // 5. Footer fades
-        withAnimation(.easeOut(duration: 0.4).delay(0.8)) {
-            footerOpacity = 1
-        }
-    }
-}
-
-// MARK: - Sign Up View
-
-struct SignUpView: View {
-    @StateObject private var viewModel = DependencyContainer.shared.authViewModel
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) var colorScheme
-    @FocusState private var focusedField: Field?
-
-    enum Field {
-        case name, phone, email, password, confirm
-    }
+    @StateObject private var vm = DependencyContainer.shared.authViewModel
+    @State private var phase: AuthPhase = .login
 
     var body: some View {
         ZStack {
-            AuthGradientBackground()
+            switch phase {
+            case .login:
+                LoginPhaseView(vm: vm, phase: $phase)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading).combined(with: .opacity),
+                        removal:   .move(edge: .leading).combined(with: .opacity)
+                    ))
+            case .signUp, .signUpPassword:
+                SignUpPhaseView(vm: vm, phase: $phase)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal:   .move(edge: .trailing).combined(with: .opacity)
+                    ))
+            case .resetPassword:
+                ResetPasswordPhaseView(vm: vm, phase: $phase)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal:   .move(edge: .trailing).combined(with: .opacity)
+                    ))
+            case .emailVerification:
+                EmailVerificationPhaseView(vm: vm, phase: $phase)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal:   .move(edge: .trailing).combined(with: .opacity)
+                    ))
+            case .newPassword:
+                NewPasswordPhaseView(vm: vm, phase: $phase)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal:   .move(edge: .trailing).combined(with: .opacity)
+                    ))
+            }
+        }
+        .animation(.spring(response: 0.38, dampingFraction: 0.82), value: phase)
+    }
+}
+
+// MARK: - Login Phase
+
+private struct LoginPhaseView: View {
+    @ObservedObject var vm: AuthViewModel
+    @Binding var phase: AuthPhase
+
+    @FocusState private var focused: LoginField?
+    @State private var hasAttempted = false
+
+    enum LoginField { case email, password }
+
+    var body: some View {
+        ZStack {
+            Color.white.ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    Spacer().frame(height: 16)
+                VStack(spacing: 0) {
+                    // Hero illustration — onboarding-style 4-edge blend, same size as onboarding p1
+                    ZStack {
+                        Image.androidImage("onboarding illustration")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity)
+                            .frame(maxHeight: 270)
+                            .mask(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: .clear, location: 0),
+                                        .init(color: .black, location: 0.28),
+                                        .init(color: .black, location: 0.72),
+                                        .init(color: .clear, location: 1)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
 
-                    // Header
+                        VStack(spacing: 0) {
+                            LinearGradient(
+                                colors: [Color.white, Color.white.opacity(0)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 56)
+                            Spacer(minLength: 0)
+                        }
+
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            LinearGradient(
+                                colors: [Color.white.opacity(0), Color.white],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 56)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 270)
+                    .allowsHitTesting(false)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+
+                    // Title block
                     VStack(spacing: 6) {
-                        Text("Create Account")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-
-                        Text("Start your health journey today")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                        Text("Welcome back!")
+                            .font(.poppins(.bold, size: 24))
+                            .foregroundColor(textDark)
+                        Text("Login to continue")
+                            .font(.poppins(.regular, size: 14))
+                            .foregroundColor(textGray)
                     }
+                    .padding(.bottom, 20)
 
-                    // Form card
-                    VStack(spacing: 18) {
-                        VStack(spacing: 14) {
-                            AuthTextField(
-                                title: "Full Name",
-                                icon: "person.fill",
-                                text: $viewModel.formState.fullName
-                            )
-                            .focused($focusedField, equals: .name)
-                            .submitLabel(.next)
-                            .onSubmit { focusedField = .phone }
+                    // Form
+                    VStack(spacing: 12) {
+                        FloatingLabelField(
+                            placeholder: "Email or Phone Number",
+                            systemIcon: "envelope",
+                            text: $vm.formState.email,
+                            keyboardType: .emailAddress,
+                            isSecure: false,
+                            isFocused: focused == .email,
+                            isError: hasAttempted && !vm.formState.isValidEmail
+                        )
+                        .focused($focused, equals: .email)
+                        .submitLabel(.next)
+                        .onSubmit { focused = .password }
+                        .onTapGesture { lightHaptic() }
 
-                            AuthTextField(
-                                title: "Phone Number",
-                                icon: "phone.fill",
-                                text: $viewModel.formState.phoneNumber,
-                                keyboardType: .phonePad
-                            )
-                            .focused($focusedField, equals: .phone)
-                            .submitLabel(.next)
-                            .onSubmit { focusedField = .email }
+                        FloatingLabelField(
+                            placeholder: "Password",
+                            systemIcon: "lock",
+                            text: $vm.formState.password,
+                            isSecure: true,
+                            isFocused: focused == .password,
+                            isError: hasAttempted && !vm.formState.isValidPassword
+                        )
+                        .focused($focused, equals: .password)
+                        .submitLabel(.go)
+                        .onSubmit {
+                            submitLogin()
+                        }
+                        .onTapGesture { lightHaptic() }
 
-                            AuthTextField(
-                                title: "Email",
-                                icon: "envelope.fill",
-                                text: $viewModel.formState.email,
-                                keyboardType: .emailAddress
-                            )
-                            .focused($focusedField, equals: .email)
-                            .submitLabel(.next)
-                            .onSubmit { focusedField = .password }
-
-                            AuthSecureField(
-                                title: "Password",
-                                icon: "lock.fill",
-                                text: $viewModel.formState.password
-                            )
-                            .focused($focusedField, equals: .password)
-                            .submitLabel(.next)
-                            .onSubmit { focusedField = .confirm }
-
-                            AuthSecureField(
-                                title: "Confirm Password",
-                                icon: "checkmark.shield.fill",
-                                text: $viewModel.formState.confirmPassword
-                            )
-                            .focused($focusedField, equals: .confirm)
-                            .submitLabel(.done)
-                            .onSubmit {
-                                if viewModel.formState.isValidForSignUp {
-                                    Task { await viewModel.signUp() }
-                                }
+                        // Forgot password
+                        HStack {
+                            Spacer()
+                            Button {
+                                vm.clearError()
+                                phase = .resetPassword
+                            } label: {
+                                Text("Forgot Password?")
+                                    .font(.poppins(.semiBold, size: 13))
+                                    .foregroundColor(aiTeal)
                             }
                         }
 
-                        if let error = viewModel.errorMessage {
-                            AuthAlertBanner(message: error, isSuccess: false)
+                        // Error banner
+                        if let err = vm.errorMessage {
+                            AuthBanner(message: err, isSuccess: false)
+                                .transition(.opacity.combined(with: .scale(scale: 0.97)))
                         }
 
-                        Button(action: {
-                            Task { await viewModel.signUp() }
-                        }) {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text("Create Account")
-                            }
+                        // Primary CTA
+                        PrimaryAuthButton(title: "Login", isLoading: vm.isLoading, isEnabled: !vm.isLoading) {
+                            submitLogin()
                         }
-                        .buttonStyle(AuthPrimaryButtonStyle(isEnabled: viewModel.formState.isValidForSignUp))
-                        .disabled(viewModel.isLoading || !viewModel.formState.isValidForSignUp)
 
-                        Text("By signing up, you agree to our Terms & Privacy Policy")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(20)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25), lineWidth: 0.5)
-                    )
-                    .padding(.horizontal, 20)
+                        OrDivider(text: "or continue with")
 
-                    Spacer()
+                        GoogleAuthButton(isEnabled: !vm.isLoading) {
+                            mediumHaptic()
+                            Task { await vm.signInWithGoogle() }
+                        }
 
-                    Button(action: { dismiss() }) {
+                        AppleAuthButton(isEnabled: !vm.isLoading) {
+                            mediumHaptic()
+                            Task { await vm.signInWithApple() }
+                        }
+
+                        // Sign up link
                         HStack(spacing: 4) {
-                            Text("Already have an account?")
-                                .foregroundColor(.secondary)
-                            Text("Sign In")
-                                .fontWeight(.bold)
-                                .foregroundColor(Color(hex: "11998e"))
+                            Text("Don't have an account?")
+                                .font(.poppins(.regular, size: 14))
+                                .foregroundColor(textGray)
+                            Button {
+                                vm.clearError()
+                                vm.formState = AuthFormState()
+                                phase = .signUp
+                            } label: {
+                                Text("Sign Up")
+                                    .font(.poppins(.bold, size: 14))
+                                    .foregroundColor(aiTeal)
+                            }
                         }
-                        .font(.system(size: 14))
+                        .padding(.top, 4)
                     }
-                    .padding(.bottom, 24)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 40)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture { focused = nil }
         }
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .padding(8)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                }
+        .onAppear { vm.clearError() }
+    }
+
+    private func submitLogin() {
+        hasAttempted = true
+        mediumHaptic()
+        if vm.formState.isValidForLogin {
+            Task {
+                await vm.signIn()
             }
-        }
-        .onChange(of: viewModel.isAuthenticated) { _, isAuth in
-            if isAuth { dismiss() }
+        } else {
+            errorHaptic()
         }
     }
 }
 
-// MARK: - Reset Password View
+// MARK: - Sign Up Phase
 
-struct ResetPasswordView: View {
-    @StateObject private var viewModel = DependencyContainer.shared.authViewModel
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) var colorScheme
+private struct SignUpPhaseView: View {
+    @ObservedObject var vm: AuthViewModel
+    @Binding var phase: AuthPhase
+
+    // Step is tracked here; phase .signUp = step1, .signUpPassword = step2
+    @FocusState private var focused: SignUpField?
+    @State private var hasAttemptedStep1 = false
+    @State private var hasAttemptedStep2 = false
+
+    // Local first/last name mirrors to vm.formState.fullName on commit
+    @State private var firstName = ""
+    @State private var lastName  = ""
+    @State private var agreedToTerms = false
+
+    enum SignUpField { case firstName, lastName, email, password, confirm }
+
+    private var isStep1: Bool { phase == .signUp }
+
+    private var isStep1Valid: Bool {
+        !firstName.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !lastName.trimmingCharacters(in: .whitespaces).isEmpty &&
+        vm.formState.isValidEmail
+    }
+
+    private var step1Error: String? {
+        guard hasAttemptedStep1 else { return nil }
+        if firstName.trimmingCharacters(in: .whitespaces).isEmpty { return "Please enter your first name" }
+        if lastName.trimmingCharacters(in: .whitespaces).isEmpty  { return "Please enter your last name" }
+        if !vm.formState.isValidEmail { return "Enter a valid email address" }
+        return nil
+    }
+
+    private var step2Error: String? {
+        guard hasAttemptedStep2 else { return nil }
+        if vm.formState.password.isEmpty     { return "Password is required" }
+        if !vm.formState.isValidPassword     { return "Password must be at least 6 characters" }
+        if vm.formState.confirmPassword.isEmpty { return "Please confirm your password" }
+        if !vm.formState.passwordsMatch      { return "Passwords do not match" }
+        if !agreedToTerms                    { return "Please accept the Terms and Privacy Policy" }
+        return nil
+    }
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.white.ignoresSafeArea()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    // Hero illustration
+                    Image.androidImage("sign in screen icon")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 200, height: 200)
+                        .padding(.top, 24)
+                        .padding(.bottom, 8)
+
+                    // Animated step content
+                    Group {
+                        if isStep1 {
+                            step1Content
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .leading).combined(with: .opacity),
+                                    removal:   .move(edge: .trailing).combined(with: .opacity)
+                                ))
+                        } else {
+                            step2Content
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal:   .move(edge: .leading).combined(with: .opacity)
+                                ))
+                        }
+                    }
+                    .animation(.spring(response: 0.32, dampingFraction: 0.82), value: phase)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 40)
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture { focused = nil }
+
+            // Back button
+            BackCircleButton {
+                lightHaptic()
+                if phase == .signUpPassword {
+                    phase = .signUp
+                } else {
+                    vm.clearError()
+                    vm.formState = AuthFormState()
+                    phase = .login
+                }
+            }
+        }
+        .onAppear { vm.clearError() }
+    }
+
+    @ViewBuilder
+    private var step1Content: some View {
+        VStack(spacing: 12) {
+            VStack(spacing: 6) {
+                Text("Create your account")
+                    .font(.poppins(.bold, size: 24))
+                    .foregroundColor(textDark)
+                Text("Tell us a bit about you")
+                    .font(.poppins(.regular, size: 14))
+                    .foregroundColor(textGray)
+            }
+            .padding(.bottom, 8)
+
+            FloatingLabelField(
+                placeholder: "First Name",
+                systemIcon: "person",
+                text: $firstName,
+                isSecure: false,
+                isFocused: focused == .firstName,
+                isError: hasAttemptedStep1 && firstName.trimmingCharacters(in: .whitespaces).isEmpty
+            )
+            .focused($focused, equals: .firstName)
+            .submitLabel(.next)
+            .onSubmit { focused = .lastName }
+            .onTapGesture { lightHaptic() }
+
+            FloatingLabelField(
+                placeholder: "Last Name",
+                systemIcon: "person",
+                text: $lastName,
+                isSecure: false,
+                isFocused: focused == .lastName,
+                isError: hasAttemptedStep1 && lastName.trimmingCharacters(in: .whitespaces).isEmpty
+            )
+            .focused($focused, equals: .lastName)
+            .submitLabel(.next)
+            .onSubmit { focused = .email }
+            .onTapGesture { lightHaptic() }
+
+            FloatingLabelField(
+                placeholder: "Email Address",
+                systemIcon: "envelope",
+                text: $vm.formState.email,
+                keyboardType: .emailAddress,
+                isSecure: false,
+                isFocused: focused == .email,
+                isError: hasAttemptedStep1 && !vm.formState.isValidEmail
+            )
+            .focused($focused, equals: .email)
+            .submitLabel(.done)
+            .onSubmit { goToStep2() }
+            .onTapGesture { lightHaptic() }
+
+            let displayedError = vm.errorMessage ?? step1Error
+            if let err = displayedError {
+                AuthBanner(message: err, isSuccess: false)
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+            }
+
+            PrimaryAuthButton(title: "Next", isLoading: false, isEnabled: true) {
+                goToStep2()
+            }
+
+            OrDivider(text: "or continue with")
+
+            GoogleAuthButton(isEnabled: !vm.isLoading) {
+                mediumHaptic()
+                Task { await vm.signInWithGoogle() }
+            }
+
+            AppleAuthButton(isEnabled: !vm.isLoading) {
+                mediumHaptic()
+                Task { await vm.signInWithApple() }
+            }
+
+            HStack(spacing: 4) {
+                Text("Already have an account?")
+                    .font(.poppins(.regular, size: 14))
+                    .foregroundColor(textGray)
+                Button {
+                    vm.clearError()
+                    vm.formState = AuthFormState()
+                    phase = .login
+                } label: {
+                    Text("Sign In")
+                        .font(.poppins(.bold, size: 14))
+                        .foregroundColor(aiTeal)
+                }
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    @ViewBuilder
+    private var step2Content: some View {
+        VStack(spacing: 12) {
+            VStack(spacing: 6) {
+                Text("Create a password")
+                    .font(.poppins(.bold, size: 24))
+                    .foregroundColor(textDark)
+                Text("Almost done — set a strong password")
+                    .font(.poppins(.regular, size: 14))
+                    .foregroundColor(textGray)
+            }
+            .padding(.bottom, 8)
+
+            FloatingLabelField(
+                placeholder: "Password",
+                systemIcon: "lock",
+                text: $vm.formState.password,
+                isSecure: true,
+                isFocused: focused == .password,
+                isError: hasAttemptedStep2 && !vm.formState.isValidPassword
+            )
+            .focused($focused, equals: .password)
+            .submitLabel(.next)
+            .onSubmit { focused = .confirm }
+            .onTapGesture { lightHaptic() }
+
+            FloatingLabelField(
+                placeholder: "Confirm Password",
+                systemIcon: "lock",
+                text: $vm.formState.confirmPassword,
+                isSecure: true,
+                isFocused: focused == .confirm,
+                isError: hasAttemptedStep2 && !vm.formState.passwordsMatch
+            )
+            .focused($focused, equals: .confirm)
+            .submitLabel(.done)
+            .onSubmit { submitSignUp() }
+            .onTapGesture { lightHaptic() }
+
+            // Terms checkbox
+            TermsRow(agreed: $agreedToTerms)
+
+            let displayedError = vm.errorMessage ?? step2Error
+            if let err = displayedError {
+                AuthBanner(message: err, isSuccess: false)
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+            }
+
+            PrimaryAuthButton(title: "Sign Up", isLoading: vm.isLoading, isEnabled: !vm.isLoading) {
+                submitSignUp()
+            }
+        }
+    }
+
+    private func goToStep2() {
+        hasAttemptedStep1 = true
+        if isStep1Valid {
+            mediumHaptic()
+            vm.clearError()
+            // Merge first + last name into fullName
+            vm.formState.fullName = "\(firstName.trimmingCharacters(in: .whitespaces)) \(lastName.trimmingCharacters(in: .whitespaces))"
+            phase = .signUpPassword
+        } else {
+            errorHaptic()
+        }
+    }
+
+    private func submitSignUp() {
+        hasAttemptedStep2 = true
+        mediumHaptic()
+        guard vm.formState.isValidPassword && vm.formState.passwordsMatch && agreedToTerms else {
+            errorHaptic()
+            return
+        }
+        Task {
+            await vm.signUp()
+            // If signUp succeeds, vm.isAuthenticated flips → app nav picks it up.
+            // If email verification required, errorMessage is set by VM.
+            if let msg = vm.errorMessage, msg.lowercased().contains("email") {
+                phase = .emailVerification
+            }
+        }
+    }
+}
+
+// MARK: - Reset Password Phase
+
+private struct ResetPasswordPhaseView: View {
+    @ObservedObject var vm: AuthViewModel
+    @Binding var phase: AuthPhase
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.white.ignoresSafeArea()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: 72)
+
+                    // Hero illustration
+                    Image.androidImage("forgot password")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 200, height: 200)
+                        .padding(8)
+
+                    Spacer().frame(height: 20)
+
+                    Text("Forgot Password?")
+                        .font(.poppins(.bold, size: 26))
+                        .foregroundColor(textDark)
+
+                    Spacer().frame(height: 10)
+
+                    Text("No worries! Enter your registered email address and we'll send you a link to reset your password.")
+                        .font(.poppins(.regular, size: 14))
+                        .foregroundColor(textGray)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+
+                    Spacer().frame(height: 28)
+
+                    VStack(spacing: 16) {
+                        FloatingLabelField(
+                            placeholder: "Email Address",
+                            systemIcon: "envelope",
+                            text: $vm.formState.email,
+                            keyboardType: .emailAddress,
+                            isSecure: false,
+                            isFocused: isFocused
+                        )
+                        .focused($isFocused)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            if vm.formState.isValidEmail { Task { await vm.resetPassword() } }
+                        }
+                        .onTapGesture { lightHaptic() }
+
+                        if let msg = vm.errorMessage {
+                            let isSuccess = msg.lowercased().contains("sent")
+                            AuthBanner(message: msg, isSuccess: isSuccess)
+                                .transition(.opacity.combined(with: .scale(scale: 0.97)))
+                        }
+
+                        PrimaryAuthButton(
+                            title: "Send Reset Link",
+                            isLoading: vm.isLoading,
+                            isEnabled: vm.formState.isValidEmail && !vm.isLoading
+                        ) {
+                            mediumHaptic()
+                            Task { await vm.resetPassword() }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+
+                    Spacer().frame(height: 24)
+
+                    HStack(spacing: 4) {
+                        Text("Remember your password?")
+                            .font(.poppins(.regular, size: 14))
+                            .foregroundColor(textGray)
+                        Button {
+                            vm.clearError()
+                            phase = .login
+                        } label: {
+                            Text("Login")
+                                .font(.poppins(.bold, size: 14))
+                                .foregroundColor(aiTeal)
+                        }
+                    }
+
+                    Spacer().frame(height: 40)
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture { isFocused = false }
+
+            BackCircleButton {
+                lightHaptic()
+                vm.clearError()
+                phase = .login
+            }
+        }
+        .onAppear { vm.clearError() }
+    }
+}
+
+// MARK: - Email Verification Phase
+
+private struct EmailVerificationPhaseView: View {
+    @ObservedObject var vm: AuthViewModel
+    @Binding var phase: AuthPhase
+
+    @State private var resendCooldown = 0
+    @State private var showSuccess = false
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.white.ignoresSafeArea()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: 56)
+
+                    // Brand header
+                    HStack(spacing: 8) {
+                        Image.androidIcon("swastricare icon")
+                            .resizable()
+                            .frame(width: 36, height: 36)
+                        brandWordmark
+                    }
+                    Spacer().frame(height: 2)
+                    Text("Your Family, Our Care")
+                        .font(.poppins(.regular, size: 12))
+                        .foregroundColor(textGray)
+
+                    Spacer().frame(height: 24)
+
+                    // Hero
+                    Image.androidImage("verify email")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 200, height: 200)
+                        .padding(8)
+
+                    Spacer().frame(height: 20)
+
+                    Text(showSuccess ? "Email Verified!" : "Check Your Email")
+                        .font(.poppins(.bold, size: 26))
+                        .foregroundColor(textDark)
+
+                    Spacer().frame(height: 10)
+
+                    if showSuccess {
+                        Text("Redirecting you to the app...")
+                            .font(.poppins(.regular, size: 14))
+                            .foregroundColor(textGray)
+                        Spacer().frame(height: 24)
+                    } else {
+                        verificationBody
+                    }
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+
+            if !showSuccess {
+                BackCircleButton {
+                    lightHaptic()
+                    phase = .signUp
+                }
+            }
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if resendCooldown > 0 { resendCooldown -= 1 }
+        }
+        .onChange(of: vm.isAuthenticated) { _, isAuth in
+            if isAuth {
+                showSuccess = true
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var verificationBody: some View {
+        VStack(spacing: 0) {
+            Text("We've sent a verification link to")
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(textGray)
+            Spacer().frame(height: 4)
+            Text(vm.formState.email)
+                .font(.poppins(.semiBold, size: 14))
+                .foregroundColor(aiTeal)
+            Spacer().frame(height: 8)
+            Text("Tap the link in the email to verify your account and continue.")
+                .font(.poppins(.regular, size: 12))
+                .foregroundColor(textGray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            Spacer().frame(height: 28)
+
+            VStack(spacing: 12) {
+                PrimaryAuthButton(title: "Open Email App", isLoading: false, isEnabled: true) {
+                    mediumHaptic()
+                    openMailApp()
+                }
+
+                SecondaryAuthButton(
+                    title: resendCooldown > 0 ? "Resend in \(resendCooldown)s" : "Resend Verification Email",
+                    isLoading: vm.isLoading,
+                    isEnabled: resendCooldown == 0 && !vm.isLoading
+                ) {
+                    mediumHaptic()
+                    resendCooldown = 60
+                    Task { await vm.resetPassword() } // reuse reset to resend; VM sends email
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer().frame(height: 20)
+
+            Text("Check your spam folder if you don't see the email")
+                .font(.poppins(.regular, size: 12))
+                .foregroundColor(textGray.opacity(0.7))
+                .multilineTextAlignment(.center)
+
+            Spacer().frame(height: 20)
+
+            HStack(spacing: 4) {
+                Text("Wrong email?")
+                    .font(.poppins(.regular, size: 14))
+                    .foregroundColor(textGray)
+                Button {
+                    phase = .signUp
+                } label: {
+                    Text("Use a different email")
+                        .font(.poppins(.bold, size: 14))
+                        .foregroundColor(aiTeal)
+                }
+            }
+            Spacer().frame(height: 40)
+        }
+    }
+
+    private var brandWordmark: some View {
+        HStack(spacing: 0) {
+            Text("Swastri")
+                .font(.poppins(.bold, size: 22))
+                .foregroundColor(aiTeal)
+            Text("care")
+                .font(.poppins(.bold, size: 22))
+                .foregroundColor(aiTealDark)
+        }
+    }
+
+    private func openMailApp() {
+        let urls = [
+            "googlegmail://",
+            "ms-outlook://",
+            "mailto:"
+        ]
+        for urlStr in urls {
+            if let url = URL(string: urlStr), UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+                return
+            }
+        }
+    }
+}
+
+// MARK: - New Password Phase
+
+private struct NewPasswordPhaseView: View {
+    @ObservedObject var vm: AuthViewModel
+    @Binding var phase: AuthPhase
+
+    @State private var newPassword = ""
+    @State private var confirmPassword = ""
+    @FocusState private var focused: NPField?
+
+    enum NPField { case password, confirm }
 
     var body: some View {
         ZStack {
-            AuthGradientBackground()
+            Color.white.ignoresSafeArea()
 
-            VStack(spacing: 28) {
-                Capsule()
-                    .fill(Color.primary.opacity(0.15))
-                    .frame(width: 36, height: 4)
-                    .padding(.top, 12)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: 80)
 
-                VStack(spacing: 14) {
+                    // Shield icon circle
                     ZStack {
                         Circle()
-                            .fill(Color(hex: "11998e").opacity(0.12))
+                            .fill(aiTeal.opacity(0.12))
                             .frame(width: 64, height: 64)
-
-                        Image(systemName: "lock.rotation")
-                            .font(.system(size: 28))
-                            .foregroundColor(Color(hex: "11998e"))
+                        Image(systemName: "shield.fill")
+                            .font(.poppins(.regular, size: 28))
+                            .foregroundColor(aiTeal)
                     }
 
-                    Text("Reset Password")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
+                    Spacer().frame(height: 14)
 
-                    Text("Enter your email and we'll send you a reset link")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                    Text("Set New Password")
+                        .font(.poppins(.bold, size: 24))
+                        .foregroundColor(textDark)
+
+                    Spacer().frame(height: 8)
+
+                    Text("Enter your new password below")
+                        .font(.poppins(.regular, size: 13))
+                        .foregroundColor(textGray)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
-                }
-                .padding(.top, 8)
 
-                VStack(spacing: 20) {
-                    AuthTextField(
-                        title: "Email",
-                        icon: "envelope.fill",
-                        text: $viewModel.formState.email,
-                        keyboardType: .emailAddress
-                    )
+                    Spacer().frame(height: 28)
 
-                    if let message = viewModel.errorMessage {
-                        AuthAlertBanner(message: message, isSuccess: message.contains("sent"))
-                    }
+                    VStack(spacing: 20) {
+                        FloatingLabelField(
+                            placeholder: "New Password",
+                            systemIcon: "lock",
+                            text: $newPassword,
+                            isSecure: true,
+                            isFocused: focused == .password
+                        )
+                        .focused($focused, equals: .password)
+                        .submitLabel(.next)
+                        .onSubmit { focused = .confirm }
+                        .onTapGesture { lightHaptic() }
 
-                    Button(action: {
-                        Task { await viewModel.resetPassword() }
-                    }) {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text("Send Reset Link")
+                        FloatingLabelField(
+                            placeholder: "Confirm Password",
+                            systemIcon: "lock",
+                            text: $confirmPassword,
+                            isSecure: true,
+                            isFocused: focused == .confirm
+                        )
+                        .focused($focused, equals: .confirm)
+                        .submitLabel(.done)
+                        .onSubmit { submitNewPassword() }
+                        .onTapGesture { lightHaptic() }
+
+                        if let err = vm.errorMessage {
+                            AuthBanner(message: err, isSuccess: false)
+                        }
+
+                        PrimaryAuthButton(
+                            title: "Update Password",
+                            isLoading: vm.isLoading,
+                            isEnabled: !newPassword.isEmpty && !confirmPassword.isEmpty && !vm.isLoading
+                        ) {
+                            submitNewPassword()
                         }
                     }
-                    .buttonStyle(AuthPrimaryButtonStyle(isEnabled: viewModel.formState.isValidEmail))
-                    .disabled(viewModel.isLoading || !viewModel.formState.isValidEmail)
+                    .padding(.horizontal, 20)
+
+                    Spacer().frame(height: 40)
                 }
-                .padding(20)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25), lineWidth: 0.5)
-                )
-                .padding(.horizontal, 20)
-
-                Spacer()
             }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture { focused = nil }
         }
+        .onChange(of: vm.isAuthenticated) { _, isAuth in
+            if isAuth { phase = .login }
+        }
+    }
+
+    private func submitNewPassword() {
+        mediumHaptic()
+        guard !newPassword.isEmpty, newPassword == confirmPassword else {
+            errorHaptic()
+            return
+        }
+        // Map to formState so VM's resetPassword / signIn can consume
+        vm.formState.password = newPassword
+        vm.formState.confirmPassword = confirmPassword
+        Task { await vm.resetPassword() }
     }
 }
 
-// MARK: - Rich Gradient Background
+// MARK: - Shared Sub-Components
 
-struct AuthGradientBackground: View {
-    @Environment(\.colorScheme) var colorScheme
+// Floating-label text field (iOS port of Android PremiumTextField / PremiumSecureField)
+struct FloatingLabelField: View {
+    let placeholder: String
+    let systemIcon: String
+    @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
+    var isSecure: Bool
+    var isFocused: Bool
+    var isError: Bool = false
+
+    @State private var isPasswordVisible = false
+
+    private var borderColor: Color {
+        if isError   { return errorRed }
+        if isFocused { return aiTeal.opacity(0.6) }
+        return Color.black.opacity(0.12)
+    }
+
+    private var borderWidth: CGFloat { (isFocused || isError) ? 1 : 0.5 }
 
     var body: some View {
-        ZStack {
-            // Base
-            Color(UIColor.systemBackground).ignoresSafeArea()
+        HStack(spacing: 12) {
+            Image(systemName: systemIcon)
+                .foregroundColor(isFocused ? aiTeal : Color(hex: "9CA3AF"))
+                .font(.system(size: 16, weight: .regular))
+                .frame(width: 18)
 
-            if colorScheme == .dark {
-                // Deep teal-tinted dark
-                LinearGradient(
-                    colors: [
-                        Color(hex: "0A1A1A"),
-                        Color(hex: "0D1117"),
-                        Color(hex: "0A0E14")
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
-                // Teal orb — top right
-                Circle()
-                    .fill(Color(hex: "11998e").opacity(0.12))
-                    .blur(radius: 80)
-                    .frame(width: 280, height: 280)
-                    .offset(x: 120, y: -100)
-
-                // Purple orb — bottom left
-                Circle()
-                    .fill(Color(hex: "7C3AED").opacity(0.08))
-                    .blur(radius: 90)
-                    .frame(width: 250, height: 250)
-                    .offset(x: -120, y: 300)
-
-                // Pink accent — center bottom
-                Circle()
-                    .fill(Color(hex: "EC4899").opacity(0.05))
-                    .blur(radius: 70)
-                    .frame(width: 200, height: 200)
-                    .offset(x: 40, y: 200)
+            if isSecure && !isPasswordVisible {
+                SecureField(placeholder, text: $text)
+                    .font(.poppins(.regular, size: 16))
+                    .foregroundColor(textDark)
+                    .tint(aiTeal)
+                    .keyboardType(keyboardType)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
             } else {
-                // Light mode — soft teal wash
-                LinearGradient(
-                    colors: [
-                        Color(hex: "F0FDFA"),
-                        Color.white,
-                        Color(hex: "F5F3FF")
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                TextField(placeholder, text: $text)
+                    .font(.poppins(.regular, size: 16))
+                    .foregroundColor(textDark)
+                    .tint(aiTeal)
+                    .keyboardType(keyboardType)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
 
-                // Teal orb
-                Circle()
-                    .fill(Color(hex: "11998e").opacity(0.06))
-                    .blur(radius: 80)
-                    .frame(width: 280, height: 280)
-                    .offset(x: 120, y: -80)
-
-                // Purple orb
-                Circle()
-                    .fill(Color(hex: "7C3AED").opacity(0.04))
-                    .blur(radius: 80)
-                    .frame(width: 250, height: 250)
-                    .offset(x: -120, y: 280)
+            if isSecure {
+                Button {
+                    isPasswordVisible.toggle()
+                } label: {
+                    Image(systemName: isPasswordVisible ? "eye" : "eye.slash")
+                        .foregroundColor(Color(hex: "9CA3AF"))
+                        .font(.system(size: 16))
+                }
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(fieldBg)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(borderColor, lineWidth: borderWidth)
+        )
+        .animation(.easeOut(duration: 0.2), value: isFocused)
+        .animation(.easeOut(duration: 0.2), value: isError)
     }
 }
 
-// Legacy wrapper
-struct AuthBackground: View {
+// Solid AITeal primary button — NO gradient. Hard rule.
+private struct PrimaryAuthButton: View {
+    let title: String
+    let isLoading: Bool
+    let isEnabled: Bool
+    let action: () -> Void
+
     var body: some View {
-        AuthGradientBackground()
+        Button(action: action) {
+            ZStack {
+                if isLoading {
+                    ProgressView().tint(.white)
+                } else {
+                    Text(title)
+                        .font(.poppins(.bold, size: 16))
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+        }
+        .disabled(!isEnabled || isLoading)
+        .background(isEnabled ? aiTeal : Color.gray.opacity(0.3))
+        .clipShape(Capsule())
+        .shadow(color: isEnabled ? aiTeal.opacity(0.35) : .clear, radius: 14, y: 6)
+        .animation(.easeOut(duration: 0.2), value: isEnabled)
     }
 }
 
-// MARK: - Components
+// Secondary outlined AITeal button
+private struct SecondaryAuthButton: View {
+    let title: String
+    let isLoading: Bool
+    let isEnabled: Bool
+    let action: () -> Void
 
-/// Alert banner for error/success
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                if isLoading {
+                    ProgressView().tint(aiTeal)
+                } else {
+                    Text(title)
+                        .font(.poppins(.bold, size: 16))
+                        .foregroundColor(isEnabled ? aiTeal : .gray)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+        }
+        .disabled(!isEnabled || isLoading)
+        .background(
+            Capsule()
+                .stroke(isEnabled ? aiTeal : Color.gray.opacity(0.3), lineWidth: 1.5)
+        )
+        .background(isEnabled ? aiTeal.opacity(0.08) : Color.clear)
+        .clipShape(Capsule())
+    }
+}
+
+// Google auth button — white bg, 1pt border
+private struct GoogleAuthButton: View {
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image.androidIcon("google_icon")
+                    .resizable()
+                    .frame(width: 20, height: 20)
+                Text("Continue with Google")
+                    .font(.poppins(.semiBold, size: 15))
+                    .foregroundColor(Color(hex: "111827"))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+        }
+        .disabled(!isEnabled)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+        )
+    }
+}
+
+// Apple auth button — solid black, white logo + label
+private struct AppleAuthButton: View {
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: "apple.logo")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white)
+                Text("Continue with Apple")
+                    .font(.poppins(.semiBold, size: 15))
+                    .foregroundColor(.white)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+        }
+        .disabled(!isEnabled)
+        .background(Color.black)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+// "— or continue with —" divider
+private struct OrDivider: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Rectangle().fill(Color.black.opacity(0.08)).frame(height: 0.5)
+            Text(text)
+                .font(.poppins(.regular, size: 12))
+                .foregroundColor(Color.black.opacity(0.45))
+                .fixedSize()
+            Rectangle().fill(Color.black.opacity(0.08)).frame(height: 0.5)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// Error / success alert banner
+private struct AuthBanner: View {
+    let message: String
+    let isSuccess: Bool
+
+    private var color: Color { isSuccess ? AppColors.accentGreen : errorRed }
+    private var icon:  String { isSuccess ? "checkmark.circle.fill" : "exclamationmark.circle.fill" }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+            Text(message)
+                .font(.poppins(.medium, size: 13))
+        }
+        .foregroundColor(color)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+// Back chevron circle button
+private struct BackCircleButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(textDark)
+                .frame(width: 36, height: 36)
+                .background(Color.black.opacity(0.04))
+                .clipShape(Circle())
+        }
+        .padding(16)
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// Terms checkbox row
+private struct TermsRow: View {
+    @Binding var agreed: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Button {
+                agreed.toggle()
+                lightHaptic()
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(agreed ? aiTeal : Color.black.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 20, height: 20)
+                    if agreed {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(aiTeal)
+                            .frame(width: 20, height: 20)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            (Text("I agree to the ")
+                .font(.poppins(.regular, size: 12))
+                .foregroundColor(Color.black.opacity(0.7))
+             + Text("Terms of Service")
+                .font(.poppins(.semiBold, size: 12))
+                .foregroundColor(aiTeal)
+             + Text(" and ")
+                .font(.poppins(.regular, size: 12))
+                .foregroundColor(Color.black.opacity(0.7))
+             + Text("Privacy Policy")
+                .font(.poppins(.semiBold, size: 12))
+                .foregroundColor(aiTeal))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// Legacy aliases — keep app compiling if anything references old names
+struct AuthGradientBackground: View {
+    var body: some View {
+        Color.white.ignoresSafeArea()
+    }
+}
+
+struct AuthBackground: View {
+    var body: some View { AuthGradientBackground() }
+}
+
+/// Alert banner for error/success (public — used by other screens if needed)
 struct AuthAlertBanner: View {
     let message: String
     var isSuccess: Bool = false
@@ -557,8 +1218,8 @@ struct AuthAlertBanner: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: icon).font(.system(size: 14))
-            Text(message).font(.system(size: 13, weight: .medium))
+            Image(systemName: icon).font(.poppins(.regular, size: 14))
+            Text(message).font(.poppins(.medium, size: 13))
         }
         .foregroundColor(color)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -569,40 +1230,21 @@ struct AuthAlertBanner: View {
     }
 }
 
-/// Input field chrome
-private struct AuthInputModifier: ViewModifier {
-    let isFocused: Bool
-    @Environment(\.colorScheme) var colorScheme
+/// Primary button style (public — legacy SignUpView referenced it)
+struct AuthPrimaryButtonStyle: ButtonStyle {
+    let isEnabled: Bool
 
-    private var accentTeal: Color { Color(hex: "11998e") }
-
-    func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.primary.opacity(0.035))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(
-                        isFocused ? accentTeal.opacity(0.6) : Color.primary.opacity(0.06),
-                        lineWidth: isFocused ? 1.5 : 0.5
-                    )
-            )
-            .animation(.easeOut(duration: 0.2), value: isFocused)
-    }
-}
-
-private struct AuthInputLabel: View {
-    let title: String
-    let isFocused: Bool
-
-    var body: some View {
-        Text(title)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundColor(isFocused ? Color(hex: "11998e") : .secondary)
-            .textCase(.uppercase)
-            .tracking(0.8)
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.poppins(.bold, size: 16))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(isEnabled ? aiTeal : Color.gray.opacity(0.3))
+            .clipShape(Capsule())
+            .shadow(color: isEnabled ? aiTeal.opacity(0.35) : .clear, radius: 14, y: 6)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
@@ -614,25 +1256,15 @@ struct AuthTextField: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            AuthInputLabel(title: title, isFocused: isFocused)
-
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundColor(isFocused ? Color(hex: "11998e") : .secondary)
-                    .frame(width: 18)
-                    .font(.system(size: 14))
-
-                TextField("", text: $text)
-                    .font(.system(size: 16))
-                    .foregroundColor(.primary)
-                    .tint(Color(hex: "11998e"))
-                    .keyboardType(keyboardType)
-                    .textInputAutocapitalization(.never)
-                    .focused($isFocused)
-            }
-            .modifier(AuthInputModifier(isFocused: isFocused))
-        }
+        FloatingLabelField(
+            placeholder: title,
+            systemIcon: icon,
+            text: $text,
+            keyboardType: keyboardType,
+            isSecure: false,
+            isFocused: isFocused
+        )
+        .focused($isFocused)
     }
 }
 
@@ -640,71 +1272,17 @@ struct AuthSecureField: View {
     let title: String
     let icon: String
     @Binding var text: String
-    @State private var isSecure = true
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            AuthInputLabel(title: title, isFocused: isFocused)
-
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundColor(isFocused ? Color(hex: "11998e") : .secondary)
-                    .frame(width: 18)
-                    .font(.system(size: 14))
-
-                if isSecure {
-                    SecureField("", text: $text)
-                        .font(.system(size: 16))
-                        .foregroundColor(.primary)
-                        .tint(Color(hex: "11998e"))
-                        .focused($isFocused)
-                } else {
-                    TextField("", text: $text)
-                        .font(.system(size: 16))
-                        .foregroundColor(.primary)
-                        .tint(Color(hex: "11998e"))
-                        .focused($isFocused)
-                }
-
-                Button(action: { isSecure.toggle() }) {
-                    Image(systemName: isSecure ? "eye" : "eye.slash")
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 14))
-                }
-            }
-            .modifier(AuthInputModifier(isFocused: isFocused))
-        }
-    }
-}
-
-struct AuthPrimaryButtonStyle: ButtonStyle {
-    let isEnabled: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 16, weight: .bold))
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(
-                isEnabled
-                    ? AnyShapeStyle(
-                        LinearGradient(
-                            colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    : AnyShapeStyle(Color.gray.opacity(0.25))
-            )
-            .clipShape(Capsule())
-            .shadow(
-                color: isEnabled ? Color(hex: "11998e").opacity(0.35) : .clear,
-                radius: 14, y: 6
-            )
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+        FloatingLabelField(
+            placeholder: title,
+            systemIcon: icon,
+            text: $text,
+            isSecure: true,
+            isFocused: isFocused
+        )
+        .focused($isFocused)
     }
 }
 
@@ -712,7 +1290,6 @@ struct AuthSocialButton: View {
     let icon: String
     let title: String
     let action: () -> Void
-    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         Button(action: action) {
@@ -720,7 +1297,7 @@ struct AuthSocialButton: View {
                 Image(systemName: icon)
                     .font(.system(size: 18))
                 Text(title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
             }
             .foregroundColor(.primary)
             .frame(maxWidth: .infinity)

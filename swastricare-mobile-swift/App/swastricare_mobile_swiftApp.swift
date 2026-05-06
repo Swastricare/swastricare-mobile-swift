@@ -70,6 +70,7 @@ struct swastricare_mobile_swiftApp: App {
     // MARK: - Init
     
     init() {
+        FontRegistration.registerBundledFonts()
         configureGlobalAppearance()
     }
     
@@ -180,7 +181,7 @@ struct swastricare_mobile_swiftApp: App {
             .animation(.easeInOut, value: hasCompletedHealthProfile)
             .animation(.easeInOut, value: hasCheckedAppVersion)
             .withDependencies()
-            .preferredColorScheme(themeManager.colorScheme)
+            .preferredColorScheme(.light) // Android parity: force light theme (mirrors Android `darkTheme = false`)
             .environmentObject(themeManager)
             .environmentObject(appVersionService)
             .environmentObject(deepLinkHandler)
@@ -439,8 +440,17 @@ struct swastricare_mobile_swiftApp: App {
         
         let tabAppearance = UITabBarAppearance()
         tabAppearance.configureWithDefaultBackground()
+        let teal = UIColor(red: 0x22 / 255.0, green: 0xC5 / 255.0, blue: 0xA6 / 255.0, alpha: 1.0)
+        let unselected = UIColor.systemGray
+        for itemAppearance in [tabAppearance.stackedLayoutAppearance, tabAppearance.inlineLayoutAppearance, tabAppearance.compactInlineLayoutAppearance] {
+            itemAppearance.selected.iconColor = teal
+            itemAppearance.selected.titleTextAttributes = [.foregroundColor: teal]
+            itemAppearance.normal.iconColor = unselected
+            itemAppearance.normal.titleTextAttributes = [.foregroundColor: unselected]
+        }
         UITabBar.appearance().standardAppearance = tabAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabAppearance
+        UITabBar.appearance().tintColor = teal
         
         let toolbarAppearance = UIToolbarAppearance()
         toolbarAppearance.configureWithDefaultBackground()

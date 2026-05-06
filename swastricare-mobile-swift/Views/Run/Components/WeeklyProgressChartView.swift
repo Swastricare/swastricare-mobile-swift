@@ -14,7 +14,7 @@ struct WeeklyProgressChartView: View {
     @State private var selectedDay: WeeklyProgressData.DailyDistance?
     @State private var isAnimating = false
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     private let accentGreen = Color(hex: "22C55E")
     
     var body: some View {
@@ -44,12 +44,11 @@ struct WeeklyProgressChartView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("This Week")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Text(weekDateRange)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -58,11 +57,11 @@ struct WeeklyProgressChartView: View {
             // Progress indicator
             VStack(alignment: .trailing, spacing: 4) {
                 Text(String(format: "%.1f km", progressData.totalDistance))
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 18))
                     .foregroundColor(accentBlue)
                 
                 Text("of \(Int(progressData.goalDistance)) km goal")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -83,7 +82,7 @@ struct WeeklyProgressChartView: View {
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 .annotation(position: .trailing, alignment: .leading) {
                     Text("Goal")
-                        .font(.caption2)
+                        .font(.poppins(.regular, size: 11))
                         .foregroundColor(accentGreen)
                 }
                 
@@ -100,8 +99,7 @@ struct WeeklyProgressChartView: View {
                     .annotation(position: .top) {
                         if day.id == selectedDay?.id {
                             Text(String(format: "%.1f", day.distance))
-                                .font(.caption2)
-                                .fontWeight(.bold)
+                                .font(.poppins(.bold, size: 11))
                                 .foregroundColor(accentBlue)
                         }
                     }
@@ -114,7 +112,7 @@ struct WeeklyProgressChartView: View {
                     AxisValueLabel {
                         if let distance = value.as(Double.self) {
                             Text(String(format: "%.0f", distance))
-                                .font(.caption2)
+                                .font(.poppins(.regular, size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -125,7 +123,7 @@ struct WeeklyProgressChartView: View {
                     AxisValueLabel {
                         if let day = value.as(String.self) {
                             Text(day)
-                                .font(.caption2)
+                                .font(.poppins(.regular, size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -156,7 +154,7 @@ struct WeeklyProgressChartView: View {
             
             // X-axis label
             Text("Distance (km)")
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .opacity(isAnimating ? 1 : 0)
@@ -232,11 +230,11 @@ struct WeeklyStatItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 14))
                 .foregroundColor(color)
             
             Text(title)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -252,7 +250,7 @@ struct CompactWeeklyProgressView: View {
     
     @State private var isAnimating = false
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     private let accentGreen = Color(hex: "22C55E")
     
     var body: some View {
@@ -260,14 +258,13 @@ struct CompactWeeklyProgressView: View {
             // Header
             HStack {
                 Text("This Week")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Text(String(format: "%.1f km", totalDistance))
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 16))
                     .foregroundColor(accentBlue)
             }
             
@@ -307,13 +304,13 @@ struct CompactWeeklyProgressView: View {
             // Footer
             HStack {
                 Text("\(Int(progressPercentage * 100))% of \(Int(goalDistanceKm)) km goal")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
                 
                 Spacer()
                 
                 Text("\(activeDays) active days")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -378,7 +375,7 @@ struct DayProgressBar: View {
     let maxDistance: Double
     let isToday: Bool
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     
     var body: some View {
         VStack(spacing: 4) {
@@ -393,7 +390,7 @@ struct DayProgressBar: View {
             }
             
             Text(dayName)
-                .font(.system(size: 10, weight: isToday ? .bold : .medium))
+                .font(isToday ? .poppins(.bold, size: 10) : .poppins(.medium, size: 10))
                 .foregroundColor(isToday ? accentBlue : .secondary)
         }
     }

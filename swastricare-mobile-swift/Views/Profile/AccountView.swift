@@ -2,18 +2,19 @@
 //  AccountView.swift
 //  swastricare-mobile-swift
 //
-//  Account Data Screen - Comprehensive user profile editor
+//  Android-parity Edit Profile screen.
 //
 
 import SwiftUI
 
 struct AccountView: View {
-    
+
     @StateObject private var viewModel = DependencyContainer.shared.profileViewModel
+    @EnvironmentObject private var appVersionService: AppVersionService
     @Environment(\.dismiss) private var dismiss
-    
+
     // MARK: - Editable State
-    
+
     @State private var editedName: String = ""
     @State private var editedPhone: String = ""
     @State private var editedBio: String = ""
@@ -23,13 +24,17 @@ struct AccountView: View {
     @State private var editedWeightKg: Double = 70
     @State private var editedBloodType: String = ""
     @State private var editedCity: String = ""
-    
+
     @State private var isSaving = false
     @State private var showSaveSuccess = false
     @State private var saveError: String?
-    
-    private let bloodTypes = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
-    
+    @State private var showDeleteConfirm = false
+
+    private let bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
+
+    private let aiGreen = Color(hex: "22C55E")
+    private let dangerRed = Color(hex: "EF4444")
+
     private var hasChanges: Bool {
         let hp = viewModel.healthProfile
         return editedName != viewModel.userName
@@ -42,41 +47,96 @@ struct AccountView: View {
             || editedCity != (hp?.city ?? "")
             || !Calendar.current.isDate(editedDateOfBirth, inSameDayAs: hp?.dateOfBirth ?? editedDateOfBirth)
     }
-    
+
     private var isValidForm: Bool {
         !editedName.trimmingCharacters(in: .whitespaces).isEmpty
     }
-    
+
+    private var canSave: Bool {
+        hasChanges && isValidForm && !isSaving
+    }
+
     var body: some View {
         ZStack {
-            PremiumBackground()
-            
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 28) {
-                    avatarSection
-                    
-                    if (viewModel.user?.phone ?? "").isEmpty {
-                        phoneMissingBanner
+            Color.white.ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    avatarBlock
+                        .padding(.vertical, 16)
+
+                    sectionHeader("Personal")
+                    profileCard {
+                        underlineField(label: "Full Name", value: $editedName, placeholder: "Full Name")
+                        fieldDivider
+                        underlineField(label: "Phone", value: $editedPhone, placeholder: "Add phone number", keyboardType: .phonePad)
+                        fieldDivider
+                        underlineField(label: "Bio", value: $editedBio, placeholder: "Write something about you")
+                        fieldDivider
+                        genderRow
+                        fieldDivider
+                        dateOfBirthRow
+                        fieldDivider
+                        underlineField(label: "City", value: $editedCity, placeholder: "Your city")
                     }
-                    
-                    personalInfoSection
-                    
-                    bodyStatsSection
-                    
-                    locationSection
-                    
-                    accountDetailsSection
-                    
-                    saveButton
-                    
-                    Spacer(minLength: 40)
+
+                    sectionHeader("Body Stats")
+                    profileCard {
+                        sliderRow(
+                            label: "Height",
+                            value: "\(Int(editedHeightCm)) cm",
+                            binding: $editedHeightCm,
+                            range: 100...250,
+                            step: 1
+                        )
+                        fieldDivider
+                        sliderRow(
+                            label: "Weight",
+                            value: String(format: "%.1f kg", editedWeightKg),
+                            binding: $editedWeightKg,
+                            range: 20...250,
+                            step: 0.5
+                        )
+                        fieldDivider
+                        bmiRow
+                        fieldDivider
+                        bloodTypeRow
+                    }
+
+                    sectionHeader("Account")
+                    profileCard {
+                        infoRow(label: "Email", value: viewModel.userEmail)
+                        fieldDivider
+                        infoRow(label: "Member Since", value: viewModel.memberSince)
+                        fieldDivider
+                        infoRow(label: "Version", value: viewModel.appVersion)
+                    }
+
+                    Spacer().frame(height: 12)
+
+                    dangerZone
+                        .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 32)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
             }
         }
-        .navigationTitle("")
+        .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { Task { await saveProfile() } }) {
+                    if isSaving {
+                        ProgressView().tint(aiGreen)
+                    } else {
+                        Text("Save")
+                            .font(.poppins(.bold, size: 15))
+                            .foregroundColor(canSave ? aiGreen : .primary.opacity(0.3))
+                    }
+                }
+                .disabled(!canSave)
+            }
+        }
         .onAppear { loadCurrentValues() }
         .alert("Profile Updated", isPresented: $showSaveSuccess) {
             Button("OK") { dismiss() }
@@ -87,6 +147,14 @@ struct AccountView: View {
             Button("OK") { saveError = nil }
         } message: {
             Text(saveError ?? "")
+        }
+        .alert("Delete Account", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                Task { await viewModel.deleteAccount() }
+            }
+        } message: {
+            Text("This will permanently delete your account and all associated data. This action cannot be undone.")
         }
         .trackScreen("Account")
     }
@@ -103,388 +171,318 @@ struct AccountView: View {
         editedBloodType = hp?.bloodType ?? ""
         editedCity = hp?.city ?? ""
     }
-    
-    // MARK: - Avatar
-    
-    private var avatarSection: some View {
-        VStack(spacing: 8) {
-            if let avatarURL = viewModel.userAvatarURL {
-                AsyncImage(url: avatarURL) { image in
+
+    // MARK: - Avatar block
+
+    private var avatarBlock: some View {
+        VStack(spacing: 6) {
+            if let url = viewModel.userAvatarURL {
+                AsyncImage(url: url) { image in
                     image.resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 88, height: 88)
+                        .frame(width: 80, height: 80)
                         .clipShape(Circle())
                 } placeholder: {
-                    avatarPlaceholder
+                    avatarFallback
                 }
             } else {
-                avatarPlaceholder
+                avatarFallback
             }
-            
             Text(viewModel.userEmail)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.poppins(.regular, size: 13))
+                .foregroundColor(.primary.opacity(0.45))
         }
-        .padding(.top, 4)
     }
-    
-    private var avatarPlaceholder: some View {
-        Circle()
-            .fill(
-                LinearGradient(
-                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+
+    private var avatarFallback: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-            .frame(width: 88, height: 88)
-            .overlay(
-                Text(String(editedName.prefix(1)).uppercased())
-                    .font(.system(size: 34, weight: .bold))
-                    .foregroundColor(.white)
-            )
-            .shadow(color: Color(hex: "2E3192").opacity(0.25), radius: 10, x: 0, y: 5)
+            .clipShape(Circle())
+            Text(String(editedName.prefix(1)).uppercased())
+                .font(.poppins(.bold, size: 30))
+                .foregroundColor(.white)
+        }
+        .frame(width: 80, height: 80)
     }
-    
-    // MARK: - Phone Missing Banner
-    
-    private var phoneMissingBanner: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "phone.badge.plus")
-                .font(.system(size: 20))
-                .foregroundColor(AppColors.accentBlue)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Add your phone number")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("Keep your account secure and recoverable")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-            }
-            
+
+    // MARK: - Section components
+
+    private func sectionHeader(_ title: String) -> some View {
+        HStack {
+            Text(title.uppercased())
+                .font(.poppins(.semiBold, size: 12))
+                .tracking(0.8)
+                .foregroundColor(.primary.opacity(0.35))
             Spacer()
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.orange.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.orange.opacity(0.2), lineWidth: 1)
-                )
+        .padding(.leading, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 6)
+    }
+
+    @ViewBuilder
+    private func profileCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 0) {
+            content()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.horizontal, 16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 0.5)
+                .padding(.horizontal, 16)
         )
     }
-    
-    // MARK: - Personal Info
-    
-    private var personalInfoSection: some View {
-        AccountSection(title: "Personal Information") {
-            VStack(spacing: 16) {
-                AccountEditField(
-                    title: "Full Name",
-                    icon: "person.fill",
-                    iconColor: AppColors.accentBlue,
-                    text: $editedName
-                )
 
-                AccountEditField(
-                    title: "Phone Number",
-                    icon: "phone.fill",
-                    iconColor: AppColors.accentBlue,
-                    text: $editedPhone,
-                    keyboardType: .phonePad,
-                    placeholder: "Add phone number"
-                )
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Bio")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "text.quote")
-                            .foregroundColor(AppColors.accentBlue)
-                            .frame(width: 24)
-                            .padding(.top, 10)
-                        
-                        TextField("Write something about yourself...", text: $editedBio, axis: .vertical)
-                            .font(.system(size: 16))
-                            .lineLimit(3...5)
-                            .tint(Color(hex: "2E3192"))
-                    }
-                    .padding(14)
-                    .background(Color.primary.opacity(0.04))
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Gender")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.2.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                            .frame(width: 24)
-                        
-                        Picker("Gender", selection: $editedGender) {
-                            ForEach(Gender.allCases, id: \.self) { gender in
-                                Text(gender.displayName).tag(gender)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .tint(.primary)
-                        
-                        Spacer()
-                    }
-                    .padding(14)
-                    .background(Color.primary.opacity(0.04))
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Date of Birth")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 12) {
-                        Image(systemName: "calendar")
-                            .foregroundColor(AppColors.accentBlue)
-                            .frame(width: 24)
-                        
-                        DatePicker(
-                            "",
-                            selection: $editedDateOfBirth,
-                            in: ...Date(),
-                            displayedComponents: .date
-                        )
-                        .labelsHidden()
-                        .tint(Color(hex: "2E3192"))
-                        
-                        Spacer()
-                    }
-                    .padding(14)
-                    .background(Color.primary.opacity(0.04))
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
-                }
-            }
-        }
+    private var fieldDivider: some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.06))
+            .frame(height: 0.5)
     }
-    
-    // MARK: - Body Stats
-    
-    private var bodyStatsSection: some View {
-        AccountSection(title: "Body Stats") {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Height")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("\(Int(editedHeightCm)) cm")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: "2E3192"))
-                    }
-                    
-                    HStack(spacing: 12) {
-                        Image(systemName: "ruler.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                            .frame(width: 24)
-                        
-                        Slider(value: $editedHeightCm, in: 100...250, step: 1)
-                            .tint(Color(hex: "2E3192"))
-                    }
-                    .padding(14)
-                    .background(Color.primary.opacity(0.04))
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
+
+    // MARK: - Underline field
+
+    private func underlineField(
+        label: String,
+        value: Binding<String>,
+        placeholder: String,
+        keyboardType: UIKeyboardType = .default
+    ) -> some View {
+        HStack(alignment: .center, spacing: 0) {
+            Text(label)
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(.primary.opacity(0.5))
+                .frame(width: 90, alignment: .leading)
+
+            TextField(placeholder, text: value)
+                .font(.poppins(.regular, size: 15))
+                .foregroundColor(.primary)
+                .tint(aiGreen)
+                .keyboardType(keyboardType)
+                .textInputAutocapitalization(keyboardType == .phonePad ? .never : .words)
+        }
+        .padding(.vertical, 12)
+    }
+
+    // MARK: - Gender row
+
+    private var genderRow: some View {
+        HStack(spacing: 0) {
+            Text("Gender")
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(.primary.opacity(0.5))
+                .frame(width: 90, alignment: .leading)
+
+            Menu {
+                ForEach(Gender.allCases, id: \.self) { g in
+                    Button(g.displayName) { editedGender = g }
                 }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Weight")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(String(format: "%.1f kg", editedWeightKg))
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: "2E3192"))
-                    }
-                    
-                    HStack(spacing: 12) {
-                        Image(systemName: "scalemass.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                            .frame(width: 24)
-                        
-                        Slider(value: $editedWeightKg, in: 20...250, step: 0.5)
-                            .tint(Color(hex: "2E3192"))
-                    }
-                    .padding(14)
-                    .background(Color.primary.opacity(0.04))
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
-                }
-                
-                // BMI (computed, read-only)
-                let heightM = editedHeightCm / 100
-                let bmi = heightM > 0 ? editedWeightKg / (heightM * heightM) : 0
-                HStack(spacing: 12) {
-                    Image(systemName: "figure.stand")
-                        .foregroundColor(AppColors.accentBlue)
-                        .frame(width: 24)
-                    Text("BMI")
-                        .font(.system(size: 16))
+            } label: {
+                HStack(spacing: 4) {
+                    Text(editedGender.displayName)
+                        .font(.poppins(.regular, size: 15))
+                        .foregroundColor(.primary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.primary.opacity(0.3))
                     Spacer()
-                    Text(String(format: "%.1f", bmi))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(bmiColor(bmi))
-                    Text(bmiCategory(bmi))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
-                }
-                .padding(14)
-                .background(Color.primary.opacity(0.04))
-                .cornerRadius(14)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                )
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Blood Type")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 12) {
-                        Image(systemName: "drop.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                            .frame(width: 24)
-                        
-                        Picker("Blood Type", selection: $editedBloodType) {
-                            Text("Not set").tag("")
-                            ForEach(bloodTypes.filter { !$0.isEmpty }, id: \.self) { type in
-                                Text(type).tag(type)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .tint(.primary)
-                        
-                        Spacer()
-                    }
-                    .padding(14)
-                    .background(Color.primary.opacity(0.04))
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
                 }
             }
         }
+        .padding(.vertical, 12)
     }
-    
-    // MARK: - Location
-    
-    private var locationSection: some View {
-        AccountSection(title: "Location") {
-            AccountEditField(
-                title: "City",
-                icon: "location.fill",
-                iconColor: AppColors.accentBlue,
-                text: $editedCity,
-                placeholder: "Your city"
-            )
-        }
-    }
-    
-    // MARK: - Account Details (Read-Only)
-    
-    private var accountDetailsSection: some View {
-        AccountSection(title: "Account Details") {
-            VStack(spacing: 0) {
-                AccountReadOnlyRow(
-                    icon: "envelope.fill",
-                    iconColor: AppColors.accentBlue,
-                    label: "Email",
-                    value: viewModel.userEmail
-                )
 
-                Divider().padding(.leading, 52)
+    // MARK: - Date of birth row
 
-                AccountReadOnlyRow(
-                    icon: "calendar.badge.clock",
-                    iconColor: AppColors.accentBlue,
-                    label: "Member Since",
-                    value: viewModel.memberSince
-                )
-            }
-        }
-    }
-    
-    // MARK: - Save Button
-    
-    private var saveButton: some View {
-        Button(action: {
-            Task { await saveProfile() }
-        }) {
-            HStack(spacing: 8) {
-                if isSaving {
-                    ProgressView().tint(.white)
-                } else {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Save Changes").fontWeight(.bold)
+    @State private var showDatePicker = false
+
+    private var dateOfBirthRow: some View {
+        Button(action: { showDatePicker = true }) {
+            HStack(spacing: 0) {
+                Text("Date of Birth")
+                    .font(.poppins(.regular, size: 14))
+                    .foregroundColor(.primary.opacity(0.5))
+                    .frame(width: 90, alignment: .leading)
+
+                HStack(spacing: 4) {
+                    Text(formatDate(editedDateOfBirth))
+                        .font(.poppins(.regular, size: 15))
+                        .foregroundColor(.primary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.primary.opacity(0.3))
+                    Spacer()
                 }
             }
-            .font(.system(size: 17))
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(
-                hasChanges && isValidForm
-                    ? Color(hex: "2E3192")
-                    : Color.gray.opacity(0.3)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(
-                color: hasChanges && isValidForm ? Color(hex: "2E3192").opacity(0.3) : .clear,
-                radius: 12, y: 6
-            )
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
         }
-        .disabled(isSaving || !hasChanges || !isValidForm)
-        .padding(.top, 4)
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showDatePicker) {
+            datePickerSheet
+        }
     }
-    
-    // MARK: - Save Action
-    
+
+    private func formatDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
+    }
+
+    private var datePickerSheet: some View {
+        VStack(spacing: 16) {
+            Text("Date of Birth")
+                .font(.poppins(.bold, size: 18))
+                .padding(.top, 20)
+
+            DatePicker(
+                "",
+                selection: $editedDateOfBirth,
+                in: ...Date(),
+                displayedComponents: .date
+            )
+            .datePickerStyle(.wheel)
+            .labelsHidden()
+            .tint(aiGreen)
+
+            Button(action: { showDatePicker = false }) {
+                Text("Done")
+                    .font(.poppins(.semiBold, size: 16))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(aiGreen)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Body stats rows
+
+    private func sliderRow(
+        label: String,
+        value: String,
+        binding: Binding<Double>,
+        range: ClosedRange<Double>,
+        step: Double
+    ) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(label)
+                    .font(.poppins(.regular, size: 14))
+                    .foregroundColor(.primary.opacity(0.5))
+                Spacer()
+                Text(value)
+                    .font(.poppins(.semiBold, size: 15))
+                    .foregroundColor(.primary)
+            }
+            .padding(.vertical, 4)
+
+            Slider(value: binding, in: range, step: step)
+                .tint(.primary.opacity(0.5))
+                .frame(height: 32)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var bmiRow: some View {
+        let heightM = editedHeightCm / 100
+        let bmi = heightM > 0 ? editedWeightKg / (heightM * heightM) : 0
+        return HStack {
+            Text("BMI")
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(.primary.opacity(0.5))
+            Spacer()
+            Text("\(String(format: "%.1f", bmi)) · \(bmiCategory(bmi))")
+                .font(.poppins(.semiBold, size: 15))
+                .foregroundColor(bmiColor(bmi))
+        }
+        .padding(.vertical, 12)
+    }
+
+    private var bloodTypeRow: some View {
+        HStack {
+            Text("Blood Type")
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(.primary.opacity(0.5))
+            Spacer()
+            Menu {
+                Button("Not set") { editedBloodType = "" }
+                ForEach(bloodTypes, id: \.self) { t in
+                    Button(t) { editedBloodType = t }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(editedBloodType.isEmpty ? "Not set" : editedBloodType)
+                        .font(.poppins(.regular, size: 15))
+                        .foregroundColor(editedBloodType.isEmpty ? .primary.opacity(0.3) : .primary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.primary.opacity(0.3))
+                }
+            }
+        }
+        .padding(.vertical, 12)
+    }
+
+    // MARK: - Account info
+
+    private func infoRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(.primary.opacity(0.5))
+            Spacer()
+            Text(value.isEmpty ? "—" : value)
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(.primary)
+        }
+        .padding(.vertical, 12)
+    }
+
+    // MARK: - Danger zone
+
+    private var dangerZone: some View {
+        Button(action: { showDeleteConfirm = true }) {
+            HStack {
+                Spacer()
+                Text("Delete Account")
+                    .font(.poppins(.semiBold, size: 15))
+                    .foregroundColor(dangerRed)
+                Spacer()
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .background(dangerRed.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Save
+
     private func saveProfile() async {
         isSaving = true
         defer { isSaving = false }
-        
+
         do {
             let trimmedName = editedName.trimmingCharacters(in: .whitespaces)
             let trimmedPhone = editedPhone.trimmingCharacters(in: .whitespaces)
             let trimmedBio = editedBio.trimmingCharacters(in: .whitespaces)
             let trimmedCity = editedCity.trimmingCharacters(in: .whitespaces)
-            
+
             if viewModel.hasHealthProfile {
                 try await viewModel.updateFullProfile(
                     fullName: trimmedName,
@@ -504,6 +502,7 @@ struct AccountView: View {
                     bio: trimmedBio
                 )
             }
+
             var changedFields: [String] = []
             let hp = viewModel.healthProfile
             if trimmedName != viewModel.userName { changedFields.append("name") }
@@ -522,17 +521,17 @@ struct AccountView: View {
         }
     }
 
-    // MARK: - BMI Helpers
-    
+    // MARK: - BMI helpers
+
     private func bmiColor(_ bmi: Double) -> Color {
         switch bmi {
-        case ..<18.5: return .orange
-        case 18.5..<25: return .green
-        case 25..<30: return .orange
-        default: return .red
+        case ..<18.5: return Color(hex: "FF9F0A")
+        case 18.5..<25: return Color(hex: "34C759")
+        case 25..<30: return Color(hex: "FF9F0A")
+        default: return Color(hex: "FF3B30")
         }
     }
-    
+
     private func bmiCategory(_ bmi: Double) -> String {
         switch bmi {
         case ..<18.5: return "Underweight"
@@ -543,105 +542,9 @@ struct AccountView: View {
     }
 }
 
-// MARK: - Section Container
-
-private struct AccountSection<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-                .padding(.leading, 4)
-            
-            VStack(spacing: 16) {
-                content
-            }
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(UIColor.secondarySystemGroupedBackground))
-            )
-        }
-    }
-}
-
-// MARK: - Editable Field
-
-private struct AccountEditField: View {
-    let title: String
-    let icon: String
-    let iconColor: Color
-    @Binding var text: String
-    var keyboardType: UIKeyboardType = .default
-    var placeholder: String = ""
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
-            
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundColor(iconColor)
-                    .frame(width: 24)
-                
-                TextField(placeholder.isEmpty ? title : placeholder, text: $text)
-                    .font(.system(size: 16))
-                    .tint(Color(hex: "2E3192"))
-                    .keyboardType(keyboardType)
-                    .textInputAutocapitalization(keyboardType == .phonePad ? .never : .words)
-            }
-            .padding(14)
-            .background(Color.primary.opacity(0.04))
-            .cornerRadius(14)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-            )
-        }
-    }
-}
-
-// MARK: - Read-Only Row
-
-private struct AccountReadOnlyRow: View {
-    let icon: String
-    let iconColor: Color
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .foregroundColor(iconColor)
-                .frame(width: 24)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                Text(value.isEmpty ? "Not available" : value)
-                    .font(.system(size: 16))
-            }
-            
-            Spacer()
-            
-            Image(systemName: "lock.fill")
-                .font(.system(size: 12))
-                .foregroundColor(.secondary.opacity(0.5))
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-    }
-}
-
 #Preview {
     NavigationStack {
         AccountView()
+            .environmentObject(AppVersionService.shared)
     }
 }

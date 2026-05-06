@@ -35,16 +35,16 @@ struct InteractiveRulerPicker: View {
         VStack(spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(String(format: "%.0f", value))
-                    .font(.system(size: 72, weight: .heavy, design: .rounded))
+                    .font(.poppins(.bold, size: 72))
                     .foregroundStyle(PremiumColor.royalBlue)
                 
                 Text(unit)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.poppins(.bold, size: 24))
                     .foregroundColor(.secondary)
             }
             
             Text(valueDescription)
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
         }
     }
@@ -86,7 +86,7 @@ struct InteractiveRulerPicker: View {
             
             if isMajor {
                 Text("\(Int(itemValue))")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.poppins(.medium, size: 12))
                     .foregroundColor(.secondary)
                     .fixedSize()
             }
@@ -97,7 +97,7 @@ struct InteractiveRulerPicker: View {
     private var centerIndicator: some View {
         VStack(spacing: 0) {
             Image(systemName: "arrowtriangle.down.fill")
-                .font(.system(size: 16))
+                .font(.poppins(.regular, size: 16))
                 .foregroundStyle(PremiumColor.royalBlue)
                 .offset(y: -4)
             
@@ -105,7 +105,7 @@ struct InteractiveRulerPicker: View {
                 .fill(PremiumColor.royalBlue)
                 .frame(width: 4, height: 60)
                 .clipShape(Capsule())
-                .shadow(color: Color(hex: "2E3192").opacity(0.4), radius: 6)
+                .shadow(color: AppColors.aiTeal.opacity(0.4), radius: 6)
         }
     }
     

@@ -23,20 +23,19 @@ struct WorkoutRecoveryView: View {
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 36))
+                    .font(.poppins(.regular, size: 36))
                     .foregroundColor(.orange)
             }
             .padding(.top, 40)
             
             // Title
             Text("Recover Workout?")
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.poppins(.bold, size: 22))
             
             // Description
             VStack(spacing: 12) {
                 Text("We found an unfinished workout session:")
-                    .font(.body)
+                    .font(.poppins(.regular, size: 17))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                 
@@ -44,14 +43,14 @@ struct WorkoutRecoveryView: View {
                 VStack(spacing: 16) {
                     HStack {
                         Image(systemName: activityIcon)
-                            .font(.title2)
+                            .font(.poppins(.bold, size: 22))
                             .foregroundColor(.green)
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text(state.activityType.capitalized)
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                             Text(formattedStartTime)
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                         }
                         
@@ -99,7 +98,7 @@ struct WorkoutRecoveryView: View {
                     HStack {
                         Image(systemName: "arrow.triangle.2.circlepath")
                         Text("Recover Workout")
-                            .fontWeight(.semibold)
+                            .font(.poppins(.semiBold, size: 17))
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -115,7 +114,7 @@ struct WorkoutRecoveryView: View {
                     HStack {
                         Image(systemName: "trash")
                         Text("Discard")
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 17))
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -175,15 +174,14 @@ private struct WorkoutStatItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
             
             Text(value)
-                .font(.headline)
-                .fontWeight(.bold)
+                .font(.poppins(.bold, size: 17))
             
             Text(label)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

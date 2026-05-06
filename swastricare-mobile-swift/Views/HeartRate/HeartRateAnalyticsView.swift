@@ -106,10 +106,10 @@ struct HeartRateAnalyticsView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Label("Daily average", systemImage: "chart.xyaxis.line")
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
                 Spacer()
                 Text("\(series.count) days")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -162,11 +162,11 @@ struct HeartRateAnalyticsView: View {
             if let msg = viewModel.errorMessage, viewModel.sourceFilter != .local {
                 Label("Cloud unavailable", systemImage: "icloud.slash")
                     .foregroundColor(.secondary)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .help(msg)
             }
         }
-        .font(.caption)
+        .font(.poppins(.regular, size: 12))
         .foregroundColor(.secondary)
         .padding(.horizontal, 4)
     }
@@ -176,11 +176,11 @@ struct HeartRateAnalyticsView: View {
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("History", systemImage: "clock")
-                .font(.headline)
-            
+                .font(.poppins(.semiBold, size: 17))
+
             if let msg = viewModel.errorMessage, viewModel.sourceFilter != .local {
                 Label(msg, systemImage: "icloud.slash")
-                    .font(.footnote)
+                    .font(.poppins(.regular, size: 13))
                     .foregroundColor(.secondary)
             }
             
@@ -216,7 +216,7 @@ struct HeartRateAnalyticsView: View {
     private func historyDayBlock(day: Date, items: [HeartRateHistoryViewModel.HeartRateMeasurementItem]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(historyDayHeader(day))
-                .font(.subheadline.weight(.semibold))
+                .font(.poppins(.semiBold, size: 15))
                 .foregroundColor(.secondary)
             
             ForEach(items) { item in
@@ -261,13 +261,13 @@ private struct HeartRateStatCard: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(value)
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 26))
                 Text(unit)
-                    .font(.caption.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(.secondary)
             }
             Text(title)
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -288,26 +288,26 @@ private struct HeartRateAnalyticsHistoryRow: View {
                     .frame(width: 36, height: 36)
                 Image(systemName: "heart.fill")
                     .foregroundStyle(item.source == .cloud ? .blue : .red)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text("\(item.bpm)")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 20))
                     Text("BPM")
-                        .font(.caption.weight(.semibold))
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(.secondary)
                 }
                 Text(item.measuredAt.formatted(date: .omitted, time: .shortened))
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
 
             Spacer()
 
             Text(item.source == .cloud ? "Cloud" : "Device")
-                .font(.caption2.weight(.semibold))
+                .font(.poppins(.semiBold, size: 11))
                 .foregroundColor(item.source == .cloud ? .blue : .red)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)

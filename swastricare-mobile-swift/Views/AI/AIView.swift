@@ -79,6 +79,8 @@ struct AIView: View {
     
     @ViewBuilder
     private var mainContent: some View {
+        // MARK: - Hidden for Android-parity port (referral gate disabled for now)
+        /*
         if referralViewModel.isAIUnlocked {
             chatView
         } else {
@@ -87,6 +89,8 @@ struct AIView: View {
                     await referralViewModel.loadReferralState()
                 }
         }
+        */
+        chatView
     }
 
     var body: some View {
@@ -105,13 +109,15 @@ struct AIView: View {
                                 }
                             }
                         }) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 18, weight: .medium))
-                                .overlay(Circle().stroke(Color.primary.opacity(0.06), lineWidth: 0.5))
+                            Image(systemName: "line.3.horizontal")
+                                .font(.poppins(.medium, size: 18))
+                                .foregroundColor(.primary)
                         }
                     }
 
                     ToolbarItem(placement: .principal) {
+                        // MARK: - Hidden for Android-parity port (mode selector kept for future)
+                        /*
                         Menu {
                             ForEach(AIMode.allCases) { mode in
                                 Button(action: {
@@ -135,7 +141,7 @@ struct AIView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(mode.displayName)
                                             Text(mode.description)
-                                                .font(.caption)
+                                                .font(.poppins(.regular, size: 12))
                                                 .foregroundColor(.secondary)
                                         }
                                     } icon: {
@@ -144,36 +150,25 @@ struct AIView: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: viewModel.selectedAIMode.icon)
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
-                                    .symbolEffect(.bounce, value: viewModel.selectedAIMode)
-                                Text(viewModel.selectedAIMode.displayName)
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(.primary)
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.secondary.opacity(0.5))
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(
-                                Capsule()
-                                    .fill(.ultraThinMaterial)
-                            )
-                            .overlay(
-                                Capsule()
-                                    .stroke(
-                                        viewModel.selectedAIMode == .medical
-                                            ? Color(hex: "00A86B").opacity(0.2)
-                                            : Color(hex: "2E3192").opacity(0.15),
-                                        lineWidth: 0.5
-                                    )
-                            )
-                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
+                            HStack(spacing: 5) { ... }
                         }
-                        .disabled(viewModel.showMedicalDisclaimer || viewModel.showEmergencyAlert || showCamera || trackerViewModel.showAnalysisSheet || isModeSwitching)
+                        */
+
+                        // Android-parity title: name + verified + subtitle (no avatar)
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack(spacing: 4) {
+                                Text("Swastricare AI")
+                                    .font(.poppins(.semiBold, size: 15))
+                                    .foregroundColor(.primary)
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.poppins(.regular, size: 11))
+                                    .foregroundColor(AppColors.aiTeal)
+                            }
+                            Text("Your personal health assistant")
+                                .font(.poppins(.regular, size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     ToolbarItemGroup(placement: .keyboard) {
@@ -181,16 +176,32 @@ struct AIView: View {
                         Button("Done") {
                             isInputFocused = false
                         }
-                        .fontWeight(.semibold)
-                        .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                        .font(.poppins(.semiBold, size: 17))
+                        .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "22C5A6"))
                     }
 
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
+                            // MARK: - Hidden for Android-parity port (Saved Advice kept for future)
+                            /*
                             Button(action: {
                                 viewModel.showBookmarksSheet = true
                             }) {
                                 Label("Saved Advice", systemImage: "bookmark.fill")
+                            }
+                            */
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    viewModel.clearChat()
+                                    showEmptyState = false
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                                            showEmptyState = true
+                                        }
+                                    }
+                                }
+                            }) {
+                                Label("Clear chat", systemImage: "arrow.clockwise")
                             }
                             Button(role: .destructive, action: {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -203,11 +214,11 @@ struct AIView: View {
                                     }
                                 }
                             }) {
-                                Label("Clear Chat", systemImage: "trash")
+                                Label("Delete chat", systemImage: "trash")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.poppins(.medium, size: 18))
                         }
                     }
                 }
@@ -421,9 +432,9 @@ struct AIView: View {
     
     private var chatView: some View {
         ZStack {
-            // Premium Background
-            PremiumBackground()
-            
+            // Android-parity: pure white background
+            Color.white.ignoresSafeArea()
+
             VStack(spacing: 0) {
                 // Messages
                 ScrollViewReader { proxy in
@@ -557,23 +568,21 @@ struct AIView: View {
                     ))
             }
             
-            // First-time mode selector tooltip
+            // MARK: - Hidden for Android-parity port (mode tooltip kept for future)
+            /*
             if showModeTooltip {
                 ModeTooltipView(onDismiss: {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         showModeTooltip = false
                     }
-                    // Mark as seen
                     UserDefaults.standard.set(true, forKey: "ai_mode_tooltip_seen")
                 })
                 .padding(.top, 50)
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.8).combined(with: .opacity),
-                    removal: .opacity
-                ))
             }
+            */
         }
-        // Mode transition color wave overlay
+        // MARK: - Hidden for Android-parity port (mode transition wave kept for future)
+        /*
         .overlay {
             if modeTransitionProgress > 0 {
                 Circle()
@@ -585,16 +594,12 @@ struct AIView: View {
             }
         }
         .onChange(of: viewModel.selectedAIMode) { _, newMode in
-            // Trigger mode transition color wave
-            modeTransitionColor = newMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")
+            modeTransitionColor = newMode == .medical ? Color(hex: "00A86B") : Color(hex: "22C5A6")
             modeTransitionProgress = 0
-            withAnimation(.easeOut(duration: 0.6)) {
-                modeTransitionProgress = 1
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                modeTransitionProgress = 0
-            }
+            withAnimation(.easeOut(duration: 0.6)) { modeTransitionProgress = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { modeTransitionProgress = 0 }
         }
+        */
         .trackScreen("AI")
         .onAppear {
             // Trigger landing animation
@@ -603,19 +608,19 @@ struct AIView: View {
                     showEmptyState = true
                 }
             }
-            // Check if we should show the tooltip
-            checkFirstTimeTooltip()
-            // Check if we should show onboarding tour
-            if !UserDefaults.standard.bool(forKey: "ai_onboarding_completed") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    withAnimation(.spring(response: 0.4)) {
-                        showOnboardingTour = true
-                        onboardingStep = 0
-                    }
-                }
-            }
+            // MARK: - Hidden for Android-parity port (tooltip + onboarding tour kept for future)
+            // checkFirstTimeTooltip()
+            // if !UserDefaults.standard.bool(forKey: "ai_onboarding_completed") {
+            //     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            //         withAnimation(.spring(response: 0.4)) {
+            //             showOnboardingTour = true
+            //             onboardingStep = 0
+            //         }
+            //     }
+            // }
         }
-        // Onboarding tour overlay
+        // MARK: - Hidden for Android-parity port (onboarding tour overlay kept for future)
+        /*
         .overlay {
             if showOnboardingTour {
                 AIOnboardingOverlay(
@@ -628,6 +633,7 @@ struct AIView: View {
                 .transition(.opacity)
             }
         }
+        */
         // Helpful reaction overlay
         .overlay {
             if showHelpfulReaction {
@@ -705,120 +711,120 @@ struct AIView: View {
         }
     }
 
+    // MARK: - Intro View (Android-parity)
+    // Mirrors AIEmptyIntro.kt: illustration + "Hi! I'm Swastri AI" + 2x2 quick actions.
     private var introView: some View {
-        VStack(spacing: 0) {
-            // Particle Orb - Hero element
-            ParticleOrbView(state: orbState, isMedicalMode: viewModel.selectedAIMode == .medical)
-                .frame(width: 160, height: 160)
-                .scaleEffect(showEmptyState ? 1 : 0.6)
+        VStack(spacing: 24) {
+            // Hero illustration (Android-shared "ai illustration" asset)
+            Image.androidIcon("ai illustration")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 180, height: 180)
+                .scaleEffect(showEmptyState ? 1 : 0.7)
                 .opacity(showEmptyState ? 1 : 0)
                 .animation(.spring(response: 0.7, dampingFraction: 0.6).delay(0.05), value: showEmptyState)
 
-            VStack(spacing: 6) {
-                Text(greeting)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+            VStack(spacing: 10) {
+                Text("Hi! I'm Swastricare AI")
+                    .font(.poppins(.bold, size: 22))
                     .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
 
-                Text(greetingSubtitle)
-                    .font(.system(size: 14))
+                Text("Ask me anything about your health, reports, medications, symptoms and more.")
+                    .font(.poppins(.regular, size: 13))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
                     .lineSpacing(3)
+                    .padding(.horizontal, 32)
             }
             .offset(y: showEmptyState ? 0 : 20)
             .opacity(showEmptyState ? 1 : 0)
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.15), value: showEmptyState)
-            .padding(.bottom, 20)
 
-            // AI Personality Roster (Swastri, Coach, Nutri, Zen, Luna)
-            if viewModel.selectedAIMode == .general {
-                AIRosterPicker(selected: $viewModel.selectedPersonality)
-                    .opacity(showEmptyState ? 1 : 0)
-                    .offset(y: showEmptyState ? 0 : 12)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: showEmptyState)
-                    .padding(.bottom, 16)
+            // 2×2 Quick action grid (matches IntroQuickActionGrid)
+            IntroQuickActionGrid(showEmptyState: showEmptyState) { prompt in
+                viewModel.inputText = prompt
+                Task { await viewModel.sendMessage() }
             }
+            .padding(.horizontal, 16)
 
+            // MARK: - Hidden for Android-parity port (kept as reference)
+            /*
+            // AI Personality Roster
+            AIRosterPicker(selected: $viewModel.selectedPersonality)
             // Health Vitals Strip
-            HealthVitalsStrip(
-                steps: trackerViewModel.stepCount,
-                heartRate: trackerViewModel.heartRate,
-                calories: trackerViewModel.activeCalories,
-                onTapMetric: { prompt in
-                    viewModel.inputText = prompt
-                    Task { await viewModel.sendMessage() }
-                }
-            )
-            .padding(.horizontal, 16)
-            .opacity(showEmptyState ? 1 : 0)
-            .offset(y: showEmptyState ? 0 : 12)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.22), value: showEmptyState)
-            .padding(.bottom, 14)
-
-            // Proactive Health Nudges (client-side)
+            HealthVitalsStrip(steps: ..., heartRate: ..., calories: ..., onTapMetric: ...)
+            // Proactive Health Nudges
             proactiveNudgesView
-                .padding(.bottom, 14)
-
             // Server-side AI Nudges
-            NudgeCardsView(
-                nudges: DependencyContainer.shared.homeViewModel.serverNudges,
-                onDismiss: { nudge in
-                    Task { await DependencyContainer.shared.homeViewModel.dismissNudge(nudge) }
-                },
-                onAction: { nudge in
-                    Task { await DependencyContainer.shared.homeViewModel.actOnNudge(nudge) }
-                    if let deeplink = nudge.actionDeeplink, let url = URL(string: deeplink) {
-                        UIApplication.shared.open(url)
-                    }
-                }
-            )
-            .opacity(showEmptyState ? 1 : 0)
-            .offset(y: showEmptyState ? 0 : 12)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.25), value: showEmptyState)
-            .padding(.bottom, 14)
-
-            // Quick Action Grid
-            QuickActionGrid(
-                actions: Array(QuickAction.suggestions.prefix(4)),
-                showEmptyState: showEmptyState,
-                onAction: { action in
-                    Task { await viewModel.sendQuickAction(action) }
-                }
-            )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
-
+            NudgeCardsView(nudges: ..., onDismiss: ..., onAction: ...)
+            // Legacy Quick Action Grid (replaced by IntroQuickActionGrid)
+            QuickActionGrid(actions: Array(QuickAction.suggestions.prefix(4)), showEmptyState: ..., onAction: ...)
             // Deep Dive CTA
-            Button(action: {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                Task { await trackerViewModel.requestAIAnalysis() }
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Deep Health Analysis")
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                .foregroundColor(Color(hex: "2E3192"))
-                .padding(.horizontal, 20)
-                .padding(.vertical, 11)
-                .background(
-                    Capsule()
-                        .fill(Color(hex: "2E3192").opacity(0.1))
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(Color(hex: "2E3192").opacity(0.2), lineWidth: 1)
-                )
-            }
-            .buttonStyle(ScaleButtonStyle())
-            .disabled(trackerViewModel.analysisState.isAnalyzing)
-            .opacity(showEmptyState ? 1 : 0)
-            .offset(y: showEmptyState ? 0 : 15)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.35), value: showEmptyState)
+            Button { Task { await trackerViewModel.requestAIAnalysis() } } label: { ...Deep Health Analysis... }
+            */
         }
         .padding(.bottom, 20)
+    }
+
+    // MARK: - Intro Quick Action Grid (Android-parity)
+
+    private struct IntroQuickActionGrid: View {
+        let showEmptyState: Bool
+        let onSelect: (String) -> Void
+
+        private let actions: [(icon: String, title: String, prompt: String)] = [
+            ("doc.text", "Explain my lab report", "Can you explain my lab report?"),
+            ("pills.fill", "Medication information", "Tell me about my medications."),
+            ("waveform.path.ecg", "Check my symptoms", "I'd like to check my symptoms."),
+            ("lightbulb.fill", "Health tips & guidance", "Give me some health tips and guidance.")
+        ]
+
+        private let columns = [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ]
+
+        var body: some View {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(Array(actions.enumerated()), id: \.offset) { index, action in
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onSelect(action.prompt)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: action.icon)
+                                .font(.poppins(.semiBold, size: 18))
+                                .foregroundColor(AppColors.aiTeal)
+                            Text(action.title)
+                                .font(.poppins(.medium, size: 12))
+                                .foregroundColor(.primary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.white)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color(hex: "E5E8EB"), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .opacity(showEmptyState ? 1 : 0)
+                    .offset(y: showEmptyState ? 0 : 12)
+                    .animation(
+                        .spring(response: 0.45, dampingFraction: 0.7).delay(Double(index) * 0.06 + 0.25),
+                        value: showEmptyState
+                    )
+                }
+            }
+        }
     }
     
     // MARK: - Orb State Determination
@@ -850,21 +856,21 @@ struct AIView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: action.icon)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(hex: "2E3192"))
+                                .font(.poppins(.semiBold, size: 13))
+                                .foregroundColor(Color(hex: "22C5A6"))
                             Text(action.title)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.poppins(.medium, size: 13))
                                 .foregroundColor(.primary)
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
                             Capsule()
-                                .fill(Color(hex: "2E3192").opacity(0.06))
+                                .fill(Color(hex: "22C5A6").opacity(0.06))
                         )
                         .overlay(
                             Capsule()
-                                .stroke(Color(hex: "2E3192").opacity(0.12), lineWidth: 0.5)
+                                .stroke(Color(hex: "22C5A6").opacity(0.12), lineWidth: 0.5)
                         )
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -906,7 +912,7 @@ struct AIView: View {
             // Show toast notification
             toastMessage = "Switched to \(mode.displayName)"
             toastIcon = mode.icon
-            toastColor = mode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")
+            toastColor = mode == .medical ? Color(hex: "00A86B") : Color(hex: "22C5A6")
             
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 showToast = true
@@ -928,13 +934,15 @@ struct AIView: View {
     
     private var chatInputBar: some View {
         VStack(spacing: 0) {
-            // Medical disclaimer banner when in Medical Expert mode
+            // MARK: - Hidden for Android-parity port (medical disclaimer banner kept for future)
+            /*
             if viewModel.selectedAIMode == .medical {
                 MedicalDisclaimerBanner()
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
+            */
 
             // Voice recording status badge
             if speechManager.isRecording {
@@ -943,117 +951,115 @@ struct AIView: View {
                         .fill(Color.red)
                         .frame(width: 6, height: 6)
                     Text("Listening...")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.poppins(.medium, size: 12))
                 }
-                .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
+                .foregroundColor(AppColors.aiTeal)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill((viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192")).opacity(0.1))
+                        .fill(AppColors.aiTeal.opacity(0.1))
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 .padding(.bottom, 8)
             }
 
-            // Modern floating input container
-            VStack(spacing: 0) {
-                HStack(alignment: .bottom, spacing: 0) {
-                    // Attachment + Mic row (left side)
-                    HStack(spacing: 4) {
-                        Button(action: {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            showImageSourceSheet = true
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 30))
-                                .foregroundColor(viewModel.isAnalyzingImage ? Color(hex: "2E3192") : .secondary.opacity(0.6))
-                        }
-                        .disabled(viewModel.isAnalyzingImage)
-
-                        Button(action: {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            Task {
-                                if speechManager.isRecording {
-                                    speechManager.stopRecording()
-                                } else {
-                                    do {
-                                        try await speechManager.startRecording()
-                                    } catch {
-                                        print("Voice input error: \(error)")
-                                    }
-                                }
-                            }
-                        }) {
-                            Image(systemName: speechManager.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                                .font(.system(size: 30))
-                                .foregroundColor(
-                                    speechManager.isRecording
-                                        ? (viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "2E3192"))
-                                        : .secondary.opacity(0.6)
-                                )
-                                .symbolEffect(.bounce, value: speechManager.isRecording)
-                        }
+            // Android-parity: pill input + external circular send
+            HStack(alignment: .bottom, spacing: 8) {
+                HStack(alignment: .center, spacing: 0) {
+                    // Plus / attach
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        showImageSourceSheet = true
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.poppins(.regular, size: 18))
+                            .foregroundColor(.secondary.opacity(0.6))
+                            .frame(width: 36, height: 36)
                     }
-                    .padding(.leading, 8)
-                    .padding(.bottom, 8)
+                    .disabled(viewModel.isAnalyzingImage)
 
                     // Text input
-                    TextField(networkMonitor.isConnected ? "Ask anything..." : "AI chat requires internet", text: $viewModel.inputText, axis: .vertical)
+                    TextField(networkMonitor.isConnected ? "Type your message..." : "AI chat requires internet",
+                              text: $viewModel.inputText,
+                              axis: .vertical)
                         .disabled(!networkMonitor.isConnected)
-                        .font(.system(size: 15))
+                        .font(.poppins(.regular, size: 14))
                         .focused($isInputFocused)
-                        .lineLimit(1...5)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 15)
+                        .lineLimit(1...4)
+                        .tint(AppColors.aiTeal)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 8)
                         .onChange(of: speechManager.recognizedText) { _, newValue in
                             if speechManager.isRecording {
                                 viewModel.inputText = newValue
                             }
                         }
 
-                    // Send button
+                    // Mic
                     Button(action: {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        if speechManager.isRecording { speechManager.stopRecording() }
-                        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) { sendButtonScale = 0.8 }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) { sendButtonScale = 1.0 }
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        Task {
+                            if speechManager.isRecording {
+                                speechManager.stopRecording()
+                            } else {
+                                do {
+                                    try await speechManager.startRecording()
+                                } catch {
+                                    print("Voice input error: \(error)")
+                                }
+                            }
                         }
-                        Task { await viewModel.sendMessage() }
-                        isInputFocused = false
                     }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 32))
-                            .foregroundColor(viewModel.canSend ? Color(hex: "2E3192") : .gray.opacity(0.25))
-                            .scaleEffect(sendButtonScale)
+                        Image(systemName: speechManager.isRecording ? "stop.fill" : "mic.fill")
+                            .font(.poppins(.regular, size: 16))
+                            .foregroundColor(speechManager.isRecording ? .white : AppColors.aiTeal)
+                            .frame(width: 36, height: 36)
+                            .background(
+                                Circle()
+                                    .fill(speechManager.isRecording ? Color.red : Color.clear)
+                            )
+                            .symbolEffect(.bounce, value: speechManager.isRecording)
                     }
-                    .disabled(!viewModel.canSend || !networkMonitor.isConnected)
-                    .padding(.trailing, 6)
-                    .padding(.bottom, 5)
-                    .padding(.top, 5)
                 }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
                 .background(
-                    RoundedRectangle(cornerRadius: 22)
-                        .fill(.ultraThinMaterial)
+                    Capsule()
+                        .fill(Color.white)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22)
-                        .stroke(
-                            isInputFocused
-                                ? Color(hex: "2E3192").opacity(0.3)
-                                : Color.primary.opacity(0.08),
-                            lineWidth: isInputFocused ? 1 : 0.5
-                        )
+                    Capsule()
+                        .stroke(Color(hex: "E5E8EB"), lineWidth: 1)
                 )
-                .animation(.easeOut(duration: 0.2), value: isInputFocused)
+
+                // External circular send button (44pt)
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    if speechManager.isRecording { speechManager.stopRecording() }
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) { sendButtonScale = 0.8 }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) { sendButtonScale = 1.0 }
+                    }
+                    Task { await viewModel.sendMessage() }
+                    isInputFocused = false
+                }) {
+                    Image(systemName: "arrow.up")
+                        .font(.poppins(.semiBold, size: 16))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(viewModel.canSend ? AppColors.aiTeal : AppColors.aiTeal.opacity(0.4))
+                        )
+                        .scaleEffect(sendButtonScale)
+                }
+                .disabled(!viewModel.canSend || !networkMonitor.isConnected)
             }
             .padding(.horizontal, 12)
-            .padding(.bottom, 10)
-            .padding(.top, 10)
-
+            .padding(.vertical, 8)
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.selectedAIMode)
+        .background(Color.white)
         .onChange(of: speechManager.isRecording) { _, isRecording in
             if !isRecording && !speechManager.recognizedText.isEmpty {
                 viewModel.inputText = speechManager.recognizedText
@@ -1071,11 +1077,11 @@ private struct MarkdownTextView: View {
     var body: some View {
         if let attributed = try? AttributedString(markdown: content, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
             Text(attributed)
-                .font(.system(size: 15))
-                .tint(Color(hex: "2E3192"))
+                .font(.poppins(.regular, size: 15))
+                .tint(Color(hex: "22C5A6"))
         } else {
             Text(content)
-                .font(.system(size: 15))
+                .font(.poppins(.regular, size: 15))
         }
     }
 }
@@ -1110,7 +1116,7 @@ private struct TypewriterMarkdownView: View {
                 MarkdownTextView(content: content)
             } else {
                 Text(wordChunks.prefix(visibleWordCount).joined())
-                    .font(.system(size: 15))
+                    .font(.poppins(.regular, size: 15))
             }
         }
         .task {
@@ -1179,182 +1185,197 @@ private struct ChatBubble: View {
         self.isSpeaking = isSpeaking
     }
     
+    // Android-parity bubble shape: 18pt corners except a 4pt "tail"
+    // (bottom-right for user, top-left for AI).
+    private struct BubbleShape: Shape {
+        let isUser: Bool
+        func path(in rect: CGRect) -> Path {
+            let large: CGFloat = 18
+            let small: CGFloat = 4
+            let topLeft: CGFloat = isUser ? large : small
+            let topRight: CGFloat = large
+            let bottomLeft: CGFloat = large
+            let bottomRight: CGFloat = isUser ? small : large
+            return Path { p in
+                p.move(to: CGPoint(x: rect.minX + topLeft, y: rect.minY))
+                p.addLine(to: CGPoint(x: rect.maxX - topRight, y: rect.minY))
+                p.addArc(center: CGPoint(x: rect.maxX - topRight, y: rect.minY + topRight),
+                         radius: topRight, startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+                p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - bottomRight))
+                p.addArc(center: CGPoint(x: rect.maxX - bottomRight, y: rect.maxY - bottomRight),
+                         radius: bottomRight, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+                p.addLine(to: CGPoint(x: rect.minX + bottomLeft, y: rect.maxY))
+                p.addArc(center: CGPoint(x: rect.minX + bottomLeft, y: rect.maxY - bottomLeft),
+                         radius: bottomLeft, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+                p.addLine(to: CGPoint(x: rect.minX, y: rect.minY + topLeft))
+                p.addArc(center: CGPoint(x: rect.minX + topLeft, y: rect.minY + topLeft),
+                         radius: topLeft, startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+                p.closeSubpath()
+            }
+        }
+    }
+
+    private var aiAvatar: some View {
+        ZStack {
+            Circle()
+                .fill(AppColors.aiTeal.opacity(0.15))
+                .frame(width: 28, height: 28)
+            Image.androidIcon("ai illustration")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .clipShape(Circle())
+        }
+        .frame(width: 28, height: 28)
+    }
+
     var body: some View {
-        VStack(alignment: message.isUser ? .trailing : .leading, spacing: 6) {
+        HStack(alignment: .top, spacing: 8) {
             if !message.isUser {
-                HStack(spacing: 5) {
-                    MiniAIOrb(size: 16)
-                    Text("Swastri")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(Color(hex: "2E3192"))
-                    if let mode = message.responseMode {
-                        Text("·")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary.opacity(0.4))
-                        Text(mode.badgeText)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color(hex: mode.badgeColor))
-                    }
-                    Text(formatMessageTime(message.timestamp))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.5))
-                }
-                .padding(.leading, 2)
+                aiAvatar
+                    .padding(.top, 2)
+            } else {
+                Spacer(minLength: 48)
             }
 
-            HStack {
-                if message.isUser { Spacer(minLength: 60) }
-
+            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 6) {
                 if message.isLoading {
                     TypingIndicator(loadingOperation: loadingOperation)
-                } else {
-                    VStack(alignment: message.isUser ? .trailing : .leading, spacing: 8) {
-                        // Food Analysis Card — show card only, no raw text
-                        if let foodResult = message.foodResult {
-                            FoodAnalysisCardView(foodResult: foodResult, onAddToDiet: onAddToDiet)
-                                .scaleEffect(appeared ? 1 : 0.85)
-                                .opacity(appeared ? 1 : 0)
-                        } else {
-                        Group {
-                            if message.isUser {
-                                Text(message.content)
-                                    .font(.system(size: 15))
-                            } else if shouldTypewrite {
-                                TypewriterMarkdownView(content: message.content) {
-                                    onTypewriteComplete?()
-                                }
-                            } else {
-                                MarkdownTextView(content: message.content)
-                            }
-                        }
-                        .lineLimit(nil)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .foregroundColor(message.isUser ? .white : .primary)
-                        .background(
-                            Group {
-                                if message.isUser {
-                                    LinearGradient(
-                                        colors: [Color(hex: "2E3192"), Color(hex: "4A5FD5")],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                } else {
-                                    Color(UIColor.secondarySystemBackground).opacity(0.8)
-                                }
-                            }
-                        )
-                        .clipShape(
-                            RoundedRectangle(cornerRadius: 18)
-                        )
-                        .contextMenu {
-                            Button {
-                                UIPasteboard.general.string = message.content
-                                showCopied = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showCopied = false }
-                            } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
-                            }
-                            ShareLink(item: message.content) {
-                                Label("Share", systemImage: "square.and.arrow.up")
-                            }
-                        }
+                } else if let foodResult = message.foodResult {
+                    FoodAnalysisCardView(foodResult: foodResult, onAddToDiet: onAddToDiet)
                         .scaleEffect(appeared ? 1 : 0.85)
                         .opacity(appeared ? 1 : 0)
-                        } // end else (non-food message)
-
-                        // Inline health metric pills (skip for food analysis)
-                        if !message.isUser && !message.isLoading && message.foodResult == nil {
-                            let metrics = Self.detectHealthMetrics(in: message.content)
-                            if !metrics.isEmpty {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 6) {
-                                        ForEach(metrics, id: \.label) { metric in
-                                            InlineHealthMetricCard(icon: metric.icon, label: metric.label, value: metric.value, color: metric.color)
-                                        }
-                                    }
-                                }
-                                .scaleEffect(appeared ? 1 : 0.9)
-                                .opacity(appeared ? 1 : 0)
-                                .animation(.spring(response: 0.5).delay(0.2), value: appeared)
+                } else {
+                    Group {
+                        if message.isUser {
+                            Text(message.content)
+                                .font(.poppins(.regular, size: 15))
+                        } else if shouldTypewrite {
+                            TypewriterMarkdownView(content: message.content) {
+                                onTypewriteComplete?()
+                            }
+                        } else {
+                            MarkdownTextView(content: message.content)
+                        }
+                    }
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .foregroundColor(message.isUser ? .white : .primary)
+                    .background(message.isUser ? AppColors.aiTeal : Color(hex: "F1F4F6"))
+                    .clipShape(BubbleShape(isUser: message.isUser))
+                    .frame(maxWidth: 300, alignment: message.isUser ? .trailing : .leading)
+                    .contextMenu {
+                        Button {
+                            UIPasteboard.general.string = message.content
+                            showCopied = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showCopied = false }
+                        } label: {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                        ShareLink(item: message.content) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        if let onBookmark, !message.isUser {
+                            Button {
+                                onBookmark()
+                            } label: {
+                                Label(message.isBookmarked ? "Remove Bookmark" : "Bookmark",
+                                      systemImage: message.isBookmarked ? "bookmark.slash" : "bookmark")
                             }
                         }
+                    }
+                    .scaleEffect(appeared ? 1 : 0.9)
+                    .opacity(appeared ? 1 : 0)
+                }
 
-                        // Action toolbar for AI messages
-                        if !message.isUser && !message.isLoading {
-                            HStack(spacing: 2) {
-                                if let onFeedback {
-                                    Button(action: {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        onFeedback(.helpful)
-                                    }) {
-                                        Image(systemName: message.userFeedback == .helpful ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(message.userFeedback == .helpful ? Color(hex: "00A86B") : .secondary.opacity(0.5))
-                                            .frame(width: 28, height: 28)
-                                    }
-
-                                    Button(action: {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        onFeedback(.notHelpful)
-                                    }) {
-                                        Image(systemName: message.userFeedback == .notHelpful ? "hand.thumbsdown.fill" : "hand.thumbsdown")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(message.userFeedback == .notHelpful ? .orange : .secondary.opacity(0.5))
-                                            .frame(width: 28, height: 28)
-                                    }
-                                }
-
-                                Button(action: {
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    UIPasteboard.general.string = message.content
-                                    withAnimation(.spring(response: 0.3)) { showCopied = true }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                        withAnimation { showCopied = false }
-                                    }
-                                }) {
-                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(showCopied ? Color(hex: "00A86B") : .secondary.opacity(0.5))
-                                        .frame(width: 28, height: 28)
-                                }
-
-                                if let onBookmark {
-                                    Button(action: {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        onBookmark()
-                                    }) {
-                                        Image(systemName: message.isBookmarked ? "bookmark.fill" : "bookmark")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(message.isBookmarked ? Color(hex: "F59E0B") : .secondary.opacity(0.5))
-                                            .frame(width: 28, height: 28)
-                                    }
-                                }
-
-                                if let onSpeak {
-                                    Button(action: {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        onSpeak(message.content)
-                                    }) {
-                                        Image(systemName: isSpeaking ? "stop.fill" : "speaker.wave.2.fill")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(isSpeaking ? Color(hex: "2E3192") : .secondary.opacity(0.5))
-                                            .frame(width: 28, height: 28)
-                                    }
+                // Inline health metric pills (skip for food analysis)
+                if !message.isUser && !message.isLoading && message.foodResult == nil {
+                    let metrics = Self.detectHealthMetrics(in: message.content)
+                    if !metrics.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(metrics, id: \.label) { metric in
+                                    InlineHealthMetricCard(icon: metric.icon, label: metric.label, value: metric.value, color: metric.color)
                                 }
                             }
-                            .padding(.horizontal, 2)
-                            .scaleEffect(appeared ? 1 : 0.8)
-                            .opacity(appeared ? 1 : 0)
-                            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.15), value: appeared)
                         }
+                        .scaleEffect(appeared ? 1 : 0.9)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.spring(response: 0.5).delay(0.2), value: appeared)
                     }
                 }
 
-                if !message.isUser { Spacer(minLength: 60) }
+                // Action toolbar for AI messages (compact)
+                if !message.isUser && !message.isLoading {
+                    HStack(spacing: 2) {
+                        if let onFeedback {
+                            Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                onFeedback(.helpful)
+                            }) {
+                                Image(systemName: message.userFeedback == .helpful ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                    .font(.poppins(.regular, size: 11))
+                                    .foregroundColor(message.userFeedback == .helpful ? AppColors.aiTeal : .secondary.opacity(0.5))
+                                    .frame(width: 28, height: 28)
+                            }
+                            Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                onFeedback(.notHelpful)
+                            }) {
+                                Image(systemName: message.userFeedback == .notHelpful ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                                    .font(.poppins(.regular, size: 11))
+                                    .foregroundColor(message.userFeedback == .notHelpful ? .orange : .secondary.opacity(0.5))
+                                    .frame(width: 28, height: 28)
+                            }
+                        }
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            UIPasteboard.general.string = message.content
+                            withAnimation(.spring(response: 0.3)) { showCopied = true }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                withAnimation { showCopied = false }
+                            }
+                        }) {
+                            Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                .font(.poppins(.regular, size: 11))
+                                .foregroundColor(showCopied ? AppColors.aiTeal : .secondary.opacity(0.5))
+                                .frame(width: 28, height: 28)
+                        }
+                        if let onBookmark {
+                            Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                onBookmark()
+                            }) {
+                                Image(systemName: message.isBookmarked ? "bookmark.fill" : "bookmark")
+                                    .font(.poppins(.regular, size: 11))
+                                    .foregroundColor(message.isBookmarked ? Color(hex: "F59E0B") : .secondary.opacity(0.5))
+                                    .frame(width: 28, height: 28)
+                            }
+                        }
+                        if let onSpeak {
+                            Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                onSpeak(message.content)
+                            }) {
+                                Image(systemName: isSpeaking ? "stop.fill" : "speaker.wave.2.fill")
+                                    .font(.poppins(.regular, size: 11))
+                                    .foregroundColor(isSpeaking ? AppColors.aiTeal : .secondary.opacity(0.5))
+                                    .frame(width: 28, height: 28)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                    .scaleEffect(appeared ? 1 : 0.8)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.15), value: appeared)
+                }
+            }
+
+            if !message.isUser {
+                Spacer(minLength: 48)
             }
         }
         .onAppear {
@@ -1448,13 +1469,13 @@ private struct TypingIndicator: View {
     @State private var isAnimating = false
 
     private var accentColor: Color {
-        loadingOperation == .medicalQuery ? Color(hex: "00A86B") : Color(hex: "2E3192")
+        loadingOperation == .medicalQuery ? Color(hex: "00A86B") : Color(hex: "22C5A6")
     }
 
     var body: some View {
         HStack(spacing: 10) {
             Text(loadingOperation.loadingMessage)
-                .font(.system(size: 13, weight: .medium))
+                .font(.poppins(.medium, size: 13))
                 .foregroundColor(.secondary)
 
             HStack(spacing: 4) {
@@ -1498,28 +1519,28 @@ private struct ModeTooltipView: View {
                     Image(systemName: "lightbulb.fill")
                         .foregroundColor(.yellow)
                     Text("Pro Tip")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.poppins(.bold, size: 14))
                     Spacer()
                     Button(action: onDismiss) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
                 
                 Text("Tap here to switch between:")
-                    .font(.system(size: 13))
+                    .font(.poppins(.regular, size: 13))
                     .foregroundColor(.secondary)
                 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles")
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .foregroundColor(Color(hex: "22C5A6"))
                             .frame(width: 20)
                         Text("Swastri Assistant")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.poppins(.medium, size: 13))
                         Text("- General wellness chat")
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                     
@@ -1528,20 +1549,20 @@ private struct ModeTooltipView: View {
                             .foregroundColor(Color(hex: "00A86B"))
                             .frame(width: 20)
                         Text("Medical Expert")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.poppins(.medium, size: 13))
                         Text("- Health information")
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
                 
                 Button(action: onDismiss) {
                     Text("Got it!")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 13))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color(hex: "2E3192"))
+                        .background(Color(hex: "22C5A6"))
                         .cornerRadius(8)
                 }
                 .padding(.top, 4)
@@ -1579,11 +1600,11 @@ private struct ToastView: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
                 .foregroundColor(color)
             
             Text(message)
-                .font(.system(size: 14, weight: .medium))
+                .font(.poppins(.medium, size: 14))
                 .foregroundColor(.primary)
         }
         .padding(.horizontal, 16)
@@ -1612,11 +1633,11 @@ private struct InlineErrorView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 18))
+                    .font(.poppins(.regular, size: 18))
                     .foregroundColor(.orange)
                 
                 Text(errorState.message)
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(.primary)
                     .fixedSize(horizontal: false, vertical: true)
                 
@@ -1624,7 +1645,7 @@ private struct InlineErrorView: View {
                 
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(.secondary)
                         .padding(6)
                         .background(Color(UIColor.tertiarySystemFill))
@@ -1637,14 +1658,14 @@ private struct InlineErrorView: View {
                     Button(action: onRetry) {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 12))
                             Text("Try Again")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 13))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(Color(hex: "2E3192"))
+                        .background(Color(hex: "22C5A6"))
                         .cornerRadius(8)
                     }
                 }
@@ -1653,14 +1674,14 @@ private struct InlineErrorView: View {
                     Button(action: onSwitchMode) {
                         HStack(spacing: 6) {
                             Image(systemName: "sparkles")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 12))
                             Text("Use General Mode")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 13))
                         }
-                        .foregroundColor(Color(hex: "2E3192"))
+                        .foregroundColor(Color(hex: "22C5A6"))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(Color(hex: "2E3192").opacity(0.1))
+                        .background(Color(hex: "22C5A6").opacity(0.1))
                         .cornerRadius(8)
                     }
                 }
@@ -1736,14 +1757,14 @@ private struct VitalPill: View {
         }) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(Color(hex: color))
                 VStack(alignment: .leading, spacing: 0) {
                     Text(value)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 15))
                         .foregroundColor(.primary)
                     Text(label)
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.poppins(.medium, size: 9))
                         .foregroundColor(.secondary)
                 }
             }
@@ -1774,14 +1795,14 @@ private struct QuickActionGrid: View {
                 }) {
                     HStack(spacing: 10) {
                         Image(systemName: action.icon)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .font(.poppins(.semiBold, size: 16))
+                            .foregroundColor(Color(hex: "22C5A6"))
                             .frame(width: 32, height: 32)
-                            .background(Color(hex: "2E3192").opacity(0.1))
+                            .background(Color(hex: "22C5A6").opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
 
                         Text(action.title)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 13))
                             .foregroundColor(.primary)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1815,21 +1836,21 @@ private struct ProactiveNudgeCard: View {
         }) {
             HStack(spacing: 10) {
                 Image(systemName: nudge.icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                     .foregroundColor(Color(hex: nudge.color))
                     .frame(width: 28, height: 28)
                     .background(Color(hex: nudge.color).opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 7))
 
                 Text(nudge.message)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.poppins(.medium, size: 13))
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
                 Spacer()
 
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.poppins(.bold, size: 10))
                     .foregroundColor(Color(hex: nudge.color).opacity(0.5))
             }
             .padding(.horizontal, 12)
@@ -1873,12 +1894,12 @@ private struct AIRosterPicker: View {
                                             )
                                     )
                                 Image(systemName: personality.icon)
-                                    .font(.system(size: 18, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 18))
                                     .foregroundColor(Color(hex: personality.color))
                             }
 
                             Text(personality.displayName)
-                                .font(.system(size: 11, weight: selected == personality ? .bold : .medium))
+                                .font(selected == personality ? .poppins(.bold, size: 11) : .poppins(.medium, size: 11))
                                 .foregroundColor(selected == personality ? Color(hex: personality.color) : .secondary)
                         }
                         .frame(width: 64)
@@ -1907,36 +1928,36 @@ private struct DailyDigestCard: View {
             HStack(spacing: 14) {
                 HStack(spacing: 6) {
                     Image(systemName: "figure.walk")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 11))
                         .foregroundColor(Color(hex: "22C55E"))
                     Text(steps.formatted())
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 13))
                         .foregroundColor(.primary)
                 }
 
                 HStack(spacing: 6) {
                     Image(systemName: "heart.fill")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 11))
                         .foregroundColor(Color(hex: "EF4444"))
                     Text(heartRate > 0 ? "\(heartRate)" : "--")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 13))
                         .foregroundColor(.primary)
                 }
 
                 HStack(spacing: 6) {
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 11))
                         .foregroundColor(Color(hex: "F97316"))
                     Text("\(calories)")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 13))
                         .foregroundColor(.primary)
                 }
 
                 Spacer()
 
                 Image(systemName: "sparkles")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 12))
+                    .foregroundColor(Color(hex: "22C5A6"))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -1964,15 +1985,15 @@ struct BookmarkedMessagesView: View {
                                 .fill(Color(hex: "F59E0B").opacity(0.1))
                                 .frame(width: 80, height: 80)
                             Image(systemName: "bookmark")
-                                .font(.system(size: 36))
+                                .font(.poppins(.regular, size: 36))
                                 .foregroundColor(Color(hex: "F59E0B").opacity(0.5))
                         }
                         VStack(spacing: 6) {
                             Text("No Saved Advice")
-                                .font(.title3.weight(.semibold))
+                                .font(.poppins(.semiBold, size: 20))
                                 .foregroundColor(.primary)
                             Text("Tap the bookmark icon on any AI response to save it here.")
-                                .font(.subheadline)
+                                .font(.poppins(.regular, size: 15))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
@@ -1996,7 +2017,7 @@ struct BookmarkedMessagesView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 17))
                 }
             }
         }
@@ -2012,9 +2033,9 @@ private struct BookmarkedMessageCard: View {
             if let mode = message.responseMode {
                 HStack(spacing: 4) {
                     Image(systemName: mode.badgeIcon)
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 9))
                     Text(mode.badgeText)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.poppins(.medium, size: 10))
                 }
                 .foregroundColor(Color(hex: mode.badgeColor))
                 .padding(.horizontal, 8)
@@ -2027,14 +2048,14 @@ private struct BookmarkedMessageCard: View {
 
             HStack {
                 Text(message.timestamp, style: .date)
-                    .font(.system(size: 11))
+                    .font(.poppins(.regular, size: 11))
                     .foregroundColor(.secondary)
                 Spacer()
                 Button(action: {
                     UIPasteboard.general.string = message.content
                 }) {
                     Image(systemName: "doc.on.doc")
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
                 Button(action: {
@@ -2042,7 +2063,7 @@ private struct BookmarkedMessageCard: View {
                     onRemove()
                 }) {
                     Image(systemName: "bookmark.slash.fill")
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(Color(hex: "F59E0B"))
                 }
             }
@@ -2063,13 +2084,13 @@ private struct InlineHealthMetricCard: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.poppins(.semiBold, size: 11))
                 .foregroundColor(Color(hex: color))
             Text(value)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 12))
                 .foregroundColor(.primary)
             Text(label)
-                .font(.system(size: 10))
+                .font(.poppins(.regular, size: 10))
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal, 10)
@@ -2111,7 +2132,7 @@ private struct AIOnboardingOverlay: View {
                     HStack(spacing: 6) {
                         ForEach(0..<tourSteps.count, id: \.self) { i in
                             Capsule()
-                                .fill(i == step ? Color(hex: "2E3192") : Color.white.opacity(0.3))
+                                .fill(i == step ? Color(hex: "22C5A6") : Color.white.opacity(0.3))
                                 .frame(width: i == step ? 24 : 8, height: 4)
                                 .animation(.spring(response: 0.3), value: step)
                         }
@@ -2119,35 +2140,35 @@ private struct AIOnboardingOverlay: View {
 
                     ZStack {
                         Circle()
-                            .fill(Color(hex: "2E3192").opacity(0.15))
+                            .fill(Color(hex: "22C5A6").opacity(0.15))
                             .frame(width: 64, height: 64)
                         Image(systemName: tourSteps[step].icon)
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .font(.poppins(.semiBold, size: 28))
+                            .foregroundColor(Color(hex: "22C5A6"))
                     }
 
                     Text(tourSteps[step].title)
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.poppins(.bold, size: 20))
                         .foregroundColor(.white)
 
                     Text(tourSteps[step].description)
-                        .font(.system(size: 15))
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
 
                     HStack(spacing: 12) {
                         Button("Skip") { onDismiss() }
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.poppins(.medium, size: 15))
                             .foregroundColor(.white.opacity(0.6))
 
                         Button(action: { advanceOrDismiss() }) {
                             Text(step < tourSteps.count - 1 ? "Next" : "Get Started")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 15))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 10)
-                                .background(Color(hex: "2E3192"))
+                                .background(Color(hex: "22C5A6"))
                                 .clipShape(Capsule())
                         }
                     }
@@ -2181,7 +2202,7 @@ private struct HelpfulReactionView: View {
         ZStack {
             ForEach(0..<8, id: \.self) { i in
                 Text(["✨", "🎉", "💚", "⭐️", "✨", "💪", "🌟", "💚"][i])
-                    .font(.system(size: 24))
+                    .font(.poppins(.regular, size: 24))
                     .offset(particles.indices.contains(i) ? particles[i].offset : .zero)
                     .opacity(particles.indices.contains(i) ? particles[i].opacity : 0)
                     .scaleEffect(particles.indices.contains(i) ? particles[i].scale : 0.5)
@@ -2226,17 +2247,17 @@ private struct FollowUpSuggestionsView: View {
                         onSelect(suggestion)
                     }) {
                         Text(suggestion.label)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .font(.poppins(.medium, size: 12))
+                            .foregroundColor(Color(hex: "22C5A6"))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
                             .background(
                                 Capsule()
-                                    .fill(Color(hex: "2E3192").opacity(0.06))
+                                    .fill(Color(hex: "22C5A6").opacity(0.06))
                             )
                             .overlay(
                                 Capsule()
-                                    .stroke(Color(hex: "2E3192").opacity(0.1), lineWidth: 0.5)
+                                    .stroke(Color(hex: "22C5A6").opacity(0.1), lineWidth: 0.5)
                             )
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -2279,7 +2300,7 @@ private struct AIOrb: View {
             // 1. Ambient Background Glow (The "Aura")
             if showGlow {
                 Circle()
-                    .fill(Color(hex: "2E3192").opacity(0.25))
+                    .fill(Color(hex: "22C5A6").opacity(0.25))
                     .frame(width: size * 1.6, height: size * 1.6)
                     .blur(radius: size * 0.3)
                     .scaleEffect(scale)
@@ -2455,7 +2476,7 @@ private struct AnimatedSparkleIcon: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color(hex: "2E3192").opacity(0.15))
+                .fill(Color(hex: "22C5A6").opacity(0.15))
                 .frame(width: 100, height: 100)
                 .blur(radius: 20)
                 .scaleEffect(isAnimating ? 1.2 : 0.9)
@@ -2466,8 +2487,8 @@ private struct AnimatedSparkleIcon: View {
                 )
             
             Image(systemName: "sparkles")
-                .font(.system(size: 50))
-                .foregroundColor(Color(hex: "2E3192"))
+                .font(.poppins(.regular, size: 50))
+                .foregroundColor(Color(hex: "22C5A6"))
                 .scaleEffect(isAnimating ? 1.05 : 1.0)
                 .rotationEffect(.degrees(isAnimating ? 5 : -5))
                 .animation(
@@ -2530,11 +2551,11 @@ private struct AnalysisResultView: View {
                 .padding()
             
             Text("Swastrica is analyzing your health data...")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .multilineTextAlignment(.center)
             
             Text("This may take a few moments")
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
         }
         .padding()
@@ -2545,18 +2566,18 @@ private struct AnalysisResultView: View {
         VStack(spacing: 20) {
             // Sparkle Icon
             Image(systemName: "sparkles")
-                .font(.system(size: 50))
-                .foregroundColor(Color(hex: "2E3192"))
+                .font(.poppins(.regular, size: 50))
+                .foregroundColor(Color(hex: "22C5A6"))
                 .padding(.top)
             
             // Assessment Section
             VStack(alignment: .leading, spacing: 12) {
                 Label("Overall Assessment", systemImage: "heart.text.square.fill")
-                    .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 17))
+                    .foregroundColor(Color(hex: "22C5A6"))
                 
                 Text(result.analysis.assessment)
-                    .font(.body)
+                    .font(.poppins(.regular, size: 17))
                     .lineSpacing(4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2566,11 +2587,11 @@ private struct AnalysisResultView: View {
             // Insights Section
             VStack(alignment: .leading, spacing: 12) {
                 Label("Key Insights", systemImage: "lightbulb.fill")
-                    .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 17))
+                    .foregroundColor(Color(hex: "22C5A6"))
                 
                 Text(result.analysis.insights)
-                    .font(.body)
+                    .font(.poppins(.regular, size: 17))
                     .lineSpacing(4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2580,17 +2601,17 @@ private struct AnalysisResultView: View {
             // Recommendations Section
             VStack(alignment: .leading, spacing: 12) {
                 Label("Recommendations", systemImage: "star.fill")
-                    .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 17))
+                    .foregroundColor(Color(hex: "22C5A6"))
                 
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
                         HStack(alignment: .top, spacing: 10) {
                             Text("\(index + 1).")
-                                .fontWeight(.semibold)
-                                .foregroundColor(Color(hex: "2E3192"))
+                                .font(.poppins(.semiBold, size: 17))
+                                .foregroundColor(Color(hex: "22C5A6"))
                             Text(rec)
-                                .font(.body)
+                                .font(.poppins(.regular, size: 17))
                                 .lineSpacing(4)
                         }
                     }
@@ -2602,7 +2623,7 @@ private struct AnalysisResultView: View {
             
             // Timestamp
             Text("Analysis generated on \(result.timestamp.formatted(date: .abbreviated, time: .shortened))")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
                 .padding(.bottom)
         }
@@ -2611,14 +2632,14 @@ private struct AnalysisResultView: View {
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
+                .font(.poppins(.regular, size: 50))
                 .foregroundColor(.orange)
             
             Text("Analysis Error")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
             
             Text(message)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
             
@@ -2626,7 +2647,7 @@ private struct AnalysisResultView: View {
                 onDismiss()
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color(hex: "2E3192"))
+            .tint(Color(hex: "22C5A6"))
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -2699,7 +2720,7 @@ struct ConversationHistoryView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
                 }
             }
             .alert("Delete Conversation", isPresented: $showDeleteConfirmation) {
@@ -2742,22 +2763,21 @@ struct ConversationHistoryView: View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: "2E3192").opacity(0.1))
+                    .fill(Color(hex: "22C5A6").opacity(0.1))
                     .frame(width: 100, height: 100)
                 
                 Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 50))
-                    .foregroundColor(Color(hex: "2E3192").opacity(0.6))
+                    .font(.poppins(.regular, size: 50))
+                    .foregroundColor(Color(hex: "22C5A6").opacity(0.6))
             }
             
             VStack(spacing: 8) {
                 Text("No Conversations Yet")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 22))
                     .foregroundColor(.primary)
                 
                 Text("Start chatting with Swastri AI to see your conversation history here.")
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
@@ -2796,7 +2816,7 @@ struct ConversationHistoryView: View {
                     }
                 } header: {
                     Text(group.key)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 13))
                         .foregroundColor(.secondary)
                         .textCase(nil)
                 }
@@ -2832,7 +2852,7 @@ private struct ConversationRow: View {
                         .frame(width: 52, height: 52)
 
                     Image(systemName: topic.icon)
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.poppins(.medium, size: 20))
                         .foregroundColor(Color(hex: topic.color))
                 }
                 .frame(width: 52, height: 52)
@@ -2841,14 +2861,14 @@ private struct ConversationRow: View {
                 VStack(alignment: .leading, spacing: 6) {
                     // Title
                     Text(conversation.title)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                         .foregroundColor(.primary)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     // Last message preview
                     Text(conversation.lastMessage)
-                        .font(.system(size: 14))
+                        .font(.poppins(.regular, size: 14))
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2857,32 +2877,32 @@ private struct ConversationRow: View {
                     HStack(alignment: .center, spacing: 6) {
                         HStack(spacing: 4) {
                             Image(systemName: "clock")
-                                .font(.system(size: 10))
+                                .font(.poppins(.regular, size: 10))
                                 .foregroundColor(.secondary)
                             Text(conversation.formattedDate)
-                                .font(.system(size: 12))
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                         }
                         
                         Text("•")
-                            .font(.system(size: 10))
+                            .font(.poppins(.regular, size: 10))
                             .foregroundColor(.secondary.opacity(0.4))
                         
                         HStack(spacing: 4) {
                             Image(systemName: "message.fill")
-                                .font(.system(size: 10))
+                                .font(.poppins(.regular, size: 10))
                                 .foregroundColor(.secondary)
                             Text("\(conversation.messageCount)")
-                                .font(.system(size: 12))
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                         }
 
                         // Topic tag
                         HStack(spacing: 3) {
                             Image(systemName: topic.icon)
-                                .font(.system(size: 8, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 8))
                             Text(topic.label)
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.poppins(.medium, size: 10))
                         }
                         .foregroundColor(Color(hex: topic.color))
                         .padding(.horizontal, 6)
@@ -2893,7 +2913,7 @@ private struct ConversationRow: View {
                         if conversation.status == "archived" {
                             Spacer()
                             Text("Archived")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.poppins(.medium, size: 10))
                                 .foregroundColor(.orange)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
@@ -2907,7 +2927,7 @@ private struct ConversationRow: View {
                 
                 // Chevron
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(.secondary.opacity(0.3))
                     .frame(width: 20)
             }
@@ -3030,7 +3050,7 @@ private struct ParticleOrbView: UIViewRepresentable {
 
         // Mode-based color palettes
         let idleColor = isMedical ? "0B4D2C" : "1A1F6B"      // Dark green vs Dark blue
-        let activeColor = isMedical ? "00A86B" : "2E3192"     // Green vs Royal blue
+        let activeColor = isMedical ? "00A86B" : "22C5A6"     // Green vs Royal blue
         let thinkColor = isMedical ? "064A2B" : "0F1345"      // Deep green vs Very dark blue
 
         // Horizontal rotation animation (around Y-axis)
@@ -3147,16 +3167,16 @@ struct FoodAnalysisCardView: View {
             // Header
             HStack(spacing: 8) {
                 Image(systemName: "fork.knife")
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(greenAccent)
                 Text(foodResult.name)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.poppins(.bold, size: 15))
                     .foregroundColor(.primary)
             }
 
             // Calorie hero
             Text("\(Int(foodResult.calories)) cal")
-                .font(.system(size: 24, weight: .bold))
+                .font(.poppins(.bold, size: 24))
                 .foregroundColor(greenAccent)
 
             // Macro pills
@@ -3168,7 +3188,7 @@ struct FoodAnalysisCardView: View {
 
             // Serving
             Text("Serving: \(Int(foodResult.servingSize)) \(foodResult.servingUnit.rawValue)")
-                .font(.system(size: 13))
+                .font(.poppins(.regular, size: 13))
                 .foregroundColor(.secondary)
 
             // Add to Diet button
@@ -3178,9 +3198,9 @@ struct FoodAnalysisCardView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 14))
                         Text("Add to Diet")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 14))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -3206,10 +3226,10 @@ private struct MacroPillView: View {
     var body: some View {
         HStack(spacing: 4) {
             Text(label)
-                .font(.system(size: 12))
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(color.opacity(0.8))
             Text(value)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.poppins(.semiBold, size: 12))
                 .foregroundColor(color)
         }
         .padding(.horizontal, 10)

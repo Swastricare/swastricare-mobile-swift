@@ -57,7 +57,7 @@ struct HydrationSettingsView: View {
                     Button("Save") {
                         savePreferences()
                     }
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
                 }
             }
             .onAppear {
@@ -139,10 +139,9 @@ struct HydrationSettingsView: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(activityLevel.displayName)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(.poppins(.medium, size: 15))
                     Text(activityLevel.description)
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -164,7 +163,7 @@ struct HydrationSettingsView: View {
                     VStack(alignment: .leading) {
                         Text("Pregnant")
                         Text("+300ml daily")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -178,7 +177,7 @@ struct HydrationSettingsView: View {
                     VStack(alignment: .leading) {
                         Text("Breastfeeding")
                         Text("+700ml daily")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -202,7 +201,7 @@ struct HydrationSettingsView: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                 }
             }
         } header: {
@@ -259,7 +258,7 @@ struct HydrationSettingsView: View {
                     calculationRow("Exercise", "+500ml per hour")
                     
                     Text("This calculation is based on evidence-based hydration science. Individual needs may vary.")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                         .padding(.top, 8)
                 }
@@ -273,10 +272,10 @@ struct HydrationSettingsView: View {
     private func calculationRow(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
             Spacer()
             Text(value)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
         }
     }

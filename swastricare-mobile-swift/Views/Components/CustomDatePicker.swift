@@ -44,7 +44,7 @@ struct CustomDatePickerView: View {
                 // Header
                 HStack {
                     Text("Date of Birth")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                         .foregroundColor(.primary)
                     Spacer()
                 }
@@ -225,7 +225,7 @@ private struct PickerItem: View {
     
     var body: some View {
         Text(text)
-            .font(.system(size: isSelected ? 22 : 18, weight: isSelected ? .bold : .regular))
+            .font(isSelected ? .poppins(.bold, size: 22) : .poppins(.regular, size: 18))
             .foregroundStyle(isSelected ? AnyShapeStyle(PremiumColor.royalBlue) : AnyShapeStyle(Color.secondary))
             .scaleEffect(isSelected ? 1.1 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)

@@ -2,203 +2,167 @@
 //  OnboardingPageView.swift
 //  swastricare-mobile-swift
 //
+//  Redesigned to pixel-match Android OnboardingPageContent.
+//  • Hero illustration fills the top weight(1) area
+//  • Text block: italic+bold prefix, teal highlighted suffix
+//  • Optional card content below (feature cards on page 0)
+//
 
 import SwiftUI
 
+private let darkText  = Color(hex: "0F172A")
+private let mutedText = Color(hex: "6B7280")
+
 struct OnboardingPageView<Card: View>: View {
     let pageIndex: Int
-    let totalPages: Int
-    let title: String
-    let highlightedTitle: String
+    let illustrationName: String
+    let isFamilyHero: Bool      // true → horizontal-edge fade; false → simple fill
+    let titlePrefix: String
+    let titleItalic: String
+    let titleSeparator: String
+    let titleHighlight: String
     let subtitle: String
-    let accentColor: Color
-    let backgroundTint: Color
     let isActive: Bool
     let card: Card
 
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
-
-    // Animation state — driven by `isActive` changes from parent
-    @State private var headlineOffset: CGFloat = 20
-    @State private var headlineOpacity: Double = 0
-    @State private var subtitleOffset: CGFloat = 15
-    @State private var subtitleOpacity: Double = 0
-    @State private var cardOffset: CGFloat = 30
-    @State private var cardOpacity: Double = 0
-    @State private var cardScale: CGFloat = 0.95
-    @State private var accentLineWidth: CGFloat = 0
-    @State private var hasAnimatedIn = false
-
     init(
         pageIndex: Int,
-        totalPages: Int,
-        title: String,
-        highlightedTitle: String,
+        illustrationName: String,
+        isFamilyHero: Bool,
+        titlePrefix: String,
+        titleItalic: String,
+        titleSeparator: String,
+        titleHighlight: String,
         subtitle: String,
-        accentColor: Color,
-        backgroundTint: Color,
         isActive: Bool,
         @ViewBuilder card: () -> Card
     ) {
         self.pageIndex = pageIndex
-        self.totalPages = totalPages
-        self.title = title
-        self.highlightedTitle = highlightedTitle
+        self.illustrationName = illustrationName
+        self.isFamilyHero = isFamilyHero
+        self.titlePrefix = titlePrefix
+        self.titleItalic = titleItalic
+        self.titleSeparator = titleSeparator
+        self.titleHighlight = titleHighlight
         self.subtitle = subtitle
-        self.accentColor = accentColor
-        self.backgroundTint = backgroundTint
         self.isActive = isActive
         self.card = card()
     }
 
     var body: some View {
-        GeometryReader { geo in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    Spacer(minLength: 16)
+        VStack(spacing: 0) {
+            // Hero illustration — takes flexible top space
+            GeometryReader { geo in
+                if isFamilyHero {
+                    // Page 0: horizontal-edge fade on the image + 56pt top/bottom fades
+                    // (mirrors Android drawWithContent + verticalGradient overlays)
+                    ZStack {
+                        Image.androidImage(illustrationName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity)
+                            .frame(maxHeight: 320)
+                            .mask(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: .clear, location: 0),
+                                        .init(color: .black, location: 0.28),
+                                        .init(color: .black, location: 0.72),
+                                        .init(color: .clear, location: 1)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    // Headline
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title)
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundColor(.primary)
-                        Text(highlightedTitle)
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundColor(accentColor)
+                        // Top-edge fade (white → transparent), 56pt tall
+                        VStack(spacing: 0) {
+                            LinearGradient(
+                                colors: [Color.white, Color.white.opacity(0)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 56)
+                            Spacer(minLength: 0)
+                        }
 
-                        // Animated accent underline
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(accentColor.opacity(0.5))
-                            .frame(width: accentLineWidth, height: 3)
-                            .padding(.top, 4)
+                        // Bottom-edge fade (transparent → white), 56pt tall
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            LinearGradient(
+                                colors: [Color.white.opacity(0), Color.white],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 56)
+                        }
                     }
-                    .offset(y: headlineOffset)
-                    .opacity(headlineOpacity)
-                    .padding(.bottom, 8)
+                    .allowsHitTesting(false)
+                } else {
+                    // Pages 1 & 2: simple centered illustration
+                    Image.androidImage(illustrationName)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(.horizontal, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            // Give the illustration the same flex weight as Android's weight(1f)
+            .frame(minHeight: 200)
+            .layoutPriority(1)
 
-                    // Subtitle
-                    Text(subtitle)
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
-                        .lineSpacing(4)
-                        .offset(y: subtitleOffset)
-                        .opacity(subtitleOpacity)
-                        .padding(.bottom, 24)
+            // Text + cards block
+            VStack(alignment: .center, spacing: 0) {
+                // Composed title: prefix (bold) + italic (bold+italic) + highlight (teal bold)
+                titleText
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 20)
 
-                    // Preview card
+                Spacer().frame(height: 10)
+
+                Text(subtitle)
+                    .font(.poppins(.regular, size: 13))
+                    .lineSpacing(6)
+                    .foregroundColor(mutedText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 28)
+
+                // Optional card content (page 0 gets feature cards)
+                if Card.self != EmptyView.self {
+                    Spacer().frame(height: 18)
                     card
-                        .offset(y: cardOffset)
-                        .opacity(cardOpacity)
-                        .scaleEffect(cardScale)
-                        .frame(maxWidth: 400)
+                        .padding(.horizontal, 20)
+                }
 
-                    Spacer(minLength: 16)
-                }
-                .padding(.horizontal, 24)
-                .frame(minHeight: geo.size.height)
-            }
-            .scrollIndicators(.hidden)
-        }
-        .background(pageBackground)
-        .onChange(of: isActive) { _, active in
-            if active {
-                // Small delay ensures view is laid out before animating
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    guard !hasAnimatedIn else { return }
-                    animateIn()
-                }
-            } else {
-                hasAnimatedIn = false
-                animateOut()
+                Spacer().frame(height: 12)
             }
         }
-        .onAppear {
-            // First page animates immediately
-            if isActive && !hasAnimatedIn {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    guard !hasAnimatedIn else { return }
-                    if reduceMotion {
-                        showInstantly()
-                    } else {
-                        animateIn()
-                    }
-                }
-            }
-        }
+        .background(Color.white)
     }
 
-    // MARK: - Background
+    // MARK: - Title Text
 
-    @ViewBuilder
-    private var pageBackground: some View {
-        if colorScheme == .dark {
-            Color.clear // parent provides PremiumBackground
-        } else {
-            LinearGradient(
-                colors: [Color(UIColor.systemBackground), backgroundTint],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-        }
-    }
-
-    // MARK: - Animations
-
-    private func animateIn() {
-        hasAnimatedIn = true
-        guard !reduceMotion else {
-            showInstantly()
-            return
-        }
-        // Staggered spring entrance
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.05)) {
-            headlineOffset = 0
-            headlineOpacity = 1
-        }
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15)) {
-            subtitleOffset = 0
-            subtitleOpacity = 1
-        }
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.25)) {
-            cardOffset = 0
-            cardOpacity = 1
-            cardScale = 1.0
-        }
-        // Accent underline draws in
-        withAnimation(.easeOut(duration: 0.5).delay(0.35)) {
-            accentLineWidth = 60
-        }
-    }
-
-    private func animateOut() {
-        withAnimation(.easeOut(duration: 0.2)) {
-            headlineOpacity = 0
-            subtitleOpacity = 0
-            cardOpacity = 0
-        }
-        // Reset offsets synchronously without animation so next animateIn slides fresh
-        var t = Transaction()
-        t.disablesAnimations = true
-        withTransaction(t) {
-            headlineOffset = 20
-            subtitleOffset = 15
-            cardOffset = 30
-            cardScale = 0.95
-            accentLineWidth = 0
-        }
-    }
-
-    private func showInstantly() {
-        hasAnimatedIn = true
-        headlineOffset = 0
-        headlineOpacity = 1
-        subtitleOffset = 0
-        subtitleOpacity = 1
-        cardOffset = 0
-        cardOpacity = 1
-        cardScale = 1.0
-        accentLineWidth = 60
+    private var titleText: some View {
+        // Build attributed string: prefix(bold) + italic(bold+italic) + separator(bold) + highlight(teal bold)
+        (
+            Text(titlePrefix)
+                .foregroundColor(darkText)
+            +
+            Text(titleItalic)
+                .foregroundColor(darkText)
+                .italic()
+            +
+            Text(titleSeparator)
+                .foregroundColor(darkText)
+            +
+            Text(titleHighlight)
+                .foregroundColor(AppColors.aiTeal)
+        )
+        .font(.poppins(.bold, size: 24))
     }
 }

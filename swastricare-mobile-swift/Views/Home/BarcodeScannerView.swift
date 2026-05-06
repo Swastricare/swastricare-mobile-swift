@@ -195,7 +195,7 @@ struct BarcodeScannerView: View {
                 }
             }
         }
-        .font(.system(size: 15, weight: .medium))
+        .font(.poppins(.medium, size: 15))
         .foregroundColor(.white)
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -224,9 +224,9 @@ struct BarcodeScannerView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "keyboard")
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                         Text("Enter Manually")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.poppins(.medium, size: 14))
                     }
                     .foregroundColor(.white.opacity(0.8))
                 }
@@ -239,9 +239,9 @@ struct BarcodeScannerView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.counterclockwise")
-                                .font(.system(size: 14))
+                                .font(.poppins(.regular, size: 14))
                             Text("Scan Again")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.poppins(.medium, size: 14))
                         }
                         .foregroundColor(AppColors.accentGreen)
                     }
@@ -254,7 +254,7 @@ struct BarcodeScannerView: View {
                     TextField("Enter barcode number", text: $manualBarcode)
                         .keyboardType(.numberPad)
                         .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 16, design: .monospaced))
+                        .font(.poppins(.regular, size: 16))
 
                     Button {
                         Task {
@@ -262,7 +262,7 @@ struct BarcodeScannerView: View {
                         }
                     } label: {
                         Text("Look Up")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 14))
                             .foregroundColor(.white)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
@@ -297,7 +297,7 @@ struct BarcodeScannerView: View {
             HStack(spacing: 12) {
                 // Category icon
                 Text(food.category.icon)
-                    .font(.system(size: 32))
+                    .font(.poppins(.regular, size: 32))
                     .frame(width: 50, height: 50)
                     .background(AppColors.accentGreen.opacity(0.10))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -307,26 +307,26 @@ struct BarcodeScannerView: View {
                     HStack(spacing: 6) {
                         VegIndicator(isVegetarian: food.isVegetarian)
                         Text(food.name)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 16))
                             .foregroundColor(.primary)
                             .lineLimit(1)
                     }
 
                     if let brand = food.brand {
                         Text(brand)
-                            .font(.system(size: 13))
+                            .font(.poppins(.regular, size: 13))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
 
                     HStack(spacing: 6) {
                         Text(food.displayServingSize)
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                         Text("·")
                             .foregroundColor(.secondary)
                         Text(food.caloriesPerServing)
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.poppins(.bold, size: 12))
                             .foregroundColor(AppColors.accentGreen)
                     }
                 }
@@ -339,7 +339,7 @@ struct BarcodeScannerView: View {
                         .fill(AppColors.accentGreen)
                         .frame(width: 36, height: 36)
                     Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.poppins(.bold, size: 16))
                         .foregroundColor(.white)
                 }
             }
@@ -354,7 +354,7 @@ struct BarcodeScannerView: View {
     private var notFoundActions: some View {
         VStack(spacing: 10) {
             Text("This product isn't in our database yet")
-                .font(.system(size: 14))
+                .font(.poppins(.regular, size: 14))
                 .foregroundColor(.secondary)
 
             Button {
@@ -362,9 +362,9 @@ struct BarcodeScannerView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 16))
+                        .font(.poppins(.regular, size: 16))
                     Text("Add Custom Food")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 15))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
@@ -381,15 +381,15 @@ struct BarcodeScannerView: View {
     private var permissionDeniedView: some View {
         VStack(spacing: 24) {
             Image(systemName: "camera.fill")
-                .font(.system(size: 60))
+                .font(.poppins(.regular, size: 60))
                 .foregroundColor(.secondary)
 
             Text("Camera Access Required")
-                .font(.title2.bold())
+                .font(.poppins(.bold, size: 22))
                 .foregroundColor(.primary)
 
             Text("Allow camera access in Settings to scan barcodes")
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -399,7 +399,7 @@ struct BarcodeScannerView: View {
                     UIApplication.shared.open(url)
                 }
             }
-            .font(.headline)
+            .font(.poppins(.semiBold, size: 17))
             .foregroundColor(.white)
             .padding(.horizontal, 32)
             .padding(.vertical, 14)
@@ -412,7 +412,7 @@ struct BarcodeScannerView: View {
                 cameraPermissionDenied = false
             } label: {
                 Text("Enter Barcode Manually")
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(AppColors.accentBlue)
             }
         }

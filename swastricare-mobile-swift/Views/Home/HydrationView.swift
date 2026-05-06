@@ -221,7 +221,7 @@ struct HydrationView: View {
         HStack {
             Button(action: { dismiss() }) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 18))
                     .foregroundColor(.white)
                     .frame(width: 40, height: 40)
                     .background(Color.white.opacity(0.15))
@@ -231,7 +231,7 @@ struct HydrationView: View {
             Spacer()
 
             Text("Hydration")
-                .font(.system(size: 20, weight: .bold))
+                .font(.poppins(.bold, size: 20))
                 .foregroundColor(.white)
 
             Spacer()
@@ -248,7 +248,7 @@ struct HydrationView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 18))
                     .foregroundColor(.white)
                     .frame(width: 40, height: 40)
                     .background(Color.white.opacity(0.15))
@@ -340,15 +340,15 @@ struct HydrationView: View {
     private func insightTile(icon: String, value: String, label: String, color: Color) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .medium))
+                .font(.poppins(.medium, size: 20))
                 .foregroundColor(color)
 
             Text(value)
-                .font(.system(size: 20, weight: .bold))
+                .font(.poppins(.bold, size: 20))
                 .foregroundColor(.white)
 
             Text(label)
-                .font(.system(size: 12))
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.white.opacity(0.7))
         }
         .frame(maxWidth: .infinity)
@@ -387,23 +387,23 @@ struct HydrationView: View {
                     .fill(Color(hex: "FF9500").opacity(0.15))
                     .frame(width: 40, height: 40)
                 Image(systemName: "sun.max.fill")
-                    .font(.system(size: 18))
+                    .font(.poppins(.regular, size: 18))
                     .foregroundColor(Color(hex: "FF9500"))
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Goal adjusted for hot weather")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
                     .foregroundColor(.white)
                 Text("\(Int(temp))°C — +\(viewModel.weatherAdjustmentMl)ml added")
-                    .font(.system(size: 12))
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.white.opacity(0.7))
             }
 
             Spacer()
 
             Text("+20%")
-                .font(.system(size: 18, weight: .bold))
+                .font(.poppins(.bold, size: 18))
                 .foregroundColor(Color(hex: "FF9500"))
         }
         .padding(16)
@@ -431,10 +431,10 @@ struct HydrationView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(formattedSelectedDate)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.poppins(.bold, size: 18))
                         .foregroundColor(.primary)
                     Text("\(viewModel.todaysEntries.count) drinks • \(viewModel.totalIntake)ml total")
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.secondary)
                 }
 
@@ -442,7 +442,7 @@ struct HydrationView: View {
 
                 Button(action: { showAddDrink = true }) {
                     Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 18))
                         .foregroundColor(gradient.accentColor)
                         .frame(width: 40, height: 40)
                         .background(gradient.accentColor.opacity(0.12))
@@ -484,9 +484,9 @@ struct HydrationView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "sparkles")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 14))
                             Text("Ask AI about my hydration")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 14))
                         }
                         .foregroundColor(gradient.accentColor)
                         .frame(maxWidth: .infinity)
@@ -521,15 +521,15 @@ struct HydrationView: View {
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Image(systemName: "drop")
-                .font(.system(size: 40))
+                .font(.poppins(.regular, size: 40))
                 .foregroundColor(.secondary.opacity(0.5))
 
             Text("No drinks yet")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
                 .foregroundColor(.secondary)
 
             Text("Tap + or use the chips above to log a drink")
-                .font(.system(size: 13))
+                .font(.poppins(.regular, size: 13))
                 .foregroundColor(.secondary.opacity(0.7))
                 .multilineTextAlignment(.center)
         }
@@ -662,7 +662,7 @@ struct HydrationHeroRing: View {
             VStack(spacing: 4) {
                 if isDragging {
                     Text("+\(dragMl)ml")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 28))
                         .foregroundColor(.white)
                         .contentTransition(.numericText(value: Double(dragMl)))
                         .animation(.snappy(duration: 0.15), value: dragMl)
@@ -672,11 +672,11 @@ struct HydrationHeroRing: View {
                         ))
 
                     Text("Release to add")
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.white.opacity(0.7))
                 } else {
                     Text("\(intakeMl)ml")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 36))
                         .foregroundColor(.white)
                         .contentTransition(.numericText(value: Double(intakeMl)))
                         .animation(.easeOut(duration: 0.6), value: intakeMl)
@@ -686,13 +686,13 @@ struct HydrationHeroRing: View {
                         ))
 
                     Text("of \(goalMl)ml")
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.white.opacity(0.7))
                         .contentTransition(.numericText(value: Double(goalMl)))
 
                     // Percentage pill
                     Text("\(Int(min(progress, 1.0) * 100))%")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -704,10 +704,10 @@ struct HydrationHeroRing: View {
                     if streak > 0 {
                         HStack(spacing: 4) {
                             Image(systemName: "flame.fill")
-                                .font(.system(size: 11))
+                                .font(.poppins(.regular, size: 11))
                                 .foregroundColor(.orange)
                             Text("\(streak) day streak")
-                                .font(.system(size: 11))
+                                .font(.poppins(.regular, size: 11))
                                 .foregroundColor(.white.opacity(0.7))
                                 .contentTransition(.numericText(value: Double(streak)))
                         }
@@ -802,11 +802,11 @@ struct HydrationCalendarStrip: View {
 
                 VStack(spacing: 6) {
                     Text(date.formatted(.dateTime.weekday(.abbreviated)))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.poppins(.medium, size: 13))
                         .foregroundColor(.white.opacity(isFuture ? 0.35 : 0.7))
 
                     Text(date.formatted(.dateTime.day()))
-                        .font(.system(size: isSelected ? 17 : 16, weight: isSelected ? .bold : .medium))
+                        .font(isSelected ? .poppins(.bold, size: 17) : .poppins(.medium, size: 16))
                         .foregroundColor(.white.opacity(isFuture ? 0.35 : 1.0))
                         .frame(width: 40, height: 40)
                         .background(
@@ -854,10 +854,10 @@ struct QuickAddDrinkChip: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(drinkType.displayName)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 14))
                         .foregroundColor(.white)
                     Text("+100ml")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.poppins(.medium, size: 11))
                         .foregroundColor(.white.opacity(0.75))
                 }
             }
@@ -903,7 +903,7 @@ struct AddDrinkSheet: View {
 
             // Title
             Text("Add a drink")
-                .font(.system(size: 24, weight: .bold))
+                .font(.poppins(.bold, size: 24))
                 .padding(.horizontal, 24)
 
             // Drink type selector
@@ -934,7 +934,7 @@ struct AddDrinkSheet: View {
                             }
 
                             Text(type.displayName)
-                                .font(.system(size: 11, weight: selectedType == type ? .semibold : .regular))
+                                .font(selectedType == type ? .poppins(.semiBold, size: 11) : .poppins(.regular, size: 11))
                                 .foregroundColor(selectedType == type ? accentColor : .secondary)
                         }
                         .onTapGesture {
@@ -949,7 +949,7 @@ struct AddDrinkSheet: View {
             // Custom amount input
             VStack(alignment: .leading, spacing: 8) {
                 Text("CUSTOM AMOUNT")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.poppins(.medium, size: 13))
                     .foregroundColor(.secondary.opacity(0.7))
                     .tracking(0.5)
                     .padding(.horizontal, 24)
@@ -958,11 +958,11 @@ struct AddDrinkSheet: View {
                     HStack {
                         TextField("Enter amount (ml)", text: $customAmount)
                             .keyboardType(.numberPad)
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.poppins(.medium, size: 15))
                             .focused($amountFocused)
 
                         Text("ml")
-                            .font(.system(size: 15))
+                            .font(.poppins(.regular, size: 15))
                             .foregroundColor(.secondary.opacity(0.6))
                     }
                     .padding(.horizontal, 16)
@@ -972,7 +972,7 @@ struct AddDrinkSheet: View {
 
                     Button(action: addDrink) {
                         Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 20))
                             .foregroundColor(.white)
                             .frame(width: 56, height: 56)
                             .background(
@@ -992,7 +992,7 @@ struct AddDrinkSheet: View {
                         customAmount = "\(amount)"
                     }) {
                         Text("\(amount)ml")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.poppins(.medium, size: 13))
                             .foregroundColor(customAmount == "\(amount)" ? .white : .secondary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
@@ -1020,23 +1020,23 @@ struct AddDrinkSheet: View {
                             .fill(accentColor.opacity(0.15))
                             .frame(width: 40, height: 40)
                         Image(systemName: "paintpalette.fill")
-                            .font(.system(size: 18))
+                            .font(.poppins(.regular, size: 18))
                             .foregroundColor(accentColor)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Check Hydration Level")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 15))
                             .foregroundColor(.primary)
                         Text("Use urine color guide")
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
 
                     Spacer()
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14))
+                        .font(.poppins(.regular, size: 14))
                         .foregroundColor(.secondary.opacity(0.5))
                 }
                 .padding(.horizontal, 20)
@@ -1090,9 +1090,9 @@ struct HydrationOverviewSheet: View {
                     // Header
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Hydration Analytics")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.poppins(.bold, size: 28))
                         Text("Your complete overview")
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1108,7 +1108,7 @@ struct HydrationOverviewSheet: View {
                                 }
                             }) {
                                 Text(period)
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 14))
                                     .foregroundColor(selectedPeriod == index ? .white : .primary)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 12)
@@ -1140,9 +1140,9 @@ struct HydrationOverviewSheet: View {
                     // Goal description
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Goal Calculation")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 16))
                         Text(viewModel.goalDescription)
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1167,10 +1167,10 @@ struct HydrationOverviewSheet: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(viewModel.effectiveIntake)ml")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.poppins(.bold, size: 28))
                     .foregroundColor(.white)
                 Text("of \(viewModel.dailyGoal)ml goal")
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(.white.opacity(0.8))
             }
 
@@ -1178,10 +1178,10 @@ struct HydrationOverviewSheet: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 Text("\(Int(viewModel.progress * 100))%")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.poppins(.bold, size: 28))
                     .foregroundColor(.white)
                 Text(viewModel.isGoalMet ? "Goal met!" : "In progress")
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(.white.opacity(0.8))
             }
         }
@@ -1216,13 +1216,13 @@ struct HydrationOverviewSheet: View {
     private func analyticsMiniCard(label: String, value: String, icon: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(.poppins(.regular, size: 20))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 20, weight: .bold))
+                .font(.poppins(.bold, size: 20))
                 .foregroundColor(.primary)
             Text(label)
-                .font(.system(size: 12))
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1237,12 +1237,12 @@ struct HydrationOverviewSheet: View {
 
         return VStack(alignment: .leading, spacing: 12) {
             Text("Drink Breakdown")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
                 .padding(.horizontal, 20)
 
             if grouped.isEmpty {
                 Text("No drinks logged yet")
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 20)
             } else {
@@ -1264,13 +1264,13 @@ struct HydrationOverviewSheet: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(type.displayName)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.poppins(.medium, size: 14))
                                 Text("(\(entries.count))")
-                                    .font(.system(size: 12))
+                                    .font(.poppins(.regular, size: 12))
                                     .foregroundColor(.secondary)
                                 Spacer()
                                 Text("\(typeMl)ml")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 14))
                             }
 
                             GeometryReader { geo in
@@ -1317,7 +1317,7 @@ struct HydrationEntryCard: View {
                     Spacer()
                     Button(action: performDelete) {
                         Image(systemName: "trash.fill")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.poppins(.medium, size: 18))
                             .foregroundColor(.white)
                             .frame(width: 60, height: .infinity)
                     }
@@ -1345,18 +1345,18 @@ struct HydrationEntryCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text("\(entry.amountMl)ml")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.poppins(.bold, size: 16))
                                 .foregroundColor(.primary)
 
                             if entry.drinkType != .water {
                                 Text("(\(entry.effectiveHydration)ml eff.)")
-                                    .font(.system(size: 11))
+                                    .font(.poppins(.regular, size: 11))
                                     .foregroundColor(.secondary)
                             }
                         }
 
                         Text("\(entry.drinkType.displayName) • \(entry.formattedTime)")
-                            .font(.system(size: 13))
+                            .font(.poppins(.regular, size: 13))
                             .foregroundColor(.secondary)
                     }
 

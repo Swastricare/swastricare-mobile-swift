@@ -127,14 +127,14 @@ struct MedicationsView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showAddMedication = true } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 24))
+                            .font(.poppins(.regular, size: 24))
                             .foregroundColor(AppColors.medication)
                     }
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
                         .foregroundColor(.primary)
-                        .font(.body)
+                        .font(.poppins(.regular, size: 17))
                 }
             }
             .sheet(isPresented: $showAddMedication) {
@@ -171,11 +171,11 @@ struct MedicationsView: View {
                         } label: {
                             VStack(spacing: 6) {
                                 Text(date.formatted(.dateTime.weekday(.abbreviated)).uppercased())
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 11))
                                     .foregroundColor(isSelected ? .white : .secondary)
 
                                 Text("\(Calendar.current.component(.day, from: date))")
-                                    .font(.system(size: 17, weight: .bold))
+                                    .font(.poppins(.bold, size: 17))
                                     .foregroundColor(isSelected ? .white : .primary)
                             }
                             .frame(width: 46, height: 64)
@@ -211,23 +211,23 @@ struct MedicationsView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Today's Progress")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.poppins(.medium, size: 13))
                         .foregroundColor(.secondary)
 
                     Text("\(viewModel.takenCount) of \(viewModel.totalCount) taken")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.poppins(.bold, size: 20))
                         .foregroundColor(.primary)
 
                     if viewModel.totalCount - viewModel.takenCount > 0 {
                         Text("\(viewModel.totalCount - viewModel.takenCount) remaining")
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(.secondary)
                     } else if viewModel.totalCount > 0 {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 13))
+                                .font(.poppins(.regular, size: 13))
                             Text("All done!")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 14))
                         }
                         .foregroundColor(AppColors.accentGreen)
                     }
@@ -250,13 +250,13 @@ struct MedicationsView: View {
     private func statPill(icon: String, color: Color, value: String, label: String) -> some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .medium))
+                .font(.poppins(.medium, size: 13))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 16))
                 .foregroundColor(.primary)
             Text(label)
-                .font(.system(size: 11))
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -274,18 +274,18 @@ struct MedicationsView: View {
             // Section header
             HStack(spacing: 8) {
                 Image(systemName: period.icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
                     .foregroundColor(period.color)
 
                 Text(period.label)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.primary)
 
                 Text("·")
                     .foregroundColor(.secondary)
 
                 Text(period.timeRange)
-                    .font(.system(size: 12))
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
 
                 Spacer()
@@ -331,9 +331,9 @@ struct MedicationsView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
                 Text("Ask AI about my medications")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
             }
             .foregroundColor(AppColors.accentBlue)
             .frame(maxWidth: .infinity)
@@ -355,17 +355,17 @@ struct MedicationsView: View {
                     .frame(width: 120, height: 120)
 
                 Image(systemName: "pills.circle.fill")
-                    .font(.system(size: 56))
+                    .font(.poppins(.regular, size: 56))
                     .foregroundColor(AppColors.medication.opacity(0.5))
             }
 
             VStack(spacing: 8) {
                 Text("No Medications Yet")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.poppins(.bold, size: 24))
                     .foregroundColor(.primary)
 
                 Text("Track your medications and never\nmiss a dose again")
-                    .font(.system(size: 15))
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -375,9 +375,9 @@ struct MedicationsView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "plus")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 15))
                     Text("Add Medication")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 28)
@@ -482,7 +482,7 @@ struct MedicationItemCard: View {
             HStack(spacing: 14) {
                 // Type icon
                 Image(systemName: medication.medication.type.icon)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.poppins(.medium, size: 18))
                     .foregroundColor(typeColor)
                     .frame(width: 44, height: 44)
                     .background(typeColor.opacity(0.1))
@@ -491,20 +491,20 @@ struct MedicationItemCard: View {
                 // Name + dosage + time
                 VStack(alignment: .leading, spacing: 3) {
                     Text(medication.medication.name)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 15))
                         .foregroundColor(.primary)
                         .lineLimit(1)
 
                     HStack(spacing: 4) {
                         Text(medication.medication.dosage)
-                            .font(.system(size: 13))
+                            .font(.poppins(.regular, size: 13))
                             .foregroundColor(.secondary)
 
                         Text("·")
                             .foregroundColor(.secondary)
 
                         Text(formatTime(dose.scheduledTime))
-                            .font(.system(size: 13))
+                            .font(.poppins(.regular, size: 13))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -535,40 +535,40 @@ struct MedicationItemCard: View {
     private var statusView: some View {
         if justTaken {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 28))
+                .font(.poppins(.regular, size: 28))
                 .foregroundColor(AppColors.accentGreen)
                 .transition(.scale.combined(with: .opacity))
         } else if isTaken {
             VStack(spacing: 2) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.poppins(.regular, size: 22))
                     .foregroundColor(AppColors.accentGreen)
                 if let takenAt = dose.takenAt {
                     Text(formatTime(takenAt))
-                        .font(.system(size: 10))
+                        .font(.poppins(.regular, size: 10))
                         .foregroundColor(.secondary)
                 }
             }
         } else if dose.status == .skipped {
             HStack(spacing: 3) {
                 Image(systemName: "forward.fill")
-                    .font(.system(size: 10))
+                    .font(.poppins(.regular, size: 10))
                 Text("Skipped")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.poppins(.medium, size: 12))
             }
             .foregroundColor(.secondary)
         } else if dose.status == .missed {
             HStack(spacing: 3) {
                 Image(systemName: "exclamationmark.circle.fill")
-                    .font(.system(size: 10))
+                    .font(.poppins(.regular, size: 10))
                 Text("Missed")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.poppins(.medium, size: 12))
             }
             .foregroundColor(.red)
         } else if dose.isOverdue() {
             Button(action: handleTake) {
                 Text("Overdue")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.poppins(.bold, size: 13))
                     .foregroundColor(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
@@ -579,7 +579,7 @@ struct MedicationItemCard: View {
         } else if dose.scheduledTime <= Date() {
             Button(action: handleTake) {
                 Text("Take")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.poppins(.bold, size: 13))
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 7)
@@ -590,9 +590,9 @@ struct MedicationItemCard: View {
         } else {
             HStack(spacing: 3) {
                 Image(systemName: "clock")
-                    .font(.system(size: 11))
+                    .font(.poppins(.regular, size: 11))
                 Text(formatTime(dose.scheduledTime))
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.poppins(.medium, size: 13))
             }
             .foregroundColor(.secondary)
         }
@@ -641,14 +641,14 @@ struct AdherenceRingView: View {
             VStack(spacing: 0) {
                 if animatedProgress >= 1.0 {
                     Image(systemName: "checkmark")
-                        .font(.system(size: size * 0.28, weight: .bold))
+                        .font(.poppins(.bold, size: size * 0.28))
                         .foregroundColor(AppColors.accentGreen)
                 } else {
                     Text("\(Int(animatedProgress * 100))")
-                        .font(.system(size: size * 0.28, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: size * 0.28))
                         .foregroundColor(.primary)
                     Text("%")
-                        .font(.system(size: size * 0.14, weight: .medium, design: .rounded))
+                        .font(.poppins(.medium, size: size * 0.14))
                         .foregroundColor(.secondary)
                 }
             }

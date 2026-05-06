@@ -103,14 +103,14 @@ struct RemindersSettingsView: View {
         if viewModel.permissionStatus != .authorized && viewModel.permissionStatus != .provisional {
             HStack(spacing: 12) {
                 Image(systemName: "bell.slash.fill")
-                    .font(.system(size: 20))
+                    .font(.poppins(.regular, size: 20))
                     .foregroundColor(viewModel.permissionStatus == .denied ? .red : .orange)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(viewModel.permissionStatus == .denied ? "Notifications Disabled" : "Enable Notifications")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 14))
                     Text(viewModel.permissionStatus == .denied ? "Open Settings to re-enable" : "Allow notifications to receive reminders")
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
 
@@ -120,16 +120,16 @@ struct RemindersSettingsView: View {
                     Button("Enable") {
                         Task { await viewModel.requestPermission() }
                     }
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                     .foregroundColor(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(Color(hex: "4F46E5"))
+                    .background(AppColors.aiTeal)
                     .clipShape(Capsule())
                 } else {
                     Button("Settings") { openAppSettings() }
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(hex: "4F46E5"))
+                        .font(.poppins(.medium, size: 13))
+                        .foregroundColor(AppColors.aiTeal)
                 }
             }
             .padding(14)
@@ -146,18 +146,18 @@ struct RemindersSettingsView: View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: "4F46E5").opacity(0.12))
+                    .fill(AppColors.aiTeal.opacity(0.12))
                     .frame(width: 40, height: 40)
                 Image(systemName: "bell.badge.fill")
-                    .font(.system(size: 18))
-                    .foregroundColor(Color(hex: "4F46E5"))
+                    .font(.poppins(.regular, size: 18))
+                    .foregroundColor(AppColors.aiTeal)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("All Notifications")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 15))
                 Text(viewModel.settings.globalEnabled ? "Reminders are active" : "All reminders paused")
-                    .font(.system(size: 13))
+                    .font(.poppins(.regular, size: 13))
                     .foregroundColor(.secondary)
             }
 
@@ -198,16 +198,16 @@ struct RemindersSettingsView: View {
                             .fill(color.opacity(0.12))
                             .frame(width: 40, height: 40)
                         Image(systemName: icon)
-                            .font(.system(size: 18))
+                            .font(.poppins(.regular, size: 18))
                             .foregroundColor(color)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 15))
                             .foregroundColor(.primary)
                         Text(subtitle)
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
@@ -218,7 +218,7 @@ struct RemindersSettingsView: View {
                         .labelsHidden()
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(Color(.tertiaryLabel))
                         .rotationEffect(.degrees(expandedCategory == id ? 90 : 0))
                 }
@@ -352,7 +352,7 @@ struct RemindersSettingsView: View {
             settingToggle("Log Nudge", isOn: $viewModel.settings.diet.logNudgeEnabled)
 
             Text("Reminds you 30 min after meal time if nothing logged")
-                .font(.system(size: 11))
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 4)
@@ -413,7 +413,7 @@ struct RemindersSettingsView: View {
             if viewModel.settings.aiNudges.whatsAppNudgesEnabled {
                 HStack(spacing: 6) {
                     Image(systemName: "phone.fill")
-                        .font(.system(size: 11))
+                        .font(.poppins(.regular, size: 11))
                         .foregroundColor(.secondary)
                     if let phone = viewModel.userPhone, !phone.isEmpty {
                         Text(phone)
@@ -423,7 +423,7 @@ struct RemindersSettingsView: View {
                             .foregroundColor(.orange)
                     }
                 }
-                .font(.system(size: 12))
+                .font(.poppins(.regular, size: 12))
                 .padding(.top, 6)
             }
         }
@@ -434,7 +434,7 @@ struct RemindersSettingsView: View {
     private func settingToggle(_ label: String, isOn: Binding<Bool>) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 15))
+                .font(.poppins(.regular, size: 15))
             Spacer()
             Toggle("", isOn: isOn)
                 .labelsHidden()
@@ -449,7 +449,7 @@ struct RemindersSettingsView: View {
     ) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 15))
+                .font(.poppins(.regular, size: 15))
             Spacer()
             Picker("", selection: selection, content: content)
                 .pickerStyle(.menu)
@@ -460,7 +460,7 @@ struct RemindersSettingsView: View {
 
     private func settingTime(_ label: String, selection: Binding<Date>) -> some View {
         DatePicker(label, selection: selection, displayedComponents: .hourAndMinute)
-            .font(.system(size: 15))
+            .font(.poppins(.regular, size: 15))
             .padding(.vertical, 2)
     }
 
@@ -468,11 +468,11 @@ struct RemindersSettingsView: View {
         VStack(spacing: 4) {
             HStack {
                 Text(label)
-                    .font(.system(size: 15))
+                    .font(.poppins(.regular, size: 15))
                 Spacer()
                 if enabled.wrappedValue {
                     Text(time.wrappedValue.formatted(date: .omitted, time: .shortened))
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.secondary)
                 }
                 Toggle("", isOn: enabled)

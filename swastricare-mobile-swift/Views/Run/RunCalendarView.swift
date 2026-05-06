@@ -15,7 +15,7 @@ struct RunCalendarView: View {
     @State private var calendarData: [CalendarRunData] = []
     @State private var isAnimating = false
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     private let accentGreen = Color(hex: "22C55E")
     private let analyticsService = RunAnalyticsService.shared
     
@@ -57,7 +57,7 @@ struct RunCalendarView: View {
         HStack {
             Button(action: previousMonth) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 16))
                     .foregroundColor(accentBlue)
                     .frame(width: 40, height: 40)
                     .background(accentBlue.opacity(0.1))
@@ -68,12 +68,11 @@ struct RunCalendarView: View {
             
             VStack(spacing: 2) {
                 Text(monthYearString)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 22))
                     .foregroundColor(.primary)
                 
                 Text("\(activeDaysInMonth) active days")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -81,7 +80,7 @@ struct RunCalendarView: View {
             
             Button(action: nextMonth) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 16))
                     .foregroundColor(canGoToNextMonth ? accentBlue : .gray)
                     .frame(width: 40, height: 40)
                     .background((canGoToNextMonth ? accentBlue : Color.gray).opacity(0.1))
@@ -101,8 +100,7 @@ struct RunCalendarView: View {
             HStack(spacing: 0) {
                 ForEach(daysOfWeek, id: \.self) { day in
                     Text(day)
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity)
                 }
@@ -155,16 +153,14 @@ struct RunCalendarView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(formattedSelectedDate(date))
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 if dayData?.hasActivity == true {
                     Text(String(format: "%.1f km", dayData?.totalDistance ?? 0))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 15))
                         .foregroundColor(accentBlue)
                 }
             }
@@ -179,17 +175,16 @@ struct RunCalendarView: View {
             } else {
                 HStack {
                     Image(systemName: "figure.run")
-                        .font(.system(size: 24))
+                        .font(.poppins(.regular, size: 24))
                         .foregroundColor(.secondary.opacity(0.5))
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("No activities")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 15))
                             .foregroundColor(.secondary)
                         
                         Text("Rest day or no tracked runs")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary.opacity(0.8))
                     }
                     
@@ -210,8 +205,7 @@ struct RunCalendarView: View {
         VStack(spacing: 12) {
             HStack {
                 Text("Monthly Summary")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -343,14 +337,14 @@ struct CalendarDayCell: View {
     let isToday: Bool
     let action: () -> Void
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     private let accentGreen = Color(hex: "22C55E")
     
     var body: some View {
         Button(action: action) {
             VStack(spacing: 2) {
                 Text(dayNumber)
-                    .font(.system(size: 14, weight: isToday ? .bold : .medium))
+                    .font(isToday ? .poppins(.bold, size: 14) : .poppins(.medium, size: 14))
                     .foregroundColor(textColor)
                 
                 // Activity indicator
@@ -418,7 +412,7 @@ struct CalendarDayCell: View {
 struct SelectedDateActivityRow: View {
     let activity: RouteActivity
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     
     var body: some View {
         HStack(spacing: 12) {
@@ -429,18 +423,17 @@ struct SelectedDateActivityRow: View {
                     .frame(width: 40, height: 40)
                 
                 Image(systemName: activity.type.icon)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.poppins(.medium, size: 16))
                     .foregroundColor(activity.type.color)
             }
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(activity.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.poppins(.medium, size: 15))
                     .foregroundColor(.primary)
                 
                 Text(activity.formattedTimeRange)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -448,17 +441,16 @@ struct SelectedDateActivityRow: View {
             
             VStack(alignment: .trailing, spacing: 2) {
                 Text(activity.formattedDistance)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(accentBlue)
                 
                 Text(activity.formattedDuration)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .medium))
+                .font(.poppins(.medium, size: 12))
                 .foregroundColor(.secondary)
         }
         .padding(12)
@@ -478,15 +470,15 @@ struct MonthSummaryCard: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
+                .font(.poppins(.medium, size: 18))
                 .foregroundColor(color)
             
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 14))
                 .foregroundColor(.primary)
             
             Text(title)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
         }
@@ -506,7 +498,7 @@ struct CompactRunCalendarView: View {
     @State private var calendarData: [CalendarRunData] = []
     @State private var isAnimating = false
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     private let accentGreen = Color(hex: "22C55E")
     private let analyticsService = RunAnalyticsService.shared
     private let calendar = Calendar.current
@@ -516,16 +508,14 @@ struct CompactRunCalendarView: View {
             // Header
             HStack {
                 Text("Run Calendar")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Button(action: onViewFullCalendar) {
                     Text("View All")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(accentBlue)
                 }
             }
@@ -544,7 +534,7 @@ struct CompactRunCalendarView: View {
             // Summary
             HStack {
                 Text("\(activeDaysLast14) active days in the last 2 weeks")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
                 
                 Spacer()
@@ -586,13 +576,13 @@ struct MiniCalendarDayCell: View {
     let hasActivity: Bool
     let isToday: Bool
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     private let accentGreen = Color(hex: "22C55E")
     
     var body: some View {
         VStack(spacing: 2) {
             Text(dayLetter)
-                .font(.system(size: 8, weight: .medium))
+                .font(.poppins(.medium, size: 8))
                 .foregroundColor(.secondary)
             
             Circle()

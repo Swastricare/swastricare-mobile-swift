@@ -55,14 +55,14 @@ struct DietQuickActionButton: View {
                                 .frame(width: 32, height: 32)
 
                             Image(systemName: "fork.knife")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.poppins(.bold, size: 14))
                                 .foregroundColor(.white)
                         }
 
                         Spacer()
 
                         Text("\(Int(progress * 100))%")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 20))
                             .foregroundColor(.white)
                     }
 
@@ -70,16 +70,16 @@ struct DietQuickActionButton: View {
 
                     // Title
                     Text("Diet")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 13))
                         .foregroundColor(.white.opacity(0.9))
 
                     // Progress Info
                     HStack(alignment: .firstTextBaseline, spacing: 3) {
                         Text("\(currentCalories)")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 16))
                             .foregroundColor(.white)
                         Text("/ \(dailyGoal) cal")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.poppins(.medium, size: 10))
                             .foregroundColor(.white.opacity(0.75))
                     }
                 }

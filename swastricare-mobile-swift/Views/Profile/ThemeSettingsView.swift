@@ -21,10 +21,10 @@ struct ThemeSettingsView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(mode.displayName)
-                                        .font(.body)
+                                        .font(.poppins(.regular, size: 17))
                                         .foregroundColor(.primary)
                                     Text(mode.description)
-                                        .font(.caption)
+                                        .font(.poppins(.regular, size: 12))
                                         .foregroundColor(.secondary)
                                 }
 
@@ -32,8 +32,8 @@ struct ThemeSettingsView: View {
 
                                 if themeManager.currentTheme == mode {
                                     Image(systemName: "checkmark")
-                                        .font(.body.weight(.semibold))
-                                        .foregroundColor(Color(hex: "4F46E5"))
+                                        .font(.poppins(.semiBold, size: 17))
+                                        .foregroundColor(AppColors.aiTeal)
                                 }
                             }
                         }

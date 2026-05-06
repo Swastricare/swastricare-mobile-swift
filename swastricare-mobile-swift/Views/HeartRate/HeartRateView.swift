@@ -133,10 +133,10 @@ struct HeartRateView: View {
             // Center title
             VStack(spacing: 2) {
                 Text("Heart Rate")
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
                 if viewModel.isRunning {
                     Text(phaseDescription)
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                         .transition(.opacity)
                 }
@@ -151,7 +151,7 @@ struct HeartRateView: View {
                     dismiss()
                 }) {
                     Image(systemName: "chevron.left")
-                        .font(.body.weight(.semibold))
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundColor(.primary)
                         .frame(width: 40, height: 40)
                         .background(Color(UIColor.secondarySystemBackground))
@@ -167,7 +167,7 @@ struct HeartRateView: View {
                         showAnalytics = true
                     }) {
                         Image(systemName: "chart.xyaxis.line")
-                            .font(.body)
+                            .font(.poppins(.regular, size: 17))
                             .foregroundColor(.secondary)
                             .frame(width: 40, height: 40)
                             .background(Color(UIColor.secondarySystemBackground))
@@ -181,7 +181,7 @@ struct HeartRateView: View {
                         viewModel.showDisclaimer = true
                     }) {
                         Image(systemName: "info.circle")
-                            .font(.body)
+                            .font(.poppins(.regular, size: 17))
                             .foregroundColor(.secondary)
                             .frame(width: 40, height: 40)
                             .background(Color(UIColor.secondarySystemBackground))
@@ -247,13 +247,13 @@ struct HeartRateView: View {
             // BPM Display with heartbeat animation
             HStack(alignment: .lastTextBaseline, spacing: 8) {
                 Text(viewModel.bpm > 0 ? "\(viewModel.bpm)" : "--")
-                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 56))
                     .foregroundColor(.primary)
                     .contentTransition(.numericText())
                     .animation(.spring(response: 0.3), value: viewModel.bpm)
-                
+
                 Text("BPM")
-                    .font(.title3.weight(.medium))
+                    .font(.poppins(.medium, size: 20))
                     .foregroundColor(.secondary)
                     .padding(.bottom, 6)
             }
@@ -295,11 +295,11 @@ struct HeartRateView: View {
         }) {
             HStack(spacing: 10) {
                 Image(systemName: viewModel.isRunning ? "stop.fill" : "heart.fill")
-                    .font(.body.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 17))
                     .symbolEffect(.pulse, isActive: !viewModel.isRunning)
-                
+
                 Text(viewModel.isRunning ? "Stop Measurement" : "Start Measurement")
-                    .font(.body.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 17))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)

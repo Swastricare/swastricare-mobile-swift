@@ -2,202 +2,189 @@
 //  HomeView.swift
 //  swastricare-mobile-swift
 //
-//  MVVM Architecture - Views Layer
+//  iOS port of Android HomeScreenV3 — MVVM Architecture - Views Layer
 //
 
 import SwiftUI
 import UIKit
 
+// MARK: - Private Color Tokens (mirroring HomeScreenV3.kt)
+
+private let darkText = Color(hex: "0F172A")
+private let mutedText = Color(hex: "6B7280")
+private let subtleBorder = Color.black.opacity(0.06)
+private let ringTrack = Color(hex: "E5E7EB")
+
+private let calorieAccent = Color(hex: "EF4444")
+private let distanceAccent = Color(hex: "38BDF8")
+private let activeAccent = Color(hex: "8B5CF6")
+
+// MARK: - HomeView
+
 struct HomeView: View {
-    
-    // MARK: - ViewModel
-    
+
+    // MARK: - ViewModels
+
     @StateObject private var viewModel = DependencyContainer.shared.homeViewModel
-    @StateObject private var trackerViewModel = DependencyContainer.shared.trackerViewModel
-    @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
     @StateObject private var hydrationViewModel = DependencyContainer.shared.hydrationViewModel
     @StateObject private var medicationViewModel = DependencyContainer.shared.medicationViewModel
     @StateObject private var dietViewModel = DependencyContainer.shared.dietViewModel
+    @StateObject private var trackerViewModel = DependencyContainer.shared.trackerViewModel
+    @StateObject private var runActivityViewModel = DependencyContainer.shared.runActivityViewModel
+    @StateObject private var authViewModel = DependencyContainer.shared.authViewModel
+
     // MARK: - Local State
-    
-    @State private var showSyncAlert = false
-    @State private var syncMessage: String?
+
     @State private var hasAppeared = false
-    @State private var modelOpacity: Double = 0
-    @State private var modelScale: CGFloat = 0.8
-    @State private var quickActionsVisible = false
     @State private var showHeartRateMeasurement = false
     @State private var showReminders = false
     @State private var showARBodyScan = false
-    
-    // MARK: - Computed Properties
-    
-    private var userName: String {
-        authViewModel.userName.components(separatedBy: " ").first ?? "User"
+    @State private var showMedications = false
+    @State private var showHydration = false
+    @State private var showDiet = false
+    @State private var showMenstrualCycle = false
+    @State private var showFamily = false
+    @State private var showSyncAlert = false
+    @State private var syncMessage: String?
+
+    // MARK: - Computed
+
+    private var firstName: String {
+        authViewModel.userName.components(separatedBy: " ").first?.isEmpty == false
+            ? authViewModel.userName.components(separatedBy: " ").first!
+            : "there"
     }
-    
-    private var timeBasedGreeting: String {
+
+    private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12: return "Good Morning"
-        case 12..<17: return "Good Afternoon"
-        case 17..<21: return "Good Evening"
-        default: return "Good Night"
+        case 5..<12: return "Good Morning,"
+        case 12..<17: return "Good Afternoon,"
+        case 17..<21: return "Good Evening,"
+        default: return "Good Night,"
         }
     }
-    
-    // MARK: - Health Status Logic
-    
-    private enum HealthStatus {
-        case optimal
-        case attention
-        case normal
-        
-        var title: String {
-            switch self {
-            case .optimal: return "System Optimal"
-            case .attention: return "Attention Needed"
-            case .normal: return "Status Normal"
-            }
-        }
-        
-        var message: String {
-            switch self {
-            case .optimal: return "All vitals and medications on track"
-            case .attention: return "Medications pending or vitals check required"
-            case .normal: return "Health metrics within normal range"
-            }
-        }
-        
-        var color: Color {
-            switch self {
-            case .optimal: return Color.green
-            case .attention: return Color.orange
-            case .normal: return Color.blue
-            }
-        }
-        
-        var glowColor: Color {
-            switch self {
-            case .optimal: return Color.green.opacity(0.5)
-            case .attention: return Color.orange.opacity(0.5)
-            case .normal: return Color.blue.opacity(0.5)
-            }
-        }
-    }
-    
-    private var healthStatus: HealthStatus {
-        if !viewModel.isAuthorized {
-            return .attention
-        }
-        // Example logic: If meds taken < total, attention needed (simplified)
-        // In reality, this would check times. For now, if taken == total > 0, optimal.
-        if medicationViewModel.totalCount > 0 && medicationViewModel.takenCount == medicationViewModel.totalCount {
-            return .optimal
-        }
-        if medicationViewModel.takenCount < medicationViewModel.totalCount {
-             // If it's late in the day, maybe attention? For now just normal/attention differentiation
-            return .normal 
-        }
-        return .normal
-    }
-    
+
+    // Activity goal data — pulled from runActivityViewModel
+    private var stepGoal: Int { runActivityViewModel.activityGoal.dailyStepsGoal }
+    private var calorieGoal: Int { runActivityViewModel.activityGoal.dailyCaloriesGoal }
+    // Distance goal in km
+    private var distanceGoalKm: Double { runActivityViewModel.activityGoal.dailyDistanceGoal }
+    // Active minutes goal — use iOS default of 30 min (no explicit field, matches HomeVM exerciseProgress /30)
+    private var activeMinutesGoal: Int { 30 }
+
     // MARK: - Body
-    
+
     var body: some View {
-        ZStack {
-            // Premium Background
-            PremiumBackground()
-            
-            GeometryReader { screenGeo in
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        if viewModel.isLoading && !hasAppeared {
-                            homeSkeletonView
-                        }
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                // 1. Header
+                HomeHeaderSection(
+                    firstName: firstName,
+                    greeting: greeting,
+                    avatarURL: authViewModel.userPhotoURL,
+                    onNotifications: { showReminders = true }
+                )
+                .opacity(hasAppeared ? 1 : 0)
+                .offset(y: hasAppeared ? 0 : 16)
+                .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.05), value: hasAppeared)
 
-                        // Living Status Header
-                        LivingStatusHeader(
-                            userName: userName,
-                            userPhotoURL: authViewModel.userPhotoURL,
-                            status: healthStatus,
-                            greeting: timeBasedGreeting,
-                            stepCount: viewModel.stepCount,
-                            lastSyncTime: viewModel.lastSyncTime,
-                            showReminders: $showReminders
-                        )
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 18)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.05), value: hasAppeared)
-
-                        // Proactive AI Nudges
-                        if !viewModel.serverNudges.isEmpty {
-                            NudgeCardsView(
-                                nudges: viewModel.serverNudges,
-                                onDismiss: { nudge in
-                                    Task { await viewModel.dismissNudge(nudge) }
-                                },
-                                onAction: { nudge in
-                                    Task { await viewModel.actOnNudge(nudge) }
-                                    if let deeplink = nudge.actionDeeplink, let url = URL(string: deeplink) {
-                                        UIApplication.shared.open(url)
-                                    }
-                                }
-                            )
-                            .padding(.top, 4)
-                            .opacity(hasAppeared ? 1 : 0)
-                            .offset(y: hasAppeared ? 0 : 18)
-                            .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
-                        }
-
-                        // Health Authorization Banner
-                        if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
-                            authorizationBanner
-                        }
-
-                        // Human Body Image with Daily Activity Details (tap for AR scan)
-                        humanBodyImageWithDetails
-                            .frame(height: 200)
-                            .opacity(hasAppeared ? 1 : 0)
-                            .offset(y: hasAppeared ? 0 : 24)
-                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15), value: hasAppeared)
-                            .onTapGesture {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                showARBodyScan = true
+                // Nudge cards (non-critical, kept from existing logic)
+                if !viewModel.serverNudges.isEmpty {
+                    NudgeCardsView(
+                        nudges: viewModel.serverNudges,
+                        onDismiss: { nudge in Task { await viewModel.dismissNudge(nudge) } },
+                        onAction: { nudge in
+                            Task { await viewModel.actOnNudge(nudge) }
+                            if let deeplink = nudge.actionDeeplink, let url = URL(string: deeplink) {
+                                UIApplication.shared.open(url)
                             }
-
-                        // Diet Summary
-                        healthVitalsSection
-                            .padding(.top, 6)
-                            .opacity(hasAppeared ? 1 : 0)
-                            .offset(y: hasAppeared ? 0 : 24)
-                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
-
-                        // Flexible space — pushes quick actions toward tab bar
-                        Spacer(minLength: 8)
-
-                        // Quick Actions — pinned near bottom
-                        quickActionsSection
-                            .modifier(ScrollAnimationModifier(isVisible: $quickActionsVisible))
-                            .opacity(hasAppeared ? 1 : 0)
-                            .offset(y: hasAppeared ? 0 : 30)
-                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.35), value: hasAppeared)
-                    }
+                        }
+                    )
                     .padding(.top, 4)
-                    .padding(.bottom, 4)
-                    .frame(minHeight: screenGeo.size.height)
+                }
+
+                Spacer().frame(height: 12)
+
+                // 2. Daily Activity Card
+                DailyActivityCard(
+                    steps: viewModel.stepCount,
+                    stepGoal: stepGoal,
+                    calories: viewModel.activeCalories,
+                    calorieGoal: calorieGoal,
+                    distance: viewModel.distance,
+                    distanceGoalKm: distanceGoalKm,
+                    activeMinutes: viewModel.exerciseMinutes,
+                    activeMinutesGoal: activeMinutesGoal
+                )
+                .padding(.horizontal, 16)
+                .opacity(hasAppeared ? 1 : 0)
+                .offset(y: hasAppeared ? 0 : 20)
+                .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.1), value: hasAppeared)
+
+                Spacer().frame(height: 18)
+
+                // 3. Quick Actions
+                HomeSectionHeader(title: "Quick Actions")
+                Spacer().frame(height: 8)
+                QuickActionsRow(
+                    onHydration: { showHydration = true },
+                    onMedication: { showMedications = true },
+                    onCycle: { showMenstrualCycle = true },
+                    onDiet: { showDiet = true }
+                )
+                .padding(.horizontal, 16)
+                .opacity(hasAppeared ? 1 : 0)
+                .offset(y: hasAppeared ? 0 : 20)
+                .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.18), value: hasAppeared)
+
+                Spacer().frame(height: 18)
+
+                // 4. Health Vitals
+                HomeSectionHeader(
+                    title: "Health Vitals",
+                    trailingLabel: "View All",
+                    onTrailing: { showHealthAnalytics() }
+                )
+                Spacer().frame(height: 8)
+                HealthVitalsRow(
+                    heartRate: viewModel.heartRate,
+                    sleepHours: viewModel.sleepHours,
+                    weight: viewModel.weight,
+                    onHeartRate: { showHeartRateMeasurement = true },
+                    onSleep: { showAnalytics() },
+                    onBodyScan: { showARBodyScan = true }
+                )
+                .padding(.horizontal, 16)
+                .opacity(hasAppeared ? 1 : 0)
+                .offset(y: hasAppeared ? 0 : 20)
+                .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
+
+                Spacer().frame(height: 18)
+
+                // 5. Swastri AI Banner
+                SwastriAICard(onChat: { navigateToAI() })
+                    .padding(.horizontal, 16)
+                    .opacity(hasAppeared ? 1 : 0)
+                    .offset(y: hasAppeared ? 0 : 20)
+                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.32), value: hasAppeared)
+
+                Spacer().frame(height: 16)
+            }
+            .padding(.top, 4)
+        }
+        .background(Color.white)
+        // HealthKit auth banner (preserved from original)
+        .safeAreaInset(edge: .top) {
+            if !viewModel.isAuthorized && !viewModel.hasRequestedAuth {
+                HealthAuthBanner {
+                    Task { await viewModel.requestAuthorization() }
                 }
             }
-            .coordinateSpace(name: "scroll")
-        .alert("Sync Status", isPresented: $showSyncAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(syncMessage ?? "")
         }
+        // Sheets & covers
         .sheet(isPresented: $showHeartRateMeasurement) {
-            NavigationStack {
-                HeartRateView()
-            }
+            NavigationStack { HeartRateView() }
         }
         .sheet(isPresented: $showReminders) {
             RemindersView()
@@ -205,31 +192,27 @@ struct HomeView: View {
         .fullScreenCover(isPresented: $showARBodyScan) {
             ARBodyScanView()
         }
-        .trackScreen("Home")
-        .onAppear {
-            // Haptic feedback when opening vitals screen
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
-
-            // Trigger entrance animations with staggered cascade
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    hasAppeared = true
-                }
-            }
-            // Animate 3D model
-            withAnimation(.easeOut(duration: 1.0).delay(0.2)) {
-                modelOpacity = 0.8
-                modelScale = 1.20 // Reduced size
-            }
+        .sheet(isPresented: $showMedications) {
+            MedicationsView(viewModel: medicationViewModel)
         }
-        .task {
-            await viewModel.loadTodaysData()
-            await trackerViewModel.loadData()
-            await hydrationViewModel.loadData()
-            await medicationViewModel.loadMedications()
-            await dietViewModel.loadData()
+        .fullScreenCover(isPresented: $showHydration) {
+            HydrationView(viewModel: hydrationViewModel)
         }
+        .fullScreenCover(isPresented: $showDiet) {
+            DietView(viewModel: dietViewModel)
+        }
+        .sheet(isPresented: $showMenstrualCycle) {
+            MenstrualCycleView()
+        }
+        .sheet(isPresented: $showFamily) {
+            NavigationStack { FamilyView() }
+        }
+        .alert("Sync Status", isPresented: $showSyncAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(syncMessage ?? "")
+        }
+        // Deep links (preserved)
         .onReceive(NotificationCenter.default.publisher(for: .deepLinkOpenHydration)) { _ in
             showHydration = true
         }
@@ -239,91 +222,655 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: .deepLinkOpenHeartRate)) { _ in
             showHeartRateMeasurement = true
         }
+        // Screen tracking (preserved)
+        .trackScreen("Home")
+        .onAppear {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    hasAppeared = true
+                }
+            }
+        }
+        .task {
+            await viewModel.loadTodaysData()
+            await trackerViewModel.loadData()
+            await hydrationViewModel.loadData()
+            await medicationViewModel.loadMedications()
+            await dietViewModel.loadData()
+            await runActivityViewModel.loadData()
+        }
         .refreshable {
             await viewModel.refresh()
             await trackerViewModel.refresh()
             await hydrationViewModel.refresh()
             await medicationViewModel.refresh()
             await dietViewModel.refresh()
-        }
+            await runActivityViewModel.loadData()
         }
     }
-    
-    // MARK: - Helper Methods
-    
-    // MARK: - Subviews
-    
-    private var humanBodyImageWithDetails: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .topLeading) {
-                // Human Body 3D Model on the right — aligned to top
-                HStack {
-                    Spacer()
-                    ModelViewer(modelName: "anatomy", allowsInteraction: false)
-                        .frame(height: 220)
-                        .opacity(modelOpacity)
-                        .scaleEffect(modelScale)
-                        .offset(x: geometry.size.width * 0.10)
-                        .allowsHitTesting(false)
-                        .clipped()
-                        .mask(
-                            LinearGradient(
-                                colors: [.black, .black.opacity(0.8), .black.opacity(0.3), .clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
+
+    // MARK: - Navigation helpers
+
+    private func navigateToAI() {
+        NotificationCenter.default.post(name: .init("NavigateToAI"), object: nil)
+    }
+
+    private func showHealthAnalytics() {
+        // Uses the existing HealthAnalyticsView navigation — post a notification
+        NotificationCenter.default.post(name: .init("NavigateToAnalytics"), object: nil)
+    }
+
+    private func showAnalytics() {
+        showHealthAnalytics()
+    }
+}
+
+// MARK: - Header Section
+
+private struct HomeHeaderSection: View {
+    let firstName: String
+    let greeting: String
+    let avatarURL: URL?
+    let onNotifications: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            // Avatar
+            AvatarBubble(avatarURL: avatarURL)
+
+            // Greeting column
+            VStack(alignment: .leading, spacing: 2) {
+                Text(greeting)
+                    .font(.poppins(.regular, size: 13))
+                    .foregroundColor(mutedText)
+                HStack(spacing: 6) {
+                    Text(firstName)
+                        .font(.poppins(.semiBold, size: 18))
+                        .foregroundColor(darkText)
+                        .lineLimit(1)
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.aiTeal)
+                }
+                Text("Let's take a step towards a healthier you!")
+                    .font(.poppins(.regular, size: 12))
+                    .foregroundColor(mutedText)
+            }
+
+            Spacer()
+
+            // Bell button
+            Button(action: onNotifications) {
+                ZStack(alignment: .topTrailing) {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 40, height: 40)
+                        .shadow(color: Color(hex: "94A3B8").opacity(0.25), radius: 4, x: 0, y: 2)
+                        .overlay(
+                            Circle()
+                                .stroke(subtleBorder, lineWidth: 0.5)
                         )
+                    Image(systemName: "bell.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(darkText)
+                        .frame(width: 40, height: 40)
+                    // Notification dot
+                    Circle()
+                        .fill(AppColors.aiTeal)
+                        .frame(width: 8, height: 8)
+                        .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                        .offset(x: -2, y: 2)
                 }
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+}
 
-                // All 6 health stats — 2 columns × 3 rows, top-aligned
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 6),
-                    GridItem(.flexible(), spacing: 6)
-                ], spacing: 6) {
-                    CompactStatCell(icon: "flame.fill", color: .orange, value: viewModel.activeCalories > 0 ? "\(viewModel.activeCalories)" : "—", unit: "Cal")
-                    CompactStatCell(icon: "clock.fill", color: .blue, value: viewModel.exerciseMinutes > 0 ? "\(viewModel.exerciseMinutes)" : "—", unit: "Min")
-                    CompactStatCell(icon: "figure.stand", color: .purple, value: viewModel.standHours > 0 ? "\(viewModel.standHours)" : "—", unit: "Stand")
+// MARK: - Avatar Bubble
 
-                    Button(action: { showHeartRateMeasurement = true }) {
-                        CompactStatCell(icon: "heart.fill", color: .red, value: viewModel.heartRate > 0 ? "\(viewModel.heartRate)" : "—", unit: "BPM")
+private struct AvatarBubble: View {
+    let avatarURL: URL?
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            // Circle background
+            Circle()
+                .fill(AppColors.aiTeal.opacity(0.15))
+                .frame(width: 48, height: 48)
+                .overlay(
+                    Group {
+                        if let url = avatarURL {
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(AppColors.aiTeal)
+                            }
+                            .clipShape(Circle())
+                        } else {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(AppColors.aiTeal)
+                        }
                     }
-                    .buttonStyle(PlainButtonStyle())
+                )
+                .clipShape(Circle())
 
-                    CompactStatCell(icon: "bed.double.fill", color: .indigo, value: viewModel.sleepHours == "0h 0m" ? "—" : viewModel.sleepHours, unit: "Sleep")
-                    CompactStatCell(icon: "figure.walk", color: .green, value: viewModel.distance > 0 ? String(format: "%.1f", viewModel.distance) : "—", unit: "km")
+            // Online badge
+            Circle()
+                .fill(AppColors.aiTeal)
+                .frame(width: 16, height: 16)
+                .overlay(
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white)
+                )
+                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+        }
+        .frame(width: 52, height: 52)
+    }
+}
+
+// MARK: - Daily Activity Card
+
+private struct DailyActivityCard: View {
+    let steps: Int
+    let stepGoal: Int
+    let calories: Int
+    let calorieGoal: Int
+    let distance: Double
+    let distanceGoalKm: Double
+    let activeMinutes: Int
+    let activeMinutesGoal: Int
+
+    var body: some View {
+        let ringSize = min(max((UIScreen.main.bounds.width - 64) * 0.34, 110), 150)
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Daily Activity")
+                .font(.poppins(.semiBold, size: 13))
+                .foregroundColor(darkText)
+
+            HStack(alignment: .center, spacing: 14) {
+                // Steps ring
+                StepsRingView(steps: steps, goal: stepGoal, size: ringSize)
+                    .frame(width: ringSize, height: ringSize)
+
+                // Stat rows
+                VStack(spacing: 0) {
+                    MiniStatRow(
+                        icon: "flame.fill",
+                        iconColor: calorieAccent,
+                        label: "Calories",
+                        value: "\(calories)",
+                        goalText: "\(calorieGoal) kcal",
+                        progress: calorieGoal > 0
+                            ? Float(min(Double(calories) / Double(calorieGoal), 1.0)) : 0,
+                        accent: calorieAccent
+                    )
+                    Spacer(minLength: 0)
+                    MiniStatRow(
+                        icon: "figure.walk",
+                        iconColor: distanceAccent,
+                        label: "Distance",
+                        value: String(format: "%.1f", distance),
+                        goalText: "\(Int(distanceGoalKm)) km",
+                        progress: distanceGoalKm > 0
+                            ? Float(min(distance / distanceGoalKm, 1.0)) : 0,
+                        accent: distanceAccent
+                    )
+                    Spacer(minLength: 0)
+                    MiniStatRow(
+                        icon: "bolt.fill",
+                        iconColor: activeAccent,
+                        label: "Active Minutes",
+                        value: "\(activeMinutes)",
+                        goalText: "\(activeMinutesGoal) min",
+                        progress: activeMinutesGoal > 0
+                            ? Float(min(Double(activeMinutes) / Double(activeMinutesGoal), 1.0)) : 0,
+                        accent: activeAccent
+                    )
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 4)
-                .frame(maxWidth: geometry.size.width * 0.55, alignment: .leading)
-                .opacity(hasAppeared ? 1 : 0)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
+                .frame(maxWidth: .infinity)
+                .frame(height: ringSize)
+            }
+
+            // Goal label beneath ring
+            HStack {
+                Text("Goal \(formatSteps(stepGoal))")
+                    .font(.poppins(.semiBold, size: 11))
+                    .foregroundColor(AppColors.aiTeal)
+                    .frame(width: ringSize, alignment: .center)
+                Spacer()
             }
         }
-        // Height is set by parent via .frame(height: modelHeight)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white)
+                .shadow(color: Color(hex: "94A3B8").opacity(0.25), radius: 4, x: 0, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(subtleBorder, lineWidth: 0.5)
+        )
     }
-    
-    private var authorizationBanner: some View {
+
+    private func formatSteps(_ value: Int) -> String {
+        value >= 1000 ? String(format: "%d,%03d", value / 1000, value % 1000) : "\(value)"
+    }
+}
+
+// MARK: - Steps Ring
+
+private struct StepsRingView: View {
+    let steps: Int
+    let goal: Int
+    let size: CGFloat
+
+    @State private var animatedProgress: Double = 0
+
+    private var target: Double {
+        goal > 0 ? min(Double(steps) / Double(goal), 1.0) : 0
+    }
+
+    var body: some View {
+        ZStack {
+            // Track ring
+            Circle()
+                .stroke(ringTrack, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+
+            // Progress ring with gradient
+            Circle()
+                .trim(from: 0, to: animatedProgress)
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [AppColors.aiTeal, AppColors.accentGreen, AppColors.aiTeal]),
+                        center: .center,
+                        startAngle: .degrees(-90),
+                        endAngle: .degrees(270)
+                    ),
+                    style: StrokeStyle(lineWidth: 7, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 1.1), value: animatedProgress)
+
+            // Center content
+            VStack(spacing: 2) {
+                Image.androidIcon("steps shoe icon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                Text(formatSteps(steps))
+                    .font(.poppins(.bold, size: 20))
+                    .foregroundColor(darkText)
+                Text("Steps")
+                    .font(.poppins(.regular, size: 11))
+                    .foregroundColor(mutedText)
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                animatedProgress = target
+            }
+        }
+        .onChange(of: target) { _, newVal in
+            withAnimation(.easeInOut(duration: 0.8)) { animatedProgress = newVal }
+        }
+    }
+
+    private func formatSteps(_ value: Int) -> String {
+        value >= 1000 ? String(format: "%d,%03d", value / 1000, value % 1000) : "\(value)"
+    }
+}
+
+// MARK: - Mini Stat Row (Calories / Distance / Active)
+
+private struct MiniStatRow: View {
+    let icon: String
+    let iconColor: Color
+    let label: String
+    let value: String
+    let goalText: String
+    let progress: Float
+    let accent: Color
+
+    @State private var animatedProgress: Float = 0
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundColor(iconColor)
+                .frame(width: 26, height: 26)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack {
+                    Text(label)
+                        .font(.poppins(.semiBold, size: 11))
+                        .foregroundColor(darkText)
+                        .lineLimit(1)
+                    Spacer()
+                    HStack(spacing: 0) {
+                        Text(value)
+                            .font(.poppins(.bold, size: 10))
+                            .foregroundColor(darkText)
+                        Text(" / \(goalText)")
+                            .font(.poppins(.regular, size: 10))
+                            .foregroundColor(mutedText)
+                    }
+                    .lineLimit(1)
+                }
+                // Thin progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(ringTrack)
+                            .frame(height: 4)
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(accent)
+                            .frame(width: geo.size.width * CGFloat(animatedProgress), height: 4)
+                            .animation(.easeInOut(duration: 1.0).delay(0.2), value: animatedProgress)
+                    }
+                }
+                .frame(height: 4)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                animatedProgress = progress
+            }
+        }
+        .onChange(of: progress) { _, newVal in
+            withAnimation { animatedProgress = newVal }
+        }
+    }
+}
+
+// MARK: - Section Header
+
+private struct HomeSectionHeader: View {
+    let title: String
+    var trailingLabel: String? = nil
+    var onTrailing: (() -> Void)? = nil
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.poppins(.semiBold, size: 14))
+                .foregroundColor(darkText)
+            Spacer()
+            if let label = trailingLabel {
+                Button(action: { onTrailing?() }) {
+                    Text(label)
+                        .font(.poppins(.semiBold, size: 13))
+                        .foregroundColor(AppColors.aiTeal)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Quick Actions Row
+
+private struct QuickActionsRow: View {
+    let onHydration: () -> Void
+    let onMedication: () -> Void
+    let onCycle: () -> Void
+    let onDiet: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            QuickActionTile(
+                iconAsset: "hydration icon",
+                label: "Hydration",
+                bgColor: Color(hex: "E0F2FE"),
+                onClick: onHydration
+            )
+            QuickActionTile(
+                iconAsset: "medication icon",
+                label: "Medication",
+                bgColor: Color(hex: "DCFCE7"),
+                onClick: onMedication
+            )
+            QuickActionTile(
+                iconAsset: "cycle icon",
+                label: "Cycle",
+                bgColor: HomeThemeColors.cycleBg(.light),
+                onClick: onCycle
+            )
+            QuickActionTile(
+                iconAsset: "diet icon",
+                label: "Diet",
+                bgColor: Color(hex: "FEF8E1"),
+                onClick: onDiet
+            )
+        }
+    }
+}
+
+private struct QuickActionTile: View {
+    let iconAsset: String
+    let label: String
+    let bgColor: Color
+    let onClick: () -> Void
+
+    var body: some View {
+        Button(action: onClick) {
+            VStack(spacing: 4) {
+                Image.androidIcon(iconAsset)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 55, height: 55)
+                Text(label)
+                    .font(.poppins(.semiBold, size: 12))
+                    .foregroundColor(darkText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.vertical, 5)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(bgColor)
+                    .shadow(color: Color(hex: "94A3B8").opacity(0.20), radius: 3, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.black.opacity(0.04), lineWidth: 0.3)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Health Vitals Row
+
+private struct HealthVitalsRow: View {
+    let heartRate: Int
+    let sleepHours: String
+    let weight: String
+    let onHeartRate: () -> Void
+    let onSleep: () -> Void
+    let onBodyScan: () -> Void
+
+    // BloodOxygen: static placeholder matching Android (no iOS HealthKit read for SpO2 in current VM)
+    private let bloodOxygen = 98
+
+    var body: some View {
+        HStack(spacing: 0) {
+            VitalCell(
+                iconAsset: "heart rate icon",
+                label: "Heart Rate",
+                value: heartRate > 0 ? "\(heartRate)" : "--",
+                unit: "bpm"
+            )
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { onHeartRate() }
+
+            vitalDivider
+
+            VitalCell(
+                iconAsset: "blood oxygen icon",
+                label: "Blood Oxygen",
+                value: "\(bloodOxygen)",
+                unit: "%"
+            )
+            .frame(maxWidth: .infinity)
+
+            vitalDivider
+
+            VitalCell(
+                iconAsset: "sleep icon",
+                label: "Sleep",
+                value: sleepHours == "0h 0m" ? "--" : sleepHours,
+                unit: ""
+            )
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { onSleep() }
+
+            vitalDivider
+
+            VitalCell(
+                iconAsset: "weight icon",
+                label: "Weight",
+                value: weight.isEmpty ? "--" : weight,
+                unit: "kg"
+            )
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white)
+                .shadow(color: Color(hex: "94A3B8").opacity(0.25), radius: 4, x: 0, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(subtleBorder, lineWidth: 0.5)
+        )
+    }
+
+    private var vitalDivider: some View {
+        Rectangle()
+            .fill(subtleBorder)
+            .frame(width: 1, height: 36)
+    }
+}
+
+private struct VitalCell: View {
+    let iconAsset: String
+    let label: String
+    let value: String
+    let unit: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image.androidIcon(iconAsset)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+            Text(label)
+                .font(.poppins(.regular, size: 11))
+                .foregroundColor(mutedText)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            HStack(alignment: .bottom, spacing: 2) {
+                Text(value)
+                    .font(.poppins(.bold, size: 16))
+                    .foregroundColor(darkText)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(.poppins(.medium, size: 10))
+                        .foregroundColor(mutedText)
+                        .padding(.bottom, 2)
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+}
+
+// MARK: - Swastri AI Card
+
+private struct SwastriAICard: View {
+    let onChat: () -> Void
+
+    var body: some View {
+        Button(action: onChat) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Swastri AI")
+                        .font(.poppins(.bold, size: 11))
+                        .foregroundColor(AppColors.accentGreen)
+                        .tracking(0.5)
+                    Text("Your health companion")
+                        .font(.poppins(.bold, size: 16))
+                        .foregroundColor(.white)
+                    Text("Ask anything, get personalized insights and guidance.")
+                        .font(.poppins(.regular, size: 11))
+                        .foregroundColor(.white.opacity(0.65))
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 16)
+
+                Spacer()
+
+                // AI mascot — uses Android `banner ai illustration.png`
+                Image.androidIcon("banner ai illustration")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 110, height: 110)
+            }
+            .padding(.leading, 18)
+            .padding(.trailing, 8)
+            .background(
+                LinearGradient(
+                    colors: [Color(hex: "0F172A"), Color(hex: "134E4A")],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: Color(hex: "94A3B8").opacity(0.25), radius: 4, x: 0, y: 2)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Health Auth Banner (preserved from original HomeView)
+
+private struct HealthAuthBanner: View {
+    let onAllow: () -> Void
+
+    var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "heart.text.square.fill")
-            .font(.largeTitle)
-            .foregroundColor(.red)
-            .shadow(color: .red.opacity(0.5), radius: 10)
-            
+                .font(.system(size: 34))
+                .foregroundColor(.red)
             Text("Enable Health Access")
-                .font(.headline)
-            
+                .font(.poppins(.semiBold, size: 17))
             Text("Allow Swastricare to read your health data for personalized insights")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
-            Button(action: {
-                Task {
-                    await viewModel.requestAuthorization()
-                }
-            }) {
+            Button(action: onAllow) {
                 Text("Allow Access")
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -334,403 +881,32 @@ struct HomeView: View {
         .padding()
         .glass(cornerRadius: 16)
         .padding(.horizontal)
-    }
-    
-    // MARK: - Skeleton Loading
-
-    private var homeSkeletonView: some View {
-        VStack(spacing: 16) {
-            // Header skeleton
-            HStack {
-                VStack(alignment: .leading, spacing: 6) {
-                    SkeletonShape(width: 100, height: 14)
-                    SkeletonShape(width: 140, height: 20)
-                }
-                Spacer()
-                SkeletonCircle(size: 36)
-            }
-            .padding(.horizontal)
-
-            // Activity stats skeleton
-            HStack(spacing: 12) {
-                ForEach(0..<3, id: \.self) { _ in
-                    HStack(spacing: 10) {
-                        SkeletonCircle(size: 35)
-                        VStack(alignment: .leading, spacing: 4) {
-                            SkeletonShape(width: 40, height: 18)
-                            SkeletonShape(width: 60, height: 10)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .glass(cornerRadius: 16)
-                }
-            }
-            .padding(.horizontal)
-
-            // Vitals grid skeleton
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                ForEach(0..<3, id: \.self) { _ in
-                    VStack(alignment: .leading, spacing: 10) {
-                        SkeletonCircle(size: 32)
-                        VStack(alignment: .leading, spacing: 4) {
-                            SkeletonShape(width: 50, height: 10)
-                            SkeletonShape(width: 40, height: 22)
-                        }
-                    }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .glass(cornerRadius: 20)
-                }
-            }
-            .padding(.horizontal)
-
-            // Quick actions skeleton
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 12),
-                GridItem(.flexible(), spacing: 12)
-            ], spacing: 12) {
-                ForEach(0..<4, id: \.self) { _ in
-                    SkeletonShape(height: 150, cornerRadius: 24)
-                }
-            }
-            .padding(.horizontal)
-        }
-        .padding(.top, 8)
-    }
-
-    private var dietCalorieProgress: Double {
-        let goal = dietViewModel.dietGoals.dailyCalories
-        guard goal > 0 else { return 0 }
-        return min(Double(dietViewModel.totalCalories) / Double(goal), 1.0)
-    }
-
-    private var healthVitalsSection: some View {
-        // Diet Summary Card — replaces old vitals grid
-        NavigationLink(destination: DietView(viewModel: dietViewModel)) {
-            dietSummaryContent
-        }
-        .buttonStyle(PlainButtonStyle())
-        .padding(.horizontal, 16)
-    }
-
-    private var dietSummaryContent: some View {
-        VStack(spacing: 0) {
-            // Card body
-            HStack(spacing: 16) {
-                // Left: calorie ring
-                dietCalorieRing
-
-                // Right: calorie numbers + macro chips
-                VStack(alignment: .leading, spacing: 10) {
-                    // Header label
-                    HStack(spacing: 6) {
-                        Text("Today's Diet")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-                            .tracking(0.5)
-                        Spacer()
-                        // Meal count badge
-                        let mealCount = dietViewModel.nutritionSummary.mealCount
-                        if mealCount > 0 {
-                            Text("\(mealCount) meal\(mealCount == 1 ? "" : "s")")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(AppColors.dietOrange)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(AppColors.dietOrange.opacity(0.12))
-                                .clipShape(Capsule())
-                        }
-                    }
-
-                    // Calorie numbers
-                    HStack(alignment: .lastTextBaseline, spacing: 3) {
-                        Text("\(dietViewModel.totalCalories)")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-                            .contentTransition(.numericText())
-                        Text("/ \(dietViewModel.dietGoals.dailyCalories) cal")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-
-                    // Macro chips row
-                    HStack(spacing: 8) {
-                        DietMacroChip(label: "P", value: Int(dietViewModel.nutritionSummary.totalProteinG), unit: "g", color: AppColors.dietOrange)
-                        DietMacroChip(label: "C", value: Int(dietViewModel.nutritionSummary.totalCarbsG), unit: "g", color: AppColors.macroBlue)
-                        DietMacroChip(label: "F", value: Int(dietViewModel.nutritionSummary.totalFatG), unit: "g", color: AppColors.macroViolet)
-                    }
-                }
-
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
-
-            // Full-width calorie progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(AppColors.dietOrange.opacity(0.12))
-                        .frame(height: 4)
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(AppColors.dietOrangeGradient)
-                        .frame(width: geo.size.width * dietCalorieProgress, height: 4)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: dietCalorieProgress)
-                }
-            }
-            .frame(height: 4)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 14)
-        }
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color(UIColor.secondarySystemGroupedBackground))
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColors.dietOrange.opacity(0.07), .clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(AppColors.dietOrange.opacity(0.15), lineWidth: 0.8)
-        )
-    }
-
-    private var dietCalorieRing: some View {
-        ZStack {
-            Circle()
-                .stroke(AppColors.dietOrange.opacity(0.12), lineWidth: 7)
-                .frame(width: 72, height: 72)
-            Circle()
-                .trim(from: 0, to: dietCalorieProgress)
-                .stroke(AppColors.dietOrangeGradient, style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                .frame(width: 72, height: 72)
-                .rotationEffect(.degrees(-90))
-                .animation(.spring(response: 0.7, dampingFraction: 0.8), value: dietCalorieProgress)
-            VStack(spacing: 1) {
-                Text("\(Int(dietCalorieProgress * 100))%")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                    .contentTransition(.numericText())
-                Text("done")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-    
-    @State private var showMedications = false
-    @State private var showHydration = false
-    @State private var showMenstrualCycle = false
-    @State private var showFamily = false
-
-
-    private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LazyVGrid(
-                columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
-                alignment: .center,
-                spacing: 8
-            ) {
-                MedicationQuickActionButton(
-                    takenCount: medicationViewModel.takenCount,
-                    totalCount: medicationViewModel.totalCount
-                ) {
-                    showMedications = true
-                }
-                .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.92)
-                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.05), value: quickActionsVisible)
-                
-                HydrationQuickActionButton(
-                    currentIntake: hydrationViewModel.effectiveIntake,
-                    dailyGoal: hydrationViewModel.dailyGoal
-                ) {
-                    showHydration = true
-                }
-                .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.92)
-                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.12), value: quickActionsVisible)
-                
-                CycleTrackerQuickActionButton {
-                    showMenstrualCycle = true
-                }
-                .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.92)
-                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.19), value: quickActionsVisible)
-
-                // Family card
-                Button(action: { showFamily = true }) {
-                    FamilyQuickActionCard()
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .opacity(quickActionsVisible ? 1 : 0)
-                .scaleEffect(quickActionsVisible ? 1 : 0.92)
-                .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.26), value: quickActionsVisible)
-            }
-            .padding(.horizontal)
-        }
-        .sheet(isPresented: $showMedications) {
-            MedicationsView(viewModel: medicationViewModel)
-        }
-        .fullScreenCover(isPresented: $showHydration) {
-            HydrationView(viewModel: hydrationViewModel)
-        }
-        .sheet(isPresented: $showMenstrualCycle) {
-            MenstrualCycleView()
-        }
-        .sheet(isPresented: $showFamily) {
-            NavigationStack {
-                FamilyView()
-            }
-        }
-    }
-    
-    private var profileButton: some View {
-        Button(action: {
-            // Haptic feedback on navbar tap
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
-            // Navigation will be handled by NavigationLink if needed
-        }) {
-            Group {
-                if let imageURL = authViewModel.userPhotoURL {
-                    AsyncImage(url: imageURL) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 36, height: 36)
-                            .clipShape(Circle())
-                    } placeholder: {
-                        Image(systemName: "person.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    // MARK: - Living Status Header
-    
-    private struct LivingStatusHeader: View {
-        let userName: String
-        let userPhotoURL: URL?
-        let status: HealthStatus
-        let greeting: String
-        let stepCount: Int
-        let lastSyncTime: Date?
-        @Binding var showReminders: Bool
-
-        @State private var isPulsing = false
-
-        var body: some View {
-            VStack(spacing: 0) {
-                HStack(alignment: .top) {
-                    // Left: Greeting + Name + Heart
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(greeting)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(status.color)
-
-                        HStack(alignment: .center, spacing: 8) {
-                            Text(userName)
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-
-                            // Pulsing Heart
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.red)
-                                .scaleEffect(isPulsing ? 1.2 : 1.0)
-                                .opacity(isPulsing ? 1.0 : 0.8)
-                                .animation(
-                                    .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
-                                    value: isPulsing
-                                )
-                        }
-
-                        // Step progress + last updated
-                        HStack(spacing: 12) {
-                            // Steps
-                            HStack(spacing: 4) {
-                                Image(systemName: "figure.walk")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(AppColors.accentGreen)
-                                Text(stepCount > 0 ? "\(stepCount.formatted()) steps" : "No steps yet")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(stepCount > 0 ? AppColors.accentGreen : .secondary)
-                            }
-
-                            // Last updated
-                            if let syncTime = lastSyncTime {
-                                Text("· \(syncTime.formatted(.relative(presentation: .named)))")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.top, 2)
-                    }
-
-                    Spacer()
-
-                    // Right: Actions
-                    HStack(spacing: 16) {
-                        Button(action: { showReminders = true }) {
-                            Image(systemName: "bell.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(.primary)
-                        }
-
-                        NavigationLink(destination: HealthAnalyticsView()) {
-                            Image(systemName: "target")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(.primary)
-                                .frame(width: 40, height: 40)
-                                .background(Color.gray.opacity(0.1))
-                                .clipShape(Circle())
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-            }
-            .onAppear { isPulsing = true }
-        }
+        .background(Color.white.opacity(0.01)) // ensures safeAreaInset has a size
     }
 }
+
+// MARK: - Skeleton helpers (still available but not used in new layout)
+
+private struct SkeletonRect: View {
+    var width: CGFloat? = nil
+    var height: CGFloat = 14
+    var cornerRadius: CGFloat = 6
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius)
+            .fill(Color.gray.opacity(0.12))
+            .frame(width: width, height: height)
+    }
+}
+
+// MARK: - Existing reusable components kept below (referenced by other views or sheets)
+// WaterWave, RisingBubblesEffect, BottomRoundedRectangle, ScrollAnimationModifier,
+// ScrollOffsetPreferenceKey, HealthLiveActivityToggle — moved here so they compile.
 
 // MARK: - Scroll Animation Modifier
 
 struct ScrollAnimationModifier: ViewModifier {
     @Binding var isVisible: Bool
-    
+
     func body(content: Content) -> some View {
         content
             .background(
@@ -743,7 +919,6 @@ struct ScrollAnimationModifier: ViewModifier {
                 }
             )
             .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-                // Trigger animation when view enters visible area
                 let screenHeight = UIScreen.main.bounds.height
                 if !isVisible && offset < screenHeight + 100 && offset > -100 {
                     withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
@@ -752,7 +927,6 @@ struct ScrollAnimationModifier: ViewModifier {
                 }
             }
             .onAppear {
-                // Fallback: animate on appear if not already visible
                 if !isVisible {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
@@ -771,829 +945,16 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
     }
 }
 
-// MARK: - Supporting Views
-
-    // DailyActivityStatItem removed — replaced by CompactStatCell
-
-// MARK: - Compact Stat Cell (2-col grid in model area)
-
-// MARK: - Family Quick Action Card
-
-private struct FamilyQuickActionCard: View {
-    private let accent = AppColors.family
-    @State private var orbFloat: Bool = false
-    @State private var personBounce: Bool = false
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [accent, accent.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.2), .clear],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                )
-
-            // Floating orbs
-            Circle()
-                .fill(Color.white.opacity(0.08))
-                .frame(width: 60, height: 60)
-                .offset(x: orbFloat ? 25 : 35, y: orbFloat ? -15 : -5)
-            Circle()
-                .fill(Color.white.opacity(0.06))
-                .frame(width: 40, height: 40)
-                .offset(x: orbFloat ? -20 : -10, y: orbFloat ? 20 : 30)
-
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(0.18))
-                            .frame(width: 32, height: 32)
-                        Image(systemName: "person.3.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.white)
-                            .scaleEffect(personBounce ? 1.1 : 1.0)
-                    }
-
-                    Spacer()
-
-                    // Animated heart
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.5))
-                        .scaleEffect(personBounce ? 1.2 : 0.9)
-                }
-
-                Spacer()
-
-                Text("Family")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
-                Text("Health Hub")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white.opacity(0.7))
-            }
-            .padding(12)
-        }
-        .frame(height: 100)
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
-        )
-        .onAppear {
-            withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
-                orbFloat = true
-            }
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true).delay(0.5)) {
-                personBounce = true
-            }
-        }
-    }
-}
-
-private struct CompactStatCell: View {
-    let icon: String
-    let color: Color
-    let value: String
-    let unit: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 26, height: 26)
-                .background(color.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 7))
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(unit)
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(color.opacity(0.10), lineWidth: 0.5)
-        )
-    }
-}
-
-// MARK: - Macro Bar (for diet summary card)
-
-// MARK: - Diet Macro Chip (for home diet card)
-
-private struct DietMacroChip: View {
-    let label: String
-    let value: Int
-    let unit: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(color)
-                .frame(width: 6, height: 6)
-            Text("\(value)\(unit)")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.primary)
-                .contentTransition(.numericText())
-            Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.secondary)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(color.opacity(0.10))
-        .clipShape(Capsule())
-    }
-}
-
-// MARK: - Macro Bar (for diet summary card)
-
-private struct MacroBar: View {
-    let label: String
-    let value: Double
-    let goal: Double
-    let color: Color
-
-    private var progress: Double {
-        guard goal > 0 else { return 0 }
-        return min(value / goal, 1.0)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text("\(Int(value))g")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(color)
-            }
-
-            // Progress bar — no GeometryReader needed
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(color.opacity(0.12))
-                    .frame(height: 5)
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(color)
-                    .frame(height: 5)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .scaleEffect(x: max(progress, 0.02), y: 1, anchor: .leading)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-private struct StatRow: View {
-    let icon: String
-    let color: Color
-    let value: String
-    let unit: String
-    
-    var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(color.opacity(0.9))
-            Text(value)
-                .fontWeight(.bold)
-            Text(unit)
-                .font(.caption)
-                .opacity(0.8)
-        }
-    }
-}
-
-// VitalCard removed — vitals section replaced by diet summary card
-
-private struct HydrationQuickActionButton: View {
-    let currentIntake: Int
-    let dailyGoal: Int
-    let action: () -> Void
-
-    // Start at 1.0 (100%)
-    @State private var visualProgress: Double = 1.0
-    @State private var wavePhase: Double = 0.0
-    @State private var dropBounce: Bool = false
-    @State private var dropGlow: Bool = false
-    
-    private var targetProgress: Double {
-        guard dailyGoal > 0 else { return 0 }
-        return min(1.0, Double(currentIntake) / Double(dailyGoal))
-    }
-    
-    private let accent: Color = AppColors.hydration
-    private let textColor: Color = .white
-    private let secondaryTextOpacity: Double = 0.9
-    private let tertiaryTextOpacity: Double = 0.75
-    private let iconCircleFill: Color = Color.white.opacity(0.18)
-    private let waveBackOpacity: Double = 0.14
-    private let waveFrontOpacities: (Double, Double) = (0.12, 0.10)
-    
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                // Background & Water Animation
-                GeometryReader { geo in
-                    ZStack(alignment: .bottom) {
-                        // Base background
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(accent)
-                            .overlay(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.22), .clear],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 24))
-                            )
-                        
-                        // Water Waves — same geometry as Medication card (RoundedRectangle, bottom-aligned fill)
-                        if visualProgress > 0.01 {
-                            let waveHeight = max(geo.size.height * visualProgress, geo.size.height * 0.05)
-                            let amp = min(geo.size.height * 0.04, waveHeight * 0.45)
-                            let ampFront = min(geo.size.height * 0.03, waveHeight * 0.35)
-                            ZStack {
-                                WaterWave(amplitude: amp, offset: wavePhase)
-                                    .fill(Color.white.opacity(waveBackOpacity))
-                                    .frame(height: waveHeight)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                                
-                                WaterWave(amplitude: ampFront, offset: wavePhase + 1.5)
-                                    .fill(LinearGradient(
-                                        colors: [.white.opacity(waveFrontOpacities.0), .white.opacity(waveFrontOpacities.1)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    ))
-                                    .frame(height: waveHeight)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: 24))
-                        }
-                    }
-                }
-                
-                // Content Overlay
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .top) {
-                        ZStack {
-                            Circle()
-                                .fill(iconCircleFill)
-                                .frame(width: 32, height: 32)
-                                .shadow(color: Color.white.opacity(dropGlow ? 0.3 : 0), radius: dropGlow ? 8 : 0)
-                            Image(systemName: "drop.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(textColor)
-                                .offset(y: dropBounce ? -3 : 3)
-                        }
-
-                        Spacer()
-
-                        Text("\(Int(visualProgress * 100))%")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundColor(textColor)
-                            .contentTransition(.numericText(value: visualProgress))
-                    }
-
-                    Spacer()
-
-                    Text("Hydration")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(textColor.opacity(secondaryTextOpacity))
-
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text("\(currentIntake)")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(textColor)
-                            .contentTransition(.numericText())
-                        Text("/ \(dailyGoal) ml")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(textColor.opacity(tertiaryTextOpacity))
-                    }
-                }
-                .padding(12)
-            }
-            .frame(height: 88)
-            .frame(maxWidth: .infinity)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .onAppear {
-            // 1. Start continuous wave animation
-            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
-                wavePhase = .pi * 2
-            }
-
-            // 2. Animate from 100% down to actual value on load
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.easeInOut(duration: 2.0)) {
-                    visualProgress = targetProgress
-                }
-            }
-
-            // 3. Drop bounce
-            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                dropBounce = true
-            }
-            // 4. Icon glow
-            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.3)) {
-                dropGlow = true
-            }
-        }
-        .onChange(of: targetProgress) { _, newValue in
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                visualProgress = newValue
-            }
-        }
-    }
-}
-
-// MARK: - Cycle Tracker Quick Action Button
-
-private struct CycleTrackerQuickActionButton: View {
-    let action: () -> Void
-    @State private var pulseAnimation = false
-    @State private var moonRotation: Double = 0
-    @State private var glowBreath: Bool = false
-
-    private let accent: Color = AppColors.accentPurple
-
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                // Background
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(
-                        LinearGradient(
-                            colors: [accent, Color(hex: "7C3AED")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.22), .clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 24))
-                    )
-
-                // Animated rings
-                Circle()
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                    .frame(width: 80, height: 80)
-                    .scaleEffect(pulseAnimation ? 1.3 : 0.9)
-                    .opacity(pulseAnimation ? 0.0 : 0.5)
-                    .offset(x: 20, y: 10)
-
-                Circle()
-                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                    .frame(width: 50, height: 50)
-                    .scaleEffect(pulseAnimation ? 1.5 : 1.0)
-                    .opacity(pulseAnimation ? 0.0 : 0.4)
-                    .offset(x: 20, y: 10)
-
-                // Content Overlay
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .top) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.white.opacity(0.18))
-                                .frame(width: 32, height: 32)
-                                .shadow(color: Color.white.opacity(glowBreath ? 0.3 : 0.0), radius: glowBreath ? 8 : 0)
-                            Image(systemName: "drop.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-
-                        Spacer()
-
-                        // Moon phases rotating
-                        Image(systemName: "moon.stars.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.6))
-                            .rotationEffect(.degrees(moonRotation))
-                    }
-
-                    Spacer()
-
-                    Text("Cycle")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.9))
-                    Text("Tracker")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                .padding(12)
-            }
-            .frame(height: 88)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-                pulseAnimation = true
-            }
-            withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
-                moonRotation = 360
-            }
-            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.5)) {
-                glowBreath = true
-            }
-        }
-    }
-}
-
-private struct MedicationQuickActionButton: View {
-    let takenCount: Int
-    let totalCount: Int
-    let action: () -> Void
-
-    // Start at 0%
-    @State private var visualProgress: Double = 0.0
-    @State private var pillWobble: Bool = false
-    @State private var iconGlow: Bool = false
-
-    private var targetProgress: Double {
-        guard totalCount > 0 else { return 0 }
-        return min(1.0, Double(takenCount) / Double(totalCount))
-    }
-
-    private let accent: Color = AppColors.medication
-    private let textColor: Color = .white
-    private let secondaryTextOpacity: Double = 0.9
-    private let tertiaryTextOpacity: Double = 0.75
-    private let iconCircleFill: Color = Color.white.opacity(0.18)
-    private let liquidOpacity: Double = 0.14
-    private let bubblesColor: Color = Color.white.opacity(0.22)
-    
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                // Background & "Potion" Animation
-                GeometryReader { geo in
-                    ZStack(alignment: .bottom) {
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(accent)
-                            .overlay(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.22), .clear],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 24))
-                            )
-                        
-                        if visualProgress > 0.01 {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 24)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                Color.white.opacity(liquidOpacity + 0.04),
-                                                Color.white.opacity(liquidOpacity)
-                                            ],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
-                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                                
-                                RisingBubblesEffect(color: bubblesColor)
-                                    .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                                    .mask(
-                                        RoundedRectangle(cornerRadius: 24)
-                                            .frame(height: max(geo.size.height * visualProgress, geo.size.height * 0.05))
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                                    )
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: 24))
-                        }
-                    }
-                }
-                
-                // Content Overlay
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .top) {
-                        ZStack {
-                            Circle()
-                                .fill(iconCircleFill)
-                                .frame(width: 32, height: 32)
-                                .shadow(color: Color.white.opacity(iconGlow ? 0.25 : 0), radius: iconGlow ? 8 : 0)
-                            Image(systemName: "pills.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(textColor)
-                                .rotationEffect(.degrees(pillWobble ? 10 : -10))
-                        }
-
-                        Spacer()
-
-                        Text("\(Int(visualProgress * 100))%")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundColor(textColor)
-                            .contentTransition(.numericText(value: visualProgress))
-                    }
-
-                    Spacer()
-
-                    Text("Medications")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(textColor.opacity(secondaryTextOpacity))
-
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text("\(takenCount)")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(textColor)
-                            .contentTransition(.numericText())
-                        Text("/ \(totalCount) taken")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(textColor.opacity(tertiaryTextOpacity))
-                    }
-                }
-                .padding(12)
-            }
-            .frame(height: 88)
-            .frame(maxWidth: .infinity)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .onAppear {
-            // Animate from 0 to target on load
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
-                    visualProgress = targetProgress
-                }
-            }
-            // Pill wobble
-            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                pillWobble = true
-            }
-            // Icon glow
-            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.3)) {
-                iconGlow = true
-            }
-        }
-        .onChange(of: targetProgress) { _, newValue in
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                visualProgress = newValue
-            }
-        }
-    }
-}
-
-private struct DateButton: View {
-    let date: Date
-    let isSelected: Bool
-    let dayName: String
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Text(dayName)
-                    .font(.caption)
-                    .foregroundColor(isSelected ? .white : .secondary)
-                
-                Text("\(Calendar.current.component(.day, from: date))")
-                    .font(.headline)
-                    .foregroundColor(isSelected ? .white : .primary)
-            }
-            .frame(width: 50, height: 60)
-            .background(
-                isSelected
-                    ? AppColors.accentBlue
-                    : Color.clear
-            )
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.clear : Color.gray.opacity(0.3), lineWidth: 1)
-            )
-        }
-    }
-}
-
-private struct MetricRow: View {
-    let icon: String
-    let title: String
-    let value: String
-    let color: Color
-    
-    var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 30)
-            
-            Text(title)
-                .foregroundColor(.secondary)
-            
-            Spacer()
-            
-            Text(value)
-                .fontWeight(.semibold)
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Analysis Result View
-
-private struct AnalysisResultView: View {
-    let state: AnalysisState
-    let onDismiss: () -> Void
-    
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(UIColor.systemGroupedBackground)
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 20) {
-                        if state.isAnalyzing {
-                            analyzingView
-                        } else if let result = state.result {
-                            analysisContent(result)
-                        } else if case .error(let message) = state {
-                            errorView(message)
-                        }
-                    }
-                    .padding()
-                }
-            }
-            .navigationTitle("AI Health Analysis")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-    
-    private var analyzingView: some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .scaleEffect(1.5)
-                .padding()
-            
-            Text("Swastrica is analyzing your health data...")
-                .font(.headline)
-                .multilineTextAlignment(.center)
-            
-            Text("This may take a few moments")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private func analysisContent(_ result: HealthAnalysisResult) -> some View {
-        VStack(spacing: 20) {
-            // Sparkle Icon
-            Image(systemName: "sparkles")
-                .font(.system(size: 50))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [AppColors.accentBlue, Color(hex: "4A90E2")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .padding(.top)
-            
-            // Assessment Section
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Overall Assessment", systemImage: "heart.text.square.fill")
-                    .font(.headline)
-                    .foregroundColor(AppColors.accentBlue)
-                
-                Text(result.analysis.assessment)
-                    .font(.body)
-                    .lineSpacing(4)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .glass(cornerRadius: 16)
-            
-            // Insights Section
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Key Insights", systemImage: "lightbulb.fill")
-                    .font(.headline)
-                    .foregroundColor(AppColors.accentBlue)
-                
-                Text(result.analysis.insights)
-                    .font(.body)
-                    .lineSpacing(4)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .glass(cornerRadius: 16)
-            
-            // Recommendations Section
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Recommendations", systemImage: "star.fill")
-                    .font(.headline)
-                    .foregroundColor(AppColors.accentBlue)
-                
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("\(index + 1).")
-                            .fontWeight(.semibold)
-                            .foregroundColor(AppColors.accentBlue)
-                            Text(rec)
-                                .font(.body)
-                                .lineSpacing(4)
-                        }
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .glass(cornerRadius: 16)
-            
-            // Timestamp
-            Text("Analysis generated on \(result.timestamp.formatted(date: .abbreviated, time: .shortened))")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .padding(.bottom)
-        }
-    }
-    
-    private func errorView(_ message: String) -> some View {
-        VStack(spacing: 20) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
-                .foregroundColor(.orange)
-            
-            Text("Analysis Error")
-                .font(.headline)
-            
-            Text(message)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            
-            Button("Try Again") {
-                onDismiss()
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accentBlue)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
 // MARK: - Water Wave Shape
 
 struct RisingBubblesEffect: View {
     let color: Color
-    
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 ForEach(0..<12) { i in
-                    Bubble(
+                    BubbleView(
                         delay: Double(i) * 0.5,
                         size: CGFloat.random(in: 4...10),
                         xRange: 0...geo.size.width,
@@ -1603,17 +964,17 @@ struct RisingBubblesEffect: View {
             }
         }
     }
-    
-    struct Bubble: View {
+
+    struct BubbleView: View {
         let delay: Double
         let size: CGFloat
         let xRange: ClosedRange<CGFloat>
         let color: Color
-        
+
         @State private var offset: CGFloat = 200
         @State private var xOffset: CGFloat = 0
         @State private var opacity: Double = 0
-        
+
         var body: some View {
             Circle()
                 .fill(color)
@@ -1621,26 +982,14 @@ struct RisingBubblesEffect: View {
                 .offset(x: xOffset, y: offset)
                 .opacity(opacity)
                 .onAppear {
-                    // Randomize x position for each loop
                     xOffset = CGFloat.random(in: xRange)
-                    
                     withAnimation(
                         .linear(duration: 4.0)
                         .repeatForever(autoreverses: false)
                         .delay(delay)
                     ) {
-                        offset = -200 // Move up
-                        opacity = 1 // Fade in/out logic handled by modifier?
-                        // Simple opacity fade:
-                    }
-                    
-                    // Separate animation for opacity to fade in and out
-                    withAnimation(
-                        .easeInOut(duration: 2.0)
-                        .repeatForever(autoreverses: true)
-                        .delay(delay)
-                    ) {
-                       // opacity = 0.8
+                        offset = -200
+                        opacity = 1
                     }
                 }
         }
@@ -1651,21 +1000,13 @@ struct RisingBubblesEffect: View {
 
 struct BottomRoundedRectangle: Shape {
     var cornerRadius: CGFloat
-    
+
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let radius = min(cornerRadius, rect.height / 2, rect.width / 2)
-        
-        // Start from top-left (sharp corner)
         path.move(to: CGPoint(x: 0, y: 0))
-        
-        // Line to top-right (sharp corner)
         path.addLine(to: CGPoint(x: rect.width, y: 0))
-        
-        // Line to top of bottom-right rounded corner
         path.addLine(to: CGPoint(x: rect.width, y: rect.height - radius))
-        
-        // Bottom-right rounded corner
         path.addArc(
             center: CGPoint(x: rect.width - radius, y: rect.height - radius),
             radius: radius,
@@ -1673,11 +1014,7 @@ struct BottomRoundedRectangle: Shape {
             endAngle: .degrees(90),
             clockwise: false
         )
-        
-        // Line to top of bottom-left rounded corner
         path.addLine(to: CGPoint(x: radius, y: rect.height))
-        
-        // Bottom-left rounded corner
         path.addArc(
             center: CGPoint(x: radius, y: rect.height - radius),
             radius: radius,
@@ -1685,11 +1022,8 @@ struct BottomRoundedRectangle: Shape {
             endAngle: .degrees(180),
             clockwise: false
         )
-        
-        // Close path back to start
         path.addLine(to: CGPoint(x: 0, y: 0))
         path.closeSubpath()
-        
         return path
     }
 }
@@ -1726,27 +1060,24 @@ private struct HealthLiveActivityToggle: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(manager.isActive ? Color.green.opacity(0.15) : Color(hex: "2E3192").opacity(0.1))
+                        .fill(manager.isActive ? Color.green.opacity(0.15) : AppColors.aiTeal.opacity(0.1))
                         .frame(width: 36, height: 36)
-                    Image(systemName: manager.isActive ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(manager.isActive ? .green : Color(hex: "2E3192"))
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.poppins(.semiBold, size: 16))
+                        .foregroundColor(manager.isActive ? .green : AppColors.aiTeal)
                         .symbolEffect(.bounce, value: manager.isActive)
                 }
-
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Dynamic Island")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 14))
                         .foregroundColor(.primary)
                     Text(manager.isActive ? "Health tracking live on your island" : "Show health stats on Dynamic Island")
-                        .font(.system(size: 11))
+                        .font(.poppins(.regular, size: 11))
                         .foregroundColor(.secondary)
                 }
-
                 Spacer()
-
                 Text(manager.isActive ? "ON" : "OFF")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.poppins(.bold, size: 11))
                     .foregroundColor(manager.isActive ? .green : .secondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)

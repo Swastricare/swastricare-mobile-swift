@@ -19,7 +19,7 @@ struct HealthStreaksView: View {
             LinearGradient(
                 colors: [
                     Color(hex: "4A90E2"), // Light Blue
-                    Color(hex: "2E3192")  // Dark Blue
+                    AppColors.aiTeal  // Dark Blue
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -45,7 +45,7 @@ struct HealthStreaksView: View {
                         // Back action if needed
                     }) {
                         Image(systemName: "chevron.left")
-                            .font(.title2)
+                            .font(.poppins(.bold, size: 22))
                             .foregroundColor(.white)
                             .opacity(0) // Hidden for main tab
                     }
@@ -56,7 +56,7 @@ struct HealthStreaksView: View {
                         // Info action
                     }) {
                         Image(systemName: "info.circle")
-                            .font(.title2)
+                            .font(.poppins(.bold, size: 22))
                             .foregroundColor(.white)
                     }
                 }
@@ -66,8 +66,7 @@ struct HealthStreaksView: View {
                 
                 // Welcome Text
                 Text("Welcome to Health Streaks!")
-                    .font(.title2)
-                    .fontWeight(.medium)
+                    .font(.poppins(.medium, size: 22))
                     .foregroundColor(.white)
                 
                 Spacer()
@@ -80,20 +79,19 @@ struct HealthStreaksView: View {
                         .shadow(color: .white.opacity(0.5), radius: 20, x: 0, y: 0)
                     
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(Color(hex: "2E3192"))
+                        .font(.poppins(.regular, size: 60))
+                        .foregroundColor(AppColors.aiTeal)
                 }
                 .padding(.bottom, 10)
                 
                 // Streak Text
                 VStack(spacing: 8) {
                     Text("Restart your Streak")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.poppins(.bold, size: 20))
                         .foregroundColor(.white)
                     
                     Text("Start tracking again to earn points")
-                        .font(.subheadline)
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.white.opacity(0.8))
                 }
                 
@@ -102,8 +100,8 @@ struct HealthStreaksView: View {
                     // FAQ Action
                 }) {
                     Text("FAQ")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "2E3192"))
+                        .font(.poppins(.semiBold, size: 14))
+                        .foregroundColor(AppColors.aiTeal)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 10)
                         .background(Color.white)
@@ -175,30 +173,29 @@ struct DayItemView: View {
                         .overlay(
                             Image(systemName: "lock.fill")
                                 .foregroundColor(.white)
-                                .font(.title2)
+                                .font(.poppins(.bold, size: 22))
                         )
                 } else {
                     HexagonShape()
-                        .stroke(Color(hex: "2E3192"), lineWidth: 3)
+                        .stroke(AppColors.aiTeal, lineWidth: 3)
                         .background(HexagonShape().fill(Color.white))
                         .frame(width: 70, height: 70)
                         .overlay(
                             Image(systemName: "bolt.fill")
-                                .foregroundColor(Color(hex: "2E3192"))
-                                .font(.title2)
+                                .foregroundColor(AppColors.aiTeal)
+                                .font(.poppins(.bold, size: 22))
                         )
                 }
             }
             
             VStack(spacing: 4) {
                 Text("Day \(day)")
-                    .font(.title3)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 20))
                     .foregroundColor(isSelected ? .black : .white)
                 
                 if isSelected {
                     Text("Keep tracking to unlock your streak")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                         .frame(width: 200)

@@ -28,32 +28,15 @@ struct VaultView: View {
     @State private var documentForDetails: MedicalDocument?
     @State private var showDeleteConfirmation = false
     @State private var documentToDelete: MedicalDocument?
-    @State private var selectedFolder: DocumentFolder?
-    @State private var showFilterSheet = false
     
     // MARK: - Body
     var body: some View {
         ZStack {
-            // Premium Background
-            PremiumBackground()
-            
+            Color.white.ignoresSafeArea()
+
             VStack(spacing: 0) {
-                // Custom App Bar
                 vaultAppBar
-                
-                // Content Area
                 contentArea
-            }
-            
-            // Floating Add Button
-            if !viewModel.isSelectionMode {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                floatingAddButton
-            }
-        }
             }
         }
         .trackScreen("Vault")
@@ -115,28 +98,6 @@ struct VaultView: View {
                 }
             )
         }
-        .sheet(item: $selectedFolder) { folder in
-            FolderDetailSheet(
-                folder: folder,
-                viewModel: viewModel,
-                onViewDocument: { doc in
-                    selectedFolder = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        selectedDocument = doc
-                    }
-                },
-                onDocumentInfo: { doc in
-                    selectedFolder = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        documentForDetails = doc
-                    }
-                },
-                onDeleteDocument: { doc in
-                    selectedFolder = nil
-                    confirmDelete(doc)
-                }
-            )
-        }
         .alert("Delete Document", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -158,90 +119,23 @@ struct VaultView: View {
     
     // MARK: - App Bar
     private var vaultAppBar: some View {
-        VStack(spacing: 12) {
-            // Top Row - Title and Actions
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Medical Vault")
-                        .font(.system(size: 28, weight: .bold))
-                    
-                    Text("\(viewModel.totalDocuments) documents • \(viewModel.totalStorageFormatted)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                // Two Round Buttons
-                HStack(spacing: 12) {
-                    // View By Button
+        VStack(spacing: 0) {
+            ZStack {
+                Text("Medical Vault")
+                    .font(.poppins(.bold, size: 22))
+                    .foregroundColor(Color(hex: "0F172A"))
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                HStack {
+                    Spacer()
+
                     Menu {
                         Button {
-                            viewModel.setViewMode(.folders)
+                            showAddOptions = true
                         } label: {
-                            Label("Folders", systemImage: "folder.fill")
-                            if viewModel.viewMode == .folders {
-                                Image(systemName: "checkmark")
-                            }
+                            Label("Add document", systemImage: "plus")
                         }
-                        
-                        Button {
-                            viewModel.setViewMode(.timeline)
-                        } label: {
-                            Label("Timeline", systemImage: "calendar")
-                            if viewModel.viewMode == .timeline {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                        
-                        Button {
-                            viewModel.setViewMode(.list)
-                        } label: {
-                            Label("List", systemImage: "list.bullet")
-                            if viewModel.viewMode == .list {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: viewModeIcon)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
-                            .frame(width: 40, height: 40)
-                            .background(Circle().fill(Color(UIColor.secondarySystemBackground)))
-                    }
-                    
-                    // Sort & More Button
-                    Menu {
-                        // Sort Options
-                        Section("Sort By") {
-                            Button {
-                                viewModel.setSortOrder(.dateDescending)
-                            } label: {
-                                Label("Newest First", systemImage: "arrow.down")
-                            }
-                            
-                            Button {
-                                viewModel.setSortOrder(.dateAscending)
-                            } label: {
-                                Label("Oldest First", systemImage: "arrow.up")
-                            }
-                            
-                            Button {
-                                viewModel.setSortOrder(.nameAscending)
-                            } label: {
-                                Label("Name (A-Z)", systemImage: "textformat.abc")
-                            }
-                            
-                            Button {
-                                viewModel.setSortOrder(.sizeDescending)
-                            } label: {
-                                Label("File Size", systemImage: "doc.fill")
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        // Select & Delete
+
                         Button {
                             withAnimation(.spring(response: 0.3)) {
                                 viewModel.toggleSelectionMode()
@@ -251,92 +145,20 @@ struct VaultView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
+                            .font(.poppins(.semiBold, size: 16))
+                            .foregroundColor(Color(hex: "0F172A"))
                             .frame(width: 40, height: 40)
-                            .background(Circle().fill(Color(UIColor.secondarySystemBackground)))
                     }
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            
-            // Search Bar
-            HStack(spacing: 12) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                
-                TextField("Search documents...", text: $viewModel.searchQuery)
-                    .font(.system(size: 16))
-                
-                if !viewModel.searchQuery.isEmpty {
-                    Button {
-                        viewModel.searchQuery = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .glass(cornerRadius: 14)
-            .padding(.horizontal, 20)
-            
-            // Category Filter Pills
-            categoryFilterPills
-            
-            // Selection Bar (if in selection mode)
+            .padding(.bottom, 4)
+
             if viewModel.isSelectionMode {
                 selectionBar
+                    .padding(.top, 8)
             }
-        }
-        .padding(.bottom, 8)
-    }
-    
-    // View mode icon helper
-    private var viewModeIcon: String {
-        switch viewModel.viewMode {
-        case .folders: return "folder.fill"
-        case .timeline: return "calendar"
-        case .list: return "list.bullet"
-        }
-    }
-    
-    // MARK: - Category Filter Pills
-    private var categoryFilterPills: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                // All Category
-                FilterPill(
-                    title: "All",
-                    count: viewModel.totalDocuments,
-                    isSelected: viewModel.selectedCategory == nil,
-                    color: Color(hex: "2E3192")
-                ) {
-                    withAnimation(.spring(response: 0.3)) {
-                        viewModel.setCategory(nil)
-                    }
-                }
-                
-                // Category Pills
-                ForEach(VaultCategory.allCases) { category in
-                    FilterPill(
-                        title: category.rawValue,
-                        count: viewModel.documentsByCategory[category] ?? 0,
-                        isSelected: viewModel.selectedCategory == category,
-                        icon: category.icon,
-                        color: category.color
-                    ) {
-                        withAnimation(.spring(response: 0.3)) {
-                            viewModel.setCategory(category)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
         }
     }
     
@@ -344,7 +166,7 @@ struct VaultView: View {
     private var selectionBar: some View {
         HStack(spacing: 16) {
             Text("\(viewModel.selectedDocuments.count) selected")
-                .font(.system(size: 14, weight: .medium))
+                .font(.poppins(.medium, size: 14))
                 .foregroundColor(.secondary)
             
             Spacer()
@@ -353,8 +175,8 @@ struct VaultView: View {
                 viewModel.selectAllDocuments()
             } label: {
                 Text("Select All")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 14))
+                    .foregroundColor(AppColors.aiTeal)
             }
             
             Button(role: .destructive) {
@@ -364,7 +186,7 @@ struct VaultView: View {
                     Image(systemName: "trash")
                     Text("Delete")
                 }
-                .font(.system(size: 14, weight: .semibold))
+                .font(.poppins(.semiBold, size: 14))
                 .foregroundColor(.red)
             }
             .disabled(viewModel.selectedDocuments.isEmpty)
@@ -383,73 +205,119 @@ struct VaultView: View {
                 loadingView
             } else if let error = viewModel.errorMessage, viewModel.documents.isEmpty {
                 errorView(error)
-            } else if viewModel.filteredDocuments.isEmpty {
+            } else if viewModel.documents.isEmpty {
                 emptyStateView
             } else {
                 documentsContent
             }
         }
     }
-    
+
     // MARK: - Documents Content
     private var documentsContent: some View {
         ScrollView {
-            LazyVStack(spacing: 16) {
-                switch viewModel.viewMode {
-                case .folders:
-                    foldersGridView
-                case .timeline:
-                    timelineView
-                case .list:
-                    documentListView
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 100)
-        }
-    }
-    
-    // MARK: - Folders Grid View
-    private var foldersGridView: some View {
-        let columns = [
-            GridItem(.flexible(), spacing: 16),
-            GridItem(.flexible(), spacing: 16)
-        ]
-        
-        return LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(viewModel.groupedDocuments) { folder in
-                FolderCard(folder: folder) {
-                    selectedFolder = folder
-                }
-            }
-        }
-    }
-    
-    // MARK: - Timeline View
-    private var timelineView: some View {
-        let grouped = groupTimelineItemsByDate(viewModel.timelineItems)
-        let sortedDates = grouped.keys.sorted(by: >)
-        
-        return LazyVStack(spacing: 24) {
-            ForEach(sortedDates, id: \.self) { date in
-                TimelineDateSection(
-                    date: date,
-                    items: grouped[date] ?? [],
-                    onDocumentTap: { doc in selectedDocument = doc },
-                    onDocumentInfo: { doc in documentForDetails = doc }
+            LazyVStack(spacing: 0) {
+                StorageCard(
+                    usedBytes: Int64(viewModel.documents.reduce(0) { $0 + $1.fileSize }),
+                    totalBytes: 1_073_741_824,
+                    onAddFiles: { showAddOptions = true }
                 )
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+
+                CategoryTilesRow(
+                    allCount: viewModel.totalDocuments,
+                    reportsCount: viewModel.documentsByCategory[.labReports] ?? 0,
+                    prescriptionsCount: viewModel.documentsByCategory[.prescriptions] ?? 0,
+                    scansCount: viewModel.documentsByCategory[.imaging] ?? 0,
+                    selected: viewModel.selectedCategory,
+                    onSelectAll: { viewModel.setCategory(nil) },
+                    onSelectReports: { viewModel.setCategory(.labReports) },
+                    onSelectPrescriptions: { viewModel.setCategory(.prescriptions) },
+                    onSelectScans: { viewModel.setCategory(.imaging) }
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+
+                HStack(alignment: .center) {
+                    Text(sectionHeaderTitle)
+                        .font(.poppins(.bold, size: 15))
+                        .foregroundColor(Color(hex: "0F172A"))
+
+                    Spacer()
+
+                    Text("Sort by: Newest")
+                        .font(.poppins(.regular, size: 12))
+                        .foregroundColor(Color(hex: "6B7280"))
+
+                    Button {
+                        showAddOptions = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.poppins(.semiBold, size: 14))
+                            .foregroundColor(AppColors.aiTeal)
+                            .frame(width: 28, height: 28)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(AppColors.aiTeal.opacity(0.12))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 6)
+
+                if viewModel.filteredDocuments.isEmpty {
+                    categoryEmptyState
+                        .padding(.top, 48)
+                        .padding(.bottom, 48)
+                } else {
+                    Text("\(viewModel.filteredDocuments.count) \(viewModel.filteredDocuments.count == 1 ? "document" : "documents")")
+                        .font(.poppins(.regular, size: 12))
+                        .foregroundColor(Color(hex: "0F172A").opacity(0.5))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 6)
+
+                    documentListView
+                        .padding(.horizontal, 16)
+                }
             }
+            .padding(.bottom, 24)
         }
+    }
+
+    private var sectionHeaderTitle: String {
+        switch viewModel.selectedCategory {
+        case .none: return "All Files"
+        case .some(.labReports): return "Reports"
+        case .some(.prescriptions): return "Prescriptions"
+        case .some(.imaging): return "Scans"
+        case .some(let other): return other.rawValue
+        }
+    }
+
+    private var categoryEmptyState: some View {
+        VStack(spacing: 4) {
+            Text("No files yet")
+                .font(.poppins(.bold, size: 16))
+                .foregroundColor(Color(hex: "0F172A"))
+            Text("Add your health documents to\nkeep them safe and organized.")
+                .font(.poppins(.regular, size: 12))
+                .foregroundColor(Color(hex: "6B7280"))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
     }
     
     // MARK: - Document List View
     private var documentListView: some View {
-        LazyVStack(spacing: 12) {
-            ForEach(viewModel.filteredDocuments) { document in
-                DocumentCard(
+        VStack(spacing: 0) {
+            let docs = viewModel.filteredDocuments
+            ForEach(Array(docs.enumerated()), id: \.element.id) { index, document in
+                VaultDocumentRow(
                     document: document,
-                    viewModel: viewModel,
                     isSelectionMode: viewModel.isSelectionMode,
                     isSelected: viewModel.selectedDocuments.contains(document.id ?? UUID()),
                     onTap: {
@@ -461,11 +329,24 @@ struct VaultView: View {
                             selectedDocument = document
                         }
                     },
-                    onInfo: { documentForDetails = document },
+                    onView: { selectedDocument = document },
+                    onEdit: { documentForDetails = document },
                     onDelete: { confirmDelete(document) }
                 )
+
+                if index < docs.count - 1 {
+                    Rectangle()
+                        .fill(Color(hex: "0F172A").opacity(0.06))
+                        .frame(height: 0.5)
+                        .padding(.horizontal, 16)
+                }
             }
         }
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(hex: "F7F8FA"))
+        )
     }
     
     // MARK: - Loading View
@@ -496,116 +377,146 @@ struct VaultView: View {
     
     // MARK: - Error View
     private func errorView(_ error: String) -> some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            ZStack {
-                Circle()
-                    .fill(Color.red.opacity(0.1))
-                    .frame(width: 100, height: 100)
-                
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.red)
-            }
-            
-            VStack(spacing: 8) {
-                Text("Failed to Load")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Text(error)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    }
-                    
-            Button {
-                Task { await viewModel.loadDocuments(forceRefresh: true) }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise")
-                    Text("Try Again")
+        let accent = AppColors.aiTeal
+        return ScrollView {
+            VStack(spacing: 0) {
+                Spacer(minLength: 24)
+
+                ZStack {
+                    Circle()
+                        .fill(accent.opacity(0.10))
+                        .frame(width: 108, height: 108)
+
+                    Image(systemName: "wifi.slash")
+                        .font(.poppins(.regular, size: 44))
+                        .foregroundColor(accent)
                 }
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 14)
-                .background(Color(hex: "2E3192"))
-                .clipShape(Capsule())
+
+                Spacer().frame(height: 20)
+
+                Text("You're offline")
+                    .font(.poppins(.bold, size: 22))
+                    .foregroundColor(Color(hex: "0F172A"))
+
+                Spacer().frame(height: 6)
+
+                Text(error)
+                    .font(.poppins(.regular, size: 13))
+                    .foregroundColor(Color(hex: "6B7280"))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+
+                Spacer().frame(height: 22)
+
+                Button {
+                    Task { await viewModel.loadDocuments(forceRefresh: true) }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.poppins(.semiBold, size: 14))
+                        Text("Try Again")
+                            .font(.poppins(.semiBold, size: 15))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(accent)
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
             }
-            
-            Spacer()
+            .frame(maxWidth: .infinity)
+            .padding(.top, 40)
         }
-        .padding(.horizontal, 40)
     }
-    
+
     // MARK: - Empty State View
     private var emptyStateView: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            ZStack {
-                Circle()
-                    .fill(Color(hex: "2E3192").opacity(0.1))
-                    .frame(width: 120, height: 120)
-                
-                Image(systemName: "folder.badge.plus")
-                    .font(.system(size: 50))
-                    .foregroundColor(Color(hex: "2E3192"))
-            }
-            
-            VStack(spacing: 8) {
-                Text("No Documents Yet")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Text("Upload your medical records, prescriptions,\nand lab reports to keep them organized")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+        let accent = AppColors.aiTeal
+        return ScrollView {
+            VStack(spacing: 0) {
+                Image.androidIcon("vault icon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 180, height: 180)
+
+                Spacer().frame(height: 8)
+
+                Text("Your vault is empty")
+                    .font(.poppins(.bold, size: 22))
+                    .foregroundColor(Color(hex: "0F172A"))
+
+                Spacer().frame(height: 6)
+
+                Text("Store your important health documents, reports and prescriptions securely.")
+                    .font(.poppins(.regular, size: 13))
+                    .foregroundColor(Color(hex: "6B7280"))
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
+                Spacer().frame(height: 20)
+
+                VStack(spacing: 14) {
+                    VaultFeatureRow(icon: "lock.fill", title: "Secure Storage", description: "Your files are encrypted and protected")
+                    VaultFeatureRow(icon: "doc.text.fill", title: "Private Access", description: "Only you can access your files")
+                    VaultFeatureRow(icon: "square.and.arrow.up.fill", title: "Easy Sharing", description: "Share files with doctors when needed")
+                }
+                .padding(.horizontal, 24)
+
+                Spacer().frame(height: 22)
+
+                Button {
+                    showAddOptions = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.poppins(.semiBold, size: 14))
+                        Text("Add Files")
+                            .font(.poppins(.semiBold, size: 15))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(accent)
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
+
+                Spacer().frame(height: 10)
+
+                Button {
+                    if let url = URL(string: "https://swastricare.com/health-locker") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle")
+                            .font(.poppins(.semiBold, size: 14))
+                        Text("Learn more about Vault")
+                            .font(.poppins(.semiBold, size: 14))
+                    }
+                    .foregroundColor(accent)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(accent.opacity(0.5), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
+
+                Spacer().frame(height: 24)
             }
-            
-            // Button {
-            //     showAddOptions = true
-            // } label: {
-            //     HStack(spacing: 8) {
-            //         Image(systemName: "plus")
-            //         Text("Add Your First Document")
-            //     }
-            //     .font(.system(size: 16, weight: .semibold))
-            //     .foregroundColor(.white)
-            //     .padding(.horizontal, 32)
-            //     .padding(.vertical, 14)
-            //     .background(Color(hex: "2E3192"))
-            //     .clipShape(Capsule())
-            // }
-            
-            Spacer()
+            .frame(maxWidth: .infinity)
+            .padding(.top, 12)
         }
-        .padding(.horizontal, 40)
-    }
-    
-    // MARK: - Floating Add Button
-    private var floatingAddButton: some View {
-        Button {
-            showAddOptions = true
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .semibold))
-                Text("Add")
-                    .font(.system(size: 16, weight: .semibold))
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .background(Color(hex: "4D9E9E9E"))
-            .clipShape(Capsule())
-            .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 8, x: 0, y: 4)
-        }
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
     }
     
     // MARK: - Helper Functions
@@ -647,582 +558,333 @@ struct VaultView: View {
         viewModel.toggleSelectionMode()
     }
     
-    private func groupTimelineItemsByDate(_ items: [TimelineItem]) -> [Date: [TimelineItem]] {
-        let calendar = Calendar.current
-        return Dictionary(grouping: items) { item in
-            calendar.startOfDay(for: item.date)
+}
+
+// MARK: - Storage Card
+
+private struct StorageCard: View {
+    let usedBytes: Int64
+    let totalBytes: Int64
+    let onAddFiles: () -> Void
+
+    private var percent: Double {
+        guard totalBytes > 0 else { return 0 }
+        return min(max(Double(usedBytes) / Double(totalBytes), 0), 1)
+    }
+
+    private var usedLabel: String {
+        if usedBytes >= 1_073_741_824 {
+            return String(format: "%.1f GB", Double(usedBytes) / 1_073_741_824.0)
+        } else if usedBytes >= 1_048_576 {
+            return String(format: "%.1f MB", Double(usedBytes) / 1_048_576.0)
+        } else if usedBytes > 0 {
+            return "\(max(usedBytes / 1024, 1)) KB"
+        } else {
+            return "0 MB"
+        }
+    }
+
+    private var totalLabel: String {
+        if totalBytes >= 1_073_741_824 {
+            return "\(totalBytes / 1_073_741_824) GB"
+        } else {
+            return "\(totalBytes / 1_048_576) MB"
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Storage Used")
+                    .font(.poppins(.medium, size: 12))
+                    .foregroundColor(Color(hex: "6B7280"))
+
+                Spacer().frame(height: 4)
+
+                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                    Text(usedLabel)
+                        .font(.poppins(.bold, size: 22))
+                        .foregroundColor(Color(hex: "0F172A"))
+
+                    Text("/ \(totalLabel)")
+                        .font(.poppins(.regular, size: 13))
+                        .foregroundColor(Color(hex: "6B7280"))
+                }
+
+                Spacer().frame(height: 8)
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(hex: "D9EFE7"))
+                            .frame(height: 5)
+
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(AppColors.aiTeal)
+                            .frame(width: geo.size.width * percent, height: 5)
+                    }
+                }
+                .frame(height: 5)
+
+                Spacer().frame(height: 6)
+
+                Text("\(Int(percent * 100))% used")
+                    .font(.poppins(.semiBold, size: 11))
+                    .foregroundColor(AppColors.aiTeal)
+            }
+
+            Image.androidIcon("vault empty illustration")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 96, height: 96)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(hex: "EFFAF6"))
+        )
+    }
+}
+
+// MARK: - Category Tiles Row
+
+private struct CategoryTilesRow: View {
+    let allCount: Int
+    let reportsCount: Int
+    let prescriptionsCount: Int
+    let scansCount: Int
+    let selected: VaultCategory?
+    let onSelectAll: () -> Void
+    let onSelectReports: () -> Void
+    let onSelectPrescriptions: () -> Void
+    let onSelectScans: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            CategoryTile(
+                icon: "folder.fill",
+                label: "All Files",
+                count: allCount,
+                tint: Color(hex: "38BDF8"),
+                background: Color(hex: "EFF8FE"),
+                selected: selected == nil,
+                onTap: onSelectAll
+            )
+            CategoryTile(
+                icon: "doc.text.fill",
+                label: "Reports",
+                count: reportsCount,
+                tint: Color(hex: "F59E0B"),
+                background: Color(hex: "FEF8E1"),
+                selected: selected == .labReports,
+                onTap: onSelectReports
+            )
+            CategoryTile(
+                icon: "cross.case.fill",
+                label: "Prescriptions",
+                count: prescriptionsCount,
+                tint: Color(hex: "A855F7"),
+                background: Color(hex: "F3E8FF"),
+                selected: selected == .prescriptions,
+                onTap: onSelectPrescriptions
+            )
+            CategoryTile(
+                icon: "photo.fill",
+                label: "Scans",
+                count: scansCount,
+                tint: AppColors.aiTeal,
+                background: Color(hex: "E6F8F3"),
+                selected: selected == .imaging,
+                onTap: onSelectScans
+            )
         }
     }
 }
 
-// MARK: - Filter Pill Component
-
-private struct FilterPill: View {
-    let title: String
+private struct CategoryTile: View {
+    let icon: String
+    let label: String
     let count: Int
-    var isSelected: Bool
-    var icon: String? = nil
-    var color: Color
-    let action: () -> Void
-    
+    let tint: Color
+    let background: Color
+    let selected: Bool
+    let onTap: () -> Void
+
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 12, weight: .medium))
-                }
-                
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                
+        Button(action: onTap) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.poppins(.regular, size: 18))
+                    .foregroundColor(tint)
+                    .frame(height: 22)
+
+                Text(label)
+                    .font(.poppins(.semiBold, size: 11))
+                    .foregroundColor(Color(hex: "0F172A"))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+
                 Text("\(count)")
-                    .font(.system(size: 11, weight: .semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(isSelected ? Color.white.opacity(0.25) : Color.secondary.opacity(0.15))
-                    )
+                    .font(.poppins(.regular, size: 11))
+                    .foregroundColor(Color(hex: "6B7280"))
             }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 6)
             .background(
-                Capsule()
-                    .fill(isSelected ? color : Color.clear)
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(background)
             )
             .overlay(
-                Capsule()
-                    .stroke(isSelected ? Color.clear : Color.secondary.opacity(0.2), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(selected ? tint : Color.clear, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)
     }
 }
 
-// MARK: - Folder Card Component
+// MARK: - Vault Feature Row
 
-private struct FolderCard: View {
-    let folder: DocumentFolder
-    let onTap: () -> Void
-    
-    private var folderColor: Color {
-        let stableHash = abs(folder.id.hashValue)
-        return stableHash % 2 == 0 ? Color(hex: "2E3192") : Color(hex: "1BBBCE")
-    }
-    
+private struct VaultFeatureRow: View {
+    let icon: String
+    let title: String
+    let description: String
+
     var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 12) {
-                // Folder Icon with Badge
-                ZStack(alignment: .topTrailing) {
-                    ZStack {
-                        // Shadow folder
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 56))
-                            .foregroundStyle(folderColor.opacity(0.2))
-                            .offset(x: 2, y: 2)
-                        
-                        // Main folder
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 56))
-                            .foregroundStyle(folderColor)
-                    }
-                    
-                    // File count badge
-                    if folder.fileCount > 0 {
-                        Text("\(folder.fileCount)")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(minWidth: 22, minHeight: 22)
-                            .background(
-                                Circle()
-                                    .fill(Color(hex: "2E3192"))
-                            )
-                            .offset(x: 8, y: -4)
-                    }
-                }
-                
-                // Folder Info
-                VStack(spacing: 4) {
-                    Text(folder.folderTitle)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                    
-                    Text(folder.shortSubtitle)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.aiTeal.opacity(0.12))
+                    .frame(width: 36, height: 36)
+
+                Image(systemName: icon)
+                    .font(.poppins(.regular, size: 16))
+                    .foregroundColor(AppColors.aiTeal)
             }
-            .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-            .padding(.horizontal, 12)
-            .glass(cornerRadius: 20)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.poppins(.semiBold, size: 14))
+                    .foregroundColor(Color(hex: "0F172A"))
+
+                Text(description)
+                    .font(.poppins(.regular, size: 12))
+                    .foregroundColor(Color(hex: "6B7280"))
+            }
+
+            Spacer()
         }
-        .buttonStyle(ScaleButtonStyle())
     }
 }
 
-// MARK: - Document Card Component
+// MARK: - Vault Document Row
 
-private struct DocumentCard: View {
+private struct VaultDocumentRow: View {
     let document: MedicalDocument
-    @ObservedObject var viewModel: VaultViewModel
     let isSelectionMode: Bool
     let isSelected: Bool
     let onTap: () -> Void
-    let onInfo: () -> Void
+    let onView: () -> Void
+    let onEdit: () -> Void
     let onDelete: () -> Void
-    
-    @State private var thumbnailURL: URL?
-    
-    private var isImage: Bool {
-        ["jpg", "jpeg", "png", "heic", "gif"].contains(document.fileType.lowercased())
+
+    private var categoryColor: Color {
+        VaultCategory.allCases.first(where: { $0.rawValue == document.category })?.color ?? AppColors.aiTeal
     }
-    
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 14) {
-                // Selection or Thumbnail
-                if isSelectionMode {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 24))
-                        .foregroundColor(isSelected ? Color(hex: "2E3192") : .secondary)
-                        .frame(width: 44, height: 44)
-                } else {
-                    thumbnailView
-                }
-                
-                // Document Info
-                VStack(alignment: .leading, spacing: 6) {
-                    // Title
-                    Text(document.title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                    
-                    // Category and Date
-                    HStack(spacing: 8) {
-                        // Category badge
-                        Text(document.category)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(categoryColor(document.category))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule()
-                                    .fill(categoryColor(document.category).opacity(0.15))
-                            )
-                        
-                        // Date
-                        if let docDate = document.documentDate {
-                            Text(formatDate(docDate))
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    // Metadata (Doctor, Location)
-                    HStack(spacing: 12) {
-                        if let doctor = document.doctorName, !doctor.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 10))
-                                Text(doctor)
-                                    .font(.system(size: 11))
-                            }
-                                .foregroundColor(.secondary)
-                    }
-                    
-                    if let location = document.location, !location.isEmpty {
-                        HStack(spacing: 4) {
-                                Image(systemName: "mappin")
-                                .font(.system(size: 10))
-                            Text(location)
-                                    .font(.system(size: 11))
-                            }
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                    .lineLimit(1)
-                }
-                
-                Spacer()
-                
-                // Info Button
-                if !isSelectionMode {
-                    Button(action: onInfo) {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 20))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(16)
-            .glass(cornerRadius: 16)
-                    .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color(hex: "2E3192") : Color.clear, lineWidth: 2)
-            )
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            Button {
-                onTap()
-            } label: {
-                Label("Open", systemImage: "eye")
-            }
-            
-            Button {
-                onInfo()
-            } label: {
-                Label("Details", systemImage: "info.circle")
-            }
-            
-            Divider()
-            
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-        }
-        .task(id: document.id) {
-            if isImage {
-                thumbnailURL = await viewModel.getDocumentURL(document)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var thumbnailView: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(document.iconColor.opacity(0.12))
-                .frame(width: 56, height: 56)
-            
-            if isImage, let url = thumbnailURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 56, height: 56)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    case .failure:
-                        fileIcon
-                    case .empty:
-                        ProgressView()
-                            .frame(width: 56, height: 56)
-                    @unknown default:
-                        fileIcon
-                    }
-                }
-            } else {
-                fileIcon
-            }
-        }
-    }
-    
-    private var fileIcon: some View {
-            Image(systemName: document.icon)
-            .font(.system(size: 24))
-            .foregroundColor(document.iconColor.opacity(0.8))
-    }
-    
-    private func formatDate(_ date: Date) -> String {
+
+    private var formattedDate: String {
+        guard let date = document.documentDate else { return "" }
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
+        formatter.dateFormat = "MMM d, yyyy"
         return formatter.string(from: date)
     }
-    
-    private func categoryColor(_ category: String) -> Color {
-        if let vaultCategory = VaultCategory.allCases.first(where: { $0.rawValue == category }) {
-            return vaultCategory.color
-        }
-        return Color(hex: "2E3192")
-    }
-}
 
-// MARK: - Timeline Date Section
-
-private struct TimelineDateSection: View {
-    let date: Date
-    let items: [TimelineItem]
-    let onDocumentTap: (MedicalDocument) -> Void
-    let onDocumentInfo: (MedicalDocument) -> Void
-    
-    private var relativeDateText: String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) {
-            return "Today"
-        } else if calendar.isDateInYesterday(date) {
-            return "Yesterday"
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "EEEE, MMMM d"
-            return formatter.string(from: date)
-        }
-    }
-    
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Date Header
+        Button(action: onTap) {
             HStack(spacing: 12) {
-                // Date Circle
-                VStack(spacing: 2) {
-                    Text(dayOfMonth)
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(Color(hex: "2E3192"))
-                    
-                    Text(monthAbbr)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.secondary)
+                if isSelectionMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.poppins(.regular, size: 20))
+                        .foregroundColor(isSelected ? AppColors.aiTeal : Color(hex: "0F172A").opacity(0.3))
                 }
-                .frame(width: 50, height: 50)
-                .glass(cornerRadius: 14)
-                
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(categoryColor.opacity(0.14))
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: document.icon)
+                        .font(.poppins(.regular, size: 18))
+                        .foregroundColor(categoryColor)
+                }
+
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(relativeDateText)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
-                    
-                    Text("\(items.count) item\(items.count == 1 ? "" : "s")")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                    Text(document.title)
+                        .font(.poppins(.medium, size: 15))
+                        .foregroundColor(Color(hex: "0F172A"))
+                        .lineLimit(1)
+
+                    HStack(spacing: 0) {
+                        Text(document.category)
+                            .font(.poppins(.medium, size: 11))
+                            .foregroundColor(categoryColor)
+
+                        if !formattedDate.isEmpty {
+                            Text(" • ")
+                                .font(.poppins(.regular, size: 11))
+                                .foregroundColor(Color(hex: "0F172A").opacity(0.3))
+                            Text(formattedDate)
+                                .font(.poppins(.regular, size: 11))
+                                .foregroundColor(Color(hex: "0F172A").opacity(0.5))
+                        }
+
+                        if let doctor = document.doctorName, !doctor.isEmpty {
+                            Text(" • ")
+                                .font(.poppins(.regular, size: 11))
+                                .foregroundColor(Color(hex: "0F172A").opacity(0.3))
+                            Text(doctor)
+                                .font(.poppins(.regular, size: 11))
+                                .foregroundColor(Color(hex: "0F172A").opacity(0.5))
+                                .lineLimit(1)
+                        }
+                    }
                 }
-                
+
                 Spacer()
-            }
-            
-            // Timeline Items
-            VStack(spacing: 12) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    TimelineItemCard(
-                        item: item,
-                        isLast: index == items.count - 1,
-                        onDocumentTap: onDocumentTap,
-                        onDocumentInfo: onDocumentInfo
-                    )
-                }
-            }
-        }
-    }
-    
-    private var dayOfMonth: String {
-        let calendar = Calendar.current
-        let day = calendar.component(.day, from: date)
-        return "\(day)"
-    }
-    
-    private var monthAbbr: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM"
-        return formatter.string(from: date).uppercased()
-    }
-}
 
-// MARK: - Timeline Item Card
-
-private struct TimelineItemCard: View {
-    let item: TimelineItem
-    let isLast: Bool
-    let onDocumentTap: (MedicalDocument) -> Void
-    let onDocumentInfo: (MedicalDocument) -> Void
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            // Timeline connector
-            VStack(spacing: 0) {
-                Circle()
-                    .fill(Color(hex: "2E3192"))
-                    .frame(width: 10, height: 10)
-                
-                if !isLast {
-                    Rectangle()
-                        .fill(Color(hex: "2E3192").opacity(0.2))
-                        .frame(width: 2)
-                        .frame(maxHeight: .infinity)
-                }
-            }
-            .frame(width: 10)
-            .padding(.leading, 20)
-            
-            // Content Card
-            VStack(alignment: .leading, spacing: 10) {
-                switch item.type {
-                case .document(let document):
-                    documentCard(document)
-                case .documents(let documents):
-                    if let firstDoc = documents.first {
-                        documentsGroupCard(firstDoc, count: documents.count)
-                    }
-                case .consultation(let doctor, let location, _):
-                    consultationCard(doctor: doctor, location: location)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .glass(cornerRadius: 16)
-        }
-    }
-    
-    @ViewBuilder
-    private func documentCard(_ document: MedicalDocument) -> some View {
-        Button {
-            onDocumentTap(document)
-        } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                    Text(document.folderName ?? document.title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
-                    
-                    Spacer()
-                    
-                    Button {
-                        onDocumentInfo(document)
+                if !isSelectionMode {
+                    Menu {
+                        Button {
+                            onView()
+                        } label: {
+                            Label("View", systemImage: "eye")
+                        }
+                        Button {
+                            onEdit()
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            onDelete()
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                     } label: {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 16))
-                                        .foregroundColor(.secondary)
+                        Image(systemName: "ellipsis")
+                            .font(.poppins(.semiBold, size: 14))
+                            .foregroundColor(Color(hex: "0F172A").opacity(0.45))
+                            .frame(width: 32, height: 32)
                     }
-                }
-                
-                HStack(spacing: 6) {
-                    Image(systemName: categoryIcon(document.category))
-                        .font(.system(size: 11))
-                    Text(document.category)
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .foregroundColor(categoryColor(document.category))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(categoryColor(document.category).opacity(0.12))
-                )
-                
-                if let doctor = item.doctorName, !doctor.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 10))
-                        Text(doctor)
-                            .font(.system(size: 12))
-                    }
-                                        .foregroundColor(.secondary)
-                }
-                
-                if let location = item.location, !location.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin")
-                            .font(.system(size: 10))
-                        Text(location)
-                            .font(.system(size: 12))
-                    }
-                    .foregroundColor(.secondary)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-    
-    @ViewBuilder
-    private func documentsGroupCard(_ document: MedicalDocument, count: Int) -> some View {
-        Button {
-            onDocumentTap(document)
-        } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(document.folderName ?? document.title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.primary)
-                    
-                    Text("\(count) files")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(Color.secondary.opacity(0.12))
-                        )
-                    
-                    Spacer()
-                    
-                    Button {
-                        onDocumentInfo(document)
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                HStack(spacing: 6) {
-                    Image(systemName: categoryIcon(document.category))
-                        .font(.system(size: 11))
-                    Text(document.category)
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .foregroundColor(categoryColor(document.category))
-                                    .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(categoryColor(document.category).opacity(0.12))
-                )
-            }
-        }
-        .buttonStyle(.plain)
-    }
-    
-    @ViewBuilder
-    private func consultationCard(doctor: String?, location: String?) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color(hex: "1BBBCE").opacity(0.15))
-                    .frame(width: 44, height: 44)
-                
-                Image(systemName: "stethoscope")
-                    .font(.system(size: 20))
-                    .foregroundColor(Color(hex: "1BBBCE"))
-            }
-            
-                        VStack(alignment: .leading, spacing: 4) {
-                Text("Consultation")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                if let doc = doctor, !doc.isEmpty {
-                    Text(doc)
-                        .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                }
-            }
-        }
-    }
-    
-    private func categoryIcon(_ category: String) -> String {
-        if let vaultCategory = VaultCategory.allCases.first(where: { $0.rawValue == category }) {
-            return vaultCategory.icon
-        }
-        return "doc.fill"
-    }
-    
-    private func categoryColor(_ category: String) -> Color {
-        if let vaultCategory = VaultCategory.allCases.first(where: { $0.rawValue == category }) {
-            return vaultCategory.color
-        }
-        return Color(hex: "2E3192")
     }
 }
 
@@ -1241,7 +903,7 @@ private struct AddDocumentSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 Text("Add Documents")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.poppins(.bold, size: 22))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, horizontalInset)
                     .padding(.top, 24)
@@ -1256,28 +918,28 @@ private struct AddDocumentSheet: View {
                         HStack(spacing: 16) {
                             ZStack {
                                 Circle()
-                                    .fill(Color(hex: "2E3192").opacity(0.15))
+                                    .fill(AppColors.aiTeal.opacity(0.15))
                                     .frame(width: 52, height: 52)
                                 
                                 Image(systemName: "folder.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(Color(hex: "2E3192"))
+                                    .font(.poppins(.regular, size: 22))
+                                    .foregroundColor(AppColors.aiTeal)
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Browse Files")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 16))
                                     .foregroundColor(.primary)
                                 
                                 Text("PDF, DOC, images and more")
-                                    .font(.system(size: 13))
+                                    .font(.poppins(.regular, size: 13))
                                     .foregroundColor(.secondary)
                             }
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 14))
                                 .foregroundColor(.secondary)
                         }
                         .padding(cardPadding)
@@ -1297,24 +959,24 @@ private struct AddDocumentSheet: View {
                                     .frame(width: 52, height: 52)
                                 
                                 Image(systemName: "photo.on.rectangle")
-                                    .font(.system(size: 22))
+                                    .font(.poppins(.regular, size: 22))
                                     .foregroundColor(Color(hex: "1BBBCE"))
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Photo Library")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 16))
                                     .foregroundColor(.primary)
                                 
                                 Text("Select photos from your library")
-                                    .font(.system(size: 13))
+                                    .font(.poppins(.regular, size: 13))
                                     .foregroundColor(.secondary)
                             }
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 14))
                                 .foregroundColor(.secondary)
                         }
                         .padding(cardPadding)
@@ -1357,17 +1019,17 @@ private struct BatchUploadSheet: View {
                     ForEach(viewModel.pendingUploads, id: \.fileName) { upload in
                         HStack(spacing: 12) {
                             Image(systemName: upload.icon)
-                                .font(.system(size: 20))
-                                .foregroundColor(Color(hex: "2E3192"))
+                                .font(.poppins(.regular, size: 20))
+                                .foregroundColor(AppColors.aiTeal)
                                 .frame(width: 32)
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(upload.fileName)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.poppins(.medium, size: 14))
                                     .lineLimit(1)
                                 
                                 Text(upload.formattedSize)
-                                    .font(.system(size: 12))
+                                    .font(.poppins(.regular, size: 12))
                                     .foregroundColor(.secondary)
                             }
                             
@@ -1379,7 +1041,7 @@ private struct BatchUploadSheet: View {
                                 }
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 18))
+                                    .font(.poppins(.regular, size: 18))
                                     .foregroundColor(.secondary.opacity(0.5))
                             }
                         }
@@ -1389,7 +1051,7 @@ private struct BatchUploadSheet: View {
                         Text("Selected Files (\(viewModel.pendingUploads.count))")
                         Spacer()
                         Text(totalSizeFormatted)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -1455,10 +1117,10 @@ private struct BatchUploadSheet: View {
                         VStack(spacing: 12) {
                             ProgressView(value: viewModel.uploadState.progress)
                                 .progressViewStyle(.linear)
-                                .tint(Color(hex: "2E3192"))
+                                .tint(AppColors.aiTeal)
                             
                             Text("Uploading \(viewModel.currentUploadIndex + 1) of \(viewModel.totalUploadFiles)...")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -1478,7 +1140,7 @@ private struct BatchUploadSheet: View {
                     Button("Upload") {
                         Task { await uploadAll() }
                     }
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
                     .disabled(viewModel.pendingUploads.isEmpty || viewModel.uploadState.isUploading)
                 }
             }
@@ -1535,11 +1197,11 @@ private struct DocumentDetailSheet: View {
                         
                         VStack(spacing: 6) {
                             Text(document.title)
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 18))
                                 .multilineTextAlignment(.center)
                             
                             Text(document.category)
-                                .font(.system(size: 14))
+                                .font(.poppins(.regular, size: 14))
                         .foregroundColor(.secondary)
                 }
                     }
@@ -1566,7 +1228,7 @@ private struct DocumentDetailSheet: View {
                 if let desc = document.description, !desc.isEmpty {
                     Section("Description") {
                         Text(desc)
-                            .font(.body)
+                            .font(.poppins(.regular, size: 17))
                     }
                 }
                 
@@ -1588,11 +1250,11 @@ private struct DocumentDetailSheet: View {
                         FlowLayout(spacing: 8) {
                             ForEach(tags, id: \.self) { tag in
                                 Text(tag)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
-                                    .background(Color(hex: "2E3192").opacity(0.1))
-                                    .foregroundColor(Color(hex: "2E3192"))
+                                    .background(AppColors.aiTeal.opacity(0.1))
+                                    .foregroundColor(AppColors.aiTeal)
                                     .cornerRadius(8)
                             }
                         }
@@ -1675,7 +1337,7 @@ private struct DocumentDetailSheet: View {
                 .frame(width: 100, height: 100)
             
             Image(systemName: document.icon)
-                .font(.system(size: 40))
+                .font(.poppins(.regular, size: 40))
                 .foregroundColor(document.iconColor)
         }
     }
@@ -1705,16 +1367,16 @@ private struct LabeledRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.poppins(.regular, size: 14))
                 .foregroundColor(iconColor)
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
                 Text(value)
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
             }
         }
     }
@@ -1851,198 +1513,6 @@ private struct EditDocumentSheet: View {
     }
 }
 
-// MARK: - Folder Detail Sheet
-
-private struct FolderDetailSheet: View {
-    let folder: DocumentFolder
-    @ObservedObject var viewModel: VaultViewModel
-    let onViewDocument: (MedicalDocument) -> Void
-    let onDocumentInfo: (MedicalDocument) -> Void
-    let onDeleteDocument: (MedicalDocument) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    private var folderColor: Color {
-        let hash = abs(folder.id.hashValue)
-        return hash % 2 == 0 ? Color(hex: "2E3192") : Color(hex: "1BBBCE")
-    }
-    
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Folder Header
-                    folderHeader
-                    
-                    // Files Grid
-                    filesGrid
-                }
-                .padding(20)
-            }
-            .background(Color(UIColor.systemBackground))
-            .navigationTitle(folder.folderTitle)
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-    }
-    
-    private var folderHeader: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "folder.fill")
-                .font(.system(size: 48))
-                .foregroundColor(folderColor)
-            
-            VStack(spacing: 8) {
-                if let date = folder.documentDate {
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar")
-                            .font(.caption)
-                        Text(formatDate(date))
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(.secondary)
-                }
-                
-                if let doctor = folder.doctorName, !doctor.isEmpty {
-                    HStack(spacing: 6) {
-                        Image(systemName: "person.fill")
-                            .font(.caption)
-                        Text(doctor)
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(.secondary)
-                }
-                
-                if let location = folder.location, !location.isEmpty {
-                    HStack(spacing: 6) {
-                        Image(systemName: "mappin")
-                            .font(.caption)
-                        Text(location)
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(.secondary)
-                }
-                
-                Text("\(folder.fileCount) files • \(folder.formattedTotalSize)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.vertical, 20)
-        .frame(maxWidth: .infinity)
-        .glass(cornerRadius: 20)
-    }
-    
-    private var filesGrid: some View {
-        let columns = [
-            GridItem(.adaptive(minimum: 100, maximum: 120), spacing: 16)
-        ]
-        
-        return LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(folder.documents) { document in
-                FileGridItem(
-                    document: document,
-                    viewModel: viewModel,
-                    onTap: { onViewDocument(document) },
-                    onInfo: { onDocumentInfo(document) },
-                    onDelete: { onDeleteDocument(document) }
-                )
-            }
-        }
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter.string(from: date)
-    }
-}
-
-// MARK: - File Grid Item
-
-private struct FileGridItem: View {
-    let document: MedicalDocument
-    @ObservedObject var viewModel: VaultViewModel
-    let onTap: () -> Void
-    let onInfo: () -> Void
-    let onDelete: () -> Void
-    
-    @State private var thumbnailURL: URL?
-    
-    private var isImage: Bool {
-        ["jpg", "jpeg", "png", "heic", "gif"].contains(document.fileType.lowercased())
-    }
-    
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 8) {
-                // Thumbnail
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(UIColor.secondarySystemBackground))
-                        .frame(width: 80, height: 80)
-                    
-                    if isImage, let url = thumbnailURL {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            case .failure:
-                                fileIcon
-                            case .empty:
-                                ProgressView()
-                            @unknown default:
-                                fileIcon
-                            }
-                        }
-                    } else {
-                        fileIcon
-                    }
-                }
-                
-                // File Name
-                Text(document.title)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.primary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                
-                Text(document.fileType.uppercased())
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            Button { onTap() } label: {
-                Label("Open", systemImage: "eye")
-            }
-            Button { onInfo() } label: {
-                Label("Info", systemImage: "info.circle")
-            }
-            Divider()
-            Button(role: .destructive) { onDelete() } label: {
-                Label("Delete", systemImage: "trash")
-            }
-        }
-        .task(id: document.id) {
-            if isImage {
-                thumbnailURL = await viewModel.getDocumentURL(document)
-            }
-        }
-    }
-    
-    private var fileIcon: some View {
-        Image(systemName: document.icon)
-            .font(.title2)
-            .foregroundColor(document.iconColor.opacity(0.7))
-    }
-}
 
 // MARK: - Multi Document Picker
 

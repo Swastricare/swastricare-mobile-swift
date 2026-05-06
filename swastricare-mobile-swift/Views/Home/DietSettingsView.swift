@@ -70,7 +70,7 @@ struct DietSettingsView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 22))
+                            .font(.poppins(.regular, size: 22))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -84,15 +84,15 @@ struct DietSettingsView: View {
     private var calorieSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Daily Calorie Target")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
             
             // Big number
             HStack(alignment: .bottom, spacing: 4) {
                 Text("\(Int(dailyCalories))")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 48))
                     .foregroundColor(AppColors.accentGreen)
                 Text("cal")
-                    .font(.system(size: 20))
+                    .font(.poppins(.regular, size: 20))
                     .foregroundColor(.secondary)
                     .padding(.bottom, 8)
             }
@@ -105,11 +105,11 @@ struct DietSettingsView: View {
             // Range labels
             HStack {
                 Text("1,200")
-                    .font(.system(size: 12))
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
                 Spacer()
                 Text("4,000")
-                    .font(.system(size: 12))
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -123,7 +123,7 @@ struct DietSettingsView: View {
     private var macroSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Macro Split")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
             
             // Protein
             macroRow(
@@ -157,20 +157,20 @@ struct DietSettingsView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(AppColors.accentGreen)
                     Text("Total: 100%")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.poppins(.medium, size: 14))
                         .foregroundColor(AppColors.accentGreen)
                 } else {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(AppColors.accentRed)
                     Text("Total must be 100%")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.poppins(.medium, size: 14))
                         .foregroundColor(AppColors.accentRed)
                 }
                 
                 Spacer()
                 
                 Text("\(totalPercent)%")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 16))
                     .foregroundColor(isValidMacroSplit ? AppColors.accentGreen : AppColors.accentRed)
             }
         }
@@ -183,13 +183,13 @@ struct DietSettingsView: View {
         VStack(spacing: 10) {
             HStack {
                 Text(label)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.poppins(.medium, size: 14))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Text("\(Int(value.wrappedValue))%")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 13))
                     .foregroundColor(color)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -197,7 +197,7 @@ struct DietSettingsView: View {
                     .clipShape(Capsule())
                 
                 Text("\(grams)g")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.poppins(.medium, size: 13))
                     .foregroundColor(.secondary)
             }
             
@@ -211,7 +211,7 @@ struct DietSettingsView: View {
     private var presetsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Quick Presets")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
                 .padding(.horizontal, 4)
             
             presetCard(
@@ -241,17 +241,17 @@ struct DietSettingsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.poppins(.medium, size: 15))
                         .foregroundColor(.primary)
                     Text(subtitle)
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
                 
                 Spacer()
                 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
+                    .font(.poppins(.regular, size: 20))
                     .foregroundColor(isSelected ? AppColors.accentGreen : .secondary)
             }
             .padding(14)
@@ -271,10 +271,10 @@ struct DietSettingsView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Meal Reminders")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.poppins(.medium, size: 15))
                     .foregroundColor(.primary)
                 Text("Get notified to log meals")
-                    .font(.system(size: 12))
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -295,7 +295,7 @@ struct DietSettingsView: View {
         Button(action: saveGoals) {
             HStack {
                 Text("Save Changes")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 16))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)

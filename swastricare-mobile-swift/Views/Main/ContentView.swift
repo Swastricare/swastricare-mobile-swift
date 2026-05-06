@@ -42,14 +42,25 @@ struct ContentView: View {
     // MARK: - Init
     
     init() {
-        // Configure transparent tab bar with blur effect
+        // Configure transparent tab bar with blur effect + AITeal selection tint
         let appearance = UITabBarAppearance()
         appearance.configureWithTransparentBackground()
         appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         appearance.backgroundColor = UIColor.clear
-        
+
+        // AITeal #22C5A6 for selected tab
+        let teal = UIColor(red: 0x22 / 255.0, green: 0xC5 / 255.0, blue: 0xA6 / 255.0, alpha: 1.0)
+        let unselected = UIColor.systemGray
+        for itemAppearance in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
+            itemAppearance.selected.iconColor = teal
+            itemAppearance.selected.titleTextAttributes = [.foregroundColor: teal]
+            itemAppearance.normal.iconColor = unselected
+            itemAppearance.normal.titleTextAttributes = [.foregroundColor: unselected]
+        }
+
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
+        UITabBar.appearance().tintColor = teal
     }
     
     // MARK: - Body
@@ -60,7 +71,7 @@ struct ContentView: View {
         TabView(selection: $currentTab) {
             // Vitals Tab
             NavigationStack {
-                HomeViewV2()
+                HomeView()
                     .modifier(ToolbarBackgroundVisibilityModifier())
             }
             .tabItem {

@@ -56,13 +56,13 @@ struct ARBodyScanView: View {
                     Color.black.ignoresSafeArea()
                     VStack(spacing: 16) {
                         Image(systemName: "camera.fill")
-                            .font(.system(size: 48))
+                            .font(.poppins(.regular, size: 48))
                             .foregroundColor(.white.opacity(0.4))
                         Text("Camera Access Required")
-                            .font(.title3.weight(.semibold))
+                            .font(.poppins(.semiBold, size: 20))
                             .foregroundColor(.white)
                         Text("Enable camera access in Settings to use AR Body Scan.")
-                            .font(.subheadline)
+                            .font(.poppins(.regular, size: 15))
                             .foregroundColor(.white.opacity(0.6))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 40)
@@ -72,7 +72,7 @@ struct ARBodyScanView: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(Color(hex: "2E3192"))
+                        .tint(AppColors.aiTeal)
                     }
                 }
             }
@@ -82,7 +82,7 @@ struct ARBodyScanView: View {
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 16))
                             .foregroundColor(.white)
                             .padding(12)
                             .background(.ultraThinMaterial)
@@ -98,7 +98,7 @@ struct ARBodyScanView: View {
                             .frame(width: 8, height: 8)
                             .scaleEffect(scanPulse ? 1.3 : 1.0)
                         Text(viewModel.bodyDetected ? "Body Detected" : "Scanning...")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 12))
                             .foregroundColor(.white)
                     }
                     .padding(.horizontal, 12)
@@ -111,7 +111,7 @@ struct ARBodyScanView: View {
                     // Toggle camera
                     Button(action: { viewModel.toggleCamera() }) {
                         Image(systemName: "camera.rotate.fill")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 16))
                             .foregroundColor(.white)
                             .padding(12)
                             .background(.ultraThinMaterial)
@@ -140,14 +140,14 @@ struct ARBodyScanView: View {
                     // Instruction card
                     HStack(spacing: 12) {
                         Image(systemName: "person.fill.viewfinder")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .font(.poppins(.semiBold, size: 24))
+                            .foregroundColor(AppColors.aiTeal)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Point camera at a person")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 14))
                                 .foregroundColor(.white)
                             Text("Stand 3-6 feet away for best results")
-                                .font(.system(size: 12))
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.white.opacity(0.7))
                         }
                         Spacer()
@@ -494,7 +494,7 @@ private struct ScanLineView: View {
             Rectangle()
                 .fill(
                     LinearGradient(
-                        colors: [Color.clear, Color(hex: "2E3192").opacity(0.4), Color(hex: "1BFFFF").opacity(0.6), Color(hex: "2E3192").opacity(0.4), Color.clear],
+                        colors: [Color.clear, AppColors.aiTeal.opacity(0.4), Color(hex: "1BFFFF").opacity(0.6), AppColors.aiTeal.opacity(0.4), Color.clear],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
@@ -610,7 +610,7 @@ private struct OrganIconView: View {
                         .frame(width: organ.size, height: organ.size)
                         .overlay(
                             Image(systemName: organ.icon)
-                                .font(.system(size: organ.size * 0.45, weight: .semibold))
+                                .font(.poppins(.semiBold, size: organ.size * 0.45))
                                 .foregroundColor(.white)
                         )
                         .overlay(
@@ -623,7 +623,7 @@ private struct OrganIconView: View {
                 // Health value label — only show when selected
                 if isSelected, let value = healthValue {
                     Text(value)
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.poppins(.bold, size: 10))
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
@@ -677,7 +677,7 @@ private struct SkeletonView: View {
 
                 context.stroke(path, with: .linearGradient(
                     Gradient(colors: [
-                        Color(hex: "2E3192").opacity(0.5),
+                        AppColors.aiTeal.opacity(0.5),
                         Color(hex: "1BFFFF").opacity(0.5)
                     ]),
                     startPoint: start,
@@ -710,17 +710,17 @@ private struct OrganDetailCard: View {
                         .fill(Color(hex: organ.color).opacity(0.2))
                         .frame(width: 40, height: 40)
                     Image(systemName: organ.icon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 18))
                         .foregroundColor(Color(hex: organ.color))
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(organ.name)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.poppins(.bold, size: 17))
                         .foregroundColor(.white)
                     if let metric = healthMetricText {
                         Text(metric)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 13))
                             .foregroundColor(Color(hex: organ.color))
                     }
                 }
@@ -729,7 +729,7 @@ private struct OrganDetailCard: View {
 
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.poppins(.bold, size: 12))
                         .foregroundColor(.white.opacity(0.5))
                         .padding(8)
                         .background(.ultraThinMaterial)
@@ -738,7 +738,7 @@ private struct OrganDetailCard: View {
             }
 
             Text(organ.description)
-                .font(.system(size: 14))
+                .font(.poppins(.regular, size: 14))
                 .foregroundColor(.white.opacity(0.8))
                 .lineSpacing(4)
         }

@@ -60,7 +60,7 @@ struct UrineColorGuideView: View {
                     .frame(width: 72, height: 72)
 
                 Image(systemName: "drop.fill")
-                    .font(.system(size: 32))
+                    .font(.poppins(.regular, size: 32))
                     .foregroundStyle(
                         LinearGradient(
                             colors: [.cyan, .blue],
@@ -71,10 +71,10 @@ struct UrineColorGuideView: View {
             }
 
             Text("Check Your Hydration")
-                .font(.system(size: 22, weight: .bold))
+                .font(.poppins(.bold, size: 22))
 
             Text("Tap a level to see details and recommendations")
-                .font(.system(size: 14))
+                .font(.poppins(.regular, size: 14))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -105,19 +105,19 @@ struct UrineColorGuideView: View {
                             .shadow(color: color.color.opacity(0.4), radius: isExpanded ? 6 : 0)
 
                         Text("\(color.rawValue + 1)")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.poppins(.bold, size: 16))
                             .foregroundColor(color.rawValue < 4 ? .black.opacity(0.6) : .white)
                     }
 
                     // Name + status
                     VStack(alignment: .leading, spacing: 4) {
                         Text(color.displayName)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 16))
                             .foregroundColor(.primary)
 
                         // Status chip
                         Text(status.displayName)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 11))
                             .foregroundColor(status.color)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 3)
@@ -128,7 +128,7 @@ struct UrineColorGuideView: View {
                     Spacer()
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.poppins(.medium, size: 13))
                         .foregroundColor(.secondary)
                 }
                 .padding(14)
@@ -143,12 +143,12 @@ struct UrineColorGuideView: View {
                     // Status icon + recommendation
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: status.icon)
-                            .font(.system(size: 18))
+                            .font(.poppins(.regular, size: 18))
                             .foregroundColor(status.color)
                             .frame(width: 24)
 
                         Text(status.recommendation)
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -165,9 +165,9 @@ struct UrineColorGuideView: View {
                         }) {
                             HStack(spacing: 8) {
                                 Image(systemName: "drop.fill")
-                                    .font(.system(size: 14))
+                                    .font(.poppins(.regular, size: 14))
                                 Text("Log 250ml Water")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 14))
                             }
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -200,7 +200,7 @@ struct UrineColorGuideView: View {
     private var tipsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Hydration Tips")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
 
             tipRow(icon: "clock.fill", color: .blue, text: "Check in the morning for the most accurate reading")
             tipRow(icon: "pills.fill", color: .orange, text: "Vitamins and medications can affect color")
@@ -221,7 +221,7 @@ struct UrineColorGuideView: View {
                 .frame(width: 24)
 
             Text(text)
-                .font(.system(size: 14))
+                .font(.poppins(.regular, size: 14))
                 .foregroundColor(.secondary)
         }
     }

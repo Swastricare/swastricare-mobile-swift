@@ -48,6 +48,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1595,7 +1600,32 @@ fun EmptyState(
                 bitmap = vaultBitmap.asImageBitmap(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(180.dp)
+                modifier = Modifier
+                    .size(180.dp)
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        val fadeX = size.width * 0.18f
+                        val fadeY = size.height * 0.18f
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                0f to Color.Transparent,
+                                (fadeX / size.width) to Color.Black,
+                                1f - (fadeX / size.width) to Color.Black,
+                                1f to Color.Transparent
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                (fadeY / size.height) to Color.Black,
+                                1f - (fadeY / size.height) to Color.Black,
+                                1f to Color.Transparent
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
             )
         }
 

@@ -77,10 +77,10 @@ struct HeartRateProgressOverlay: View {
             if signalQuality == .poor {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.orange)
                     Text("Place finger firmly on camera")
-                        .font(.caption.weight(.medium))
+                        .font(.poppins(.medium, size: 12))
                         .foregroundColor(.orange)
                 }
                 .padding(.horizontal, 14)
@@ -95,11 +95,11 @@ struct HeartRateProgressOverlay: View {
                 // Time remaining
                 VStack(spacing: 3) {
                     Text(timeRemainingFormatted)
-                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .font(.poppins(.bold, size: 18))
                         .foregroundColor(.primary)
                         .contentTransition(.numericText())
                     Text(signalQuality == .poor ? "paused" : "remaining")
-                        .font(.caption2.weight(.medium))
+                        .font(.poppins(.medium, size: 11))
                         .foregroundColor(signalQuality == .poor ? .orange : .secondary)
                         .textCase(.uppercase)
                 }
@@ -116,11 +116,11 @@ struct HeartRateProgressOverlay: View {
                 // Progress percentage
                 VStack(spacing: 3) {
                     Text("\(Int(progress * 100))%")
-                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .font(.poppins(.bold, size: 18))
                         .foregroundColor(.red)
                         .contentTransition(.numericText())
                     Text("complete")
-                        .font(.caption2.weight(.medium))
+                        .font(.poppins(.medium, size: 11))
                         .foregroundColor(.secondary)
                         .textCase(.uppercase)
                 }
@@ -168,7 +168,7 @@ struct SignalQualityIndicator: View {
             .accessibilityHidden(true)
             
             Text(isRunning ? quality.description : instructionText)
-                .font(.subheadline.weight(.medium))
+                .font(.poppins(.medium, size: 15))
                 .foregroundColor(signalQualityColor)
                 .lineLimit(1)
         }
@@ -290,10 +290,10 @@ struct CameraPreviewCircle: View {
                         .overlay(
                             VStack(spacing: 12) {
                                 Image(systemName: "camera.fill")
-                                    .font(.system(size: 40))
+                                    .font(.poppins(.regular, size: 40))
                                     .foregroundColor(.secondary)
                                 Text("Tap Start")
-                                    .font(.caption)
+                                    .font(.poppins(.regular, size: 12))
                                     .foregroundColor(.secondary)
                             }
                         )
@@ -307,11 +307,11 @@ struct CameraPreviewCircle: View {
                         .overlay(
                             VStack(spacing: 12) {
                                 Image(systemName: "hand.point.up.fill")
-                                    .font(.system(size: 36))
+                                    .font(.poppins(.regular, size: 36))
                                     .foregroundColor(.white)
                                     .symbolEffect(.pulse)
                                 Text("Place finger on camera")
-                                    .font(.caption.weight(.medium))
+                                    .font(.poppins(.medium, size: 12))
                                     .foregroundColor(.white)
                             }
                         )

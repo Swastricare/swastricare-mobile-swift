@@ -57,7 +57,7 @@ private struct FamilyHeroIllustration: View {
                 .overlay(Circle().stroke(color.opacity(0.6), lineWidth: 1.5))
 
             Image(systemName: "person.fill")
-                .font(.system(size: size * 0.38))
+                .font(.poppins(.regular, size: size * 0.38))
                 .foregroundStyle(color)
         }
         .offset(offset)
@@ -86,9 +86,9 @@ private struct FamilyTabPicker: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                 Text(label)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 15))
             }
             .foregroundStyle(selected == tab ? .white : .secondary)
             .frame(maxWidth: .infinity)
@@ -123,7 +123,7 @@ private struct FamilyTextField: View {
             Group {
                 if isMonospaced {
                     TextField(placeholder, text: $text)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.poppins(.regular, size: 17))
                         .textInputAutocapitalization(autocapitalization)
                         .autocorrectionDisabled()
                 } else {
@@ -166,7 +166,7 @@ private struct FamilyActionButton: View {
                         .scaleEffect(0.85)
                 }
                 Text(title)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -306,7 +306,7 @@ struct FamilyView: View {
                 .scaleEffect(1.2)
                 .tint(AppColors.family)
             Text("Loading family...")
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -326,13 +326,13 @@ struct FamilyView: View {
             // Title & subtitle
             VStack(spacing: 8) {
                 Text("Family Health")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.poppins(.bold, size: 28))
                     .foregroundStyle(familyGradient)
                     .opacity(animateTitle ? 1 : 0)
                     .offset(y: animateTitle ? 0 : 14)
 
                 Text("Create a family group or join one to share\nand manage health data together.")
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .opacity(animateSubtitle ? 1 : 0)
@@ -373,15 +373,15 @@ struct FamilyView: View {
                         .fill(AppColors.family.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundStyle(AppColors.family)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Create Your Family")
-                        .font(.headline)
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundStyle(.primary)
                     Text("Start a group and invite members")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -417,15 +417,15 @@ struct FamilyView: View {
                         .fill(AppColors.family.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundStyle(AppColors.family)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Join a Family")
-                        .font(.headline)
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundStyle(.primary)
                     Text("Enter the code shared by the group owner")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -443,9 +443,9 @@ struct FamilyView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "doc.on.clipboard")
-                                .font(.system(size: 13))
+                                .font(.poppins(.regular, size: 13))
                             Text("Paste")
-                                .font(.caption.weight(.medium))
+                                .font(.poppins(.medium, size: 12))
                         }
                         .foregroundStyle(AppColors.family)
                         .padding(.horizontal, 10)
@@ -514,16 +514,16 @@ struct FamilyView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(vm.familyGroup?.name ?? "My Family")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.poppins(.bold, size: 22))
                         .foregroundStyle(.primary)
 
                     HStack(spacing: 8) {
                         // Member count badge
                         HStack(spacing: 4) {
                             Image(systemName: "person.2.fill")
-                                .font(.system(size: 10))
+                                .font(.poppins(.regular, size: 10))
                             Text("\(vm.memberCount) member\(vm.memberCount == 1 ? "" : "s")")
-                                .font(.caption.weight(.medium))
+                                .font(.poppins(.medium, size: 12))
                         }
                         .foregroundStyle(AppColors.family)
                         .padding(.horizontal, 9)
@@ -535,9 +535,9 @@ struct FamilyView: View {
                         if let role = vm.currentMemberRole {
                             HStack(spacing: 4) {
                                 Image(systemName: role.icon)
-                                    .font(.system(size: 9))
+                                    .font(.poppins(.regular, size: 9))
                                 Text(role.displayName)
-                                    .font(.caption.weight(.medium))
+                                    .font(.poppins(.medium, size: 12))
                             }
                             .foregroundStyle(role.color)
                             .padding(.horizontal, 9)
@@ -556,7 +556,7 @@ struct FamilyView: View {
                         .fill(AppColors.family.opacity(0.12))
                         .frame(width: 52, height: 52)
                     Image(systemName: "person.3.fill")
-                        .font(.system(size: 22))
+                        .font(.poppins(.regular, size: 22))
                         .foregroundStyle(AppColors.family)
                 }
             }
@@ -570,7 +570,7 @@ struct FamilyView: View {
     private var inviteCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Label("Invite Members", systemImage: "envelope.badge.fill")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundStyle(AppColors.family)
 
             if !vm.inviteCode.isEmpty {
@@ -583,8 +583,7 @@ struct FamilyView: View {
 
                     HStack {
                         Text(vm.inviteCode)
-                            .font(.system(.title3, design: .monospaced))
-                            .fontWeight(.bold)
+                            .font(.poppins(.bold, size: 20))
                             .tracking(4)
                             .foregroundStyle(.primary)
                             .shimmer()
@@ -603,7 +602,7 @@ struct FamilyView: View {
                                     .fill(AppColors.family.opacity(0.15))
                                     .frame(width: 38, height: 38)
                                 Image(systemName: showCopied ? "checkmark" : "doc.on.doc.fill")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 14))
                                     .foregroundStyle(showCopied ? .green : AppColors.family)
                                     .animation(.spring(response: 0.25, dampingFraction: 0.65), value: showCopied)
                             }
@@ -624,9 +623,9 @@ struct FamilyView: View {
                     ShareLink(item: vm.shareLink) {
                         HStack(spacing: 6) {
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 14))
                             Text("Share Link")
-                                .font(.subheadline.weight(.semibold))
+                                .font(.poppins(.semiBold, size: 15))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
@@ -646,9 +645,9 @@ struct FamilyView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "arrow.triangle.2.circlepath")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 13))
                                 Text("New Code")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.poppins(.semiBold, size: 15))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 11)
@@ -661,7 +660,7 @@ struct FamilyView: View {
                 }
             } else {
                 Text("No invite code available.")
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundStyle(.secondary)
             }
         }
@@ -674,12 +673,12 @@ struct FamilyView: View {
     private var membersCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Members", systemImage: "person.2.fill")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundStyle(AppColors.family)
 
             if vm.members.isEmpty {
                 Text("No members yet. Share your invite code to get started.")
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 8)
             } else {
@@ -715,22 +714,22 @@ struct FamilyView: View {
                     .shadow(color: member.role.color.opacity(0.25), radius: 4, x: 0, y: 2)
 
                 Text(memberInitial(member))
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.poppins(.bold, size: 17))
                     .foregroundStyle(.white)
             }
 
             // Name & badges
             VStack(alignment: .leading, spacing: 4) {
                 Text(member.fullName ?? "Unknown")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 15))
 
                 HStack(spacing: 6) {
                     // Role pill
                     HStack(spacing: 3) {
                         Image(systemName: member.role.icon)
-                            .font(.system(size: 9))
+                            .font(.poppins(.regular, size: 9))
                         Text(member.role.displayName)
-                            .font(.caption2.weight(.semibold))
+                            .font(.poppins(.semiBold, size: 11))
                     }
                     .foregroundStyle(member.role.color)
                     .padding(.horizontal, 7)
@@ -740,7 +739,7 @@ struct FamilyView: View {
 
                     if let relationship = member.relationship, !relationship.isEmpty {
                         Text(relationship)
-                            .font(.caption2)
+                            .font(.poppins(.regular, size: 11))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -755,7 +754,7 @@ struct FamilyView: View {
                     showRemoveConfirmation = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.title3)
+                        .font(.poppins(.semiBold, size: 20))
                         .foregroundStyle(.red.opacity(0.7))
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -781,9 +780,9 @@ struct FamilyView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.poppins(.medium, size: 14))
                 Text("Leave Family Group")
-                    .fontWeight(.medium)
+                    .font(.poppins(.medium, size: 17))
             }
             .foregroundStyle(.red)
             .frame(maxWidth: .infinity)
@@ -830,9 +829,9 @@ struct FamilyView: View {
     private func bannerView(text: String, color: Color, icon: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
             Text(text)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .lineLimit(2)
         }
         .foregroundStyle(color)

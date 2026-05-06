@@ -40,23 +40,23 @@ struct HealthProfileQuestionnaireView: View {
         Group {
             if isCompleting {
                 // Show blank screen immediately when completing to prevent any glitch
-                Color(UIColor.systemBackground)
+                Color.white
                     .ignoresSafeArea()
             } else {
                 ZStack {
                     // 1. Clean Background
-                    Color(UIColor.systemBackground).ignoresSafeArea()
+                    Color.white.ignoresSafeArea()
                     
                     // Ambient Glow
                     GeometryReader { geo in
                         Circle()
-                            .fill(Color(hex: "2E3192").opacity(colorScheme == .dark ? 0.15 : 0.05))
+                            .fill(AppColors.aiTeal.opacity(colorScheme == .dark ? 0.15 : 0.04))
                             .blur(radius: 120)
                             .frame(width: 400, height: 400)
                             .position(x: geo.size.width, y: 0)
-                        
+
                         Circle()
-                            .fill(Color(hex: "1BFFFF").opacity(colorScheme == .dark ? 0.1 : 0.05))
+                            .fill(AppColors.aiTealDark.opacity(colorScheme == .dark ? 0.1 : 0.04))
                             .blur(radius: 100)
                             .frame(width: 300, height: 300)
                             .position(x: 0, y: geo.size.height)
@@ -126,13 +126,13 @@ struct HealthProfileQuestionnaireView: View {
                                     }
                                 }) {
                                     Text(currentStep == 6 ? "Finish Setup" : "Continue")
-                                        .font(.system(size: 17, weight: .semibold))
+                                        .font(.poppins(.semiBold, size: 17))
                                         .foregroundColor(.white)
                                         .frame(maxWidth: .infinity)
                                         .frame(height: 56)
-                                        .background(canProceed ? Color(hex: "2E3192") : Color.gray.opacity(0.3))
+                                        .background(canProceed ? AppColors.aiTeal : Color.gray.opacity(0.3))
                                         .clipShape(RoundedRectangle(cornerRadius: 16))
-                                        .shadow(color: canProceed ? Color(hex: "2E3192").opacity(0.4) : .clear, radius: 20, y: 10)
+                                        .shadow(color: canProceed ? AppColors.aiTeal.opacity(0.4) : .clear, radius: 20, y: 10)
                                 }
                                 .disabled(!canProceed)
                                 .padding(.horizontal, 24)
@@ -217,7 +217,7 @@ struct ProgressHeader: View {
         HStack {
             Button(action: onBack) {
                 Image(systemName: "arrow.left")
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.poppins(.medium, size: 20))
                     .foregroundColor(.primary)
                     .frame(width: 44, height: 44)
                     .background(Color.primary.opacity(0.05))
@@ -230,7 +230,7 @@ struct ProgressHeader: View {
             HStack(spacing: 6) {
                 ForEach(1...5, id: \.self) { step in
                     Capsule()
-                        .fill(step <= current ? Color(hex: "2E3192") : Color.primary.opacity(0.1))
+                        .fill(step <= current ? AppColors.aiTeal : Color.primary.opacity(0.1))
                         .frame(width: 30, height: 6)
                         .animation(.spring, value: current)
                 }
@@ -254,17 +254,17 @@ struct IntroStepView: View {
             Spacer()
             
             Image(systemName: "heart.text.square.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(LinearGradient(colors: [Color(hex: "2E3192"), Color(hex: "1BFFFF")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .shadow(color: Color(hex: "2E3192").opacity(0.5), radius: 30)
+                .font(.poppins(.regular, size: 80))
+                .foregroundStyle(PremiumColor.aiTeal)
+                .shadow(color: AppColors.aiTeal.opacity(0.5), radius: 30)
             
             VStack(spacing: 16) {
                 Text("Your Health Profile")
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.poppins(.bold, size: 34))
                     .foregroundColor(.primary)
                 
                 Text("Let's personalize Swastricare for you.\nThis takes less than a minute.")
-                    .font(.system(size: 17))
+                    .font(.poppins(.regular, size: 17))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
@@ -274,11 +274,11 @@ struct IntroStepView: View {
             
             Button(action: onStart) {
                 Text("Get Started")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color(hex: "2E3192"))
+                    .background(AppColors.aiTeal)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .padding(.horizontal, 24)
@@ -297,13 +297,13 @@ struct NameStepView: View {
             Spacer().frame(height: 40)
             
             Text("What's your name?")
-                .font(.system(size: 32, weight: .bold))
+                .font(.poppins(.bold, size: 32))
                 .foregroundColor(.primary)
             
             TextField("Your Name", text: $name)
-                .font(.system(size: 28, weight: .medium))
+                .font(.poppins(.medium, size: 28))
                 .foregroundColor(.primary)
-                .tint(Color(hex: "2E3192"))
+                .tint(AppColors.aiTeal)
                 .focused($isFocused)
                 .submitLabel(.done)
                 .padding(.vertical, 20)
@@ -321,7 +321,7 @@ struct NameStepView: View {
                 }
             
             Text("This is how we'll address you.")
-                .font(.system(size: 15))
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
             
             Spacer()
@@ -362,13 +362,13 @@ struct WelcomeStepView: View {
                 VStack(spacing: 8) {
                     HStack(spacing: 0) {
                         Text(displayedWelcomeText)
-                            .font(.system(size: 36, weight: .bold))
+                            .font(.poppins(.bold, size: 36))
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.center)
                         
                         if displayedWelcomeText != "Welcome" {
                             Text("|")
-                                .font(.system(size: 36, weight: .bold))
+                                .font(.poppins(.bold, size: 36))
                                 .foregroundColor(.primary.opacity(0.6))
                                 .opacity(welcomeCursorOpacity)
                         }
@@ -387,13 +387,13 @@ struct WelcomeStepView: View {
                     
                     HStack(spacing: 0) {
                         Text(displayedNameText)
-                            .font(.system(size: 36, weight: .bold))
+                            .font(.poppins(.bold, size: 36))
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.center)
                         
                         if !displayedNameText.isEmpty && displayedNameText != name {
                             Text("|")
-                                .font(.system(size: 36, weight: .bold))
+                                .font(.poppins(.bold, size: 36))
                                 .foregroundColor(.primary.opacity(0.6))
                                 .opacity(nameCursorOpacity)
                         }
@@ -418,7 +418,7 @@ struct WelcomeStepView: View {
                 }
                 
                 Text("\"The journey of a thousand miles\nbegins with a single step.\"")
-                    .font(.system(size: 18, weight: .medium, design: .serif))
+                    .font(.poppins(.medium, size: 18))
                     .italic()
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -441,13 +441,13 @@ struct WelcomeStepView: View {
             
             Button(action: onContinue) {
                 Text("Let's Go")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color(hex: "2E3192"))
+                    .background(AppColors.aiTeal)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: Color(hex: "2E3192").opacity(0.4), radius: 20, y: 10)
+                    .shadow(color: AppColors.aiTeal.opacity(0.4), radius: 20, y: 10)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
@@ -530,7 +530,7 @@ struct GenderStepView: View {
             Spacer().frame(height: 40)
             
             Text("Which gender do you identify with?")
-                .font(.system(size: 32, weight: .bold))
+                .font(.poppins(.bold, size: 32))
                 .foregroundColor(.primary)
             
             VStack(spacing: 16) {
@@ -564,31 +564,31 @@ fileprivate struct GenderOption: View {
         Button(action: action) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
+                    .font(.poppins(.regular, size: 24))
                     .foregroundColor(isSelected ? .white : .secondary)
                     .frame(width: 40)
                 
                 Text(title)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.poppins(.medium, size: 18))
                     .foregroundColor(isSelected ? .white : .secondary)
                 
                 Spacer()
                 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(Color(hex: "2E3192"))
-                        .font(.system(size: 24))
+                        .foregroundColor(AppColors.aiTeal)
+                        .font(.poppins(.regular, size: 24))
                         .background(Circle().fill(.white).padding(2))
                 }
             }
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color(hex: "2E3192") : Color.primary.opacity(0.05))
+                    .fill(isSelected ? AppColors.aiTeal : Color.primary.opacity(0.05))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color(hex: "2E3192") : Color.clear, lineWidth: 1.5)
+                    .stroke(isSelected ? AppColors.aiTeal : Color.clear, lineWidth: 1.5)
             )
         }
     }
@@ -604,11 +604,11 @@ struct DOBStepView: View {
             Spacer().frame(height: 40)
             
             Text("Date of Birth")
-                .font(.system(size: 32, weight: .bold))
+                .font(.poppins(.bold, size: 32))
                 .foregroundColor(.primary)
             
             Text("This helps us provide age-appropriate insights.")
-                .font(.system(size: 17))
+                .font(.poppins(.regular, size: 17))
                 .foregroundColor(.secondary)
             
             // Clean Wheel Picker style
@@ -639,17 +639,17 @@ struct HeightStepView: View {
             
             VStack(spacing: 16) {
                 Text("How tall are you?")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.poppins(.bold, size: 32))
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text("\(Int(height))")
-                        .font(.system(size: 80, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 80))
                         .foregroundColor(.primary)
                     
                     Text("cm")
-                        .font(.system(size: 24, weight: .medium))
+                        .font(.poppins(.medium, size: 24))
                         .foregroundColor(.secondary)
                 }
             }
@@ -657,14 +657,14 @@ struct HeightStepView: View {
             // Slider with custom thumb
             VStack(spacing: 20) {
                 Slider(value: $height, in: 100...250, step: 1)
-                    .tint(Color(hex: "2E3192"))
+                    .tint(AppColors.aiTeal)
                 
                 HStack {
                     Text("100 cm")
                     Spacer()
                     Text("250 cm")
                 }
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
             }
             .padding(.horizontal, 32)
@@ -684,17 +684,17 @@ struct WeightStepView: View {
             
             VStack(spacing: 16) {
                 Text("What is your weight?")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.poppins(.bold, size: 32))
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text("\(Int(weight))")
-                        .font(.system(size: 80, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 80))
                         .foregroundColor(.primary)
                     
                     Text("kg")
-                        .font(.system(size: 24, weight: .medium))
+                        .font(.poppins(.medium, size: 24))
                         .foregroundColor(.secondary)
                 }
             }
@@ -702,14 +702,14 @@ struct WeightStepView: View {
             // Slider with custom thumb
             VStack(spacing: 20) {
                 Slider(value: $weight, in: 30...200, step: 0.5)
-                    .tint(Color(hex: "2E3192"))
+                    .tint(AppColors.aiTeal)
                 
                 HStack {
                     Text("30 kg")
                     Spacer()
                     Text("200 kg")
                 }
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
             }
             .padding(.horizontal, 32)

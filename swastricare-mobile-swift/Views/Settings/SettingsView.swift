@@ -31,7 +31,7 @@ struct SettingsView: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [Color(hex: "2E3192").opacity(0.2), Color(hex: "4A90E2").opacity(0.2)],
+                                    colors: [AppColors.aiTeal.opacity(0.2), Color(hex: "4A90E2").opacity(0.2)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -40,21 +40,21 @@ struct SettingsView: View {
                             .blur(radius: 20)
                         
                         Image(systemName: "gearshape.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .font(.poppins(.regular, size: 50))
+                            .foregroundColor(AppColors.aiTeal)
                             .symbolEffect(.pulse, options: .repeating)
                     }
                     
                     // Loading Message
                     VStack(spacing: 12) {
                         Text(loadingMessage)
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 20))
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.center)
                             .animation(.easeInOut, value: loadingMessage)
                         
                         Text("\(Int(loadingProgress * 100))%")
-                            .font(.system(size: 16))
+                            .font(.poppins(.regular, size: 16))
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal, 40)
@@ -71,7 +71,7 @@ struct SettingsView: View {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(
                                     LinearGradient(
-                                        colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                        colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
@@ -224,15 +224,14 @@ struct SettingsView: View {
                 // Info
                 VStack(spacing: 6) {
                     Text(viewModel.userName)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(.poppins(.bold, size: 22))
                     
                     Text(viewModel.userEmail)
-                        .font(.subheadline)
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                     
                     Text("Member since \(viewModel.memberSince)")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -246,7 +245,7 @@ struct SettingsView: View {
         Circle()
             .fill(
                 LinearGradient(
-                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                    colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -254,10 +253,10 @@ struct SettingsView: View {
             .frame(width: 100, height: 100)
             .overlay(
                 Text(String(viewModel.userName.prefix(1)).uppercased())
-                    .font(.system(size: 40, weight: .bold))
+                    .font(.poppins(.bold, size: 40))
                     .foregroundColor(.white)
             )
-            .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 10, x: 0, y: 5)
+            .shadow(color: AppColors.aiTeal.opacity(0.3), radius: 10, x: 0, y: 5)
     }
     
     private var healthProfileSection: some View {
@@ -305,19 +304,19 @@ struct SettingsView: View {
                     Spacer()
                     VStack(spacing: 12) {
                         Image(systemName: "person.crop.circle.badge.questionmark")
-                            .font(.system(size: 44))
+                            .font(.poppins(.regular, size: 44))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                    colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
                         Text("No health profile found")
-                            .font(.subheadline)
+                            .font(.poppins(.regular, size: 15))
                             .foregroundColor(.secondary)
                         Text("Complete your health profile during onboarding")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary.opacity(0.7))
                             .multilineTextAlignment(.center)
                     }
@@ -334,7 +333,7 @@ struct SettingsView: View {
                         Task { await viewModel.refreshHealthProfile() }
                     } label: {
                         Image(systemName: "arrow.clockwise")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.blue)
                     }
                 }
@@ -354,23 +353,23 @@ struct SettingsView: View {
                             .frame(width: 44, height: 44)
 
                         Image(systemName: "person.3.fill")
-                            .font(.system(size: 18))
+                            .font(.poppins(.regular, size: 18))
                             .foregroundColor(AppColors.accentBlue)
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Family")
-                            .font(.headline)
+                            .font(.poppins(.semiBold, size: 17))
                         
                         Text("Manage family members' health")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                     
                     Spacer()
                     
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -379,7 +378,7 @@ struct SettingsView: View {
             Text("Family")
         } footer: {
             Text("Track and manage health profiles for your family members")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
         }
     }
     
@@ -393,23 +392,23 @@ struct SettingsView: View {
                             .frame(width: 44, height: 44)
 
                         Image(systemName: "target")
-                            .font(.system(size: 18))
+                            .font(.poppins(.regular, size: 18))
                             .foregroundColor(AppColors.accentBlue)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Goals")
-                            .font(.headline)
+                            .font(.poppins(.semiBold, size: 17))
 
                         Text("Steps, diet, hydration & more")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
 
                     Spacer()
 
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -418,7 +417,7 @@ struct SettingsView: View {
             Text("Goals")
         } footer: {
             Text("Set daily targets for activity, nutrition and hydration")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
         }
     }
 
@@ -446,7 +445,7 @@ struct SettingsView: View {
                     Label("Hydration Preferences", systemImage: "gearshape.fill")
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -463,7 +462,7 @@ struct SettingsView: View {
                             Text("Reminders & Notifications")
                                 .foregroundColor(.primary)
                             Text("Hydration, medication, diet, cycle, AI")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                         }
                     } icon: {
@@ -507,7 +506,7 @@ struct SettingsView: View {
                 Spacer()
                 if HealthLiveActivityManager.shared.isActive {
                     Text("ON")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.poppins(.bold, size: 11))
                         .foregroundColor(.green)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -556,14 +555,13 @@ struct SettingsView: View {
                 
                 // Version text
                 Text(viewModel.appVersion)
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
                 
                 // Update indicator
                 if appVersionService.updateStatus.hasUpdate {
                     Text("Update")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 11))
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -579,7 +577,7 @@ struct SettingsView: View {
                         )
                     
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -617,7 +615,7 @@ struct SettingsView: View {
             .disabled(viewModel.isLoading)
         } footer: {
             Text("Permanently delete your account and all associated data.")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
         }
     }
@@ -625,7 +623,7 @@ struct SettingsView: View {
     private var versionFooter: some View {
         VStack(spacing: 8) {
             Text("Version \(viewModel.appVersion)")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
             
             HStack(spacing: 12) {
@@ -633,19 +631,19 @@ struct SettingsView: View {
                     activeSheet = .terms
                 }) {
                     Text("Terms & Conditions")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.blue)
                 }
                 
                 Text("•")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
                 
                 Button(action: {
                     activeSheet = .privacy
                 }) {
                     Text("Privacy Policy")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.blue)
                 }
             }

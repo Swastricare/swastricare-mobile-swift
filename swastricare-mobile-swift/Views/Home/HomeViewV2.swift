@@ -755,11 +755,11 @@ struct HomeViewV2: View {
                 // Greeting Text
                 VStack(alignment: .leading, spacing: 2) {
                     Text(getGreeting())
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.poppins(.medium, size: 16))
                         .foregroundColor(.primary.opacity(0.7))
                     
                     Text(authViewModel.userName)
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.poppins(.bold, size: 22))
                         .foregroundColor(.primary)
                 }
                 
@@ -768,7 +768,7 @@ struct HomeViewV2: View {
                 // Track Button
                 NavigationLink(destination: HealthAnalyticsView()) {
                     Image(systemName: "target")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.poppins(.medium, size: 20))
                         .foregroundColor(.primary)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -777,11 +777,11 @@ struct HomeViewV2: View {
             // Date Chip
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(Color(hex: "60A5FA"))
 
                 Text(getFormattedDate())
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                     .foregroundColor(.primary.opacity(0.85))
             }
 
@@ -865,15 +865,15 @@ struct HomeViewV2: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
-                            .font(.system(size: 10))
+                            .font(.poppins(.regular, size: 10))
                             .foregroundColor(.blue.opacity(0.7))
                         Text("Swastri")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.poppins(.medium, size: 10))
                             .foregroundColor(.primary.opacity(0.6))
                     }
                     
                     Text(suggestion)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 13))
                         .foregroundColor(.primary)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -902,15 +902,15 @@ struct HomeViewV2: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
-                            .font(.system(size: 10))
+                            .font(.poppins(.regular, size: 10))
                             .foregroundColor(.blue.opacity(0.7))
                         Text("Swastri")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.poppins(.medium, size: 10))
                             .foregroundColor(.primary.opacity(0.6))
                     }
                     
                     Text(suggestion)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 13))
                         .foregroundColor(.primary)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1010,7 +1010,7 @@ struct HomeViewV2: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center) {
                 Text("Daily Activity")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.poppins(.bold, size: 20))
                     .foregroundColor(.primary)
                 Spacer()
             }
@@ -1075,7 +1075,7 @@ struct HomeViewV2: View {
             // Section Header
             HStack(alignment: .center) {
                 Text("Health Vitals")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.poppins(.bold, size: 20))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -1128,7 +1128,7 @@ struct HomeViewV2: View {
             // Section Header
             HStack(alignment: .center) {
                 Text("Quick Action")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.poppins(.bold, size: 20))
                     .foregroundColor(.primary)
 
                 Spacer()
@@ -1294,7 +1294,7 @@ struct HomeViewV2: View {
                         }
                     }) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
+                            .font(.poppins(.regular, size: 28))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -1302,7 +1302,7 @@ struct HomeViewV2: View {
                 // Mood Emoji
                 if let mood = selectedMood {
                     Text(mood.rawValue)
-                        .font(.system(size: 80))
+                        .font(.poppins(.regular, size: 80))
                         .scaleEffect(showMoodOverlay ? 1.0 : 0.5)
                         .opacity(showMoodOverlay ? 1.0 : 0)
                         .animation(.spring(response: 0.6, dampingFraction: 0.7), value: showMoodOverlay)
@@ -1319,7 +1319,7 @@ struct HomeViewV2: View {
                 if let aiText = moodAIGeneratedText {
                     ScrollView {
                         Text(aiText)
-                            .font(.system(size: 16))
+                            .font(.poppins(.regular, size: 16))
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.center)
                             .lineSpacing(6)
@@ -1332,7 +1332,7 @@ struct HomeViewV2: View {
                         ProgressView()
                             .scaleEffect(1.2)
                         Text("Swastri is thinking...")
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(.secondary)
                     }
                     .frame(height: 100)
@@ -1351,22 +1351,22 @@ struct HomeViewV2: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "sparkles")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 16))
                             Text("Continue with Swastri AI")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 15))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 14)
                         .background(
                             LinearGradient(
-                                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .clipShape(Capsule())
-                        .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 8, x: 0, y: 4)
+                        .shadow(color: AppColors.aiTeal.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
                     .transition(.opacity.combined(with: .scale))
                 }
@@ -1415,7 +1415,7 @@ private struct SleepCard: View {
                 // Top Section
                 HStack(alignment: .top) {
                     Image(systemName: "bed.double.fill")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundColor(.white.opacity(0.9))
                     
                     Spacer()
@@ -1425,14 +1425,14 @@ private struct SleepCard: View {
                 
                 // Percentage Text
                 Text("\(percentage)% Good Sleep")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.poppins(.medium, size: 13))
                     .foregroundColor(.white.opacity(0.9))
                     .padding(.top, 6)
                     .padding(.horizontal, 16)
                 
                 // Hours Display
                 Text(hours)
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 48))
                     .foregroundColor(.white)
                     .padding(.top, 8)
                     .padding(.horizontal, 16)
@@ -1476,11 +1476,11 @@ private struct StressLevelCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(percentage)% Good")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.poppins(.bold, size: 14))
                         .foregroundColor(.white)
                     
                     Text("Stress Level")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.poppins(.medium, size: 11))
                         .foregroundColor(.white.opacity(0.9))
                 }
                 
@@ -1488,7 +1488,7 @@ private struct StressLevelCard: View {
                 
                 // Bar graph icon
                 Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 20))
+                    .font(.poppins(.regular, size: 20))
                     .foregroundColor(.white.opacity(0.9))
             }
             .padding(.horizontal, 16)
@@ -1525,7 +1525,7 @@ private struct ActivityCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(distance)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 24))
                         .foregroundColor(.white)
                 }
                 
@@ -1544,7 +1544,7 @@ private struct ActivityCard: View {
                         .rotationEffect(.degrees(-90))
                     
                     Image(systemName: "figure.run")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                         .foregroundColor(.white)
                 }
             }
@@ -1721,7 +1721,7 @@ private struct ActivityRingsView: View {
                 .shadow(color: color.opacity(0.5), radius: 4)
 
             Image(systemName: systemName)
-                .font(.system(size: badgeSize * 0.42, weight: .bold))
+                .font(.poppins(.bold, size: badgeSize * 0.42))
                 .foregroundColor(.white)
         }
         .offset(x: x, y: y)
@@ -1798,16 +1798,16 @@ private struct ActivityCountRow: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.poppins(.medium, size: 11))
                     .foregroundColor(.secondary)
 
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
                     Text(displayValue)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 15))
                         .foregroundColor(.primary)
                         .contentTransition(.numericText())
                     Text("/\(displayGoal) \(unit)")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.poppins(.medium, size: 10))
                         .foregroundColor(.secondary)
                 }
             }
@@ -1837,17 +1837,17 @@ private struct DailyActivityCard: View {
             // Icon + Title row
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
                     .foregroundColor(gradientColors.last ?? .blue)
 
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                     .foregroundColor(.primary)
 
                 Spacer()
 
                 Text("\(Int(animatedProgress * 100))%")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 12))
                     .foregroundColor(gradientColors.last ?? .blue)
                     .contentTransition(.numericText())
             }
@@ -1878,13 +1878,13 @@ private struct DailyActivityCard: View {
             HStack {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 16))
                         .foregroundColor(.primary)
                         .lineLimit(1)
 
                     if !unit.isEmpty {
                         Text(unit)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.poppins(.medium, size: 11))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -1892,7 +1892,7 @@ private struct DailyActivityCard: View {
                 Spacer()
 
                 Text("/ \(goal)")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.poppins(.medium, size: 11))
                     .foregroundColor(.secondary)
             }
         }
@@ -1981,18 +1981,18 @@ private struct ActivityRowLabel: View {
 
             // Icon
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.poppins(.semiBold, size: 13))
                 .foregroundColor(color)
                 .frame(width: 18)
 
             // Label + Value
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.poppins(.medium, size: 11))
                     .foregroundColor(.secondary)
 
                 Text(value)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 15))
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -2012,17 +2012,17 @@ private struct ActivityLabel: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
                 .foregroundColor(color)
 
             Text(value)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 18))
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.poppins(.medium, size: 11))
                 .foregroundColor(.secondary)
         }
     }
@@ -2102,7 +2102,7 @@ private struct HydrationQuickActionCard: View {
                             .frame(width: 32, height: 32)
                             .shadow(color: Color.white.opacity(dropGlow ? 0.3 : 0), radius: dropGlow ? 8 : 0)
                         Image(systemName: "drop.fill")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.poppins(.bold, size: 14))
                             .foregroundColor(textColor)
                             .offset(y: dropBounce ? -3 : 3)
                     }
@@ -2110,7 +2110,7 @@ private struct HydrationQuickActionCard: View {
                     Spacer()
 
                     Text("\(Int(visualProgress * 100))%")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 20))
                         .foregroundColor(textColor)
                         .contentTransition(.numericText(value: visualProgress))
                 }
@@ -2118,16 +2118,16 @@ private struct HydrationQuickActionCard: View {
                 Spacer()
 
                 Text("Hydration")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                     .foregroundColor(textColor.opacity(0.9))
 
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text("\(currentIntake)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 16))
                         .foregroundColor(textColor)
                         .contentTransition(.numericText())
                     Text("/ \(dailyGoal) ml")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.poppins(.medium, size: 10))
                         .foregroundColor(textColor.opacity(0.75))
                 }
             }
@@ -2257,29 +2257,29 @@ private struct MedicationQuickActionCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: "pills.fill")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundColor(textColor.opacity(textOpacity))
                     
                     Spacer()
                     
                     Text("\(Int(progress * 100))%")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.poppins(.bold, size: 14))
                         .foregroundColor(textColor.opacity(textOpacity))
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(takenCount)")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 28))
                             .foregroundColor(textColor)
                         
                         Text("/ \(totalCount)")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.poppins(.medium, size: 16))
                             .foregroundColor(textColor.opacity(isLight ? 0.75 : 0.8))
                     }
                     
                     Text("Medication")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.poppins(.medium, size: 12))
                         .foregroundColor(textColor.opacity(textOpacity))
                 }
             }
@@ -2332,7 +2332,7 @@ private struct DietQuickActionCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: "fork.knife")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundColor(textColor.opacity(textOpacity))
 
                     Spacer()
@@ -2341,11 +2341,11 @@ private struct DietQuickActionCard: View {
                 Spacer()
 
                 Text("Diet")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.poppins(.bold, size: 14))
                     .foregroundColor(textColor)
 
                 Text("Track meals")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.poppins(.medium, size: 12))
                     .foregroundColor(textColor.opacity(textOpacity))
             }
             .padding(16)
@@ -2397,7 +2397,7 @@ private struct CycleQuickActionCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: "calendar.circle.fill")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundColor(textColor.opacity(textOpacity))
 
                     Spacer()
@@ -2406,11 +2406,11 @@ private struct CycleQuickActionCard: View {
                 Spacer()
 
                 Text("Cycle")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.poppins(.bold, size: 14))
                     .foregroundColor(textColor)
 
                 Text("Track period")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.poppins(.medium, size: 12))
                     .foregroundColor(textColor.opacity(textOpacity))
             }
             .padding(16)
@@ -2459,16 +2459,16 @@ private struct BPMPriorityCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Heart Rate")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.poppins(.medium, size: 11))
                         .foregroundColor(.white.opacity(0.9))
                     
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(heartRate)")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 28))
                             .foregroundColor(.white)
                         
                         Text("BPM")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.poppins(.medium, size: 14))
                             .foregroundColor(.white.opacity(0.8))
                     }
                 }
@@ -2477,7 +2477,7 @@ private struct BPMPriorityCard: View {
                 
                 // Pulsing Heart Icon
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 24))
+                    .font(.poppins(.regular, size: 24))
                     .foregroundColor(.white)
                     .scaleEffect(isPulsing ? 1.2 : 1.0)
                     .opacity(isPulsing ? 1.0 : 0.8)
@@ -2524,7 +2524,7 @@ private struct AnimatedOrbView: View {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color(hex: "2E3192").opacity(0.3),
+                                AppColors.aiTeal.opacity(0.3),
                                 Color(hex: "4A90E2").opacity(0.2),
                                 Color(hex: "1BFFFF").opacity(0.1)
                             ],
@@ -2545,7 +2545,7 @@ private struct AnimatedOrbView: View {
                     .fill(
                         RadialGradient(
                             colors: [
-                                Color(hex: "2E3192").opacity(0.4),
+                                AppColors.aiTeal.opacity(0.4),
                                 Color(hex: "4A90E2").opacity(0.2),
                                 Color(hex: "1BFFFF").opacity(0.1),
                                 Color.clear
@@ -2563,7 +2563,7 @@ private struct AnimatedOrbView: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: "2E3192").opacity(0.6),
+                                AppColors.aiTeal.opacity(0.6),
                                 Color(hex: "4A90E2").opacity(0.4),
                                 Color(hex: "1BFFFF").opacity(0.3)
                             ],
@@ -2586,17 +2586,17 @@ private struct AnimatedOrbView: View {
                                 lineWidth: 2
                             )
                     )
-                    .shadow(color: Color(hex: "2E3192").opacity(0.5), radius: 20, x: 0, y: 0)
+                    .shadow(color: AppColors.aiTeal.opacity(0.5), radius: 20, x: 0, y: 0)
                 
                 // Sparkle icon
                 Image(systemName: "sparkles")
-                    .font(.system(size: 40, weight: .medium))
+                    .font(.poppins(.medium, size: 40))
                     .foregroundStyle(
                         LinearGradient(
                             colors: [
                                 Color(hex: "1BFFFF"),
                                 Color(hex: "4A90E2"),
-                                Color(hex: "2E3192")
+                                AppColors.aiTeal
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing

@@ -70,12 +70,11 @@ struct RunHeartRateChartView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Heart Rate")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Text("BPM over time")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -86,32 +85,32 @@ struct RunHeartRateChartView: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(accentRed)
                         
                         Text("\(sample.bpm)")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 20))
                             .foregroundColor(accentRed)
                     }
                     
                     Text(formatTime(sample.timestamp))
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             } else {
                 VStack(alignment: .trailing, spacing: 2) {
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(accentRed)
                         
                         Text("\(avgHeartRate)")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 20))
                             .foregroundColor(.primary)
                     }
                     
                     Text("Average BPM")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -190,7 +189,7 @@ struct RunHeartRateChartView: View {
                     AxisValueLabel {
                         if let date = value.as(Date.self) {
                             Text(formatAxisTime(date))
-                                .font(.caption2)
+                                .font(.poppins(.regular, size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -203,7 +202,7 @@ struct RunHeartRateChartView: View {
                     AxisValueLabel {
                         if let hr = value.as(Int.self) {
                             Text("\(hr)")
-                                .font(.caption2)
+                                .font(.poppins(.regular, size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -246,14 +245,13 @@ struct RunHeartRateChartView: View {
         VStack(spacing: 12) {
             HStack {
                 Text("Zone Distribution")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Text(formatDuration(zoneDistribution.totalTime))
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -334,15 +332,15 @@ struct RunHeartRateChartView: View {
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "heart.text.square")
-                .font(.system(size: 48))
+                .font(.poppins(.regular, size: 48))
                 .foregroundColor(.secondary.opacity(0.5))
             
             Text("No heart rate data")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundColor(.secondary)
             
             Text("Heart rate data requires an Apple Watch or compatible heart rate monitor")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary.opacity(0.8))
                 .multilineTextAlignment(.center)
         }
@@ -417,13 +415,12 @@ struct ZoneLegendItem: View {
                     .frame(width: 8, height: 8)
                 
                 Text(zone.rawValue)
-                    .font(.caption2)
+                    .font(.poppins(.regular, size: 11))
                     .foregroundColor(.secondary)
             }
             
             Text(String(format: "%.0f%%", percentage))
-                .font(.caption)
-                .fontWeight(.semibold)
+                .font(.poppins(.semiBold, size: 12))
                 .foregroundColor(.primary)
         }
     }
@@ -440,15 +437,15 @@ struct RunHeartRateStatCard: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
+                .font(.poppins(.medium, size: 18))
                 .foregroundColor(color)
             
             Text(value > 0 ? "\(value)" : "--")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 16))
                 .foregroundColor(.primary)
             
             Text(title)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

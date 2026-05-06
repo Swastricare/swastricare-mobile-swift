@@ -15,7 +15,7 @@ struct SplitsListView: View {
     
     @State private var isAnimating = false
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     private let accentGreen = Color(hex: "22C55E")
     private let accentRed = Color(hex: "EF4444")
     
@@ -54,12 +54,11 @@ struct SplitsListView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Splits")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Text("\(splits.count) kilometer\(splits.count == 1 ? "" : "s")")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -82,35 +81,30 @@ struct SplitsListView: View {
             // Column headers
             HStack {
                 Text("KM")
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(.secondary)
                     .frame(width: 40, alignment: .leading)
                 
                 Spacer()
                 
                 Text("Time")
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(.secondary)
                     .frame(width: 60, alignment: .center)
                 
                 Text("Pace")
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(.secondary)
                     .frame(width: 70, alignment: .center)
                 
                 Text("Elev")
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(.secondary)
                     .frame(width: 50, alignment: .trailing)
                 
                 if splits.first?.avgHeartRate != nil {
                     Text("HR")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(.secondary)
                         .frame(width: 45, alignment: .trailing)
                 }
@@ -176,15 +170,15 @@ struct SplitsListView: View {
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "chart.bar.xaxis")
-                .font(.system(size: 48))
+                .font(.poppins(.regular, size: 48))
                 .foregroundColor(.secondary.opacity(0.5))
             
             Text("No splits available")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundColor(.secondary)
             
             Text("Splits are calculated for runs over 1 km")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary.opacity(0.8))
                 .multilineTextAlignment(.center)
         }
@@ -237,16 +231,16 @@ struct SplitRow: View {
             HStack(spacing: 6) {
                 if isBest {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 10))
+                        .font(.poppins(.regular, size: 10))
                         .foregroundColor(accentGreen)
                 } else if isWorst {
                     Image(systemName: "tortoise.fill")
-                        .font(.system(size: 10))
+                        .font(.poppins(.regular, size: 10))
                         .foregroundColor(accentRed)
                 }
                 
                 Text("\(split.id)")
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(rowColor)
             }
             .frame(width: 40, alignment: .leading)
@@ -255,13 +249,13 @@ struct SplitRow: View {
             
             // Time
             Text(split.formattedDuration)
-                .font(.system(size: 14, weight: .medium, design: .monospaced))
+                .font(.poppins(.medium, size: 14))
                 .foregroundColor(.primary)
                 .frame(width: 60, alignment: .center)
             
             // Pace
             Text(split.formattedPace)
-                .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                .font(.poppins(.semiBold, size: 14))
                 .foregroundColor(rowColor)
                 .frame(width: 70, alignment: .center)
             
@@ -269,11 +263,11 @@ struct SplitRow: View {
             HStack(spacing: 2) {
                 if split.elevationGain > 0 {
                     Image(systemName: "arrow.up")
-                        .font(.system(size: 9))
+                        .font(.poppins(.regular, size: 9))
                         .foregroundColor(.green)
                 }
                 Text(String(format: "%.0fm", split.elevationGain - split.elevationLoss))
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.poppins(.medium, size: 12))
                     .foregroundColor(.secondary)
             }
             .frame(width: 50, alignment: .trailing)
@@ -282,11 +276,11 @@ struct SplitRow: View {
             if showHeartRate {
                 if let hr = split.avgHeartRate {
                     Text("\(hr)")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.poppins(.medium, size: 12))
                         .foregroundColor(.red)
                 } else {
                     Text("--")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.poppins(.medium, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -320,15 +314,15 @@ struct SplitSummaryCard: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .medium))
+                .font(.poppins(.medium, size: 20))
                 .foregroundColor(color)
             
             Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 16))
                 .foregroundColor(.primary)
             
             Text(title)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -351,7 +345,7 @@ struct LegendItem: View {
                 .frame(width: 8, height: 8)
             
             Text(label)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
     }

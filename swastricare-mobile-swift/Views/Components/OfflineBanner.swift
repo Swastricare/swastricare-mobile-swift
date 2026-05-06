@@ -23,14 +23,14 @@ struct OfflineBanner: View {
         HStack(spacing: 8) {
             if let icon {
                 Image(systemName: icon)
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
             } else {
                 ProgressView()
                     .tint(.white)
                     .scaleEffect(0.7)
             }
             Text(text)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
         }
         .foregroundColor(.white)
         .padding(.horizontal, 16)

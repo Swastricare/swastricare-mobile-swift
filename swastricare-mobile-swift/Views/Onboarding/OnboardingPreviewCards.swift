@@ -2,217 +2,108 @@
 //  OnboardingPreviewCards.swift
 //  swastricare-mobile-swift
 //
+//  Redesigned to pixel-match Android OnboardingScreen / OnboardingPreviewCards.
+//
 
 import SwiftUI
 
 // MARK: - Onboarding Color Constants
 
 extension AppColors {
-    /// Purple accent for AI screen
+    /// Purple accent for AI chat bubble
     static let onboardingPurple = Color(hex: "7C3AED")
     /// Sky blue accent for Vault screen
     static let onboardingSkyBlue = Color(hex: "0EA5E9")
 }
 
-// MARK: - Shared Card Style
+// MARK: - Shared Card Chrome (white, subtle border, rounded)
 
-/// Shared card chrome for all onboarding preview cards (background + clip + shadow)
 private struct OnboardingCardModifier: ViewModifier {
-    @Environment(\.colorScheme) var colorScheme
-
     func body(content: Content) -> some View {
         content
-            .padding(AppDimensions.cardPadding)
-            .background(colorScheme == .dark ? AnyView(Color.clear.background(.ultraThinMaterial)) : AnyView(AppColors.cardBackground))
-            .clipShape(RoundedRectangle(cornerRadius: AppDimensions.largeCardRadius))
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.06), radius: 12, y: 4)
+            .padding(16)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
+            )
     }
 }
 
 extension View {
-    fileprivate func onboardingCard() -> some View {
+    func onboardingCard() -> some View {
         modifier(OnboardingCardModifier())
     }
 }
 
-// MARK: - Screen 1: Family Health Hub Preview
+// MARK: - Page 0: Feature Cards (mirrors Android FeatureCard grid)
 
-struct FamilyPreviewCard: View {
-    let isActive: Bool
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
-    @State private var alertPulse: Bool = false
-    @State private var badgePulse: Bool = false
-    @State private var bpValue: Int = 0
-    @State private var stepCount: Int = 0
-    @State private var showCheckmark: Bool = false
-    @State private var avatarFloat: Bool = false
-
+struct OnboardingFeatureCards: View {
     var body: some View {
-        VStack(spacing: 12) {
-            // Family member header
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(LinearGradient(colors: [AppColors.accentBlue, AppColors.onboardingPurple], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 36, height: 36)
-                    .overlay(Text("👩").font(.system(size: 18)))
-                    .shadow(color: AppColors.accentBlue.opacity(0.25), radius: 6, y: 4)
-                    .offset(y: avatarFloat ? -2 : 2)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Amma")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.primary)
-                    Text("Last updated 2m ago")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                HStack(spacing: 4) {
-                    if showCheckmark {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(hex: "16A34A"))
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                    Text("All Good")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(Color(hex: "16A34A"))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color(hex: "DCFCE7"))
-                .clipShape(Capsule())
-                .scaleEffect(badgePulse ? 1.06 : 1.0)
-            }
-
-            // Stats row — animated counting numbers
-            HStack(spacing: 6) {
-                AnimatedStatCell(label: "Blood Pressure", value: "\(bpValue > 0 ? "\(bpValue)/80" : "—")", detail: "Normal", detailColor: AppColors.accentGreen)
-                AnimatedStatCell(label: "Medications", value: showCheckmark ? "2/2 ✓" : "—", detail: "On track", detailColor: AppColors.accentGreen)
-                AnimatedStatCell(label: "Hydration", value: bpValue > 0 ? "1.5L" : "—", detail: "60%", detailColor: .orange)
-            }
-
-            // Step count row — counting animation
-            HStack(spacing: 6) {
-                Text("👣")
-                    .font(.system(size: 13))
-                Text("\(stepCount > 0 ? stepCount.formatted() : "—") steps today")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(AppColors.accentGreen)
-                    .contentTransition(.numericText())
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-
-            // Alert row — Appa missed medication
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(LinearGradient(colors: [Color(hex: "F59E0B"), Color(hex: "D97706")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 28, height: 28)
-                    .overlay(Text("👴").font(.system(size: 14)))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Appa")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.primary)
-                    Text("Missed evening medication")
-                        .font(.system(size: 10))
-                        .foregroundColor(AppColors.accentRed)
-                }
-
-                Spacer()
-
-                Text("⚠️")
-                    .font(.system(size: 14))
-                    .scaleEffect(alertPulse ? 1.15 : 1.0)
-                    .rotationEffect(.degrees(alertPulse ? 8 : -8))
-            }
-            .padding(10)
-            .background(AppColors.accentRed.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+        HStack(alignment: .top, spacing: 10) {
+            FeatureCard(
+                imageName: "smart health records",
+                title: "Smart Health Records",
+                description: "Store and access your family's health records securely."
+            )
+            FeatureCard(
+                imageName: "appoinments made easy",
+                title: "Appointments Made Easy",
+                description: "Book, manage and get reminders for all your appointments."
+            )
+            FeatureCard(
+                imageName: "secure & private",
+                title: "Secure & Private",
+                description: "Your data is encrypted and 100% private. Always protected."
+            )
         }
-        .onboardingCard()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Family health dashboard showing Amma's blood pressure, medications on track, steps today, and an alert for Appa's missed medication")
-        .onChange(of: isActive) { _, active in
-            if active {
-                startAnimations()
-            } else {
-                resetAnimations()
-            }
-        }
-    }
-
-    private func startAnimations() {
-        guard !reduceMotion else {
-            bpValue = 120; stepCount = 4532; showCheckmark = true
-            return
-        }
-        // Count up BP
-        withAnimation(.easeOut(duration: 1.0).delay(0.3)) {
-            bpValue = 120
-        }
-        // Count up steps
-        withAnimation(.easeOut(duration: 1.2).delay(0.5)) {
-            stepCount = 4532
-        }
-        // Show checkmark
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.6).delay(0.8)) {
-            showCheckmark = true
-        }
-        // Continuous animations
-        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-            alertPulse = true
-        }
-        withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true).delay(0.3)) {
-            badgePulse = true
-        }
-        withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-            avatarFloat = true
-        }
-    }
-
-    private func resetAnimations() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            alertPulse = false
-            badgePulse = false
-            avatarFloat = false
-        }
-        bpValue = 0; stepCount = 0; showCheckmark = false
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
-// MARK: - Animated Stat Cell
-
-private struct AnimatedStatCell: View {
-    let label: String
-    let value: String
-    let detail: String
-    let detailColor: Color
+private struct FeatureCard: View {
+    let imageName: String
+    let title: String
+    let description: String
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .font(.system(size: 9))
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
-                .contentTransition(.numericText())
-            Text(detail)
-                .font(.system(size: 8))
-                .foregroundColor(detailColor)
+        VStack(alignment: .center, spacing: 10) {
+            Image.androidImage(imageName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 44, height: 44)
+
+            Text(title)
+                .font(.poppins(.bold, size: 12))
+                .foregroundColor(Color(hex: "0F172A"))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
+
+            Text(description)
+                .font(.poppins(.regular, size: 10))
+                .foregroundColor(Color(hex: "6B7280"))
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .padding(.horizontal, 6)
         .padding(.vertical, 10)
-        .background(Color.primary.opacity(0.03))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
     }
 }
 
-// MARK: - Screen 2: AI Health Companion Preview
+// MARK: - Page 1: AI Health Companion Preview
 
 struct AIPreviewCard: View {
     @State private var typedText: String = ""
@@ -226,16 +117,16 @@ struct AIPreviewCard: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            // User message — typewriter effect
+            // User message — typewriter
             HStack {
                 Spacer()
                 HStack(spacing: 0) {
                     Text(typedText)
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.white)
                     if !showResponse {
                         Text("|")
-                            .font(.system(size: 12, weight: .light))
+                            .font(.poppins(.light, size: 12))
                             .foregroundColor(.white.opacity(cursorVisible ? 1 : 0))
                     }
                 }
@@ -256,23 +147,29 @@ struct AIPreviewCard: View {
                 HStack(alignment: .top, spacing: 8) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(LinearGradient(colors: [AppColors.onboardingPurple, AppColors.accentBlue], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppColors.onboardingPurple, AppColors.accentBlue],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                             .frame(width: 24, height: 24)
                         Text("✦")
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.white)
                             .rotationEffect(.degrees(aiIconSpin))
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(.init(aiResponse))
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.primary)
                             .lineSpacing(3)
 
                         HStack(spacing: 4) {
                             Text("Swastri AI")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.poppins(.bold, size: 9))
                                 .foregroundColor(AppColors.onboardingPurple)
                             Image(systemName: "sparkles")
                                 .font(.system(size: 8))
@@ -280,7 +177,7 @@ struct AIPreviewCard: View {
                         }
                     }
                     .padding(12)
-                    .background(Color.primary.opacity(0.03))
+                    .background(Color.black.opacity(0.03))
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
                 .transition(.opacity.combined(with: .move(edge: .bottom)).combined(with: .scale(scale: 0.9)))
@@ -307,32 +204,27 @@ struct AIPreviewCard: View {
         showResponse = false
         showPills = false
 
-        // Cursor blink
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
             cursorVisible.toggle()
             if showResponse { timer.invalidate() }
         }
 
-        // Type each character
         for (i, char) in fullQuestion.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4 + Double(i) * 0.04) {
                 typedText += String(char)
             }
         }
 
-        // Show AI response after typing finishes
         let typingDuration = 0.4 + Double(fullQuestion.count) * 0.04 + 0.5
         DispatchQueue.main.asyncAfter(deadline: .now() + typingDuration) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 showResponse = true
             }
-            // Spin AI icon
             withAnimation(.easeOut(duration: 0.6)) {
                 aiIconSpin = 360
             }
         }
 
-        // Show pills after response
         DispatchQueue.main.asyncAfter(deadline: .now() + typingDuration + 0.6) {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                 showPills = true
@@ -347,7 +239,7 @@ private struct SuggestionPill: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 10))
+            .font(.poppins(.regular, size: 10))
             .foregroundColor(color)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -357,7 +249,7 @@ private struct SuggestionPill: View {
     }
 }
 
-// MARK: - Screen 3: Medical Vault Preview
+// MARK: - Vault Preview Card (page 2 on Android, page 2 on iOS)
 
 struct VaultPreviewCard: View {
     let isActive: Bool
@@ -369,7 +261,6 @@ struct VaultPreviewCard: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            // Documents slide in one by one
             if docsVisible[0] {
                 DocumentRow(icon: "PDF", iconGradient: [AppColors.accentRed, Color(hex: "DC2626")], iconIsText: true, title: "Blood Report — SRL Diagnostics", subtitle: "Mar 2026 · CBC, Lipid, Thyroid", lockRotation: lockRotations[0])
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
@@ -387,7 +278,7 @@ struct VaultPreviewCard: View {
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
             }
 
-            // Security badge — scales in
+            // Security badge
             HStack(spacing: 8) {
                 Text("🛡️")
                     .font(.system(size: 16))
@@ -395,10 +286,10 @@ struct VaultPreviewCard: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("End-to-End Encrypted")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 11))
                         .foregroundColor(.primary)
                     Text("Only you and who you share with can access")
-                        .font(.system(size: 9))
+                        .font(.poppins(.regular, size: 9))
                         .foregroundColor(.secondary)
                 }
             }
@@ -417,13 +308,9 @@ struct VaultPreviewCard: View {
         }
         .onboardingCard()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Medical vault showing 4 encrypted documents from SRL Diagnostics, Apollo Hospital, Dr. Sharma, and Manipal Hospital")
+        .accessibilityLabel("Medical vault showing 4 encrypted documents")
         .onChange(of: isActive) { _, active in
-            if active {
-                startAnimations()
-            } else {
-                resetAnimations()
-            }
+            if active { startAnimations() } else { resetAnimations() }
         }
     }
 
@@ -434,14 +321,11 @@ struct VaultPreviewCard: View {
             shieldScale = 1.0; shieldOpacity = 1.0
             return
         }
-
-        // Documents slide in one by one
         for i in 0..<4 {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2 + Double(i) * 0.15) {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
                     docsVisible[i] = true
                 }
-                // Lock icon does a little turn
                 withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
                     lockRotations[i] = -15
                 }
@@ -452,8 +336,6 @@ struct VaultPreviewCard: View {
                 }
             }
         }
-
-        // Shield badge scales in after all docs
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                 shieldScale = 1.0
@@ -486,7 +368,7 @@ private struct DocumentRow: View {
                     Group {
                         if iconIsText {
                             Text(icon)
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.poppins(.bold, size: 11))
                                 .foregroundColor(.white)
                         } else {
                             Text(icon).font(.system(size: 16))
@@ -496,10 +378,11 @@ private struct DocumentRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 12))
                     .foregroundColor(.primary)
+                    .lineLimit(1)
                 Text(subtitle)
-                    .font(.system(size: 10))
+                    .font(.poppins(.regular, size: 10))
                     .foregroundColor(.secondary)
             }
 
@@ -511,20 +394,118 @@ private struct DocumentRow: View {
                 .rotationEffect(.degrees(lockRotation))
         }
         .padding(10)
-        .background(Color.primary.opacity(0.03))
+        .background(Color.black.opacity(0.03))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
-/// Applies shimmer only when active (respects Reduce Motion)
-private struct ConditionalShimmer: ViewModifier {
-    let active: Bool
+// MARK: - Activity Preview Card (kept for future use)
 
-    func body(content: Content) -> some View {
-        if active {
-            content.shimmer()
-        } else {
-            content
+struct ActivityPreviewCard: View {
+    let isActive: Bool
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+
+    @State private var stepProgress: CGFloat = 0
+    @State private var stepCount: Int = 0
+    @State private var distanceAnim: Double = 0
+    @State private var caloriesAnim: Double = 0
+
+    private let stepGoal = 10000
+    private let stepTarget = 6840
+    private let weekBars: [CGFloat] = [0.45, 0.72, 0.58, 0.91, 0.64, 0.48, 0.684]
+    private let days = ["M", "T", "W", "T", "F", "S", "S"]
+    private let green = AppColors.accentGreen
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Circular ring
+            ZStack {
+                Circle()
+                    .stroke(green.opacity(0.15), lineWidth: 10)
+                    .frame(width: 120, height: 120)
+                Circle()
+                    .trim(from: 0, to: stepProgress)
+                    .stroke(green, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .frame(width: 120, height: 120)
+                    .rotationEffect(.degrees(-90))
+
+                VStack(spacing: 2) {
+                    Text("\(stepCount)")
+                        .font(.poppins(.bold, size: 22))
+                        .foregroundColor(green)
+                        .contentTransition(.numericText())
+                    Text("/ 10,000")
+                        .font(.poppins(.regular, size: 10))
+                        .foregroundColor(.secondary)
+                    Text("steps")
+                        .font(.poppins(.regular, size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Weekly bars
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(0..<days.count, id: \.self) { i in
+                    VStack(spacing: 2) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(i == days.count - 1 ? green : green.opacity(0.4))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: weekBars[i] * (isActive ? 36 : 0))
+                        Text(days[i])
+                            .font(.poppins(.regular, size: 8))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .animation(.easeOut(duration: 0.8).delay(Double(i) * 0.08 + 0.3), value: isActive)
+                }
+            }
+            .frame(height: 48)
+
+            // Stats row
+            HStack {
+                VStack(spacing: 2) {
+                    Text(String(format: "%.1f km", distanceAnim))
+                        .font(.poppins(.bold, size: 16))
+                        .foregroundColor(green)
+                    Text("Distance")
+                        .font(.poppins(.regular, size: 10))
+                        .foregroundColor(.secondary)
+                }
+                Divider().frame(height: 32)
+                VStack(spacing: 2) {
+                    Text("\(Int(caloriesAnim)) kcal")
+                        .font(.poppins(.bold, size: 16))
+                        .foregroundColor(green)
+                    Text("Calories")
+                        .font(.poppins(.regular, size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity)
         }
+        .onboardingCard()
+        .onChange(of: isActive) { _, active in
+            if active { startAnimations() } else { resetAnimations() }
+        }
+    }
+
+    private func startAnimations() {
+        withAnimation(.easeOut(duration: 1.2).delay(0.1)) {
+            stepProgress = CGFloat(stepTarget) / CGFloat(stepGoal)
+        }
+        withAnimation(.easeOut(duration: 1.2).delay(0.1)) {
+            stepCount = stepTarget
+        }
+        withAnimation(.easeOut(duration: 1.2).delay(0.2)) {
+            distanceAnim = 4.2
+            caloriesAnim = 312
+        }
+    }
+
+    private func resetAnimations() {
+        stepProgress = 0
+        stepCount = 0
+        distanceAnim = 0
+        caloriesAnim = 0
     }
 }

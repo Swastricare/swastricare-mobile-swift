@@ -122,11 +122,10 @@ struct HealthAnalyticsView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Health Analytics")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 34))
                 
                 Text(viewModel.isSelectedDateToday ? "Today" : formattedSelectedDate)
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
             }
             
@@ -138,7 +137,7 @@ struct HealthAnalyticsView: View {
                 generator.impactOccurred()
             }) {
                 Image(systemName: "slider.horizontal.3")
-                    .font(.title2)
+                    .font(.poppins(.bold, size: 22))
                     .foregroundColor(.primary)
                     .padding(10)
                     .background(.ultraThinMaterial)
@@ -225,17 +224,16 @@ struct HealthAnalyticsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(selectedMetric.rawValue)
-                        .font(.headline)
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundColor(.secondary)
                     
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(currentMetricValue)
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 34))
                             .contentTransition(.numericText())
                         
                         Text(selectedMetric.unit)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 15))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -263,7 +261,7 @@ struct HealthAnalyticsView: View {
                     AxisValueLabel {
                         if let intValue = value.as(Int.self) {
                             Text(formatAxisValue(intValue))
-                                .font(.caption2)
+                                .font(.poppins(.regular, size: 11))
                         }
                     }
                 }
@@ -324,10 +322,9 @@ struct HealthAnalyticsView: View {
         let trend = calculateTrend()
         return HStack(spacing: 4) {
             Image(systemName: trend >= 0 ? "arrow.up.right" : "arrow.down.right")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
             Text("\(abs(trend))%")
-                .font(.caption)
-                .fontWeight(.semibold)
+                .font(.poppins(.semiBold, size: 12))
         }
         .foregroundColor(trend >= 0 ? .green : .red)
         .padding(.horizontal, 10)
@@ -463,7 +460,7 @@ struct HealthAnalyticsView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("AI Insights", systemImage: "sparkles")
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -478,23 +475,22 @@ struct HealthAnalyticsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 if let analysis = viewModel.analysisState.result?.analysis {
                     Text(analysis.assessment)
-                        .font(.subheadline)
+                        .font(.poppins(.regular, size: 15))
                         .lineLimit(4)
                         .foregroundColor(.primary)
                     
                     if !analysis.recommendations.isEmpty {
                         Text("Top Recommendation:")
-                            .font(.caption)
-                            .fontWeight(.semibold)
+                            .font(.poppins(.semiBold, size: 12))
                             .foregroundColor(.secondary)
                         
                         Text(analysis.recommendations.first ?? "")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 } else {
                     Text("Tap to generate personalized health insights based on your data.")
-                        .font(.subheadline)
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                 }
                 
@@ -507,8 +503,7 @@ struct HealthAnalyticsView: View {
                         Image(systemName: "sparkles")
                         Text(viewModel.analysisState.result != nil ? "Refresh Analysis" : "Generate Analysis")
                     }
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -540,11 +535,11 @@ private struct DateButton: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Text(dayName)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(isSelected ? .white : .secondary)
                 
                 Text("\(Calendar.current.component(.day, from: date))")
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(isSelected ? .white : .primary)
             }
             .frame(width: 50, height: 60)
@@ -572,15 +567,15 @@ private struct SummaryCard: View {
                     .foregroundColor(color)
                 Spacer()
                 Text("\(Int(min(progress, 1.0) * 100))%")
-                    .font(.caption2)
+                    .font(.poppins(.regular, size: 11))
                     .foregroundColor(.secondary)
             }
             
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 20))
             
             Text(title)
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
             
             // Progress bar
@@ -614,7 +609,7 @@ private struct MetricCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Image(systemName: metric.icon)
-                        .font(.title3)
+                        .font(.poppins(.semiBold, size: 20))
                         .foregroundColor(metric.color)
                         .padding(8)
                         .background(metric.color.opacity(0.1))
@@ -625,13 +620,13 @@ private struct MetricCard: View {
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(AppColors.accentBlue)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                     }
                     
                     if let onMeasure = onMeasure {
                         Button(action: onMeasure) {
                             Image(systemName: "camera.fill")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.white)
                                 .padding(6)
                                 .background(metric.color)
@@ -643,17 +638,16 @@ private struct MetricCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text(value)
-                            .font(.title2)
-                            .fontWeight(.bold)
+                            .font(.poppins(.bold, size: 22))
                             .foregroundColor(.primary)
                         
                         Text(metric.unit)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                     
                     Text(metric.rawValue)
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -677,10 +671,10 @@ private struct StatBadge: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 14))
             
             Text(title)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -753,7 +747,7 @@ private struct FilterSheet: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
                 }
             }
         }
@@ -774,20 +768,20 @@ private struct AnalysisResultSheet: View {
                             ProgressView()
                                 .scaleEffect(1.5)
                             Text("Analyzing your health data...")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                             Text("This may take a moment")
-                                .font(.subheadline)
+                                .font(.poppins(.regular, size: 15))
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else if let result = state.result {
                         VStack(alignment: .leading, spacing: 16) {
                             Label("Assessment", systemImage: "heart.text.square.fill")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                                 .foregroundColor(AppColors.accentBlue)
                             
                             Text(result.analysis.assessment)
-                                .font(.body)
+                                .font(.poppins(.regular, size: 17))
                         }
                         .padding()
                         .background(.ultraThinMaterial)
@@ -795,11 +789,11 @@ private struct AnalysisResultSheet: View {
                         
                         VStack(alignment: .leading, spacing: 16) {
                             Label("Insights", systemImage: "lightbulb.fill")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                                 .foregroundColor(AppColors.accentBlue)
                             
                             Text(result.analysis.insights)
-                                .font(.body)
+                                .font(.poppins(.regular, size: 17))
                         }
                         .padding()
                         .background(.ultraThinMaterial)
@@ -807,13 +801,13 @@ private struct AnalysisResultSheet: View {
                         
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Recommendations", systemImage: "star.fill")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                                 .foregroundColor(AppColors.accentBlue)
                             
                             ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
                                 HStack(alignment: .top, spacing: 10) {
                                     Text("\(index + 1).")
-                                        .fontWeight(.semibold)
+                                        .font(.poppins(.semiBold, size: 17))
                                         .foregroundColor(AppColors.accentBlue)
                                     Text(rec)
                                 }
@@ -825,12 +819,12 @@ private struct AnalysisResultSheet: View {
                     } else if case .error(let message) = state {
                         VStack(spacing: 16) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 40))
+                                .font(.poppins(.regular, size: 40))
                                 .foregroundColor(.orange)
                             Text("Analysis Error")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                             Text(message)
-                                .font(.subheadline)
+                                .font(.poppins(.regular, size: 15))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                         }
@@ -847,7 +841,7 @@ private struct AnalysisResultSheet: View {
                         onDismiss()
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
                 }
             }
         }

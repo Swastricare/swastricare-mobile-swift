@@ -36,17 +36,17 @@ struct MealSectionCard: View {
                             .frame(width: 44, height: 44)
 
                         Image(systemName: mealType.icon)
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 20))
                             .foregroundColor(mealType.color)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(mealType.displayName)
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 17))
                             .foregroundColor(.primary)
 
                         Text(mealType.typicalTime)
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
 
@@ -54,12 +54,12 @@ struct MealSectionCard: View {
 
                     if !entries.isEmpty {
                         Text("\(totalCalories) cal")
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .font(.poppins(.semiBold, size: 15))
                             .foregroundColor(mealType.color)
                     }
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.poppins(.medium, size: 14))
                         .foregroundColor(.secondary)
                 }
             }
@@ -75,16 +75,16 @@ struct MealSectionCard: View {
                         VStack(spacing: 8) {
                             HStack(spacing: 8) {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 16))
+                                    .font(.poppins(.regular, size: 16))
                                     .foregroundColor(mealType.color)
 
                                 Text("Add \(mealType.displayName.lowercased())")
-                                    .font(.system(size: 15, weight: .medium))
+                                    .font(.poppins(.medium, size: 15))
                                     .foregroundColor(mealType.color)
                             }
 
                             Text("Tap to log what you ate")
-                                .font(.system(size: 12))
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary.opacity(0.7))
                         }
                         .frame(maxWidth: .infinity)
@@ -114,9 +114,9 @@ struct MealSectionCard: View {
                     }) {
                         HStack {
                             Image(systemName: "plus.circle")
-                                .font(.system(size: 14))
+                                .font(.poppins(.regular, size: 14))
                             Text("Add more")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.poppins(.medium, size: 14))
                         }
                         .foregroundColor(mealType.color)
                         .padding(.top, 4)
@@ -144,25 +144,25 @@ struct FoodEntryRow: View {
                     .frame(width: 36, height: 36)
 
                 Text("🍽️")
-                    .font(.system(size: 18))
+                    .font(.poppins(.regular, size: 18))
             }
 
             // Food details
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.foodName)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.poppins(.medium, size: 15))
                     .foregroundColor(.primary)
 
                 HStack(spacing: 8) {
                     Text(entry.displayQuantity)
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.secondary)
 
                     Text("•")
                         .foregroundColor(.secondary)
 
                     Text("\(Int(entry.calories)) cal")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.poppins(.medium, size: 13))
                         .foregroundColor(mealColor)
                 }
             }
@@ -172,22 +172,22 @@ struct FoodEntryRow: View {
             // Macros summary
             VStack(alignment: .trailing, spacing: 2) {
                 Text("P: \(Int(entry.proteinG))g")
-                    .font(.system(size: 11))
+                    .font(.poppins(.regular, size: 11))
                     .foregroundColor(.secondary)
 
                 Text("C: \(Int(entry.carbsG))g")
-                    .font(.system(size: 11))
+                    .font(.poppins(.regular, size: 11))
                     .foregroundColor(.secondary)
 
                 Text("F: \(Int(entry.fatG))g")
-                    .font(.system(size: 11))
+                    .font(.poppins(.regular, size: 11))
                     .foregroundColor(.secondary)
             }
 
             // Delete button
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.poppins(.medium, size: 14))
                     .foregroundColor(.red.opacity(0.7))
             }
             .padding(.leading, 8)

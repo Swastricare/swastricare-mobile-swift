@@ -11,8 +11,8 @@ import PhotosUI
 
 // MARK: - Brand Colors (snap-specific)
 
-private let snapGreen = Color(hex: "34C759")
-private let snapGreenDark = Color(hex: "28A745")
+private let snapGreen = AppColors.aiTeal
+private let snapGreenDark = AppColors.aiTealDark
 private let macroProteinColor = Color(hex: "4CAF50")
 private let macroCarbsColor   = Color(hex: "FF9800")
 private let macroFatColor     = Color(hex: "FFD600")
@@ -134,7 +134,7 @@ struct FoodSnapView: View {
                     dismiss()
                 }) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 22))
+                        .font(.poppins(.regular, size: 22))
                         .foregroundColor(.secondary)
                 }
             }
@@ -145,7 +145,7 @@ struct FoodSnapView: View {
                     viewModel.resetSnapState()
                 }) {
                     Image(systemName: "camera.fill")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                         .foregroundColor(snapGreen)
                 }
             }
@@ -176,7 +176,7 @@ struct FoodSnapView: View {
                     .frame(width: 120, height: 120)
 
                 Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 52, weight: .light))
+                    .font(.poppins(.light, size: 52))
                     .foregroundStyle(
                         LinearGradient(
                             colors: [snapGreen, snapGreenDark],
@@ -188,10 +188,10 @@ struct FoodSnapView: View {
 
             VStack(spacing: 10) {
                 Text("Snap & Track")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.poppins(.bold, size: 26))
                     .foregroundColor(.primary)
                 Text("Take a photo of your food and we'll\nestimate the nutrition automatically")
-                    .font(.system(size: 15))
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -199,7 +199,7 @@ struct FoodSnapView: View {
             // Tips card
             VStack(alignment: .leading, spacing: 12) {
                 Label("Tips for best results", systemImage: "lightbulb.fill")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
                     .foregroundColor(snapGreen)
 
                 tipRow("camera.circle", "Shoot from directly above")
@@ -216,7 +216,7 @@ struct FoodSnapView: View {
             VStack(spacing: 14) {
                 Button(action: { showCamera = true }) {
                     Label("Take Photo", systemImage: "camera.fill")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -230,7 +230,7 @@ struct FoodSnapView: View {
 
                 Button(action: { showPhotoPicker = true }) {
                     Label("Choose from Gallery", systemImage: "photo.on.rectangle.angled")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundColor(snapGreen)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -249,11 +249,11 @@ struct FoodSnapView: View {
     private func tipRow(_ icon: String, _ text: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 13))
+                .font(.poppins(.regular, size: 13))
                 .foregroundColor(snapGreen)
                 .frame(width: 22)
             Text(text)
-                .font(.system(size: 14))
+                .font(.poppins(.regular, size: 14))
                 .foregroundColor(.secondary)
             Spacer()
         }
@@ -274,11 +274,11 @@ struct FoodSnapView: View {
 
                 VStack(spacing: 10) {
                     Text("Analyzing your food...")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.poppins(.bold, size: 22))
                         .foregroundColor(.primary)
 
                     Text("Our AI is identifying the dish\nand calculating nutrition info")
-                        .font(.system(size: 15))
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -302,21 +302,21 @@ struct FoodSnapView: View {
                 // Hero card: food emoji + name
                 VStack(spacing: 12) {
                     Text(result.category.icon)
-                        .font(.system(size: 64))
+                        .font(.poppins(.regular, size: 64))
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
 
                     // Editable food name
                     TextField("Food name", text: $editedFoodName)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.poppins(.bold, size: 24))
                         .multilineTextAlignment(.center)
                         .foregroundColor(.primary)
 
                     // AI badge
                     HStack(spacing: 5) {
                         Image(systemName: "sparkles")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 11))
                         Text("AI Detected")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 12))
                     }
                     .foregroundColor(snapGreen)
                     .padding(.horizontal, 12)
@@ -365,10 +365,10 @@ struct FoodSnapView: View {
     private func calorieHeader(displayCalories: Int) -> some View {
         HStack(alignment: .bottom, spacing: 4) {
             Text("\(displayCalories)")
-                .font(.system(size: 52, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 52))
                 .foregroundColor(.primary)
             Text("kcal")
-                .font(.system(size: 16))
+                .font(.poppins(.regular, size: 16))
                 .foregroundColor(.secondary)
                 .padding(.bottom, 8)
         }
@@ -382,7 +382,7 @@ struct FoodSnapView: View {
             HStack {
                 Spacer()
                 Text("\(progressPercent)% of daily goal (\(dailyCals) kcal)")
-                    .font(.system(size: 12))
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -428,19 +428,19 @@ struct FoodSnapView: View {
             VStack(spacing: 4) {
                 HStack(alignment: .bottom, spacing: 2) {
                     TextField("0", text: value)
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.poppins(.bold, size: 20))
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.primary)
                         .frame(maxWidth: 52)
 
                     Text("g")
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.secondary)
                         .padding(.bottom, 2)
                 }
                 Text(label)
-                    .font(.system(size: 11))
+                    .font(.poppins(.regular, size: 11))
                     .foregroundColor(.secondary)
             }
             .padding(.vertical, 12)
@@ -452,7 +452,7 @@ struct FoodSnapView: View {
     private func servingRow(_ result: SnapFoodResult) -> some View {
         HStack {
             Text("Serving")
-                .font(.system(size: 15, weight: .medium))
+                .font(.poppins(.medium, size: 15))
                 .foregroundColor(.primary)
 
             Spacer()
@@ -464,7 +464,7 @@ struct FoodSnapView: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }) {
                     Image(systemName: "minus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 14))
                         .frame(width: 34, height: 34)
                         .background(Color.primary.opacity(0.08))
                         .clipShape(Circle())
@@ -473,7 +473,7 @@ struct FoodSnapView: View {
                 Text(servingQuantity == servingQuantity.rounded() ?
                      "\(Int(servingQuantity))" :
                      String(format: "%.1f", servingQuantity))
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 17))
                     .frame(minWidth: 36)
                     .multilineTextAlignment(.center)
 
@@ -482,7 +482,7 @@ struct FoodSnapView: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }) {
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 14))
                         .frame(width: 34, height: 34)
                         .background(snapGreen.opacity(0.12))
                         .clipShape(Circle())
@@ -492,7 +492,7 @@ struct FoodSnapView: View {
 
             // Unit label
             Text("×  \(Int(result.servingSize)) \(result.servingUnit.displayName)")
-                .font(.system(size: 13))
+                .font(.poppins(.regular, size: 13))
                 .foregroundColor(.secondary)
                 .padding(.leading, 4)
         }
@@ -503,7 +503,7 @@ struct FoodSnapView: View {
     private var mealTypeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Meal")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.poppins(.semiBold, size: 13))
                 .foregroundColor(.secondary)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -526,9 +526,9 @@ struct FoodSnapView: View {
         }) {
             HStack(spacing: 6) {
                 Image(systemName: meal.icon)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 12))
                 Text(meal.displayName)
-                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    .font(isSelected ? .poppins(.semiBold, size: 13) : .poppins(.regular, size: 13))
             }
             .foregroundColor(isSelected ? .white : .primary)
             .padding(.horizontal, 14)
@@ -575,9 +575,9 @@ struct FoodSnapView: View {
             }) {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 18))
                     Text("Log to \(selectedMealType.displayName)")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 17))
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -604,16 +604,16 @@ struct FoodSnapView: View {
                     .fill(Color.orange.opacity(0.12))
                     .frame(width: 110, height: 110)
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 48))
+                    .font(.poppins(.regular, size: 48))
                     .foregroundColor(.orange)
             }
 
             VStack(spacing: 10) {
                 Text("Analysis Failed")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.poppins(.bold, size: 22))
                     .foregroundColor(.primary)
                 Text(message)
-                    .font(.system(size: 15))
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
@@ -625,7 +625,7 @@ struct FoodSnapView: View {
                     // No sheet - will show idle view with buttons
                 }) {
                     Label("Try Again", systemImage: "camera.fill")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -643,7 +643,7 @@ struct FoodSnapView: View {
                     dismiss()
                 }) {
                     Text("Enter Manually")
-                        .font(.system(size: 15))
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                 }
             }
@@ -699,7 +699,7 @@ private struct PulsingSnapOrb: View {
 
             // Center icon
             Image(systemName: "camera.viewfinder")
-                .font(.system(size: 38, weight: .light))
+                .font(.poppins(.light, size: 38))
                 .foregroundStyle(snapGreen)
         }
         .onAppear {

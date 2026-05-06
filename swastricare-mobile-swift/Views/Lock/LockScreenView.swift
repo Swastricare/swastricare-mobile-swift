@@ -27,11 +27,10 @@ struct LockScreenView: View {
                 // Title
                 VStack(spacing: 8) {
                     Text("Swastricare")
-                        .font(.title)
-                        .fontWeight(.bold)
-                    
+                        .font(.poppins(.bold, size: 28))
+
                     Text("Tap to unlock")
-                        .font(.subheadline)
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                 }
                 
@@ -56,22 +55,22 @@ struct LockScreenView: View {
                                     .progressViewStyle(CircularProgressViewStyle())
                             } else {
                                 Image(systemName: viewModel.biometricIcon)
-                                    .font(.system(size: 36))
+                                    .font(.poppins(.regular, size: 36))
                                     // .foregroundStyle(PremiumColor.royalBlue)
                             }
                         }
                         
                         Text("Unlock with \(viewModel.biometricName)")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
                 .disabled(viewModel.isAuthenticating)
-                
+
                 // Error Message
                 if let error = viewModel.errorMessage {
                     Text(error)
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.red)
                         .padding()
                 }

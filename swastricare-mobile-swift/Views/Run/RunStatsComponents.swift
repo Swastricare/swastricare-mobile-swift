@@ -47,7 +47,7 @@ struct EnhancedStatCard: View {
                         .frame(width: 44, height: 44)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 20))
                         .foregroundColor(color)
                 }
                 
@@ -71,13 +71,13 @@ struct EnhancedStatCard: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(value)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 32))
                         .foregroundColor(.primary)
                         .contentTransition(.numericText())
                     
                     if let subtitle = subtitle {
                         Text(subtitle)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -85,8 +85,7 @@ struct EnhancedStatCard: View {
             
             // Title
             Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
+                .font(.poppins(.medium, size: 15))
                 .foregroundColor(.secondary)
         }
         .padding(20)
@@ -107,10 +106,10 @@ struct TrendBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: trend >= 0 ? "arrow.up.right" : "arrow.down.right")
-                .font(.system(size: 10, weight: .bold))
+                .font(.poppins(.bold, size: 10))
             
             Text(String(format: "%.1f%%", abs(trend)))
-                .font(.system(size: 12, weight: .bold))
+                .font(.poppins(.bold, size: 12))
         }
         .foregroundColor(trend >= 0 ? .green : .red)
         .padding(.horizontal, 8)
@@ -147,7 +146,7 @@ struct ProgressRing: View {
             
             // Percentage text
             Text("\(Int(progress * 100))%")
-                .font(.system(size: 12, weight: .bold))
+                .font(.poppins(.bold, size: 12))
                 .foregroundColor(color)
         }
     }
@@ -163,14 +162,13 @@ struct WeeklyDistanceChart: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Weekly Distance")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Text(String(format: "%.1f km total", data.reduce(0) { $0 + $1.distance }))
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -194,14 +192,14 @@ struct WeeklyDistanceChart: View {
             .chartXAxis {
                 AxisMarks(values: .automatic) { _ in
                     AxisValueLabel()
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundStyle(.secondary)
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
                     AxisValueLabel()
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundStyle(.secondary)
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
                         .foregroundStyle(.secondary.opacity(0.2))
@@ -233,23 +231,22 @@ struct ActivityStreakCard: View {
                     
                     VStack(spacing: 2) {
                         Text("\(currentStreak)")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 24))
                             .foregroundColor(color)
                         
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(color)
                     }
                 }
                 
                 VStack(spacing: 2) {
                     Text("Current")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(.primary)
                     
                     Text("Streak")
-                        .font(.caption2)
+                        .font(.poppins(.regular, size: 11))
                         .foregroundColor(.secondary)
                 }
             }
@@ -266,23 +263,22 @@ struct ActivityStreakCard: View {
                     
                     VStack(spacing: 2) {
                         Text("\(longestStreak)")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 24))
                             .foregroundColor(.orange)
                         
                         Image(systemName: "trophy.fill")
-                            .font(.system(size: 12))
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.orange)
                     }
                 }
                 
                 VStack(spacing: 2) {
                     Text("Best")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(.primary)
                     
                     Text("Streak")
-                        .font(.caption2)
+                        .font(.poppins(.regular, size: 11))
                         .foregroundColor(.secondary)
                 }
             }
@@ -293,21 +289,19 @@ struct ActivityStreakCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 if currentStreak > 0 {
                     Text("🔥 Keep it up!")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
+                        .font(.poppins(.bold, size: 15))
                         .foregroundColor(.primary)
                     
                     Text("You're on a roll")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 } else {
                     Text("Start a streak")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
+                        .font(.poppins(.bold, size: 15))
                         .foregroundColor(.primary)
                     
                     Text("Exercise today")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -327,12 +321,11 @@ struct PerformanceInsightsCard: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 18))
                     .foregroundColor(.purple)
                 
                 Text("Performance Insights")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -386,18 +379,17 @@ struct InsightRow: View {
                     .frame(width: 40, height: 40)
                 
                 Image(systemName: insight.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 16))
                     .foregroundColor(insight.color)
             }
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(insight.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.primary)
                 
                 Text(insight.description)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
@@ -417,14 +409,13 @@ struct PaceDistributionChart: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Pace Distribution")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Text("\(paceRanges.reduce(0) { $0 + $1.count }) activities")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -442,14 +433,14 @@ struct PaceDistributionChart: View {
             .chartXAxis {
                 AxisMarks(position: .bottom) { _ in
                     AxisValueLabel()
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundStyle(.secondary)
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { _ in
                     AxisValueLabel()
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -471,12 +462,11 @@ struct TimeOfDayAnalysis: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "clock.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 18))
                     .foregroundColor(accentBlue)
                 
                 Text("Preferred Workout Time")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -486,8 +476,7 @@ struct TimeOfDayAnalysis: View {
                 ForEach(Array(distribution.enumerated()), id: \.offset) { index, item in
                     HStack(spacing: 12) {
                         Text(item.time)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 15))
                             .foregroundColor(.primary)
                             .frame(width: 80, alignment: .leading)
                         
@@ -510,8 +499,7 @@ struct TimeOfDayAnalysis: View {
                         .frame(height: 32)
                         
                         Text("\(item.count)")
-                            .font(.caption)
-                            .fontWeight(.semibold)
+                            .font(.poppins(.semiBold, size: 12))
                             .foregroundColor(.secondary)
                             .frame(width: 30, alignment: .trailing)
                     }
@@ -587,17 +575,17 @@ struct QuickStatItem: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.poppins(.semiBold, size: 20))
                 .foregroundColor(iconColor)
                 .frame(width: 32)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 18))
                     .foregroundColor(.primary)
                 
                 Text(label)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -618,12 +606,11 @@ struct PersonalRecordsSection: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 18))
                     .foregroundColor(.yellow)
                 
                 Text("Personal Records")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -672,25 +659,24 @@ struct PersonalRecordRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: record.icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
                 .foregroundColor(.yellow)
                 .frame(width: 32)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(record.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.primary)
                 
                 Text(record.date)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
             Spacer()
             
             Text(record.value)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 18))
                 .foregroundColor(.primary)
         }
     }

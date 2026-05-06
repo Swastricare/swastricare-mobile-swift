@@ -46,7 +46,7 @@ enum RunActivityType: String, Codable, CaseIterable {
     
     var color: Color {
         switch self {
-        case .walk: return Color(hex: "4F46E5")
+        case .walk: return AppColors.aiTeal
         case .run: return Color(hex: "22C55E")
         case .commute: return Color(hex: "3B82F6")
         }

@@ -106,7 +106,7 @@ struct DocumentViewer: View {
             ProgressView()
                 .scaleEffect(1.2)
             Text("Loading document...")
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
         }
     }
@@ -114,14 +114,14 @@ struct DocumentViewer: View {
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
+                .font(.poppins(.regular, size: 50))
                 .foregroundColor(.orange)
-            
+
             Text("Failed to Load")
-                .font(.headline)
-            
+                .font(.poppins(.semiBold, size: 17))
+
             Text(message)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -160,7 +160,7 @@ struct DocumentViewer: View {
             } else {
                 VStack(spacing: 16) {
                     Image(systemName: "doc.fill")
-                        .font(.system(size: 60))
+                        .font(.poppins(.regular, size: 60))
                         .foregroundColor(.secondary)
                     Text("Preview not available for this file type")
                         .foregroundColor(.secondary)
@@ -412,7 +412,7 @@ struct TextDocumentView: View {
     var body: some View {
         ScrollView {
             Text(text)
-                .font(.system(.body, design: .monospaced))
+                .font(.poppins(.regular, size: 17))
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -469,7 +469,7 @@ struct DocumentInfoSheet: View {
                 if let notes = document.notes, !notes.isEmpty {
                     Section("Notes") {
                         Text(notes)
-                            .font(.body)
+                            .font(.poppins(.regular, size: 17))
                     }
                 }
             }

@@ -103,7 +103,7 @@ struct ActivityDetailView: View {
                             .scaleEffect(0.8)
                     } else {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.poppins(.medium, size: 16))
                             .foregroundColor(.primary)
                     }
                 }
@@ -135,7 +135,7 @@ struct ActivityDetailView: View {
                             .tint(.white)
                         
                         Text("Deleting...")
-                            .font(.subheadline)
+                            .font(.poppins(.regular, size: 15))
                             .foregroundColor(.white)
                     }
                     .padding(24)
@@ -290,7 +290,7 @@ struct ActivityDetailView: View {
                 .scaleEffect(1.2)
             
             Text("Loading analytics...")
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -302,15 +302,15 @@ struct ActivityDetailView: View {
     private func emptyAnalyticsView(icon: String, title: String, message: String) -> some View {
         VStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 48))
+                .font(.poppins(.regular, size: 48))
                 .foregroundColor(.secondary.opacity(0.5))
             
             Text(title)
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundColor(.secondary)
             
             Text(message)
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary.opacity(0.8))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -573,7 +573,7 @@ struct ActivityDetailView: View {
                     // Expand map action
                 }) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 14))
                         .foregroundColor(.primary)
                         .padding(10)
                         .background(.ultraThinMaterial)
@@ -599,18 +599,17 @@ struct ActivityDetailView: View {
                     .frame(width: 56, height: 56)
                 
                 Image(systemName: activity.type.icon)
-                    .font(.system(size: 24, weight: .medium))
+                    .font(.poppins(.medium, size: 24))
                     .foregroundColor(activity.type.color)
             }
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(activity.name)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 22))
                     .foregroundColor(.primary)
                 
                 Text(activity.formattedTimeRange)
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
             }
             
@@ -619,12 +618,11 @@ struct ActivityDetailView: View {
             // Duration Badge
             VStack(alignment: .trailing, spacing: 4) {
                 Text(activity.formattedDuration)
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(accentBlue)
                 
                 Text("Duration")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -675,8 +673,7 @@ struct ActivityDetailView: View {
         VStack(spacing: 16) {
             HStack {
                 Text("Activity Metrics")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -733,8 +730,7 @@ struct ActivityDetailView: View {
         VStack(spacing: 16) {
             HStack {
                 Text("Time Analysis")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -772,12 +768,11 @@ struct ActivityDetailView: View {
                             .tint(.white)
                     } else {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 16))
                     }
                     
                     Text(isGeneratingShare ? "Generating..." : "Share Activity")
-                        .font(.headline)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 17))
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -794,11 +789,10 @@ struct ActivityDetailView: View {
             }) {
                 HStack(spacing: 8) {
                     Image(systemName: "trash")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                     
                     Text("Delete Activity")
-                        .font(.headline)
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 17))
                 }
                 .foregroundColor(accentRed)
                 .frame(maxWidth: .infinity)
@@ -846,16 +840,16 @@ struct StatCard: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 24, weight: .medium))
+                .font(.poppins(.medium, size: 24))
                 .foregroundColor(iconColor)
             
             VStack(spacing: 4) {
                 Text(value)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 20))
                     .foregroundColor(.primary)
                 
                 Text(label)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -877,19 +871,18 @@ struct DetailedMetricRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 18))
+                .font(.poppins(.regular, size: 18))
                 .foregroundColor(iconColor)
                 .frame(width: 24)
             
             Text(title)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
             
             Spacer()
             
             Text(value)
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(.poppins(.semiBold, size: 15))
                 .foregroundColor(.primary)
         }
     }
@@ -904,14 +897,13 @@ struct TimeAnalysisRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
             
             Spacer()
             
             Text(value)
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(.poppins(.semiBold, size: 15))
                 .foregroundColor(.primary)
         }
     }
@@ -930,10 +922,10 @@ struct TabButton: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: tab.icon)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.poppins(.medium, size: 12))
                 
                 Text(tab.rawValue)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
             }
             .foregroundColor(isSelected ? .white : .primary)
             .padding(.horizontal, 14)
@@ -986,9 +978,9 @@ struct ActivityShareCardView: View {
                             // Activity type badge
                             HStack(spacing: 6) {
                                 Image(systemName: activity.type.icon)
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 14))
                                 Text(activity.type.rawValue)
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 12))
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
@@ -1001,9 +993,9 @@ struct ActivityShareCardView: View {
                             // App branding
                             HStack(spacing: 4) {
                                 Image(systemName: "heart.fill")
-                                    .font(.system(size: 10))
+                                    .font(.poppins(.regular, size: 10))
                                 Text("SwastriCare")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 11))
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 10)
@@ -1047,7 +1039,7 @@ struct ActivityShareCardView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: activity.type.icon)
-                                .font(.system(size: 24, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 24))
                                 .foregroundColor(.white)
                             
                             Spacer()
@@ -1055,9 +1047,9 @@ struct ActivityShareCardView: View {
                             // App branding
                             HStack(spacing: 4) {
                                 Image(systemName: "heart.fill")
-                                    .font(.system(size: 12))
+                                    .font(.poppins(.regular, size: 12))
                                 Text("SwastriCare")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 12))
                             }
                             .foregroundColor(.white.opacity(0.9))
                         }
@@ -1065,11 +1057,11 @@ struct ActivityShareCardView: View {
                         Spacer()
                         
                         Text(activity.name)
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.poppins(.bold, size: 24))
                             .foregroundColor(.white)
                         
                         Text(formattedDate)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.poppins(.medium, size: 13))
                             .foregroundColor(.white.opacity(0.9))
                     }
                     .padding(20)
@@ -1083,11 +1075,11 @@ struct ActivityShareCardView: View {
                 if mapSnapshot != nil {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(activity.name)
-                            .font(.system(size: 20, weight: .bold))
+                            .font(.poppins(.bold, size: 20))
                             .foregroundColor(.primary)
                         
                         Text(formattedDate)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.poppins(.medium, size: 12))
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1098,11 +1090,11 @@ struct ActivityShareCardView: View {
                 // Main stat - Distance
                 VStack(spacing: 4) {
                     Text(activity.formattedDistance)
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 44))
                         .foregroundColor(.primary)
                     
                     Text("DISTANCE")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 11))
                         .foregroundColor(.secondary)
                         .tracking(1.5)
                 }
@@ -1142,21 +1134,21 @@ struct ActivityShareCardView: View {
                 HStack(spacing: 24) {
                     HStack(spacing: 8) {
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(.red)
                         
                         Text("\(activity.averageBPM) BPM")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 14))
                             .foregroundColor(.primary)
                     }
                     
                     HStack(spacing: 8) {
                         Image(systemName: "speedometer")
-                            .font(.system(size: 14))
+                            .font(.poppins(.regular, size: 14))
                             .foregroundColor(accentBlue)
                         
                         Text(calculatePace())
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 14))
                             .foregroundColor(.primary)
                     }
                 }
@@ -1196,15 +1188,15 @@ struct ShareStatItem: View {
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.poppins(.regular, size: 16))
                 .foregroundColor(AppColors.accentBlue)
             
             Text(value)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 18))
                 .foregroundColor(.primary)
             
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.poppins(.medium, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -1237,7 +1229,7 @@ struct ActivityShareSheet: View {
                         .padding(.top, 20)
                     
                     Text("Share your achievement!")
-                        .font(.headline)
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundColor(.primary)
                     
                     // Share options
@@ -1246,15 +1238,15 @@ struct ActivityShareSheet: View {
                         Button(action: shareToSocial) {
                             HStack(spacing: 12) {
                                 Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.poppins(.medium, size: 18))
                                 
                                 Text("Share to...")
-                                    .font(.headline)
+                                    .font(.poppins(.semiBold, size: 17))
                                 
                                 Spacer()
                                 
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.poppins(.medium, size: 14))
                                     .foregroundColor(.white.opacity(0.7))
                             }
                             .foregroundColor(.white)
@@ -1267,26 +1259,25 @@ struct ActivityShareSheet: View {
                         Button(action: saveToPhotos) {
                             HStack(spacing: 12) {
                                 Image(systemName: "photo.on.rectangle.angled")
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.poppins(.medium, size: 18))
                                     .foregroundColor(accentGreen)
                                 
                                 Text("Save to Photos")
-                                    .font(.headline)
+                                    .font(.poppins(.semiBold, size: 17))
                                 
                                 Spacer()
                                 
                                 if showSavedToast {
                                     HStack(spacing: 4) {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 14))
+                                            .font(.poppins(.regular, size: 14))
                                         Text("Saved!")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
+                                            .font(.poppins(.semiBold, size: 12))
                                     }
                                     .foregroundColor(accentGreen)
                                 } else {
                                     Image(systemName: "arrow.down.circle")
-                                        .font(.system(size: 14, weight: .medium))
+                                        .font(.poppins(.medium, size: 14))
                                         .foregroundColor(accentGreen)
                                 }
                             }
@@ -1304,25 +1295,24 @@ struct ActivityShareSheet: View {
                         Button(action: copyStats) {
                             HStack(spacing: 12) {
                                 Image(systemName: "doc.on.doc")
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.poppins(.medium, size: 18))
                                 
                                 Text("Copy Stats")
-                                    .font(.headline)
+                                    .font(.poppins(.semiBold, size: 17))
                                 
                                 Spacer()
                                 
                                 if showCopiedToast {
                                     HStack(spacing: 4) {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 14))
+                                            .font(.poppins(.regular, size: 14))
                                         Text("Copied!")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
+                                            .font(.poppins(.semiBold, size: 12))
                                     }
                                     .foregroundColor(accentGreen)
                                 } else {
                                     Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .medium))
+                                        .font(.poppins(.medium, size: 14))
                                         .foregroundColor(.secondary)
                                 }
                             }
@@ -1344,11 +1334,11 @@ struct ActivityShareSheet: View {
                         
                         HStack(spacing: 12) {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 24))
+                                .font(.poppins(.regular, size: 24))
                                 .foregroundColor(.white)
                             
                             Text("Saved to Photos")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                                 .foregroundColor(.white)
                         }
                         .padding(.horizontal, 24)
@@ -1368,12 +1358,12 @@ struct ActivityShareSheet: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
                 }
             }
         }
     }
-    
+
     private func shareToSocial() {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()

@@ -48,15 +48,14 @@ struct RemindersView: View {
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "bell.slash.fill")
-                .font(.system(size: 60))
+                .font(.poppins(.regular, size: 60))
                 .foregroundColor(.secondary)
 
             Text("No Past Notifications")
-                .font(.title2)
-                .fontWeight(.semibold)
+                .font(.poppins(.semiBold, size: 22))
 
             Text("No notifications in the last \(pastDays) days. Past reminders will appear here.")
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -80,7 +79,7 @@ struct RemindersView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(sectionTitle(for: date))
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(.secondary)
                 Spacer()
             }
@@ -195,41 +194,41 @@ private struct PastNotificationCard: View {
                     .frame(width: 50, height: 50)
 
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 22))
                     .foregroundColor(color)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayTitle)
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(.primary)
 
                 Text(displayBody)
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
                     .lineLimit(2)
 
                 HStack(spacing: 8) {
                     Image(systemName: "clock.fill")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
 
                     Text(formattedTime)
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
 
                     Text("•")
                         .foregroundColor(.secondary)
 
                     Text(relativeTime)
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
 
                     if let action = actionLabel {
                         Text("•")
                             .foregroundColor(.secondary)
                         Text(action)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.green)
                     }
                 }

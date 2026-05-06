@@ -54,7 +54,7 @@ struct ReferralCodeEntryView: View {
 
                             // Icon
                             Image(systemName: "ticket.fill")
-                                .font(.system(size: 52))
+                                .font(.poppins(.regular, size: 52))
                                 .foregroundStyle(
                                     LinearGradient(
                                         colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
@@ -69,12 +69,12 @@ struct ReferralCodeEntryView: View {
                         // MARK: - Header
                         VStack(spacing: 8) {
                             Text("Got a Referral Code?")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .font(.poppins(.bold, size: 28))
                                 .foregroundColor(.primary)
                                 .multilineTextAlignment(.center)
 
                             Text("Enter the code shared by your friend")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.poppins(.medium, size: 15))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 24)
@@ -86,7 +86,7 @@ struct ReferralCodeEntryView: View {
                             // Referral Code Input
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("REFERRAL CODE")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 12))
                                     .foregroundColor(.secondary)
                                     .tracking(0.8)
 
@@ -94,10 +94,10 @@ struct ReferralCodeEntryView: View {
                                     Image(systemName: "ticket.fill")
                                         .foregroundColor(Color(hex: "11998e"))
                                         .frame(width: 20)
-                                        .font(.system(size: 16))
+                                        .font(.poppins(.regular, size: 16))
 
                                     TextField("Enter code", text: $referralCode)
-                                        .font(.system(size: 18, weight: .medium, design: .monospaced))
+                                        .font(.poppins(.medium, size: 18))
                                         .foregroundColor(.primary)
                                         .textInputAutocapitalization(.characters)
                                         .autocorrectionDisabled(true)
@@ -127,9 +127,9 @@ struct ReferralCodeEntryView: View {
                             if let error = errorMessage, !showSuccess {
                                 HStack(spacing: 8) {
                                     Image(systemName: "exclamationmark.circle.fill")
-                                        .font(.system(size: 14))
+                                        .font(.poppins(.regular, size: 14))
                                     Text(error)
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(.poppins(.medium, size: 13))
                                 }
                                 .foregroundColor(AppColors.accentRed)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -142,9 +142,9 @@ struct ReferralCodeEntryView: View {
                             if showSuccess {
                                 HStack(spacing: 8) {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 14))
+                                        .font(.poppins(.regular, size: 14))
                                     Text("Referral code applied successfully!")
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(.poppins(.medium, size: 13))
                                 }
                                 .foregroundColor(AppColors.accentGreen)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -186,7 +186,7 @@ struct ReferralCodeEntryView: View {
                         if !showSuccess {
                             Button(action: skip) {
                                 Text("Skip for now")
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 15))
                                     .foregroundColor(.secondary)
                             }
                             .padding(.top, 20)

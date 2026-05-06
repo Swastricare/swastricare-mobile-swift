@@ -47,18 +47,18 @@ struct HeartRateResultView: View {
                         }) {
                             HStack(spacing: 8) {
                                 Image(systemName: "sparkles")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 14))
                                 Text("Ask Swastri AI about this")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 14))
                             }
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .foregroundColor(AppColors.aiTeal)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color(hex: "2E3192").opacity(0.08))
+                            .background(AppColors.aiTeal.opacity(0.08))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color(hex: "2E3192").opacity(0.15), lineWidth: 0.5)
+                                    .stroke(AppColors.aiTeal.opacity(0.15), lineWidth: 0.5)
                             )
                         }
                         .offset(y: animateContent ? 0 : 40)
@@ -93,7 +93,7 @@ struct HeartRateResultView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Text(Date(), format: .dateTime.day().month().year())
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -140,7 +140,7 @@ struct HeartRateResultView: View {
                     .frame(width: 100, height: 100)
                     .overlay(
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 44))
+                            .font(.poppins(.regular, size: 44))
                             .foregroundStyle(
                                 .linearGradient(
                                     colors: [.red, .orange],
@@ -154,18 +154,18 @@ struct HeartRateResultView: View {
             
             VStack(spacing: 2) {
                 Text("\(viewModel.finalBPM ?? 0)")
-                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 64))
                     .accessibilityLabel("\(viewModel.finalBPM ?? 0) beats per minute")
-                
+
                 Text("BPM")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.secondary)
                     .tracking(2)
             }
-            
+
             if let category = viewModel.bpmCategory {
                 Text(category.description)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
@@ -185,7 +185,7 @@ struct HeartRateResultView: View {
     private var healthZoneBar: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Health Zone")
-                .font(.caption.weight(.semibold))
+                .font(.poppins(.semiBold, size: 12))
                 .textCase(.uppercase)
                 .foregroundColor(.secondary)
             
@@ -215,11 +215,11 @@ struct HeartRateResultView: View {
             .accessibilityHidden(true)
             
             HStack {
-                Text("Resting").font(.caption2.weight(.medium))
+                Text("Resting").font(.poppins(.medium, size: 11))
                 Spacer()
-                Text("Normal").font(.caption2.weight(.medium))
+                Text("Normal").font(.poppins(.medium, size: 11))
                 Spacer()
-                Text("High").font(.caption2.weight(.medium))
+                Text("High").font(.poppins(.medium, size: 11))
             }
             .foregroundColor(.secondary)
         }
@@ -262,14 +262,14 @@ struct HeartRateResultView: View {
     private func statCard(title: String, value: String, icon: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Image(systemName: icon)
-                .font(.body)
+                .font(.poppins(.regular, size: 17))
                 .foregroundColor(color)
-            
+
             Text(value)
-                .font(.subheadline.weight(.semibold))
-            
+                .font(.poppins(.semiBold, size: 15))
+
             Text(title)
-                .font(.caption2.weight(.medium))
+                .font(.poppins(.medium, size: 11))
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
         }
@@ -287,10 +287,10 @@ struct HeartRateResultView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "waveform.path.ecg")
-                    .font(.body)
+                    .font(.poppins(.regular, size: 17))
                     .foregroundColor(.red)
                 Text("Measurement Trend")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 15))
             }
             
             HeartRateChartView(readings: viewModel.bpmReadings, animate: animateChart)
@@ -308,7 +308,7 @@ struct HeartRateResultView: View {
         VStack(spacing: 10) {
             if viewModel.saveSuccess {
                 Label("Reading saved successfully", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.medium))
+                    .font(.poppins(.medium, size: 15))
                     .foregroundColor(.green)
                     .padding(14)
                     .frame(maxWidth: .infinity)
@@ -318,7 +318,7 @@ struct HeartRateResultView: View {
             
             if let error = viewModel.saveError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.subheadline.weight(.medium))
+                    .font(.poppins(.medium, size: 15))
                     .foregroundColor(.red)
                     .padding(14)
                     .frame(maxWidth: .infinity)
@@ -334,7 +334,7 @@ struct HeartRateResultView: View {
         HStack(spacing: 12) {
             Button(action: { viewModel.dismissResult() }) {
                 Text("Discard")
-                    .font(.body.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(.red)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
@@ -352,7 +352,7 @@ struct HeartRateResultView: View {
                         Text(viewModel.saveSuccess ? "Done" : "Save")
                     }
                 }
-                .font(.body.weight(.semibold))
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)

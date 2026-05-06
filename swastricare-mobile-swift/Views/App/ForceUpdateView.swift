@@ -89,7 +89,7 @@ struct ForceUpdateView: View {
                             Color(hex: "FF512F").opacity(0.3),
                             Color.clear
                         ] : [
-                            Color(hex: "2E3192").opacity(0.3),
+                            AppColors.aiTeal.opacity(0.3),
                             Color.clear
                         ],
                         center: .center,
@@ -120,12 +120,12 @@ struct ForceUpdateView: View {
             
             // Icon
             Image(systemName: isForced ? "exclamationmark.arrow.circlepath" : "arrow.down.app.fill")
-                .font(.system(size: 50))
+                .font(.poppins(.regular, size: 50))
                 .foregroundStyle(
                     LinearGradient(
                         colors: isForced
                             ? [Color(hex: "FF512F"), Color(hex: "DD2476")]
-                            : [Color(hex: "2E3192"), Color(hex: "1BFFFF")],
+                            : [AppColors.aiTeal, Color(hex: "1BFFFF")],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -140,13 +140,12 @@ struct ForceUpdateView: View {
     private var titleSection: some View {
         VStack(spacing: 12) {
             Text(appVersionService.versionInfo?.updateTitle ?? (isForced ? "Update Required" : "Update Available"))
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(colorScheme == .dark ? .primary : Color(hex: "2E3192"))
+                .font(.poppins(.bold, size: 28))
+                .foregroundColor(colorScheme == .dark ? .primary : AppColors.aiTeal)
                 .multilineTextAlignment(.center)
-            
+
             Text(appVersionService.versionInfo?.updateMessage ?? defaultMessage)
-                .font(.body)
+                .font(.poppins(.regular, size: 17))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .lineLimit(4)
@@ -173,7 +172,7 @@ struct ForceUpdateView: View {
             )
             
             Image(systemName: "arrow.right")
-                .font(.title2)
+                .font(.poppins(.bold, size: 22))
                 .foregroundColor(.secondary)
             
             versionBadge(
@@ -203,13 +202,12 @@ struct ForceUpdateView: View {
     private func versionBadge(label: String, version: String, isHighlighted: Bool) -> some View {
         VStack(spacing: 4) {
             Text(label)
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
-            
+
             Text("v\(version)")
-                .font(.headline)
-                .fontWeight(.semibold)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundColor(isHighlighted ? Color(hex: "11998e") : .primary)
         }
     }
@@ -223,7 +221,7 @@ struct ForceUpdateView: View {
             HStack(spacing: 8) {
                 Image(systemName: "arrow.down.app.fill")
                 Text("Update Now")
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
@@ -231,7 +229,7 @@ struct ForceUpdateView: View {
                 LinearGradient(
                     colors: isForced
                         ? [Color(hex: "FF512F"), Color(hex: "DD2476")]
-                        : [Color(hex: "2E3192"), Color(hex: "1BFFFF")],
+                        : [AppColors.aiTeal, Color(hex: "1BFFFF")],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -245,7 +243,7 @@ struct ForceUpdateView: View {
     private func skipButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text("Maybe Later")
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
         }
         .padding(.top, 8)

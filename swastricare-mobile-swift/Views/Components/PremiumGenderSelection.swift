@@ -15,7 +15,7 @@ struct PremiumGenderSelectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Gender")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
                 .foregroundColor(.primary)
             
             HStack(spacing: 12) {
@@ -58,7 +58,7 @@ private struct GenderCard: View {
     }
     
     private var shadowColor: Color {
-        isSelected ? Color(hex: "2E3192").opacity(0.3) : .clear
+        isSelected ? AppColors.aiTeal.opacity(0.3) : .clear
     }
     
     private var shadowRadius: CGFloat {
@@ -76,7 +76,7 @@ private struct GenderCard: View {
                 ZStack {
                     if isSelected {
                         Circle()
-                            .fill(Color(hex: "2E3192").opacity(0.3))
+                            .fill(AppColors.aiTeal.opacity(0.3))
                             .frame(width: 60, height: 60)
                     } else {
                         Circle()
@@ -85,7 +85,7 @@ private struct GenderCard: View {
                     }
                     
                     Image(systemName: iconForGender)
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 28))
                         .foregroundStyle(
                             isSelected
                                 ? AnyShapeStyle(PremiumColor.royalBlue)
@@ -99,7 +99,7 @@ private struct GenderCard: View {
                 }
                 
                 Text(gender.displayName)
-                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                    .font(isSelected ? .poppins(.semiBold, size: 13) : .poppins(.medium, size: 13))
                     .foregroundColor(isSelected ? .primary : .secondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
@@ -109,14 +109,14 @@ private struct GenderCard: View {
             .padding(.horizontal, 12)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color(hex: "2E3192").opacity(0.15) : Color.clear)
+                    .fill(isSelected ? AppColors.aiTeal.opacity(0.15) : Color.clear)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(
                         isSelected
                             ? LinearGradient(
-                                colors: [Color(hex: "2E3192"), Color(hex: "1BFFFF")],
+                                colors: [AppColors.aiTeal, Color(hex: "1BFFFF")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )

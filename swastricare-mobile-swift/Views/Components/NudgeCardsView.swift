@@ -38,30 +38,30 @@ struct NudgeCard: View {
             HStack {
                 Image(systemName: nudge.icon)
                     .foregroundColor(Color(hex: nudge.nudgeColor))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 16))
 
                 Text(nudge.title)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.poppins(.bold, size: 14))
                     .lineLimit(1)
 
                 Spacer()
 
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.poppins(.bold, size: 10))
                         .foregroundColor(.secondary)
                 }
             }
 
             Text(nudge.message)
-                .font(.system(size: 13))
+                .font(.poppins(.regular, size: 13))
                 .foregroundColor(.secondary)
                 .lineLimit(2)
 
             if nudge.actionDeeplink != nil {
                 Button(action: onAction) {
                     Text("Take Action")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 12))
                         .foregroundColor(Color(hex: nudge.nudgeColor))
                 }
             }

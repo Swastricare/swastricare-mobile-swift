@@ -13,12 +13,13 @@ import UIKit
 
 struct PremiumColor {
     // Primary Gradients
-    static let royalBlue = LinearGradient(colors: [Color(hex: "2E3192"), Color(hex: "1BFFFF")], startPoint: .topLeading, endPoint: .bottomTrailing)
+    static let royalBlue = LinearGradient(colors: [AppColors.aiTeal, Color(hex: "1BFFFF")], startPoint: .topLeading, endPoint: .bottomTrailing)
     static let sunset = LinearGradient(colors: [Color(hex: "FF512F"), Color(hex: "DD2476")], startPoint: .topLeading, endPoint: .bottomTrailing)
     static let neonGreen = LinearGradient(colors: [Color(hex: "11998e"), Color(hex: "38ef7d")], startPoint: .topLeading, endPoint: .bottomTrailing)
     static let deepPurple = LinearGradient(colors: [Color(hex: "654ea3"), Color(hex: "eaafc8")], startPoint: .topLeading, endPoint: .bottomTrailing)
     static let midnight = LinearGradient(colors: [Color(hex: "232526"), Color(hex: "414345")], startPoint: .top, endPoint: .bottom)
-    
+    static let aiTeal = LinearGradient(colors: [Color(hex: "22C5A6"), Color(hex: "0E8C75")], startPoint: .topLeading, endPoint: .bottomTrailing)
+
     // Hex Helper
     static func hex(_ hex: String) -> Color {
         return Color(hex: hex)
@@ -30,8 +31,8 @@ struct PremiumColor {
 
 struct AppColors {
     // MARK: - Primary Accent Colors
-    /// Primary accent blue - used for main actions, distance, pace, selection states
-    static let accentBlue = Color(hex: "4F46E5")
+    /// Primary accent — re-pointed to AITeal brand color so legacy `accentBlue` references pick up the new color.
+    static let accentBlue = Color(hex: "22C5A6")
     
     /// Success/positive green - used for steps, walking, start buttons, achievements
     static let accentGreen = Color(hex: "22C55E")
@@ -47,7 +48,12 @@ struct AppColors {
     
     /// Cadence/activity purple - used for cadence, cycle tracker
     static let accentPurple = Color.purple
-    
+
+    // MARK: - Swastri AI brand
+    /// Swastri AI accent — matches Android `AITeal` (#22C5A6)
+    static let aiTeal = Color(hex: "22C5A6")
+    static let aiTealDark = Color(hex: "0E8C75")
+
     // MARK: - Semantic Colors (by feature)
     static let steps = Color.green
     static let distance = accentBlue
@@ -118,7 +124,7 @@ struct HomeThemeColors {
 
     // Hero card gradient
     static func heroGradientStart(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "1A2F4A") : Color(hex: "E0F2FE")
+        scheme == .dark ? AppColors.aiTeal : Color(hex: "E0F2FE")
     }
     static func heroGradientEnd(_ scheme: ColorScheme) -> Color {
         scheme == .dark ? Color(hex: "1A3A2F") : Color(hex: "DCFCE7")
@@ -126,7 +132,7 @@ struct HomeThemeColors {
 
     // Week strip
     static func weekDaySelected(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "4F46E5") : Color(hex: "4F46E5")
+        scheme == .dark ? AppColors.aiTeal : AppColors.aiTeal
     }
     static func weekDayDefault(_ scheme: ColorScheme) -> Color {
         scheme == .dark ? Color(hex: "2A2A2E") : Color(hex: "F3F4F6")
@@ -137,12 +143,13 @@ struct HomeThemeColors {
         scheme == .dark ? Color(hex: "1C1C1E") : Color.white
     }
 
-    // Quick action pastels
+    // Quick action pastels — match Android brand colors
+    // Android: MedicationColor #5856D6 / HydrationColor #00C7BE
     static func medicationBg(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "2D2554") : Color(hex: "EDE9FE")
+        scheme == .dark ? Color(hex: "5856D6").opacity(0.18) : Color(hex: "5856D6").opacity(0.20)
     }
     static func hydrationBg(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "1A3A4A") : Color(hex: "E0F7FA")
+        scheme == .dark ? Color(hex: "00C7BE").opacity(0.18) : Color(hex: "00C7BE").opacity(0.20)
     }
     static func cycleBg(_ scheme: ColorScheme) -> Color {
         scheme == .dark ? Color(hex: "3D1F3D") : Color(hex: "FCE4EC")
@@ -296,14 +303,13 @@ struct HeroHeader: View {
             VStack(alignment: .leading, spacing: 4) {
                 if let subtitle = subtitle {
                     Text(subtitle.uppercased())
-                        .font(.caption)
-                        .fontWeight(.bold)
+                        .font(.poppins(.bold, size: 12))
                         .tracking(1.5)
                         .foregroundStyle(PremiumColor.deepPurple)
                 }
                 
                 Text(title)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.poppins(.bold, size: 34))
                     .foregroundStyle(
                         LinearGradient(
                             colors: [.primary, .primary.opacity(0.7)],
@@ -334,7 +340,7 @@ struct HeroHeader: View {
                             
                             if let icon = icon {
                                 Image(systemName: icon)
-                                    .font(.title2)
+                                    .font(.poppins(.bold, size: 22))
                                     .foregroundStyle(PremiumColor.royalBlue)
                             } else {
                                 ProgressView()
@@ -349,12 +355,12 @@ struct HeroHeader: View {
                             .liquidGlassCircle()
                         
                         Image(systemName: icon)
-                            .font(.title2)
+                            .font(.poppins(.bold, size: 22))
                             .foregroundStyle(PremiumColor.royalBlue)
                     }
                 }
             }
-            .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 8, x: 0, y: 4)
+            .shadow(color: AppColors.aiTeal.opacity(0.3), radius: 8, x: 0, y: 4)
         }
         .padding(.horizontal)
         .padding(.top, 10)

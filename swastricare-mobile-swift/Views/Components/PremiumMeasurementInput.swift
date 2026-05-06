@@ -37,7 +37,7 @@ struct PremiumMeasurementInput: View {
             VStack(spacing: 24) {
                 // Title
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.poppins(.medium, size: 15))
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
@@ -45,7 +45,7 @@ struct PremiumMeasurementInput: View {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     TextField("", text: $textValue)
                         .keyboardType(.numberPad)
-                        .font(.system(size: 72, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 72))
                         .foregroundStyle(
                             isFocused
                                 ? PremiumColor.royalBlue
@@ -83,7 +83,7 @@ struct PremiumMeasurementInput: View {
                         }
                     
                     Text(unit)
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 28))
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -111,7 +111,7 @@ struct PremiumMeasurementInput: View {
                             Circle()
                                 .fill(PremiumColor.royalBlue)
                                 .frame(width: 24, height: 24)
-                                .shadow(color: Color(hex: "2E3192").opacity(0.4), radius: 8, x: 0, y: 4)
+                                .shadow(color: AppColors.aiTeal.opacity(0.4), radius: 8, x: 0, y: 4)
                                 .offset(
                                     x: CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound)) * (geometry.size.width - 24)
                                 )
@@ -145,7 +145,7 @@ struct PremiumMeasurementInput: View {
                             }
                         }) {
                             Image(systemName: "minus.circle.fill")
-                                .font(.system(size: 44))
+                                .font(.poppins(.regular, size: 44))
                                 .foregroundStyle(
                                     value > range.lowerBound
                                         ? PremiumColor.royalBlue
@@ -171,7 +171,7 @@ struct PremiumMeasurementInput: View {
                             }
                         }) {
                             Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 44))
+                                .font(.poppins(.regular, size: 44))
                                 .foregroundStyle(
                                     value < range.upperBound
                                         ? PremiumColor.royalBlue

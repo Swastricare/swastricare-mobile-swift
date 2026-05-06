@@ -18,7 +18,7 @@ struct PaceChartView: View {
     @State private var selectedSample: PaceSample?
     @State private var isAnimating = false
     
-    private let accentBlue = Color(hex: "4F46E5")
+    private let accentBlue = AppColors.aiTeal
     private let accentGreen = Color(hex: "22C55E")
     private let accentOrange = Color(hex: "F59E0B")
     
@@ -63,12 +63,11 @@ struct PaceChartView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Pace Analysis")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.poppins(.bold, size: 17))
                     .foregroundColor(.primary)
                 
                 Text("Speed variation over distance")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
             
@@ -78,11 +77,11 @@ struct PaceChartView: View {
             if let sample = selectedSample {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(sample.formattedPace)
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 18))
                         .foregroundColor(accentBlue)
                     
                     Text(String(format: "%.2f km", sample.distanceKm))
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -132,8 +131,7 @@ struct PaceChartView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [5, 5]))
                     .annotation(position: .trailing, alignment: .leading) {
                         Text("Avg")
-                            .font(.caption2)
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 11))
                             .foregroundColor(accentOrange)
                             .padding(.horizontal, 4)
                     }
@@ -157,7 +155,7 @@ struct PaceChartView: View {
                     AxisValueLabel {
                         if let distance = value.as(Double.self) {
                             Text(String(format: "%.1f", distance))
-                                .font(.caption2)
+                                .font(.poppins(.regular, size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -170,7 +168,7 @@ struct PaceChartView: View {
                     AxisValueLabel {
                         if let pace = value.as(Double.self) {
                             Text(formatPaceMinutes(pace))
-                                .font(.caption2)
+                                .font(.poppins(.regular, size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -202,7 +200,7 @@ struct PaceChartView: View {
             
             // X-axis label
             Text("Distance (km)")
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
                 .padding(.bottom, 8)
         }
@@ -248,15 +246,15 @@ struct PaceChartView: View {
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: 48))
+                .font(.poppins(.regular, size: 48))
                 .foregroundColor(.secondary.opacity(0.5))
             
             Text("No pace data available")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundColor(.secondary)
             
             Text("Pace data requires GPS tracking during the activity")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary.opacity(0.8))
                 .multilineTextAlignment(.center)
         }
@@ -298,15 +296,15 @@ struct PaceStatCard: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
+                .font(.poppins(.medium, size: 18))
                 .foregroundColor(color)
             
             Text(formattedPace)
-                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 15))
                 .foregroundColor(.primary)
             
             Text(title)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

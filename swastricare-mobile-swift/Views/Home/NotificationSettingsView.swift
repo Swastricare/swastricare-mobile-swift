@@ -86,7 +86,7 @@ struct NotificationSettingsView: View {
                     Button("Save") {
                         saveSettings()
                     }
-                    .fontWeight(.semibold)
+                    .font(.poppins(.semiBold, size: 17))
                 }
             }
             .task {
@@ -121,10 +121,9 @@ struct NotificationSettingsView: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Permission Status")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(.poppins(.medium, size: 15))
                     Text(permissionStatus.displayName)
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
                 
@@ -182,9 +181,9 @@ struct NotificationSettingsView: View {
                         .foregroundColor(.cyan)
                     VStack(alignment: .leading) {
                         Text("Hydration Reminders")
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 17))
                         Text("Get reminded to drink water throughout the day")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -206,9 +205,9 @@ struct NotificationSettingsView: View {
                         .foregroundColor(.purple)
                     VStack(alignment: .leading) {
                         Text("Smart Scheduling")
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 17))
                         Text("Adjust frequency based on your progress")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -221,9 +220,9 @@ struct NotificationSettingsView: View {
                         .foregroundColor(.cyan)
                     VStack(alignment: .leading) {
                         Text("Adaptive Learning")
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 17))
                         Text("Learn your drinking patterns over time")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -300,7 +299,7 @@ struct NotificationSettingsView: View {
                     VStack(alignment: .leading) {
                         Text("Progress Updates")
                         Text("Show percentage and remaining amount")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -314,7 +313,7 @@ struct NotificationSettingsView: View {
                     VStack(alignment: .leading) {
                         Text("Motivational Messages")
                         Text("Encouraging messages and streak tracking")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -335,9 +334,9 @@ struct NotificationSettingsView: View {
                         .foregroundColor(.green)
                     VStack(alignment: .leading) {
                         Text("WhatsApp Nudges")
-                            .fontWeight(.medium)
+                            .font(.poppins(.medium, size: 17))
                         Text("Receive health nudges via WhatsApp")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -361,7 +360,7 @@ struct NotificationSettingsView: View {
                             .foregroundColor(.orange)
                     }
                 }
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
             }
         } header: {
             Text("WhatsApp")
@@ -389,7 +388,7 @@ struct NotificationSettingsView: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                     }
                 }
             }
@@ -428,10 +427,9 @@ struct NotificationSettingsView: View {
     private func featureRow(_ title: String, _ description: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
+                .font(.poppins(.medium, size: 15))
             Text(description)
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
         }
     }

@@ -21,13 +21,13 @@ struct HealthDataSettingsView: View {
             Section {
                 HStack(spacing: 16) {
                     Image(systemName: homeVM.isAuthorized ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.title2)
+                        .font(.poppins(.bold, size: 22))
                         .foregroundColor(AppColors.accentBlue)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(homeVM.isAuthorized ? "Connected" : "Not Connected")
-                            .font(.headline)
+                            .font(.poppins(.semiBold, size: 17))
                         Text(homeVM.isAuthorized ? "SwasthiCare can read your health data" : "Grant permissions to sync health data")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -43,7 +43,7 @@ struct HealthDataSettingsView: View {
                                 Image(systemName: "lock.open.fill")
                             }
                             Text("Grant All Permissions")
-                                .fontWeight(.semibold)
+                                .font(.poppins(.semiBold, size: 17))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -59,21 +59,21 @@ struct HealthDataSettingsView: View {
                 ForEach(dataTypes, id: \.name) { dataType in
                     HStack(spacing: 12) {
                         Image(systemName: dataType.icon)
-                            .font(.body)
+                            .font(.poppins(.regular, size: 17))
                             .foregroundColor(AppColors.accentBlue)
                             .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(dataType.name)
-                                .font(.body)
+                                .font(.poppins(.regular, size: 17))
                             Text(dataType.description)
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
                         if homeVM.isAuthorized {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(AppColors.accentBlue)
-                                .font(.subheadline)
+                                .font(.poppins(.regular, size: 15))
                         }
                     }
                     .padding(.vertical, 2)
@@ -93,7 +93,7 @@ struct HealthDataSettingsView: View {
                         Label("Open Apple Health", systemImage: "heart.text.square")
                         Spacer()
                         Image(systemName: "arrow.up.forward.app")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                     }
                 }

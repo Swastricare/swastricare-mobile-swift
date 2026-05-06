@@ -26,7 +26,7 @@ struct MedicalDisclaimerView: View {
                             Circle()
                                 .fill(
                                     LinearGradient(
-                                        colors: [Color(hex: "2E3192").opacity(0.2), Color(hex: "4A90E2").opacity(0.1)],
+                                        colors: [AppColors.aiTeal.opacity(0.2), Color(hex: "4A90E2").opacity(0.1)],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -34,8 +34,8 @@ struct MedicalDisclaimerView: View {
                                 .frame(width: 80, height: 80)
                             
                             Image(systemName: "cross.case.fill")
-                                .font(.system(size: 36))
-                                .foregroundColor(Color(hex: "2E3192"))
+                                .font(.poppins(.regular, size: 36))
+                                .foregroundColor(AppColors.aiTeal)
                         }
                         Spacer()
                     }
@@ -43,13 +43,13 @@ struct MedicalDisclaimerView: View {
                     
                     // Title
                     Text("Medical AI Assistant")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.poppins(.bold, size: 24))
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
-                    
+
                     // Subtitle
                     Text("Please read and acknowledge the following before using medical AI features")
-                        .font(.system(size: 15))
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
@@ -65,7 +65,7 @@ struct MedicalDisclaimerView: View {
                     
                     disclaimerSection(
                         icon: "person.fill.checkmark",
-                        iconColor: Color(hex: "2E3192"),
+                        iconColor: AppColors.aiTeal,
                         title: "Consult Healthcare Providers",
                         content: "Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay seeking it."
                     )
@@ -118,13 +118,13 @@ struct MedicalDisclaimerView: View {
                             Image(systemName: "checkmark.circle.fill")
                             Text("I Understand & Agree")
                         }
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
                             LinearGradient(
-                                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -133,7 +133,7 @@ struct MedicalDisclaimerView: View {
                     }
                     
                     Text("By continuing, you acknowledge these limitations")
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -148,17 +148,17 @@ struct MedicalDisclaimerView: View {
     private func disclaimerSection(icon: String, iconColor: Color, title: String, content: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(.poppins(.regular, size: 20))
                 .foregroundColor(iconColor)
                 .frame(width: 28)
-            
+
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 16))
                     .foregroundColor(.primary)
-                
+
                 Text(content)
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(.secondary)
                     .lineSpacing(3)
             }
@@ -185,16 +185,16 @@ struct EmergencyAlertView: View {
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 40))
+                    .font(.poppins(.regular, size: 40))
                     .foregroundColor(.red)
             }
-            
+
             Text("Emergency Detected")
-                .font(.system(size: 22, weight: .bold))
+                .font(.poppins(.bold, size: 22))
                 .foregroundColor(.primary)
-            
+
             Text("If you or someone else is experiencing a medical emergency, please seek immediate professional help.")
-                .font(.system(size: 15))
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
@@ -214,7 +214,7 @@ struct EmergencyAlertView: View {
                 // Dismiss Button
                 Button(action: onDismiss) {
                     Text("This is not an emergency")
-                        .font(.system(size: 15))
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                 }
                 .padding(.top, 8)
@@ -227,7 +227,7 @@ struct EmergencyAlertView: View {
     private func emergencyNumber(country: String, number: String) -> some View {
         HStack {
             Text(country)
-                .font(.system(size: 14))
+                .font(.poppins(.regular, size: 14))
                 .foregroundColor(.secondary)
             Spacer()
             Button(action: {
@@ -236,8 +236,8 @@ struct EmergencyAlertView: View {
                 }
             }) {
                 Text(number)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 14))
+                    .foregroundColor(AppColors.aiTeal)
             }
         }
     }
@@ -252,16 +252,16 @@ struct MedicalAIBadge: View {
         if isActive {
             HStack(spacing: 4) {
                 Image(systemName: "cross.case.fill")
-                    .font(.system(size: 10))
+                    .font(.poppins(.regular, size: 10))
                 Text("Medical AI")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.poppins(.medium, size: 10))
             }
             .foregroundColor(.white)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(
                 LinearGradient(
-                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                    colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
@@ -287,31 +287,31 @@ struct MedicalDisclaimerBanner: View {
             }) {
                 HStack(spacing: 8) {
                     Image(systemName: isExpanded ? "info.circle.fill" : "info.circle")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "2E3192"))
-                    
+                        .font(.poppins(.regular, size: 12))
+                        .foregroundColor(AppColors.aiTeal)
+
                     if isExpanded {
                         Text("Medical AI responses are for informational purposes only")
-                            .font(.system(size: 11))
+                            .font(.poppins(.regular, size: 11))
                             .foregroundColor(.secondary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         Text("Medical disclaimer")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color(hex: "2E3192"))
+                            .font(.poppins(.medium, size: 11))
+                            .foregroundColor(AppColors.aiTeal)
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 10))
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
-                .background(Color(hex: "2E3192").opacity(isExpanded ? 0.08 : 0.05))
+                .background(AppColors.aiTeal.opacity(isExpanded ? 0.08 : 0.05))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
@@ -321,10 +321,10 @@ struct MedicalDisclaimerBanner: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .top, spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 10))
+                            .font(.poppins(.regular, size: 10))
                             .foregroundColor(.orange)
                         Text("Always consult healthcare professionals for medical advice")
-                            .font(.system(size: 10))
+                            .font(.poppins(.regular, size: 10))
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -333,7 +333,7 @@ struct MedicalDisclaimerBanner: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(hex: "2E3192").opacity(0.04))
+                .background(AppColors.aiTeal.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .padding(.top, 4)
                 .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))

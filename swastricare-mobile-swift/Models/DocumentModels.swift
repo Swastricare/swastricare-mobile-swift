@@ -30,9 +30,9 @@ enum VaultCategory: String, CaseIterable, Identifiable {
     
     var color: Color {
         switch self {
-        case .prescriptions: return Color(hex: "2E3192") // Royal Blue
+        case .prescriptions: return AppColors.aiTeal // Royal Blue
         case .labReports: return Color(hex: "1BBBCE") // Teal
-        case .imaging: return Color(hex: "2E3192") // Royal Blue
+        case .imaging: return AppColors.aiTeal // Royal Blue
         case .insurance: return Color(hex: "1BBBCE") // Teal
         }
     }

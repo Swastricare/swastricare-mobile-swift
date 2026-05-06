@@ -92,16 +92,16 @@ struct AddFoodView: View {
                             showBarcodeScanner = true
                         } label: {
                             Image(systemName: "barcode.viewfinder")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.poppins(.medium, size: 18))
                                 .foregroundColor(AppColors.accentGreen)
                         }
 
                         // Meal type pill with semantic color tint
                         HStack(spacing: 4) {
                             Image(systemName: currentMealType.icon)
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 11))
                             Text(currentMealType.displayName)
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 12))
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
@@ -166,10 +166,10 @@ struct AddFoodView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 14))
                     .foregroundColor(AppColors.accentGreen)
                 Text("Recent")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal)
@@ -182,10 +182,10 @@ struct AddFoodView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Text(food.category.icon)
-                                    .font(.system(size: 14))
+                                    .font(.poppins(.regular, size: 14))
                                 VegIndicator(isVegetarian: food.isVegetarian)
                                 Text(food.name)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.poppins(.medium, size: 14))
                                     .lineLimit(1)
                             }
                             .padding(.horizontal, 14)
@@ -212,10 +212,10 @@ struct AddFoodView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                     .foregroundColor(.pink)
                 Text("Favorites")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal)
@@ -228,12 +228,12 @@ struct AddFoodView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Text(food.category.icon)
-                                    .font(.system(size: 14))
+                                    .font(.poppins(.regular, size: 14))
                                 Text(food.name)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.poppins(.medium, size: 14))
                                     .lineLimit(1)
                                 Image(systemName: "heart.fill")
-                                    .font(.system(size: 10))
+                                    .font(.poppins(.regular, size: 10))
                                     .foregroundColor(.pink)
                             }
                             .padding(.horizontal, 14)
@@ -259,7 +259,7 @@ struct AddFoodView: View {
     private var categoryGridSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Browse by Category")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.poppins(.semiBold, size: 15))
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
 
@@ -278,9 +278,9 @@ struct AddFoodView: View {
                     } label: {
                         VStack(spacing: 8) {
                             Text(category.icon)
-                                .font(.system(size: 36))
+                                .font(.poppins(.regular, size: 36))
                             Text(category.displayName)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.poppins(.medium, size: 13))
                                 .foregroundColor(.primary)
                         }
                         .frame(maxWidth: .infinity)
@@ -302,13 +302,13 @@ struct AddFoodView: View {
             if searchResults.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 40))
+                        .font(.poppins(.regular, size: 40))
                         .foregroundColor(.secondary)
                     Text("No foods found")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.poppins(.medium, size: 16))
                         .foregroundColor(.secondary)
                     Text("Try a different search term")
-                        .font(.system(size: 14))
+                        .font(.poppins(.regular, size: 14))
                         .foregroundColor(.secondary.opacity(0.8))
                 }
                 .frame(maxWidth: .infinity)
@@ -316,7 +316,7 @@ struct AddFoodView: View {
             } else {
                 HStack(spacing: 10) {
                     Text("\(searchResults.count) results")
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.secondary)
 
                     Spacer()
@@ -330,7 +330,7 @@ struct AddFoodView: View {
                         HStack(spacing: 5) {
                             VegIndicator(isVegetarian: true)
                             Text("Veg Only")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.poppins(.medium, size: 13))
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
@@ -353,7 +353,7 @@ struct AddFoodView: View {
                         } label: {
                             HStack(spacing: 12) {
                                 Text(food.category.icon)
-                                    .font(.system(size: 28))
+                                    .font(.poppins(.regular, size: 28))
                                     .frame(width: 44, height: 44)
                                     .background(AppColors.accentGreen.opacity(0.10))
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -366,19 +366,19 @@ struct AddFoodView: View {
                                     HStack(spacing: 6) {
                                         VegIndicator(isVegetarian: food.isVegetarian)
                                         Text(food.name)
-                                            .font(.system(size: 15, weight: .medium))
+                                            .font(.poppins(.medium, size: 15))
                                             .foregroundColor(.primary)
                                             .lineLimit(1)
                                     }
 
                                     HStack(spacing: 6) {
                                         Text(food.displayServingSize)
-                                            .font(.system(size: 12))
+                                            .font(.poppins(.regular, size: 12))
                                             .foregroundColor(.secondary)
                                         Text("\u{00B7}")
                                             .foregroundColor(.secondary)
                                         Text(food.caloriesPerServing)
-                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                            .font(.poppins(.semiBold, size: 12))
                                             .foregroundColor(AppColors.accentGreen)
                                     }
                                 }
@@ -389,7 +389,7 @@ struct AddFoodView: View {
                                     selectedFoodForQuantity = food
                                 } label: {
                                     Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 22))
+                                        .font(.poppins(.regular, size: 22))
                                         .foregroundColor(AppColors.accentGreen)
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -418,10 +418,10 @@ struct AddFoodView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 14))
                         .foregroundColor(AppColors.accentBlue)
                     Text("Your Usual \(currentMealType.displayName)")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 15))
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
@@ -447,16 +447,16 @@ struct AddFoodView: View {
                                 } label: {
                                     VStack(spacing: 6) {
                                         Text(food.category.icon)
-                                            .font(.system(size: 24))
+                                            .font(.poppins(.regular, size: 24))
 
                                         Text(food.name)
-                                            .font(.system(size: 12, weight: .medium))
+                                            .font(.poppins(.medium, size: 12))
                                             .foregroundColor(.primary)
                                             .lineLimit(2)
                                             .multilineTextAlignment(.center)
 
                                         Text("\(Int(food.calories)) cal")
-                                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                            .font(.poppins(.semiBold, size: 11))
                                             .foregroundColor(AppColors.accentGreen)
                                     }
                                     .frame(width: 80, height: 90)
@@ -484,17 +484,17 @@ struct AddFoodView: View {
                                         .fill(template.mealType.color.opacity(0.15))
                                         .frame(width: 40, height: 40)
                                     Image(systemName: "doc.text.fill")
-                                        .font(.system(size: 16, weight: .medium))
+                                        .font(.poppins(.medium, size: 16))
                                         .foregroundColor(template.mealType.color)
                                 }
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(template.name)
-                                        .font(.system(size: 15, weight: .medium))
+                                        .font(.poppins(.medium, size: 15))
                                         .foregroundColor(.primary)
                                         .lineLimit(1)
                                     Text(template.summary)
-                                        .font(.system(size: 12))
+                                        .font(.poppins(.regular, size: 12))
                                         .foregroundColor(.secondary)
                                 }
 
@@ -509,7 +509,7 @@ struct AddFoodView: View {
                                     }
                                 } label: {
                                     Text("Log all")
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.poppins(.semiBold, size: 13))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 7)
@@ -534,11 +534,11 @@ struct AddFoodView: View {
     private var quickLogToast: some View {
         HStack(spacing: 10) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 18, weight: .medium))
+                .font(.poppins(.medium, size: 18))
                 .foregroundColor(AppColors.accentGreen)
 
             Text("Logged \(quickLoggedName)")
-                .font(.system(size: 15, weight: .medium))
+                .font(.poppins(.medium, size: 15))
                 .foregroundColor(.primary)
                 .lineLimit(1)
         }
@@ -564,20 +564,20 @@ struct AddFoodView: View {
                         .fill(AppColors.accentBlue.opacity(0.15))
                         .frame(width: 36, height: 36)
                     Image(systemName: "barcode.viewfinder")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.poppins(.bold, size: 16))
                         .foregroundColor(AppColors.accentBlue)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Scan Barcode")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                         .foregroundColor(AppColors.accentBlue)
                     Text("Scan packaged food products")
-                        .font(.system(size: 12))
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.poppins(.medium, size: 13))
                     .foregroundColor(AppColors.accentBlue.opacity(0.6))
             }
             .padding(16)
@@ -600,15 +600,15 @@ struct AddFoodView: View {
                         .fill(AppColors.accentGreen)
                         .frame(width: 36, height: 36)
                     Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.poppins(.bold, size: 16))
                         .foregroundColor(.white)
                 }
                 Text("Add Custom Food")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 16))
                     .foregroundColor(AppColors.accentGreen)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.poppins(.medium, size: 13))
                     .foregroundColor(AppColors.accentGreen.opacity(0.6))
             }
             .padding(16)
@@ -680,7 +680,7 @@ struct FoodQuantitySheet: View {
     private var foodHeader: some View {
         HStack(spacing: 14) {
             Text(food.category.icon)
-                .font(.system(size: 40))
+                .font(.poppins(.regular, size: 40))
                 .frame(width: 60, height: 60)
                 .background(AppColors.accentGreen.opacity(0.10))
                 .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -691,11 +691,11 @@ struct FoodQuantitySheet: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(food.name)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 18))
                     .lineLimit(2)
 
                 Text(food.displayServingSize + " per serving")
-                    .font(.system(size: 14))
+                    .font(.poppins(.regular, size: 14))
                     .foregroundColor(.secondary)
             }
 
@@ -706,7 +706,7 @@ struct FoodQuantitySheet: View {
                 viewModel.toggleFavorite(foodId: food.id)
             } label: {
                 Image(systemName: viewModel.isFavorite(foodId: food.id) ? "heart.fill" : "heart")
-                    .font(.system(size: 22))
+                    .font(.poppins(.regular, size: 22))
                     .foregroundColor(viewModel.isFavorite(foodId: food.id) ? .pink : .secondary)
             }
             .buttonStyle(ScaleButtonStyle())
@@ -719,7 +719,7 @@ struct FoodQuantitySheet: View {
         VStack(spacing: 10) {
             HStack {
                 Text("Servings")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.poppins(.medium, size: 13))
                     .foregroundColor(.secondary)
 
                 Spacer()
@@ -741,9 +741,9 @@ struct FoodQuantitySheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: showKeyboardInput ? "minus.circle.fill" : "keyboard")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.poppins(.medium, size: 12))
                         Text(showKeyboardInput ? "Use Stepper" : "Type Amount")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.poppins(.medium, size: 12))
                     }
                     .foregroundColor(AppColors.accentBlue)
                     .padding(.horizontal, 10)
@@ -759,7 +759,7 @@ struct FoodQuantitySheet: View {
                 HStack(spacing: 8) {
                     TextField("1.0", text: $keyboardQuantityText)
                         .keyboardType(.decimalPad)
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 36))
                         .multilineTextAlignment(.center)
                         .focused($isKeyboardFocused)
                         .onChange(of: keyboardQuantityText) { _, newValue in
@@ -772,7 +772,7 @@ struct FoodQuantitySheet: View {
                         .frame(maxWidth: 120)
 
                     Text("servings")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.poppins(.medium, size: 15))
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 8)
@@ -790,7 +790,7 @@ struct FoodQuantitySheet: View {
                             Text(amount.truncatingRemainder(dividingBy: 1) == 0
                                 ? "\(Int(amount))"
                                 : String(format: "%.2g", amount))
-                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .font(.poppins(.semiBold, size: 14))
                                 .foregroundColor(quantity == amount ? .white : AppColors.accentGreen)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
@@ -820,7 +820,7 @@ struct FoodQuantitySheet: View {
                                         .stroke(quantity > 0.25 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
                                 )
                             Image(systemName: "minus")
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 18))
                                 .foregroundColor(quantity > 0.25 ? AppColors.accentGreen : .secondary.opacity(0.4))
                         }
                     }
@@ -828,7 +828,7 @@ struct FoodQuantitySheet: View {
                     .disabled(quantity <= 0.25)
 
                     Text(formatQuantity(quantity))
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.poppins(.bold, size: 40))
                         .foregroundColor(.primary)
                         .frame(minWidth: 60)
                         .contentTransition(.numericText())
@@ -852,7 +852,7 @@ struct FoodQuantitySheet: View {
                                         .stroke(quantity < 10 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
                                 )
                             Image(systemName: "plus")
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.poppins(.semiBold, size: 18))
                                 .foregroundColor(quantity < 10 ? AppColors.accentGreen : .secondary.opacity(0.4))
                         }
                     }
@@ -892,12 +892,12 @@ struct FoodQuantitySheet: View {
     private func nutritionPill(label: String, value: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 16))
                 .foregroundColor(color)
                 .contentTransition(.numericText())
                 .animation(.snappy(duration: 0.2), value: quantity)
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.poppins(.medium, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -933,10 +933,10 @@ struct FoodQuantitySheet: View {
                         .tint(.white)
                 } else {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                 }
                 Text("Log Food")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 17))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)

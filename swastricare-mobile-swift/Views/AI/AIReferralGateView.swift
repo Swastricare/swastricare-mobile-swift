@@ -23,7 +23,7 @@ struct AIReferralGateView: View {
                             .fill(AppColors.accentBlue.opacity(0.15))
                             .frame(width: 100, height: 100)
                         Image(systemName: "sparkles")
-                            .font(.system(size: 44, weight: .medium))
+                            .font(.poppins(.medium, size: 44))
                             .foregroundStyle(
                                 LinearGradient(
                                     colors: [AppColors.accentBlue, AppColors.onboardingPurple],
@@ -36,11 +36,11 @@ struct AIReferralGateView: View {
                     // Title
                     VStack(spacing: 10) {
                         Text("Unlock SwasthiCare AI")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 28))
                             .multilineTextAlignment(.center)
 
                         Text("Refer a friend to unlock AI — free, forever")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.poppins(.medium, size: 16))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
@@ -48,7 +48,7 @@ struct AIReferralGateView: View {
                     // How it works
                     VStack(alignment: .leading, spacing: 16) {
                         Text("How it works")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 18))
 
                         howItWorksStep(number: "1", title: "Share your code", subtitle: "Send your unique code to a friend")
                         howItWorksStep(number: "2", title: "Friend signs up", subtitle: "They join SwasthiCare using your code")
@@ -61,19 +61,19 @@ struct AIReferralGateView: View {
                     if let code = viewModel.referralCode {
                         VStack(spacing: 12) {
                             Text("Your referral code")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.poppins(.medium, size: 14))
                                 .foregroundColor(.secondary)
 
                             HStack {
                                 Text(code)
-                                    .font(.system(size: 28, weight: .bold, design: .monospaced))
+                                    .font(.poppins(.bold, size: 28))
                                     .tracking(4)
 
                                 Button {
                                     UIPasteboard.general.string = code
                                 } label: {
                                     Image(systemName: "doc.on.doc")
-                                        .font(.system(size: 16))
+                                        .font(.poppins(.regular, size: 16))
                                         .foregroundColor(AppColors.accentBlue)
                                 }
                             }
@@ -87,12 +87,12 @@ struct AIReferralGateView: View {
                     } else if viewModel.errorMessage != nil {
                         VStack(spacing: 12) {
                             Text("Could not load referral code")
-                                .font(.system(size: 14))
+                                .font(.poppins(.regular, size: 14))
                                 .foregroundColor(.secondary)
                             Button("Retry") {
                                 Task { await viewModel.loadReferralState() }
                             }
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.poppins(.semiBold, size: 15))
                             .foregroundColor(AppColors.accentBlue)
                         }
                         .padding(16)
@@ -105,9 +105,9 @@ struct AIReferralGateView: View {
                         ) {
                             HStack(spacing: 10) {
                                 Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 18, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 18))
                                 Text("Share with a Friend")
-                                    .font(.system(size: 18, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 18))
                             }
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -137,7 +137,7 @@ struct AIReferralGateView: View {
     private func howItWorksStep(number: String, title: String, subtitle: String) -> some View {
         HStack(spacing: 14) {
             Text(number)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.poppins(.bold, size: 16))
                 .foregroundColor(.white)
                 .frame(width: 32, height: 32)
                 .background(
@@ -151,9 +151,9 @@ struct AIReferralGateView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 15))
                 Text(subtitle)
-                    .font(.system(size: 13))
+                    .font(.poppins(.regular, size: 13))
                     .foregroundColor(.secondary)
             }
         }

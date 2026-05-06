@@ -47,22 +47,22 @@ struct TrackerView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "sparkles")
-                                .font(.title3)
+                                .font(.poppins(.semiBold, size: 20))
                             Text("Analyze with AI")
-                                .fontWeight(.semibold)
+                                .font(.poppins(.semiBold, size: 17))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 14)
                         .background(
                             LinearGradient(
-                                colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                                colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .cornerRadius(25)
-                        .shadow(color: Color(hex: "2E3192").opacity(0.4), radius: 10, x: 0, y: 5)
+                        .shadow(color: AppColors.aiTeal.opacity(0.4), radius: 10, x: 0, y: 5)
                     }
                     .disabled(viewModel.healthMetrics.isEmpty || viewModel.analysisState.isAnalyzing)
                     .padding(.trailing, 20)
@@ -152,8 +152,7 @@ struct TrackerView: View {
     private var detailedMetrics: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Detailed Metrics")
-                .font(.title3)
-                .fontWeight(.semibold)
+                .font(.poppins(.semiBold, size: 20))
                 .foregroundColor(.primary)
                 .padding(.horizontal)
             
@@ -172,7 +171,7 @@ struct TrackerView: View {
                     Spacer()
                     
                     Text("\(viewModel.heartRate) BPM")
-                        .fontWeight(.semibold)
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundColor(.primary)
                     
                     Button(action: {
@@ -180,9 +179,9 @@ struct TrackerView: View {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "camera.fill")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                             Text("Measure")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
@@ -221,7 +220,7 @@ private struct WeeklyChartCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Weekly Steps")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundColor(.primary)
             
             HStack(alignment: .bottom, spacing: 8) {
@@ -230,7 +229,7 @@ private struct WeeklyChartCard: View {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(
                                 Calendar.current.isDate(metric.date, inSameDayAs: viewModel.selectedDate)
-                                    ? Color(hex: "2E3192")
+                                    ? AppColors.aiTeal
                                     : (colorScheme == .dark ? Color.gray.opacity(0.4) : Color.gray.opacity(0.25))
                             )
                             .frame(
@@ -241,7 +240,7 @@ private struct WeeklyChartCard: View {
                             .animation(.easeInOut(duration: 0.3), value: viewModel.selectedDate)
                         
                         Text(metric.dayName)
-                            .font(.caption2)
+                            .font(.poppins(.regular, size: 11))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -275,17 +274,17 @@ private struct DateButton: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Text(dayName)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(isSelected ? .white : .secondary)
                 
                 Text("\(Calendar.current.component(.day, from: date))")
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
                     .foregroundColor(isSelected ? .white : .primary)
             }
             .frame(width: 50, height: 60)
             .background(
                 isSelected
-                    ? Color(hex: "2E3192")
+                    ? AppColors.aiTeal
                     : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
             )
             .cornerRadius(12)
@@ -312,7 +311,7 @@ private struct TrackerStatCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.poppins(.semiBold, size: 18))
                 .foregroundColor(color)
                 .padding(10)
                 .background(color.opacity(0.15))
@@ -320,12 +319,11 @@ private struct TrackerStatCard: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(value)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 24))
                     .foregroundColor(.primary)
                 
                 Text(title)
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(.poppins(.medium, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -354,7 +352,7 @@ private struct HeartRateStatCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 0) {
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 18))
                     .foregroundColor(color)
                     .padding(10)
                     .background(color.opacity(0.15))
@@ -364,7 +362,7 @@ private struct HeartRateStatCard: View {
                 
                 // Camera indicator
                 Image(systemName: "camera.fill")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.poppins(.bold, size: 10))
                     .foregroundColor(color)
                     .padding(6)
                     .background(color.opacity(0.1))
@@ -373,17 +371,16 @@ private struct HeartRateStatCard: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(value)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 24))
                     .foregroundColor(.primary)
                 
                 HStack(spacing: 4) {
                     Text("Heart Rate")
-                        .font(.caption)
-                        .fontWeight(.medium)
+                        .font(.poppins(.medium, size: 12))
                         .foregroundColor(.secondary)
                     
                     Image(systemName: "chevron.right")
-                        .font(.caption2)
+                        .font(.poppins(.regular, size: 11))
                         .foregroundColor(.secondary.opacity(0.7))
                 }
             }
@@ -422,7 +419,7 @@ private struct MetricRow: View {
             Spacer()
             
             Text(value)
-                .fontWeight(.semibold)
+                .font(.poppins(.semiBold, size: 17))
                 .foregroundColor(.primary)
         }
         .padding(.vertical, 4)
@@ -466,11 +463,11 @@ private struct AnalysisResultView: View {
                 .padding()
             
             Text("Swastrica is analyzing your health data...")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
                 .multilineTextAlignment(.center)
             
             Text("This may take a few moments")
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
         }
         .padding()
@@ -481,10 +478,10 @@ private struct AnalysisResultView: View {
         VStack(spacing: 20) {
             // Sparkle Icon
             Image(systemName: "sparkles")
-                .font(.system(size: 50))
+                .font(.poppins(.regular, size: 50))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                        colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -494,11 +491,11 @@ private struct AnalysisResultView: View {
             // Assessment Section
             VStack(alignment: .leading, spacing: 12) {
                 Label("Overall Assessment", systemImage: "heart.text.square.fill")
-                    .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 17))
+                    .foregroundColor(AppColors.aiTeal)
                 
                 Text(result.analysis.assessment)
-                    .font(.body)
+                    .font(.poppins(.regular, size: 17))
                     .lineSpacing(4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -508,11 +505,11 @@ private struct AnalysisResultView: View {
             // Insights Section
             VStack(alignment: .leading, spacing: 12) {
                 Label("Key Insights", systemImage: "lightbulb.fill")
-                    .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 17))
+                    .foregroundColor(AppColors.aiTeal)
                 
                 Text(result.analysis.insights)
-                    .font(.body)
+                    .font(.poppins(.regular, size: 17))
                     .lineSpacing(4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -522,17 +519,17 @@ private struct AnalysisResultView: View {
             // Recommendations Section
             VStack(alignment: .leading, spacing: 12) {
                 Label("Recommendations", systemImage: "star.fill")
-                    .font(.headline)
-                    .foregroundColor(Color(hex: "2E3192"))
+                    .font(.poppins(.semiBold, size: 17))
+                    .foregroundColor(AppColors.aiTeal)
                 
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(result.analysis.recommendations.enumerated()), id: \.offset) { index, rec in
                         HStack(alignment: .top, spacing: 10) {
                             Text("\(index + 1).")
-                                .fontWeight(.semibold)
-                                .foregroundColor(Color(hex: "2E3192"))
+                                .font(.poppins(.semiBold, size: 17))
+                                .foregroundColor(AppColors.aiTeal)
                             Text(rec)
-                                .font(.body)
+                                .font(.poppins(.regular, size: 17))
                                 .lineSpacing(4)
                         }
                     }
@@ -544,7 +541,7 @@ private struct AnalysisResultView: View {
             
             // Timestamp
             Text("Analysis generated on \(result.timestamp.formatted(date: .abbreviated, time: .shortened))")
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
                 .padding(.bottom)
         }
@@ -553,14 +550,14 @@ private struct AnalysisResultView: View {
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
+                .font(.poppins(.regular, size: 50))
                 .foregroundColor(.orange)
             
             Text("Analysis Error")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
             
             Text(message)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
             
@@ -568,7 +565,7 @@ private struct AnalysisResultView: View {
                 onDismiss()
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color(hex: "2E3192"))
+            .tint(AppColors.aiTeal)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

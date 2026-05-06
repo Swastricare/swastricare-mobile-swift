@@ -124,10 +124,10 @@ struct CycleStatusCard: View {
                     
                     VStack(spacing: 2) {
                         Text("Day")
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                             .foregroundColor(.secondary)
                         Text("\(viewModel.dayOfCycle)")
-                            .font(.title2.bold())
+                            .font(.poppins(.bold, size: 22))
                             .contentTransition(.numericText())
                             .foregroundColor(viewModel.currentPhase.color)
                     }
@@ -143,11 +143,11 @@ struct CycleStatusCard: View {
                 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(viewModel.currentPhase.rawValue)
-                        .font(.headline)
+                        .font(.poppins(.semiBold, size: 17))
                         .foregroundColor(viewModel.currentPhase.color)
                     
                     Text(viewModel.periodStatusText)
-                        .font(.subheadline)
+                        .font(.poppins(.regular, size: 15))
                         .foregroundColor(.secondary)
                     
                     if viewModel.isFertileToday {
@@ -155,7 +155,7 @@ struct CycleStatusCard: View {
                             Image(systemName: "sparkles")
                             Text("Fertile Window")
                         }
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.green)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -195,7 +195,7 @@ struct CycleStatusCard: View {
                 }
             } else {
                 Text("Log at least one period to see predictions")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -217,9 +217,9 @@ struct PredictionBadge: View {
             Image(systemName: icon)
                 .foregroundColor(color)
             Text(value)
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
             Text(title)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -248,14 +248,14 @@ struct CycleCalendarView: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .foregroundColor(.pink)
-                        .font(.title3)
+                        .font(.poppins(.semiBold, size: 20))
                         .frame(width: 44, height: 44)
                 }
                 
                 Spacer()
                 
                 Text(viewModel.formatMonthYear(viewModel.selectedMonth))
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
                     .animation(.none, value: viewModel.selectedMonth)
                 
                 Spacer()
@@ -268,7 +268,7 @@ struct CycleCalendarView: View {
                 } label: {
                     Image(systemName: "chevron.right")
                         .foregroundColor(.pink)
-                        .font(.title3)
+                        .font(.poppins(.semiBold, size: 20))
                         .frame(width: 44, height: 44)
                 }
             }
@@ -278,7 +278,7 @@ struct CycleCalendarView: View {
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(weekdays, id: \.self) { day in
                     Text(day)
-                        .font(.caption.bold())
+                        .font(.poppins(.bold, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -316,7 +316,7 @@ struct CycleCalendarView: View {
                 MenstrualLegendItem(color: .purple, text: "PMS")
             }
             .padding(.top, 6)
-            .font(.caption2)
+            .font(.poppins(.regular, size: 11))
         }
         .padding()
         .background(Color(.systemBackground))
@@ -365,7 +365,7 @@ struct MenstrualCalendarDayCell: View {
             
             // Day number
             Text("\(dayNumber)")
-                .font(.system(size: 14, weight: isToday ? .bold : .regular))
+                .font(isToday ? .poppins(.bold, size: 14) : .poppins(.regular, size: 14))
                 .foregroundColor(textColor)
                 .minimumScaleFactor(0.8)
             
@@ -434,11 +434,11 @@ struct PhaseInfoCard: View {
                 Image(systemName: viewModel.currentPhase.icon)
                     .foregroundColor(viewModel.currentPhase.color)
                 Text("Current Phase")
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
             }
             
             Text(viewModel.phaseDescription)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -457,7 +457,7 @@ struct QuickActionsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Quick Actions")
-                .font(.headline)
+                .font(.poppins(.semiBold, size: 17))
             
             HStack(spacing: 12) {
                 if viewModel.activeCycle == nil {
@@ -514,10 +514,10 @@ struct QuickActionButton: View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.title2)
+                    .font(.poppins(.bold, size: 22))
                     .foregroundColor(color)
                 Text(title)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.primary)
             }
             .frame(maxWidth: .infinity)
@@ -541,7 +541,7 @@ struct TipsSection: View {
                 Image(systemName: "lightbulb.fill")
                     .foregroundColor(.yellow)
                 Text("Tips for \(phase.rawValue) Phase")
-                    .font(.headline)
+                    .font(.poppins(.semiBold, size: 17))
             }
             
             VStack(alignment: .leading, spacing: 8) {
@@ -549,9 +549,9 @@ struct TipsSection: View {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                         Text(tip)
-                            .font(.subheadline)
+                            .font(.poppins(.regular, size: 15))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -577,14 +577,14 @@ struct StatisticsPreviewCard: View {
                     Image(systemName: "chart.bar.fill")
                         .foregroundColor(.purple)
                     Text("Your Cycle")
-                        .font(.headline)
+                        .font(.poppins(.semiBold, size: 17))
                     
                     Spacer()
                     
                     Button("See All") {
                         viewModel.showStatsSheet = true
                     }
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.pink)
                 }
                 
@@ -631,15 +631,15 @@ struct StatItem: View {
         VStack(spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
-                    .font(.title3.bold())
+                    .font(.poppins(.bold, size: 20))
                 if !unit.isEmpty {
                     Text(unit)
-                        .font(.caption2)
+                        .font(.poppins(.regular, size: 11))
                         .foregroundColor(.secondary)
                 }
             }
             Text(label)
-                .font(.caption2)
+                .font(.poppins(.regular, size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -762,15 +762,15 @@ struct DailyLogSheet: View {
                         
                         HStack {
                             Text("None")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text("\(log.painLevel ?? 0)")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                                 .foregroundColor(.pink)
                             Spacer()
                             Text("Severe")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -785,15 +785,15 @@ struct DailyLogSheet: View {
                         
                         HStack {
                             Text("Low")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text("\(log.energyLevel ?? 5)")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                                 .foregroundColor(.orange)
                             Spacer()
                             Text("High")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -875,10 +875,10 @@ struct MoodButton: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Text(mood.emoji)
-                    .font(.title2)
+                    .font(.poppins(.bold, size: 22))
                     .scaleEffect(isSelected ? 1.2 : 1.0)
                 Text(mood.displayName)
-                    .font(.caption2)
+                    .font(.poppins(.regular, size: 11))
             }
             .padding(8)
             .background(isSelected ? Color.pink.opacity(0.2) : Color(.systemGray6))
@@ -902,9 +902,9 @@ struct SymptomButton: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: symptom.icon)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                 Text(symptom.displayName)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -963,7 +963,7 @@ struct CycleSettingsSheet: View {
                         Spacer()
                         Text("Days between period starts")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                     }
                     
                     HStack {
@@ -971,7 +971,7 @@ struct CycleSettingsSheet: View {
                         Spacer()
                         Text("Days from ovulation to period")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.poppins(.regular, size: 12))
                     }
                 }
             }
@@ -1008,7 +1008,7 @@ struct CycleStatisticsSheet: View {
                         // Summary Card
                         VStack(spacing: 16) {
                             Text("Cycle Overview")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                             
                             HStack(spacing: 20) {
                                 StatisticItem(
@@ -1044,10 +1044,10 @@ struct CycleStatisticsSheet: View {
                             
                             VStack(spacing: 4) {
                                 Text("Regularity")
-                                    .font(.caption)
+                                    .font(.poppins(.regular, size: 12))
                                     .foregroundColor(.secondary)
                                 Text(stats.cycleRegularity)
-                                    .font(.title3.bold())
+                                    .font(.poppins(.bold, size: 20))
                                     .foregroundColor(.purple)
                             }
                             .padding()
@@ -1063,7 +1063,7 @@ struct CycleStatisticsSheet: View {
                         if !stats.mostCommonSymptoms.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Most Common Symptoms")
-                                    .font(.headline)
+                                    .font(.poppins(.semiBold, size: 17))
                                 
                                 ForEach(stats.mostCommonSymptoms.prefix(5), id: \.self) { symptom in
                                     HStack {
@@ -1083,7 +1083,7 @@ struct CycleStatisticsSheet: View {
                         // Cycle History
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Cycle History")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                             
                             ForEach(viewModel.cycles.filter { !$0.isPredicted }.prefix(10)) { cycle in
                                 CycleHistoryRow(cycle: cycle)
@@ -1095,12 +1095,12 @@ struct CycleStatisticsSheet: View {
                     } else {
                         VStack(spacing: 16) {
                             Image(systemName: "chart.bar.xaxis")
-                                .font(.system(size: 48))
+                                .font(.poppins(.regular, size: 48))
                                 .foregroundColor(.secondary)
                             Text("Not Enough Data")
-                                .font(.headline)
+                                .font(.poppins(.semiBold, size: 17))
                             Text("Log at least 2 complete cycles to see statistics")
-                                .font(.subheadline)
+                                .font(.poppins(.regular, size: 15))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                         }
@@ -1130,14 +1130,14 @@ struct StatisticItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(title)
-                .font(.caption)
+                .font(.poppins(.regular, size: 12))
                 .foregroundColor(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
-                    .font(.title2.bold())
+                    .font(.poppins(.bold, size: 22))
                     .foregroundColor(color)
                 Text(unit)
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -1155,10 +1155,10 @@ struct CycleHistoryRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(formatDate(cycle.startDate))
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                 if let length = cycle.cycleLength {
                     Text("\(length) day cycle")
-                        .font(.caption)
+                        .font(.poppins(.regular, size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -1167,7 +1167,7 @@ struct CycleHistoryRow: View {
             
             if let period = cycle.periodLength {
                 Text("\(period)d period")
-                    .font(.caption)
+                    .font(.poppins(.regular, size: 12))
                     .foregroundColor(.red)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

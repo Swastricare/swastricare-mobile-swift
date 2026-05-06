@@ -2,67 +2,83 @@
 //  ProfileView.swift
 //  swastricare-mobile-swift
 //
-//  MVVM Architecture - Views Layer
+//  Android-parity Settings screen.
 //
 
 import SwiftUI
 
 struct ProfileView: View {
-    
+
     // MARK: - ViewModel
-    
+
     @StateObject private var viewModel = DependencyContainer.shared.profileViewModel
-    @StateObject private var hydrationViewModel = HydrationViewModel()
     @EnvironmentObject private var appVersionService: AppVersionService
     @EnvironmentObject private var deepLinkHandler: DeepLinkHandler
-    
+    @Environment(\.openURL) private var openURL
+
     // MARK: - State
-    
+
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var activeSheet: ProfileSheet?
+    @State private var showAccountView = false
+    @State private var showHealthDataSync = false
+    @State private var showRemindersSettings = false
+    @State private var showActivityGoals = false
+    @State private var showFamilyComingSoon = false
+    @State private var showAboutComingSoon = false
     @State private var showFamilyFromDeepLink = false
     @State private var deepLinkInviteCode: String?
-    @State private var showAccountView = false
-    
+
+    // MARK: - Tokens (match Android)
+
+    private let aiTeal = Color(hex: "22C5A6")
+    private let cardBorder = Color(hex: "E6E8EB")
+    private let bannerStart = Color(hex: "D9F0E4")
+    private let bannerEnd = Color(hex: "C2E0EE")
+    private let bannerInk = Color(hex: "0F2027")
+
     // MARK: - Body
-    
+
     var body: some View {
         ZStack {
-            PremiumBackground()
-            
-            List {
-                profileHeader
-                
-                if !viewModel.hasPhone && viewModel.user != nil {
-                    phoneMissingBanner
-                }
-                
-                accountSection
-                
-                if viewModel.hasHealthProfile {
-                    quickStatsSection
-                }
-                
-                hydrationSection
+            Color.white.ignoresSafeArea()
 
-                healthDataSection
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    titleBlock
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                        .padding(.bottom, 16)
 
-                settingsSection
-                
-                signOutSection
-                
-                Section {
-                    EmptyView()
-                } footer: {
-                    versionFooter
+                    profileBanner
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 4)
+
+                    sectionLabel("Account")
+                    accountCard
+
+                    sectionLabel("Preferences")
+                    preferencesCard
+
+                    sectionLabel("Support")
+                    supportCard
+
+                    Spacer().frame(height: 20)
+
+                    logOutCard
+
+                    footerLinks
+                        .padding(.top, 8)
+                        .padding(.bottom, 32)
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationDestination(isPresented: $showAccountView) {
-                AccountView()
-            }
         }
         .trackScreen("Profile")
+        .navigationDestination(isPresented: $showAccountView) { AccountView() }
+        .navigationDestination(isPresented: $showHealthDataSync) { HealthDataSettingsView() }
+        .navigationDestination(isPresented: $showRemindersSettings) { RemindersSettingsView() }
+        .navigationDestination(isPresented: $showActivityGoals) { GoalsSettingsView() }
         .navigationDestination(isPresented: $showFamilyFromDeepLink) {
             FamilyView(initialInviteCode: deepLinkInviteCode ?? deepLinkHandler.pendingFamilyInviteCode)
         }
@@ -73,10 +89,7 @@ struct ProfileView: View {
                 showFamilyFromDeepLink = true
             }
         }
-        .alert(
-            "Sign Out",
-            isPresented: $viewModel.showSignOutConfirmation
-        ) {
+        .alert("Sign Out", isPresented: $viewModel.showSignOutConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Sign Out", role: .destructive) {
                 Task { await viewModel.signOut() }
@@ -84,16 +97,15 @@ struct ProfileView: View {
         } message: {
             Text("Are you sure you want to sign out?")
         }
-        .alert(
-            "Delete Account",
-            isPresented: $viewModel.showDeleteAccountConfirmation
-        ) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                Task { await viewModel.deleteAccount() }
-            }
+        .alert("Family", isPresented: $showFamilyComingSoon) {
+            Button("OK", role: .cancel) {}
         } message: {
-            Text("This action cannot be undone. All your data will be permanently deleted.")
+            Text("Coming soon")
+        }
+        .alert("About", isPresented: $showAboutComingSoon) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Coming soon")
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.clearError() }
@@ -102,546 +114,475 @@ struct ProfileView: View {
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
-            case .terms:
-                TermsContentView()
-            case .privacy:
-                PrivacyContentView()
-            case .hydrationSettings:
-                HydrationSettingsView(viewModel: hydrationViewModel)
-            case .appUpdate:
-                ForceUpdateView(appVersionService: appVersionService, onSkip: { activeSheet = nil })
+            case .terms: TermsContentView()
+            case .privacy: PrivacyContentView()
+            case .appUpdate: ForceUpdateView(appVersionService: appVersionService, onSkip: { activeSheet = nil })
             }
         }
     }
-    
-    // MARK: - Sheet Type
-    
+
     enum ProfileSheet: Identifiable {
-        case terms, privacy, hydrationSettings, appUpdate
-        
+        case terms, privacy, appUpdate
         var id: String {
             switch self {
             case .terms: return "terms"
             case .privacy: return "privacy"
-            case .hydrationSettings: return "hydrationSettings"
             case .appUpdate: return "appUpdate"
             }
         }
     }
-    
-    // MARK: - Profile Header
-    
-    private var profileHeader: some View {
-        Section {
-            Button(action: { showAccountView = true }) {
-                let trimmedBio = viewModel.userBio.trimmingCharacters(in: .whitespacesAndNewlines)
-                
-                VStack(spacing: 10) {
-                    if let avatarURL = viewModel.userAvatarURL {
-                        AsyncImage(url: avatarURL) { image in
-                            image.resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 90, height: 90)
-                                .clipShape(Circle())
-                        } placeholder: {
-                            defaultAvatar
-                        }
-                    } else {
-                        defaultAvatar
-                    }
-                    
-                    VStack(spacing: 2) {
-                        Text(viewModel.userName)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                        
-                        if !trimmedBio.isEmpty {
-                            Text(trimmedBio)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .padding(.top, 4)
-                        }
-                        
-                        Text("Member since \(viewModel.memberSince)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary.opacity(0.7))
-                            .padding(.top, trimmedBio.isEmpty ? 4 : 8)
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    // Text("Tap to edit profile")
-                    //     .font(.caption2)
-                    //     .fontWeight(.medium)
-                    //     .foregroundColor(Color(hex: "2E3192"))
-                    //     .padding(.top, 2)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-            }
-            .buttonStyle(PlainButtonStyle())
+
+    // MARK: - Title
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Settings")
+                .font(.poppins(.bold, size: 28))
+                .foregroundColor(.primary)
+            Text("Manage your profile and preferences")
+                .font(.poppins(.regular, size: 13))
+                .foregroundColor(.primary.opacity(0.5))
         }
-        .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
-    
-    private var defaultAvatar: some View {
-        Circle()
-            .fill(
+
+    // MARK: - Profile Banner
+
+    private var profileBanner: some View {
+        Button(action: { showAccountView = true }) {
+            ZStack(alignment: .trailing) {
                 LinearGradient(
-                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                    colors: [bannerStart, bannerEnd],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-            )
-            .frame(width: 90, height: 90)
-            .overlay(
-                Text(String(viewModel.userName.prefix(1)).uppercased())
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.white)
-            )
-            .shadow(color: Color(hex: "2E3192").opacity(0.3), radius: 10, x: 0, y: 5)
-    }
-    
-    // MARK: - Phone Missing Banner
-    
-    private var phoneMissingBanner: some View {
-        Section {
-            Button(action: { showAccountView = true }) {
+
+                MountainsBackdrop()
+                    .frame(width: 140)
+                    .frame(maxHeight: .infinity)
+
                 HStack(spacing: 12) {
-                    Image(systemName: "phone.badge.plus")
-                        .font(.system(size: 20))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color(hex: "FF6B6B"), Color(hex: "FF8E53")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                    
+                    bannerAvatar
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Add your phone number")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.primary)
-                        Text("Keep your account secure")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        Text(bannerName)
+                            .font(.poppins(.semiBold, size: 16))
+                            .foregroundColor(bannerInk)
+                            .lineLimit(1)
+                        Text(viewModel.userEmail)
+                            .font(.poppins(.regular, size: 12))
+                            .foregroundColor(bannerInk.opacity(0.6))
+                            .lineLimit(1)
+                        Spacer().frame(height: 2)
+                        activeBadge
                     }
-                    
-                    Spacer()
-                    
+                    Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(bannerInk.opacity(0.5))
                 }
+                .padding(.horizontal, 14)
             }
-            .listRowBackground(Color.orange.opacity(0.06))
-            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .frame(height: 96)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
+        .buttonStyle(.plain)
     }
-    
-    // MARK: - Account Section
-    
-    private var accountSection: some View {
-        Section {
-            Button(action: { showAccountView = true }) {
-                HStack(spacing: 16) {
-                    ZStack {
-                        Circle()
-                            .fill(AppColors.accentBlue.opacity(0.15))
-                            .frame(width: 44, height: 44)
 
-                        Image(systemName: "person.text.rectangle.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(AppColors.accentBlue)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Account Data")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Text("Edit profile, body stats, location")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-        } header: {
-            Text("Account")
-        }
+    private var bannerName: String {
+        let name = viewModel.userName.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? "Set up your profile" : name
     }
-    
-    // MARK: - Quick Stats
-    
-    private var quickStatsSection: some View {
-        Section {
-            if viewModel.isLoadingHealthProfile {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+
+    private var bannerAvatar: some View {
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(0.85))
+                .frame(width: 56, height: 56)
+            if let url = viewModel.userAvatarURL {
+                AsyncImage(url: url) { image in
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    initialAvatar(size: 52)
                 }
-                .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+                .frame(width: 52, height: 52)
+                .clipShape(Circle())
             } else {
-                VStack(spacing: 12) {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 12) {
-                        QuickStatCard(
-                            icon: "ruler.fill",
-                            value: viewModel.profileHeight,
-                            label: "Height",
-                            color: AppColors.accentBlue
-                        )
-                        QuickStatCard(
-                            icon: "scalemass.fill",
-                            value: viewModel.profileWeight,
-                            label: "Weight",
-                            color: AppColors.accentBlue
-                        )
-                        QuickStatCard(
-                            icon: "figure.stand",
-                            value: viewModel.profileBMI,
-                            label: "BMI",
-                            color: AppColors.accentBlue
-                        )
-                    }
-                    
-                    HStack(spacing: 16) {
-                        if viewModel.profileGender != "Not set" {
-                            Label(viewModel.profileGender, systemImage: "person.2.fill")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        if viewModel.profileAge != "Not set" {
-                            Label(viewModel.profileAge, systemImage: "calendar")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        if viewModel.profileBloodType != "Not set" {
-                            Label(viewModel.profileBloodType, systemImage: "drop.fill")
-                                .font(.caption)
-                                .foregroundColor(AppColors.accentBlue)
-                        }
-                        Spacer()
-                    }
-                }
-                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-            }
-        } header: {
-            HStack {
-                Text("Quick Stats")
-                Spacer()
-                if viewModel.hasHealthProfile && !viewModel.isLoadingHealthProfile {
-                    Button {
-                        Task { await viewModel.refreshHealthProfile() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                    }
-                }
+                initialAvatar(size: 52)
             }
         }
     }
-    
-    // MARK: - Hydration
-    
-    private var hydrationSection: some View {
-        Section("Hydration") {
-            HStack {
-                Label {
-                    Text("Activity Level")
-                } icon: {
-                    Image(systemName: hydrationViewModel.preferences.activityLevel.icon)
-                        .foregroundColor(AppColors.accentBlue)
-                }
-                Spacer()
-                Text(hydrationViewModel.preferences.activityLevel.displayName)
-                    .foregroundColor(.secondary)
-            }
 
-            HStack {
-                Label {
-                    Text("Daily Goal")
-                } icon: {
-                    Image(systemName: "drop.fill")
-                        .foregroundColor(AppColors.accentBlue)
-                }
-                Spacer()
-                Text("\(hydrationViewModel.dailyGoal) ml")
-                    .foregroundColor(.secondary)
-            }
-
-            Button(action: { activeSheet = .hydrationSettings }) {
-                HStack {
-                    Label {
-                        Text("Hydration Preferences")
-                    } icon: {
-                        Image(systemName: "gearshape.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .foregroundColor(.primary)
+    private func initialAvatar(size: CGFloat) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .clipShape(Circle())
+            Text(String(viewModel.userName.prefix(1)).uppercased())
+                .font(.poppins(.bold, size: size * 0.4))
+                .foregroundColor(.white)
         }
-        .task {
-            await hydrationViewModel.loadData()
-        }
+        .frame(width: size, height: size)
     }
-    
-    // MARK: - Health Data
 
-    private var healthDataSection: some View {
-        Section {
-            NavigationLink {
-                HealthDataSettingsView()
-            } label: {
-                HStack {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Apple Health")
-                                .foregroundColor(.primary)
-                            Text("Manage health data permissions")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "heart.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                    }
-                }
-            }
-        } header: {
-            Text("Health Data")
+    private var activeBadge: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(AppColors.accentGreen)
+                .frame(width: 6, height: 6)
+            Text(activeBadgeText)
+                .font(.poppins(.medium, size: 11))
+                .foregroundColor(bannerInk.opacity(0.7))
         }
     }
 
-    // MARK: - Settings
+    private var activeBadgeText: String {
+        let days = daysActive
+        return days <= 0 ? "Active today" : "Active for \(days) days"
+    }
 
-    private var settingsSection: some View {
-        Section {
-            NavigationLink {
-                ThemeSettingsView()
-            } label: {
-                HStack {
-                    Label {
-                        Text("Theme")
-                    } icon: {
-                        Image(systemName: "paintpalette.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                    }
-                    Spacer()
-                    Text(themeManager.currentTheme.displayName)
-                        .foregroundColor(.secondary)
-                }
-            }
+    private var daysActive: Int {
+        guard let createdAt = viewModel.user?.createdAt else { return 0 }
+        let diff = Date().timeIntervalSince(createdAt)
+        return max(0, Int(diff / 86400))
+    }
 
-            NavigationLink(destination: RemindersSettingsView()) {
-                HStack {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Reminders & Notifications")
-                                .foregroundColor(.primary)
-                            Text("Hydration, medication, diet, cycle, AI")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "bell.badge.fill")
-                            .foregroundColor(AppColors.accentBlue)
-                    }
-                }
-            }
+    // MARK: - Cards
 
-            HStack {
-                Label {
-                    Text(viewModel.biometricTypeName)
-                } icon: {
-                    Image(systemName: viewModel.biometricIcon)
-                        .foregroundColor(AppColors.accentBlue)
-                }
-                Spacer()
-                if viewModel.isTogglingBiometric {
-                    ProgressView().scaleEffect(0.8)
-                } else {
-                    Toggle("", isOn: Binding(
-                        get: { viewModel.biometricEnabled },
-                        set: { _ in
-                            Task { await viewModel.toggleBiometric() }
-                        }
-                    ))
-                    .labelsHidden()
-                }
-            }
-            
-            appVersionRow
-        } header: {
-            Text("Settings")
+    private var accountCard: some View {
+        SettingsCard {
+            SettingsRow(
+                icon: "person",
+                label: "Personal Information",
+                subtitle: "Update your personal details",
+                tint: aiTeal
+            ) { showAccountView = true }
+            RowDivider()
+            SettingsRow(
+                icon: "person.2",
+                label: "Family",
+                subtitle: "Manage your family group",
+                value: "Coming soon",
+                tint: aiTeal
+            ) { showFamilyComingSoon = true }
+            RowDivider()
+            SettingsRow(
+                icon: "heart",
+                label: "Health Data Sync",
+                subtitle: "Apple Health, devices & more",
+                tint: aiTeal
+            ) { showHealthDataSync = true }
         }
     }
-    
-    // MARK: - App Version Row
-    
-    private var appVersionRow: some View {
-        Button(action: {
-            if appVersionService.updateStatus.hasUpdate {
-                activeSheet = .appUpdate
-            }
-        }) {
-            HStack {
-                Label {
-                    Text("App Version")
-                } icon: {
-                    Image(systemName: appVersionService.updateStatus.hasUpdate ? "arrow.down.app.fill" : "app.badge.checkmark.fill")
-                        .foregroundColor(AppColors.accentBlue)
-                }
-                
-                Spacer()
-                
-                Text(viewModel.appVersion)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                if appVersionService.updateStatus.hasUpdate {
-                    Text("Update")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule().fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "11998e"), Color(hex: "38ef7d")],
-                                    startPoint: .leading, endPoint: .trailing
-                                )
-                            )
-                        )
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+
+    private var preferencesCard: some View {
+        SettingsCard {
+            SettingsRow(
+                icon: "bell",
+                label: "Notifications",
+                subtitle: "Customize your notification settings",
+                tint: aiTeal
+            ) { showRemindersSettings = true }
+            RowDivider()
+            SettingsRow(
+                icon: "flag",
+                label: "Activity Goals",
+                subtitle: "Set daily steps, distance & calorie goals",
+                tint: aiTeal
+            ) { showActivityGoals = true }
+            RowDivider()
+            SettingsToggleRow(
+                icon: viewModel.biometricIcon,
+                label: "Biometric Lock",
+                isOn: viewModel.biometricEnabled,
+                isLoading: viewModel.isTogglingBiometric,
+                tint: aiTeal
+            ) {
+                Task { await viewModel.toggleBiometric() }
             }
         }
-        .foregroundColor(.primary)
-        .disabled(!appVersionService.updateStatus.hasUpdate)
     }
-    
-    // MARK: - Sign Out
-    
-    @ViewBuilder
-    private var signOutSection: some View {
-        Section {
-            Button(action: {
+
+    private var supportCard: some View {
+        SettingsCard {
+            SettingsRow(
+                icon: "bubble.left.and.bubble.right",
+                label: "Contact Us",
+                subtitle: "Get in touch with our support team",
+                tint: aiTeal
+            ) {
+                if let url = URL(string: "https://swastricare.com") {
+                    openURL(url)
+                }
+            }
+            RowDivider()
+            SettingsRow(
+                icon: "info.circle",
+                label: "About",
+                subtitle: "Version \(viewModel.appVersion)",
+                tint: aiTeal
+            ) { showAboutComingSoon = true }
+        }
+    }
+
+    private var logOutCard: some View {
+        SettingsCard {
+            LogOutRow(isLoading: viewModel.isLoading) {
                 viewModel.showSignOutConfirmation = true
-            }) {
-                if viewModel.isLoading {
-                    HStack {
-                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                            .foregroundColor(.red)
-                        Spacer()
-                        ProgressView()
-                    }
-                } else {
-                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                        .foregroundColor(.red)
-                }
             }
-            .disabled(viewModel.isLoading)
-            
-            Button(action: {
-                viewModel.showDeleteAccountConfirmation = true
-            }) {
-                Label("Delete Account", systemImage: "trash.fill")
-                    .foregroundColor(.red)
-            }
-            .disabled(viewModel.isLoading)
-        } footer: {
-            Text("Permanently delete your account and all associated data.")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
     }
-    
+
     // MARK: - Footer
-    
-    private var versionFooter: some View {
+
+    private var footerLinks: some View {
         VStack(spacing: 8) {
             Text("Version \(viewModel.appVersion)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
+                .font(.poppins(.regular, size: 12))
+                .foregroundColor(.primary.opacity(0.5))
+
             HStack(spacing: 12) {
                 Button(action: { activeSheet = .terms }) {
-                    Text("Terms & Conditions")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                    Text("Terms of Service")
+                        .font(.poppins(.regular, size: 12))
+                        .foregroundColor(aiTeal)
                 }
-                
-                Text("•").font(.caption).foregroundColor(.secondary)
-                
+                Text("•")
+                    .font(.poppins(.regular, size: 12))
+                    .foregroundColor(.primary.opacity(0.5))
                 Button(action: { activeSheet = .privacy }) {
                     Text("Privacy Policy")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                        .font(.poppins(.regular, size: 12))
+                        .foregroundColor(aiTeal)
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .multilineTextAlignment(.center)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+    }
+
+    // MARK: - Section label
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.poppins(.semiBold, size: 11))
+            .tracking(0.8)
+            .foregroundColor(.primary.opacity(0.4))
+            .padding(.leading, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 8)
+    }
+}
+
+// MARK: - Mountains backdrop (Canvas)
+
+private struct MountainsBackdrop: View {
+    var body: some View {
+        Canvas { ctx, size in
+            let w = size.width
+            let h = size.height
+
+            // Sun
+            let sunRadius = h * 0.11
+            let sunCenter = CGPoint(x: w * 0.55, y: h * 0.32)
+            ctx.fill(
+                Path(ellipseIn: CGRect(
+                    x: sunCenter.x - sunRadius,
+                    y: sunCenter.y - sunRadius,
+                    width: sunRadius * 2,
+                    height: sunRadius * 2
+                )),
+                with: .color(Color(hex: "FFE6A8"))
+            )
+
+            // Back mountain
+            var back = Path()
+            back.move(to: CGPoint(x: w * 0.20, y: h))
+            back.addLine(to: CGPoint(x: w * 0.55, y: h * 0.30))
+            back.addLine(to: CGPoint(x: w * 0.85, y: h))
+            back.closeSubpath()
+            ctx.fill(back, with: .color(.white.opacity(0.55)))
+
+            // Front mountain
+            var front = Path()
+            front.move(to: CGPoint(x: w * 0.45, y: h))
+            front.addLine(to: CGPoint(x: w * 0.78, y: h * 0.42))
+            front.addLine(to: CGPoint(x: w, y: h))
+            front.closeSubpath()
+            ctx.fill(front, with: .color(.white.opacity(0.85)))
+
+            // Snow cap
+            var cap = Path()
+            cap.move(to: CGPoint(x: w * 0.74, y: h * 0.50))
+            cap.addLine(to: CGPoint(x: w * 0.78, y: h * 0.42))
+            cap.addLine(to: CGPoint(x: w * 0.82, y: h * 0.50))
+            cap.addLine(to: CGPoint(x: w * 0.80, y: h * 0.55))
+            cap.addLine(to: CGPoint(x: w * 0.77, y: h * 0.52))
+            cap.closeSubpath()
+            ctx.fill(cap, with: .color(Color(hex: "E9F5FA")))
+
+            // Horizon line
+            var horizon = Path()
+            horizon.move(to: CGPoint(x: 0, y: h * 0.78))
+            horizon.addLine(to: CGPoint(x: w, y: h * 0.78))
+            ctx.stroke(horizon, with: .color(.white.opacity(0.4)), lineWidth: 1)
+        }
+    }
+}
+
+// MARK: - Card / row building blocks
+
+private struct SettingsCard<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            content()
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color(hex: "E6E8EB"), lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+    }
+}
+
+private struct RowDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.06))
+            .frame(height: 0.5)
+            .padding(.leading, 64)
+    }
+}
+
+private struct IconBadge: View {
+    let icon: String
+    var tint: Color = .primary.opacity(0.75)
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.clear)
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .regular))
+                .foregroundColor(tint)
+        }
+        .frame(width: 36, height: 36)
+    }
+}
+
+private struct SettingsRow: View {
+    let icon: String
+    let label: String
+    var subtitle: String? = nil
+    var value: String? = nil
+    var tint: Color = .primary.opacity(0.75)
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                IconBadge(icon: icon, tint: tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.poppins(.medium, size: 15))
+                        .foregroundColor(.primary)
+                    if let subtitle = subtitle {
+                        Text(subtitle)
+                            .font(.poppins(.regular, size: 12))
+                            .foregroundColor(.primary.opacity(0.5))
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 8)
+                if let value = value {
+                    Text(value)
+                        .font(.poppins(.regular, size: 13))
+                        .foregroundColor(.primary.opacity(0.5))
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary.opacity(0.3))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SettingsToggleRow: View {
+    let icon: String
+    let label: String
+    let isOn: Bool
+    var isLoading: Bool = false
+    var tint: Color = .primary.opacity(0.75)
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconBadge(icon: icon, tint: tint)
+            Text(label)
+                .font(.poppins(.medium, size: 15))
+                .foregroundColor(.primary)
+            Spacer(minLength: 8)
+            if isLoading {
+                ProgressView().scaleEffect(0.8)
+            } else {
+                Toggle("", isOn: Binding(
+                    get: { isOn },
+                    set: { _ in onToggle() }
+                ))
+                .labelsHidden()
+                .tint(AppColors.accentGreen)
+            }
+        }
+        .padding(.horizontal, 14)
         .padding(.vertical, 8)
     }
 }
 
-// MARK: - Quick Stat Card
+private struct LogOutRow: View {
+    let isLoading: Bool
+    let action: () -> Void
 
-struct QuickStatCard: View {
-    let icon: String
-    let value: String
-    let label: String
-    let color: Color
-    
     var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundColor(color)
-            
-            Text(value)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            
-            Text(label)
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
+        Button(action: action) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.red.opacity(0.10))
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundColor(.red)
+                }
+                .frame(width: 36, height: 36)
+
+                Text("Log Out")
+                    .font(.poppins(.semiBold, size: 15))
+                    .foregroundColor(.red)
+
+                Spacer(minLength: 8)
+
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(.red)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 90)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(color.opacity(0.08))
-        )
+        .buttonStyle(.plain)
+        .disabled(isLoading)
     }
 }
 
@@ -652,7 +593,7 @@ struct HealthProfileRow: View {
     let iconColor: Color
     let label: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Label {
@@ -670,11 +611,11 @@ struct HealthProfileRow: View {
     }
 }
 
-// ShimmerModifier moved to DesignSystem.swift
-
 #Preview {
     NavigationStack {
         ProfileView()
             .environmentObject(AppVersionService.shared)
+            .environmentObject(ThemeManager.shared)
+            .environmentObject(DeepLinkHandler())
     }
 }

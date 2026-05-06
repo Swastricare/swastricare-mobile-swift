@@ -434,8 +434,8 @@ struct ActivityRouteMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                // Use blue color for activity detail (matching original design)
-                renderer.strokeColor = UIColor(red: 0.31, green: 0.275, blue: 0.898, alpha: 1.0) // #4F46E5
+                // AITeal brand color for activity routes
+                renderer.strokeColor = UIColor(red: 0x22 / 255.0, green: 0xC5 / 255.0, blue: 0xA6 / 255.0, alpha: 1.0) // #22C5A6
                 renderer.lineWidth = 4
                 renderer.lineCap = .round
                 renderer.lineJoin = .round

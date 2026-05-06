@@ -46,7 +46,7 @@ struct QuestionnaireTextField: View {
         HStack(spacing: 12) {
             if let icon = icon {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.poppins(.medium, size: 18))
                     .foregroundStyle(isFocused ? AnyShapeStyle(PremiumColor.royalBlue) : AnyShapeStyle(Color.secondary))
                     .frame(width: 24)
             }
@@ -62,7 +62,7 @@ struct QuestionnaireTextField: View {
             .keyboardType(keyboardType)
             .textContentType(textContentType)
             .textInputAutocapitalization(autocapitalization)
-            .font(.system(size: 17, weight: .medium))
+            .font(.poppins(.medium, size: 17))
             .foregroundColor(.primary)
             
             if showClearButton && !text.isEmpty {
@@ -70,7 +70,7 @@ struct QuestionnaireTextField: View {
                     text = ""
                 }) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundColor(.secondary)
                 }
                 .transition(.opacity.combined(with: .scale))
@@ -128,11 +128,11 @@ struct PremiumButton: View {
             HStack(spacing: 8) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 16))
                 }
                 
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 17))
             }
             .foregroundColor(style == .primary ? .white : .primary)
             .frame(maxWidth: .infinity)
@@ -140,7 +140,7 @@ struct PremiumButton: View {
             .background(backgroundGradient)
             .cornerRadius(16)
             .shadow(
-                color: style == .primary ? Color(hex: "2E3192").opacity(0.4) : .clear,
+                color: style == .primary ? AppColors.aiTeal.opacity(0.4) : .clear,
                 radius: style == .primary ? 12 : 0,
                 x: 0,
                 y: style == .primary ? 6 : 0
@@ -206,13 +206,13 @@ struct StepIndicator: View {
     private var headerRow: some View {
         HStack {
             Text(stepText)
-                .font(.system(size: 13, weight: .medium))
+                .font(.poppins(.medium, size: 13))
                 .foregroundStyle(PremiumColor.deepPurple)
-            
+
             Spacer()
-            
+
             Text(percentageText)
-                .font(.system(size: 13, weight: .medium))
+                .font(.poppins(.medium, size: 13))
                 .foregroundStyle(Color.secondary)
         }
         .padding(.horizontal, 20)
@@ -232,7 +232,7 @@ struct StepIndicator: View {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(PremiumColor.royalBlue)
                     .frame(width: progressWidth, height: 6)
-                    .shadow(color: Color(hex: "2E3192").opacity(0.5), radius: 8, x: 0, y: 0)
+                    .shadow(color: AppColors.aiTeal.opacity(0.5), radius: 8, x: 0, y: 0)
                     .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStep)
             }
         }
@@ -273,7 +273,7 @@ struct HeroTitleView: View {
                     .blur(radius: 20)
                 
                 Image(systemName: icon)
-                    .font(.system(size: 50, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 50))
                     .foregroundStyle(PremiumColor.royalBlue)
                     .symbolEffect(.pulse, options: .repeating.speed(0.5))
             }
@@ -284,7 +284,7 @@ struct HeroTitleView: View {
             // Title with Gradient
             VStack(spacing: 8) {
                 Text(title)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.poppins(.bold, size: 32))
                     .foregroundStyle(
                         LinearGradient(
                             colors: [.primary, .primary.opacity(0.8)],
@@ -296,7 +296,7 @@ struct HeroTitleView: View {
                     .lineLimit(2)
                 
                 Text(subtitle)
-                    .font(.system(size: 15, weight: .regular))
+                    .font(.poppins(.regular, size: 15))
                     .foregroundStyle(PremiumColor.deepPurple)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

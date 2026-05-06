@@ -20,18 +20,18 @@ struct MacroBreakdownBar: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.poppins(.medium, size: 14))
                     .foregroundColor(color)
                     .frame(width: 24)
 
                 Text(label)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.poppins(.medium, size: 15))
                     .foregroundColor(.primary)
 
                 Spacer()
 
                 Text("\(current)g / \(goal)g")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.poppins(.semiBold, size: 14))
                     .foregroundColor(.primary)
             }
 
@@ -77,7 +77,7 @@ struct MacroBreakdownCard: View {
                 Image(systemName: "chart.bar.fill")
                     .foregroundColor(AppColors.accentGreen)
                 Text("Macros")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 18))
             }
 
             VStack(spacing: 10) {

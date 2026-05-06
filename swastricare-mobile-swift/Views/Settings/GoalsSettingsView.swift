@@ -65,7 +65,7 @@ struct GoalsSettingsView: View {
     private var activitySection: some View {
         VStack(alignment: .leading, spacing: 20) {
             Label("Activity", systemImage: "figure.run")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.poppins(.semiBold, size: 16))
                 .foregroundColor(.primary)
 
             // Steps Goal
@@ -85,7 +85,7 @@ struct GoalsSettingsView: View {
                 Spacer()
                 Text("30,000")
             }
-            .font(.system(size: 11))
+            .font(.poppins(.regular, size: 11))
             .foregroundColor(.secondary)
 
             Divider()
@@ -108,7 +108,7 @@ struct GoalsSettingsView: View {
                 Spacer()
                 Text("30 km")
             }
-            .font(.system(size: 11))
+            .font(.poppins(.regular, size: 11))
             .foregroundColor(.secondary)
 
             Divider()
@@ -130,7 +130,7 @@ struct GoalsSettingsView: View {
                 Spacer()
                 Text("2,000")
             }
-            .font(.system(size: 11))
+            .font(.poppins(.regular, size: 11))
             .foregroundColor(.secondary)
         }
         .padding(20)
@@ -148,23 +148,23 @@ struct GoalsSettingsView: View {
                         .fill(AppColors.accentBlue.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "drop.fill")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundColor(AppColors.accentBlue)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Hydration")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 15))
                         .foregroundColor(.primary)
                     Text("Daily goal: \(hydrationViewModel.dailyGoal) ml")
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                     .foregroundColor(.secondary)
             }
             .padding(16)
@@ -184,23 +184,23 @@ struct GoalsSettingsView: View {
                         .fill(AppColors.accentBlue.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "fork.knife")
-                        .font(.system(size: 18))
+                        .font(.poppins(.regular, size: 18))
                         .foregroundColor(AppColors.accentBlue)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Diet")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.poppins(.semiBold, size: 15))
                         .foregroundColor(.primary)
                     Text("Daily goal: \(dietViewModel.dietGoals.dailyCalories) cal  |  P \(dietViewModel.dietGoals.proteinPercent)% C \(dietViewModel.dietGoals.carbsPercent)% F \(dietViewModel.dietGoals.fatPercent)%")
-                        .font(.system(size: 13))
+                        .font(.poppins(.regular, size: 13))
                         .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 13))
                     .foregroundColor(.secondary)
             }
             .padding(16)
@@ -220,14 +220,14 @@ struct GoalsSettingsView: View {
                         .tint(.white)
                 }
                 Text("Save Activity Goals")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 16))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(
                 LinearGradient(
-                    colors: [Color(hex: "2E3192"), Color(hex: "4A90E2")],
+                    colors: [AppColors.aiTeal, Color(hex: "4A90E2")],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
@@ -242,21 +242,21 @@ struct GoalsSettingsView: View {
     private func goalRow(icon: String, iconColor: Color, title: String, value: Int?, unit: String, formattedValue: String? = nil) -> some View {
         HStack {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.poppins(.regular, size: 16))
                 .foregroundColor(iconColor)
                 .frame(width: 24)
 
             Text(title)
-                .font(.system(size: 15, weight: .medium))
+                .font(.poppins(.medium, size: 15))
 
             Spacer()
 
             HStack(alignment: .bottom, spacing: 3) {
                 Text(formattedValue ?? "\(value ?? 0)")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 22))
                     .foregroundColor(iconColor)
                 Text(unit)
-                    .font(.system(size: 13))
+                    .font(.poppins(.regular, size: 13))
                     .foregroundColor(.secondary)
                     .padding(.bottom, 2)
             }

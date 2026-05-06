@@ -37,7 +37,7 @@ struct OneQuestionPerScreenOnboardingView: View {
                     // Subtle ambient glow
                     GeometryReader { geo in
                         Circle()
-                            .fill(Color(hex: "2E3192").opacity(colorScheme == .dark ? 0.1 : 0.03))
+                            .fill(AppColors.aiTeal.opacity(colorScheme == .dark ? 0.1 : 0.03))
                             .blur(radius: 100)
                             .frame(width: 300, height: 300)
                             .position(x: geo.size.width * 0.8, y: 0)
@@ -107,7 +107,7 @@ struct OneQuestionPerScreenOnboardingView: View {
                                         }
                                     }) {
                                         Text("Skip")
-                                            .font(.system(size: 16, weight: .medium))
+                                            .font(.poppins(.medium, size: 16))
                                             .foregroundColor(.secondary)
                                     }
                                     .padding(.trailing, 24)
@@ -131,13 +131,13 @@ struct OneQuestionPerScreenOnboardingView: View {
                                    }
                                }) {
                                    Text(viewModel.currentQuestion == .waterIntake ? "Complete Setup" : "Continue")
-                                    .font(.system(size: 17, weight: .semibold))
+                                    .font(.poppins(.semiBold, size: 17))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
-                                    .background(viewModel.canProceed ? Color(hex: "2E3192") : Color.gray.opacity(0.3))
+                                    .background(viewModel.canProceed ? AppColors.aiTeal : Color.gray.opacity(0.3))
                                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .shadow(color: viewModel.canProceed ? Color(hex: "2E3192").opacity(0.3) : .clear, radius: 12, y: 6)
+                                    .shadow(color: viewModel.canProceed ? AppColors.aiTeal.opacity(0.3) : .clear, radius: 12, y: 6)
                             }
                             .disabled(!viewModel.canProceed)
                             .padding(.horizontal, 24)
@@ -168,7 +168,7 @@ struct OneQuestionProgressHeaderView: View {
         HStack {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.poppins(.medium, size: 18))
                     .foregroundColor(.primary)
                     .frame(width: 44, height: 44)
                     .background(Color.primary.opacity(0.05))
@@ -181,7 +181,7 @@ struct OneQuestionProgressHeaderView: View {
             HStack(spacing: 6) {
                 ForEach(0..<min(total, 10), id: \.self) { index in
                     Capsule()
-                        .fill(index <= current ? Color(hex: "2E3192") : Color.primary.opacity(0.1))
+                        .fill(index <= current ? AppColors.aiTeal : Color.primary.opacity(0.1))
                         .frame(width: index == current ? 32 : 6, height: 6)
                         .animation(.spring, value: current)
                 }

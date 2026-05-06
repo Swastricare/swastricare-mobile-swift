@@ -25,9 +25,9 @@ struct FullNameQuestionView: View {
             .padding(.top, 60)
             
             TextField("Enter your name", text: $formState.fullName)
-                .font(.system(size: 28, weight: .medium))
+                .font(.poppins(.medium, size: 28))
                 .foregroundColor(.primary)
-                .tint(Color(hex: "2E3192"))
+                .tint(AppColors.aiTeal)
                 .focused($isFocused)
                 .submitLabel(.done)
                 .padding(.vertical, 20)
@@ -135,15 +135,15 @@ struct HeightQuestionView: View {
                 VStack(spacing: 12) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(Int(formState.heightCm))")
-                            .font(.system(size: 80, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 80))
                             .foregroundColor(.primary)
                         Text("cm")
-                            .font(.system(size: 24, weight: .medium))
+                            .font(.poppins(.medium, size: 24))
                             .foregroundColor(.secondary)
                     }
                     
                     Slider(value: $formState.heightCm, in: 100...250, step: 1)
-                        .tint(Color(hex: "2E3192"))
+                        .tint(AppColors.aiTeal)
                         .padding(.horizontal, 32)
                 }
             } else {
@@ -151,10 +151,10 @@ struct HeightQuestionView: View {
                     HStack(spacing: 20) {
                         VStack {
                             Text("\(formState.heightFeet)")
-                                .font(.system(size: 64, weight: .bold, design: .rounded))
+                                .font(.poppins(.bold, size: 64))
                                 .foregroundColor(.primary)
                             Text("ft")
-                                .font(.system(size: 20, weight: .medium))
+                                .font(.poppins(.medium, size: 20))
                                 .foregroundColor(.secondary)
                             Stepper("", value: $formState.heightFeet, in: 3...8)
                                 .labelsHidden()
@@ -162,10 +162,10 @@ struct HeightQuestionView: View {
                         
                         VStack {
                             Text("\(formState.heightInches)")
-                                .font(.system(size: 64, weight: .bold, design: .rounded))
+                                .font(.poppins(.bold, size: 64))
                                 .foregroundColor(.primary)
                             Text("in")
-                                .font(.system(size: 20, weight: .medium))
+                                .font(.poppins(.medium, size: 20))
                                 .foregroundColor(.secondary)
                             Stepper("", value: $formState.heightInches, in: 0...11)
                                 .labelsHidden()
@@ -205,30 +205,30 @@ struct WeightQuestionView: View {
                 VStack(spacing: 12) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(Int(formState.weightKg))")
-                            .font(.system(size: 80, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 80))
                             .foregroundColor(.primary)
                         Text("kg")
-                            .font(.system(size: 24, weight: .medium))
+                            .font(.poppins(.medium, size: 24))
                             .foregroundColor(.secondary)
                     }
                     
                     Slider(value: $formState.weightKg, in: 30...200, step: 0.5)
-                        .tint(Color(hex: "2E3192"))
+                        .tint(AppColors.aiTeal)
                         .padding(.horizontal, 32)
                 }
             } else {
                 VStack(spacing: 12) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(Int(formState.weightLbs))")
-                            .font(.system(size: 80, weight: .bold, design: .rounded))
+                            .font(.poppins(.bold, size: 80))
                             .foregroundColor(.primary)
                         Text("lbs")
-                            .font(.system(size: 24, weight: .medium))
+                            .font(.poppins(.medium, size: 24))
                             .foregroundColor(.secondary)
                     }
                     
                     Slider(value: $formState.weightLbs, in: 66...440, step: 1)
-                        .tint(Color(hex: "2E3192"))
+                        .tint(AppColors.aiTeal)
                         .padding(.horizontal, 32)
                 }
             }
@@ -463,9 +463,9 @@ struct EmergencyContactNameQuestionView: View {
                 )
                 .padding(.top, 60)
             TextField("Enter name", text: $formState.emergencyContactName)
-                    .font(.system(size: 28, weight: .medium))
+                    .font(.poppins(.medium, size: 28))
                     .foregroundColor(.primary)
-                    .tint(Color(hex: "2E3192"))
+                    .tint(AppColors.aiTeal)
                     .focused($isFocused)
                     .submitLabel(.done)
                     .padding(.vertical, 20)
@@ -501,9 +501,9 @@ struct EmergencyContactPhoneQuestionView: View {
             .padding(.top, 60)
             
             TextField("Enter phone number", text: $formState.emergencyContactPhone)
-                .font(.system(size: 28, weight: .medium))
+                .font(.poppins(.medium, size: 28))
                 .foregroundColor(.primary)
-                .tint(Color(hex: "2E3192"))
+                .tint(AppColors.aiTeal)
                 .focused($isFocused)
                 .keyboardType(.phonePad)
                 .submitLabel(.done)

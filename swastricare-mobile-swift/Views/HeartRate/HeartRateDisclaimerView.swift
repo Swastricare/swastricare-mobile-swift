@@ -16,7 +16,7 @@ struct HeartRateDisclaimerView: View {
                 VStack(spacing: 20) {
                     // Header Icon
                     Image(systemName: "heart.text.square.fill")
-                        .font(.system(size: 52))
+                        .font(.poppins(.regular, size: 52))
                         .foregroundColor(.red)
                         .padding(.top, 16)
                         .accessibilityHidden(true)
@@ -24,10 +24,10 @@ struct HeartRateDisclaimerView: View {
                     // Title
                     VStack(spacing: 6) {
                         Text("Important Notice")
-                            .font(.title3.bold())
-                        
+                            .font(.poppins(.bold, size: 20))
+
                         Text("Please read carefully before proceeding")
-                            .font(.subheadline)
+                            .font(.poppins(.regular, size: 15))
                             .foregroundColor(.secondary)
                     }
                     
@@ -51,7 +51,7 @@ struct HeartRateDisclaimerView: View {
                     // Instructions
                     VStack(alignment: .leading, spacing: 12) {
                         Text("How to Measure")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.poppins(.semiBold, size: 15))
                         
                         VStack(spacing: 0) {
                             instructionRow(step: "1", text: "Place finger gently on the back camera")
@@ -67,7 +67,7 @@ struct HeartRateDisclaimerView: View {
                     // Accept Button
                     Button(action: onAccept) {
                         Text("I Understand & Agree")
-                            .font(.body.weight(.semibold))
+                            .font(.poppins(.semiBold, size: 17))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
@@ -92,16 +92,16 @@ struct HeartRateDisclaimerView: View {
     private func disclaimerCard(icon: String, title: String, text: String, color: Color) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(.poppins(.semiBold, size: 20))
                 .foregroundColor(color)
                 .frame(width: 28)
                 .accessibilityHidden(true)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.poppins(.semiBold, size: 15))
                 Text(text)
-                    .font(.subheadline)
+                    .font(.poppins(.regular, size: 15))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -116,14 +116,14 @@ struct HeartRateDisclaimerView: View {
     private func instructionRow(step: String, text: String) -> some View {
         HStack(spacing: 12) {
             Text(step)
-                .font(.caption.bold())
+                .font(.poppins(.bold, size: 12))
                 .foregroundColor(.white)
                 .frame(width: 22, height: 22)
                 .background(Circle().fill(Color.red))
                 .accessibilityLabel("Step \(step)")
-            
+
             Text(text)
-                .font(.subheadline)
+                .font(.poppins(.regular, size: 15))
             
             Spacer()
         }

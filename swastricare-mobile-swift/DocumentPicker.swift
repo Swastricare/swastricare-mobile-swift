@@ -223,23 +223,23 @@ struct FilePicker: View {
                     } label: {
                         HStack(spacing: 16) {
                             Image(systemName: "photo.on.rectangle.angled")
-                                .font(.title2)
+                                .font(.poppins(.bold, size: 22))
                                 .foregroundColor(.blue)
                                 .frame(width: 40)
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Choose from Photos")
-                                    .font(.headline)
+                                    .font(.poppins(.semiBold, size: 17))
                                     .foregroundColor(.primary)
                                 Text("Select an image from your library")
-                                    .font(.caption)
+                                    .font(.poppins(.regular, size: 12))
                                     .foregroundColor(.secondary)
                             }
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary.opacity(0.6))
                         }
                         .padding(.vertical, 8)
@@ -251,23 +251,23 @@ struct FilePicker: View {
                     } label: {
                         HStack(spacing: 16) {
                             Image(systemName: "doc.on.doc.fill")
-                                .font(.title2)
+                                .font(.poppins(.bold, size: 22))
                                 .foregroundColor(.red)
                                 .frame(width: 40)
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Choose Document")
-                                    .font(.headline)
+                                    .font(.poppins(.semiBold, size: 17))
                                     .foregroundColor(.primary)
                                 Text("PDF, Word, Text, and more")
-                                    .font(.caption)
+                                    .font(.poppins(.regular, size: 12))
                                     .foregroundColor(.secondary)
                             }
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
-                                .font(.caption)
+                                .font(.poppins(.regular, size: 12))
                                 .foregroundColor(.secondary.opacity(0.6))
                         }
                         .padding(.vertical, 8)
@@ -276,7 +276,7 @@ struct FilePicker: View {
                     Text("Select Source")
                 } footer: {
                     Text("Supported formats: PDF, JPG, PNG, HEIC, DOC, DOCX, TXT, RTF, CSV\nMaximum file size: 10MB")
-                        .font(.caption2)
+                        .font(.poppins(.regular, size: 11))
                 }
             }
             .navigationTitle("Upload Document")

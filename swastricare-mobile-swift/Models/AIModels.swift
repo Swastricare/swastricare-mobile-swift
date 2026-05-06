@@ -97,7 +97,7 @@ enum AIResponseMode: String, Equatable {
 
     var badgeColor: String {
         switch self {
-        case .general: return "2E3192"
+        case .general: return "22C5A6"
         case .medical: return "00A86B"
         case .healthAnalysis: return "4A90E2"
         case .imageAnalysis: return "8B5CF6"
@@ -513,7 +513,7 @@ enum ConversationTopic: String, Equatable {
         case .vitals: return "EF4444"
         case .hydration: return "3B82F6"
         case .mental: return "A855F7"
-        case .general: return "2E3192"
+        case .general: return "22C5A6"
         }
     }
 }

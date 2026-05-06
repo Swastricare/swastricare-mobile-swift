@@ -95,7 +95,7 @@ struct CalorieProgressRing: View {
             // Center content
             VStack(spacing: 2) {
                 Text("\(current)")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.poppins(.bold, size: 32))
                     .foregroundColor(.primary)
                     .contentTransition(.numericText())
                     .animation(.snappy(duration: 0.3), value: current)
@@ -105,11 +105,11 @@ struct CalorieProgressRing: View {
                     .frame(width: 36, height: 1)
 
                 Text("\(goal)")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .font(.poppins(.medium, size: 16))
                     .foregroundColor(.secondary)
 
                 Text(statusMessage)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.poppins(.semiBold, size: 10))
                     .foregroundColor(progress >= 1.0 ? .orange : AppColors.accentGreen)
                     .padding(.top, 2)
             }
