@@ -148,6 +148,14 @@ fun SettingsScreen(
                                 scope.launch { snackbarHostState.showSnackbar("Family — coming soon") }
                             }
                         )
+                        NewRowDivider()
+                        NewSettingsRow(
+                            icon = Icons.Outlined.FavoriteBorder,
+                            label = "Health Data Sync",
+                            subtitle = "Health Connect, Samsung Health & more",
+                            iconTint = SettingsIconColor.Brand,
+                            onClick = onNavigateToHealthDataSync
+                        )
                     }
                 }
 

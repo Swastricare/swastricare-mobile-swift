@@ -301,6 +301,10 @@ fun RunActivityScreen(
             }
 
             item {
+                StartWorkoutCta(onStart = { launchWorkout(null) })
+            }
+
+            item {
                 RecentActivitiesHeader(onViewAll = onNavigateToCalendar)
             }
 
@@ -313,7 +317,7 @@ fun RunActivityScreen(
                 }
             } else {
                 item {
-                    EmptyActivitiesPrompt(onStart = { launchWorkout(null) })
+                    EmptyActivitiesPrompt()
                 }
             }
         }
@@ -1196,7 +1200,7 @@ private fun ActivityRow(activity: RunActivity, onClick: () -> Unit) {
 }
 
 @Composable
-private fun EmptyActivitiesPrompt(onStart: () -> Unit) {
+private fun EmptyActivitiesPrompt() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1219,29 +1223,55 @@ private fun EmptyActivitiesPrompt(onStart: () -> Unit) {
             color = TextSecondary,
             textAlign = TextAlign.Center
         )
-        Button(
-            onClick = onStart,
+    }
+}
+
+@Composable
+private fun StartWorkoutCta(onStart: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(AITeal)
+            .clickable { onStart() }
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
             modifier = Modifier
-                .padding(top = 4.dp)
-                .height(44.dp),
-            shape = RoundedCornerShape(50),
-            colors = ButtonDefaults.buttonColors(containerColor = AITeal),
-            elevation = ButtonDefaults.buttonElevation(0.dp)
+                .size(36.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color.White.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(Modifier.width(6.dp))
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 "Start a Workout",
-                fontSize = 13.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White
             )
+            Text(
+                "Run, walk, cycle, or pick another activity",
+                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.85f)
+            )
         }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
