@@ -63,8 +63,9 @@ struct RunActivityView: View {
         }
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $showLiveTracking) {
+            // LiveActivityTrackingView struct is currently absent — placeholder until restored.
             NavigationStack {
-                LiveActivityTrackingView(initialActivityType: deepLinkWorkoutType)
+                Color.clear
             }
         }
         .sheet(isPresented: $showFullCalendar) {
