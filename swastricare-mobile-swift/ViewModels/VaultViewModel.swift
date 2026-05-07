@@ -645,10 +645,13 @@ final class VaultViewModel: ObservableObject {
                     category: upload.category.rawValue,
                     metadata: upload.metadata
                 )
-                
+
                 print("✅ Successfully uploaded: \(upload.fileName)")
                 AppAnalyticsService.shared.logVaultUpload(category: upload.category.rawValue)
-                
+
+                // Schedule reminder/appointment local notifications if set
+                await VaultNotificationService.shared.sync(document: document)
+
                 // Add to beginning of list and invalidate caches
                 documents.insert(document, at: 0)
                 invalidateCaches()
@@ -718,12 +721,16 @@ final class VaultViewModel: ObservableObject {
     func deleteDocument(_ document: MedicalDocument) async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             try await vaultService.deleteDocument(document)
             documents.removeAll { $0.id == document.id }
             invalidateCaches()
             AppAnalyticsService.shared.logVaultDelete()
+            // Cancel any reminder/appointment notifications tied to this document
+            if let id = document.id {
+                await VaultNotificationService.shared.cancel(for: id)
+            }
             isLoading = false
             return true
         } catch {
@@ -770,7 +777,10 @@ final class VaultViewModel: ObservableObject {
     }
     
     func updateDocument(_ document: MedicalDocument, metadata: DocumentMetadata) async throws -> MedicalDocument {
-        return try await vaultService.updateDocument(document, metadata: metadata)
+        let updated = try await vaultService.updateDocument(document, metadata: metadata)
+        // Re-sync reminder/appointment notifications (cancels previous, schedules new)
+        await VaultNotificationService.shared.sync(document: updated)
+        return updated
     }
     
     func setCategory(_ category: VaultCategory?) {

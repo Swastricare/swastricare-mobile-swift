@@ -1135,13 +1135,22 @@ private struct BatchUploadSheet: View {
                     }
                     .disabled(viewModel.uploadState.isUploading)
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Upload") {
                         Task { await uploadAll() }
                     }
                     .font(.poppins(.semiBold, size: 17))
                     .disabled(viewModel.pendingUploads.isEmpty || viewModel.uploadState.isUploading)
+                }
+            }
+            .overlay {
+                if viewModel.uploadState.isUploading {
+                    UploadProgressOverlay(
+                        progress: viewModel.uploadState.progress,
+                        currentIndex: viewModel.currentUploadIndex,
+                        totalFiles: viewModel.totalUploadFiles
+                    )
                 }
             }
         }
@@ -1172,6 +1181,60 @@ private struct BatchUploadSheet: View {
         
         viewModel.applySharedMetadata(sharedMetadata, category: category)
         await viewModel.uploadAllDocuments()
+    }
+}
+
+// MARK: - Upload Progress Overlay
+
+private struct UploadProgressOverlay: View {
+    let progress: Double
+    let currentIndex: Int
+    let totalFiles: Int
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.35)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .stroke(AppColors.aiTeal.opacity(0.18), lineWidth: 4)
+                        .frame(width: 56, height: 56)
+
+                    Circle()
+                        .trim(from: 0, to: max(0.05, CGFloat(progress)))
+                        .stroke(AppColors.aiTeal, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 56, height: 56)
+                        .animation(.easeInOut(duration: 0.25), value: progress)
+
+                    Image(systemName: "arrow.up")
+                        .font(.poppins(.semiBold, size: 18))
+                        .foregroundColor(AppColors.aiTeal)
+                }
+
+                VStack(spacing: 4) {
+                    Text("Uploading…")
+                        .font(.poppins(.semiBold, size: 16))
+                        .foregroundColor(.primary)
+
+                    if totalFiles > 0 {
+                        Text("File \(min(currentIndex + 1, totalFiles)) of \(totalFiles) • \(Int(progress * 100))%")
+                            .font(.poppins(.regular, size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 24)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color(UIColor.systemBackground))
+                    .shadow(color: Color.black.opacity(0.18), radius: 18, y: 6)
+            )
+        }
+        .transition(.opacity)
     }
 }
 

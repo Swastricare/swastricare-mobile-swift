@@ -835,6 +835,8 @@ enum NotificationCategory: String {
     case dietReminder = "DIET_REMINDER"
     case menstrualReminder = "MENSTRUAL_REMINDER"
     case aiNudge = "AI_NUDGE"
+    case vaultReminder = "VAULT_REMINDER"
+    case vaultAppointment = "VAULT_APPOINTMENT"
 
     var identifier: String { rawValue }
 }
