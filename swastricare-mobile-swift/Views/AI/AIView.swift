@@ -741,10 +741,10 @@ struct AIView: View {
             .opacity(showEmptyState ? 1 : 0)
             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.15), value: showEmptyState)
 
-            // 2×2 Quick action grid (matches IntroQuickActionGrid)
+            // 2×2 Quick action grid — taps just prefill the input; user taps Send
             IntroQuickActionGrid(showEmptyState: showEmptyState) { prompt in
                 viewModel.inputText = prompt
-                Task { await viewModel.sendMessage() }
+                isInputFocused = true
             }
             .padding(.horizontal, 16)
 
