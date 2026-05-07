@@ -162,8 +162,8 @@ struct FoodSearchView: View {
                         .padding(.vertical, 8)
                         .background(
                             selectedCategory == nil
-                                ? AppColors.accentGreen
-                                : AppColors.accentGreen.opacity(0.07)
+                                ? AppColors.aiTeal
+                                : AppColors.aiTeal.opacity(0.07)
                         )
                         .foregroundColor(
                             selectedCategory == nil ? .white : .primary
@@ -174,7 +174,7 @@ struct FoodSearchView: View {
                                 .stroke(
                                     selectedCategory == nil
                                         ? Color.clear
-                                        : AppColors.accentGreen.opacity(0.10),
+                                        : AppColors.aiTeal.opacity(0.10),
                                     lineWidth: 1
                                 )
                         )
@@ -232,8 +232,8 @@ struct FoodSearchView: View {
                         .padding(.vertical, 8)
                         .background(
                             selectedCategory == category
-                                ? AppColors.accentGreen
-                                : AppColors.accentGreen.opacity(0.07)
+                                ? AppColors.aiTeal
+                                : AppColors.aiTeal.opacity(0.07)
                         )
                         .foregroundColor(
                             selectedCategory == category ? .white : .primary
@@ -244,7 +244,7 @@ struct FoodSearchView: View {
                                 .stroke(
                                     selectedCategory == category
                                         ? Color.clear
-                                        : AppColors.accentGreen.opacity(0.10),
+                                        : AppColors.aiTeal.opacity(0.10),
                                     lineWidth: 1
                                 )
                         )
@@ -263,12 +263,12 @@ struct FoodSearchView: View {
         VStack(spacing: 20) {
             ZStack {
                 Circle()
-                    .fill(AppColors.accentGreen.opacity(0.10))
+                    .fill(AppColors.aiTeal.opacity(0.10))
                     .frame(width: 100, height: 100)
 
                 Image(systemName: "magnifyingglass")
                     .font(.poppins(.light, size: 44))
-                    .foregroundColor(AppColors.accentGreen)
+                    .foregroundColor(AppColors.aiTeal)
             }
 
             VStack(spacing: 8) {
@@ -304,11 +304,11 @@ struct FoodItemRow: View {
                 // Category icon with green tint container
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(AppColors.accentGreen.opacity(0.07))
+                        .fill(AppColors.aiTeal.opacity(0.07))
                         .frame(width: 52, height: 52)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(AppColors.accentGreen.opacity(0.10), lineWidth: 1)
+                                .stroke(AppColors.aiTeal.opacity(0.10), lineWidth: 1)
                         )
 
                     Text(food.category.icon)
@@ -340,7 +340,7 @@ struct FoodItemRow: View {
 
                         Text(food.caloriesPerServing)
                             .font(.poppins(.bold, size: 13))
-                            .foregroundColor(AppColors.accentGreen)
+                            .foregroundColor(AppColors.aiTeal)
                     }
 
                     Text(food.macroSummary)
@@ -364,7 +364,7 @@ struct FoodItemRow: View {
                     // Plus button with filled circle background
                     ZStack {
                         Circle()
-                            .fill(AppColors.accentGreen)
+                            .fill(AppColors.aiTeal)
                             .frame(width: 30, height: 30)
 
                         Image(systemName: "plus")
@@ -517,7 +517,7 @@ struct VegIndicator: View {
     let isVegetarian: Bool
 
     private var color: Color {
-        isVegetarian ? AppColors.accentGreen : AppColors.accentRed
+        isVegetarian ? AppColors.aiTeal : AppColors.accentRed
     }
 
     var body: some View {

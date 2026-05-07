@@ -30,12 +30,22 @@ struct AddFoodView: View {
         self._currentMealType = State(initialValue: selectedMealType)
     }
 
-    // Filtered search results
+    // Filtering is active when there's text OR a selected category
+    private var isFiltering: Bool {
+        !searchText.isEmpty || selectedCategory != nil
+    }
+
+    // Filtered + (optional) category-filtered results
     private var searchResults: [FoodItem] {
-        guard !searchText.isEmpty else { return [] }
-        let results = viewModel.searchFoods(query: searchText)
+        var results: [FoodItem] = searchText.isEmpty
+            ? viewModel.foodItemsCache
+            : viewModel.searchFoods(query: searchText)
+
+        if let cat = selectedCategory {
+            results = results.filter { $0.category == cat }
+        }
         if showVegOnly {
-            return results.filter { $0.isVegetarian }
+            results = results.filter { $0.isVegetarian }
         }
         return results
     }
@@ -43,39 +53,37 @@ struct AddFoodView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
-                    .ignoresSafeArea()
+                Color.white.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Show search results when searching
-                        if !searchText.isEmpty {
-                            searchResultsSection
-                        } else {
-                            // Your Usual -- suggested foods + templates (from Fast Logging branch)
-                            yourUsualSection
+                VStack(spacing: 0) {
+                    // Always-visible category filter chips (Android style)
+                    categoryChipsRow
+                        .background(Color.white)
 
-                            // Recent Foods (if any)
-                            if !viewModel.recentFoods.isEmpty {
-                                recentFoodsSection
+                    Divider().background(Color.primary.opacity(0.06))
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 20) {
+                            if isFiltering {
+                                searchResultsSection
+                            } else {
+                                yourUsualSection
+
+                                if !viewModel.recentFoods.isEmpty {
+                                    recentFoodsSection
+                                }
+
+                                if !viewModel.favoriteFoods.isEmpty {
+                                    favoriteFoodsSection
+                                }
+
+                                scanBarcodeButton
+
+                                customFoodButton
                             }
-
-                            // Favorites (if any)
-                            if !viewModel.favoriteFoods.isEmpty {
-                                favoriteFoodsSection
-                            }
-
-                            // Scan Barcode (from Discovery branch)
-                            scanBarcodeButton
-
-                            // Browse by Category
-                            categoryGridSection
-
-                            // Add Custom Food
-                            customFoodButton
                         }
+                        .padding(.bottom, 20)
                     }
-                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle("Add Food")
@@ -93,7 +101,7 @@ struct AddFoodView: View {
                         } label: {
                             Image(systemName: "barcode.viewfinder")
                                 .font(.poppins(.medium, size: 18))
-                                .foregroundColor(AppColors.accentGreen)
+                                .foregroundColor(AppColors.aiTeal)
                         }
 
                         // Meal type pill with semantic color tint
@@ -160,6 +168,45 @@ struct AddFoodView: View {
         .trackScreen("AddFood")
     }
 
+    // MARK: - Category Filter Chips (Android-style, always visible)
+
+    private var categoryChipsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                categoryChip(label: "All", icon: nil, isSelected: selectedCategory == nil) {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                        selectedCategory = nil
+                    }
+                }
+                ForEach(FoodCategory.allCases) { cat in
+                    categoryChip(label: cat.displayName, icon: cat.icon, isSelected: selectedCategory == cat) {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                            selectedCategory = (selectedCategory == cat) ? nil : cat
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+    }
+
+    private func categoryChip(label: String, icon: String?, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                if let icon { Text(icon).font(.poppins(.regular, size: 12)) }
+                Text(label)
+                    .font(.poppins(.medium, size: 14))
+                    .foregroundColor(isSelected ? AppColors.aiTeal : .primary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isSelected ? AppColors.aiTeal.opacity(0.15) : Color(hex: "F6F7F9"))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Recent Foods Section
 
     private var recentFoodsSection: some View {
@@ -167,7 +214,7 @@ struct AddFoodView: View {
             HStack {
                 Image(systemName: "clock.arrow.circlepath")
                     .font(.poppins(.semiBold, size: 14))
-                    .foregroundColor(AppColors.accentGreen)
+                    .foregroundColor(AppColors.aiTeal)
                 Text("Recent")
                     .font(.poppins(.semiBold, size: 15))
                     .foregroundColor(.secondary)
@@ -190,12 +237,12 @@ struct AddFoodView: View {
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .background(AppColors.accentGreen.opacity(0.08))
+                            .background(AppColors.aiTeal.opacity(0.08))
                             .foregroundColor(.primary)
                             .clipShape(Capsule())
                             .overlay(
                                 Capsule()
-                                    .stroke(AppColors.accentGreen.opacity(0.20), lineWidth: 0.8)
+                                    .stroke(AppColors.aiTeal.opacity(0.20), lineWidth: 0.8)
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -355,11 +402,11 @@ struct AddFoodView: View {
                                 Text(food.category.icon)
                                     .font(.poppins(.regular, size: 28))
                                     .frame(width: 44, height: 44)
-                                    .background(AppColors.accentGreen.opacity(0.10))
+                                    .background(AppColors.aiTeal.opacity(0.10))
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(AppColors.accentGreen.opacity(0.15), lineWidth: 0.8)
+                                            .stroke(AppColors.aiTeal.opacity(0.15), lineWidth: 0.8)
                                     )
 
                                 VStack(alignment: .leading, spacing: 3) {
@@ -379,7 +426,7 @@ struct AddFoodView: View {
                                             .foregroundColor(.secondary)
                                         Text(food.caloriesPerServing)
                                             .font(.poppins(.semiBold, size: 12))
-                                            .foregroundColor(AppColors.accentGreen)
+                                            .foregroundColor(AppColors.aiTeal)
                                     }
                                 }
 
@@ -390,7 +437,7 @@ struct AddFoodView: View {
                                 } label: {
                                     Image(systemName: "plus.circle.fill")
                                         .font(.poppins(.regular, size: 22))
-                                        .foregroundColor(AppColors.accentGreen)
+                                        .foregroundColor(AppColors.aiTeal)
                                 }
                                 .buttonStyle(ScaleButtonStyle())
                             }
@@ -457,7 +504,7 @@ struct AddFoodView: View {
 
                                         Text("\(Int(food.calories)) cal")
                                             .font(.poppins(.semiBold, size: 11))
-                                            .foregroundColor(AppColors.accentGreen)
+                                            .foregroundColor(AppColors.aiTeal)
                                     }
                                     .frame(width: 80, height: 90)
                                     .background(AppColors.accentBlue.opacity(0.06))
@@ -513,7 +560,7 @@ struct AddFoodView: View {
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 7)
-                                        .background(AppColors.accentGreen)
+                                        .background(AppColors.aiTeal)
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -535,7 +582,7 @@ struct AddFoodView: View {
         HStack(spacing: 10) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.poppins(.medium, size: 18))
-                .foregroundColor(AppColors.accentGreen)
+                .foregroundColor(AppColors.aiTeal)
 
             Text("Logged \(quickLoggedName)")
                 .font(.poppins(.medium, size: 15))
@@ -597,7 +644,7 @@ struct AddFoodView: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(AppColors.accentGreen)
+                        .fill(AppColors.aiTeal)
                         .frame(width: 36, height: 36)
                     Image(systemName: "plus")
                         .font(.poppins(.bold, size: 16))
@@ -605,11 +652,11 @@ struct AddFoodView: View {
                 }
                 Text("Add Custom Food")
                     .font(.poppins(.semiBold, size: 16))
-                    .foregroundColor(AppColors.accentGreen)
+                    .foregroundColor(AppColors.aiTeal)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.poppins(.medium, size: 13))
-                    .foregroundColor(AppColors.accentGreen.opacity(0.6))
+                    .foregroundColor(AppColors.aiTeal.opacity(0.6))
             }
             .padding(16)
             .background(Color(UIColor.secondarySystemGroupedBackground))
@@ -682,11 +729,11 @@ struct FoodQuantitySheet: View {
             Text(food.category.icon)
                 .font(.poppins(.regular, size: 40))
                 .frame(width: 60, height: 60)
-                .background(AppColors.accentGreen.opacity(0.10))
+                .background(AppColors.aiTeal.opacity(0.10))
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(AppColors.accentGreen.opacity(0.20), lineWidth: 0.8)
+                        .stroke(AppColors.aiTeal.opacity(0.20), lineWidth: 0.8)
                 )
 
             VStack(alignment: .leading, spacing: 4) {
@@ -791,10 +838,10 @@ struct FoodQuantitySheet: View {
                                 ? "\(Int(amount))"
                                 : String(format: "%.2g", amount))
                                 .font(.poppins(.semiBold, size: 14))
-                                .foregroundColor(quantity == amount ? .white : AppColors.accentGreen)
+                                .foregroundColor(quantity == amount ? .white : AppColors.aiTeal)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
-                                .background(quantity == amount ? AppColors.accentGreen : AppColors.accentGreen.opacity(0.10))
+                                .background(quantity == amount ? AppColors.aiTeal : AppColors.aiTeal.opacity(0.10))
                                 .clipShape(Capsule())
                         }
                     }
@@ -813,15 +860,15 @@ struct FoodQuantitySheet: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(quantity > 0.25 ? AppColors.accentGreen.opacity(0.15) : Color.secondary.opacity(0.08))
+                                .fill(quantity > 0.25 ? AppColors.aiTeal.opacity(0.15) : Color.secondary.opacity(0.08))
                                 .frame(width: 48, height: 48)
                                 .overlay(
                                     Circle()
-                                        .stroke(quantity > 0.25 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
+                                        .stroke(quantity > 0.25 ? AppColors.aiTeal.opacity(0.30) : Color.clear, lineWidth: 1)
                                 )
                             Image(systemName: "minus")
                                 .font(.poppins(.semiBold, size: 18))
-                                .foregroundColor(quantity > 0.25 ? AppColors.accentGreen : .secondary.opacity(0.4))
+                                .foregroundColor(quantity > 0.25 ? AppColors.aiTeal : .secondary.opacity(0.4))
                         }
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -845,15 +892,15 @@ struct FoodQuantitySheet: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(quantity < 10 ? AppColors.accentGreen.opacity(0.15) : Color.secondary.opacity(0.08))
+                                .fill(quantity < 10 ? AppColors.aiTeal.opacity(0.15) : Color.secondary.opacity(0.08))
                                 .frame(width: 48, height: 48)
                                 .overlay(
                                     Circle()
-                                        .stroke(quantity < 10 ? AppColors.accentGreen.opacity(0.30) : Color.clear, lineWidth: 1)
+                                        .stroke(quantity < 10 ? AppColors.aiTeal.opacity(0.30) : Color.clear, lineWidth: 1)
                                 )
                             Image(systemName: "plus")
                                 .font(.poppins(.semiBold, size: 18))
-                                .foregroundColor(quantity < 10 ? AppColors.accentGreen : .secondary.opacity(0.4))
+                                .foregroundColor(quantity < 10 ? AppColors.aiTeal : .secondary.opacity(0.4))
                         }
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -940,7 +987,7 @@ struct FoodQuantitySheet: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(isLogging ? AppColors.accentGreen.opacity(0.6) : AppColors.accentGreen)
+            .background(isLogging ? AppColors.aiTeal.opacity(0.6) : AppColors.aiTeal)
             .foregroundColor(.white)
             .cornerRadius(14)
         }

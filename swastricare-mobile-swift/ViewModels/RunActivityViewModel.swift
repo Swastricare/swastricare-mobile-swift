@@ -182,7 +182,11 @@ final class RunActivityViewModel: ObservableObject {
 
             // Keep Run widget in sync with latest activities
             updateRunWidgetSnapshot()
-            
+
+            // Populate per-day HealthKit summaries for the visible week so the
+            // activity screen can render today/yesterday/recent-day stats.
+            await loadVisibleWeekSummaries()
+
         } catch {
             errorMessage = UserFriendlyError.message(from: error)
             // Don't fall back to mock data - show empty state on error
@@ -451,6 +455,49 @@ final class RunActivityViewModel: ObservableObject {
     func getSummary(for date: Date) -> DailyActivitySummary? {
         let calendar = Calendar.current
         return dailySummaries.first { calendar.isDate($0.date, inSameDayAs: date) }
+    }
+
+    /// Fetches steps/distance/calories from HealthKit for a single day and upserts
+    /// it into `dailySummaries` so the activity screen can render that day's stats.
+    func loadDaySummary(for date: Date) async {
+        guard isAuthorized else { return }
+        let day = Calendar.current.startOfDay(for: date)
+        let data = await healthService.fetchDailyActivitySummary(for: day)
+
+        let dayActivities = activities.filter {
+            Calendar.current.isDate($0.startTime, inSameDayAs: day)
+        }
+
+        let summary = DailyActivitySummary(
+            date: day,
+            steps: data.steps,
+            distance: data.distanceMeters / 1000.0,
+            calories: data.calories,
+            points: 0,
+            activities: dayActivities
+        )
+
+        if let idx = dailySummaries.firstIndex(where: {
+            Calendar.current.isDate($0.date, inSameDayAs: day)
+        }) {
+            dailySummaries[idx] = summary
+        } else {
+            dailySummaries.append(summary)
+        }
+    }
+
+    /// Refreshes today + the previous 6 days (matches the activity screen's week strip)
+    /// so day cells light up immediately with HealthKit data.
+    func loadVisibleWeekSummaries() async {
+        guard isAuthorized else { return }
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let dates: [Date] = (0..<7).compactMap { cal.date(byAdding: .day, value: -$0, to: today) }
+        await withTaskGroup(of: Void.self) { group in
+            for d in dates {
+                group.addTask { [weak self] in await self?.loadDaySummary(for: d) }
+            }
+        }
     }
     
     // MARK: - Delete Activity
