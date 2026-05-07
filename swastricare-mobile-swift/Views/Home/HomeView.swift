@@ -171,7 +171,6 @@ struct HomeView: View {
 
                 Spacer().frame(height: 16)
             }
-            .padding(.top, 4)
         }
         .background(Color.white)
         // HealthKit auth banner (preserved from original)
@@ -326,7 +325,7 @@ private struct HomeHeaderSection: View {
             .buttonStyle(ScaleButtonStyle())
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 6)
     }
 }
 
