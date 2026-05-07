@@ -32,18 +32,9 @@ struct DietView: View {
     private var primaryMeals: [MealType] { [.breakfast, .lunch, .eveningSnack, .dinner] }
 
     var body: some View {
+        NavigationStack {
         ZStack(alignment: .bottom) {
-            // Page background — pale mint that blends down into white so the
-            // hero illustration merges seamlessly into the next section.
-            LinearGradient(
-                stops: [
-                    .init(color: dietHeroSurface, location: 0.0),
-                    .init(color: dietHeroSurface, location: 0.18),
-                    .init(color: .white, location: 0.45)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            Color.white
             .ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
@@ -134,7 +125,36 @@ struct DietView: View {
             // Camera FAB
             cameraFAB
         }
-        .navigationBarHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.backward")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.primary)
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button { viewModel.showSettings = true } label: {
+                        Label("Goals & Settings", systemImage: "gearshape.fill")
+                    }
+                    if viewModel.insights != nil {
+                        Button {
+                            viewModel.generateWeeklyReport()
+                            viewModel.showWeeklyReport = true
+                        } label: {
+                            Label("Weekly Report", systemImage: "chart.bar.doc.horizontal")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.primary.opacity(0.75))
+                }
+            }
+        }
         .onAppear {
             withAnimation(.easeOut(duration: 0.35)) { appeared = true }
         }
@@ -158,6 +178,7 @@ struct DietView: View {
             FoodSnapView(viewModel: viewModel, suggestedMealType: MealType.autoDetect())
         }
         .trackScreen("Diet")
+        } // NavigationStack
     }
 
     private func mealAccent(_ type: MealType) -> Color {
@@ -180,12 +201,12 @@ struct DietView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .padding(.top, 64)
                 .overlay(
                     LinearGradient(
                         stops: [
-                            .init(color: dietHeroSurface, location: 0.0),
-                            .init(color: .clear, location: 0.20),
+                            .init(color: .white, location: 0.0),
+                            .init(color: .white, location: 0.12),
+                            .init(color: .clear, location: 0.35),
                             .init(color: .clear, location: 0.75),
                             .init(color: .white, location: 1.0)
                         ],
@@ -193,40 +214,6 @@ struct DietView: View {
                         endPoint: .bottom
                     )
                 )
-
-            // Top bar overlay (close + menu)
-            HStack(alignment: .top) {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.poppins(.semiBold, size: 17))
-                        .foregroundStyle(.primary.opacity(0.75))
-                        .frame(width: 36, height: 36)
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                Menu {
-                    Button { viewModel.showSettings = true } label: {
-                        Label("Goals & Settings", systemImage: "gearshape.fill")
-                    }
-                    if viewModel.insights != nil {
-                        Button {
-                            viewModel.generateWeeklyReport()
-                            viewModel.showWeeklyReport = true
-                        } label: {
-                            Label("Weekly Report", systemImage: "chart.bar.doc.horizontal")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.poppins(.semiBold, size: 18))
-                        .foregroundStyle(.primary.opacity(0.75))
-                        .frame(width: 36, height: 36)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 4)
 
             // Title + subtitle (left-aligned, overlay)
             HStack {
@@ -241,7 +228,7 @@ struct DietView: View {
                 Spacer()
             }
             .padding(.leading, 20)
-            .padding(.top, 20)
+            .padding(.top, -8)
         }
     }
 

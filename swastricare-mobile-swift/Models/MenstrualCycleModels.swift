@@ -659,6 +659,39 @@ enum CyclePhase: String, CaseIterable {
         case .unknown: return "questionmark.circle"
         }
     }
+
+    var emojiIcon: String {
+        switch self {
+        case .menstrual: return "🌹"
+        case .follicular: return "🌱"
+        case .ovulation: return "🥚"
+        case .luteal: return "🌙"
+        case .pms: return "☁️"
+        case .unknown: return "❓"
+        }
+    }
+
+    var symptoms: [String] {
+        switch self {
+        case .menstrual: return ["Cramps & lower back pain", "Fatigue & low energy", "Bloating", "Mood changes", "Headaches"]
+        case .follicular: return ["Increased energy", "Improved mood", "Heightened creativity", "Clearer skin"]
+        case .ovulation: return ["Mild pelvic discomfort", "Increased cervical mucus", "Slight rise in body temperature", "Higher libido"]
+        case .luteal: return ["Breast tenderness", "Bloating & water retention", "Mood swings & irritability", "Food cravings", "Fatigue"]
+        case .pms: return ["Irritability", "Anxiety", "Bloating", "Breast tenderness", "Fatigue"]
+        case .unknown: return []
+        }
+    }
+
+    var recommendations: [String] {
+        switch self {
+        case .menstrual: return ["Rest and gentle stretching or yoga", "Stay hydrated and eat iron-rich foods", "Use a heating pad for cramp relief"]
+        case .follicular: return ["Great time for high-intensity workouts", "Start new projects or social activities", "Focus on nutrient-dense whole foods"]
+        case .ovulation: return ["Peak performance time for workouts", "Stay well-hydrated", "Track basal body temperature if monitoring fertility"]
+        case .luteal: return ["Opt for moderate exercise like walking or swimming", "Limit caffeine and salty foods to reduce bloating", "Prioritize sleep and stress management"]
+        case .pms: return ["Reduce caffeine and salt intake", "Gentle exercise can improve mood", "Practice relaxation techniques"]
+        case .unknown: return ["Log your periods to get personalized insights"]
+        }
+    }
 }
 
 // MARK: - Cycle Predictions
