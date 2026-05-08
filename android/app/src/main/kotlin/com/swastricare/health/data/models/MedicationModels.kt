@@ -221,14 +221,11 @@ fun MedicationScheduleDto.buildDosesForDate(
     }
 }
 
-private fun expandScheduleTimes(baseTime: String, count: Int): List<String> {
-    if (count <= 1) return listOf(baseTime)
-    val base = LocalDateTime.of(LocalDate.now(), parseLocalTime(baseTime))
-    val intervalHours = 24 / count
-    return (0 until count).map { i ->
-        base.plusHours((i * intervalHours).toLong())
-            .format(DateTimeFormatter.ofPattern("HH:mm:ss"))
-    }
+private fun expandScheduleTimes(baseTime: String, @Suppress("UNUSED_PARAMETER") count: Int): List<String> {
+    // Each MedicationScheduleDto already stores its own specific time.
+    // Expanding mathematically would multiply doses when multiple schedule
+    // records exist (one per dose time). Always return the stored time directly.
+    return listOf(baseTime)
 }
 
 private fun parseLocalTime(timeStr: String) =

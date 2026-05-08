@@ -57,6 +57,7 @@ import com.swastricare.health.ui.screens.hydration.HydrationScreen
 import com.swastricare.health.ui.screens.hydration.HydrationSettingsScreen
 import com.swastricare.health.ui.screens.main.MainScreen
 import com.swastricare.health.ui.screens.medications.AddMedicationScreen
+import com.swastricare.health.ui.screens.medications.AllMedicationsScreen
 import com.swastricare.health.ui.screens.medications.MedicationDetailScreen
 import com.swastricare.health.ui.screens.medications.MedicationsScreen
 import com.swastricare.health.ui.screens.menstrualcycle.CycleCalendarScreen
@@ -469,12 +470,21 @@ private fun NavGraphBuilder.addDetailRoutes(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAddMedication = { navController.navigate("add_medication") },
             onNavigateToDetail = { id -> navController.navigate("medication_detail/$id") },
-            onNavigateToAI = { navController.popBackStack("main", inclusive = false) }
+            onNavigateToAI = { navController.popBackStack("main", inclusive = false) },
+            onNavigateToAllMedications = { navController.navigate("all_medications") }
         )
     }
 
     detailComposable("add_medication") {
         AddMedicationScreen(onDismiss = { navController.popBackStack() })
+    }
+
+    detailComposable("all_medications") {
+        AllMedicationsScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToDetail = { id -> navController.navigate("medication_detail/$id") },
+            onNavigateToAddMedication = { navController.navigate("add_medication") }
+        )
     }
 
     detailComposable(

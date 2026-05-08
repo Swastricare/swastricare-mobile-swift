@@ -355,6 +355,19 @@ class MedicationsViewModel @Inject constructor(
         }
     }
 
+    fun updateMedicationStatus(medicationId: String, status: String) {
+        viewModelScope.launch {
+            val current = _uiState.value.medicationsWithDoses
+                .firstOrNull { it.medication.id == medicationId }?.medication ?: return@launch
+            val result = repository.upsertMedication(current.copy(status = status))
+            if (result.isSuccess) {
+                loadMedications()
+            } else {
+                _uiState.value = _uiState.value.copy(error = "Failed to update status")
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

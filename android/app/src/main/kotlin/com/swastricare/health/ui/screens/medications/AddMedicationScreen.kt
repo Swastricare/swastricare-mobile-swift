@@ -44,6 +44,7 @@ import com.swastricare.health.ui.components.AppTopBar
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.home.glass
 import com.swastricare.health.ui.screens.home.lightBorder
+import com.swastricare.health.ui.theme.AITeal
 import com.swastricare.health.ui.theme.AppColors
 import java.time.Instant
 import java.time.LocalDate
@@ -91,14 +92,14 @@ private val durationPresets = listOf(
 // ─────────────────────────────────────
 
 private fun defaultScheduleTimes(type: ScheduleType): List<Pair<String, LocalTime>> = when (type) {
-    ScheduleType.ONCE_DAILY   -> listOf("Morning" to LocalTime.of(8, 0))
-    ScheduleType.TWICE_DAILY  -> listOf("Morning" to LocalTime.of(8, 0), "Evening" to LocalTime.of(20, 0))
+    ScheduleType.ONCE_DAILY   -> listOf("Morning" to LocalTime.of(9, 0))
+    ScheduleType.TWICE_DAILY  -> listOf("Morning" to LocalTime.of(9, 0), "Night" to LocalTime.of(21, 0))
     ScheduleType.THRICE_DAILY -> listOf(
-        "Morning" to LocalTime.of(8, 0),
-        "Afternoon" to LocalTime.of(14, 0),
-        "Evening" to LocalTime.of(20, 0)
+        "Morning" to LocalTime.of(9, 0),
+        "Afternoon" to LocalTime.of(13, 0),
+        "Night" to LocalTime.of(21, 0)
     )
-    ScheduleType.CUSTOM       -> listOf("Dose 1" to LocalTime.of(8, 0))
+    ScheduleType.CUSTOM       -> listOf("Dose 1" to LocalTime.of(9, 0))
 }
 
 private fun labelForIndex(index: Int): String = when (index) {
@@ -234,7 +235,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.surface)
+            .background(Color.White)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar with Progress ──
@@ -280,7 +281,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                                 .height(4.dp)
                                 .clip(RoundedCornerShape(2.dp))
                                 .background(
-                                    if (index <= currentStepIndex) MedBrandBlue
+                                    if (index <= currentStepIndex) AITeal
                                     else AppColors.onSurface.copy(alpha = 0.1f)
                                 )
                         )
@@ -402,7 +403,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
             // ── Navigation Buttons ──
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = AppColors.surface,
+                color = Color.White,
                 shadowElevation = if (currentStep != AddMedicationStep.NAME) 8.dp else 0.dp
             ) {
                 Box(
@@ -419,7 +420,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                                     .height(56.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(
-                                        if (canProceed && !isLoading) MedBrandBlue
+                                        if (canProceed && !isLoading) AITeal
                                         else AppColors.onSurface.copy(alpha = 0.2f)
                                     )
                                     .clickable(
@@ -479,7 +480,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                                     .height(56.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(
-                                        if (canProceed) MedBrandBlue
+                                        if (canProceed) AITeal
                                         else AppColors.onSurface.copy(alpha = 0.2f)
                                     )
                                     .clickable(
@@ -538,7 +539,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                         set(idx, get(idx).first to newTime)
                     }
                     showTimePickerForIndex = -1
-                }) { Text("OK", color = MedBrandBlue) }
+                }) { Text("OK", color = AITeal) }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePickerForIndex = -1 }) { Text("Cancel") }
@@ -580,7 +581,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                             .atZone(ZoneId.of("UTC")).toLocalDate()
                     }
                     showStartDatePicker = false
-                }) { Text("OK", color = MedBrandBlue) }
+                }) { Text("OK", color = AITeal) }
             },
             dismissButton = {
                 TextButton(onClick = { showStartDatePicker = false }) { Text("Cancel") }
@@ -602,7 +603,7 @@ fun AddMedicationScreen(onDismiss: () -> Unit) {
                             .atZone(ZoneId.of("UTC")).toLocalDate()
                     }
                     showEndDatePicker = false
-                }) { Text("OK", color = MedBrandBlue) }
+                }) { Text("OK", color = AITeal) }
             },
             dismissButton = {
                 TextButton(onClick = { showEndDatePicker = false }) { Text("Cancel") }
@@ -630,7 +631,7 @@ private fun DrugSuggestionItem(
     ) {
         Icon(
             Icons.Default.Medication, null,
-            tint = MedBrandBlue,
+            tint = AITeal,
             modifier = Modifier.size(20.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
@@ -753,7 +754,7 @@ private fun MedTextField(
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MedBrandBlue,
+            focusedBorderColor = AITeal,
             unfocusedBorderColor = AppColors.onSurface.copy(alpha = 0.1f),
             focusedContainerColor = Color.Transparent,
             unfocusedContainerColor = Color.Transparent,
@@ -808,7 +809,7 @@ private fun EditableTimeRow(
             Text(
                 formatTime12h(time), fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MedBrandBlue
+                color = AITeal
             )
             onRemove?.let {
                 Icon(
@@ -838,7 +839,7 @@ private fun PresetChip(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isSelected) MedBrandBlue
+                if (isSelected) AITeal
                 else AppColors.onSurface.copy(alpha = 0.05f)
             )
             .border(
@@ -879,7 +880,7 @@ private fun DurationModeChip(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isSelected) MedBrandBlue
+                if (isSelected) AITeal
                 else AppColors.onSurface.copy(alpha = 0.05f)
             )
             .border(
@@ -902,7 +903,7 @@ private fun DurationModeChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else MedBrandBlue,
+                tint = if (isSelected) Color.White else AITeal,
                 modifier = Modifier.size(16.dp)
             )
             Text(
@@ -929,7 +930,7 @@ private fun TypeChip(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isSelected) MedBrandBlue
+                if (isSelected) AITeal
                 else AppColors.onSurface.copy(alpha = 0.05f)
             )
             .border(
@@ -952,7 +953,7 @@ private fun TypeChip(
             Icon(
                 imageVector = type.toIcon(),
                 contentDescription = null,
-                tint = if (isSelected) Color.White else MedBrandBlue,
+                tint = if (isSelected) Color.White else AITeal,
                 modifier = Modifier.size(20.dp)
             )
             Text(
@@ -981,7 +982,7 @@ private fun FrequencyChip(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isSelected) MedBrandBlue
+                if (isSelected) AITeal
                 else AppColors.onSurface.copy(alpha = 0.05f)
             )
             .border(
@@ -1005,7 +1006,7 @@ private fun FrequencyChip(
                 text = frequency,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White else MedBrandBlue
+                color = if (isSelected) Color.White else AITeal
             )
             Text(
                 text = label,
@@ -1052,7 +1053,7 @@ private fun DateRow(
         ) {
             Icon(
                 Icons.Default.CalendarToday, null,
-                tint = MedBrandBlue,
+                tint = AITeal,
                 modifier = Modifier.size(18.dp)
             )
             Text(label, fontSize = 14.sp, color = AppColors.onSurface.copy(alpha = 0.6f))
@@ -1121,7 +1122,7 @@ private fun StepMedicationName(
                 Icon(
                     Icons.Default.Search,
                     contentDescription = null,
-                    tint = MedBrandBlue,
+                    tint = AITeal,
                     modifier = Modifier.size(24.dp)
                 )
             },
@@ -1130,7 +1131,7 @@ private fun StepMedicationName(
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
-                        color = MedBrandBlue
+                        color = AITeal
                     )
                 }
             } else if (name.isNotBlank()) {
@@ -1184,13 +1185,13 @@ private fun StepMedicationName(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(MedBrandBlue.copy(alpha = 0.1f)),
+                                .background(AITeal.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.Medication,
                                 contentDescription = null,
-                                tint = MedBrandBlue,
+                                tint = AITeal,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -1269,7 +1270,7 @@ private fun StepDosage(
                 Icon(
                     Icons.Default.Science,
                     contentDescription = null,
-                    tint = MedBrandBlue,
+                    tint = AITeal,
                     modifier = Modifier.size(24.dp)
                 )
             },
@@ -1302,7 +1303,7 @@ private fun StepDosage(
                 Icon(
                     Icons.Default.Label,
                     contentDescription = null,
-                    tint = MedBrandBlue,
+                    tint = AITeal,
                     modifier = Modifier.size(24.dp)
                 )
             },
@@ -1412,7 +1413,7 @@ private fun TypeCardClean(
             .aspectRatio(1f)
             .clip(RoundedCornerShape(20.dp))
             .background(
-                if (isSelected) MedBrandBlue
+                if (isSelected) AITeal
                 else AppColors.onSurface.copy(alpha = 0.04f)
             )
             .clickable {
@@ -1429,7 +1430,7 @@ private fun TypeCardClean(
             Icon(
                 imageVector = type.toIcon(),
                 contentDescription = null,
-                tint = if (isSelected) Color.White else MedBrandBlue,
+                tint = if (isSelected) Color.White else AITeal,
                 modifier = Modifier.size(36.dp)
             )
             Text(
@@ -1487,7 +1488,7 @@ private fun StepSchedule(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(
-                            if (selectedSchedule == schedule) MedBrandBlue
+                            if (selectedSchedule == schedule) AITeal
                             else AppColors.onSurface.copy(alpha = 0.04f)
                         )
                         .clickable {
@@ -1506,7 +1507,7 @@ private fun StepSchedule(
                                 .clip(CircleShape)
                                 .background(
                                     if (selectedSchedule == schedule) Color.White.copy(alpha = 0.2f)
-                                    else MedBrandBlue.copy(alpha = 0.1f)
+                                    else AITeal.copy(alpha = 0.1f)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -1514,7 +1515,7 @@ private fun StepSchedule(
                                 "${schedule.dosesPerDay}x",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (selectedSchedule == schedule) Color.White else MedBrandBlue
+                                color = if (selectedSchedule == schedule) Color.White else AITeal
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
@@ -1549,7 +1550,7 @@ private fun StepSchedule(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (selectedSchedule == ScheduleType.CUSTOM) MedBrandBlue
+                        if (selectedSchedule == ScheduleType.CUSTOM) AITeal
                         else AppColors.onSurface.copy(alpha = 0.04f)
                     )
                     .clickable {
@@ -1568,14 +1569,14 @@ private fun StepSchedule(
                             .clip(CircleShape)
                             .background(
                                 if (selectedSchedule == ScheduleType.CUSTOM) Color.White.copy(alpha = 0.2f)
-                                else MedBrandBlue.copy(alpha = 0.1f)
+                                else AITeal.copy(alpha = 0.1f)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = null,
-                            tint = if (selectedSchedule == ScheduleType.CUSTOM) Color.White else MedBrandBlue,
+                            tint = if (selectedSchedule == ScheduleType.CUSTOM) Color.White else AITeal,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -1632,7 +1633,7 @@ private fun StepSchedule(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(MedBrandBlue.copy(alpha = 0.08f))
+                        .background(AITeal.copy(alpha = 0.08f))
                         .clickable {
                             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             onAddTime()
@@ -1647,14 +1648,14 @@ private fun StepSchedule(
                         Icon(
                             Icons.Default.Add,
                             contentDescription = null,
-                            tint = MedBrandBlue,
+                            tint = AITeal,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
                             "Add time slot",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MedBrandBlue
+                            color = AITeal
                         )
                     }
                 }
@@ -1691,7 +1692,7 @@ private fun TimeSlotCard(
             Icon(
                 Icons.Default.Schedule,
                 contentDescription = null,
-                tint = MedBrandBlue,
+                tint = AITeal,
                 modifier = Modifier.size(22.dp)
             )
             Text(
@@ -1796,7 +1797,7 @@ private fun StepDuration(
                     Icon(
                         Icons.Default.CalendarToday,
                         contentDescription = null,
-                        tint = MedBrandBlue,
+                        tint = AITeal,
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
@@ -1822,7 +1823,7 @@ private fun StepDuration(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (durationMode == DurationMode.ONGOING) MedBrandBlue
+                        if (durationMode == DurationMode.ONGOING) AITeal
                         else AppColors.onSurface.copy(alpha = 0.04f)
                     )
                     .clickable {
@@ -1838,7 +1839,7 @@ private fun StepDuration(
                     Icon(
                         Icons.Default.AllInclusive,
                         contentDescription = null,
-                        tint = if (durationMode == DurationMode.ONGOING) Color.White else MedBrandBlue,
+                        tint = if (durationMode == DurationMode.ONGOING) Color.White else AITeal,
                         modifier = Modifier.size(28.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -1872,7 +1873,7 @@ private fun StepDuration(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (durationMode == DurationMode.PRESET) MedBrandBlue
+                        if (durationMode == DurationMode.PRESET) AITeal
                         else AppColors.onSurface.copy(alpha = 0.04f)
                     )
                     .clickable {
@@ -1888,7 +1889,7 @@ private fun StepDuration(
                     Icon(
                         Icons.Default.Timer,
                         contentDescription = null,
-                        tint = if (durationMode == DurationMode.PRESET) Color.White else MedBrandBlue,
+                        tint = if (durationMode == DurationMode.PRESET) Color.White else AITeal,
                         modifier = Modifier.size(28.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -1922,7 +1923,7 @@ private fun StepDuration(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (durationMode == DurationMode.MANUAL) MedBrandBlue
+                        if (durationMode == DurationMode.MANUAL) AITeal
                         else AppColors.onSurface.copy(alpha = 0.04f)
                     )
                     .clickable {
@@ -1938,7 +1939,7 @@ private fun StepDuration(
                     Icon(
                         Icons.Default.CalendarToday,
                         contentDescription = null,
-                        tint = if (durationMode == DurationMode.MANUAL) Color.White else MedBrandBlue,
+                        tint = if (durationMode == DurationMode.MANUAL) Color.White else AITeal,
                         modifier = Modifier.size(28.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -1972,7 +1973,7 @@ private fun StepDuration(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (durationMode == DurationMode.QUANTITY) MedBrandBlue
+                        if (durationMode == DurationMode.QUANTITY) AITeal
                         else AppColors.onSurface.copy(alpha = 0.04f)
                     )
                     .clickable {
@@ -1988,7 +1989,7 @@ private fun StepDuration(
                     Icon(
                         Icons.Default.Calculate,
                         contentDescription = null,
-                        tint = if (durationMode == DurationMode.QUANTITY) Color.White else MedBrandBlue,
+                        tint = if (durationMode == DurationMode.QUANTITY) Color.White else AITeal,
                         modifier = Modifier.size(28.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -2030,7 +2031,7 @@ private fun StepDuration(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(
-                                    if (selectedPreset == preset) MedBrandBlue
+                                    if (selectedPreset == preset) AITeal
                                     else AppColors.onSurface.copy(alpha = 0.05f)
                                 )
                                 .clickable {
@@ -2054,7 +2055,7 @@ private fun StepDuration(
                         "Ends ${presetEndDate.format(dateFormatter)}",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
-                        color = MedTealGreen,
+                        color = AITeal,
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
@@ -2089,7 +2090,7 @@ private fun StepDuration(
                         Icon(
                             Icons.Default.Event,
                             contentDescription = null,
-                            tint = MedBrandBlue,
+                            tint = AITeal,
                             modifier = Modifier.size(22.dp)
                         )
                         Text(
@@ -2128,7 +2129,7 @@ private fun StepDuration(
                         Icon(
                             Icons.Default.Inventory2,
                             contentDescription = null,
-                            tint = MedBrandBlue,
+                            tint = AITeal,
                             modifier = Modifier.size(24.dp)
                         )
                     },
@@ -2161,7 +2162,7 @@ private fun StepDuration(
                         Icon(
                             Icons.Default.Medication,
                             contentDescription = null,
-                            tint = MedBrandBlue,
+                            tint = AITeal,
                             modifier = Modifier.size(24.dp)
                         )
                     },
@@ -2185,7 +2186,7 @@ private fun StepDuration(
                         "$calculatedDays days — ends ${calculatedEndDate.format(dateFormatter)}",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
-                        color = MedTealGreen,
+                        color = AITeal,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -2348,7 +2349,7 @@ private fun ReviewItem(
         Icon(
             icon,
             contentDescription = null,
-            tint = MedBrandBlue,
+            tint = AITeal,
             modifier = Modifier.size(20.dp)
         )
         Column {
