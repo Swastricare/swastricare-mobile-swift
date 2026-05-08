@@ -26,7 +26,7 @@ final class MenstrualCycleViewModel: ObservableObject {
     @Published private(set) var calendarData: [CalendarDayData] = []
     @Published private(set) var insights: CycleInsights?
     
-    @Published private(set) var isLoading = false
+    @Published private(set) var isLoading = true
     @Published private(set) var isSyncing = false
     @Published var errorMessage: String?
     
@@ -72,8 +72,7 @@ final class MenstrualCycleViewModel: ObservableObject {
     }
     
     var cycleProgress: Double {
-        guard let stats = statistics else { return 0 }
-        let avgLength = Int(stats.averageCycleLength)
+        let avgLength = statistics.map { Int($0.averageCycleLength) } ?? settings.averageCycleLength
         guard avgLength > 0, dayOfCycle > 0 else { return 0 }
         return min(1.0, Double(dayOfCycle) / Double(avgLength))
     }
@@ -461,13 +460,14 @@ final class MenstrualCycleViewModel: ObservableObject {
     // MARK: - Private Helpers
     
     private func updateCalendarData(for month: Date) {
+        let cal = Calendar.current
+        let prevMonth = cal.date(byAdding: .month, value: -1, to: month) ?? month
+        let nextMonth = cal.date(byAdding: .month, value: 1, to: month) ?? month
         dailyLogs = service.loadDailyLogs(for: month)
-        calendarData = service.getCalendarData(
-            for: month,
-            cycles: cycles,
-            logs: dailyLogs,
-            prediction: prediction
-        )
+        let allLogs = loadAllLogs()
+        calendarData = service.getCalendarData(for: prevMonth, cycles: cycles, logs: allLogs, prediction: prediction)
+            + service.getCalendarData(for: month, cycles: cycles, logs: allLogs, prediction: prediction)
+            + service.getCalendarData(for: nextMonth, cycles: cycles, logs: allLogs, prediction: prediction)
     }
     
     private func loadAllLogs() -> [MenstrualDailyLog] {

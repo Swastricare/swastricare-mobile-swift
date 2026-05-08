@@ -91,9 +91,7 @@ struct MenstrualCycleView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                phaseBackground(viewModel.currentPhase)
-                    .ignoresSafeArea()
-                    .animation(.easeInOut(duration: 0.4), value: viewModel.currentPhase)
+                Color.white.ignoresSafeArea()
 
                 if viewModel.isLoading {
                     ProgressView()
@@ -161,6 +159,18 @@ struct MenstrualCycleView: View {
             .onAppear {
                 withAnimation(.spring(response: 1.2, dampingFraction: 0.75).delay(0.1)) { ringAppeared = true }
             }
+            .onChange(of: weekOffset) { _, _ in
+                let cal = Calendar.current
+                let today = cal.startOfDay(for: Date())
+                let weekday = cal.component(.weekday, from: today) - 1
+                let baseSunday = cal.date(byAdding: .day, value: -weekday, to: today)!
+                let weekStart = cal.date(byAdding: .weekOfYear, value: weekOffset, to: baseSunday)!
+                // Reload calendar data if we've navigated outside the current 3-month window
+                let diff = cal.dateComponents([.month], from: viewModel.selectedMonth, to: weekStart).month ?? 0
+                if abs(diff) > 1 {
+                    viewModel.selectedMonth = weekStart
+                }
+            }
         }
         .trackScreen("MenstrualCycle")
     }
@@ -170,83 +180,60 @@ struct MenstrualCycleView: View {
     private var weekCalendarStrip: some View {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
-        let weekday = cal.component(.weekday, from: today) - 1
-        let baseSunday = cal.date(byAdding: .day, value: -weekday, to: today)!
-        let weekStart = cal.date(byAdding: .weekOfYear, value: weekOffset, to: baseSunday)!
+        let weekdayIdx = cal.component(.weekday, from: today) - 1
+        guard let baseSunday = cal.date(byAdding: .day, value: -weekdayIdx, to: today),
+              let weekStart = cal.date(byAdding: .weekOfYear, value: weekOffset, to: baseSunday) else {
+            return AnyView(EmptyView())
+        }
         let weekDays = (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: weekStart) }
         let dayLetters = ["S","M","T","W","T","F","S"]
         let monthLabel = weekStart.formatted(.dateTime.month(.abbreviated).year())
 
-        return VStack(spacing: 10) {
-            HStack {
-                Button { withAnimation { weekOffset -= 1 } } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 32, height: 32)
-                }
-                Spacer()
-                Text(monthLabel)
-                    .font(.poppins(.semiBold, size: 13))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button { withAnimation { weekOffset += 1 } } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 32, height: 32)
-                }
-            }
-            .padding(.horizontal, 8)
-
-            HStack(spacing: 0) {
-                ForEach(Array(weekDays.enumerated()), id: \.offset) { idx, day in
-                    let isToday = cal.isDateInToday(day)
-                    let dayData = viewModel.calendarData.first(where: { cal.isDate($0.date, inSameDayAs: day) })
-                    let isLogged = dayData?.isPeriodDay == true
-                    let isFertile = dayData?.isFertileDay == true
-                    let isPredicted = dayData?.isPredictedPeriod == true
-
-                    let bgColor: Color = {
-                        if isToday { return cycleBlue }
-                        if isLogged { return cyclePink.opacity(0.8) }
-                        if isFertile { return cycleOrange.opacity(0.3) }
-                        if isPredicted { return cyclePink.opacity(0.2) }
-                        return .clear
-                    }()
-                    let textColor: Color = (isToday || isLogged) ? .white : .primary
-
-                    VStack(spacing: 4) {
-                        Text(dayLetters[idx])
-                            .font(.poppins(.medium, size: 11))
-                            .foregroundStyle(isToday ? cycleBlue : .secondary)
-
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(bgColor)
-                                .frame(width: 36, height: 36)
-                            Text("\(cal.component(.day, from: day))")
-                                .font(.poppins(isToday || isLogged ? .bold : .regular, size: 14))
-                                .foregroundStyle(textColor)
-                        }
-                        .onTapGesture {
-                            viewModel.selectDate(day)
-                            viewModel.showDailyLogSheet = true
-                        }
-
-                        Circle()
-                            .fill(isToday ? cycleBlue : .clear)
-                            .frame(width: 4, height: 4)
+        return AnyView(
+            VStack(spacing: 10) {
+                HStack {
+                    Button { withAnimation { weekOffset -= 1 } } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 32, height: 32)
                     }
-                    .frame(maxWidth: .infinity)
+                    Spacer()
+                    Text(monthLabel)
+                        .font(.poppins(.semiBold, size: 13))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button { withAnimation { weekOffset += 1 } } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 32, height: 32)
+                    }
                 }
+                .padding(.horizontal, 8)
+
+                HStack(spacing: 0) {
+                    ForEach(0..<7, id: \.self) { idx in
+                        if idx < weekDays.count {
+                            CycleDayCell(
+                                day: weekDays[idx],
+                                letter: dayLetters[idx],
+                                calendarData: viewModel.calendarData,
+                                onTap: { day in
+                                    viewModel.selectDate(day)
+                                    viewModel.showDailyLogSheet = true
+                                }
+                            )
+                        }
+                    }
+                }
+                .padding(.horizontal, 8)
             }
-            .padding(.horizontal, 8)
-        }
-        .padding(16)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+            .padding(16)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+        )
     }
 
     // MARK: - Ring Card
@@ -622,6 +609,55 @@ private extension CyclePhase {
 }
 
 // MARK: - Supporting Views
+
+private struct CycleDayCell: View {
+    let day: Date
+    let letter: String
+    let calendarData: [CalendarDayData]
+    let onTap: (Date) -> Void
+
+    private var cal: Calendar { .current }
+
+    private var isToday: Bool { cal.isDateInToday(day) }
+    private var dayData: CalendarDayData? {
+        calendarData.first { cal.isDate($0.date, inSameDayAs: day) }
+    }
+    private var isLogged: Bool { dayData?.isPeriodDay == true }
+    private var isFertile: Bool { dayData?.isFertileDay == true }
+    private var isPredicted: Bool { dayData?.isPredictedPeriod == true }
+
+    private var bgColor: Color {
+        if isToday   { return cycleBlue }
+        if isLogged  { return cyclePink.opacity(0.8) }
+        if isFertile { return cycleOrange.opacity(0.3) }
+        if isPredicted { return cyclePink.opacity(0.2) }
+        return .clear
+    }
+    private var textColor: Color { (isToday || isLogged) ? .white : .primary }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(letter)
+                .font(.poppins(.medium, size: 11))
+                .foregroundStyle(isToday ? cycleBlue : .secondary)
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(bgColor)
+                    .frame(width: 36, height: 36)
+                Text("\(cal.component(.day, from: day))")
+                    .font(.poppins(isToday || isLogged ? .bold : .regular, size: 14))
+                    .foregroundStyle(textColor)
+            }
+            .onTapGesture { onTap(day) }
+
+            Circle()
+                .fill(isToday ? cycleBlue : .clear)
+                .frame(width: 4, height: 4)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
 
 private struct LegendRow: View {
     let color: Color; let label: String
