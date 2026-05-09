@@ -2,7 +2,11 @@ package com.swastricare.health.ui.screens.home
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -20,11 +24,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.draw.rotate
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,6 +111,23 @@ fun HomeScreenV3(
     LaunchedEffect(Unit) { medicationsViewModel.loadMedications() }
     LaunchedEffect(Unit) { viewModel.refreshActivityGoals() }
 
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            delay(1500)
+            isRefreshing = false
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "refresh")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(700, easing = LinearEasing)),
+        label = "refreshRotation"
+    )
+
     val takenCount = medicationsState.allDosesToday.count {
         it.status == AdherenceStatus.TAKEN ||
             it.status == AdherenceStatus.LATE ||
@@ -135,7 +159,45 @@ fun HomeScreenV3(
                 onNotifications = onNavigateToNotifications
             )
 
-            Spacer(Modifier.height(sectionGap - 6.dp))
+            Spacer(Modifier.height(sectionGap - 10.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Today's Activity",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DarkText
+                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isRefreshing) PremiumColors.Teal.copy(alpha = 0.1f) else Color(0xFFF3F4F6), CircleShape)
+                        .clickable(enabled = !isRefreshing) {
+                            isRefreshing = true
+                            viewModel.refresh()
+                            medicationsViewModel.loadMedications()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = if (isRefreshing) PremiumColors.Teal else MutedText,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .then(if (isRefreshing) Modifier.rotate(rotation) else Modifier)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             DailyActivityCard(
                 steps = uiState.stepCount,

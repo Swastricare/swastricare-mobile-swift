@@ -15,6 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -85,18 +88,19 @@ private data class BadgeInfo(val label: String, val bg: Color, val text: Color)
 
 private fun MedicationWithDoses.badge(): BadgeInfo {
     val endDatePassed = medication.endDate != null && !medication.isOngoing &&
-        runCatching { LocalDate.parse(medication.endDate).isBefore(LocalDate.now()) }.getOrDefault(false)
+        runCatching { LocalDate.parse(medication.endDate!!.take(10)).isBefore(LocalDate.now()) }.getOrDefault(false)
 
-    return when {
-        medication.status == "discontinued" ->
-            BadgeInfo("Discontinued", Color(0xFFF0F0F0), Color(0xFF888888))
-        medication.status == "completed" || endDatePassed ->
-            BadgeInfo("Completed", Color(0xFFF0F0F0), Color(0xFF888888))
-        todayDoses.isNotEmpty() &&
-            todayDoses.all { it.status == AdherenceStatus.PENDING && it.scheduledTime.isAfter(LocalDateTime.now()) } ->
-            BadgeInfo("Upcoming", Color(0xFFFFF3E0), Color(0xFFFF9500))
-        else ->
-            BadgeInfo("Active", Color(0xFFE8F9F3), AITeal)
+    return when (medication.status) {
+        "discontinued" -> BadgeInfo("Discontinued", Color(0xFFF0F0F0), Color(0xFF888888))
+        "completed"    -> BadgeInfo("Completed",    Color(0xFFF0F0F0), Color(0xFF888888))
+        "paused"       -> BadgeInfo("Paused",        Color(0xFFFFF3E0), Color(0xFFFF9500))
+        else -> when {
+            endDatePassed -> BadgeInfo("Completed", Color(0xFFF0F0F0), Color(0xFF888888))
+            todayDoses.isNotEmpty() &&
+                todayDoses.all { it.status == AdherenceStatus.PENDING && it.scheduledTime.isAfter(LocalDateTime.now()) } ->
+                BadgeInfo("Upcoming", Color(0xFFFFF3E0), Color(0xFFFF9500))
+            else -> BadgeInfo("Active", Color(0xFFE8F9F3), AITeal)
+        }
     }
 }
 
@@ -132,6 +136,15 @@ fun AllMedicationsScreen(
     val vm: MedicationsViewModel = hiltViewModel()
     val uiState by vm.uiState.collectAsState()
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) vm.loadMedications()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     var filter by remember { mutableStateOf(MedFilter.ALL) }
     var searchQuery by remember { mutableStateOf("") }
     var searchActive by remember { mutableStateOf(false) }
@@ -139,10 +152,10 @@ fun AllMedicationsScreen(
     val filtered = remember(uiState.medicationsWithDoses, filter, searchQuery) {
         uiState.medicationsWithDoses.filter { mwd ->
             val endDatePassed = mwd.medication.endDate != null && !mwd.medication.isOngoing &&
-                runCatching { LocalDate.parse(mwd.medication.endDate).isBefore(LocalDate.now()) }.getOrDefault(false)
+                runCatching { LocalDate.parse(mwd.medication.endDate!!.take(10)).isBefore(LocalDate.now()) }.getOrDefault(false)
             val matchesFilter = when (filter) {
                 MedFilter.ALL          -> true
-                MedFilter.ACTIVE       -> mwd.medication.status == "active" && !endDatePassed
+                MedFilter.ACTIVE       -> mwd.medication.status in listOf("active", "paused") && !endDatePassed
                 MedFilter.COMPLETED    -> mwd.medication.status == "completed" || endDatePassed
                 MedFilter.DISCONTINUED -> mwd.medication.status == "discontinued"
             }

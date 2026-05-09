@@ -108,11 +108,7 @@ data class MedicationScheduleDto(
     @EncodeDefault(ALWAYS) @SerialName("reminder_enabled") val reminderEnabled: Boolean = true,
     @EncodeDefault(ALWAYS) @SerialName("is_active") val isActive: Boolean = true,
     @SerialName("days_of_week") val daysOfWeek: List<Int>? = null
-) {
-    init {
-        require(dosageAmount > 0) { "Dosage must be positive" }
-    }
-}
+)
 
 /** Maps to `medication_logs` table */
 @OptIn(ExperimentalSerializationApi::class)

@@ -40,7 +40,8 @@ fun MedicationsScreen(
     onNavigateToAddMedication: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToAI: () -> Unit,
-    onNavigateToAllMedications: () -> Unit = {}
+    onNavigateToAllMedications: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {}
 ) {
     TrackScreen("Medications")
     val vm: MedicationsViewModel = hiltViewModel()
@@ -100,11 +101,6 @@ fun MedicationsScreen(
             Box(Modifier.padding(innerPadding)) {
                 MedicationScreenSkeleton()
             }
-        } else if (!uiState.isLoading && uiState.medicationsWithDoses.isEmpty()) {
-            MedicationsEmptyContent(
-                onAdd = onNavigateToAddMedication,
-                modifier = Modifier.padding(innerPadding)
-            )
         } else {
             LazyColumn(
                 modifier = Modifier
@@ -196,6 +192,9 @@ fun MedicationsScreen(
                 item {
                     Spacer(Modifier.height(16.dp))
                     RemindersToggleCard(
+                        enabled = uiState.remindersEnabled,
+                        onToggle = { vm.setRemindersEnabled(it) },
+                        onNavigateToNotifications = onNavigateToNotifications,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
@@ -233,35 +232,6 @@ fun MedicationsScreen(
                 TextButton(onClick = { deleteMedicationId = null }) { Text("Cancel") }
             }
         )
-    }
-}
-
-// ─────────────────────────────────────
-// MARK: - Empty State
-// ─────────────────────────────────────
-
-@Composable
-private fun MedicationsEmptyContent(onAdd: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        com.swastricare.health.ui.components.EmptyStateView(
-            title = "No medications added",
-            subtitle = "Tap + to add your first medication and set reminders.",
-            illustrationAsset = "illustrations/medication - holding pill bottle .png"
-        )
-        Spacer(Modifier.height(16.dp))
-        Button(
-            onClick = onAdd,
-            colors = ButtonDefaults.buttonColors(containerColor = AITeal),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = Color.White)
-            Spacer(Modifier.width(8.dp))
-            Text("Add Medication", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-        }
     }
 }
 

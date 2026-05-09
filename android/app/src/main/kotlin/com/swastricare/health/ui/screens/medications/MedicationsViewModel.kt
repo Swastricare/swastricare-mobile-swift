@@ -13,6 +13,7 @@ import com.swastricare.health.data.repository.SupabaseMedicationRepository
 import com.swastricare.health.data.repository.SupabaseProfileRepository
 import com.swastricare.health.data.services.AnalyticsService
 import com.swastricare.health.data.services.MedicationAlarmScheduler
+import com.swastricare.health.data.services.NotificationService
 import com.swastricare.health.domain.repository.AuthRepository
 import com.swastricare.health.notifications.MedicationReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,7 +37,8 @@ data class MedicationsUiState(
     val statistics: AdherenceStatistics = AdherenceStatistics.Empty,
     val selectedDate: LocalDate = LocalDate.now(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val remindersEnabled: Boolean = true
 ) {
     /** All doses for selectedDate, flattened and sorted by time */
     val allDosesToday: List<MedicationDose> get() =
@@ -58,6 +60,7 @@ class MedicationsViewModel @Inject constructor(
     private val profileRepository: SupabaseProfileRepository,
     private val analyticsService: AnalyticsService,
     private val medicationAlarmScheduler: MedicationAlarmScheduler,
+    private val notificationService: NotificationService,
     private val authRepository: AuthRepository,
     private val drugSearchRepository: DrugSearchRepository,
     @ApplicationContext private val context: Context
@@ -67,7 +70,9 @@ class MedicationsViewModel @Inject constructor(
         private const val TAG = "MedicationsVM"
     }
 
-    private val _uiState = MutableStateFlow(MedicationsUiState(isLoading = true))
+    private val _uiState = MutableStateFlow(
+        MedicationsUiState(isLoading = true, remindersEnabled = notificationService.medicationEnabled)
+    )
     val uiState: StateFlow<MedicationsUiState> = _uiState.asStateFlow()
 
     // ── Drug Search State ──
@@ -84,8 +89,7 @@ class MedicationsViewModel @Inject constructor(
     val addMedicationSuccess: StateFlow<Boolean?> = _addMedicationSuccess.asStateFlow()
 
     private var searchJob: Job? = null
-
-    // Resolved from authenticated user
+    private var hasEverLoaded = false
 
     init {
         // Load from cache immediately for instant display
@@ -115,12 +119,9 @@ class MedicationsViewModel @Inject constructor(
 
     fun loadMedications(date: LocalDate = _uiState.value.selectedDate) {
         viewModelScope.launch {
-            // Only show loading on first load (when no data yet)
-            val isFirstLoad = _uiState.value.medicationsWithDoses.isEmpty()
-            if (isFirstLoad) {
+            if (!hasEverLoaded) {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null, selectedDate = date)
             } else {
-                // Don't show loading spinner if we already have data - just update date
                 _uiState.value = _uiState.value.copy(error = null, selectedDate = date)
             }
 
@@ -133,12 +134,15 @@ class MedicationsViewModel @Inject constructor(
                 Log.d(TAG, "loadMedications: ${medications.size} meds, ${schedules.size} schedules, ${logs.size} logs")
 
                 repository.cacheMedications(medications)
-                medicationAlarmScheduler.scheduleAll(schedules, medications)
+                val activeMedications = medications.filter { it.status == "active" }
+                val activeSchedules = schedules.filter { s -> activeMedications.any { it.id == s.medicationId } }
+                medicationAlarmScheduler.cancelAll(schedules)
+                medicationAlarmScheduler.scheduleAll(activeSchedules, activeMedications)
 
                 val withDoses = buildMedicationsWithDoses(medications, schedules, logs, date)
                 val stats = computeStats(withDoses)
 
-                // Single state update with all data to prevent flicker
+                hasEverLoaded = true
                 _uiState.value = _uiState.value.copy(
                     medicationsWithDoses = withDoses,
                     statistics = stats,
@@ -148,6 +152,7 @@ class MedicationsViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "loadMedications failed", e)
+                hasEverLoaded = true
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Unable to load medications. Please try again."
@@ -311,20 +316,26 @@ class MedicationsViewModel @Inject constructor(
     }
 
     fun deleteMedication(medicationId: String) {
-        viewModelScope.launch {
-            // Grab schedules before deletion so we can cancel their alarms
-            val schedulesToCancel = _uiState.value.medicationsWithDoses
-                .firstOrNull { it.medication.id == medicationId }
-                ?.schedules.orEmpty()
+        val schedulesToCancel = _uiState.value.medicationsWithDoses
+            .firstOrNull { it.medication.id == medicationId }
+            ?.schedules.orEmpty()
 
+        // Optimistic removal — update UI immediately
+        _uiState.value = _uiState.value.copy(
+            medicationsWithDoses = _uiState.value.medicationsWithDoses
+                .filter { it.medication.id != medicationId }
+        )
+
+        viewModelScope.launch {
             val result = repository.deleteMedication(medicationId)
             if (result.isSuccess) {
-                // Cancel reminders for deleted medication's schedules
                 schedulesToCancel.forEach { schedule ->
                     MedicationReminderScheduler.cancel(context, schedule.id)
                 }
-                loadMedications()
+                // No reload — optimistic removal is correct; ON_RESUME will sync on next visit
             } else {
+                // Revert on failure
+                loadMedications()
                 _uiState.value = _uiState.value.copy(error = "Failed to delete medication")
             }
         }
@@ -356,13 +367,32 @@ class MedicationsViewModel @Inject constructor(
     }
 
     fun updateMedicationStatus(medicationId: String, status: String) {
+        val mwd = _uiState.value.medicationsWithDoses
+            .firstOrNull { it.medication.id == medicationId } ?: return
+
+        // Optimistic update — show new status immediately, persist in background
+        _uiState.value = _uiState.value.copy(
+            medicationsWithDoses = _uiState.value.medicationsWithDoses.map { m ->
+                if (m.medication.id == medicationId)
+                    m.copy(medication = m.medication.copy(status = status))
+                else m
+            }
+        )
+
+        // Sync reminders with new status
+        if (status == "active") {
+            medicationAlarmScheduler.scheduleAll(mwd.schedules, listOf(mwd.medication.copy(status = status)))
+        } else {
+            medicationAlarmScheduler.cancelAll(mwd.schedules)
+        }
+
         viewModelScope.launch {
             val current = _uiState.value.medicationsWithDoses
                 .firstOrNull { it.medication.id == medicationId }?.medication ?: return@launch
-            val result = repository.upsertMedication(current.copy(status = status))
-            if (result.isSuccess) {
+            val result = repository.upsertMedication(current)
+            if (result.isFailure) {
+                // Revert on failure — also revert reminders
                 loadMedications()
-            } else {
                 _uiState.value = _uiState.value.copy(error = "Failed to update status")
             }
         }
@@ -370,6 +400,20 @@ class MedicationsViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun setRemindersEnabled(enabled: Boolean) {
+        notificationService.medicationEnabled = enabled
+        _uiState.value = _uiState.value.copy(remindersEnabled = enabled)
+        val allSchedules = _uiState.value.medicationsWithDoses.flatMap { it.schedules }
+        if (!enabled) {
+            medicationAlarmScheduler.cancelAll(allSchedules)
+        } else {
+            val activeMeds = _uiState.value.medicationsWithDoses
+                .filter { it.medication.status == "active" }
+            val activeSchedules = activeMeds.flatMap { it.schedules }
+            medicationAlarmScheduler.scheduleAll(activeSchedules, activeMeds.map { it.medication })
+        }
     }
 
     // ─────────────────────────────────────
@@ -433,25 +477,30 @@ class MedicationsViewModel @Inject constructor(
         date: LocalDate
     ): List<MedicationWithDoses> {
         return medications.mapNotNull { med ->
-            // Parse start and end dates
-            val startDate = med.startDate?.let { LocalDate.parse(it) }
-            val endDate = med.endDate?.let { LocalDate.parse(it) }
+            val medSchedules = schedules.filter { it.medicationId == med.id }
 
-            // Check if medication is active on the selected date
+            // Non-active medications (completed, paused, stopped) appear in the list
+            // but have no today's doses — matches iOS behavior
+            if (med.status != "active") {
+                return@mapNotNull MedicationWithDoses(
+                    medication = med,
+                    schedules = medSchedules,
+                    todayDoses = emptyList()
+                )
+            }
+
+            // Active medications: check if the medication applies to the selected date
+            val startDate = runCatching { med.startDate?.let { LocalDate.parse(it.take(10)) } }.getOrNull()
+            val endDate = runCatching { med.endDate?.let { LocalDate.parse(it.take(10)) } }.getOrNull()
             val isActiveOnDate = when {
-                // If start date exists and selected date is before it, exclude
                 startDate != null && date.isBefore(startDate) -> false
-                // If end date exists and selected date is after it, exclude (only if not ongoing)
                 !med.isOngoing && endDate != null && date.isAfter(endDate) -> false
-                // Otherwise, include
                 else -> true
             }
 
-            if (!isActiveOnDate) {
-                return@mapNotNull null
-            }
+            // Exclude medications not yet started or already ended from the list entirely
+            if (!isActiveOnDate) return@mapNotNull null
 
-            val medSchedules = schedules.filter { it.medicationId == med.id }
             val medLogs = logs.filter { it.medicationId == med.id }
             val doses = medSchedules.flatMap { schedule ->
                 schedule.buildDosesForDate(med, date, medLogs)

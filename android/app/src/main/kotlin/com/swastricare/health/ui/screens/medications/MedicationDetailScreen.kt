@@ -208,6 +208,16 @@ fun MedicationDetailScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF1C1C1E)
                                 )
+                                val statusColor = when (med.status?.lowercase()) {
+                                    "completed" -> Color(0xFF007AFF)
+                                    "paused"    -> Color(0xFFFF9500)
+                                    else        -> Color(0xFF34C759)
+                                }
+                                val statusLabel = when (med.status?.lowercase()) {
+                                    "completed" -> "Completed"
+                                    "paused"    -> "Paused"
+                                    else        -> "Active"
+                                }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(5.dp)
@@ -216,13 +226,13 @@ fun MedicationDetailScreen(
                                         modifier = Modifier
                                             .size(7.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFF34C759))
+                                            .background(statusColor)
                                     )
                                     Text(
-                                        "Active",
+                                        statusLabel,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = Color(0xFF34C759)
+                                        color = statusColor
                                     )
                                 }
                                 Spacer(Modifier.height(2.dp))
@@ -414,6 +424,58 @@ fun MedicationDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel", color = Color(0xFF8E8E93)) }
+            }
+        )
+    }
+
+    // ── Change Status Dialog ──
+    if (showStatusDialog) {
+        AlertDialog(
+            onDismissRequest = { showStatusDialog = false },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("Change Status", fontWeight = FontWeight.SemiBold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(
+                        "active"    to "Active",
+                        "paused"    to "Paused",
+                        "completed" to "Completed"
+                    ).forEach { (value, label) ->
+                        val isCurrent = med.status == value
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isCurrent) AITeal.copy(alpha = 0.08f) else Color.Transparent)
+                                .clickable {
+                                    vm.updateMedicationStatus(medicationId, value)
+                                    showStatusDialog = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 15.sp,
+                                fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isCurrent) AITeal else Color(0xFF1A1A2E)
+                            )
+                            if (isCurrent) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = AITeal,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showStatusDialog = false }) { Text("Cancel", color = Color(0xFF8E8E93)) }
             }
         )
     }

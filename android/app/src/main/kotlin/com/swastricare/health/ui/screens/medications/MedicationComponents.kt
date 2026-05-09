@@ -17,7 +17,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,10 +32,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.layout.ContentScale
@@ -897,19 +894,6 @@ fun MedHeroSection(
                     color = Color(0xFF666666)
                 )
             }
-            val ctx = LocalContext.current
-            IconButton(onClick = {
-                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                    putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)
-                }
-                ctx.startActivity(intent)
-            }) {
-                Icon(
-                    Icons.Default.Notifications,
-                    contentDescription = "Notifications",
-                    tint = Color(0xFF1A1A2E)
-                )
-            }
             IconButton(onClick = onAI) {
                 Icon(
                     Icons.Default.MoreVert,
@@ -1309,25 +1293,21 @@ fun AdherenceAndMedsSection(
 // ─────────────────────────────────────
 
 @Composable
-fun RemindersToggleCard(modifier: Modifier = Modifier) {
+fun RemindersToggleCard(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
 
     fun isNotifGranted() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     else true
 
-    var enabled by rememberSaveable { mutableStateOf(isNotifGranted()) }
-
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> enabled = granted }
-
-    fun openNotifSettings() {
-        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-        }
-        context.startActivity(intent)
-    }
+    ) { granted -> if (granted) onToggle(true) }
 
     Row(
         modifier = modifier
@@ -1335,6 +1315,10 @@ fun RemindersToggleCard(modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(16.dp))
             .background(if (enabled) Color(0xFFF0FBF8) else Color(0xFFF8F8F8))
             .border(1.dp, if (enabled) Color(0xFFCCEDE5) else Color(0xFFE5E5EA), RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onNavigateToNotifications() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1372,15 +1356,10 @@ fun RemindersToggleCard(modifier: Modifier = Modifier) {
         Switch(
             checked = enabled,
             onCheckedChange = { isOn ->
-                if (isOn) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        enabled = true
-                        openNotifSettings()
-                    }
+                if (isOn && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isNotifGranted()) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else {
-                    openNotifSettings()
+                    onToggle(isOn)
                 }
             },
             colors = SwitchDefaults.colors(

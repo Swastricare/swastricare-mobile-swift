@@ -471,7 +471,8 @@ private fun NavGraphBuilder.addDetailRoutes(
             onNavigateToAddMedication = { navController.navigate("add_medication") },
             onNavigateToDetail = { id -> navController.navigate("medication_detail/$id") },
             onNavigateToAI = { navController.popBackStack("main", inclusive = false) },
-            onNavigateToAllMedications = { navController.navigate("all_medications") }
+            onNavigateToAllMedications = { navController.navigate("all_medications") },
+            onNavigateToNotifications = { navController.navigate("notification_settings") }
         )
     }
 

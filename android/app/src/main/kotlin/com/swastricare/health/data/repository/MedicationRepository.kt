@@ -40,7 +40,8 @@ class SupabaseMedicationRepository @javax.inject.Inject constructor(
             supabaseClient.from("medications").select {
                 filter {
                     eq("health_profile_id", profileId)
-                    eq("status", "active")
+                    // Exclude soft-deleted records; all other statuses (active, completed, paused, stopped) are shown
+                    neq("status", "discontinued")
                 }
             }.decodeList<MedicationDto>()
         } catch (e: Exception) {
