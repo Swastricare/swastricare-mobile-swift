@@ -80,6 +80,8 @@ struct AddFoodView: View {
                                 scanBarcodeButton
 
                                 customFoodButton
+
+                                allFoodsSection
                             }
                         }
                         .padding(.bottom, 20)
@@ -440,6 +442,75 @@ struct AddFoodView: View {
                                         .foregroundColor(AppColors.aiTeal)
                                 }
                                 .buttonStyle(ScaleButtonStyle())
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 10)
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - All Foods Section (full catalog browse, mirrors Android)
+
+    @ViewBuilder
+    private var allFoodsSection: some View {
+        let foods = viewModel.foodItemsCache
+        if !foods.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("All Foods")
+                    .font(.poppins(.semiBold, size: 13))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+
+                VStack(spacing: 6) {
+                    ForEach(foods) { food in
+                        Button {
+                            selectedFoodForQuantity = food
+                        } label: {
+                            HStack(spacing: 12) {
+                                Text(food.category.icon)
+                                    .font(.poppins(.regular, size: 28))
+                                    .frame(width: 44, height: 44)
+                                    .background(AppColors.aiTeal.opacity(0.10))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(AppColors.aiTeal.opacity(0.15), lineWidth: 0.8)
+                                    )
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(spacing: 6) {
+                                        VegIndicator(isVegetarian: food.isVegetarian)
+                                        Text(food.name)
+                                            .font(.poppins(.medium, size: 15))
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                    }
+
+                                    HStack(spacing: 6) {
+                                        Text(food.displayServingSize)
+                                            .font(.poppins(.regular, size: 12))
+                                            .foregroundColor(.secondary)
+                                        Text("\u{00B7}")
+                                            .foregroundColor(.secondary)
+                                        Text(food.caloriesPerServing)
+                                            .font(.poppins(.semiBold, size: 12))
+                                            .foregroundColor(AppColors.aiTeal)
+                                    }
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.poppins(.regular, size: 22))
+                                    .foregroundColor(AppColors.aiTeal)
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 10)
