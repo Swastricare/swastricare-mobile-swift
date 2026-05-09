@@ -102,6 +102,27 @@ class SupabaseMedicationRepository @javax.inject.Inject constructor(
         }
     }
 
+    override suspend fun fetchLogsForDateRange(
+        profileId: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<MedicationLogDto> {
+        val start = startDate.atStartOfDay().format(isoFormatter)
+        val end = endDate.plusDays(1).atStartOfDay().format(isoFormatter)
+        return try {
+            supabaseClient.from("medication_logs").select {
+                filter {
+                    eq("health_profile_id", profileId)
+                    gte("scheduled_time", start)
+                    lt("scheduled_time", end)
+                }
+            }.decodeList<MedicationLogDto>()
+        } catch (e: Exception) {
+            android.util.Log.e("MedicationRepo", "Error: ${e.message}", e)
+            emptyList()
+        }
+    }
+
     override suspend fun upsertMedication(medication: MedicationDto): Result<MedicationDto> {
         return try {
             // Upsert and return the input object (we already have all fields with our generated UUID)

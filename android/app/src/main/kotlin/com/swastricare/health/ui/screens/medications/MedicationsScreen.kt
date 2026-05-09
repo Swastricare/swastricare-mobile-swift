@@ -41,7 +41,9 @@ fun MedicationsScreen(
     onNavigateToDetail: (String) -> Unit,
     onNavigateToAI: () -> Unit,
     onNavigateToAllMedications: () -> Unit = {},
-    onNavigateToNotifications: () -> Unit = {}
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToCalendar: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {}
 ) {
     TrackScreen("Medications")
     val vm: MedicationsViewModel = hiltViewModel()
@@ -86,8 +88,10 @@ fun MedicationsScreen(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { msg ->
+    val showFullScreenError = uiState.error != null && uiState.medicationsWithDoses.isEmpty()
+    LaunchedEffect(uiState.error, showFullScreenError) {
+        val msg = uiState.error
+        if (msg != null && !showFullScreenError) {
             snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
             vm.clearError()
         }
@@ -97,10 +101,17 @@ fun MedicationsScreen(
         containerColor = Color.White,
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        if (uiState.isLoading && uiState.medicationsWithDoses.isEmpty()) {
+        if (uiState.isLoading && uiState.medicationsWithDoses.isEmpty() && uiState.error == null) {
             Box(Modifier.padding(innerPadding)) {
                 MedicationScreenSkeleton()
             }
+        } else if (showFullScreenError) {
+            MedicationLoadErrorView(
+                message = uiState.error ?: "Something went wrong.",
+                isRetrying = uiState.isLoading,
+                onRetry = { vm.loadMedications() },
+                modifier = Modifier.padding(innerPadding)
+            )
         } else {
             LazyColumn(
                 modifier = Modifier
@@ -112,7 +123,8 @@ fun MedicationsScreen(
                 item {
                     MedHeroSection(
                         onBack = onNavigateBack,
-                        onAI = onNavigateToAI
+                        onCalendar = onNavigateToCalendar,
+                        onAnalytics = onNavigateToAnalytics
                     )
                 }
 
@@ -267,4 +279,71 @@ private fun SkipReasonDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+// ─────────────────────────────────────
+// MARK: - Load Error View
+// ─────────────────────────────────────
+
+@Composable
+private fun MedicationLoadErrorView(
+    message: String,
+    isRetrying: Boolean,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isOffline = message.contains("internet", ignoreCase = true) ||
+        message.contains("network", ignoreCase = true) ||
+        message.contains("connection", ignoreCase = true)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = if (isOffline) Icons.Default.CloudOff else Icons.Default.ErrorOutline,
+            contentDescription = null,
+            tint = Color(0xFFFF6B6B),
+            modifier = Modifier.size(56.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            if (isOffline) "You're offline" else "Couldn't load medications",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF1A1A2E),
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            message,
+            fontSize = 14.sp,
+            color = Color(0xFF666666),
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(24.dp))
+        Button(
+            onClick = onRetry,
+            enabled = !isRetrying,
+            colors = ButtonDefaults.buttonColors(containerColor = AITeal),
+            shape = RoundedCornerShape(24.dp),
+            contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp)
+        ) {
+            if (isRetrying) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Retrying...", fontWeight = FontWeight.SemiBold)
+            } else {
+                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Retry", fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
 }

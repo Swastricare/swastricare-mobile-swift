@@ -190,17 +190,42 @@ data class AdherenceStatistics(
 private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 private val isoDateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
 
+/** True when [date] falls within the medication's active window. */
+fun MedicationDto.isActiveOn(date: LocalDate): Boolean {
+    val start = parseMedicationDate(startDate) ?: parseMedicationDate(createdAt)
+    if (start != null && date.isBefore(start)) return false
+    if (!isOngoing) {
+        val end = parseMedicationDate(endDate)
+        if (end != null && date.isAfter(end)) return false
+    }
+    return true
+}
+
+private fun parseMedicationDate(value: String?): LocalDate? {
+    if (value.isNullOrBlank()) return null
+    return try {
+        LocalDate.parse(value.take(10))
+    } catch (e: Exception) { null }
+}
+
 /** Build today's doses from a schedule — used when no log entry exists yet */
 fun MedicationScheduleDto.buildDosesForDate(
     medication: MedicationDto,
     date: LocalDate,
     existingLogs: List<MedicationLogDto>
 ): List<MedicationDose> {
+    if (!medication.isActiveOn(date)) return emptyList()
+    val today = LocalDate.now()
     val times = expandScheduleTimes(timeOfDay, frequencyPerDay)
     return times.map { timeStr ->
         val scheduledDt = parseScheduledDateTime(date, timeStr)
         val log = existingLogs.firstOrNull { log ->
             matchesScheduledTime(log.scheduledTime, scheduledDt)
+        }
+        val resolvedStatus = when {
+            log != null -> AdherenceStatus.fromDb(log.status)
+            date.isBefore(today) -> AdherenceStatus.MISSED
+            else -> AdherenceStatus.PENDING
         }
         MedicationDose(
             logId = log?.id,
@@ -210,7 +235,7 @@ fun MedicationScheduleDto.buildDosesForDate(
             dosage = "${medication.dosage ?: ""} ${medication.dosageUnit ?: ""}".trim(),
             medicationType = MedicationType.fromDbForm(medication.form),
             scheduledTime = scheduledDt,
-            status = if (log != null) AdherenceStatus.fromDb(log.status) else AdherenceStatus.PENDING,
+            status = resolvedStatus,
             takenAt = log?.takenTime?.let { parseIsoDateTime(it) },
             skipReason = log?.skipReason
         )

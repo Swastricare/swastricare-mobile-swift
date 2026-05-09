@@ -119,10 +119,17 @@ class MedicationsViewModel @Inject constructor(
 
     fun loadMedications(date: LocalDate = _uiState.value.selectedDate) {
         viewModelScope.launch {
-            if (!hasEverLoaded) {
-                _uiState.value = _uiState.value.copy(isLoading = true, error = null, selectedDate = date)
+            val current = _uiState.value
+            val hasData = current.medicationsWithDoses.isNotEmpty()
+            _uiState.value = if (!hasEverLoaded || (!hasData && current.error == null)) {
+                current.copy(isLoading = true, error = null, selectedDate = date)
+            } else if (!hasData && current.error != null) {
+                // Retrying from the offline/error state — show progress, keep error
+                // until the attempt resolves so the UI doesn't flash to empty.
+                current.copy(isLoading = true, selectedDate = date)
             } else {
-                _uiState.value = _uiState.value.copy(error = null, selectedDate = date)
+                // Background refresh while data is on screen — clear stale error.
+                current.copy(error = null, selectedDate = date)
             }
 
             try {
@@ -155,7 +162,7 @@ class MedicationsViewModel @Inject constructor(
                 hasEverLoaded = true
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Unable to load medications. Please try again."
+                    error = UserFriendlyError.from(e)
                 )
             }
         }

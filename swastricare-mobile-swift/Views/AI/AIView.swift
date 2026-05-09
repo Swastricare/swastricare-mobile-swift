@@ -171,15 +171,6 @@ struct AIView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button("Done") {
-                            isInputFocused = false
-                        }
-                        .font(.poppins(.semiBold, size: 17))
-                        .foregroundColor(viewModel.selectedAIMode == .medical ? Color(hex: "00A86B") : Color(hex: "22C5A6"))
-                    }
-
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             // MARK: - Hidden for Android-parity port (Saved Advice kept for future)
@@ -1075,14 +1066,146 @@ private struct MarkdownTextView: View {
     let content: String
 
     var body: some View {
-        if let attributed = try? AttributedString(markdown: content, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
-            Text(attributed)
-                .font(.poppins(.regular, size: 15))
-                .tint(Color(hex: "22C5A6"))
-        } else {
-            Text(content)
-                .font(.poppins(.regular, size: 15))
+        MarkdownBlockView(content: content)
+    }
+}
+
+private struct MarkdownBlockView: View {
+    let content: String
+
+    private enum Block {
+        case h1(String), h2(String), h3(String)
+        case bullet(String)
+        case numbered(Int, String)
+        case code(String)
+        case blockquote(String)
+        case paragraph(String)
+        case divider
+    }
+
+    private func parse(_ text: String) -> [Block] {
+        var blocks: [Block] = []
+        var codeLines: [String] = []
+        var inCode = false
+        var numberedIndex = 1
+
+        for line in text.components(separatedBy: "\n") {
+            if line.hasPrefix("```") {
+                if inCode {
+                    blocks.append(.code(codeLines.joined(separator: "\n")))
+                    codeLines = []
+                    inCode = false
+                } else {
+                    inCode = true
+                }
+                continue
+            }
+            if inCode { codeLines.append(line); continue }
+
+            if line == "---" || line == "***" || line == "___" {
+                blocks.append(.divider)
+            } else if line.hasPrefix("### ") {
+                blocks.append(.h3(String(line.dropFirst(4))))
+            } else if line.hasPrefix("## ") {
+                blocks.append(.h2(String(line.dropFirst(3))))
+            } else if line.hasPrefix("# ") {
+                blocks.append(.h1(String(line.dropFirst(2))))
+            } else if line.hasPrefix("> ") {
+                blocks.append(.blockquote(String(line.dropFirst(2))))
+            } else if line.hasPrefix("- ") || line.hasPrefix("* ") || line.hasPrefix("• ") {
+                blocks.append(.bullet(String(line.dropFirst(2))))
+                numberedIndex = 1
+            } else if let match = line.range(of: #"^(\d+)\.\s"#, options: .regularExpression) {
+                let after = String(line[match.upperBound...])
+                blocks.append(.numbered(numberedIndex, after))
+                numberedIndex += 1
+            } else if line.trimmingCharacters(in: .whitespaces).isEmpty {
+                numberedIndex = 1
+            } else {
+                blocks.append(.paragraph(line))
+                numberedIndex = 1
+            }
         }
+        if inCode && !codeLines.isEmpty {
+            blocks.append(.code(codeLines.joined(separator: "\n")))
+        }
+        return blocks
+    }
+
+    private func inlineText(_ raw: String) -> Text {
+        guard let attributed = try? AttributedString(markdown: raw, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) else {
+            return Text(raw)
+        }
+        return Text(attributed)
+    }
+
+    var body: some View {
+        let blocks = parse(content)
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                switch block {
+                case .h1(let t):
+                    inlineText(t)
+                        .font(.poppins(.semiBold, size: 20))
+                        .foregroundColor(.primary)
+                        .padding(.top, 4)
+                case .h2(let t):
+                    inlineText(t)
+                        .font(.poppins(.semiBold, size: 17))
+                        .foregroundColor(.primary)
+                        .padding(.top, 2)
+                case .h3(let t):
+                    inlineText(t)
+                        .font(.poppins(.semiBold, size: 15))
+                        .foregroundColor(.primary)
+                case .bullet(let t):
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•")
+                            .font(.poppins(.regular, size: 15))
+                            .foregroundColor(Color(hex: "22C5A6"))
+                        inlineText(t)
+                            .font(.poppins(.regular, size: 15))
+                            .foregroundColor(.primary)
+                    }
+                case .numbered(let n, let t):
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("\(n).")
+                            .font(.poppins(.semiBold, size: 15))
+                            .foregroundColor(Color(hex: "22C5A6"))
+                            .frame(minWidth: 20, alignment: .trailing)
+                        inlineText(t)
+                            .font(.poppins(.regular, size: 15))
+                            .foregroundColor(.primary)
+                    }
+                case .code(let t):
+                    Text(t)
+                        .font(.system(.footnote, design: .monospaced))
+                        .foregroundColor(Color(hex: "22C5A6"))
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(hex: "1E1E1E").opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                case .blockquote(let t):
+                    HStack(spacing: 8) {
+                        Rectangle()
+                            .fill(Color(hex: "22C5A6"))
+                            .frame(width: 3)
+                            .clipShape(RoundedRectangle(cornerRadius: 2))
+                        inlineText(t)
+                            .font(.poppins(.regular, size: 14))
+                            .foregroundColor(.secondary)
+                    }
+                case .divider:
+                    Divider().opacity(0.4)
+                case .paragraph(let t):
+                    inlineText(t)
+                        .font(.poppins(.regular, size: 15))
+                        .foregroundColor(.primary)
+                }
+            }
+        }
+        .tint(Color(hex: "22C5A6"))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

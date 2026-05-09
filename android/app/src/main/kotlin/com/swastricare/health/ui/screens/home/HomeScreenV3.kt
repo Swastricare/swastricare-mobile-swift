@@ -161,44 +161,6 @@ fun HomeScreenV3(
 
             Spacer(Modifier.height(sectionGap - 10.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Today's Activity",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DarkText
-                )
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(if (isRefreshing) PremiumColors.Teal.copy(alpha = 0.1f) else Color(0xFFF3F4F6), CircleShape)
-                        .clickable(enabled = !isRefreshing) {
-                            isRefreshing = true
-                            viewModel.refresh()
-                            medicationsViewModel.loadMedications()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = if (isRefreshing) PremiumColors.Teal else MutedText,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .then(if (isRefreshing) Modifier.rotate(rotation) else Modifier)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
             DailyActivityCard(
                 steps = uiState.stepCount,
                 stepGoal = uiState.activityGoals.dailyStepsGoal,

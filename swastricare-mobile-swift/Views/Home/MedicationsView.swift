@@ -15,6 +15,8 @@ struct MedicationsView: View {
     @State private var showAddMedication = false
     @State private var showAllMedications = false
     @State private var showNotificationSettings = false
+    @State private var showAnalytics = false
+    @State private var showCalendar = false
     @State private var selectedMedication: MedicationWithAdherence?
     @State private var skipDialogDose: MedicationAdherence?
     @State private var skipReason = ""
@@ -58,6 +60,12 @@ struct MedicationsView: View {
         }
         .sheet(isPresented: $showNotificationSettings) {
             NotificationSettingsView(viewModel: DependencyContainer.shared.hydrationViewModel)
+        }
+        .sheet(isPresented: $showAnalytics) {
+            MedicationAnalyticsView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showCalendar) {
+            MedicationCalendarView(viewModel: viewModel)
         }
         .sheet(item: $selectedMedication) { med in
             MedicationDetailView(medication: med.medication, viewModel: viewModel)
@@ -122,6 +130,26 @@ struct MedicationsView: View {
                             .foregroundColor(Color(hex: "666666"))
                     }
                     Spacer()
+                    Button(action: { showCalendar = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.85))
+                                .frame(width: 38, height: 38)
+                            Image(systemName: "calendar")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(aiTeal)
+                        }
+                    }
+                    Button(action: { showAnalytics = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.85))
+                                .frame(width: 38, height: 38)
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(aiTeal)
+                        }
+                    }
                 }
                 .padding(.horizontal, 8)
                 .padding(.top, 8)

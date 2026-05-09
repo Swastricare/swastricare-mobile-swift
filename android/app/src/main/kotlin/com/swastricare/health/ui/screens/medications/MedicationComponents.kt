@@ -817,7 +817,8 @@ fun ScheduleTemplateCard(
 @Composable
 fun MedHeroSection(
     onBack: () -> Unit,
-    onAI: () -> Unit,
+    onCalendar: () -> Unit = {},
+    onAnalytics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -894,10 +895,17 @@ fun MedHeroSection(
                     color = Color(0xFF666666)
                 )
             }
-            IconButton(onClick = onAI) {
+            IconButton(onClick = onCalendar) {
                 Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = "More",
+                    Icons.Default.CalendarMonth,
+                    contentDescription = "Calendar",
+                    tint = Color(0xFF1A1A2E)
+                )
+            }
+            IconButton(onClick = onAnalytics) {
+                Icon(
+                    Icons.Default.BarChart,
+                    contentDescription = "Analytics",
                     tint = Color(0xFF1A1A2E)
                 )
             }
@@ -1075,11 +1083,17 @@ fun ScheduleMedRow(
                         Text("Upcoming", fontSize = 12.sp, color = Color(0xFF888888))
                     }
                 }
-                dose.status == AdherenceStatus.MISSED -> {
+                dose.status == AdherenceStatus.MISSED ||
+                    (dose.status == AdherenceStatus.PENDING && dose.scheduledTime.isBefore(now)) -> {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
                             .border(1.dp, Color(0xFFFF3B30).copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                enabled = dose.status == AdherenceStatus.PENDING
+                            ) { onTaken() }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text("Missed", fontSize = 12.sp, color = Color(0xFFFF3B30))
@@ -1096,7 +1110,7 @@ fun ScheduleMedRow(
                     }
                 }
                 else -> {
-                    // PENDING + current/overdue → Take Now
+                    // PENDING + current → Take Now
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))

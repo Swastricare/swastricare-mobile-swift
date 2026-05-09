@@ -28,6 +28,7 @@ interface MedicationRepository {
     suspend fun fetchSchedules(profileId: String): List<MedicationScheduleDto>
     suspend fun fetchTodayLogs(profileId: String, date: LocalDate = LocalDate.now()): List<MedicationLogDto>
     suspend fun fetchWeekLogs(profileId: String, weekStart: LocalDate): List<MedicationLogDto>
+    suspend fun fetchLogsForDateRange(profileId: String, startDate: LocalDate, endDate: LocalDate): List<MedicationLogDto>
     suspend fun upsertMedication(medication: MedicationDto): Result<MedicationDto>
     suspend fun upsertSchedules(schedules: List<MedicationScheduleDto>): Result<Unit>
     suspend fun markAsTaken(
