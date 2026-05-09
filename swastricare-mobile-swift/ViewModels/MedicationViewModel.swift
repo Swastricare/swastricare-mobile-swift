@@ -255,14 +255,18 @@ final class MedicationViewModel: ObservableObject {
     
     /// Quick mark as taken (from UI button)
     func quickMarkAsTaken(medicationWithAdherence: MedicationWithAdherence) async throws {
-        // Find next pending or overdue dose
-        let nextDose = medicationWithAdherence.overdueDose ?? medicationWithAdherence.nextDose
-        
-        guard let dose = nextDose else {
+        // Priority: overdue (>2h past) → recent past (0-2h) → upcoming
+        let dose = medicationWithAdherence.overdueDose
+            ?? medicationWithAdherence.todayDoses
+                .filter { $0.status == .pending }
+                .sorted { $0.scheduledTime < $1.scheduledTime }
+                .first
+
+        guard let dose = dose else {
             errorMessage = "No pending dose to mark"
             return
         }
-        
+
         try await markAsTaken(medicationId: medicationWithAdherence.medication.id, scheduledTime: dose.scheduledTime)
     }
     

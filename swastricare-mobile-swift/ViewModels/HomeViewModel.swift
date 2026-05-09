@@ -35,12 +35,16 @@ final class HomeViewModel: ObservableObject {
     var bloodPressure: String { healthMetrics.bloodPressure }
     var weight: String { healthMetrics.weight }
     
+    // Set by HomeView after runActivityViewModel loads
+    var dailyStepsGoal: Int = 10000
+    var dailyCaloriesGoal: Int = 500
+
     var stepProgress: Double {
-        min(Double(stepCount) / 10000.0, 1.0)
+        min(Double(stepCount) / Double(max(dailyStepsGoal, 1)), 1.0)
     }
-    
+
     var calorieProgress: Double {
-        min(Double(activeCalories) / 500.0, 1.0)
+        min(Double(activeCalories) / Double(max(dailyCaloriesGoal, 1)), 1.0)
     }
     
     var exerciseProgress: Double {
@@ -127,7 +131,7 @@ final class HomeViewModel: ObservableObject {
         // Keep Steps widget in sync with latest HealthKit totals
         WidgetService.shared.saveStepsData(
             currentSteps: metrics.steps,
-            dailyGoal: 10000,
+            dailyGoal: dailyStepsGoal,
             distanceKm: metrics.distance,
             calories: metrics.activeCalories
         )
@@ -143,7 +147,7 @@ final class HomeViewModel: ObservableObject {
                 calories: metrics.activeCalories,
                 hydrationMl: 0, // Hydration is updated separately
                 hydrationGoalMl: 2500,
-                stepGoal: 10000
+                stepGoal: dailyStepsGoal
             )
         }
 

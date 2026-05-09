@@ -130,16 +130,26 @@ final class MedicationService: MedicationServiceProtocol {
         medications[index] = medication
         
         try saveMedicationsToStorage(medications)
-        
-        // If schedule changed, reschedule notifications
-        if oldMedication.scheduledTimes != medication.scheduledTimes {
+
+        let statusChanged = oldMedication.status != medication.status
+        let isNowActive = medication.status == .active
+
+        if statusChanged {
+            if isNowActive {
+                // Became active — schedule notifications and refresh adherence records
+                await cancelMedicationNotifications(for: medication.id)
+                await scheduleMedicationNotifications(for: medication)
+                await updateTodayAdherenceRecords(for: medication)
+            } else {
+                // No longer active — cancel all pending notifications
+                await cancelMedicationNotifications(for: medication.id)
+            }
+        } else if oldMedication.scheduledTimes != medication.scheduledTimes && isNowActive {
             await cancelMedicationNotifications(for: medication.id)
             await scheduleMedicationNotifications(for: medication)
-            
-            // Update today's adherence records if times changed
             await updateTodayAdherenceRecords(for: medication)
         }
-        
+
         print("💊 MedicationService: Updated medication '\(medication.name)'")
     }
     
@@ -237,7 +247,7 @@ final class MedicationService: MedicationServiceProtocol {
     /// Get active medications for a specific date
     func getActiveMedications(for date: Date = Date()) -> [Medication] {
         let medications = loadMedications()
-        return medications.filter { $0.isActive(on: date) }
+        return medications.filter { $0.isActive(on: date) && $0.status == .active }
     }
     
     /// Get today's medications with adherence info
@@ -250,9 +260,10 @@ final class MedicationService: MedicationServiceProtocol {
         }
     }
     
-    /// Get adherence statistics for a date
+    /// Get adherence statistics for a date (active medications only)
     func getAdherenceStatistics(for date: Date = Date()) -> AdherenceStatistics {
-        let records = loadAdherenceRecords(for: nil, date: date)
+        let activeMedIds = Set(getActiveMedications(for: date).map { $0.id })
+        let records = loadAdherenceRecords(for: nil, date: date).filter { activeMedIds.contains($0.medicationId) }
         return AdherenceStatistics(adherenceRecords: records)
     }
     

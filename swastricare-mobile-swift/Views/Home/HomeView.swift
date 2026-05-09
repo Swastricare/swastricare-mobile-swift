@@ -238,6 +238,9 @@ struct HomeView: View {
             await medicationViewModel.loadMedications()
             await dietViewModel.loadData()
             await runActivityViewModel.loadData()
+            // Sync actual user goals to HomeViewModel (widget + live-activity)
+            viewModel.dailyStepsGoal = runActivityViewModel.activityGoal.dailyStepsGoal
+            viewModel.dailyCaloriesGoal = runActivityViewModel.activityGoal.dailyCaloriesGoal
         }
         .refreshable {
             await viewModel.refresh()
@@ -246,6 +249,8 @@ struct HomeView: View {
             await medicationViewModel.refresh()
             await dietViewModel.refresh()
             await runActivityViewModel.loadData()
+            viewModel.dailyStepsGoal = runActivityViewModel.activityGoal.dailyStepsGoal
+            viewModel.dailyCaloriesGoal = runActivityViewModel.activityGoal.dailyCaloriesGoal
         }
     }
 
@@ -1034,6 +1039,7 @@ private struct HealthLiveActivityToggle: View {
     let steps: Int
     let heartRate: Int
     let calories: Int
+    var stepGoal: Int = 10000
 
     @ObservedObject private var manager = HealthLiveActivityManager.shared
 
@@ -1051,7 +1057,7 @@ private struct HealthLiveActivityToggle: View {
                         calories: calories,
                         hydrationMl: 0,
                         hydrationGoalMl: 2500,
-                        stepGoal: 10000
+                        stepGoal: stepGoal
                     )
                 }
             }

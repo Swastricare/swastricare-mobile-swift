@@ -7,8 +7,37 @@
 //
 
 import Foundation
+import SwiftUI
 
 // MARK: - Medication
+
+enum MedicationStatus: String, Codable, CaseIterable {
+    case active       = "active"
+    case paused       = "paused"
+    case completed    = "completed"
+    case stopped      = "stopped"
+    case discontinued = "discontinued"
+
+    var displayName: String {
+        switch self {
+        case .active:       return "Active"
+        case .paused:       return "Paused"
+        case .completed:    return "Completed"
+        case .stopped:      return "Stopped"
+        case .discontinued: return "Discontinued"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .active:       return Color(hex: "34C759")
+        case .paused:       return Color(hex: "FF9500")
+        case .completed:    return Color(hex: "007AFF")
+        case .stopped:      return Color(hex: "FF3B30")
+        case .discontinued: return Color(hex: "8E8E93")
+        }
+    }
+}
 
 struct Medication: Identifiable, Codable, Equatable {
     let id: UUID
@@ -21,11 +50,12 @@ struct Medication: Identifiable, Codable, Equatable {
     var endDate: Date?
     var isOngoing: Bool
     var notes: String?
+    var status: MedicationStatus
     var userId: UUID?
     var isSynced: Bool
     var createdAt: Date
     var updatedAt: Date
-    
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -37,6 +67,7 @@ struct Medication: Identifiable, Codable, Equatable {
         endDate: Date? = nil,
         isOngoing: Bool = true,
         notes: String? = nil,
+        status: MedicationStatus = .active,
         userId: UUID? = nil,
         isSynced: Bool = false,
         createdAt: Date = Date(),
@@ -52,6 +83,7 @@ struct Medication: Identifiable, Codable, Equatable {
         self.endDate = endDate
         self.isOngoing = isOngoing
         self.notes = notes
+        self.status = status
         self.userId = userId
         self.isSynced = isSynced
         self.createdAt = createdAt
@@ -153,21 +185,18 @@ enum MedicationSchedule: Codable, Equatable {
         
         switch self {
         case .onceDaily:
-            // 8 AM
-            return [calendar.date(bySettingHour: 8, minute: 0, second: 0, of: today) ?? today]
-            
+            return [calendar.date(bySettingHour: 9, minute: 0, second: 0, of: today) ?? today]
+
         case .twiceDaily:
-            // 8 AM, 9 PM
             return [
-                calendar.date(bySettingHour: 8, minute: 0, second: 0, of: today) ?? today,
+                calendar.date(bySettingHour: 9,  minute: 0, second: 0, of: today) ?? today,
                 calendar.date(bySettingHour: 21, minute: 0, second: 0, of: today) ?? today
             ]
-            
+
         case .thriceDaily:
-            // 8 AM, 2 PM, 9 PM
             return [
-                calendar.date(bySettingHour: 8, minute: 0, second: 0, of: today) ?? today,
-                calendar.date(bySettingHour: 14, minute: 0, second: 0, of: today) ?? today,
+                calendar.date(bySettingHour: 9,  minute: 0, second: 0, of: today) ?? today,
+                calendar.date(bySettingHour: 13, minute: 0, second: 0, of: today) ?? today,
                 calendar.date(bySettingHour: 21, minute: 0, second: 0, of: today) ?? today
             ]
             
